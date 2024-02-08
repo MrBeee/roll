@@ -71,15 +71,15 @@ Once the geometry has been defined, binning analysis can directly be done using 
 
 As the survey file always contains a (projected) coordinate reference system (CRS) these three maps can be exported to the current QGIS project as a georeferenced Tiff (GeoTiff) file. These files can also be exported as a standalone GeoTiff file from the  File -> Export menu.
 
-The templates can be converted into geometry files, consisting of (a) a source file, (b) a receiver file and (c) a relation file, similar how this is done with the SPS format. The source- and receiver points from the source and receiver files can be exported to the current QGIS project as an ArcGIS Shape file, where these points can be inspected, moved around or deleted. Edited points can be re-imported into Roll to assess the impact on fold, etc.
+The templates can be converted into geometry files, consisting of (a) a source file, (b) a receiver file and (c) a relation file, similar how this is managed in the SPS format. The source- and receiver points from the source and receiver files can be exported to the current QGIS project as an ArcGIS Shape file, where these points can be inspected, moved around or deleted. Edited points can be re-imported into Roll to assess the impact on fold, etc.
 
 The geometry files themselves can also be exported as SPS-files.
 
-If (legacy) SPS data is available, this can be imported from the file menu, and is treated the same as the internally generated geometry files. This makes it handy to analyze survey performance based solely on SPS-data. This SPS data can also be exported to the current QGIS project
+If (legacy) SPS data is available, this can be imported from the file menu, and is treated the same as the internally generated geometry files. This makes it handy to analyze survey performance based solely on SPS-data. This SPS data can also be exported to the current QGIS project.
 
 As it is cumbersome to manipulate xml-data, the user is helped on two levels:
 
-1. Creating a new project is done using a survey wizard. At present there is one wizard suitable to generate land seismic and OBN templates. A marine izard is in the making
+1. Creating a new project is done using a survey wizard. At present there is one wizard suitable to generate templates for land seismic and OBN-data. A marine izard is in the making.
 2. Parameters can be modified added or deleted from the property pane. Behind the scenes, this updates the xml-structure, which is always visible from the Xml-tab in the main window.
 
 #### 2	Current status
