@@ -1,0 +1,94 @@
+# Roll
+
+### Seismic survey design plugin for QGIS
+
+#### 1	Introduction
+
+**Roll** is a plugin aimed at designing 3D seismic survey geometries, using a template approach.
+
+- Each survey consists of one or more (rectangular) *blocks*
+- Each block contains at least two *templates* 
+  - One for *receiver* layout
+  - One for *source* layout
+- Each template contains one or more seeds
+- A seed defines the starting location of a single *source / receiver*
+- Each seed can be **grown** up to three times
+  - The 1st grow step changes a seed position into a line segment (sequence) of positions
+  - The 2nd grow step changes a line segment into a multitude (grid) of lines 
+  - The 3rd grow step changes the grid into a sequence of (intertwined) grids
+- The seeds, combined with their grow steps, define the active sources and receivers in a template
+- Each template can be **rolled**  in up to three directions, for instance:
+  - Firstly in the inline direction, at source line intervals
+  - Secondly in the crossline direction, at receiver line intervals
+  - Optionally at a skew angle for fancy designs
+
+The hierarchy in this approach is reflected in the xml-based survey-file structure: 
+
+```xml
+<block_list>
+    <block>
+        <name>Block-1</name>
+        <borders>
+           <src_border xmin="-20000.0" xmax="20000.0" ymin="-20000.0" ymax="20000.0"/>
+           <rec_border xmin="0.0" xmax="0.0" ymin="0.0" ymax="0.0"/>
+        </borders>
+        <template_list>
+            <template>
+                <name>Template-1</name>
+                <roll_list>
+                    <translate n="10" dx="0.0" dy="200.0"/>
+                    <translate n="10" dx="250.0" dy="0.0"/>
+                </roll_list>
+                <seed_list>
+                    <seed x0="5975.0" src="True" y0="625.0" argb="#77ff0000" typno="0" azi="False" patno="0">
+                        <name>Src-1</name>
+                        <grow_list>
+                            <translate n="1" dx="250.0" dy="0.0"/>
+                            <translate n="4" dx="0.0" dy="50.0"/>
+                        </grow_list>
+                    </seed>
+                    <seed x0="0.0" src="False" y0="0.0" argb="#7700b0f0" typno="0" azi="False" patno="1">
+                        <name>Rec-1</name>
+                        <grow_list>
+                            <translate n="8" dx="0.0" dy="200.0"/>
+                            <translate n="240" dx="50.0" dy="0.0"/>
+                        </grow_list>
+                    </seed>
+               </seed_list>
+            </template>
+        </template_list>
+    </block>
+</block_list>
+```
+
+*Excerpt from a .roll file*
+
+Once the geometry has been defined, binning analysis can directly be done using the template-based approach.
+
+- A **fold map** can be created to shows (offset dependent) fold
+- A **minimum offset map** can be created to show minimum offsets coverage
+- A **maximum offset map** can be created to show maximum offsets coverage
+
+As the survey file always contains a (projected) coordinate reference system (CRS) these three maps can be exported to the current QGIS project as a georeferenced Tiff (GeoTiff) file. These files can also be exported as a standalone GeoTiff file from the  File -> Export menu.
+
+The templates can be converted into geometry files, consisting of (a) a source file, (b) a receiver file and (c) a relation file, similar how this is done with the SPS format. The source- and receiver points from the source and receiver files can be exported to the current QGIS project as an ArcGIS Shape file, where these points can be inspected, moved around or deleted. Edited points can be re-imported into Roll to assess the impact on fold, etc.
+
+The geometry files themselves can also be exported as SPS-files.
+
+If (legacy) SPS data is available, this can be imported from the file menu, and is treated the same as the internally generated geometry files. This makes it handy to analyze survey performance based solely on SPS-data. This SPS data can also be exported to the current QGIS project
+
+As it is cumbersome to manipulate xml-data, the user is helped on two levels:
+
+1. Creating a new project is done using a survey wizard. At present there is one wizard suitable to generate land seismic and OBN templates. A marine izard is in the making
+2. Parameters can be modified added or deleted from the property pane. Behind the scenes, this updates the xml-structure, which is always visible from the Xml-tab in the main window.
+
+#### 2	Current status
+
+As of **8 Feb 2024 **, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
+
+Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
+
+#### 3	Still To Do
+
+Create Marine towed-streamer wizard.
+
