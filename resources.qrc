@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/roll" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>

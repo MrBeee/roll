@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   height="32"
+   width="32"
+   version="1.1"
+   id="svg8"
+   sodipodi:docname="file_import_sps.svg"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs12" />
+  <sodipodi:namedview
+     id="namedview10"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="32.09375"
+     inkscape:cx="14.722493"
+     inkscape:cy="16"
+     inkscape:window-width="2560"
+     inkscape:window-height="1361"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg8" />
+  <g
+     fill="#fcd94f"
+     stroke="#b29a37"
+     stroke-linejoin="round"
+     transform="translate(0 -1020.3622)"
+     id="g6"
+     style="fill:#eeeeee;fill-opacity:1">
+    <path
+       d="m1.5 1047.3622c0-8 0-15.5 0-22.5h9v3h16v19.5z"
+       id="path2"
+       style="fill:#eeeeee;fill-opacity:1" />
+    <path
+       d="m1.5 1047.3622 4-16h25l-4 16z"
+       stroke-linecap="round"
+       id="path4"
+       style="fill:#eeeeee;fill-opacity:1" />
+  </g>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0.813358px;stroke-width:1.19611;fill:#800000"
+     x="4.4932756"
+     y="21.33778"
+     id="text909"
+     transform="scale(0.92302933,1.0833892)"><tspan
+       sodipodi:role="line"
+       id="tspan907"
+       x="4.4932756"
+       y="21.33778"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:1.19611;fill:#800000">SPS</tspan></text>
+</svg>

@@ -1,0 +1,115 @@
+from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
+from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem, SimpleParameter
+from qgis.core import QgsCoordinateReferenceSystem
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QMessageBox, QSizePolicy, QSpacerItem, QWidget
+
+from .my_group import MyGroupParameter, MyGroupParameterItem
+from .my_numerics import MyNumericParameterItem
+
+registerParameterType('myGroup', MyGroupParameter, override=True)
+registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
+
+
+class CrsPreviewLabel(QLabel):
+    def __init__(self, param):
+        super().__init__()
+        param.sigValueChanging.connect(self.onCrsChanging)
+
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        font = self.font()
+        font.setPointSizeF(font.pointSize() - 0.5)
+        self.setFont(font)
+        self.setAlignment(Qt.AlignVCenter)
+
+        opts = param.opts
+        self.decimals = opts.get('decimals', 3)
+
+        self.crs = QgsCoordinateReferenceSystem()                               # create invalid crs object
+        val = opts.get('value', self.crs)
+
+        self.onCrsChanging(None, val)
+
+    def onCrsChanging(self, _, val):
+        self.setText(val.description())
+        self.update()
+
+
+class MyCrs2ParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+        self.itemWidget = QWidget()
+
+        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.crsLabel = CrsPreviewLabel(param)
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)                                                    # spacing between elements
+        layout.addSpacerItem(spacerItem)
+        layout.addWidget(self.crsLabel)
+        self.itemWidget.setLayout(layout)
+
+    def treeWidgetChanged(self):
+        ParameterItem.treeWidgetChanged(self)
+        tw = self.treeWidget()
+        if tw is None:
+            return
+        tw.setItemWidget(self, 1, self.itemWidget)
+
+
+class MyCrs2Parameter(MyGroupParameter):
+
+    itemClass = MyCrs2ParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+        opts['tip'] = 'Expand item to modify CRS'
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyCrs2 Parameter opts')
+
+        self.crs = QgsCoordinateReferenceSystem()   # create invalid crs object
+        self.crs = opts.get('value', self.crs)
+
+        self.addChild(dict(name='CRS', type='myCrs', value=self.crs, default=self.crs))
+        self.addChild(dict(name='Description', type='str', value=self.crs.description(), readonly=True))
+        self.addChild(dict(name='Authority ID', type='str', value=self.crs.authid(), readonly=True))
+        self.addChild(dict(name='Projection type', type='str', value=self.crs.projectionAcronym(), readonly=True))
+
+        self.parC = self.child('CRS')
+        self.parD = self.child('Description')
+        self.parI = self.child('Authority ID')
+        self.parP = self.child('Projection type')
+
+        self.parC.sigValueChanged.connect(self.changed)
+
+    # update the values of the three children
+    def changed(self):
+        crs = self.parC.value()
+
+        if not crs.isValid():
+            QMessageBox.information(None, 'Invalid CRS', 'An invalid coordinate system has been selected', QMessageBox.Cancel)
+            self.parC.setValue(self.crs)
+            return
+
+        if crs.isGeographic():
+            QMessageBox.information(None, 'Invalid CRS', 'An invalid coordinate system has been selected\n(using lat/lon coordinates)', QMessageBox.Cancel)
+            self.parC.setValue(self.crs)
+            return
+
+        self.crs = crs
+
+        self.parD.setValue(self.crs.description())
+        self.parI.setValue(self.crs.authid())
+        self.parP.setValue(value=self.crs.projectionAcronym())
+
+        self.sigValueChanging.emit(self, self.crs)
+
+    def value(self):
+        return self.crs
+
+
+registerParameterType('myCrs2', MyCrs2Parameter, override=True)

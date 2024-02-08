@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   height="24"
+   width="24"
+   version="1.1"
+   id="svg830"
+   sodipodi:docname="Land_new.svg"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs834" />
+  <sodipodi:namedview
+     id="namedview832"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     showgrid="false"
+     inkscape:zoom="47.625"
+     inkscape:cx="10.918635"
+     inkscape:cy="13.994751"
+     inkscape:window-width="1450"
+     inkscape:window-height="1243"
+     inkscape:window-x="1648"
+     inkscape:window-y="51"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg830"
+     inkscape:showpageshadow="2"
+     inkscape:deskcolor="#d1d1d1" />
+  <g
+     fill-rule="evenodd"
+     stroke="#727272"
+     stroke-linejoin="round"
+     transform="translate(0 -1028.3622)"
+     id="g828">
+    <path
+       d="m4.5 1050.8618v-21h10l5 5v16.0004z"
+       fill="#fff"
+       id="path824" />
+    <path
+       d="m14.5 1029.8618v5h5z"
+       fill="#f0f0f0"
+       id="path826" />
+  </g>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:17.8257px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#40c23d;fill-opacity:1;stroke-width:0.954941"
+     x="6.1461635"
+     y="21.186285"
+     id="text31836"
+     transform="scale(1.0000139,0.99998614)"><tspan
+       sodipodi:role="line"
+       id="tspan31834"
+       x="6.1461635"
+       y="21.186285"
+       style="font-weight:bold;stroke-width:0.954941">L</tspan></text>
+</svg>

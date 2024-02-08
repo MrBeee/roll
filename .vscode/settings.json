@@ -1,0 +1,66 @@
+{
+        // 'black' and 'ruff' mess up inline comments, see: https://github.com/astral-sh/ruff/issues/7684
+        // 'blue' however, preserves the whitespace before the hash mark for right hanging comments.
+        // See: https://github.com/grantjenks/blue
+        // For help on how to use 'blue' with VS Code, see: https://github.com/grantjenks/blue/issues/95
+        // To use 'blue' instead of 'black' set 'C:\Users\Bart\AppData\Roaming\Python\Python39\Scripts\blue.exe' as black's formatter path. Sneaky !
+        // See also: https://unbiased-coder.com/python-code-format-black-vs-blue/
+    "[python]": {
+//      "editor.defaultFormatter": "ms-python.autopep8",        // this cut my lines really short, and it moved comments all over the place; very annoying !
+//      "editor.defaultFormatter": "ms-python.black-formatter",
+//      "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.defaultFormatter": null,
+        // "editor.formatOnSave": false,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        },
+      },
+    "editor.codeActionsOnSave": {
+        "source.organizeImports.black": "explicit",
+        "source.fixAll": "never"
+    },
+//  "editor.formatOnSaveMode": "file",
+    "editor.formatOnSave": false,
+    "python.analysis.extraPaths": [
+        "C:\\Program Files\\QGIS 3.28.1\\bin",
+        "C:\\Program Files\\QGIS 3.28.1\\bin\\data",
+        "C:\\Program Files\\QGIS 3.28.1\\bin\\data\\QGIS\\QGIS3",
+        "C:\\Program Files\\QGIS 3.28.1\\apps\\qgis\\python\\qgis\\PyQt",
+        "C:\\Program Files\\QGIS 3.28.1\\apps\\Python39\\Lib\\site-packages",
+        "C:\\users\\bart\\appdata\\roaming\\python\\python39\\site-packages",
+        "C:\\Users\\Bart\\appData\\Roaming\\QGIS\\QGIS3",
+        "C:\\ProgramData\\QGIS\\QGIS3",
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+    "python.autoComplete.extraPaths": [
+        "C:\\Program Files\\QGIS 3.28.1\\bin",
+        "C:\\Program Files\\QGIS 3.28.1\\bin\\data",
+        "C:\\Program Files\\QGIS 3.28.1\\bin\\data\\QGIS\\QGIS3",
+        "C:\\Program Files\\QGIS 3.28.1\\apps\\qgis\\python\\qgis\\PyQt",
+        "C:\\program files\\qgis 3.28.1\\apps\\python39\\lib\\site-packages",
+        "C:\\users\\bart\\appdata\\roaming\\python\\python39\\site-packages",
+        "C:\\Users\\Bart\\appData\\Roaming\\QGIS\\QGIS3",
+        "C:\\ProgramData\\QGIS\\QGIS3",
+    ],
+    "python.defaultInterpreterPath": "C:\\Program Files\\QGIS 3.28.1\\apps\\qgis\\python",
+    "python.languageServer": "Jedi",
+    "pylint.args": [
+        "--max-line-length=210",
+        "--max-module-lines=3000",
+        "--disable=missing-module-docstring",
+        "--disable=missing-class-docstring",
+        "--disable=missing-function-docstring",
+        "--disable=unused-import",
+        "--disable=no-name-in-module",
+        "--disable=unrecognized-option",
+        "--disable=C0321",
+        "--disable=E1136",
+        "--enable=W0611",
+        "--enable=W0614",
+//        "--reportMissingImports=false",
+            ],
+    "workbench.colorCustomizations": {
+        "statusBar.background": "#6a0f78"
+    },
+}
