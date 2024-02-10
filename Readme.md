@@ -4,7 +4,7 @@
 
 #### 1	Introduction
 
-**Roll** is a plugin aimed at designing 3D seismic survey geometries, using a template approach.
+**Roll** is a plugin aimed at designing 3D seismic survey geometries, using a template based approach.
 
 - Each survey consists of one or more (rectangular) *blocks*
 - Each block contains at least two *templates* 
