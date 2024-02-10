@@ -115,7 +115,7 @@ As it is cumbersome to manipulate xml-data directly, the user is helped on two l
 
 #### 4	Current status
 
-As of **8 Feb 2024 **, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
+As of **8 Feb 2024**, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
 
 Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
 
