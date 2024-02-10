@@ -111,6 +111,7 @@ spsFormatList = [
     # configuration settings for locations of fields in SPS data;
     # all indices are 'zero' based and the last number is not included
     # the first character is therefore [0, 1], the last one is [79, 80]
+    # Note: In SEG rev2.1, Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
     dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),
     dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),
     dict(
@@ -119,9 +120,6 @@ spsFormatList = [
         src='S',
         rec='R',
         rel='X',
-        fmt="'%1s',  '%10.2f', '%10.2f ', '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6d'",
-        #      'RecID','Line',   'Point',   'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev', 'Day',  'Time'
-        # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
         line=[1, 12],
         point=[11, 21],
         index=[23, 24],
