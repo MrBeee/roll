@@ -209,6 +209,11 @@ def readSPSFiles(filenames, resultArray, fmt) -> int:
             if len(line) == 0 or line[0] != fmt['src']:
                 continue
 
+            pt0 = fmt['point'][0]
+            pt1 = fmt['point'][1]
+            pnt = line[pt0:pt1]
+            pnt = toFloat(line[pt0:pt1])
+
             lin = toFloat(line[fmt['line'][0] : fmt['line'][1]].strip())
             pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
             idx = toInt(line[fmt['index'][0] : fmt['index'][1]].strip())

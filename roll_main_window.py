@@ -114,7 +114,7 @@ from console import console
 from numpy.compat import asstr
 from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QDateTime, QFile, QFileInfo, QIODevice, QPoint, QSettings, Qt, QTextStream, QThread
+from qgis.PyQt.QtCore import QDateTime, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
 from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
 from qgis.PyQt.QtWidgets import (
@@ -905,7 +905,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             print(f'  data:      {str(data)}')
             print('  ----------')
 
-    def onTabChange(self, index):                                               # manage focus when active tab is changed; doesn't work 100% yet !
+    def onTabChange(self, _index):                                               # manage focus when active tab is changed; doesn't work 100% yet !
         widget = self.tabWidget.currentWidget()
         if isinstance(widget, QCodeEditor):
             widget.setFocus()
@@ -974,6 +974,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.anaView = TableView()
         self.anaView.setModel(self.anaModel)
         self.anaView.resizeColumnsToContents()
+
+        # add8e6  vs d9fffb
+        # See: https://stackoverflow.com/questions/7840325/change-the-selection-color-of-a-qtablewidget
+        table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
+
+        self.anaView.setStyleSheet(table_style)
 
         label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
         self.anaLabel = QLabel('\nANALYSIS records')
@@ -1417,18 +1423,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spiderText.setText(f'S({int(stkX)},{int(stkY)}), fold = {fold}')   # update the label text accordingly
 
         sizeY = self.anaOutput.shape[1]                                         # x-line size of analysis array
-        maxFld = self.anaOutput.shape[2]                                       # max fold from analysis file
-        offset = (nX * sizeY + nY) * maxFld                                    # calculate offset for self.D2_Output array
-        index = self.anaView.model().index(offset, 0)                         # turn offset into index
+        maxFld = self.anaOutput.shape[2]                                        # max fold from analysis file
+        offset = (nX * sizeY + nY) * maxFld                                     # calculate offset for self.D2_Output array
+        index = self.anaView.model().index(offset, 0)                           # turn offset into index
         self.anaView.scrollTo(index)                                            # scroll to index
         self.anaView.selectRow(offset)                                          # for the time being, *only* select first row of traces in a bin
 
-        #   # try to select all traces in a bin
-        #     columnCount = self.anaView.model().columnCount()                        # nr columns in model
-        #     selection = QItemSelection(self.anaView.model().index(offset, 0), self.anaView.model().index(offset + fold - 1, columnCount - 1))
-        #     selModel  = QItemSelectionModel(self.anaView.model())
-        #   # selModel.select(selection, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
-        #     selModel.select(selection)
+        fold = max(fold, 1)
+        fold = 1 if fold == 0 else fold                                         # only highlight one line when fold = 0
+        sm = self.anaView.selectionModel()                                      # select corresponding rows in self.anaView table
+        TL = QModelIndex(self.anaView.model().index(offset, 0))
+        BR = QModelIndex(self.anaView.model().index(offset + fold - 1, 0))
+        selection = QItemSelection(TL, BR)
+        sm.select(selection, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
 
         self.plotSurvey()
 

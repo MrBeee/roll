@@ -4,7 +4,7 @@ import winsound  # make a sound when a record isn't found
 import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QAbstractTableModel, QEvent, Qt, QVariant
-from qgis.PyQt.QtGui import QBrush, QColor, QKeySequence
+from qgis.PyQt.QtGui import QBrush, QColor, QKeySequence, QPalette
 from qgis.PyQt.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QMessageBox, QTableView
 
 # TableModel requires a 2D array to work from
@@ -27,6 +27,11 @@ from qgis.PyQt.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QM
 
 # editable table
 # See: https://www.pythonguis.com/faq/editing-pyqt-tableview/
+
+
+palette = QPalette()
+FG = palette.highlightedText()
+BG = palette.highlight()
 
 
 class AnaTableModel(QAbstractTableModel):
@@ -627,7 +632,7 @@ class SpsTableModel(QAbstractTableModel):
         super().__init__()
         self._data = None
         self._format = '%.2f', '%.2f', '%d', '%s', '%.1f', '%.1f', '%.1f', '%.1f', '%d', '%d', '%.2f', '%.2f'
-        self._header = ['src line', 'rec point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'unique', 'inXps']
+        self._header = ['src line', 'src point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'unique', 'inXps']
         self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)
         self.setData(data)
 
@@ -792,12 +797,11 @@ class XpsTableModel(QAbstractTableModel):
     def data(self, index, role):
         if role == Qt.DisplayRole:
             if self._data is not None:
-
                 record = self._data[index.row()]
 
-                if index.column() == 0 or index.column() == 3 or index.column() == 7:   # format depends on column
+                if index.column() in [0, 2, 3, 7]:                              # format depends on column number
                     value = str(int(record[index.column()]))
-                else:                                                           # show floats for the remainder
+                else:                                                           # show float for remaining columns
                     value = str(float(record[index.column()]))
             else:
                 value = 'n/a'
@@ -940,7 +944,7 @@ class XpsTableModel(QAbstractTableModel):
         return None
 
 
-# This Table first loads the model, and from there can play with the column width
+# This Table first loads the model, and from there you can play with the column width
 # You could use model.columnCount() to distribute available space
 class ResizeTable(QTableView):
     def __init__(self, model, parent=None):
@@ -959,6 +963,9 @@ class ResizeTable(QTableView):
             return self._header[section]
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
+
+# Here is an example how to change background color for selected items:
+# See: https://stackoverflow.com/questions/47880568/how-to-set-each-items-selection-color-of-qtablewidget-in-pyqt5
 
 # Here is an example of a headerData implementation (code is in C++):
 # See: https://doc.qt.io/qt-6/qt.html#ItemDataRole-enum
