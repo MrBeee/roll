@@ -970,16 +970,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # See: https://stackoverflow.com/questions/40225270/copy-paste-multiple-items-from-qtableview-in-pyqt4
         self.anaModel = AnaTableModel(self.D2_Output)
 
+        # See: https://stackoverflow.com/questions/7840325/change-the-selection-color-of-a-qtablewidget
+        table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
+
         # first create the widget(s)
         self.anaView = TableView()
         self.anaView.setModel(self.anaModel)
         self.anaView.resizeColumnsToContents()
-
-        # add8e6  vs d9fffb
-        # See: https://stackoverflow.com/questions/7840325/change-the-selection-color-of-a-qtablewidget
-        table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
-
-        self.anaView.setStyleSheet(table_style)
+        self.anaView.setStyleSheet(table_style)                                 # define selection colors
 
         label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
         self.anaLabel = QLabel('\nANALYSIS records')
@@ -996,23 +994,27 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tabTraces.setLayout(self.tabTraces.layout)
 
     def createGeomTab(self):
+        table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
+        label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
 
         # first create the main widgets
         self.srcView = TableView()                                              # create src view
-        self.srcModel = SpsTableModel(self.srcGeom)                            # create src model
+        self.srcModel = SpsTableModel(self.srcGeom)                             # create src model
         self.srcView.setModel(self.srcModel)                                    # add the model to the view
+        self.srcView.setStyleSheet(table_style)                                 # define selection colors
 
         self.relView = TableView()                                              # create rel view
         self.relModel = XpsTableModel(self.relGeom)                             # create rel model
         self.relView.setModel(self.relModel)                                    # add the model to the view
         self.relHdrView = self.relView.horizontalHeader()                       # to detect button clicks here
         self.relHdrView.sectionClicked.connect(self.sortRelData)                # handle the section-clicked signal
+        self.relView.setStyleSheet(table_style)                                 # define selection colors
 
         self.recView = TableView()                                              # create rec view
         self.recModel = RpsTableModel(self.recGeom)                             # create rec model
         self.recView.setModel(self.recModel)                                    # add the model to the view
+        self.recView.setStyleSheet(table_style)                                 # define selection colors
 
-        label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
         self.srcLabel = QLabel('SRC records')
         self.srcLabel.setAlignment(Qt.AlignCenter)
         self.srcLabel.setStyleSheet(label_style)
@@ -1182,23 +1184,27 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tabGeom.setLayout(hbox)
 
     def createSpsTab(self):
+        table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
+        label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
 
         # first create the main widgets
         self.spsView = TableView()                                              # create sps view
         self.spsModel = SpsTableModel(self.spsImport)                          # create sps model
         self.spsView.setModel(self.spsModel)                                    # add the model to the view
+        self.spsView.setStyleSheet(table_style)                                 # define selection colors
 
         self.xpsView = TableView()                                              # create xps view
         self.xpsModel = XpsTableModel(self.xpsImport)                           # create xps model
         self.xpsView.setModel(self.xpsModel)                                    # add the model to the view
         self.xpsHdrView = self.xpsView.horizontalHeader()                       # to detect button clicks here
         self.xpsHdrView.sectionClicked.connect(self.sortXpsData)                # handle the section-clicked signal
+        self.xpsView.setStyleSheet(table_style)                                 # define selection colors
 
         self.rpsView = TableView()                                              # create rps view
         self.rpsModel = RpsTableModel(self.rpsImport)                           # create xps model
         self.rpsView.setModel(self.rpsModel)                                    # add the model to the view
+        self.rpsView.setStyleSheet(table_style)                                 # define selection colors
 
-        label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
         self.spsLabel = QLabel('SPS records')
         self.spsLabel.setAlignment(Qt.AlignCenter)
         self.spsLabel.setStyleSheet(label_style)
