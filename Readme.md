@@ -124,7 +124,7 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 Roll depends on the following Python libraries that need to be installed separately
 
 | Library    | Minimum Version | Description (purpose)                            |
-| :--------- | --------------- | ------------------------------------------------ |
+| :--------- | :-------------- | :----------------------------------------------- |
 | numpy      | 1.25.2          | Array and matrix manipulation                    |
 | pyqtgraph  | 0.13.3          | Plotting of vector and raster data               |
 | rasterio   | 1.3.6           | Export of figures as GeoTiff  files              |
