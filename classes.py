@@ -3105,7 +3105,7 @@ class RollSurvey(pg.GraphicsObject):
             return self.binFromGeometry4(False)
 
     def binFromGeometry(self, fullAnalysis) -> bool:
-        """only cmp binning implemented, using nested dictionary to access src position"""
+        """only cmp binning implemented here, using a nested dictionary to access the src position"""
         # always start at zero
         self.threadProgress = 0
 
