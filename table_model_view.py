@@ -4,7 +4,7 @@ import winsound  # make a sound when a record isn't found
 import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QAbstractTableModel, QEvent, Qt, QVariant
-from qgis.PyQt.QtGui import QBrush, QColor, QKeySequence, QPalette
+from qgis.PyQt.QtGui import QBrush, QColor, QKeySequence
 from qgis.PyQt.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QMessageBox, QTableView
 
 # TableModel requires a 2D array to work from
@@ -29,9 +29,10 @@ from qgis.PyQt.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QM
 # See: https://www.pythonguis.com/faq/editing-pyqt-tableview/
 
 
-palette = QPalette()
-FG = palette.highlightedText()
-BG = palette.highlight()
+# palette not needed; use styleSheets instead
+# palette = QPalette()
+# FG = palette.highlightedText()
+# BG = palette.highlight()
 
 
 class AnaTableModel(QAbstractTableModel):
