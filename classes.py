@@ -9,14 +9,19 @@ from enum import Enum
 import numpy as np
 import pyqtgraph as pg
 import wellpathpy as wp
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVector3D
-from qgis.PyQt.QtCore import QFileInfo, QLineF, QMarginsF, QPointF, QRectF, QThread, pyqtSignal
-from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPainterPath, QPicture, QPolygonF, QTransform, QVector3D
+from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
+                       QgsPointXY, QgsProject, QgsVector3D)
+from qgis.PyQt.QtCore import (QFileInfo, QLineF, QMarginsF, QPointF, QRectF,
+                              QThread, pyqtSignal)
+from qgis.PyQt.QtGui import (QBrush, QColor, QPainter, QPainterPath, QPicture,
+                             QPolygonF, QTransform, QVector3D)
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement, QDomNode
 
 from . import config  # used to pass initial settings
-from .functions import clipLineF, clipRectF, containsPoint2D, containsPoint3D, deviation, read_well_header, read_wws_header, toFloat, toInt
+from .functions import (clipLineF, clipRectF, containsPoint2D, containsPoint3D,
+                        deviation, read_well_header, read_wws_header, toFloat,
+                        toInt)
 from .rdp import filterRdp
 from .sps_io_and_qc import pntType1, relType2
 
@@ -3277,7 +3282,9 @@ class RollSurvey(pg.GraphicsObject):
         # if needed, fill the source and receiver arrays with local coordinates
         minLocX = np.min(self.output.srcGeom['LocX'])                           # determine if there's any data there...
         maxLocX = np.max(self.output.srcGeom['LocY'])                           # determine if there's any data there...
-        if minLocX == maxLocX == 0.0:
+        if minLocX == maxLocX == 0.0:                                           # comparisons can be chained
+            # See: https://stackoverflow.com/questions/6304509/are-there-sideeffects-in-python-using-if-a-b-c-pass
+            # See: https://docs.python.org/3/library/stdtypes.html
             for record in self.output.srcGeom:
                 srcX = record['East']
                 srcY = record['North']
@@ -3287,7 +3294,7 @@ class RollSurvey(pg.GraphicsObject):
 
         minLocX = np.min(self.output.recGeom['LocX'])                           # determine if there's any data there...
         maxLocX = np.max(self.output.recGeom['LocY'])                           # determine if there's any data there...
-        if minLocX == maxLocX == 0.0:
+        if minLocX == maxLocX == 0.0:                                           # comparisons can be chained
             for record in self.output.recGeom:
                 recX = record['East']
                 recY = record['North']
