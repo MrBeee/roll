@@ -113,22 +113,22 @@ As it is cumbersome to manipulate xml-data directly, the user is helped on two l
 1. Creating a new project is done using a **survey wizard**. At present there is one wizard suitable to generate templates for land seismic and OBN-data. A marine wizard is in the making.
 2. Parameters can be modified added or deleted from the **property pane**. Behind the scenes, this updates the xml-structure, which is always visible from the Xml-tab in the main window.
 
-#### 4	Current status
+#### 4	External dependencies
+
+Roll depends on the following Python libraries that need to be installed separately
+
+| Library    | Minimum Version | Description (purpose)                                      |
+| :--------- | :-------------- | :--------------------------------------------------------- |
+| numpy      | 1.25.2          | Array and matrix manipulation                              |
+| pyqtgraph  | 0.13.3          | Plotting of vector and raster data                         |
+| rasterio   | 1.3.6           | Export of figures as GeoTiff  files                        |
+| wellpathpy | 0.50            | Handle sensors  & sources in a well trajectory (VSPs etc.) |
+
+#### 5	Current status
 
 As of **8 Feb 2024**, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
 
 Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
-
-#### 5	External dependencies
-
-Roll depends on the following Python libraries that need to be installed separately
-
-| Library    | Minimum Version | Description (purpose)                            |
-| :--------- | :-------------- | :----------------------------------------------- |
-| numpy      | 1.25.2          | Array and matrix manipulation                    |
-| pyqtgraph  | 0.13.3          | Plotting of vector and raster data               |
-| rasterio   | 1.3.6           | Export of figures as GeoTiff  files              |
-| wellpathpy | 0.50            | allow for sources / sensors in a well trajectory |
 
 #### 6	Still To Do
 
