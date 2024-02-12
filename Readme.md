@@ -106,7 +106,7 @@ xpsFormatList = [
 
 The user can expand this list with new SPS 'flavors', by defining new 'point' and 'relational' record formats
 
-#### 3	Editing the project
+#### 3	Editing a survey file
 
 As it is cumbersome to manipulate xml-data directly, the user is helped on two levels:
 
@@ -119,7 +119,18 @@ As of **8 Feb 2024**, the first release of Roll has been published on [GitHub](h
 
 Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
 
-#### 5	Still To Do
+#### 5	External dependencies
+
+Roll depends on the following Python libraries that need to be installed separately
+
+| Library    | Minimum Version | Description (purpose)                            |
+| ---------- | --------------- | ------------------------------------------------ |
+| numpy      | 1.25.2          | Array and matrix manipulation                    |
+| pyqtgraph  | 0.13.3          | Plotting of vector and raster data               |
+| rasterio   | 1.3.6           | Export of figures as GeoTiff  files              |
+| wellpathpy | 0.50            | allow for sources / sensors in a well trajectory |
+
+#### 6	Still To Do
 
 Create Marine towed-streamer wizard.
 
