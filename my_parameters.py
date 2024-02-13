@@ -3,33 +3,21 @@ import os
 
 import numpy as np
 import wellpathpy as wp
-from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem, SimpleParameter
+from pyqtgraph.parametertree import (registerParameterItemType,
+                                     registerParameterType)
+from pyqtgraph.parametertree.parameterTypes.basetypes import (ParameterItem,
+                                                              SimpleParameter)
 from qgis.PyQt.QtCore import QFileInfo, QSettings, Qt
 from qgis.PyQt.QtGui import QColor, QVector3D
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QMessageBox, QSizePolicy, QSpacerItem, QWidget
+from qgis.PyQt.QtWidgets import (QHBoxLayout, QLabel, QMessageBox, QSizePolicy,
+                                 QSpacerItem, QWidget)
 
 from . import config  # used to pass initial settings
-from .classes import (
-    BinningType,
-    RollAngles,
-    RollBinGrid,
-    RollBinning,
-    RollBlock,
-    RollCircle,
-    RollOffset,
-    RollPattern,
-    RollPlane,
-    RollSeed,
-    RollSphere,
-    RollSpiral,
-    RollSurvey,
-    RollTemplate,
-    RollTranslate,
-    RollWell,
-    binningList,
-    surveyType,
-)
+from .classes import (BinningType, RollAngles, RollBinGrid, RollBinning,
+                      RollBlock, RollCircle, RollOffset, RollPattern,
+                      RollPlane, RollSeed, RollSphere, RollSpiral, RollSurvey,
+                      RollTemplate, RollTranslate, RollWell, binningList,
+                      surveyType)
 from .functions import read_well_header, read_wws_header
 from .my_cmap import CmapParameter
 from .my_crs import MyCrsParameter
@@ -2365,9 +2353,9 @@ class LocalGridPreviewLabel(QLabel):
         fold = val.fold
 
         if fold < 0:
-            self.setText(f'{val.size.x()}x{val.size.y()}m, fold undefined')
+            self.setText(f'{val.binSize.x()}x{val.binSize.y()}m, fold undefined')
         else:
-            self.setText(f'{val.size.x()}x{val.size.y()}m, fold {fold} max')
+            self.setText(f'{val.binSize.x()}x{val.binSize.y()}m, fold {fold} max')
 
         self.update()
 
@@ -2413,8 +2401,8 @@ class MyLocalGridParameter(MyGroupParameter):
         self.binGrid = RollBinGrid()
         self.binGrid = opts.get('value', self.binGrid)
 
-        self.addChild(dict(name='Bin size [x]', value=self.binGrid.size.x(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Bin size [y]', value=self.binGrid.size.y(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Bin size [x]', value=self.binGrid.binSize.x(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Bin size [y]', value=self.binGrid.binSize.y(), type='float', decimals=d, suffix=s))
         self.addChild(dict(name='Bin offset [x]', value=self.binGrid.shift.x(), type='float', decimals=d, suffix=s))
         self.addChild(dict(name='Bin offset [y]', value=self.binGrid.shift.y(), type='float', decimals=d, suffix=s))
         self.addChild(dict(name='Stake nr @ origin', value=self.binGrid.stake.x(), type='float', decimals=d, suffix='#'))
@@ -2439,8 +2427,8 @@ class MyLocalGridParameter(MyGroupParameter):
 
     def changed(self):
         # local grid
-        self.binGrid.size.setX(self.parBx.value())
-        self.binGrid.size.setY(self.parBy.value())
+        self.binGrid.binSize.setX(self.parBx.value())
+        self.binGrid.binSize.setY(self.parBy.value())
         self.binGrid.shift.setX(self.parDx.value())
         self.binGrid.shift.setY(self.parDy.value())
         self.binGrid.stake.setX(self.parLx.value())
@@ -2629,7 +2617,7 @@ class MyBinGridParameter(MyGroupParameter):
 
     def changedL(self):
         # local grid
-        self.binGrid.size = self.parL.value().size
+        self.binGrid.binSize = self.parL.value().binSize
         self.binGrid.shift = self.parL.value().shift
         self.binGrid.stake = self.parL.value().stake
         self.binGrid.fold = self.parL.value().fold
