@@ -134,9 +134,6 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 Create Marine towed-streamer wizard.
 
-#### 7	Contact
-
-You can contact me at: Bart.Duijndam@ziggo.nl 
 
 
 
