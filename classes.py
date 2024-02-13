@@ -1939,7 +1939,7 @@ class RollBinGrid:
         # -1 to catch errors
         self.fold: int = -1
         # -1 to catch errors
-        self.size = QPointF(-1.0, -1.0)
+        self.binSize = QPointF(-1.0, -1.0)
         # -1 to catch errors
         self.shift = QPointF(-1.0, -1.0)
         # -1 to catch errors
@@ -1962,10 +1962,10 @@ class RollBinGrid:
         localElem.setAttribute('x0', str(self.shift.x()))
         localElem.setAttribute('y0', str(self.shift.y()))
 
-        localElem.setAttribute('dx', str(self.size.x()))
-        localElem.setAttribute('dy', str(self.size.y()))
+        localElem.setAttribute('dx', str(self.binSize.x()))
+        localElem.setAttribute('dy', str(self.binSize.y()))
 
-        # s0 = stake nuber at grid origin
+        # s0 = stake number at grid origin
         localElem.setAttribute('s0', str(self.stake.x()))
         # l0 = line number at grid origin
         localElem.setAttribute('l0', str(self.stake.y()))
@@ -2014,8 +2014,8 @@ class RollBinGrid:
 
         self.fold = toInt(localElem.attribute('fold'))
 
-        self.size.setX(toFloat(localElem.attribute('dx')))
-        self.size.setY(toFloat(localElem.attribute('dy')))
+        self.binSize.setX(toFloat(localElem.attribute('dx')))
+        self.binSize.setY(toFloat(localElem.attribute('dy')))
 
         self.shift.setX(toFloat(localElem.attribute('x0')))
         self.shift.setY(toFloat(localElem.attribute('y0')))
@@ -2614,8 +2614,8 @@ class RollSurvey(pg.GraphicsObject):
         x0 = self.output.rctOutput.left()
         y0 = self.output.rctOutput.top()
 
-        dx = self.grid.size.x()
-        dy = self.grid.size.y()
+        dx = self.grid.binSize.x()
+        dy = self.grid.binSize.y()
         ox = self.grid.shift.x()
         oy = self.grid.shift.y()
 

@@ -790,6 +790,8 @@ class XpsTableModel(QAbstractTableModel):
 
         super().__init__()
         self._data = None
+        # support sorting on source (SrcInd, SrcLin, SrcPnt), record nr (RecNo) and receiver (RecInd, RecLin, RecMin, RecMax) values
+        self._sort = -1
         self._minMax = np.zeros(shape=(2, 8), dtype=np.float32)
         self._header = ['src line', 'src point', 'src index', 'record #', 'rec line', 'rec min', 'rec max', 'rec index', 'unique', 'in sps-table', 'in rps-table']
         self._format = '%.2f', '%.2f', '%d', '%d', '%.2f', '%.2f', '%.2f', '%d', '%d', '%d', '%d'
@@ -837,6 +839,9 @@ class XpsTableModel(QAbstractTableModel):
     def getFormat(self):
         return self._format
 
+    def getSort(self):
+        return self._sort
+
     def setData(self, data):
         if data is not None:
             self._minMax = np.zeros(shape=(2, 8), dtype=np.float32)
@@ -863,12 +868,27 @@ class XpsTableModel(QAbstractTableModel):
         self.layoutChanged.emit()
         self.headerDataChanged.emit(Qt.Horizontal, 0, len(self._header) - 3)    # exclude 'unique', 'in sps-table', 'in rps-table'
 
+    def setSort(self, sort):
+        self._sort = sort
+
     def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
+        if orientation == Qt.Vertical:                                          # leave vertical header alone
+            return QAbstractTableModel.headerData(self, section, orientation, role)
+
+        if role == Qt.DisplayRole:
             if section in (0, 3, 7):
                 return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
             else:
                 return self._header[section] + f'\n[{ self._minMax[0][section]}]:\n[{self._minMax[1][section]}]'
+
+        elif role == Qt.BackgroundRole and self.getSort() > -1:                 # highlight sorting column(s)
+            if self.getSort() < 3 and section < 3:                              # See: https://www.w3.org/TR/SVG11/types.html#ColorKeywords
+                return QBrush(QColor(250, 250, 210))                            # lightgoldenrodyellow
+            elif self.getSort() == 3 and section == 3:
+                return QBrush(QColor(250, 250, 210))                            # lightgoldenrodyellow
+            elif self.getSort() > 3 and section > 3:
+                return QBrush(QColor(250, 250, 210))                            # lightgoldenrodyellow
+
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
     def rowCount(self, _):

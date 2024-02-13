@@ -14,7 +14,10 @@ import pyqtgraph as pg
 from qgis.gui import QgsProjectionSelectionTreeWidget
 from qgis.PyQt.QtCore import QRectF, QSizeF
 from qgis.PyQt.QtGui import QColor, QImage, QPixmap, QTextOption, QTransform
-from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QSizePolicy, QSpinBox, QVBoxLayout, QWizard, QWizardPage
+from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QFrame,
+                                 QGridLayout, QLabel, QLineEdit, QMessageBox,
+                                 QPlainTextEdit, QSizePolicy, QSpinBox,
+                                 QVBoxLayout, QWizard, QWizardPage)
 
 from . import config  # used to pass initial settings
 from .classes import RollPattern, RollSurvey, paintMode, surveyList, surveyType
@@ -1487,8 +1490,8 @@ class Page_2(SurveyWizardPage):
         self.plotWidget.setXRange(xC - 0.7 * xR, xC + 0.7 * xR)                 # set scaling for plot
         self.plotWidget.setYRange(yC - 0.7 * yR, yC + 0.7 * yR)
 
-        self.parent.survey.grid.size.setX(self.field('binI'))                  # inline bin size [m]
-        self.parent.survey.grid.size.setY(self.field('binX'))                  # x-line bin size [m]
+        self.parent.survey.grid.binSize.setX(self.field('binI'))                  # inline bin size [m]
+        self.parent.survey.grid.binSize.setY(self.field('binX'))                  # x-line bin size [m]
         self.parent.survey.grid.shift.setX(self.field('binI') * 0.5)            # inline shift size [m]
         self.parent.survey.grid.shift.setY(self.field('binX') * 0.5)            # x-line shift size [m]
         self.parent.survey.grid.stake.setX(1000)                                # set inline stake number @ grid origin
