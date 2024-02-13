@@ -115,7 +115,7 @@ As it is cumbersome to manipulate xml-data directly, the user is helped on two l
 
 #### 4	External dependencies
 
-Roll depends on the following Python libraries that need to be installed separately
+Roll depends on the following Python libraries that need to be installed separately (using pip install ...)
 
 | Library    | Minimum Version | Description (purpose)                                      |
 | :--------- | :-------------- | :--------------------------------------------------------- |
