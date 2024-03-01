@@ -5,7 +5,7 @@ from pyqtgraph.parametertree import registerParameterType
 from pyqtgraph.parametertree.parameterTypes import GroupParameter, GroupParameterItem
 from pyqtgraph.Qt import mkQApp
 from qgis.PyQt.QtGui import QColor, QIcon
-from qgis.PyQt.QtWidgets import QMenu
+from qgis.PyQt.QtWidgets import QHBoxLayout, QMenu, QSizePolicy, QSpacerItem, QWidget
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 resource_dir = os.path.join(current_dir, 'resources')
@@ -16,6 +16,21 @@ class MyGroupParameterItem(GroupParameterItem):
         super().__init__(param, depth)
 
         self.contextMenu = None
+        self.previewLabel = None
+        self.itemWidget = QWidget()
+
+    def setPreviewLabel(self, label):
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)                                                    # spacing between elements
+
+        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)    # for improved alignent
+        layout.addSpacerItem(spacerItem)
+
+        self.previewLabel = label
+        layout.addWidget(self.previewLabel)
+
+        self.itemWidget.setLayout(layout)
 
     def updateDepth(self, depth):
         """Change set the item font to bold and increase the font size on outermost groups if desired."""

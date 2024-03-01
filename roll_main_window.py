@@ -114,21 +114,35 @@ from console import console
 from numpy.compat import asstr
 from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import (QDateTime, QFile, QFileInfo, QIODevice,
-                              QItemSelection, QItemSelectionModel, QModelIndex,
-                              QPoint, QSettings, Qt, QTextStream, QThread)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
-                             QTextCursor, QTextOption, QTransform)
-from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
-                                      QPrintPreviewDialog)
-from qgis.PyQt.QtWidgets import (QAction, QApplication, QButtonGroup,
-                                 QCheckBox, QDialogButtonBox, QDockWidget,
-                                 QFileDialog, QFrame, QGraphicsEllipseItem,
-                                 QGridLayout, QGroupBox, QHBoxLayout,
-                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
-                                 QPlainTextEdit, QProgressBar, QPushButton,
-                                 QRadioButton, QSplitter, QTabWidget,
-                                 QVBoxLayout, QWidget)
+from qgis.PyQt.QtCore import QDateTime, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
+from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
+from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QApplication,
+    QButtonGroup,
+    QCheckBox,
+    QDialogButtonBox,
+    QDockWidget,
+    QFileDialog,
+    QFrame,
+    QGraphicsEllipseItem,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QRadioButton,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
@@ -138,24 +152,33 @@ from .land_wizard import LandSurveyWizard
 from .my_crs2 import MyCrs2Parameter
 from .my_list import MyListParameter
 from .my_parameters import MyAnalysisParameter
-from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
-                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
-                             identifyQgisPointLayer, readQgisPointLayer,
-                             updateQgisPointLayer)
+from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
-                            deletePntDuplicates, deletePntOrphans,
-                            deleteRelDuplicates, deleteRelOrphans,
-                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
-                            findRecOrphans, findSrcOrphans, getRecGeometry,
-                            getSrcGeometry, markUniqueRPSrecords,
-                            markUniqueSPSrecords, markUniqueXPSrecords,
-                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
-                            relType2)
-from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
-                               TableView, XpsTableModel)
-from .worker_threads import (BinFromGeometryWorker, BinningWorker,
-                             GeometryWorker)
+from .sps_io_and_qc import (
+    calcMaxXPStraces,
+    calculateLineStakeTransform,
+    deletePntDuplicates,
+    deletePntOrphans,
+    deleteRelDuplicates,
+    deleteRelOrphans,
+    fileExportAsR01,
+    fileExportAsS01,
+    fileExportAsX01,
+    findRecOrphans,
+    findSrcOrphans,
+    getRecGeometry,
+    getSrcGeometry,
+    markUniqueRPSrecords,
+    markUniqueSPSrecords,
+    markUniqueXPSrecords,
+    pntType1,
+    readRPSFiles,
+    readSPSFiles,
+    readXPSFiles,
+    relType2,
+)
+from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
+from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -796,7 +819,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         CFG = self.parameters.child('Survey configuration')
         copy.crs = CFG.child('Survey CRS').value()
-        config.crs = copy.crs   ## for global access to crs
+        config.crs = copy.crs                                                   # for global access to crs
 
         copy.type = surveyType[CFG.child('Survey type').value()]
         copy.name = CFG.child('Survey name').value()

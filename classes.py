@@ -9,19 +9,14 @@ from enum import Enum
 import numpy as np
 import pyqtgraph as pg
 import wellpathpy as wp
-from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
-                       QgsPointXY, QgsProject, QgsVector3D)
-from qgis.PyQt.QtCore import (QFileInfo, QLineF, QMarginsF, QPointF, QRectF,
-                              QThread, pyqtSignal)
-from qgis.PyQt.QtGui import (QBrush, QColor, QPainter, QPainterPath, QPicture,
-                             QPolygonF, QTransform, QVector3D)
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVector3D
+from qgis.PyQt.QtCore import QFileInfo, QLineF, QMarginsF, QPointF, QRectF, QThread, pyqtSignal
+from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPainterPath, QPicture, QPolygonF, QTransform, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement, QDomNode
 
 from . import config  # used to pass initial settings
-from .functions import (clipLineF, clipRectF, containsPoint2D, containsPoint3D,
-                        deviation, read_well_header, read_wws_header, toFloat,
-                        toInt)
+from .functions import clipLineF, clipRectF, containsPoint2D, containsPoint3D, deviation, read_well_header, read_wws_header, toFloat, toInt
 from .rdp import filterRdp
 from .sps_io_and_qc import pntType1, relType2
 
@@ -4849,7 +4844,7 @@ class RollSurvey(pg.GraphicsObject):
                         # create all cmp-locations using the following steps:
                         # 1. mirror the source location against the plane
                         # 2. find out where/if the lines defined by the source-mirror with the receivers cuts through the plane
-                        # 3. these locations are the cmp locations for binnenig against a dipping plane
+                        # 3. these locations are the cmp locations for binning against a dipping plane
                         srcMirror3D = self.localPlane.mirrorPoint3D(QVector3D(*src))
 
                         # now iterate over recPoints to find all intersection points with the dipping plane

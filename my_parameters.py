@@ -7,7 +7,7 @@ from pyqtgraph.parametertree import registerParameterItemType, registerParameter
 from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem, SimpleParameter
 from qgis.PyQt.QtCore import QFileInfo, QSettings
 from qgis.PyQt.QtGui import QColor, QVector3D
-from qgis.PyQt.QtWidgets import QHBoxLayout, QMessageBox, QSizePolicy, QSpacerItem, QWidget
+from qgis.PyQt.QtWidgets import QMessageBox
 
 from . import config  # used to pass initial settings
 from .classes import (
@@ -48,7 +48,7 @@ from .my_symbols import MySymbolParameter
 from .my_vector import MyVectorParameter
 
 
-class RollPreviewLabel(MyPreviewLabel):
+class MyRollPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
@@ -75,18 +75,7 @@ class MyRollParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)    # extra space added
-        layout.addSpacerItem(spacerItem)
-
-        self.label = RollPreviewLabel(param)
-        layout.addWidget(self.label)
-
-        self.itemWidget = QWidget()
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyRollPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -159,7 +148,7 @@ class MyRollParameter(MyGroupParameter):
         return self.row
 
 
-class RollListPreviewLabel(MyPreviewLabel):
+class MyRollListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)                    # connect signal to slot
@@ -180,17 +169,8 @@ class RollListPreviewLabel(MyPreviewLabel):
 class MyRollListParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = RollListPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyRollListPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -243,7 +223,7 @@ class MyRollListParameter(MyGroupParameter):
         return self.moveList
 
 
-class PlanePreviewLabel(MyPreviewLabel):
+class MyPlanePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
@@ -269,17 +249,8 @@ class PlanePreviewLabel(MyPreviewLabel):
 class MyPlaneParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = PlanePreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyPlanePreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -331,14 +302,15 @@ class MyPlaneParameter(MyGroupParameter):
         return self.plane
 
 
-class SpherePreviewLabel(MyPreviewLabel):
+class MySpherePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
         self.decimals = param.opts.get('decimals', 5)
         val = param.opts.get('value', None)
-
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
@@ -349,21 +321,20 @@ class SpherePreviewLabel(MyPreviewLabel):
         self.setText(f'r={r:.{d}g}m, depth={-z:.{d}g}m')
         self.update()
 
+    def onTreeStateChanged(self, param):
+        print('>>> MySphereParameter.TreeStateChanged <<<')
+
+        if not isinstance(param, MySphereParameter):
+            raise ValueError("Need 'MySphereParameter' instances at this point")
+
+        self.onValueChanging(None, param.sphere)                                # parameter info is lagging behind applied changes; need to investigate why !
+
 
 class MySphereParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = SpherePreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MySpherePreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -411,7 +382,7 @@ class MySphereParameter(MyGroupParameter):
         return self.sphere
 
 
-class CirclePreviewLabel(MyPreviewLabel):
+class MyCirclePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
@@ -434,17 +405,8 @@ class CirclePreviewLabel(MyPreviewLabel):
 class MyCircleParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = CirclePreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyCirclePreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -502,7 +464,7 @@ class MyCircleParameter(MyGroupParameter):
         return self.circle
 
 
-class SpiralPreviewLabel(MyPreviewLabel):
+class MySpiralPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
@@ -526,17 +488,8 @@ class SpiralPreviewLabel(MyPreviewLabel):
 class MySpiralParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = SpiralPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MySpiralPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -602,7 +555,7 @@ class MySpiralParameter(MyGroupParameter):
         return self.spiral
 
 
-class WellPreviewLabel(MyPreviewLabel):
+class MyWellPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
@@ -629,17 +582,8 @@ class WellPreviewLabel(MyPreviewLabel):
 class MyWellParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = WellPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyWellPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -869,7 +813,7 @@ class MyWellParameter(MyGroupParameter):
         return self.well
 
 
-class SeedPreviewLabel(MyPreviewLabel):
+class MySeedPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
@@ -907,17 +851,8 @@ class SeedPreviewLabel(MyPreviewLabel):
 class MySeedParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = SeedPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MySeedPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -1078,11 +1013,11 @@ class MySeedParameter(MyGroupParameter):
             ...
 
 
-class SeedListPreviewLabel(MyPreviewLabel):
+class MySeedListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
-        # sigValueChanged   = QtCore.Signal(object, object)                 ## self, value   emitted when value is finished being edited
+        # sigValueChanged   = QtCore.Signal(object, object)                 ## self, value  emitted when value is finished being edited
         # sigValueChanging  = QtCore.Signal(object, object)                 ## self, value  emitted as value is being edited
         # sigChildAdded     = QtCore.Signal(object, object, object)         ## self, child, index
         # sigChildRemoved   = QtCore.Signal(object, object)                 ## self, child
@@ -1188,17 +1123,8 @@ class SeedListPreviewLabel(MyPreviewLabel):
 class MySeedListParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = SeedListPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MySeedListPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -1281,7 +1207,7 @@ class MySeedListParameter(MyGroupParameter):
             self.sigValueChanging.emit(self, self.value())
 
 
-class TemplatePreviewLabel(MyPreviewLabel):
+class MyTemplatePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
@@ -1314,17 +1240,8 @@ class TemplatePreviewLabel(MyPreviewLabel):
 class MyTemplateParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = TemplatePreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyTemplatePreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -1599,7 +1516,7 @@ class MyTemplateListParameter(MyGroupParameter):
             self.sigValueChanging.emit(self, self.value())
 
 
-class BlockPreviewLabel(MyPreviewLabel):
+class MyBlockPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
@@ -1633,17 +1550,8 @@ class BlockPreviewLabel(MyPreviewLabel):
 class MyBlockParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = BlockPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyBlockPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -1923,7 +1831,7 @@ class MyBlockListParameter(MyGroupParameter):
         print('>>> onBlockListChildRemoved <<<')
 
 
-class PatternPreviewLabel(MyPreviewLabel):
+class MyPatternPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
@@ -1946,17 +1854,8 @@ class PatternPreviewLabel(MyPreviewLabel):
 class MyPatternParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = PatternPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyPatternPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -2230,7 +2129,7 @@ class MyPatternListParameter(MyGroupParameter):
         print('>>> onPatternListChildRemoved <<<')
 
 
-class LocalGridPreviewLabel(MyPreviewLabel):
+class MyLocalGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
@@ -2253,17 +2152,8 @@ class LocalGridPreviewLabel(MyPreviewLabel):
 class MyLocalGridParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = LocalGridPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyLocalGridPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -2330,7 +2220,7 @@ class MyLocalGridParameter(MyGroupParameter):
         return self.binGrid
 
 
-class GlobalGridPreviewLabel(MyPreviewLabel):
+class MyGlobalGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
@@ -2355,17 +2245,8 @@ class GlobalGridPreviewLabel(MyPreviewLabel):
 class MyGlobalGridParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = GlobalGridPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyGlobalGridPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -2420,7 +2301,7 @@ class MyGlobalGridParameter(MyGroupParameter):
         return self.binGrid
 
 
-class BinGridPreviewLabel(MyPreviewLabel):
+class MyBinGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
@@ -2444,17 +2325,8 @@ class BinGridPreviewLabel(MyPreviewLabel):
 class MyBinGridParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = BinGridPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyBinGridPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -2510,7 +2382,7 @@ class MyBinGridParameter(MyGroupParameter):
         return self.binGrid
 
 
-class BinAnglesPreviewLabel(MyPreviewLabel):
+class MyBinAnglesPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
@@ -2535,17 +2407,8 @@ class BinAnglesPreviewLabel(MyPreviewLabel):
 class MyBinAnglesParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = BinAnglesPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyBinAnglesPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -2598,7 +2461,7 @@ class MyBinAnglesParameter(MyGroupParameter):
         return self.angles
 
 
-class BinOffsetPreviewLabel(MyPreviewLabel):
+class MyBinOffsetPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
@@ -2627,17 +2490,8 @@ class BinOffsetPreviewLabel(MyPreviewLabel):
 class MyBinOffsetParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = BinOffsetPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyBinOffsetPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -2702,7 +2556,7 @@ class MyBinOffsetParameter(MyGroupParameter):
         return self.offset
 
 
-class UniqOffPreviewLabel(MyPreviewLabel):
+class MyUniqOffPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
@@ -2722,17 +2576,8 @@ class UniqOffPreviewLabel(MyPreviewLabel):
 class MyUniqOffParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = UniqOffPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyUniqOffPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -2802,7 +2647,7 @@ class MyUniqOffParameter(MyGroupParameter):
         return self.unique
 
 
-class BinMethodPreviewLabel(MyPreviewLabel):
+class MyBinMethodPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
@@ -2822,17 +2667,8 @@ class BinMethodPreviewLabel(MyPreviewLabel):
 class MyBinMethodParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = BinMethodPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyBinMethodPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -2880,7 +2716,7 @@ class MyBinMethodParameter(MyGroupParameter):
         return self.binning
 
 
-class AnalysisPreviewLabel(MyPreviewLabel):
+class MyAnalysisPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
@@ -2902,17 +2738,8 @@ class AnalysisPreviewLabel(MyPreviewLabel):
 class MyAnalysisParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = AnalysisPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MyAnalysisPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
@@ -2977,7 +2804,7 @@ class MyAnalysisParameter(MyGroupParameter):
         return (self.area, self.angles, self.binning, self.offset, self.unique)
 
 
-class SurveyPreviewLabel(MyPreviewLabel):
+class MySurveyPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
@@ -2995,17 +2822,8 @@ class SurveyPreviewLabel(MyPreviewLabel):
 class MySurveyParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = SurveyPreviewLabel(param)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        self.setPreviewLabel(MySurveyPreviewLabel(param))
 
     def treeWidgetChanged(self):
         ParameterItem.treeWidgetChanged(self)
