@@ -14,12 +14,12 @@ resource_dir = os.path.join(current_dir, 'resources')
 class MyGroupParameterItem(GroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
+
         self.contextMenu = None
 
     def updateDepth(self, depth):
-        """
-        Change set the item font to bold and increase the font size on outermost groups if desired.
-        """
+        """Change set the item font to bold and increase the font size on outermost groups if desired."""
+
         app = mkQApp()
         palette = app.palette()
         background = palette.base().color()

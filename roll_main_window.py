@@ -277,7 +277,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.maxMinOffset = 0.0                                                 # min-offset maximum
         self.minMaxOffset = 0.0                                                 # max-offset minimum
         self.maxMaxOffset = 0.0                                                 # max-offset maximum
-        self.areaChanged = False                                                # set when binning area changes in property tree
+        self.binAreaChanged = False                                             # set when binning area changes in property tree
 
         # binning numpy arrays
         self.binOutput = None                                                   # numpy array with foldmap
@@ -782,7 +782,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # Make sure we get a notification, when the binning area has changed, to ditch the analysis files
         self.anaChild = self.parameters.child('Survey analysis')
         self.binChild = self.anaChild.child('Binning area')
-        self.binChild.sigTreeStateChanged.connect(self.binAreaChanged)
+        self.binChild.sigTreeStateChanged.connect(self.binAreaHasChanged)
 
         # deal with a bug, not showing tooltip information
         for item in self.paramTree.listAllItems():                              # Bug. See: https://github.com/pyqtgraph/pyqtgraph/issues/2744
@@ -833,8 +833,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.textEdit.setTextViaCursor(plainText)                               # get text into the textEdit, NOT resetting its doc status
         self.textEdit.document().setModified(True)                              # we edited the document; so it's been modified
 
-        if self.areaChanged:                                                    # we need to throw away the analysis results
-            self.areaChanged = False                                            # reset this flag
+        if self.binAreaChanged:                                                 # we need to throw away the analysis results
+            self.binAreaChanged = False                                         # reset this flag
 
             self.binOutput = None                                               # numpy array with foldmap
             self.minOffset = None                                               # numpy array with minimum offset
@@ -864,8 +864,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.appendLogMessage(f'Edited : {self.fileName} survey object updated')
         self.plotSurvey()
 
-    def binAreaChanged(self, *_):                                               # unused param, changes replaced by *_
-        self.areaChanged = True
+    def binAreaHasChanged(self, *_):                                               # param, changes unused; replaced by *_
+        self.binAreaChanged = True
 
     ## If anything changes in the tree, print a message
     def propertyTreeStateChanged(self, param, changes):

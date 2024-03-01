@@ -3,21 +3,33 @@ import os
 
 import numpy as np
 import wellpathpy as wp
-from pyqtgraph.parametertree import (registerParameterItemType,
-                                     registerParameterType)
-from pyqtgraph.parametertree.parameterTypes.basetypes import (ParameterItem,
-                                                              SimpleParameter)
-from qgis.PyQt.QtCore import QFileInfo, QSettings, Qt
+from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
+from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem, SimpleParameter
+from qgis.PyQt.QtCore import QFileInfo, QSettings
 from qgis.PyQt.QtGui import QColor, QVector3D
-from qgis.PyQt.QtWidgets import (QHBoxLayout, QLabel, QMessageBox, QSizePolicy,
-                                 QSpacerItem, QWidget)
+from qgis.PyQt.QtWidgets import QHBoxLayout, QMessageBox, QSizePolicy, QSpacerItem, QWidget
 
 from . import config  # used to pass initial settings
-from .classes import (BinningType, RollAngles, RollBinGrid, RollBinning,
-                      RollBlock, RollCircle, RollOffset, RollPattern,
-                      RollPlane, RollSeed, RollSphere, RollSpiral, RollSurvey,
-                      RollTemplate, RollTranslate, RollWell, binningList,
-                      surveyType)
+from .classes import (
+    BinningType,
+    RollAngles,
+    RollBinGrid,
+    RollBinning,
+    RollBlock,
+    RollCircle,
+    RollOffset,
+    RollPattern,
+    RollPlane,
+    RollSeed,
+    RollSphere,
+    RollSpiral,
+    RollSurvey,
+    RollTemplate,
+    RollTranslate,
+    RollWell,
+    binningList,
+    surveyType,
+)
 from .functions import read_well_header, read_wws_header
 from .my_cmap import CmapParameter
 from .my_crs import MyCrsParameter
@@ -29,27 +41,21 @@ from .my_n_vector import MyNVectorParameter
 from .my_numerics import MyNumericParameterItem
 from .my_pen import MyPenParameter
 from .my_point3D import MyPoint3DParameter
+from .my_preview_label import MyPreviewLabel
 from .my_rectf import MyRectParameter
 from .my_slider import MySliderParameter
 from .my_symbols import MySymbolParameter
 from .my_vector import MyVectorParameter
 
 
-class RollPreviewLabel(QLabel):
+class RollPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        self.decimals = param.opts.get('decimals', 3)
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
@@ -64,18 +70,22 @@ class RollPreviewLabel(QLabel):
 
 
 class MyRollParameterItem(MyGroupParameterItem):
+    """modeled after PenParameterItem from pen.py in pyqtgraph"""
+
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
-
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = RollPreviewLabel(param)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)                                                    # spacing between elements
+
+        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)    # extra space added
         layout.addSpacerItem(spacerItem)
+
+        self.label = RollPreviewLabel(param)
         layout.addWidget(self.label)
+
+        self.itemWidget = QWidget()
         self.itemWidget.setLayout(layout)
 
     def treeWidgetChanged(self):
@@ -108,8 +118,8 @@ class MyRollParameter(MyGroupParameter):
         self.addChild(dict(name='dX', type='float', decimals=d, suffix=s, value=self.row.increment.x()))
         self.addChild(dict(name='dY', type='float', decimals=d, suffix=s, value=self.row.increment.y()))
         self.addChild(dict(name='dZ', type='float', decimals=d, suffix=s, value=self.row.increment.z()))
-        self.addChild(dict(name='azimuth', type='myFloat', decimals=d, suffix='deg', enabled=False, readonly=True))   # set value through setAzimuth()
-        self.addChild(dict(name='tilt', type='myFloat', decimals=d, suffix='deg', enabled=False, readonly=True))   # set value through setTilt()
+        self.addChild(dict(name='azimuth', type='myFloat', decimals=d, suffix='deg', enabled=False, readonly=True))     # set value through setAzimuth()
+        self.addChild(dict(name='tilt', type='myFloat', decimals=d, suffix='deg', enabled=False, readonly=True))        # set value through setTilt()
 
         self.parN = self.child('N')
         self.parX = self.child('dX')
@@ -149,25 +159,17 @@ class MyRollParameter(MyGroupParameter):
         return self.row
 
 
-class RollListPreviewLabel(QLabel):
+class RollListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
-        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigValueChanging.connect(self.onValueChanging)                    # connect signal to slot
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
-        self.onValueChanging(None, val)
+        val = param.opts.get('value', None)                                     # get *value*  from param and provide default (None)
+        self.onValueChanging(None, val)                                         # initialize the label in __init__()
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
-        n0 = val[0].steps
+
+        n0 = val[0].steps                                                       # prepare label text
         n1 = val[1].steps
         n2 = val[2].steps
 
@@ -241,20 +243,13 @@ class MyRollListParameter(MyGroupParameter):
         return self.moveList
 
 
-class PlanePreviewLabel(QLabel):
+class PlanePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 5)
-        val = opts.get('value', None)
+        self.decimals = param.opts.get('decimals', 5)
+        val = param.opts.get('value', None)
 
         self.onValueChanging(None, val)
 
@@ -330,26 +325,19 @@ class MyPlaneParameter(MyGroupParameter):
         self.plane.anchor = self.parO.value()
         self.plane.azi = self.parA.value()
         self.plane.dip = self.parD.value()
-        self.sigValueChanging.emit(self, self.plane)
+        self.sigValueChanging.emit(self, self.value())
 
     def value(self):
         return self.plane
 
 
-class SpherePreviewLabel(QLabel):
+class SpherePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 5)
-        val = opts.get('value', None)
+        self.decimals = param.opts.get('decimals', 5)
+        val = param.opts.get('value', None)
 
         self.onValueChanging(None, val)
 
@@ -423,20 +411,13 @@ class MySphereParameter(MyGroupParameter):
         return self.sphere
 
 
-class CirclePreviewLabel(QLabel):
+class CirclePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 5)
-        val = opts.get('value', None)
+        self.decimals = param.opts.get('decimals', 5)
+        val = param.opts.get('value', None)
 
         self.onValueChanging(None, val)
 
@@ -521,20 +502,13 @@ class MyCircleParameter(MyGroupParameter):
         return self.circle
 
 
-class SpiralPreviewLabel(QLabel):
+class SpiralPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 5)
-        val = opts.get('value', None)
+        self.decimals = param.opts.get('decimals', 5)
+        val = param.opts.get('value', None)
 
         self.onValueChanging(None, val)
 
@@ -628,20 +602,13 @@ class MySpiralParameter(MyGroupParameter):
         return self.spiral
 
 
-class WellPreviewLabel(QLabel):
+class WellPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 5)
-        val = opts.get('value', None)
+        self.decimals = param.opts.get('decimals', 5)
+        val = param.opts.get('value', None)
 
         self.onValueChanging(None, val)
 
@@ -712,15 +679,7 @@ class MyWellParameter(MyGroupParameter):
 
         self.addChild(dict(name='AHD start', type='float', value=self.well.ahd0, decimals=d, limits=[0.0, None], suffix='m ref SRD', tip=tip))
         self.addChild(dict(name='AHD interval', type='float', value=self.well.dAhd, decimals=d, limits=[1.0, None], suffix='m'))
-        self.addChild(
-            dict(
-                name='Points',
-                type='int',
-                value=self.well.nAhd,
-                decimals=d,
-                limits=[1, None],
-            )
-        )
+        self.addChild(dict(name='Points', type='int', value=self.well.nAhd, decimals=d, limits=[1, None]))
 
         self.parF = self.child('Well file')
         self.parO = self.child('Well origin')
@@ -910,20 +869,13 @@ class MyWellParameter(MyGroupParameter):
         return self.well
 
 
-class SeedPreviewLabel(QLabel):
+class SeedPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
+        self.decimals = param.opts.get('decimals', 3)
+        val = param.opts.get('value', None)
 
         self.onValueChanging(None, val)
 
@@ -991,21 +943,13 @@ class MySeedParameter(MyGroupParameter):
 
         self.seed = RollSeed()
         self.seed = opts.get('value', self.seed)
+        d = opts.get('decimals', 7)
 
         self.seedTypes = ['Grid (roll along)', 'Grid (stationary)', 'Circle', 'Spiral', 'Well']
         self.addChild(dict(name='Seed type', type='myList', value=self.seedTypes[self.seed.type], default=self.seedTypes[self.seed.type], limits=self.seedTypes, brush='#add8e6'))
         self.addChild(dict(name='Source seed', type='bool', value=self.seed.bSource))
         self.addChild(dict(name='Seed color', type='color', value=self.seed.color))
-        self.addChild(
-            dict(
-                name='Seed origin',
-                type='myPoint3D',
-                value=self.seed.origin,
-                expanded=False,
-                flat=True,
-                decimals=5,
-            )
-        )
+        self.addChild(dict(name='Seed origin', type='myPoint3D', value=self.seed.origin, expanded=False, flat=True, decimals=d))
 
         # A 'global' patternList has been defined using config.py as a backdoor;
         # as patterns are defined on a seperate (not-easy-to-access) branch in the RollSurvey object
@@ -1018,7 +962,7 @@ class MySeedParameter(MyGroupParameter):
                 nPattern = 0
         self.addChild(dict(name='Seed pattern', type='myList', value=pl[nPattern], default=pl[nPattern], limits=pl))
 
-        self.addChild(dict(name='Grid grow steps', type='MyRollList', value=self.seed.grid.growList, default=self.seed.grid.growList, expanded=True, flat=True, decimals=5, suffix='m', brush='#add8e6'))
+        self.addChild(dict(name='Grid grow steps', type='MyRollList', value=self.seed.grid.growList, default=self.seed.grid.growList, expanded=True, flat=True, decimals=d, suffix='m', brush='#add8e6'))
         self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
         self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
         self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
@@ -1107,13 +1051,6 @@ class MySeedParameter(MyGroupParameter):
                     self.remove()
                     parent.seedList.pop(index)
 
-        # if name == 'remove':
-        #     reply = QMessageBox.question(None, 'Please confirm',
-        #         "Delete selected seed ?",
-        #         QMessageBox.Yes, QMessageBox.No)
-        #     if reply == QMessageBox.Yes:
-        #         self.remove()
-
         elif name == 'moveUp':
             parent = self.parent()
             if isinstance(self.parent(), MySeedListParameter):
@@ -1141,7 +1078,7 @@ class MySeedParameter(MyGroupParameter):
             ...
 
 
-class SeedListPreviewLabel(QLabel):
+class SeedListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
@@ -1180,14 +1117,7 @@ class SeedListPreviewLabel(QLabel):
         param.sigStateChanged.connect(self.onStateChanged)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
+        self.decimals = param.opts.get('decimals', 3)
 
         # this widget is created **after** childs have been added in the __init__routine
         # so it is not notified through param.sigChildAdded() of any new childs at that stage
@@ -1244,7 +1174,7 @@ class SeedListPreviewLabel(QLabel):
         print('>>> SeedList.OptionsChanged')
 
     def onStateChanged(self, param, _):                                         # info not used and replaced by _
-        print('<<< SeedList.StateChanged >>>')
+        print('>>> SeedList.StateChanged >>>')
         self.showSeeds(param)
 
     def onTreeStateChanged(self, param):
@@ -1325,7 +1255,7 @@ class MySeedListParameter(MyGroupParameter):
                 n += 1
                 newName = f'Seed-{n}'
 
-            # this solution gives preference to sourse seeds over receiver seeds, provided at least one receiver seed is present
+            # this solution gives preference to source seeds over receiver seeds, provided at least one receiver seed is present
             # this is useful for templates (e.g. zigzag) where multiple source seeds are combined with a single receiver seed
 
             haveReceiverSeed = False
@@ -1351,21 +1281,13 @@ class MySeedListParameter(MyGroupParameter):
             self.sigValueChanging.emit(self, self.value())
 
 
-class TemplatePreviewLabel(QLabel):
+class TemplatePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # param unused and replaced by _
@@ -1677,21 +1599,13 @@ class MyTemplateListParameter(MyGroupParameter):
             self.sigValueChanging.emit(self, self.value())
 
 
-class BlockPreviewLabel(QLabel):
+class BlockPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
@@ -2009,21 +1923,13 @@ class MyBlockListParameter(MyGroupParameter):
         print('>>> onBlockListChildRemoved <<<')
 
 
-class PatternPreviewLabel(QLabel):
+class PatternPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        self.decimals = param.opts.get('decimals', 3)
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, *_):                                              # unused param, val replaced by *_
@@ -2074,19 +1980,11 @@ class MyPatternParameter(MyGroupParameter):
         if 'children' in opts:
             raise KeyError('Cannot set "children" argument in myPattern Parameter opts')
 
+        d = opts.get('decimals', 7)
         self.pattern = RollPattern()
         self.pattern = opts.get('value', self.pattern)
 
-        self.addChild(
-            dict(
-                name='Pattern origin',
-                type='myPoint3D',
-                value=self.pattern.origin,
-                expanded=False,
-                flat=True,
-                decimals=5,
-            )
-        )
+        self.addChild(dict(name='Pattern origin', type='myPoint3D', value=self.pattern.origin, expanded=False, flat=True, decimals=d))
         self.addChild(dict(name='Pattern color', type='color', value=self.pattern.color))
         self.addChild(dict(name='Pattern grow steps', type='MyRollList', value=self.pattern.growList, default=self.pattern.growList, expanded=True, flat=True, brush='#add8e6', decimals=5, suffix='m'))
 
@@ -2332,21 +2230,13 @@ class MyPatternListParameter(MyGroupParameter):
         print('>>> onPatternListChildRemoved <<<')
 
 
-class LocalGridPreviewLabel(QLabel):
+class LocalGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        self.decimals = param.opts.get('decimals', 3)                           # decimals not used (yet)
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
@@ -2440,21 +2330,14 @@ class MyLocalGridParameter(MyGroupParameter):
         return self.binGrid
 
 
-class GlobalGridPreviewLabel(QLabel):
+class GlobalGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        self.decimals = param.opts.get('decimals', 3)
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
@@ -2537,20 +2420,13 @@ class MyGlobalGridParameter(MyGroupParameter):
         return self.binGrid
 
 
-class BinGridPreviewLabel(QLabel):
+class BinGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
+        self.decimals = param.opts.get('decimals', 3)                           # decimals not used (yet)
+        val = param.opts.get('value', None)
 
         self.onValueChanging(None, val)
 
@@ -2634,21 +2510,14 @@ class MyBinGridParameter(MyGroupParameter):
         return self.binGrid
 
 
-class BinAnglesPreviewLabel(QLabel):
+class BinAnglesPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        self.decimals = param.opts.get('decimals', 3)
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
@@ -2729,21 +2598,13 @@ class MyBinAnglesParameter(MyGroupParameter):
         return self.angles
 
 
-class BinOffsetPreviewLabel(QLabel):
+class BinOffsetPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
@@ -2841,21 +2702,13 @@ class MyBinOffsetParameter(MyGroupParameter):
         return self.offset
 
 
-class UniqOffPreviewLabel(QLabel):
+class UniqOffPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
@@ -2949,21 +2802,13 @@ class MyUniqOffParameter(MyGroupParameter):
         return self.unique
 
 
-class BinMethodPreviewLabel(QLabel):
+class BinMethodPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
@@ -3035,21 +2880,14 @@ class MyBinMethodParameter(MyGroupParameter):
         return self.binning
 
 
-class AnalysisPreviewLabel(QLabel):
+class AnalysisPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
+        self.decimals = param.opts.get('decimals', 3)                       # decimals not used (yet)
+        val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, *_):                                          # unused param, val replaced by *_
@@ -3130,27 +2968,22 @@ class MyAnalysisParameter(MyGroupParameter):
     def changed(self):
         self.area = self.parB.value()
         self.angles = self.parA.value()
+
+        # check if offsets are handled okay
+
         self.sigValueChanging.emit(self, self.value())
 
     def value(self):
         return (self.area, self.angles, self.binning, self.offset, self.unique)
 
 
-class SurveyPreviewLabel(QLabel):
+class SurveyPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setBold(True)
-        # font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
+        self.decimals = param.opts.get('decimals', 3)                           # decimals not used (yet)
+        val = param.opts.get('value', None)
 
         self.onValueChanging(None, val)
 

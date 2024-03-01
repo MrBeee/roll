@@ -1,34 +1,24 @@
 from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
 from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem, SimpleParameter
 from qgis.core import QgsCoordinateReferenceSystem
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QMessageBox, QSizePolicy, QSpacerItem, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QMessageBox, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
 from .my_numerics import MyNumericParameterItem
+from .my_preview_label import MyPreviewLabel
 
 registerParameterType('myGroup', MyGroupParameter, override=True)
 registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
 
 
-class CrsPreviewLabel(QLabel):
+class CrsPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
-        param.sigValueChanging.connect(self.onCrsChanging)
+        param.sigValueChanging.connect(self.onCrsChanging)                      # connect signal to slot
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-
-        self.crs = QgsCoordinateReferenceSystem()                               # create invalid crs object
-        val = opts.get('value', self.crs)
-
-        self.onCrsChanging(None, val)
+        self.crs = QgsCoordinateReferenceSystem()                               # create invalid crs object (defaults to EPSG:4326)
+        val = param.opts.get('value', self.crs)                                 # get crs from param and give it a default value
+        self.onCrsChanging(None, val)                                           # initialize the label in __init__()
 
     def onCrsChanging(self, _, val):
         self.setText(val.description())
