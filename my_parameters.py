@@ -321,13 +321,19 @@ class MySpherePreviewLabel(MyPreviewLabel):
         self.setText(f'r={r:.{d}g}m, depth={-z:.{d}g}m')
         self.update()
 
-    def onTreeStateChanged(self, param):
+    def onTreeStateChanged(self, param, changes):
         print('>>> MySphereParameter.TreeStateChanged <<<')
 
         if not isinstance(param, MySphereParameter):
             raise ValueError("Need 'MySphereParameter' instances at this point")
 
-        self.onValueChanging(None, param.sphere)                                # parameter info is lagging behind applied changes; need to investigate why !
+        # need to update sphere to prevent changes in previewlabel are lagging behind
+        for par, change, data in changes:
+            child = par.name()
+            if child == 'Z' and change == 'value':
+                param.sphere.origin.setZ(data)
+
+        self.onValueChanging(None, param.sphere)
 
 
 class MySphereParameterItem(MyGroupParameterItem):
@@ -368,7 +374,6 @@ class MySphereParameter(MyGroupParameter):
         self.parO = self.child('Sphere origin')
         self.parR = self.child('Sphere radius')
 
-        # self.parO.sigTreeStateChanged.connect(self.changed)
         self.parO.sigValueChanged.connect(self.changed)
         self.parR.sigValueChanged.connect(self.changed)
 
@@ -2132,9 +2137,9 @@ class MyPatternListParameter(MyGroupParameter):
 class MyLocalGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.decimals = param.opts.get('decimals', 3)                           # decimals not used (yet)
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
@@ -2304,11 +2309,10 @@ class MyGlobalGridParameter(MyGroupParameter):
 class MyBinGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
+
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.decimals = param.opts.get('decimals', 3)                           # decimals not used (yet)
         val = param.opts.get('value', None)
-
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
@@ -2722,15 +2726,15 @@ class MyAnalysisPreviewLabel(MyPreviewLabel):
 
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.decimals = param.opts.get('decimals', 3)                       # decimals not used (yet)
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, *_):                                          # unused param, val replaced by *_
         ...
+        # the next text has been commented out; keep blue labels blanc for consistency
+
         # binningMethod = val.binning.method.value
         # method = binningList[binningMethod]
-
         # self.setText(f"{method} @ Vint={val.binning.vint}m/s")
         # self.update()
 
@@ -2804,14 +2808,151 @@ class MyAnalysisParameter(MyGroupParameter):
         return (self.area, self.angles, self.binning, self.offset, self.unique)
 
 
+class MyReflectorsPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+    def onValueChanging(self, *_):                                          # unused param, val replaced by *_
+        ...
+        # keep blue labels blanc for consistency
+
+
+class MyReflectorsParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyReflectorsPreviewLabel(param))
+
+    def treeWidgetChanged(self):
+        ParameterItem.treeWidgetChanged(self)
+        tw = self.treeWidget()
+        if tw is None:
+            return
+        tw.setItemWidget(self, 1, self.itemWidget)
+
+
+class MyReflectorsParameter(MyGroupParameter):
+
+    itemClass = MyReflectorsParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyReflectorsParameter opts')
+
+        survey = RollSurvey()
+        self.survey = opts.get('value', survey)
+
+        # survey reflectors
+        self.plane = self.survey.globalPlane
+        self.sphere = self.survey.globalSphere
+
+        self.addChild(dict(name='Dipping plane', type='myPlane', value=self.plane, expanded=False, flat=True))
+        self.addChild(dict(name='Buried sphere', type='mySphere', value=self.sphere, expanded=False, flat=True))
+
+        self.parP = self.child('Dipping plane')
+        self.parS = self.child('Buried sphere')
+
+        self.parP.sigValueChanged.connect(self.changed)
+        self.parS.sigValueChanged.connect(self.changed)
+
+    def changed(self):
+        self.plane = self.parP.value()
+        self.sphere = self.parS.value()
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return (self.plane, self.sphere)
+
+
+class MyConfigurationPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+    def onValueChanging(self, *_):                                          # unused param, val replaced by *_
+        ...
+        # keep blue labels blanc for consistency
+
+
+class MyConfigurationParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyConfigurationPreviewLabel(param))
+
+    def treeWidgetChanged(self):
+        ParameterItem.treeWidgetChanged(self)
+        tw = self.treeWidget()
+        if tw is None:
+            return
+        tw.setItemWidget(self, 1, self.itemWidget)
+
+
+class MyConfigurationParameter(MyGroupParameter):
+
+    itemClass = MyConfigurationParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyConfigurationParameter opts')
+
+        survey = RollSurvey()
+        self.survey = opts.get('value', survey)
+
+        # survey Configuration
+        # the use of 'type' caused problems: 'str' object is not callable error in python. Solved by prepending with an underscore
+        # see: https://stackoverflow.com/questions/6039605/why-does-code-like-str-str-cause-a-typeerror-but-only-the-second-time
+        self._crs = self.survey.crs
+        self._type = self.survey.type
+        self._name = self.survey.name
+        surTypes = [e.name for e in surveyType]
+
+        self.addChild(dict(name='Survey CRS', type='myCrs2', value=self._crs, default=self._crs, expanded=False, flat=True))
+        self.addChild(dict(name='Survey type', type='myList', value=self._type.name, default=self._type.name, limits=surTypes))
+        self.addChild(dict(name='Survey name', type='str', value=self._name, default=self._name))
+
+        self.parC = self.child('Survey CRS')
+        self.parT = self.child('Survey type')
+        self.parN = self.child('Survey name')
+
+        self.parC.sigValueChanged.connect(self.changed)
+        self.parT.sigValueChanged.connect(self.changed)
+        self.parN.sigValueChanged.connect(self.changed)
+
+    def changed(self):
+        self._crs = self.parC.value()
+        self._type = self.parT.value()
+        self._name = self.parN.value()
+
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return (self._crs, self._type, self._name)
+
+
 class MySurveyPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onValueChanging)
 
-        self.decimals = param.opts.get('decimals', 3)                           # decimals not used (yet)
         val = param.opts.get('value', None)
-
         self.onValueChanging(None, val)
 
     def onValueChanging(self, *_):                                              # unused param, val replaced by *_
@@ -2856,7 +2997,7 @@ class MySurveyParameter(MyGroupParameter):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Survey CRS', type='myCrs', value=self.survey.crs, default=self.survey.crs),
+                    dict(name='Survey CRS', type='myCrs2', value=self.survey.crs, default=self.survey.crs),
                     dict(name='Survey type', type='myList', value=self.survey.type.name, default=self.survey.type.name, limits=surTypes),
                     dict(name='Survey name', type='str', value=self.survey.name, default=self.survey.name),
                 ],
@@ -2864,19 +3005,7 @@ class MySurveyParameter(MyGroupParameter):
         )
 
         self.addChild(dict(name='Survey analysis', type='myAnalysis', value=self.survey, default=self.survey, brush='#add8e6'))
-
-        self.addChild(
-            dict(
-                name='Survey reflectors',
-                type='myGroup',
-                brush='#add8e6',
-                children=[
-                    dict(name='Dipping plane', type='myPlane', value=self.survey.globalPlane, expanded=False, flat=True),
-                    dict(name='Buried sphere', type='mySphere', value=self.survey.sphere, expanded=False, flat=True),
-                ],
-            )
-        )
-
+        self.addChild(dict(name='Survey reflectors', type='myReflectors', value=self.survey, default=self.survey, brush='#add8e6'))
         self.addChild(dict(name='Survey grid', type='myBinGrid', value=self.survey.grid, default=self.survey.grid, brush='#add8e6'))
         self.addChild(dict(name='Block list', type='myBlockList', value=self.survey.blockList, brush='#add8e6'))
         self.addChild(dict(name='Pattern list', type='myPatternList', value=self.survey.patternList, brush='#add8e6'))
@@ -2890,7 +3019,7 @@ registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, ov
 registerParameterItemType('myInt', MyNumericParameterItem, SimpleParameter, override=True)
 
 # then, register the parameters, already defined in other files
-registerParameterType('cmap', CmapParameter, override=True)
+registerParameterType('myCmap', CmapParameter, override=True)
 registerParameterType('myCrs', MyCrsParameter, override=True)
 registerParameterType('myCrs2', MyCrs2Parameter, override=True)
 registerParameterType('myGroup', MyGroupParameter, override=True)
@@ -2905,27 +3034,29 @@ registerParameterType('mySymbols', MySymbolParameter, override=True)
 registerParameterType('myVector', MyVectorParameter, override=True)
 
 # next, register parameters, defined in this  file
-registerParameterType('MyRoll', MyRollParameter, override=True)
-registerParameterType('MyRollList', MyRollListParameter, override=True)
-registerParameterType('myCircle', MyCircleParameter, override=True)
-registerParameterType('mySpiral', MySpiralParameter, override=True)
-registerParameterType('myWell', MyWellParameter, override=True)
-registerParameterType('mySphere', MySphereParameter, override=True)
-registerParameterType('myPlane', MyPlaneParameter, override=True)
-registerParameterType('mySeed', MySeedParameter, override=True)
-registerParameterType('mySeedList', MySeedListParameter, override=True)
-registerParameterType('myTemplate', MyTemplateParameter, override=True)
-registerParameterType('myTemplateList', MyTemplateListParameter, override=True)
+registerParameterType('myAnalysis', MyAnalysisParameter, override=True)
+registerParameterType('myBinAngles', MyBinAnglesParameter, override=True)
+registerParameterType('myBinGrid', MyBinGridParameter, override=True)
+registerParameterType('myBinMethod', MyBinMethodParameter, override=True)
+registerParameterType('myBinOffset', MyBinOffsetParameter, override=True)
 registerParameterType('myBlock', MyBlockParameter, override=True)
 registerParameterType('myBlockList', MyBlockListParameter, override=True)
-registerParameterType('myBinGrid', MyBinGridParameter, override=True)
-registerParameterType('myLocalGrid', MyLocalGridParameter, override=True)
+registerParameterType('myCircle', MyCircleParameter, override=True)
+registerParameterType('myConfiguration', MyConfigurationParameter, override=True)
 registerParameterType('myGlobalGrid', MyGlobalGridParameter, override=True)
-registerParameterType('myAnalysis', MyAnalysisParameter, override=True)
-registerParameterType('myBinOffset', MyBinOffsetParameter, override=True)
-registerParameterType('myBinAngles', MyBinAnglesParameter, override=True)
-registerParameterType('myUniqOff', MyUniqOffParameter, override=True)
-registerParameterType('myBinMethod', MyBinMethodParameter, override=True)
+registerParameterType('myLocalGrid', MyLocalGridParameter, override=True)
 registerParameterType('myPattern', MyPatternParameter, override=True)
 registerParameterType('myPatternList', MyPatternListParameter, override=True)
+registerParameterType('myPlane', MyPlaneParameter, override=True)
+registerParameterType('myReflectors', MyReflectorsParameter, override=True)
+registerParameterType('MyRoll', MyRollParameter, override=True)
+registerParameterType('MyRollList', MyRollListParameter, override=True)
+registerParameterType('mySeed', MySeedParameter, override=True)
+registerParameterType('mySeedList', MySeedListParameter, override=True)
+registerParameterType('mySphere', MySphereParameter, override=True)
+registerParameterType('mySpiral', MySpiralParameter, override=True)
 registerParameterType('mySurvey', MySurveyParameter, override=True)
+registerParameterType('myTemplate', MyTemplateParameter, override=True)
+registerParameterType('myTemplateList', MyTemplateListParameter, override=True)
+registerParameterType('myUniqOff', MyUniqOffParameter, override=True)
+registerParameterType('myWell', MyWellParameter, override=True)

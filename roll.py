@@ -28,10 +28,8 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
 # Initialize Qt resources from file resources.py
-from .resources import (qCleanupResources, qInitResources, qt_resource_data,
-                        qt_resource_name, qt_resource_struct,
-                        qt_resource_struct_v1, qt_resource_struct_v2,
-                        qt_version, rcc_version)
+from .resources import qCleanupResources, qInitResources, qt_resource_data, qt_resource_name, qt_resource_struct, qt_resource_struct_v1, qt_resource_struct_v2, qt_version, rcc_version
+
 # Import the code for the main window
 from .roll_main_window import RollMainWindow
 
@@ -54,8 +52,8 @@ class Roll:
         self.plugin_dir = os.path.dirname(__file__)
 
         # initialize locale
-        locale = QSettings().value("locale/userLocale")[0:2]
-        locale_path = os.path.join(self.plugin_dir, "i18n", f"Roll_{locale}.qm")
+        locale = QSettings().value('locale/userLocale')[0:2]
+        locale_path = os.path.join(self.plugin_dir, 'i18n', f'Roll_{locale}.qm')
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -64,7 +62,7 @@ class Roll:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr("&Roll")
+        self.menu = self.tr('&Roll')
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
@@ -86,7 +84,7 @@ class Roll:
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate("Roll", message)
+        return QCoreApplication.translate('Roll', message)
 
     def add_action(
         self,
@@ -164,10 +162,10 @@ class Roll:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ":/plugins/roll/icon.png"
+        icon_path = ':/plugins/roll/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr("Roll 3D survey design"),
+            text=self.tr('Roll 3D survey design'),
             callback=self.run,
             parent=self.iface.mainWindow(),
         )
@@ -178,7 +176,7 @@ class Roll:
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
-            self.iface.removePluginMenu(self.tr("&Roll"), action)
+            self.iface.removePluginMenu(self.tr('&Roll'), action)
             self.iface.removeToolBarIcon(action)
 
     # See: https://gis.stackexchange.com/questions/354346/qgis-plugin-with-dockwidget-and-mainwindow
@@ -199,7 +197,7 @@ class Roll:
             self.first_start = False
             self.mainWindow = RollMainWindow()
 
-        if self.mainWindow.killMe is True:                                      # Bart: Restart the GUI from scratch, when previously closed
+        if self.mainWindow is None or self.mainWindow.killMe is True:           # Bart: Restart the GUI from scratch, when previously closed
             self.mainWindow = RollMainWindow()
 
         # show the main window

@@ -816,7 +816,7 @@ class RollGrid:
 
         growListElem = parent.namedItem('grow_list').toElement()
         if not growListElem.isNull():
-            print("   'grow_list' present")
+            # print("   'grow_list' present")
 
             nameElem = growListElem.namedItem('name').toElement()
             if not nameElem.isNull():
@@ -2502,16 +2502,13 @@ class RollSurvey(pg.GraphicsObject):
         self.cmpBoundingRect = QRectF()                                         # cmp extent
         self.boundingBox = QRectF()                                             # src|rec extent
 
-        # survey description
+        # survey configuration
+        self.crs = QgsCoordinateReferenceSystem()                               # create invalid crs object
         self.type = surveyType.Orthogonal
         self.name: str = name
 
         # survey painting mode
         self.paintMode = paintMode.allTemplates
-
-        # survey CRS
-        # create invalid crs object
-        self.crs = QgsCoordinateReferenceSystem()
 
         # survey limits
         self.binning = RollBinning()

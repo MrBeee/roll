@@ -114,35 +114,21 @@ from console import console
 from numpy.compat import asstr
 from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QDateTime, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
-from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
-from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
-from qgis.PyQt.QtWidgets import (
-    QAction,
-    QApplication,
-    QButtonGroup,
-    QCheckBox,
-    QDialogButtonBox,
-    QDockWidget,
-    QFileDialog,
-    QFrame,
-    QGraphicsEllipseItem,
-    QGridLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QHeaderView,
-    QLabel,
-    QMainWindow,
-    QMessageBox,
-    QPlainTextEdit,
-    QProgressBar,
-    QPushButton,
-    QRadioButton,
-    QSplitter,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
-)
+from qgis.PyQt.QtCore import (QDateTime, QFile, QFileInfo, QIODevice,
+                              QItemSelection, QItemSelectionModel, QModelIndex,
+                              QPoint, QSettings, Qt, QTextStream, QThread)
+from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
+                             QTextCursor, QTextOption, QTransform)
+from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
+                                      QPrintPreviewDialog)
+from qgis.PyQt.QtWidgets import (QAction, QApplication, QButtonGroup,
+                                 QCheckBox, QDialogButtonBox, QDockWidget,
+                                 QFileDialog, QFrame, QGraphicsEllipseItem,
+                                 QGridLayout, QGroupBox, QHBoxLayout,
+                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
+                                 QPlainTextEdit, QProgressBar, QPushButton,
+                                 QRadioButton, QSplitter, QTabWidget,
+                                 QVBoxLayout, QWidget)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
@@ -151,34 +137,26 @@ from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
 from .land_wizard import LandSurveyWizard
 from .my_crs2 import MyCrs2Parameter
 from .my_list import MyListParameter
-from .my_parameters import MyAnalysisParameter
-from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
+from .my_parameters import (MyAnalysisParameter, MyConfigurationParameter,
+                            MyReflectorsParameter)
+from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
+                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
+                             identifyQgisPointLayer, readQgisPointLayer,
+                             updateQgisPointLayer)
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (
-    calcMaxXPStraces,
-    calculateLineStakeTransform,
-    deletePntDuplicates,
-    deletePntOrphans,
-    deleteRelDuplicates,
-    deleteRelOrphans,
-    fileExportAsR01,
-    fileExportAsS01,
-    fileExportAsX01,
-    findRecOrphans,
-    findSrcOrphans,
-    getRecGeometry,
-    getSrcGeometry,
-    markUniqueRPSrecords,
-    markUniqueSPSrecords,
-    markUniqueXPSrecords,
-    pntType1,
-    readRPSFiles,
-    readSPSFiles,
-    readXPSFiles,
-    relType2,
-)
-from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
-from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
+from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
+                            deletePntDuplicates, deletePntOrphans,
+                            deleteRelDuplicates, deleteRelOrphans,
+                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
+                            findRecOrphans, findSrcOrphans, getRecGeometry,
+                            getSrcGeometry, markUniqueRPSrecords,
+                            markUniqueSPSrecords, markUniqueXPSrecords,
+                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
+                            relType2)
+from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
+                               TableView, XpsTableModel)
+from .worker_threads import (BinFromGeometryWorker, BinningWorker,
+                             GeometryWorker)
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -258,7 +236,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # See: https://docs.qgis.org/3.22/en/docs/documentation_guidelines/substitutions.html#toolbar-button-icons for QGIS Icons
         self.setupUi(self)
 
-        # reset GUI when the plugin is restarted (not when restaed from minimized state on windows)
+        # reset GUI when the plugin is restarted (not when restarted from minimized state on windows)
         self.killMe = False
 
         # GQIS interface
@@ -753,6 +731,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         registerParameterType('myCrs2', MyCrs2Parameter, override=True)
         registerParameterType('myList', MyListParameter, override=True)
         registerParameterType('myAnalysis', MyAnalysisParameter, override=True)
+        registerParameterType('myReflectors', MyReflectorsParameter, override=True)
+        registerParameterType('myConfiguration', MyConfigurationParameter, override=True)
 
     def resetSurveyProperties(self):
         self.paramTree.clear()
@@ -765,31 +745,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         for p in copy.patternList:
             config.patternList.append(p.name)
 
-        # copy the crs for global access (need to fix this later)
+        # first copy the crs for global access (need to fix this later)
         config.crs = copy.crs
 
-        surTypes = [e.name for e in surveyType]
         surveyParams = [
-            dict(
-                name='Survey configuration',
-                type='myGroup',
-                brush='#add8e6',
-                children=[
-                    dict(name='Survey CRS', type='myCrs2', value=copy.crs, default=copy.crs, expanded=False, flat=True),
-                    dict(name='Survey type', type='myList', value=copy.type.name, default=copy.type.name, limits=surTypes),
-                    dict(name='Survey name', type='str', value=copy.name, default=copy.name),
-                ],
-            ),
+            dict(name='Survey configuration', type='myConfiguration', value=copy, default=copy, brush='#add8e6'),
             dict(name='Survey analysis', type='myAnalysis', value=copy, default=copy, brush='#add8e6'),
-            dict(
-                name='Survey reflectors',
-                type='myGroup',
-                brush='#add8e6',
-                children=[
-                    dict(name='Dipping plane', type='myPlane', value=copy.globalPlane, expanded=False, flat=True),
-                    dict(name='Buried sphere', type='mySphere', value=copy.globalSphere, expanded=False, flat=True),
-                ],
-            ),
+            dict(name='Survey reflectors', type='myReflectors', value=copy, default=copy, brush='#add8e6'),
             dict(name='Survey grid', type='myBinGrid', value=copy.grid, brush='#add8e6'),
             dict(name='Block list', type='myBlockList', value=copy.blockList, brush='#add8e6'),
             dict(name='Pattern list', type='myPatternList', value=copy.patternList, brush='#add8e6'),
@@ -828,8 +790,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         copy.output.rctOutput, copy.angles, copy.binning, copy.offset, copy.unique = ANA.value()
 
         REF = self.parameters.child('Survey reflectors')
-        copy.globalPlane = REF.child('Dipping plane').value()
-        copy.sphere = REF.child('Buried sphere').value()
+        copy.globalPlane, copy.globalSphere = REF.value()
 
         GRD = self.parameters.child('Survey grid')
         copy.grid = GRD.value()
@@ -2272,7 +2233,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.killMe = True                                                  # to restart the GUI from scratch when the plugin is activated again
 
         else:
-            e.ignore()                                                      # ignore the event and stay active
+            e.ignore()                                                          # ignore the event and stay active
 
         # See: https://stackoverflow.com/questions/26114034/defining-a-wx-panel-destructor-in-wxpython/73972953#73972953
         # See: http://enki-editor.org/2014/08/23/Pyqt_mem_mgmt.html

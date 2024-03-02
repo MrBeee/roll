@@ -31,7 +31,7 @@ class CmapParameterItem(WidgetParameterItem):
         for item in self.cmapList:
             cmap = pg.colormap.get(item)                                        # get the appropriate colormap
             brush = cmap.getBrush(span=(0.0, float(self.colorbarWidth)), orientation='horizontal')
-            pixmap = QPixmap(self.colorbarWidth, 20)                           # create a pixmap as starting point for a QIcon
+            pixmap = QPixmap(self.colorbarWidth, 20)                            # create a pixmap as starting point for a QIcon
             pixmap.fill(Qt.white)                                               # create white background; not really needed; all is covered
             painter = QPainter(pixmap)                                          # paint the pixmap
             painter.setBrush(brush)
@@ -58,4 +58,4 @@ class CmapParameter(Parameter):
     itemClass = CmapParameterItem
 
 
-registerParameterType('cmap', CmapParameter, override=True)
+registerParameterType('myCmap', CmapParameter, override=True)

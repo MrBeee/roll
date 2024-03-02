@@ -82,8 +82,8 @@ class SettingsDialog(QDialog):
                     dict(name='Cmp area pen', type='myPen', flat=True, expanded=False, value=cmpAreaPenParam),
                     dict(name='Rec area pen', type='myPen', flat=True, expanded=False, value=recAreaPenParam),
                     dict(name='Src area pen', type='myPen', flat=True, expanded=False, value=srcAreaPenParam),
-                    dict(name='Analysis color map', type='cmap', default=config.analysisCmap, value=config.analysisCmap),
-                    dict(name='Inactive color map', type='cmap', default=config.inActiveCmap, value=config.inActiveCmap),
+                    dict(name='Analysis color map', type='myCmap', default=config.analysisCmap, value=config.analysisCmap),
+                    dict(name='Inactive color map', type='myCmap', default=config.inActiveCmap, value=config.inActiveCmap),
                 ],
             ),
         ]
