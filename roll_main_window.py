@@ -32,61 +32,10 @@ To find out where libraries reside, use 'inspect':
 >>>inspect.getfile(qgis.PyQt.QtCore)
 'C:\\Program Files\\QGIS 3.28.1\\apps\\qgis\\python\\qgis\\PyQt\\QtCore.py'
 """
-# Now using PyLint to check for errors causes quite a few issues on its own.
+# Now using PyLint to check for errors, which causes a few issues on its own.
 # See: https://stackoverflow.com/questions/52123470/how-do-i-disable-pylint-unused-import-error-messages-in-vs-code
 # See: https://gist.github.com/xen/6334976
 # See: https://pylint.pycqa.org/en/latest/user_guide/messages/index.html
-
-# Disabled messages
-#    Pointless
-#       W0142 = *args and **kwargs support
-#       W0403 = Relative imports
-#       W0613 = Unused argument
-#       W0232 = Class has no __init__ method
-#       R0903 = Too few public methods
-#       R0913 = Too many arguments
-#       C0103 = Invalid name
-#       R0914 = Too many local variables
-#       C0304 = Final newline missing
-#
-#    PyLint's module importation is unreliable
-#       F0401 = Unable to import module
-#       W0402 = Uses of a deprecated module
-#       E1101 = Module x has no y member
-#
-#    Already an error when wildcard imports are used
-#       W0614 = Unused import from wildcard
-#
-#    Stricter messages that can be disabled until everything else has been fixed
-#       C0111 = Missing docstring
-#       C0301 = Line too long
-
-# Proposed solution:
-# "python.linting.pylintArgs": [
-#     "--disable=all",
-#     "--enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,"
-#       "anomalous-backslash-in-string,bad-open-mode"
-# ]
-#
-# I had before :
-#
-#     "python.linting.pylintArgs": [
-#         "--disable=E0013",
-#         "--disable=E0015",
-#         "--max-line-length=160",
-#         "--max-module-lines=2000",
-#         "--extension-pkg-whitelist=qgis",
-#         "--reportMissingImports=false"
-#     ],
-
-# "python.linting.pylintArgs": [
-#     "--disable=E0013,E0015,E0401",
-#     "--max-line-length=160",
-#     "--max-module-lines=2000",
-#     "--extension-pkg-whitelist=qgis",
-#     "--reportMissingImports=false",
-# ],
-
 # See: http://pylint-messages.wikidot.com/all-codes for more codes. see also: https://manpages.org/pylint
 # See: https://pylint.pycqa.org/en/latest/user_guide/messages/messages_overview.html#messages-overview for the official list
 # See: https://gispofinland.medium.com/cooking-with-gispo-qgis-plugin-development-in-vs-code-19f95efb1977 IMPORTANT FOR A FULLY FUNCTIONING SETUP
@@ -748,13 +697,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # first copy the crs for global access (need to fix this later)
         config.crs = copy.crs
 
+        # brush color for main parameter categories
+        brush = '#add8e6'
+
         surveyParams = [
-            dict(name='Survey configuration', type='myConfiguration', value=copy, default=copy, brush='#add8e6'),
-            dict(name='Survey analysis', type='myAnalysis', value=copy, default=copy, brush='#add8e6'),
-            dict(name='Survey reflectors', type='myReflectors', value=copy, default=copy, brush='#add8e6'),
-            dict(name='Survey grid', type='myBinGrid', value=copy.grid, brush='#add8e6'),
-            dict(name='Block list', type='myBlockList', value=copy.blockList, brush='#add8e6'),
-            dict(name='Pattern list', type='myPatternList', value=copy.patternList, brush='#add8e6'),
+            dict(brush=brush, name='Survey configuration', type='myConfiguration', value=copy),
+            dict(brush=brush, name='Survey analysis', type='myAnalysis', value=copy),
+            dict(brush=brush, name='Survey reflectors', type='myReflectors', value=copy),
+            dict(brush=brush, name='Survey grid', type='myBinGrid', value=copy.grid),
+            dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList),
+            dict(brush=brush, name='Pattern list', type='myPatternList', value=copy.patternList),
         ]
 
         # surveyParams = dict(name='Survey configuration',type='mySurvey', value=copy, brush='#add8e6')
@@ -776,15 +728,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 item.setToolTip(0, p.opts['tip'])
 
     def applyPropertyChanges(self):
-        # build new survey object from scratch, and start to add to it
+        # build new survey object from scratch, and start adding to it
         copy = RollSurvey()
 
         CFG = self.parameters.child('Survey configuration')
-        copy.crs = CFG.child('Survey CRS').value()
-        config.crs = copy.crs                                                   # for global access to crs
+        # copy.crs = CFG.child('Survey CRS').value()
+        # copy.type = surveyType[CFG.child('Survey type').value()]
+        # copy.name = CFG.child('Survey name').value()
 
-        copy.type = surveyType[CFG.child('Survey type').value()]
-        copy.name = CFG.child('Survey name').value()
+        copy.crs, surType, copy.name = CFG.value()                              # get tuple of data from parameter
+        copy.type = surveyType[surType]                                         # surveyType is an enum
+        config.crs = copy.crs                                                   # needed for global access to crs
 
         ANA = self.parameters.child('Survey analysis')
         copy.output.rctOutput, copy.angles, copy.binning, copy.offset, copy.unique = ANA.value()

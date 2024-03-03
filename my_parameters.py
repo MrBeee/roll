@@ -4,7 +4,7 @@ import os
 import numpy as np
 import wellpathpy as wp
 from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem, SimpleParameter
+from pyqtgraph.parametertree.parameterTypes.basetypes import SimpleParameter
 from qgis.PyQt.QtCore import QFileInfo, QSettings
 from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox
@@ -77,13 +77,6 @@ class MyRollParameterItem(MyGroupParameterItem):
 
         self.setPreviewLabel(MyRollPreviewLabel(param))
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
-
 
 class MyRollParameter(MyGroupParameter):
 
@@ -142,7 +135,7 @@ class MyRollParameter(MyGroupParameter):
         self.row.increment.setZ(self.parZ.value())
         self.setAzimuth()
         self.setTilt()
-        self.sigValueChanging.emit(self, self.row)
+        self.sigValueChanging.emit(self, self.value())
 
     def value(self):
         return self.row
@@ -171,13 +164,6 @@ class MyRollListParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyRollListPreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyRollListParameter(MyGroupParameter):
@@ -251,13 +237,6 @@ class MyPlaneParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyPlanePreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyPlaneParameter(MyGroupParameter):
@@ -342,13 +321,6 @@ class MySphereParameterItem(MyGroupParameterItem):
 
         self.setPreviewLabel(MySpherePreviewLabel(param))
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
-
 
 class MySphereParameter(MyGroupParameter):
 
@@ -412,13 +384,6 @@ class MyCircleParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyCirclePreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyCircleParameter(MyGroupParameter):
@@ -495,13 +460,6 @@ class MySpiralParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySpiralPreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MySpiralParameter(MyGroupParameter):
@@ -589,13 +547,6 @@ class MyWellParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyWellPreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyWellParameter(MyGroupParameter):
@@ -858,13 +809,6 @@ class MySeedParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySeedPreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MySeedParameter(MyGroupParameter):
@@ -1131,13 +1075,6 @@ class MySeedListParameterItem(MyGroupParameterItem):
 
         self.setPreviewLabel(MySeedListPreviewLabel(param))
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
-
 
 class MySeedListParameter(MyGroupParameter):
 
@@ -1247,13 +1184,6 @@ class MyTemplateParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyTemplatePreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyTemplateParameter(MyGroupParameter):
@@ -1558,13 +1488,6 @@ class MyBlockParameterItem(MyGroupParameterItem):
 
         self.setPreviewLabel(MyBlockPreviewLabel(param))
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
-
 
 class MyBlockParameter(MyGroupParameter):
 
@@ -1862,13 +1785,6 @@ class MyPatternParameterItem(MyGroupParameterItem):
 
         self.setPreviewLabel(MyPatternPreviewLabel(param))
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
-
 
 class MyPatternParameter(MyGroupParameter):
 
@@ -1956,128 +1872,6 @@ class MyPatternParameter(MyGroupParameter):
             ...
 
 
-# class PatternListPreviewLabel(QLabel):
-#     def __init__(self, param):
-#         super().__init__()
-
-#         # sigValueChanged   = QtCore.Signal(object, object)                 ## self, value   emitted when value is finished being edited
-#         # sigValueChanging  = QtCore.Signal(object, object)                 ## self, value  emitted as value is being edited
-#         # sigChildAdded     = QtCore.Signal(object, object, object)         ## self, child, index
-#         # sigChildRemoved   = QtCore.Signal(object, object)                 ## self, child
-#         # sigRemoved        = QtCore.Signal(object)                         ## self
-#         # sigParentChanged  = QtCore.Signal(object, object)                 ## self, parent
-#         # sigLimitsChanged  = QtCore.Signal(object, object)                 ## self, limits
-#         # sigDefaultChanged = QtCore.Signal(object, object)                 ## self, default
-#         # sigNameChanged    = QtCore.Signal(object, object)                 ## self, name
-#         # sigOptionsChanged = QtCore.Signal(object, object)                 ## self, {opt:val, ...}
-
-#         # Emitted when anything changes about this parameter at all.
-#         # The second argument is a string indicating what changed ('value', 'childAdded', etc..)
-#         # The third argument can be any extra information about the change
-#         #
-#         # sigStateChanged   = QtCore.Signal(object, object, object)         ## self, change, info
-
-#         # emitted when any child in the tree changes state
-#         # (but only if monitorChildren() is called)
-#         # sigTreeStateChanged = QtCore.Signal(object, object)               ## self, changes
-#         #                                                                   ## changes = [(param, change, info), ...]
-#         param.sigValueChanged    .connect(self.onValueChanged)
-#         param.sigValueChanging   .connect(self.onValueChanging)
-#         param.sigChildAdded      .connect(self.onChildAdded)
-#         param.sigChildRemoved    .connect(self.onChildRemoved)
-#         param.sigRemoved         .connect(self.onRemoved)
-#         param.sigParentChanged   .connect(self.onParentChanged)
-#         param.sigLimitsChanged   .connect(self.onLimitsChanged)
-#         param.sigDefaultChanged  .connect(self.onDefaultChanged)
-#         param.sigNameChanged     .connect(self.onNameChanged)
-#         param.sigOptionsChanged  .connect(self.onOptionsChanged)
-#         param.sigStateChanged    .connect(self.onStateChanged)
-#         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
-
-#         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-#         font = self.font()
-#         font.setPointSizeF(font.pointSize() - 0.5)
-#         self.setFont(font)
-#         self.setAlignment(Qt.AlignVCenter)
-
-#         opts = param.opts
-#         self.decimals = opts.get('decimals', 3)
-#         val = opts.get('value', None)
-
-#         # this widget is created **after** childs have been added in the __init__routine
-#         # so it is not notified through param.sigChildAdded() of any new childs at that stage
-#         # therefore do the following to provide initial label text.
-#         self.onValueChanging(None, val)
-
-#     def onValueChanged(self, val):
-#         print('>>> PatternList.ValueChanged <<<')
-
-#     def onValueChanging(self, param, val):
-#         if param is None:
-#             return
-#         nChilds = len(param.childs)
-
-#         if nChilds == 0:
-#             self.setText('No patterns in survey')
-#         else:
-#             self.setText(f'{nChilds} patterns in survey')
-#         self.update()
-
-#     def onChildAdded(self, child, index):
-#         print('>>> PatternList.ChildAdded <<<')
-
-#     def onChildRemoved(self, child):
-#         print('>>> PatternList.ChildRemoved <<<')
-
-#     def onRemoved(self):
-#         print('>>> PatternList.Removed <<<')
-
-#     def onParentChanged(self):
-#         print('>>> PatternList.ParentChanged <<<')
-
-#     def onLimitsChanged(self, limits):
-#         print('>>> PatternList.LimitsChanged <<<')
-
-#     def onDefaultChanged(self, default):
-#         print('>>> PatternList.DefaultChanged <<<')
-
-#     def onNameChanged(self, name):
-#         print('>>> PatternList.NameChanged <<<')
-
-#     def onOptionsChanged(self, options):
-#         print('PatternList.OptionsChanged <<<')
-
-#     def onStateChanged(self, change, info):
-#         print('>>> PatternList.StateChanged <<<')
-
-#     def onTreeStateChanged(self, changes):
-#         print('>>> PatternList.TreeStateChanged <<<')
-#         if not isinstance(changes, MyPatternListParameter):
-#             raise ValueError("Need 'MyPatternListParameter' instances at this point")
-
-# class MyPatternListParameterItem(MyGroupParameterItem):
-#     def __init__(self, param, depth):
-#         super().__init__(param, depth)
-#         self.itemWidget = QWidget()
-
-#         spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-#         self.label = PatternListPreviewLabel(param)
-
-#         layout = QHBoxLayout()
-#         layout.setContentsMargins(0, 0, 0, 0)
-#         layout.setSpacing(2)                                                    # spacing between elements
-#         layout.addSpacerItem(spacerItem)
-#         layout.addWidget(self.label)
-#         self.itemWidget.setLayout(layout)
-
-#     def treeWidgetChanged(self):
-#         ParameterItem.treeWidgetChanged(self)
-#         tw = self.treeWidget()
-#         if tw is None:
-#             return
-#         tw.setItemWidget(self, 1, self.itemWidget)
-
-
 class MyPatternListParameter(MyGroupParameter):
 
     itemClass = MyGroupParameterItem
@@ -2160,13 +1954,6 @@ class MyLocalGridParameterItem(MyGroupParameterItem):
 
         self.setPreviewLabel(MyLocalGridPreviewLabel(param))
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
-
 
 class MyLocalGridParameter(MyGroupParameter):
 
@@ -2192,13 +1979,7 @@ class MyLocalGridParameter(MyGroupParameter):
         self.addChild(dict(name='Bin offset [y]', value=self.binGrid.shift.y(), type='float', decimals=d, suffix=s))
         self.addChild(dict(name='Stake nr @ origin', value=self.binGrid.stake.x(), type='float', decimals=d, suffix='#'))
         self.addChild(dict(name='Line nr @ origin', value=self.binGrid.stake.y(), type='float', decimals=d, suffix='#'))
-        self.addChild(
-            dict(
-                name='Max fold',
-                value=self.binGrid.fold,
-                type='int',
-            )
-        )
+        self.addChild(dict(name='Max fold', value=self.binGrid.fold, type='int'))
 
         self.parBx = self.child('Bin size [x]')
         self.parBy = self.child('Bin size [y]')
@@ -2252,13 +2033,6 @@ class MyGlobalGridParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyGlobalGridPreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyGlobalGridParameter(MyGroupParameter):
@@ -2331,13 +2105,6 @@ class MyBinGridParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBinGridPreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyBinGridParameter(MyGroupParameter):
@@ -2414,13 +2181,6 @@ class MyBinAnglesParameterItem(MyGroupParameterItem):
 
         self.setPreviewLabel(MyBinAnglesPreviewLabel(param))
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
-
 
 class MyBinAnglesParameter(MyGroupParameter):
 
@@ -2496,13 +2256,6 @@ class MyBinOffsetParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBinOffsetPreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyBinOffsetParameter(MyGroupParameter):
@@ -2583,13 +2336,6 @@ class MyUniqOffParameterItem(MyGroupParameterItem):
 
         self.setPreviewLabel(MyUniqOffPreviewLabel(param))
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
-
 
 class MyUniqOffParameter(MyGroupParameter):
 
@@ -2608,31 +2354,9 @@ class MyUniqOffParameter(MyGroupParameter):
         self.unique = RollOffset()
         self.unique = opts.get('value', self.unique)
 
-        self.addChild(
-            dict(
-                name='Apply pruning',
-                value=self.unique.apply,
-                type='bool',
-            )
-        )
-        self.addChild(
-            dict(
-                name='Delta offset',
-                value=self.unique.dOffset,
-                type='float',
-                decimals=d,
-                suffix='m',
-            )
-        )
-        self.addChild(
-            dict(
-                name='Delta azimuth',
-                value=self.unique.dAzimuth,
-                type='float',
-                decimals=d,
-                suffix='deg',
-            )
-        )
+        self.addChild(dict(name='Apply pruning', value=self.unique.apply, type='bool'))
+        self.addChild(dict(name='Delta offset', value=self.unique.dOffset, type='float', decimals=d, suffix='m'))
+        self.addChild(dict(name='Delta azimuth', value=self.unique.dAzimuth, type='float', decimals=d, suffix='deg'))
 
         self.parP = self.child('Apply pruning')
         self.parO = self.child('Delta offset')
@@ -2673,13 +2397,6 @@ class MyBinMethodParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBinMethodPreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyBinMethodParameter(MyGroupParameter):
@@ -2744,13 +2461,6 @@ class MyAnalysisParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyAnalysisPreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyAnalysisParameter(MyGroupParameter):
@@ -2828,13 +2538,6 @@ class MyReflectorsParameterItem(MyGroupParameterItem):
 
         self.setPreviewLabel(MyReflectorsPreviewLabel(param))
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
-
 
 class MyReflectorsParameter(MyGroupParameter):
 
@@ -2893,13 +2596,6 @@ class MyConfigurationParameterItem(MyGroupParameterItem):
 
         self.setPreviewLabel(MyConfigurationPreviewLabel(param))
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
-
 
 class MyConfigurationParameter(MyGroupParameter):
 
@@ -2917,7 +2613,7 @@ class MyConfigurationParameter(MyGroupParameter):
         self.survey = opts.get('value', survey)
 
         # survey Configuration
-        # the use of 'type' caused problems: 'str' object is not callable error in python. Solved by prepending with an underscore
+        # the use of 'type' caused errors: 'str' object is not callable error in python. Solved by prepending with an underscore
         # see: https://stackoverflow.com/questions/6039605/why-does-code-like-str-str-cause-a-typeerror-but-only-the-second-time
         self._crs = self.survey.crs
         self._type = self.survey.type
@@ -2932,9 +2628,7 @@ class MyConfigurationParameter(MyGroupParameter):
         self.parT = self.child('Survey type')
         self.parN = self.child('Survey name')
 
-        self.parC.sigValueChanged.connect(self.changed)
-        self.parT.sigValueChanged.connect(self.changed)
-        self.parN.sigValueChanged.connect(self.changed)
+        self.sigTreeStateChanged.connect(self.changed)
 
     def changed(self):
         self._crs = self.parC.value()
@@ -2956,8 +2650,9 @@ class MySurveyPreviewLabel(MyPreviewLabel):
         self.onValueChanging(None, val)
 
     def onValueChanging(self, *_):                                              # unused param, val replaced by *_
+        ...
         # self.setText(val.name)
-        self.update()
+        # self.update()
 
 
 class MySurveyParameterItem(MyGroupParameterItem):
@@ -2965,13 +2660,6 @@ class MySurveyParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySurveyPreviewLabel(param))
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MySurveyParameter(MyGroupParameter):
@@ -2988,27 +2676,14 @@ class MySurveyParameter(MyGroupParameter):
 
         self.survey = RollSurvey()                                              # (re)set the survey object
         self.survey = opts.get('value', self.survey)
+        brush = '#add8e6'
 
-        surTypes = [e.name for e in surveyType]
-
-        self.addChild(
-            dict(
-                name='Survey configuration',
-                type='myGroup',
-                brush='#add8e6',
-                children=[
-                    dict(name='Survey CRS', type='myCrs2', value=self.survey.crs, default=self.survey.crs),
-                    dict(name='Survey type', type='myList', value=self.survey.type.name, default=self.survey.type.name, limits=surTypes),
-                    dict(name='Survey name', type='str', value=self.survey.name, default=self.survey.name),
-                ],
-            )
-        )
-
-        self.addChild(dict(name='Survey analysis', type='myAnalysis', value=self.survey, default=self.survey, brush='#add8e6'))
-        self.addChild(dict(name='Survey reflectors', type='myReflectors', value=self.survey, default=self.survey, brush='#add8e6'))
-        self.addChild(dict(name='Survey grid', type='myBinGrid', value=self.survey.grid, default=self.survey.grid, brush='#add8e6'))
-        self.addChild(dict(name='Block list', type='myBlockList', value=self.survey.blockList, brush='#add8e6'))
-        self.addChild(dict(name='Pattern list', type='myPatternList', value=self.survey.patternList, brush='#add8e6'))
+        self.addChild(dict(brush=brush, name='Survey configuration', type='myConfiguration', value=self.survey))
+        self.addChild(dict(brush=brush, name='Survey analysis', type='myAnalysis', value=self.survey, default=self.survey))
+        self.addChild(dict(brush=brush, name='Survey reflectors', type='myReflectors', value=self.survey, default=self.survey))
+        self.addChild(dict(brush=brush, name='Survey grid', type='myBinGrid', value=self.survey.grid, default=self.survey.grid))
+        self.addChild(dict(brush=brush, name='Block list', type='myBlockList', value=self.survey.blockList))
+        self.addChild(dict(brush=brush, name='Pattern list', type='myPatternList', value=self.survey.patternList))
 
     def value(self):
         return self.survey

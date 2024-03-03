@@ -3,6 +3,7 @@ import os
 from pyqtgraph import functions as fn
 from pyqtgraph.parametertree import registerParameterType
 from pyqtgraph.parametertree.parameterTypes import GroupParameter, GroupParameterItem
+from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from pyqtgraph.Qt import mkQApp
 from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import QHBoxLayout, QMenu, QSizePolicy, QSpacerItem, QWidget
@@ -18,6 +19,13 @@ class MyGroupParameterItem(GroupParameterItem):
         self.contextMenu = None
         self.previewLabel = None
         self.itemWidget = QWidget()
+
+    def treeWidgetChanged(self):
+        ParameterItem.treeWidgetChanged(self)
+        tw = self.treeWidget()
+        if tw is None:
+            return
+        tw.setItemWidget(self, 1, self.itemWidget)
 
     def setPreviewLabel(self, label):
         layout = QHBoxLayout()

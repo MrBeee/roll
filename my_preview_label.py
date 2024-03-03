@@ -3,7 +3,7 @@ from qgis.PyQt.QtWidgets import QLabel, QSizePolicy
 
 
 class MyPreviewLabel(QLabel):
-    """helper class to set up label's size policy, font size and text alignment"""
+    """helper class to set up parameter label's size policy, font size and text alignment"""
 
     def __init__(self):
         super().__init__()
