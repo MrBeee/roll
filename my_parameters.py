@@ -31,7 +31,7 @@ from .classes import (
     surveyType,
 )
 from .functions import read_well_header, read_wws_header
-from .my_cmap import CmapParameter
+from .my_cmap import MyCmapParameter
 from .my_crs import MyCrsParameter
 from .my_crs2 import MyCrs2Parameter
 from .my_group import MyGroupParameter, MyGroupParameterItem
@@ -2694,7 +2694,7 @@ registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, ov
 registerParameterItemType('myInt', MyNumericParameterItem, SimpleParameter, override=True)
 
 # then, register the parameters, already defined in other files
-registerParameterType('myCmap', CmapParameter, override=True)
+registerParameterType('myCmap', MyCmapParameter, override=True)
 registerParameterType('myCrs', MyCrsParameter, override=True)
 registerParameterType('myCrs2', MyCrs2Parameter, override=True)
 registerParameterType('myGroup', MyGroupParameter, override=True)

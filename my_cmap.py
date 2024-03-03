@@ -13,7 +13,7 @@ from .functions import natural_sort
 # See: https://colorcet.holoviz.org/
 
 
-class CmapParameterItem(WidgetParameterItem):
+class MyCmapParameterItem(WidgetParameterItem):
     """
     Parameter type which displays a ComboBox containing a list of color maps
     """
@@ -54,8 +54,8 @@ class CmapParameterItem(WidgetParameterItem):
         self.widget.setCurrentIndex(index)
 
 
-class CmapParameter(Parameter):
-    itemClass = CmapParameterItem
+class MyCmapParameter(Parameter):
+    itemClass = MyCmapParameterItem
 
 
-registerParameterType('myCmap', CmapParameter, override=True)
+registerParameterType('myCmap', MyCmapParameter, override=True)
