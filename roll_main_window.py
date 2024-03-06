@@ -63,21 +63,35 @@ from console import console
 from numpy.compat import asstr
 from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import (QDateTime, QFile, QFileInfo, QIODevice,
-                              QItemSelection, QItemSelectionModel, QModelIndex,
-                              QPoint, QSettings, Qt, QTextStream, QThread)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
-                             QTextCursor, QTextOption, QTransform)
-from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
-                                      QPrintPreviewDialog)
-from qgis.PyQt.QtWidgets import (QAction, QApplication, QButtonGroup,
-                                 QCheckBox, QDialogButtonBox, QDockWidget,
-                                 QFileDialog, QFrame, QGraphicsEllipseItem,
-                                 QGridLayout, QGroupBox, QHBoxLayout,
-                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
-                                 QPlainTextEdit, QProgressBar, QPushButton,
-                                 QRadioButton, QSplitter, QTabWidget,
-                                 QVBoxLayout, QWidget)
+from qgis.PyQt.QtCore import QDateTime, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
+from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
+from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QApplication,
+    QButtonGroup,
+    QCheckBox,
+    QDialogButtonBox,
+    QDockWidget,
+    QFileDialog,
+    QFrame,
+    QGraphicsEllipseItem,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QRadioButton,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
@@ -86,26 +100,34 @@ from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
 from .land_wizard import LandSurveyWizard
 from .my_crs2 import MyCrs2Parameter
 from .my_list import MyListParameter
-from .my_parameters import (MyAnalysisParameter, MyConfigurationParameter,
-                            MyReflectorsParameter)
-from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
-                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
-                             identifyQgisPointLayer, readQgisPointLayer,
-                             updateQgisPointLayer)
+from .my_parameters import MyAnalysisParameter, MyConfigurationParameter, MyReflectorsParameter
+from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
-                            deletePntDuplicates, deletePntOrphans,
-                            deleteRelDuplicates, deleteRelOrphans,
-                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
-                            findRecOrphans, findSrcOrphans, getRecGeometry,
-                            getSrcGeometry, markUniqueRPSrecords,
-                            markUniqueSPSrecords, markUniqueXPSrecords,
-                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
-                            relType2)
-from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
-                               TableView, XpsTableModel)
-from .worker_threads import (BinFromGeometryWorker, BinningWorker,
-                             GeometryWorker)
+from .sps_io_and_qc import (
+    calcMaxXPStraces,
+    calculateLineStakeTransform,
+    deletePntDuplicates,
+    deletePntOrphans,
+    deleteRelDuplicates,
+    deleteRelOrphans,
+    fileExportAsR01,
+    fileExportAsS01,
+    fileExportAsX01,
+    findRecOrphans,
+    findSrcOrphans,
+    getRecGeometry,
+    getSrcGeometry,
+    markUniqueRPSrecords,
+    markUniqueSPSrecords,
+    markUniqueXPSrecords,
+    pntType1,
+    readRPSFiles,
+    readSPSFiles,
+    readXPSFiles,
+    relType2,
+)
+from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
+from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -704,7 +726,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             dict(brush=brush, name='Survey configuration', type='myConfiguration', value=copy),
             dict(brush=brush, name='Survey analysis', type='myAnalysis', value=copy),
             dict(brush=brush, name='Survey reflectors', type='myReflectors', value=copy),
-            dict(brush=brush, name='Survey grid', type='myBinGrid', value=copy.grid),
+            dict(brush=brush, name='Survey grid', type='myGrid', value=copy.grid),
             dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList),
             dict(brush=brush, name='Pattern list', type='myPatternList', value=copy.patternList),
         ]
@@ -808,17 +830,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     ## If anything changes in the tree, print a message
     def propertyTreeStateChanged(self, param, changes):
         # self.propertyButtonBox.button(QDialogButtonBox.Apply).setEnabled(True)
-        print('sigTreeStateChanged --> tree changes:')
+        print('┌── sigTreeStateChanged --> tree changes:')
         for param, change, data in changes:
             path = self.parameters.childPath(param)
             if path is not None:
                 childName = '.'.join(path)
             else:
                 childName = param.name()
-            print(f'  parameter: {childName}')
-            print(f'  change:    {change}')
-            print(f'  data:      {str(data)}')
-            print('  ----------')
+            print(f'│     parameter: {childName}')
+            print(f'│     change:    {change}')
+            print(f'│     data:      {str(data)}')
+            print('└───────────────────────────────────────')
 
     def onTabChange(self, _index):                                               # manage focus when active tab is changed; doesn't work 100% yet !
         widget = self.tabWidget.currentWidget()

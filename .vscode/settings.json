@@ -10,17 +10,16 @@
 //      "editor.defaultFormatter": "ms-python.black-formatter",
 //      "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.defaultFormatter": null,
-        // "editor.formatOnSave": false,
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-            "source.organizeImports": "explicit"
-        },
+        "editor.formatOnSave": false,
+        // "editor.formatOnSave": true,
+        // "editor.codeActionsOnSave": {
+        //     "source.organizeImports": "explicit"
+        // },
       },
-    "editor.codeActionsOnSave": {
-        "source.organizeImports.black": "explicit",
-        "source.fixAll": "never"
-    },
-//  "editor.formatOnSaveMode": "file",
+    // "editor.codeActionsOnSave": {
+    //     "source.organizeImports.black": "explicit",
+    //     "source.fixAll": "never"
+    // },
     "editor.formatOnSave": false,
     "python.analysis.extraPaths": [
         "C:\\Program Files\\QGIS 3.28.1\\bin",
