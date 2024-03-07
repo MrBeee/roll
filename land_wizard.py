@@ -14,10 +14,7 @@ import pyqtgraph as pg
 from qgis.gui import QgsProjectionSelectionTreeWidget
 from qgis.PyQt.QtCore import QRectF, QSizeF
 from qgis.PyQt.QtGui import QColor, QImage, QPixmap, QTextOption, QTransform
-from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QFrame,
-                                 QGridLayout, QLabel, QLineEdit, QMessageBox,
-                                 QPlainTextEdit, QSizePolicy, QSpinBox,
-                                 QVBoxLayout, QWizard, QWizardPage)
+from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QSizePolicy, QSpinBox, QVBoxLayout, QWizard, QWizardPage
 
 from . import config  # used to pass initial settings
 from .classes import RollPattern, RollSurvey, paintMode, surveyList, surveyType

@@ -1,22 +1,35 @@
-import copy
 import math
 import os
 
 import numpy as np
 import wellpathpy as wp
-from pyqtgraph.parametertree import (registerParameterItemType,
-                                     registerParameterType)
+from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
 from pyqtgraph.parametertree.parameterTypes.basetypes import SimpleParameter
 from qgis.PyQt.QtCore import QFileInfo, QSettings
 from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox
 
 from . import config  # used to pass initial settings
-from .classes import (BinningType, RollAngles, RollBinGrid, RollBinning,
-                      RollBlock, RollCircle, RollOffset, RollPattern,
-                      RollPlane, RollSeed, RollSphere, RollSpiral, RollSurvey,
-                      RollTemplate, RollTranslate, RollWell, binningList,
-                      surveyType)
+from .classes import (
+    BinningType,
+    RollAngles,
+    RollBinGrid,
+    RollBinning,
+    RollBlock,
+    RollCircle,
+    RollOffset,
+    RollPattern,
+    RollPlane,
+    RollSeed,
+    RollSphere,
+    RollSpiral,
+    RollSurvey,
+    RollTemplate,
+    RollTranslate,
+    RollWell,
+    binningList,
+    surveyType,
+)
 from .functions import lineNo, read_well_header, read_wws_header
 from .my_cmap import MyCmapParameter
 from .my_crs import MyCrsParameter
@@ -222,7 +235,7 @@ class MyPlanePreviewLabel(MyPreviewLabel):
             self.setText(f'dipping, azi={azi:.{d}g}°, dip={dip:.{d}g}°')
         self.update()
 
-    def onTreeStateChanged(self, param, changes):
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MyPlaneParameter.TreeStateChanged <<<')
 
         if not isinstance(param, MyPlaneParameter):
@@ -301,7 +314,7 @@ class MySpherePreviewLabel(MyPreviewLabel):
         self.setText(f'r={r:.{d}g}m, depth={-z:.{d}g}m')
         self.update()
 
-    def onTreeStateChanged(self, param, changes):
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MySphereParameter.TreeStateChanged <<<')
 
         if not isinstance(param, MySphereParameter):
@@ -570,7 +583,7 @@ class MyWellParameter(MyGroupParameter):
 
         nameFilter = 'Deviation files [md,inc,azi] (*.wws);;OpendTect files [n,e,z,md] (*.well);;All files (*.*)'
         tip = 'SRD = Seismic Reference Datum; the horizontal surface at which TWT is assumed to be zero'
-        fileName = self.well.name if os.path.exists(self.well.name) else None
+        fileName = self.well.name if self.well.name is not None and os.path.exists(self.well.name) else None
 
         self.addChild(dict(name='Well file', type='file', value=fileName, selectFile=fileName, acceptMode='AcceptOpen', fileMode='ExistingFile', viewMode='Detail', directory=directory, nameFilter=nameFilter))
         self.addChild(dict(name='Well origin', type='myPoint3D', value=self.well.orig, decimals=d, expanded=True, flat=True, enabled=False, readonly=True))
@@ -925,36 +938,36 @@ class MySeedParameter(MyGroupParameter):
 
     def contextMenu(self, name=None):
         parent = self.parent()
+        index = parent.children().index(self)
+
         if not isinstance(parent, MySeedListParameter):
             raise ValueError("Need 'MySeedListParameter' instances at this point")
 
         ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
         if name == 'remove':
-            index = parent.children().index(self)
             reply = QMessageBox.question(None, 'Please confirm', 'Delete selected seed ?', QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.remove()
+
                 parent.seedList.pop(index)
                 parent.sigChildRemoved.emit(self, parent)
 
         elif name == 'moveUp':
-            index = parent.children().index(self)
             if index > 0:
-                child = parent.children()[index]
-                parent.insertChild(index - 1, child, autoIncrementName=None, existOk=True)
+                self.remove()
 
                 seed = parent.seedList.pop(index)
                 parent.seedList.insert(index - 1, seed)
+                parent.insertChild(index - 1, dict(name=seed.name, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
         elif name == 'moveDown':
             n = len(parent.children())
-            index = parent.children().index(self)
             if index < n - 1:
-                child = parent.children()[index]
-                parent.insertChild(index + 1, child, autoIncrementName=None, existOk=True)
+                self.remove()
 
                 seed = parent.seedList.pop(index)
                 parent.seedList.insert(index + 1, seed)
+                parent.insertChild(index + 1, dict(name=seed.name, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
         elif name == 'preview':
             ...
@@ -1055,13 +1068,13 @@ class MySeedListPreviewLabel(MyPreviewLabel):
     def onNameChanged(self):
         print(f'>>>{lineNo():5d} MySeedListParameter.NameChanged <<<')
 
-    def onOptionsChanged(self, *_):                                             # change, info not used and replaced by *_
+    def onOptionsChanged(self, *_):                                             # unused change, info replaced by *_
         print(f'>>>{lineNo():5d} MySeedListParameter.OptionsChanged <<<')
 
-    def onStateChanged(self, change, info):
+    def onStateChanged(self, *_):                                               # unused change, info replaced by *_
         print(f'>>>{lineNo():5d} MySeedListParameter.StateChanged <<<')
 
-    def onTreeStateChanged(self, param, changes):
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MySeedListParameter.TreeStateChanged <<<')
 
         if not isinstance(param, MySeedListParameter):
@@ -1098,10 +1111,6 @@ class MySeedListParameter(MyGroupParameter):
         nSeeds = len(self.seedList)
         if nSeeds < 2:
             raise ValueError('Need at least two seeds for a valid template')
-
-        # for n, seed in enumerate(self.seedList):
-        #   self.addChild(dict(name=f'Seed-{n+1}', type='mySeed',  value=seed,  default=seed,  expanded=(n==0), renamable=True, flat=True, decimals=5, suffix='m'))
-        #   self.addChild(dict(name=seed.name, type='mySeed', value=seed, default=seed, expanded=(n==0),renamable=True, flat=True, decimals=5, suffix='m'))
 
         for seed in self.seedList:
             self.addChild(dict(name=seed.name, type='mySeed', value=seed, default=seed, expanded=True, renamable=True, flat=True, decimals=5, suffix='m'))
@@ -1141,9 +1150,14 @@ class MySeedListParameter(MyGroupParameter):
                 seed.bSource = False
                 seed.color = QColor('#7700b0f0')
 
+            # using append/addChild instead of insert(0, ...) will add the item at the end of the list
+
+            # self.seedList.insert(0, seed)
             self.seedList.append(seed)
 
+            # self.insertChild(0, dict(name=newName, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
             self.addChild(dict(name=newName, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
             self.sigAddNew.emit(self, name)
 
             # try this:
@@ -1180,7 +1194,7 @@ class MyTemplatePreviewLabel(MyPreviewLabel):
         self.setText(f'{len(sl)} seed(s), {nTemplateShots} src points')
         self.update()
 
-    def onTreeStateChanged(self, param, changes):
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MyTemplateParameter.TreeStateChanged <<<')
 
         if not isinstance(param, MyTemplateParameter):
@@ -1239,12 +1253,13 @@ class MyTemplateParameter(MyGroupParameter):
 
     def contextMenu(self, name=None):
         parent = self.parent()
+        index = parent.children().index(self)
+
         if not isinstance(parent, MyTemplateListParameter):
             raise ValueError("Need 'MyTemplateListParameter' instances at this point")
 
         ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
         if name == 'remove':
-            index = parent.children().index(self)
             reply = QMessageBox.question(None, 'Please confirm', 'Delete selected template ?', QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.remove()
@@ -1252,23 +1267,21 @@ class MyTemplateParameter(MyGroupParameter):
                 parent.sigChildRemoved.emit(self, parent)
 
         elif name == 'moveUp':
-            index = parent.children().index(self)
             if index > 0:
-                child = parent.children()[index]
-                parent.insertChild(index - 1, child, autoIncrementName=None, existOk=True)
+                self.remove()
 
                 template = parent.templateList.pop(index)
                 parent.templateList.insert(index - 1, template)
+                parent.insertChild(index - 1, dict(name=template.name, type='myTemplate', value=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
         elif name == 'moveDown':
             n = len(parent.children())
-            index = parent.children().index(self)
             if index < n - 1:
-                child = parent.children()[index]
-                parent.insertChild(index + 1, child, autoIncrementName=None, existOk=True)
+                self.remove()
 
                 template = parent.templateList.pop(index)
                 parent.templateList.insert(index + 1, template)
+                parent.insertChild(index + 1, dict(name=template.name, type='myTemplate', value=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
         elif name == 'preview':
             ...
@@ -1299,7 +1312,6 @@ class MyTemplateListParameter(MyGroupParameter):
             raise ValueError('Need at least one template at this point')
 
         for n, template in enumerate(self.templateList):
-            # self.addChild(dict(name=f'Template-{n+1}', type='myTemplate', value=template, default=template, expanded=(n==0), renamable=True, flat=True, decimals=5, suffix='m'))
             self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n == 0), renamable=True, flat=True, decimals=5, suffix='m'))
 
         self.sigContextMenu.connect(self.contextMenu)
@@ -1399,7 +1411,7 @@ class MyBlockPreviewLabel(MyPreviewLabel):
         self.setText(f'{len(tl)} template(s), {nBlockShots} src points')
         self.update()
 
-    def onValueChanged(self, val):
+    def onValueChanged(self, _):                                                # unused val replaced by _
         print(f'>>>{lineNo():5d} MyBlockParameter.ValueChanged <<<')
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
@@ -1426,10 +1438,10 @@ class MyBlockPreviewLabel(MyPreviewLabel):
     def onOptionsChanged(self, *_):                                             # change, info not used and replaced by *_
         print(f'>>>{lineNo():5d} MyBlockParameter.OptionsChanged <<<')
 
-    def onStateChanged(self, change, info):
+    def onStateChanged(self, *_):                                               # unused change, info replaced by *_
         print(f'>>>{lineNo():5d} MyBlockParameter.StateChanged <<<')
 
-    def onTreeStateChanged(self, param, changes):
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MyBlockParameter.TreeStateChanged <<<')
 
         if not isinstance(param, MyBlockParameter):
@@ -1490,12 +1502,13 @@ class MyBlockParameter(MyGroupParameter):
 
     def contextMenu(self, name=None):
         parent = self.parent()
+        index = parent.children().index(self)
+
         if not isinstance(parent, MyBlockListParameter):
             raise ValueError("Need 'MyBlockListParameter' instances at this point")
 
         ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
         if name == 'remove':
-            index = parent.children().index(self)
             reply = QMessageBox.question(None, 'Please confirm', 'Delete selected block ?', QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.remove()
@@ -1503,23 +1516,21 @@ class MyBlockParameter(MyGroupParameter):
                 parent.sigChildRemoved.emit(self, parent)
 
         elif name == 'moveUp':
-            index = parent.children().index(self)
             if index > 0:
-                child = parent.children()[index]
-                parent.insertChild(index - 1, child, autoIncrementName=None, existOk=True)
+                self.remove()
 
                 block = parent.blockList.pop(index)
                 parent.blockList.insert(index - 1, block)
+                parent.insertChild(index - 1, dict(name=block.name, type='myBlock', value=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
         elif name == 'moveDown':
             n = len(parent.children())
-            index = parent.children().index(self)
             if index < n - 1:
-                child = parent.children()[index]
-                parent.insertChild(index + 1, child, autoIncrementName=None, existOk=True)
+                self.remove()
 
                 block = parent.blockList.pop(index)
                 parent.blockList.insert(index + 1, block)
+                parent.insertChild(index + 1, dict(name=block.name, type='myBlock', value=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
         elif name == 'preview':
             ...
@@ -1550,7 +1561,6 @@ class MyBlockListParameter(MyGroupParameter):
             raise ValueError('Need at least one block at this point')
 
         for n, block in enumerate(self.blockList):
-            # self.addChild(dict(name=f'Block-{n+1}', type='myBlock', value=block, default=block, expanded=(n==0), renamable=True, flat=True, decimals=5, suffix='m'))
             self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(n == 0), renamable=True, flat=True, decimals=5, suffix='m'))
 
         self.sigContextMenu.connect(self.contextMenu)
@@ -1673,36 +1683,36 @@ class MyPatternParameter(MyGroupParameter):
 
     def contextMenu(self, name=None):
         parent = self.parent()
+        index = parent.children().index(self)
+
         if not isinstance(parent, MyPatternListParameter):
             raise ValueError("Need 'MyPatternListParameter' instances at this point")
 
         ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
         if name == 'remove':
-            index = parent.children().index(self)
             reply = QMessageBox.question(None, 'Please confirm', 'Delete selected pattern ?', QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.remove()
+
                 parent.patternList.pop(index)
                 parent.sigChildRemoved.emit(self, parent)
 
         elif name == 'moveUp':
-            index = parent.children().index(self)
             if index > 0:
-                child = parent.children()[index]
-                parent.insertChild(index - 1, child, autoIncrementName=None, existOk=True)
+                self.remove()
 
                 pattern = parent.patternList.pop(index)
                 parent.patternList.insert(index - 1, pattern)
+                parent.insertChild(index - 1, dict(name=pattern.name, type='myPattern', value=pattern, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
         elif name == 'moveDown':
             n = len(parent.children())
-            index = parent.children().index(self)
             if index < n - 1:
-                child = parent.children()[index]
-                parent.insertChild(index + 1, child, autoIncrementName=None, existOk=True)
+                self.remove()
 
                 pattern = parent.patternList.pop(index)
                 parent.patternList.insert(index + 1, pattern)
+                parent.insertChild(index + 1, dict(name=pattern.name, type='myPattern', value=pattern, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
         elif name == 'preview':
             ...
@@ -1727,10 +1737,6 @@ class MyPatternListParameter(MyGroupParameter):
 
         if not isinstance(self.patternList, list):
             raise ValueError("Need 'list' instance at this point")
-
-        # for n, pattern in enumerate(self.patternList):
-        # self.addChild(dict(name=f'Block-{n+1}', type='myBlock', value=block, default=block, expanded=(n==0), renamable=True, flat=True, decimals=5, suffix='m'))
-        # self.addChild(dict(name=pattern.name,   type='myPattern', value=pattern, default=pattern, expanded=(n==0), renamable=True, flat=True, decimals=5, suffix='m'))
 
         for pattern in self.patternList:
             self.addChild(dict(name=pattern.name, type='myPattern', value=pattern, default=pattern, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
