@@ -332,7 +332,8 @@ def process(source_points, target_points, alpha_0=None, scale=True, lambda_0=1.0
 
     lambda_i, i = lambda_0, 1
 
-    blc_matrix, d_matrix, beta_1, r_quat, lambda_i, i = _get_solution(a_matrix, b_scalar, b_matrix, c_scalar, c_matrix, scale, lambda_i, i)
+    # d_matrix, beta_1 unused and replaced by _
+    blc_matrix, _, _, r_quat, lambda_i, i = _get_solution(a_matrix, b_scalar, b_matrix, c_scalar, c_matrix, scale, lambda_i, i)
 
     r_matrix = _get_r_matrix(r_quat)
 
