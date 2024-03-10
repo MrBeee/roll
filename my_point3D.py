@@ -1,14 +1,15 @@
-from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem, SimpleParameter
+from pyqtgraph.parametertree import registerParameterType
+from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtGui import QVector3D
 from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
-from .my_numerics import MyNumericParameterItem
+
+# from .my_numerics import MyNumericParameterItem
 from .my_preview_label import MyPreviewLabel
 
 registerParameterType('myGroup', MyGroupParameter, override=True)
-registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
+# registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
 
 
 class PointPreviewLabel(MyPreviewLabel):
@@ -75,9 +76,9 @@ class MyPoint3DParameter(MyGroupParameter):
         self.vector = QVector3D()
         self.vector = opts.get('value', QVector3D())
 
-        self.addChild(dict(name='X', type='myFloat', value=self.vector.x(), default=self.vector.x(), decimals=d, enabled=e, readonly=r))
-        self.addChild(dict(name='Y', type='myFloat', value=self.vector.y(), default=self.vector.y(), decimals=d, enabled=e, readonly=r))
-        self.addChild(dict(name='Z', type='myFloat', value=self.vector.z(), default=self.vector.z(), decimals=d, enabled=e, readonly=r))
+        self.addChild(dict(name='X', type='float', value=self.vector.x(), default=self.vector.x(), decimals=d, enabled=e, readonly=r))    # myFloat
+        self.addChild(dict(name='Y', type='float', value=self.vector.y(), default=self.vector.y(), decimals=d, enabled=e, readonly=r))    # myFloat
+        self.addChild(dict(name='Z', type='float', value=self.vector.z(), default=self.vector.z(), decimals=d, enabled=e, readonly=r))    # myFloat
 
         self.parX = self.child('X')
         self.parY = self.child('Y')

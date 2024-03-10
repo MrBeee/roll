@@ -52,7 +52,7 @@ class MySymbolParameterItem(WidgetParameterItem):
         w.setStyleSheet('border: 0px')
 
         for index, item in enumerate(self.symbolKeys):
-            pixmap = QPixmap(self.symbolWidth, self.symbolWidth)               # create a pixmap as starting point for a QIcon
+            pixmap = QPixmap(self.symbolWidth, self.symbolWidth)                # create a pixmap as starting point for a QIcon
             pixmap.fill(Qt.white)                                               # create white background
 
             pen = QPen(Qt.black)                                                # create pen and brush

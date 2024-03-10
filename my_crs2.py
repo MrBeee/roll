@@ -1,14 +1,12 @@
-from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem, SimpleParameter
+from pyqtgraph.parametertree import registerParameterType
+from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtWidgets import QHBoxLayout, QMessageBox, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
-from .my_numerics import MyNumericParameterItem
 from .my_preview_label import MyPreviewLabel
 
 registerParameterType('myGroup', MyGroupParameter, override=True)
-registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
 
 
 class CrsPreviewLabel(MyPreviewLabel):

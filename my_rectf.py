@@ -1,13 +1,14 @@
-from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem, SimpleParameter
+from pyqtgraph.parametertree import registerParameterType
+from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtCore import QRectF, Qt
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
-from .my_numerics import MyNumericParameterItem
+
+# from .my_numerics import MyNumericParameterItem
 
 registerParameterType('myGroup', MyGroupParameter, override=True)
-registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
+# registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
 
 
 class RectPreviewLabel(QLabel):
@@ -81,10 +82,10 @@ class MyRectParameter(MyGroupParameter):
         r = opts.get('readonly', False)
         self.rect = opts.get('value', QRectF())
 
-        self.addChild(dict(name='Xmin', type='myFloat', decimals=d, enabled=e, readonly=r, value=self.rect.left(), default=self.rect.left()))
-        self.addChild(dict(name='Xmax', type='myFloat', decimals=d, enabled=e, readonly=r, value=self.rect.right(), default=self.rect.right()))
-        self.addChild(dict(name='Ymin', type='myFloat', decimals=d, enabled=e, readonly=r, value=self.rect.top(), default=self.rect.top()))
-        self.addChild(dict(name='Ymax', type='myFloat', decimals=d, enabled=e, readonly=r, value=self.rect.bottom(), default=self.rect.bottom()))
+        self.addChild(dict(name='Xmin', type='float', decimals=d, enabled=e, readonly=r, value=self.rect.left(), default=self.rect.left()))    # myFloat
+        self.addChild(dict(name='Xmax', type='float', decimals=d, enabled=e, readonly=r, value=self.rect.right(), default=self.rect.right()))    # myFloat
+        self.addChild(dict(name='Ymin', type='float', decimals=d, enabled=e, readonly=r, value=self.rect.top(), default=self.rect.top()))    # myFloat
+        self.addChild(dict(name='Ymax', type='float', decimals=d, enabled=e, readonly=r, value=self.rect.bottom(), default=self.rect.bottom()))    # myFloat
 
         self.parXmin = self.child('Xmin')
         self.parXmax = self.child('Xmax')

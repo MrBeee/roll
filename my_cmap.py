@@ -1,6 +1,7 @@
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import WidgetParameterItem
+from pyqtgraph.parametertree.parameterTypes.basetypes import \
+    WidgetParameterItem
 from qgis.PyQt.QtCore import QSize, Qt
 from qgis.PyQt.QtGui import QIcon, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import QComboBox
@@ -19,8 +20,8 @@ class MyCmapParameterItem(WidgetParameterItem):
     """
 
     def __init__(self, param, depth):
-        self.cmapList = natural_sort(pg.colormap.listMaps())
-        self.colorbarWidth = 120                                                # Need to define *before* parent's init as parent 'makes' the widget
+        self.cmapList = natural_sort(pg.colormap.listMaps())                    # the naturally sorted list of colormap names
+        self.colorbarWidth = 120                                                # need to define *before* parent's init as parent 'makes' the widget
         super().__init__(param, depth)
 
     def makeWidget(self):
@@ -28,7 +29,7 @@ class MyCmapParameterItem(WidgetParameterItem):
         w.setIconSize(QSize(self.colorbarWidth, 20))
         w.setStyleSheet('border: 0px')
 
-        for item in self.cmapList:
+        for item in self.cmapList:                                              # the naturally sorted list of colormap names
             cmap = pg.colormap.get(item)                                        # get the appropriate colormap
             brush = cmap.getBrush(span=(0.0, float(self.colorbarWidth)), orientation='horizontal')
             pixmap = QPixmap(self.colorbarWidth, 20)                            # create a pixmap as starting point for a QIcon

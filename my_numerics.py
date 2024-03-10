@@ -51,8 +51,7 @@ class MyWidgetParameterItem(WidgetParameterItem):
     #     super().optsChanged(param, opts)                                        # continue doing the usual stuff
 
     def optsChanged(self, param, opts):
-        """Called when any options are changed that are not
-        name, value, default, or limits"""
+        """Called when any options are changed that are not name, value, default, or limits"""
         super().optsChanged(param, opts)                                        # continue doing the usual stuff
 
         if 'enabled' in opts:
@@ -125,8 +124,8 @@ class MyNumericParameterItem(MyWidgetParameterItem):                            
         self.updateDisplayLabel()
 
 
-registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
-registerParameterItemType('myInt', MyNumericParameterItem, SimpleParameter, override=True)
+# registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
+# registerParameterItemType('myInt', MyNumericParameterItem, SimpleParameter, override=True)
 
 # Still to do; apply the same approach for bool and string :
 # registerParameterItemType('myBool',  MyBoolParameterItem,  SimpleParameter, override=True)

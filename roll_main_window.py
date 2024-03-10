@@ -61,7 +61,6 @@ import numpy as np  # Numpy functions needed for plot creation
 import pyqtgraph as pg
 from console import console
 from numpy.compat import asstr
-from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QDateTime, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
@@ -98,9 +97,7 @@ from . import config  # used to pass initial settings
 from .classes import BinningType, RollSurvey, surveyType
 from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
 from .land_wizard import LandSurveyWizard
-from .my_crs2 import MyCrs2Parameter
-from .my_list import MyListParameter
-from .my_parameters import MyAnalysisParameter, MyConfigurationParameter, MyReflectorsParameter
+from .my_parameters import registerAllParameterTypes
 from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
 from .settings import SettingsDialog, readSettings, writeSettings
 from .sps_io_and_qc import (
@@ -699,11 +696,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.dockProperty.hide()
 
     def registerParameters(self):
-        registerParameterType('myCrs2', MyCrs2Parameter, override=True)
-        registerParameterType('myList', MyListParameter, override=True)
-        registerParameterType('myAnalysis', MyAnalysisParameter, override=True)
-        registerParameterType('myReflectors', MyReflectorsParameter, override=True)
-        registerParameterType('myConfiguration', MyConfigurationParameter, override=True)
+        registerAllParameterTypes()
 
     def resetSurveyProperties(self):
         self.paramTree.clear()

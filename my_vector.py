@@ -1,13 +1,14 @@
 import math
 
-from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem, SimpleParameter
+from pyqtgraph.parametertree import registerParameterType
+from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QVector3D
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
-from .my_numerics import MyNumericParameterItem
+
+# from .my_numerics import MyNumericParameterItem
 from .my_slider import MySliderParameter
 from .my_symbols import MySymbolParameter
 
@@ -15,7 +16,7 @@ registerParameterType('myGroup', MyGroupParameter, override=True)
 registerParameterType('mySlider', MySliderParameter, override=True)
 registerParameterType('mySymbols', MySymbolParameter, override=True)
 
-registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
+# registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
 
 
 class VectorPreviewLabel(QLabel):
@@ -88,8 +89,8 @@ class MyVectorParameter(MyGroupParameter):
         self.addChild(dict(name='dX', type='float', value=self.vector.x(), default=self.vector.x(), decimals=d, suffix=s))
         self.addChild(dict(name='dY', type='float', value=self.vector.y(), default=self.vector.y(), decimals=d, suffix=s))
         self.addChild(dict(name='dZ', type='float', value=self.vector.z(), default=self.vector.z(), decimals=d, suffix=s))
-        self.addChild(dict(name='azimuth', type='myFloat', enabled=False, readonly=True, decimals=d, suffix='deg'))   # set value through setAzimuth()
-        self.addChild(dict(name='tilt', type='myFloat', enabled=False, readonly=True))                                               # set value through setTilt()
+        self.addChild(dict(name='azimuth', type='float', enabled=False, readonly=True, decimals=d, suffix='deg'))   # set value through setAzimuth()    # myFloat
+        self.addChild(dict(name='tilt', type='float', enabled=False, readonly=True))                                # set value through setTilt()    # myFloat
 
         self.parX = self.child('dX')
         self.parY = self.child('dY')

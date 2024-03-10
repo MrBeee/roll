@@ -3,8 +3,7 @@ import os
 
 import numpy as np
 import wellpathpy as wp
-from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import SimpleParameter
+from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt.QtCore import QFileInfo, QSettings
 from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox
@@ -38,7 +37,8 @@ from .my_group import MyGroupParameter, MyGroupParameterItem
 from .my_list import MyListParameter
 from .my_marker import MyMarkerParameter
 from .my_n_vector import MyNVectorParameter
-from .my_numerics import MyNumericParameterItem
+
+# from .my_numerics import MyNumericParameterItem
 from .my_pen import MyPenParameter
 from .my_point3D import MyPoint3DParameter
 from .my_preview_label import MyPreviewLabel
@@ -48,39 +48,44 @@ from .my_symbols import MySymbolParameter
 from .my_vector import MyVectorParameter
 
 
-class MyRollPreviewLabel(MyPreviewLabel):
+class MyBinAnglesPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
 
         self.decimals = param.opts.get('decimals', 3)
+
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
-        n = val.steps
-        x = val.increment.x()
-        y = val.increment.y()
-        z = val.increment.z()
-        d = self.decimals
 
-        self.setText(f'{n} x ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})')
+        d = self.decimals
+        y = val.reflection.y()
+        x = val.reflection.x()
+
+        if x == 0.0:
+            t = f'AoI < {y:.{d}g} deg'
+        else:
+            t = f'{x:.{d}g} < AoI < {y:.{d}g} deg'
+
+        self.setText(t)
         self.update()
 
+        print(f'>>>{lineNo():5d} MyBinAnglesPreviewLabel.ValueChanging | {t} <<<')
 
-class MyRollParameterItem(MyGroupParameterItem):
-    """modeled after PenParameterItem from pen.py in pyqtgraph"""
 
+class MyBinAnglesParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
 
-        self.setPreviewLabel(MyRollPreviewLabel(param))
+        self.setPreviewLabel(MyBinAnglesPreviewLabel(param))
 
 
-class MyRollParameter(MyGroupParameter):
+class MyBinAnglesParameter(MyGroupParameter):
 
-    itemClass = MyRollParameterItem
+    itemClass = MyBinAnglesParameterItem
 
     def __init__(self, **opts):
         # opts['expanded'] = False                                              # to overrule user-requested options
@@ -88,89 +93,78 @@ class MyRollParameter(MyGroupParameter):
 
         MyGroupParameter.__init__(self, **opts)
         if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyRollParameter opts')
+            raise KeyError('Cannot set "children" argument in MyBinAnglesParameter opts')
 
-        self.row = RollTranslate()
-        self.row = opts.get('value', self.row)
+        d = opts.get('decimals', 7)
 
-        d = opts.get('decimals', 3)
-        s = opts.get('suffix', '')
+        self.angles = RollAngles()
+        self.angles = opts.get('value', self.angles)
 
-        self.addChild(dict(name='N', type='int', limits=[1, None], value=self.row.steps))
-        self.addChild(dict(name='dX', type='float', decimals=d, suffix=s, value=self.row.increment.x()))
-        self.addChild(dict(name='dY', type='float', decimals=d, suffix=s, value=self.row.increment.y()))
-        self.addChild(dict(name='dZ', type='float', decimals=d, suffix=s, value=self.row.increment.z()))
-        self.addChild(dict(name='azimuth', type='myFloat', decimals=d, suffix='deg', enabled=False, readonly=True))     # set value through setAzimuth()
-        self.addChild(dict(name='tilt', type='myFloat', decimals=d, suffix='deg', enabled=False, readonly=True))        # set value through setTilt()
+        tip1 = 'for angles around 0° use min > max. E.g. from 330° (min) to 30° (max)'
+        tip2 = 'incidence angles are not used with the Cmp binning method'
 
-        self.parN = self.child('N')
-        self.parX = self.child('dX')
-        self.parY = self.child('dY')
-        self.parZ = self.child('dZ')
-        self.parA = self.child('azimuth')
-        self.parT = self.child('tilt')
+        self.addChild(dict(name='Min azimuth', value=self.angles.azimuthal.x(), type='float', decimals=d, suffix='°E-ccw', limits=[0.0, 360.0], tip=tip1))
+        self.addChild(dict(name='Max azimuth', value=self.angles.azimuthal.y(), type='float', decimals=d, suffix='°E-ccw', limits=[0.0, 360.0], tip=tip1))
+        self.addChild(dict(name='Min inclination', value=self.angles.reflection.x(), type='float', decimals=d, suffix='°Aoi', limits=[0.0, 90.0], tip=tip2))
+        self.addChild(dict(name='Max inclination', value=self.angles.reflection.y(), type='float', decimals=d, suffix='°Aoi', limits=[0.0, 90.0], tip=tip2))
 
-        self.setAzimuth()
-        self.setTilt()
+        self.parAx = self.child('Min azimuth')
+        self.parAy = self.child('Max azimuth')
+        self.parIx = self.child('Min inclination')
+        self.parIy = self.child('Max inclination')
 
         self.sigTreeStateChanged.connect(self.changed)
-        # self.parN.sigValueChanged.connect(self.changed)
-        # self.parX.sigValueChanged.connect(self.changed)
-        # self.parY.sigValueChanged.connect(self.changed)
-        # self.parZ.sigValueChanged.connect(self.changed)
 
-    def setAzimuth(self):
-        azimuth = math.degrees(math.atan2(self.row.increment.y(), self.row.increment.x()))
-        self.parA.setValue(azimuth)
-
-    def setTilt(self):
-        lengthXY = math.sqrt(self.row.increment.x() ** 2 + self.row.increment.y() ** 2)
-        tilt = math.degrees(math.atan2(self.row.increment.z(), lengthXY))
-        self.parT.setValue(tilt)
-
-    # update the values of the five children
     def changed(self):
-        self.row.steps = self.parN.value()
-        self.row.increment.setX(self.parX.value())
-        self.row.increment.setY(self.parY.value())
-        self.row.increment.setZ(self.parZ.value())
-        self.setAzimuth()
-        self.setTilt()
+        self.angles.azimuthal.setX(self.parAx.value())
+        self.angles.azimuthal.setY(self.parAy.value())
+        self.angles.reflection.setX(self.parIx.value())
+        self.angles.reflection.setY(self.parIy.value())
         self.sigValueChanging.emit(self, self.value())
 
     def value(self):
-        return self.row
+        return self.angles
 
 
-class MyRollListPreviewLabel(MyPreviewLabel):
+class MyBinOffsetPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
 
-        param.sigValueChanging.connect(self.onValueChanging)                    # connect signal to slot
+        param.sigValueChanging.connect(self.onValueChanging)
 
-        val = param.opts.get('value', None)                                     # get *value*  from param and provide default (None)
-        self.onValueChanging(None, val)                                         # initialize the label in __init__()
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
 
-        n0 = val[0].steps                                                       # prepare label text
-        n1 = val[1].steps
-        n2 = val[2].steps
+        x = max(abs(val.rctOffsets.left()), abs(val.rctOffsets.right()))
+        y = max(abs(val.rctOffsets.top()), abs(val.rctOffsets.bottom()))
+        d = math.hypot(x, y)
+        r = val.radOffsets.y()
 
-        self.setText(f'{n0*n1*n2} points ({n0} x {n1} x {n2})')
+        if r >= d:
+            t = 'rectangular constraints'
+        elif r < x:
+            t = 'radial constraints'
+        else:
+            t = 'mixed constraints'
+
+        self.setText(t)
         self.update()
 
+        print(f'>>>{lineNo():5d} MyBinOffsetPreviewLabel.ValueChanging | {t} <<<')
 
-class MyRollListParameterItem(MyGroupParameterItem):
+
+class MyBinOffsetParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
 
-        self.setPreviewLabel(MyRollListPreviewLabel(param))
+        self.setPreviewLabel(MyBinOffsetPreviewLabel(param))
 
 
-class MyRollListParameter(MyGroupParameter):
+class MyBinOffsetParameter(MyGroupParameter):
 
-    itemClass = MyRollListParameterItem
+    itemClass = MyBinOffsetParameterItem
 
     def __init__(self, **opts):
         # opts['expanded'] = False                                              # to overrule user-requested options
@@ -178,38 +172,180 @@ class MyRollListParameter(MyGroupParameter):
 
         MyGroupParameter.__init__(self, **opts)
         if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyRollListParameter opts')
+            raise KeyError('Cannot set "children" argument in MyBinOffsetParameter opts')
 
-        d = opts.get('decimals', 5)
+        d = opts.get('decimals', 7)
         s = opts.get('suffix', 'm')
 
-        self.moveList = [RollTranslate(), RollTranslate(), RollTranslate()]
-        self.moveList = opts.get('value', self.moveList)
+        self.offset = RollOffset()
+        self.offset = opts.get('value', self.offset)
 
-        while len(self.moveList) < 3:
-            self.moveList.insert(0, RollTranslate())                                # First, make sure there are ALWAYS 3 grow steps for every grid
+        self.addChild(dict(name='Min x-offset', value=self.offset.rctOffsets.left(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Max x-offset', value=self.offset.rctOffsets.right(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Min y-offset', value=self.offset.rctOffsets.top(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Max y-offset', value=self.offset.rctOffsets.bottom(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Min r-offset', value=self.offset.radOffsets.x(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Max r-offset', value=self.offset.radOffsets.y(), type='float', decimals=d, suffix=s))
 
-        self.addChild(dict(name='Planes', type='MyRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[0], default=self.moveList[0]))
-        self.addChild(dict(name='Lines', type='MyRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[1], default=self.moveList[1]))
-        self.addChild(dict(name='Points', type='MyRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[2], default=self.moveList[2]))
-
-        self.par0 = self.child('Planes')
-        self.par1 = self.child('Lines')
-        self.par2 = self.child('Points')
+        self.parXmin = self.child('Min x-offset')
+        self.parXmax = self.child('Max x-offset')
+        self.parYmin = self.child('Min y-offset')
+        self.parYmax = self.child('Max y-offset')
+        self.parRmin = self.child('Min r-offset')
+        self.parRmax = self.child('Max r-offset')
 
         self.sigTreeStateChanged.connect(self.changed)
-        # self.par0.sigValueChanged.connect(self.changed)
-        # self.par1.sigValueChanged.connect(self.changed)
-        # self.par2.sigValueChanged.connect(self.changed)
 
     def changed(self):
-        self.moveList[0] = self.par0.value()
-        self.moveList[1] = self.par1.value()
-        self.moveList[2] = self.par2.value()
+        #  read parameter changes here
+        xmin = self.parXmin.value()
+        xmax = self.parXmax.value()
+        ymin = self.parYmin.value()
+        ymax = self.parYmax.value()
+        rmin = self.parRmin.value()
+        rmax = self.parRmax.value()
+
+        self.offset.rctOffsets.setLeft(min(xmin, xmax))
+        self.offset.rctOffsets.setRight(max(xmin, xmax))
+        self.offset.rctOffsets.setTop(min(ymin, ymax))
+        self.offset.rctOffsets.setBottom(max(ymin, ymax))
+        self.offset.radOffsets.setX(min(rmin, rmax))
+        self.offset.radOffsets.setY(max(rmin, rmax))
+
         self.sigValueChanging.emit(self, self.value())
 
     def value(self):
-        return self.moveList
+        return self.offset
+
+
+class MyUniqOffPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+    def onValueChanging(self, _, val):                                          # unused param replaced by _
+        if not val.apply:
+            t = 'Not used'
+        else:
+            t = f'@ {val.dOffset}m, {val.dAzimuth}°'
+
+        self.setText(t)
+        self.update()
+
+        print(f'>>>{lineNo():5d} MyUniqOffPreviewLabel.ValueChanging | {t} <<<')
+
+
+class MyUniqOffParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyUniqOffPreviewLabel(param))
+
+
+class MyUniqOffParameter(MyGroupParameter):
+
+    itemClass = MyUniqOffParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyUniqOffParameter opts')
+
+        d = opts.get('decimals', 7)
+
+        self.unique = RollOffset()
+        self.unique = opts.get('value', self.unique)
+
+        self.addChild(dict(name='Apply pruning', value=self.unique.apply, type='bool'))
+        self.addChild(dict(name='Delta offset', value=self.unique.dOffset, type='float', decimals=d, suffix='m'))
+        self.addChild(dict(name='Delta azimuth', value=self.unique.dAzimuth, type='float', decimals=d, suffix='deg'))
+
+        self.parP = self.child('Apply pruning')
+        self.parO = self.child('Delta offset')
+        self.parA = self.child('Delta azimuth')
+
+        self.sigTreeStateChanged.connect(self.changed)
+
+    def changed(self):
+        self.unique.apply = self.parP.value()
+        self.unique.dOffset = self.parO.value()
+        self.unique.dAzimuth = self.parA.value()
+
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return self.unique
+
+
+class MyBinMethodPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+    def onValueChanging(self, _, val):                                          # unused param replaced by _
+        binningMethod = val.method.value
+        method = binningList[binningMethod]
+        t = f'{method} @ Vint={val.vint}m/s'
+
+        self.setText(t)
+        self.update()
+
+        print(f'>>>{lineNo():5d} MyBinMethodPreviewLabel.ValueChanging | {t} <<<')
+
+
+class MyBinMethodParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyBinMethodPreviewLabel(param))
+
+
+class MyBinMethodParameter(MyGroupParameter):
+
+    itemClass = MyBinMethodParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyBinMethodParameter opts')
+
+        self.binning = RollBinning()
+        self.binning = opts.get('value', self.binning)
+
+        d = opts.get('decimals', 7)
+        binningMethod = self.binning.method.value
+
+        self.addChild(dict(name='Binning method', type='myList', value=binningList[binningMethod], default=binningList[binningMethod], limits=binningList))
+        self.addChild(dict(name='Interval velocity', type='float', value=self.binning.vint, decimals=d, suffix='m/s'))
+
+        self.parM = self.child('Binning method')
+        self.parV = self.child('Interval velocity')
+
+        self.sigTreeStateChanged.connect(self.changed)
+
+    def changed(self):
+        index = binningList.index(self.parM.value())
+        self.binning.method = BinningType(index)
+        self.binning.vint = self.parV.value()
+
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return self.binning
 
 
 class MyPlanePreviewLabel(MyPreviewLabel):
@@ -220,6 +356,7 @@ class MyPlanePreviewLabel(MyPreviewLabel):
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
         self.decimals = param.opts.get('decimals', 5)
+
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
@@ -230,10 +367,14 @@ class MyPlanePreviewLabel(MyPreviewLabel):
         d = self.decimals
 
         if dip == 0:
-            self.setText(f'horizontal, depth={-z:.{d}g}m')
+            t = f'horizontal, depth={-z:.{d}g}m'
         else:
-            self.setText(f'dipping, azi={azi:.{d}g}°, dip={dip:.{d}g}°')
+            t = f'dipping, azi={azi:.{d}g}°, dip={dip:.{d}g}°'
+
+        self.setText(t)
         self.update()
+
+        print(f'>>>{lineNo():5d} MyPlanePreviewLabel.ValueChanging | {t} <<<')
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MyPlaneParameter.TreeStateChanged <<<')
@@ -284,11 +425,11 @@ class MyPlaneParameter(MyGroupParameter):
         # self.parA.sigValueChanged.connect(self.changed)
         # self.parD.sigValueChanged.connect(self.changed)
 
-    # update the values of the children
     def changed(self):
         self.plane.anchor = self.parO.value()
         self.plane.azi = self.parA.value()
         self.plane.dip = self.parD.value()
+
         self.sigValueChanging.emit(self, self.value())
 
     def value(self):
@@ -303,6 +444,7 @@ class MySpherePreviewLabel(MyPreviewLabel):
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
         self.decimals = param.opts.get('decimals', 5)
+
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
@@ -310,9 +452,12 @@ class MySpherePreviewLabel(MyPreviewLabel):
         r = val.radius
         z = val.origin.z()
         d = self.decimals
+        t = f'r={r:.{d}g}m, depth={-z:.{d}g}m'
 
-        self.setText(f'r={r:.{d}g}m, depth={-z:.{d}g}m')
+        self.setText(t)
         self.update()
+
+        print(f'>>>{lineNo():5d} MySpherePreviewLabel.ValueChanging | {t} <<<')
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MySphereParameter.TreeStateChanged <<<')
@@ -359,14 +504,979 @@ class MySphereParameter(MyGroupParameter):
         # self.parO.sigValueChanged.connect(self.changed)
         # self.parR.sigValueChanged.connect(self.changed)
 
-    # update the values of the children
     def changed(self):
         self.sphere.origin = self.parO.value()
         self.sphere.radius = self.parR.value()
+
         self.sigValueChanging.emit(self, self.sphere)
 
     def value(self):
         return self.sphere
+
+
+class MyLocalGridPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+    def onValueChanging(self, _, val):                                          # unused param replaced by _
+        fold = val.fold
+
+        if fold < 0:
+            t = f'{val.binSize.x()}x{val.binSize.y()}m, fold undefined'
+        else:
+            t = f'{val.binSize.x()}x{val.binSize.y()}m, fold {fold} max'
+
+        self.setText(t)
+        self.update()
+
+        print(f'>>>{lineNo():5d} MyLocalGridPreviewLabel.ValueChanging | {t} <<<')
+
+
+class MyLocalGridParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyLocalGridPreviewLabel(param))
+
+
+class MyLocalGridParameter(MyGroupParameter):
+
+    itemClass = MyLocalGridParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyLocalGridParameter opts')
+
+        d = opts.get('decimals', 7)
+        s = opts.get('suffix', 'm')
+
+        self.binGrid = RollBinGrid()
+        self.binGrid = opts.get('value', self.binGrid)
+
+        self.addChild(dict(name='Bin size [x]', value=self.binGrid.binSize.x(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Bin size [y]', value=self.binGrid.binSize.y(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Bin offset [x]', value=self.binGrid.shift.x(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Bin offset [y]', value=self.binGrid.shift.y(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Stake nr @ origin', value=self.binGrid.stake.x(), type='float', decimals=d, suffix='#'))
+        self.addChild(dict(name='Line nr @ origin', value=self.binGrid.stake.y(), type='float', decimals=d, suffix='#'))
+        self.addChild(dict(name='Max fold', value=self.binGrid.fold, type='int'))
+
+        self.parBx = self.child('Bin size [x]')
+        self.parBy = self.child('Bin size [y]')
+        self.parDx = self.child('Bin offset [x]')
+        self.parDy = self.child('Bin offset [y]')
+        self.parLx = self.child('Stake nr @ origin')
+        self.parLy = self.child('Line nr @ origin')
+        self.parFo = self.child('Max fold')
+
+        self.sigTreeStateChanged.connect(self.changed)
+
+    def changed(self):
+        # local grid
+        self.binGrid.binSize.setX(self.parBx.value())
+        self.binGrid.binSize.setY(self.parBy.value())
+        self.binGrid.shift.setX(self.parDx.value())
+        self.binGrid.shift.setY(self.parDy.value())
+        self.binGrid.stake.setX(self.parLx.value())
+        self.binGrid.stake.setY(self.parLy.value())
+        self.binGrid.fold = self.parFo.value()
+
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return self.binGrid
+
+
+class MyGlobalGridPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+
+        self.decimals = param.opts.get('decimals', 3)
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+    def onValueChanging(self, _, val):                                          # unused param replaced by _
+        x = val.orig.x()
+        y = val.orig.y()
+        a = val.angle
+        d = self.decimals
+        # self.setText(f'o({x:.{d}g}, {y:.{d}g}), a={a:.{d}g} deg')
+        # self.setText(f'o({x:,.{d}f}, {y:,.{d}f}), a={a:.{d}g} deg')
+        t = f'o({x:,}, {y:,}), a={a:.{d}g} deg'
+
+        self.setText(t)
+        self.update()
+
+        print(f'>>>{lineNo():5d} MyGlobalGridPreviewLabel.ValueChanging | {t} <<<')
+
+
+class MyGlobalGridParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyGlobalGridPreviewLabel(param))
+
+
+class MyGlobalGridParameter(MyGroupParameter):
+
+    itemClass = MyGlobalGridParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyGlobalGridParameter opts')
+
+        d = opts.get('decimals', 7)
+        s = opts.get('suffix', 'm')
+
+        self.binGrid = RollBinGrid()
+        self.binGrid = opts.get('value', self.binGrid)
+
+        self.addChild(dict(name='Bin origin   [E]', value=self.binGrid.orig.x(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Bin origin   [N]', value=self.binGrid.orig.y(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Scale factor [E]', value=self.binGrid.scale.x(), type='float', decimals=d, suffix='x'))
+        self.addChild(dict(name='Scale factor [N]', value=self.binGrid.scale.y(), type='float', decimals=d, suffix='x'))
+        self.addChild(dict(name='Azimuth', value=self.binGrid.angle, type='float', decimals=d, suffix='°E-ccw'))
+
+        self.parOx = self.child('Bin origin   [E]')
+        self.parOy = self.child('Bin origin   [N]')
+        self.parSx = self.child('Scale factor [E]')
+        self.parSy = self.child('Scale factor [N]')
+        self.parAz = self.child('Azimuth')
+
+        self.sigTreeStateChanged.connect(self.changed)
+
+    def changed(self):
+        # global grid
+        self.binGrid.orig.setX(self.parOx.value())
+        self.binGrid.orig.setY(self.parOy.value())
+        self.binGrid.scale.setX(self.parSx.value())
+        self.binGrid.scale.setY(self.parSy.value())
+        self.binGrid.angle = self.parAz.value()
+
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return self.binGrid
+
+
+class MyBlockPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        # these are the signals that a parameter can generate with some objects that clarify what happened
+        # sigValueChanged   = QtCore.Signal(object, object)                 ## self, value  emitted when value is finished being edited
+        # sigValueChanging  = QtCore.Signal(object, object)                 ## self, value  emitted as value is being edited
+        # sigChildAdded     = QtCore.Signal(object, object, object)         ## self, child, index
+        # sigChildRemoved   = QtCore.Signal(object, object)                 ## self, child
+        # sigRemoved        = QtCore.Signal(object)                         ## self
+        # sigParentChanged  = QtCore.Signal(object, object)                 ## self, parent
+        # sigLimitsChanged  = QtCore.Signal(object, object)                 ## self, limits
+        # sigDefaultChanged = QtCore.Signal(object, object)                 ## self, default
+        # sigNameChanged    = QtCore.Signal(object, object)                 ## self, name
+        # sigOptionsChanged = QtCore.Signal(object, object)                 ## self, {opt:val, ...}
+
+        # Emitted when anything changes about this parameter at all.
+        # The second argument is a string indicating what changed ('value', 'childAdded', etc..)
+        # The third argument can be any extra information about the change
+        #
+        # sigStateChanged   = QtCore.Signal(object, object, object)         ## self, change, info
+
+        # emitted when any child in the tree changes state
+        # (but only if monitorChildren() is called)
+        # sigTreeStateChanged = QtCore.Signal(object, object)               ## self, changes
+        #                                                                   ## changes = [(param, change, info), ...]
+
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+
+        self.showInformation(param)
+
+    def showInformation(self, param):
+        # block's source- and receiver boundaries are ignored
+        templates = param.child('Template list')
+
+        nBlockShots = 0
+        nTemplates = 0
+        if templates.hasChildren():
+            for template in templates:
+                nTemplates += 1
+                nTemplateShots = 0
+
+                seeds = template.child('Seed list')
+                if seeds.hasChildren():
+                    for seed in seeds:
+                        bSource = seed.child('Source seed').opts['value']
+
+                        if bSource:
+                            nPlane = seed.child('Grid grow steps', 'Planes', 'N').opts['value']
+                            nLines = seed.child('Grid grow steps', 'Lines', 'N').opts['value']
+                            nPoint = seed.child('Grid grow steps', 'Points', 'N').opts['value']
+                            nSeedShots = nPlane * nLines * nPoint
+                            nTemplateShots += nSeedShots
+
+                nPlane = template.child('Roll steps', 'Planes', 'N').opts['value']
+                nLines = template.child('Roll steps', 'Lines', 'N').opts['value']
+                nPoint = template.child('Roll steps', 'Points', 'N').opts['value']
+                nRollSteps = nPlane * nLines * nPoint
+
+                nTemplateShots *= nRollSteps
+                nBlockShots += nTemplateShots
+
+        t = f'{nTemplates} template(s), {nBlockShots} src points'
+
+        self.setText(t)
+        self.update()
+
+        print(f'+++{lineNo():5d} MyBlockPreviewLabel.showInformation | {t} +++++++')
+
+    def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        print(f'>>>{lineNo():5d} MyBlockPreviewLabel.ValueChanging <<<')
+
+        self.showInformation(param)
+
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        print(f'>>>{lineNo():5d} MyBlockParameter.TreeStateChanged <<<')
+
+        if not isinstance(param, MyBlockParameter):
+            raise ValueError("Need 'MyBlockParameter' instances at this point")
+
+        self.showInformation(param)
+
+
+class MyBlockParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyBlockPreviewLabel(param))
+
+
+class MyBlockParameter(MyGroupParameter):
+
+    itemClass = MyBlockParameterItem
+
+    def __init__(self, **opts):
+        opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
+        opts['tip'] = 'Right click to manage block'
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyBlockParameter opts')
+
+        self.block = RollBlock()
+        self.block = opts.get('value', self.block)
+
+        self.addChild(dict(name='Source boundary', type='myRectF', value=self.block.borders.srcBorder, flat=True, expanded=False))
+        self.addChild(dict(name='Receiver boundary', type='myRectF', value=self.block.borders.recBorder, flat=True, expanded=False))
+        self.addChild(dict(name='Template list', type='myTemplateList', value=self.block.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m'))
+
+        self.parS = self.child('Source boundary')
+        self.parR = self.child('Receiver boundary')
+        self.parT = self.child('Template list')
+
+        self.parS.sigValueChanged.connect(self.valueChanged)
+        self.parR.sigValueChanged.connect(self.valueChanged)
+        self.parT.sigValueChanged.connect(self.valueChanged)
+
+        self.sigNameChanged.connect(self.nameChanged)
+        self.sigContextMenu.connect(self.contextMenu)
+
+    def nameChanged(self, _):
+        self.block.name = self.name()
+
+    def valueChanged(self):
+        self.block.borders.recBorder = self.parR.value()
+        self.block.borders.srcBorder = self.parS.value()
+        self.block.templateList = self.parT.value()
+
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return self.block
+
+    def contextMenu(self, name=None):
+        parent = self.parent()
+        index = parent.children().index(self)
+
+        if not isinstance(parent, MyBlockListParameter):
+            raise ValueError("Need 'MyBlockListParameter' instances at this point")
+
+        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
+        if name == 'remove':
+            reply = QMessageBox.question(None, 'Please confirm', 'Delete selected block ?', QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.remove()
+                parent.blockList.pop(index)
+                parent.sigChildRemoved.emit(self, parent)
+
+        elif name == 'moveUp':
+            if index > 0:
+                self.remove()
+
+                block = parent.blockList.pop(index)
+                parent.blockList.insert(index - 1, block)
+                parent.insertChild(index - 1, dict(name=block.name, type='myBlock', value=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+        elif name == 'moveDown':
+            n = len(parent.children())
+            if index < n - 1:
+                self.remove()
+
+                block = parent.blockList.pop(index)
+                parent.blockList.insert(index + 1, block)
+                parent.insertChild(index + 1, dict(name=block.name, type='myBlock', value=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+        elif name == 'preview':
+            ...
+        elif name == 'export':
+            ...
+
+
+class MyTemplatePreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+
+        self.showInformation(param)
+
+    def showInformation(self, param):
+
+        nPlane = param.child('Roll steps', 'Planes', 'N').opts['value']
+        nLines = param.child('Roll steps', 'Lines', 'N').opts['value']
+        nPoint = param.child('Roll steps', 'Points', 'N').opts['value']
+
+        nRollSteps = nPlane * nLines * nPoint
+
+        nSource = 0
+        nSeed = 0
+        nTemplateShots = 0
+
+        seeds = param.child('Seed list')
+        if seeds.hasChildren():
+            for seed in seeds:
+                nSeed += 1
+                bSource = seed.child('Source seed').opts['value']
+
+                if bSource:
+                    nSource += 1
+
+                    nPlane = seed.child('Grid grow steps', 'Planes', 'N').opts['value']
+                    nLines = seed.child('Grid grow steps', 'Lines', 'N').opts['value']
+                    nPoint = seed.child('Grid grow steps', 'Points', 'N').opts['value']
+
+                    nSeedShots = nPlane * nLines * nPoint
+                    nTemplateShots += nSeedShots
+
+        nTemplateShots *= nRollSteps
+
+        t = f'{nSeed} seed(s), {nTemplateShots} src points'
+
+        self.setText(t)
+        self.update()
+
+        print(f'+++{lineNo():5d} MyTemplatePreviewLabel.showInformation | {t} +++++++')
+
+    def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        print(f'>>>{lineNo():5d} MyTemplatePreviewLabel.ValueChanging <<<')
+        self.showInformation(param)
+
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        print(f'>>>{lineNo():5d} MyTemplateParameter.TreeStateChanged <<<')
+
+        if not isinstance(param, MyTemplateParameter):
+            raise ValueError("Need 'MyTemplateParameter' instances at this point")
+
+        # val = param.opts.get('value', None)
+        # self.onValueChanging(None, val)
+
+        self.showInformation(param)
+
+
+class MyTemplateParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyTemplatePreviewLabel(param))
+
+
+class MyTemplateParameter(MyGroupParameter):
+
+    itemClass = MyTemplateParameterItem
+
+    def __init__(self, **opts):
+        opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
+        opts['tip'] = 'Right click to manage template'
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyTemplateParameter opts')
+
+        d = opts.get('decimals', 5)
+        s = opts.get('suffix', 'm')
+
+        template = RollTemplate()
+        self.template = opts.get('value', template)
+
+        self.addChild(dict(name='Roll steps', type='MyRollList', value=self.template.rollList, default=self.template.rollList, expanded=True, flat=True, decimals=d, suffix=s))
+        self.addChild(dict(name='Seed list', type='mySeedList', value=self.template.seedList, brush='#add8e6', flat=True))
+
+        self.parR = self.child('Roll steps')
+        self.parS = self.child('Seed list')
+
+        self.parR.sigValueChanged.connect(self.changed)
+        self.parS.sigValueChanged.connect(self.changed)
+        self.sigNameChanged.connect(self.nameChanged)
+        self.sigContextMenu.connect(self.contextMenu)
+
+    def nameChanged(self, _):
+        self.template.name = self.name()
+
+    def changed(self):
+        # self.template.rollList = self.parR.value()
+        self.template.seedList = self.parS.value()
+
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return self.template
+
+    def contextMenu(self, name=None):
+        parent = self.parent()
+        index = parent.children().index(self)
+
+        if not isinstance(parent, MyTemplateListParameter):
+            raise ValueError("Need 'MyTemplateListParameter' instances at this point")
+
+        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
+        if name == 'remove':
+            reply = QMessageBox.question(None, 'Please confirm', 'Delete selected template ?', QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.remove()
+                parent.templateList.pop(index)
+                parent.sigChildRemoved.emit(self, parent)
+
+        elif name == 'moveUp':
+            if index > 0:
+                self.remove()
+
+                template = parent.templateList.pop(index)
+                parent.templateList.insert(index - 1, template)
+                parent.insertChild(index - 1, dict(name=template.name, type='myTemplate', value=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+        elif name == 'moveDown':
+            n = len(parent.children())
+            if index < n - 1:
+                self.remove()
+
+                template = parent.templateList.pop(index)
+                parent.templateList.insert(index + 1, template)
+                parent.insertChild(index + 1, dict(name=template.name, type='myTemplate', value=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+        elif name == 'preview':
+            ...
+        elif name == 'export':
+            ...
+
+
+class MyRollListPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)                    # connect signal to slot
+
+        val = param.opts.get('value', None)                                     # get *value*  from param and provide default (None)
+        self.onValueChanging(None, val)                                         # initialize the label in __init__()
+
+    def onValueChanging(self, _, val):                                          # unused param replaced by _
+        n0 = val[0].steps                                                       # prepare label text
+        n1 = val[1].steps
+        n2 = val[2].steps
+        t = f'{n0*n1*n2} points ({n0} x {n1} x {n2})'
+
+        self.setText(t)
+        self.update()
+
+        print(f'>>>{lineNo():5d} MyRollListPreviewLabel.ValueChanging | {t} <<<')
+
+
+class MyRollListParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyRollListPreviewLabel(param))
+
+
+class MyRollListParameter(MyGroupParameter):
+
+    itemClass = MyRollListParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyRollListParameter opts')
+
+        d = opts.get('decimals', 5)
+        s = opts.get('suffix', 'm')
+
+        self.moveList = [RollTranslate(), RollTranslate(), RollTranslate()]
+        self.moveList = opts.get('value', self.moveList)
+
+        while len(self.moveList) < 3:
+            self.moveList.insert(0, RollTranslate())                                # First, make sure there are ALWAYS 3 grow steps for every grid
+
+        self.addChild(dict(name='Planes', type='MyRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[0], default=self.moveList[0]))
+        self.addChild(dict(name='Lines', type='MyRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[1], default=self.moveList[1]))
+        self.addChild(dict(name='Points', type='MyRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[2], default=self.moveList[2]))
+
+        self.par0 = self.child('Planes')
+        self.par1 = self.child('Lines')
+        self.par2 = self.child('Points')
+
+        self.sigTreeStateChanged.connect(self.changed)
+        # self.par0.sigValueChanged.connect(self.changed)
+        # self.par1.sigValueChanged.connect(self.changed)
+        # self.par2.sigValueChanged.connect(self.changed)
+
+    def changed(self):
+        self.moveList[0] = self.par0.value()
+        self.moveList[1] = self.par1.value()
+        self.moveList[2] = self.par2.value()
+
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return self.moveList
+
+
+class MyRollPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+
+        self.decimals = param.opts.get('decimals', 3)
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+    def onValueChanging(self, _, val):                                          # unused param replaced by _
+        n = val.steps
+        x = val.increment.x()
+        y = val.increment.y()
+        z = val.increment.z()
+        d = self.decimals
+        t = f'{n} x ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
+
+        self.setText(t)
+        self.update()
+
+        print(f'>>>{lineNo():5d} MyRollPreviewLabel.ValueChanging | {t} <<<')
+
+
+class MyRollParameterItem(MyGroupParameterItem):
+    """modeled after PenParameterItem from pen.py in pyqtgraph"""
+
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyRollPreviewLabel(param))
+
+
+class MyRollParameter(MyGroupParameter):
+
+    itemClass = MyRollParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyRollParameter opts')
+
+        self.row = RollTranslate()
+        self.row = opts.get('value', self.row)
+
+        d = opts.get('decimals', 3)
+        s = opts.get('suffix', '')
+
+        self.addChild(dict(name='N', type='int', limits=[1, None], value=self.row.steps))
+        self.addChild(dict(name='dX', type='float', decimals=d, suffix=s, value=self.row.increment.x()))
+        self.addChild(dict(name='dY', type='float', decimals=d, suffix=s, value=self.row.increment.y()))
+        self.addChild(dict(name='dZ', type='float', decimals=d, suffix=s, value=self.row.increment.z()))
+        self.addChild(dict(name='azimuth', type='float', decimals=d, suffix='deg', enabled=False, readonly=True))     # set value through setAzimuth()     # myFloat
+        self.addChild(dict(name='tilt', type='float', decimals=d, suffix='deg', enabled=False, readonly=True))        # set value through setTilt()    # myFloat
+
+        self.parN = self.child('N')
+        self.parX = self.child('dX')
+        self.parY = self.child('dY')
+        self.parZ = self.child('dZ')
+        self.parA = self.child('azimuth')
+        self.parT = self.child('tilt')
+
+        self.setAzimuth()
+        self.setTilt()
+
+        self.sigTreeStateChanged.connect(self.changed)
+        # self.parN.sigValueChanged.connect(self.changed)
+        # self.parX.sigValueChanged.connect(self.changed)
+        # self.parY.sigValueChanged.connect(self.changed)
+        # self.parZ.sigValueChanged.connect(self.changed)
+
+    def setAzimuth(self):
+        azimuth = math.degrees(math.atan2(self.row.increment.y(), self.row.increment.x()))
+        self.parA.setValue(azimuth)
+
+    def setTilt(self):
+        lengthXY = math.sqrt(self.row.increment.x() ** 2 + self.row.increment.y() ** 2)
+        tilt = math.degrees(math.atan2(self.row.increment.z(), lengthXY))
+        self.parT.setValue(tilt)
+
+    # update the values of the five children
+    def changed(self):
+        self.row.steps = self.parN.value()
+        self.row.increment.setX(self.parX.value())
+        self.row.increment.setY(self.parY.value())
+        self.row.increment.setZ(self.parZ.value())
+        self.setAzimuth()
+        self.setTilt()
+
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return self.row
+
+
+class MySeedListPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+
+        self.showInformation(param)
+
+    def showInformation(self, param):
+        nChilds = len(param.childs)
+        nSource = 0
+
+        if nChilds == 0:
+            t = 'No seeds'
+        else:
+            for child in param.childs:
+                if not isinstance(child, MySeedParameter):
+                    raise ValueError("Need 'MySeedParameter' instances at this point")
+                seed = child.names['Source seed']
+                source = seed.opts['value']
+                if source:
+                    nSource += 1
+                t = f'{nSource} src seed(s) + {nChilds - nSource} rec seed(s)'
+
+        self.setText(t)
+        self.update()
+
+        print(f'+++{lineNo():5d} MySeedListPreviewLabel.showInformation | {t} +++++++')
+
+    def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        print(f'>>>{lineNo():5d} MySeedListPreviewLabel.ValueChanging <<<')
+        self.showInformation(param)
+
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        print(f'>>>{lineNo():5d} MySeedListPreviewLabel.TreeStateChanged <<<')
+
+        if not isinstance(param, MySeedListParameter):
+            raise ValueError("Need 'MySeedListParameter' instances at this point")
+
+        self.showInformation(param)
+
+
+class MySeedListParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MySeedListPreviewLabel(param))
+
+
+class MySeedListParameter(MyGroupParameter):
+
+    itemClass = MySeedListParameterItem
+
+    def __init__(self, **opts):
+        opts['context'] = {'addNew': 'Add new Seed'}
+        opts['tip'] = 'Right click to add seeds'
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MySeedListParameter opts')
+
+        self.seedList = [RollSeed()]
+        self.seedList = opts.get('value', self.seedList)
+
+        if not isinstance(self.seedList, list):
+            raise ValueError("Need 'list' instance at this point")
+
+        nSeeds = len(self.seedList)
+        if nSeeds < 2:
+            raise ValueError('Need at least two seeds for a valid template')
+
+        for n, seed in enumerate(self.seedList):
+            self.addChild(dict(name=seed.name, type='mySeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m'))
+
+        self.sigContextMenu.connect(self.contextMenu)
+
+    def value(self):
+        return self.seedList
+
+    def contextMenu(self, name=None):
+        if name == 'addNew':
+            n = len(self.names) + 1
+            newName = f'Seed-{n}'
+            while newName in self.names:
+                n += 1
+                newName = f'Seed-{n}'
+
+            # this solution gives preference to source seeds over receiver seeds, provided at least one receiver seed is present
+            # this is useful for templates (e.g. zigzag) where multiple source seeds are combined with a single receiver seed
+
+            haveReceiverSeed = False
+            for s in self.seedList:
+                if s.bSource is False:                                          # there's at least one receiver seed present
+                    haveReceiverSeed = True
+                    break
+
+            seed = RollSeed(newName)
+            if haveReceiverSeed:
+                seed.bSource = True
+                seed.color = QColor('#77ff0000')
+            else:
+                seed.bSource = False
+                seed.color = QColor('#7700b0f0')
+
+            # using append/addChild instead of insert(0, ...) will add the item at the end of the list
+
+            # self.seedList.insert(0, seed)
+            self.seedList.append(seed)
+
+            # self.insertChild(0, dict(name=newName, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+            self.addChild(dict(name=newName, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+            self.sigAddNew.emit(self, name)
+            self.sigValueChanging.emit(self, self.value())
+
+
+class MySeedPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+    def onValueChanging(self, _, val):                                          # unused param replaced by _
+        if val.type == 2:
+            kind = 'circle'
+            nSteps = len(val.pointList)
+        elif val.type == 3:
+            kind = 'spiral'
+            nSteps = len(val.pointList)
+        elif val.type == 4:
+            kind = 'well'
+            nSteps = len(val.pointList)
+        else:
+            kind = 'grid'
+            nSteps = 1
+            for growStep in val.grid.growList:                                           # iterate through all grow steps
+                nSteps *= growStep.steps                                            # multiply seed's shots at each level
+
+        if val.bSource:
+            seed = 'src'
+        else:
+            seed = 'rec'
+
+        t = f'{kind} seed, {nSteps} {seed} points'
+
+        self.setText(t)
+        self.update()
+
+        print(f'>>>{lineNo():5d} MySeedPreviewLabel.ValueChanging | {t} <<<')
+
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
+
+        if not isinstance(param, MySeedParameter):
+            raise ValueError("Need 'MySeedParameter' instances at this point")
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+
+class MySeedParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MySeedPreviewLabel(param))
+
+
+class MySeedParameter(MyGroupParameter):
+
+    itemClass = MySeedParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+        opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
+        opts['tip'] = 'Right click to manage seed'
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in mySeed Parameter opts')
+
+        self.seed = RollSeed()
+        self.seed = opts.get('value', self.seed)
+
+        d = opts.get('decimals', 7)
+
+        self.seedTypes = ['Grid (roll along)', 'Grid (stationary)', 'Circle', 'Spiral', 'Well']
+        self.addChild(dict(name='Seed type', type='myList', value=self.seedTypes[self.seed.type], default=self.seedTypes[self.seed.type], limits=self.seedTypes, brush='#add8e6'))
+        self.addChild(dict(name='Source seed', type='bool', value=self.seed.bSource))
+        self.addChild(dict(name='Seed color', type='color', value=self.seed.color))
+        self.addChild(dict(name='Seed origin', type='myPoint3D', value=self.seed.origin, expanded=False, flat=True, decimals=d))
+
+        # A 'global' patternList has been defined using config.py as a backdoor;
+        # as patterns are defined on a seperate (not-easy-to-access) branch in the RollSurvey object
+        pl = config.patternList
+        if self.seed.type > 1:
+            nPattern = 0
+        else:
+            nPattern = self.seed.patternNo + 1
+            if nPattern >= len(pl):
+                nPattern = 0
+        self.addChild(dict(name='Seed pattern', type='myList', value=pl[nPattern], default=pl[nPattern], limits=pl))
+
+        self.addChild(dict(name='Grid grow steps', type='MyRollList', value=self.seed.grid.growList, default=self.seed.grid.growList, expanded=True, flat=True, decimals=d, suffix='m', brush='#add8e6'))
+        self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
+        self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
+        self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
+
+        self.parT = self.child('Seed type')
+        self.parR = self.child('Source seed')
+        self.parL = self.child('Seed color')
+        self.parO = self.child('Seed origin')
+        self.parP = self.child('Seed pattern')
+
+        self.parG = self.child('Grid grow steps')
+        self.parC = self.child('Circle grow steps')
+        self.parS = self.child('Spiral grow steps')
+        self.parW = self.child('Well grow steps')
+
+        self.parT.sigValueChanged.connect(self.typeChanged)
+
+        self.parR.sigValueChanged.connect(self.changed)
+        self.parL.sigValueChanged.connect(self.changed)
+        self.parO.sigValueChanged.connect(self.changed)
+        self.parP.sigValueChanged.connect(self.changed)
+        self.parG.sigValueChanged.connect(self.changed)
+        self.parC.sigValueChanged.connect(self.changed)
+        self.parS.sigValueChanged.connect(self.changed)
+        self.parW.sigValueChanged.connect(self.changed)
+
+        self.sigContextMenu.connect(self.contextMenu)
+        self.sigNameChanged.connect(self.nameChanged)
+
+        self.typeChanged()
+
+    def nameChanged(self, _):
+        self.seed.name = self.name()
+
+    def typeChanged(self):
+        seedType = self.parT.value()
+        self.seed.type = self.seedTypes.index(seedType)
+
+        if seedType == 'Well':
+            self.parO.show(False)
+        else:
+            self.parO.show(True)
+
+        self.parG.show(seedType == 'Grid (roll along)' or seedType == 'Grid (stationary)')
+        self.parP.show(seedType == 'Grid (roll along)' or seedType == 'Grid (stationary)')
+        self.parC.show(seedType == 'Circle')
+        self.parS.show(seedType == 'Spiral')
+        self.parW.show(seedType == 'Well')
+
+    def changed(self):
+        self.seed.bSource = self.parR.value()
+        self.seed.color = self.parL.value()
+        self.seed.origin = self.parO.value()
+        self.seed.patternNo = config.patternList.index(self.parP.value()) - 1
+        self.seed.grid.growList = self.parG.value()
+        self.seed.circle = self.parC.value()
+        self.seed.spiral = self.parS.value()
+        self.seed.well = self.parW.value()
+
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return self.seed
+
+    def contextMenu(self, name=None):
+        parent = self.parent()
+        index = parent.children().index(self)
+
+        if not isinstance(parent, MySeedListParameter):
+            raise ValueError("Need 'MySeedListParameter' instances at this point")
+
+        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
+        if name == 'remove':
+            reply = QMessageBox.question(None, 'Please confirm', 'Delete selected seed ?', QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.remove()
+
+                parent.seedList.pop(index)
+                parent.sigChildRemoved.emit(self, parent)
+
+        elif name == 'moveUp':
+            if index > 0:
+                self.remove()
+
+                seed = parent.seedList.pop(index)
+                parent.seedList.insert(index - 1, seed)
+                parent.insertChild(index - 1, dict(name=seed.name, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+        elif name == 'moveDown':
+            n = len(parent.children())
+            if index < n - 1:
+                self.remove()
+
+                seed = parent.seedList.pop(index)
+                parent.seedList.insert(index + 1, seed)
+                parent.insertChild(index + 1, dict(name=seed.name, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+        elif name == 'preview':
+            ...
+        elif name == 'export':
+            ...
 
 
 class MyCirclePreviewLabel(MyPreviewLabel):
@@ -376,6 +1486,7 @@ class MyCirclePreviewLabel(MyPreviewLabel):
         param.sigValueChanging.connect(self.onValueChanging)
 
         self.decimals = param.opts.get('decimals', 5)
+
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
@@ -384,9 +1495,12 @@ class MyCirclePreviewLabel(MyPreviewLabel):
         s = val.dist
         n = val.points
         d = self.decimals
+        t = f'{n:.{d}g} points, ø{r:.{d}g}m, d{s:.{d}g}m'
 
-        self.setText(f'{n:.{d}g} points, ø{r:.{d}g}m, d{s:.{d}g}m')
+        self.setText(t)
         self.update()
+
+        print(f'>>>{lineNo():5d} MyCirclePreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyCircleParameterItem(MyGroupParameterItem):
@@ -418,7 +1532,7 @@ class MyCircleParameter(MyGroupParameter):
         self.addChild(dict(name='Radius', value=self.circle.radius, type='float', decimals=d, suffix=s))
         self.addChild(dict(name='Start angle', value=self.circle.azi0, type='float', decimals=d, suffix='°E', tip=tip))
         self.addChild(dict(name='Point interval', value=self.circle.dist, type='float', suffix=s, tip=tip))
-        self.addChild(dict(name='Points', value=self.circle.points, type='myInt', decimals=d, enabled=False, readonly=True))
+        self.addChild(dict(name='Points', value=self.circle.points, type='int', decimals=d, enabled=False, readonly=True))    # myInt
 
         self.parR = self.child('Radius')
         self.parA = self.child('Start angle')
@@ -426,19 +1540,14 @@ class MyCircleParameter(MyGroupParameter):
         self.parN = self.child('Points')
 
         self.sigTreeStateChanged.connect(self.changed)
-        # self.parR.sigValueChanged.connect(self.changed)
-        # self.parA.sigValueChanged.connect(self.changed)
-        # self.parI.sigValueChanged.connect(self.changed)
-
         self.changed()
 
     def changed(self):
         self.circle.radius = self.parR.value()
         self.circle.azi0 = self.parA.value()
         self.circle.dist = self.parI.value()
-        n = self.circle.calcNoPoints()
+        self.parN.setValue(self.circle.calcNoPoints())
 
-        self.parN.setValue(n)
         self.sigValueChanging.emit(self, self.value())
 
     def value(self):
@@ -452,6 +1561,7 @@ class MySpiralPreviewLabel(MyPreviewLabel):
         param.sigValueChanging.connect(self.onValueChanging)
 
         self.decimals = param.opts.get('decimals', 5)
+
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
@@ -461,9 +1571,12 @@ class MySpiralPreviewLabel(MyPreviewLabel):
         s = val.dist
         n = val.points
         d = self.decimals
+        t = f'{n:.{d}g} points, ø{r1:.{d}g}-{r2:.{d}g}m, d{s:.{d}g}m'
 
-        self.setText(f'{n:.{d}g} points, ø{r1:.{d}g}-{r2:.{d}g}m, d{s:.{d}g}m')
+        self.setText(t)
         self.update()
+
+        print(f'>>>{lineNo():5d} MySpiralPreviewLabel.ValueChanging | {t} <<< ')
 
 
 class MySpiralParameterItem(MyGroupParameterItem):
@@ -496,7 +1609,7 @@ class MySpiralParameter(MyGroupParameter):
         self.addChild(dict(name='Radius incr', value=self.spiral.radInc, type='float', decimals=d, suffix='m/360°'))
         self.addChild(dict(name='Start angle', value=self.spiral.azi0, type='float', decimals=d, suffix='°E', tip=tip))
         self.addChild(dict(name='Point interval', value=self.spiral.dist, type='float', decimals=d, suffix='m', tip=tip))
-        self.addChild(dict(name='Points', value=self.spiral.points, type='myInt', decimals=d, enabled=False, readonly=True))
+        self.addChild(dict(name='Points', value=self.spiral.points, type='int', decimals=d, enabled=False, readonly=True))    # myInt
 
         self.parR1 = self.child('Min radius')
         self.parR2 = self.child('Max radius')
@@ -521,9 +1634,8 @@ class MySpiralParameter(MyGroupParameter):
         self.spiral.radInc = self.parDr.value()
         self.spiral.azi0 = self.parA.value()
         self.spiral.dist = self.parI.value()
-        n = self.spiral.calcNoPoints()
+        self.parN.setValue(self.spiral.calcNoPoints())
 
-        self.parN.setValue(n)
         self.sigValueChanging.emit(self, self.value())
 
     def value(self):
@@ -537,6 +1649,7 @@ class MyWellPreviewLabel(MyPreviewLabel):
         param.sigValueChanging.connect(self.onValueChanging)
 
         self.decimals = param.opts.get('decimals', 5)
+
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
@@ -548,10 +1661,14 @@ class MyWellPreviewLabel(MyPreviewLabel):
 
         if not f is None and os.path.exists(f):
             f = QFileInfo(f).fileName()
-            self.setText(f'{n:.{d}g} points, in {f}, d{s:.{d}g}m')
+            t = f'{n:.{d}g} points, in {f}, d{s:.{d}g}m'
         else:
-            self.setText('No valid well file selected')
+            t = 'No valid well file selected'
+
+        self.setText(t)
         self.update()
+
+        print(f'>>>{lineNo():5d} MyWellPreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyWellParameterItem(MyGroupParameterItem):
@@ -775,518 +1892,11 @@ class MyWellParameter(MyGroupParameter):
             n = min(n, nMax)
             self.well.nAhd = n
             self.parN.setValue(n, blockSignal=self.changedN)
+
         self.sigValueChanging.emit(self, self.value())
 
     def value(self):
         return self.well
-
-
-class MySeedPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-
-        param.sigValueChanging.connect(self.onValueChanging)
-
-        self.decimals = param.opts.get('decimals', 3)
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-    def onValueChanging(self, _, val):                                          # unused param replaced by _
-        if val.type == 2:
-            kind = 'circle'
-            nSteps = len(val.pntList3D)
-        elif val.type == 3:
-            kind = 'spiral'
-            nSteps = len(val.pntList3D)
-        elif val.type == 4:
-            kind = 'well'
-            nSteps = len(val.pntList3D)
-        else:
-            kind = 'grid'
-            nSteps = 1
-            for growStep in val.grid.growList:                                           # iterate through all grow steps
-                nSteps *= growStep.steps                                            # multiply seed's shots at each level
-
-        if val.bSource:
-            seed = 'src'
-        else:
-            seed = 'rec'
-
-        self.setText(f'{kind} seed, {nSteps} {seed} points')
-        self.update()
-
-
-class MySeedParameterItem(MyGroupParameterItem):
-    def __init__(self, param, depth):
-        super().__init__(param, depth)
-
-        self.setPreviewLabel(MySeedPreviewLabel(param))
-
-
-class MySeedParameter(MyGroupParameter):
-
-    itemClass = MySeedParameterItem
-
-    def __init__(self, **opts):
-        # opts['expanded'] = False                                              # to overrule user-requested options
-        # opts['flat'] = True
-        opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
-        opts['tip'] = 'Right click to manage seed'
-
-        MyGroupParameter.__init__(self, **opts)
-        if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in mySeed Parameter opts')
-
-        self.seed = RollSeed()
-        self.seed = opts.get('value', self.seed)
-        d = opts.get('decimals', 7)
-
-        self.seedTypes = ['Grid (roll along)', 'Grid (stationary)', 'Circle', 'Spiral', 'Well']
-        self.addChild(dict(name='Seed type', type='myList', value=self.seedTypes[self.seed.type], default=self.seedTypes[self.seed.type], limits=self.seedTypes, brush='#add8e6'))
-        self.addChild(dict(name='Source seed', type='bool', value=self.seed.bSource))
-        self.addChild(dict(name='Seed color', type='color', value=self.seed.color))
-        self.addChild(dict(name='Seed origin', type='myPoint3D', value=self.seed.origin, expanded=False, flat=True, decimals=d))
-
-        # A 'global' patternList has been defined using config.py as a backdoor;
-        # as patterns are defined on a seperate (not-easy-to-access) branch in the RollSurvey object
-        pl = config.patternList
-        if self.seed.type > 1:
-            nPattern = 0
-        else:
-            nPattern = self.seed.patternNo + 1
-            if nPattern >= len(pl):
-                nPattern = 0
-        self.addChild(dict(name='Seed pattern', type='myList', value=pl[nPattern], default=pl[nPattern], limits=pl))
-
-        self.addChild(dict(name='Grid grow steps', type='MyRollList', value=self.seed.grid.growList, default=self.seed.grid.growList, expanded=True, flat=True, decimals=d, suffix='m', brush='#add8e6'))
-        self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
-        self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
-        self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
-
-        self.parT = self.child('Seed type')
-        self.parR = self.child('Source seed')
-        self.parL = self.child('Seed color')
-        self.parO = self.child('Seed origin')
-        self.parP = self.child('Seed pattern')
-
-        self.parG = self.child('Grid grow steps')
-        self.parC = self.child('Circle grow steps')
-        self.parS = self.child('Spiral grow steps')
-        self.parW = self.child('Well grow steps')
-
-        self.parT.sigValueChanged.connect(self.typeChanged)
-        self.parR.sigValueChanged.connect(self.sourceChanged)
-        self.parL.sigValueChanged.connect(self.colorChanged)
-        self.parO.sigValueChanged.connect(self.originChanged)
-        self.parP.sigValueChanged.connect(self.patternChanged)
-
-        self.parG.sigValueChanged.connect(self.gridChanged)
-        self.parC.sigValueChanged.connect(self.circleChanged)
-        self.parS.sigValueChanged.connect(self.spiralChanged)
-        self.parW.sigValueChanged.connect(self.wellChanged)
-
-        self.sigContextMenu.connect(self.contextMenu)
-        self.sigNameChanged.connect(self.nameChanged)
-
-        self.typeChanged()
-
-    def nameChanged(self, _):
-        self.seed.name = self.name()
-
-    def typeChanged(self):
-        seedType = self.parT.value()
-        self.seed.type = self.seedTypes.index(seedType)
-
-        if seedType == 'Well':
-            self.parO.show(False)
-        else:
-            self.parO.show(True)
-
-        self.parG.show(seedType == 'Grid (roll along)' or seedType == 'Grid (stationary)')
-        self.parP.show(seedType == 'Grid (roll along)' or seedType == 'Grid (stationary)')
-        self.parC.show(seedType == 'Circle')
-        self.parS.show(seedType == 'Spiral')
-        self.parW.show(seedType == 'Well')
-
-    def sourceChanged(self):
-        self.seed.bSource = self.parR.value()
-
-    def colorChanged(self):
-        self.seed.color = self.parL.value()
-
-    def originChanged(self):
-        self.seed.origin = self.parO.value()
-
-    def patternChanged(self):
-        pattern = self.parP.value()
-        self.seed.patternNo = config.patternList.index(pattern) - 1
-
-    def gridChanged(self):
-        self.seed.grid.growList = self.parG.value()
-
-    def circleChanged(self):
-        self.seed.circle = self.parC.value()
-
-    def spiralChanged(self):
-        self.seed.spiral = self.parS.value()
-
-    def wellChanged(self):
-        self.seed.well = self.parW.value()
-
-    def value(self):
-        return self.seed
-
-    def contextMenu(self, name=None):
-        parent = self.parent()
-        index = parent.children().index(self)
-
-        if not isinstance(parent, MySeedListParameter):
-            raise ValueError("Need 'MySeedListParameter' instances at this point")
-
-        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
-        if name == 'remove':
-            reply = QMessageBox.question(None, 'Please confirm', 'Delete selected seed ?', QMessageBox.Yes, QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                self.remove()
-
-                parent.seedList.pop(index)
-                parent.sigChildRemoved.emit(self, parent)
-
-        elif name == 'moveUp':
-            if index > 0:
-                self.remove()
-
-                seed = parent.seedList.pop(index)
-                parent.seedList.insert(index - 1, seed)
-                parent.insertChild(index - 1, dict(name=seed.name, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-
-        elif name == 'moveDown':
-            n = len(parent.children())
-            if index < n - 1:
-                self.remove()
-
-                seed = parent.seedList.pop(index)
-                parent.seedList.insert(index + 1, seed)
-                parent.insertChild(index + 1, dict(name=seed.name, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-
-        elif name == 'preview':
-            ...
-        elif name == 'export':
-            ...
-
-
-class MySeedListPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-
-        # these are the signals that a parameter can generate with some objects that clarify what happened
-        # sigValueChanged   = QtCore.Signal(object, object)                 ## self, value  emitted when value is finished being edited
-        # sigValueChanging  = QtCore.Signal(object, object)                 ## self, value  emitted as value is being edited
-        # sigChildAdded     = QtCore.Signal(object, object, object)         ## self, child, index
-        # sigChildRemoved   = QtCore.Signal(object, object)                 ## self, child
-        # sigRemoved        = QtCore.Signal(object)                         ## self
-        # sigParentChanged  = QtCore.Signal(object, object)                 ## self, parent
-        # sigLimitsChanged  = QtCore.Signal(object, object)                 ## self, limits
-        # sigDefaultChanged = QtCore.Signal(object, object)                 ## self, default
-        # sigNameChanged    = QtCore.Signal(object, object)                 ## self, name
-        # sigOptionsChanged = QtCore.Signal(object, object)                 ## self, {opt:val, ...}
-
-        # Emitted when anything changes about this parameter at all.
-        # The second argument is a string indicating what changed ('value', 'childAdded', etc..)
-        # The third argument can be any extra information about the change
-        #
-        # sigStateChanged   = QtCore.Signal(object, object, object)         ## self, change, info
-
-        # emitted when any child in the tree changes state
-        # (but only if monitorChildren() is called)
-        # sigTreeStateChanged = QtCore.Signal(object, object)               ## self, changes
-        #                                                                   ## changes = [(param, change, info), ...]
-
-        param.sigValueChanged.connect(self.onValueChanged)
-        param.sigValueChanging.connect(self.onValueChanging)
-        param.sigChildAdded.connect(self.onChildAdded)
-        param.sigChildRemoved.connect(self.onChildRemoved)
-        param.sigRemoved.connect(self.onRemoved)
-        param.sigParentChanged.connect(self.onParentChanged)
-        param.sigLimitsChanged.connect(self.onLimitsChanged)
-        param.sigDefaultChanged.connect(self.onDefaultChanged)
-        param.sigNameChanged.connect(self.onNameChanged)
-        param.sigOptionsChanged.connect(self.onOptionsChanged)
-        param.sigStateChanged.connect(self.onStateChanged)
-        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
-
-        self.decimals = param.opts.get('decimals', 3)
-
-        # this widget is created **after** childs have been added in the __init__routine
-        # so it is not notified through param.sigChildAdded() of any new childs at that stage
-        # therefore do the following to provide initial label text.
-        self.showSeeds(param)
-
-    def showSeeds(self, param):
-        nChilds = len(param.childs)
-        nSource = 0
-
-        if nChilds == 0:
-            self.setText('No seeds')
-        else:
-            for ch in param.childs:
-                if not isinstance(ch, MySeedParameter):
-                    raise ValueError("Need 'MySeedParameter' instances at this point")
-                seed = ch.names['Source seed']
-                source = seed.opts['value']
-                if source:
-                    nSource += 1
-                self.setText(f'{nSource} src seed(s) + {nChilds-nSource} rec seed(s)')
-        self.update()
-
-    def onValueChanged(self, val):
-        print(f'>>>{lineNo():5d} MySeedListParameter.ValueChanged <<<')
-        self.showSeeds(val)
-
-    def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        print(f'>>>{lineNo():5d} MySeedListParameter.ValueChanging <<<')
-        self.showSeeds(param)
-
-    def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
-        print(f'>>>{lineNo():5d} MySeedListParameter.ChildAdded <<<')
-
-    def onChildRemoved(self, _):                                                # child unused and replaced by _
-        print(f'>>>{lineNo():5d} MySeedListParameter.ChildRemoved <<<')
-
-    def onRemoved(self):
-        print(f'>>>{lineNo():5d} MySeedListParameter.Removed <<<')
-
-    def onParentChanged(self):
-        print(f'>>>{lineNo():5d} MySeedListParameter.ParentChanged <<<')
-
-    def onLimitsChanged(self):
-        print(f'>>>{lineNo():5d} MySeedListParameter.LimitsChanged <<<')
-
-    def onDefaultChanged(self):
-        print(f'>>>{lineNo():5d} MySeedListParameter.DefaultChanged <<<')
-
-    def onNameChanged(self):
-        print(f'>>>{lineNo():5d} MySeedListParameter.NameChanged <<<')
-
-    def onOptionsChanged(self, *_):                                             # unused change, info replaced by *_
-        print(f'>>>{lineNo():5d} MySeedListParameter.OptionsChanged <<<')
-
-    def onStateChanged(self, *_):                                               # unused change, info replaced by *_
-        print(f'>>>{lineNo():5d} MySeedListParameter.StateChanged <<<')
-
-    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        print(f'>>>{lineNo():5d} MySeedListParameter.TreeStateChanged <<<')
-
-        if not isinstance(param, MySeedListParameter):
-            raise ValueError("Need 'MySeedListParameter' instances at this point")
-
-        self.showSeeds(param)
-
-
-class MySeedListParameterItem(MyGroupParameterItem):
-    def __init__(self, param, depth):
-        super().__init__(param, depth)
-
-        self.setPreviewLabel(MySeedListPreviewLabel(param))
-
-
-class MySeedListParameter(MyGroupParameter):
-
-    itemClass = MySeedListParameterItem
-
-    def __init__(self, **opts):
-        opts['context'] = {'addNew': 'Add new Seed'}
-        opts['tip'] = 'Right click to add seeds'
-
-        MyGroupParameter.__init__(self, **opts)
-        if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MySeedListParameter opts')
-
-        self.seedList = [RollSeed()]
-        self.seedList = opts.get('value', self.seedList)
-
-        if not isinstance(self.seedList, list):
-            raise ValueError("Need 'list' instance at this point")
-
-        nSeeds = len(self.seedList)
-        if nSeeds < 2:
-            raise ValueError('Need at least two seeds for a valid template')
-
-        for seed in self.seedList:
-            self.addChild(dict(name=seed.name, type='mySeed', value=seed, default=seed, expanded=True, renamable=True, flat=True, decimals=5, suffix='m'))
-
-        self.sigContextMenu.connect(self.contextMenu)
-
-        # self.sigValueChanging.emit(self, self.value())
-        # self.sigValueChanged.emit(self, self.value())
-        # self.sigStateChanged.emit(self, 'childAdded', '')
-        # self.sigOptionsChanged.emit(self, **opts)
-
-    def value(self):
-        return self.seedList
-
-    def contextMenu(self, name=None):
-        if name == 'addNew':
-            n = len(self.names) + 1
-            newName = f'Seed-{n}'
-            while newName in self.names:
-                n += 1
-                newName = f'Seed-{n}'
-
-            # this solution gives preference to source seeds over receiver seeds, provided at least one receiver seed is present
-            # this is useful for templates (e.g. zigzag) where multiple source seeds are combined with a single receiver seed
-
-            haveReceiverSeed = False
-            for s in self.seedList:
-                if s.bSource is False:                                          # there's at least one receiver seed present
-                    haveReceiverSeed = True
-                    break
-
-            seed = RollSeed(newName)
-            if haveReceiverSeed:
-                seed.bSource = True
-                seed.color = QColor('#77ff0000')
-            else:
-                seed.bSource = False
-                seed.color = QColor('#7700b0f0')
-
-            # using append/addChild instead of insert(0, ...) will add the item at the end of the list
-
-            # self.seedList.insert(0, seed)
-            self.seedList.append(seed)
-
-            # self.insertChild(0, dict(name=newName, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-            self.addChild(dict(name=newName, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-
-            self.sigAddNew.emit(self, name)
-
-            # try this:
-            self.sigValueChanging.emit(self, self.value())
-
-
-class MyTemplatePreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-
-        param.sigValueChanging.connect(self.onValueChanging)
-        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
-
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-    def onValueChanging(self, _, val):                                          # param unused and replaced by _
-
-        rl = val.rollList
-        sl = val.seedList
-
-        nTemplateShots = 0
-        for s in sl:
-            nSeedShots = 0
-            if s.bSource:                                                       # Source seed
-                nSeedShots = 1                                                  # at least one SP
-                for growStep in s.grid.growList:                                # iterate through all grow steps
-                    nSeedShots *= growStep.steps                                # multiply seed's shots at each level
-                nTemplateShots += nSeedShots                                    # add to template's SPs
-
-        for r in rl:
-            nTemplateShots *= r.steps                                           # template is rolled a number of times
-
-        self.setText(f'{len(sl)} seed(s), {nTemplateShots} src points')
-        self.update()
-
-    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        print(f'>>>{lineNo():5d} MyTemplateParameter.TreeStateChanged <<<')
-
-        if not isinstance(param, MyTemplateParameter):
-            raise ValueError("Need 'MyTemplateParameter' instances at this point")
-
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-
-class MyTemplateParameterItem(MyGroupParameterItem):
-    def __init__(self, param, depth):
-        super().__init__(param, depth)
-
-        self.setPreviewLabel(MyTemplatePreviewLabel(param))
-
-
-class MyTemplateParameter(MyGroupParameter):
-
-    itemClass = MyTemplateParameterItem
-
-    def __init__(self, **opts):
-        opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
-        opts['tip'] = 'Right click to manage template'
-
-        MyGroupParameter.__init__(self, **opts)
-        if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyTemplateParameter opts')
-
-        d = opts.get('decimals', 5)
-        s = opts.get('suffix', 'm')
-
-        template = RollTemplate()
-        self.template = opts.get('value', template)
-
-        self.addChild(dict(name='Roll steps', type='MyRollList', value=self.template.rollList, default=self.template.rollList, expanded=False, flat=True, decimals=d, suffix=s))
-        self.addChild(dict(name='Seed list', type='mySeedList', value=self.template.seedList, brush='#add8e6', renamable=True, flat=True))
-
-        self.parR = self.child('Roll steps')
-        self.parS = self.child('Seed list')
-
-        self.parR.sigValueChanged.connect(self.valueChanged)
-        self.parS.sigValueChanged.connect(self.valueChanged)
-        self.sigNameChanged.connect(self.nameChanged)
-        self.sigContextMenu.connect(self.contextMenu)
-
-    def nameChanged(self, _):
-        self.template.name = self.name()
-
-    def valueChanged(self):
-        # self.template.rollList = self.parR.value()
-        self.template.seedList = self.parS.value()
-        self.sigValueChanging.emit(self, self.value())
-
-    def value(self):
-        return self.template
-
-    def contextMenu(self, name=None):
-        parent = self.parent()
-        index = parent.children().index(self)
-
-        if not isinstance(parent, MyTemplateListParameter):
-            raise ValueError("Need 'MyTemplateListParameter' instances at this point")
-
-        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
-        if name == 'remove':
-            reply = QMessageBox.question(None, 'Please confirm', 'Delete selected template ?', QMessageBox.Yes, QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                self.remove()
-                parent.templateList.pop(index)
-                parent.sigChildRemoved.emit(self, parent)
-
-        elif name == 'moveUp':
-            if index > 0:
-                self.remove()
-
-                template = parent.templateList.pop(index)
-                parent.templateList.insert(index - 1, template)
-                parent.insertChild(index - 1, dict(name=template.name, type='myTemplate', value=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-
-        elif name == 'moveDown':
-            n = len(parent.children())
-            if index < n - 1:
-                self.remove()
-
-                template = parent.templateList.pop(index)
-                parent.templateList.insert(index + 1, template)
-                parent.insertChild(index + 1, dict(name=template.name, type='myTemplate', value=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-
-        elif name == 'preview':
-            ...
-        elif name == 'export':
-            ...
 
 
 class MyTemplateListParameter(MyGroupParameter):
@@ -1312,7 +1922,7 @@ class MyTemplateListParameter(MyGroupParameter):
             raise ValueError('Need at least one template at this point')
 
         for n, template in enumerate(self.templateList):
-            self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n == 0), renamable=True, flat=True, decimals=5, suffix='m'))
+            self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m'))
 
         self.sigContextMenu.connect(self.contextMenu)
 
@@ -1342,200 +1952,7 @@ class MyTemplateListParameter(MyGroupParameter):
             self.addChild(dict(name=newName, type='myTemplate', value=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
             self.sigAddNew.emit(self, name)
 
-            # try this:
             self.sigValueChanging.emit(self, self.value())
-
-
-class MyBlockPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-
-        # these are the signals that a parameter can generate with some objects that clarify what happened
-        # sigValueChanged   = QtCore.Signal(object, object)                 ## self, value  emitted when value is finished being edited
-        # sigValueChanging  = QtCore.Signal(object, object)                 ## self, value  emitted as value is being edited
-        # sigChildAdded     = QtCore.Signal(object, object, object)         ## self, child, index
-        # sigChildRemoved   = QtCore.Signal(object, object)                 ## self, child
-        # sigRemoved        = QtCore.Signal(object)                         ## self
-        # sigParentChanged  = QtCore.Signal(object, object)                 ## self, parent
-        # sigLimitsChanged  = QtCore.Signal(object, object)                 ## self, limits
-        # sigDefaultChanged = QtCore.Signal(object, object)                 ## self, default
-        # sigNameChanged    = QtCore.Signal(object, object)                 ## self, name
-        # sigOptionsChanged = QtCore.Signal(object, object)                 ## self, {opt:val, ...}
-
-        # Emitted when anything changes about this parameter at all.
-        # The second argument is a string indicating what changed ('value', 'childAdded', etc..)
-        # The third argument can be any extra information about the change
-        #
-        # sigStateChanged   = QtCore.Signal(object, object, object)         ## self, change, info
-
-        # emitted when any child in the tree changes state
-        # (but only if monitorChildren() is called)
-        # sigTreeStateChanged = QtCore.Signal(object, object)               ## self, changes
-        #                                                                   ## changes = [(param, change, info), ...]
-
-        param.sigValueChanging.connect(self.onValueChanging)
-        param.sigValueChanged.connect(self.onValueChanged)
-        param.sigChildAdded.connect(self.onChildAdded)
-        param.sigChildRemoved.connect(self.onChildRemoved)
-        param.sigRemoved.connect(self.onRemoved)
-        param.sigParentChanged.connect(self.onParentChanged)
-        param.sigLimitsChanged.connect(self.onLimitsChanged)
-        param.sigDefaultChanged.connect(self.onDefaultChanged)
-        param.sigNameChanged.connect(self.onNameChanged)
-        param.sigOptionsChanged.connect(self.onOptionsChanged)
-        param.sigStateChanged.connect(self.onStateChanged)
-        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
-
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-    def onValueChanging(self, _, val):                                          # unused param replaced by _
-        print(f'>>>{lineNo():5d} MyBlockParameter.ValueChanging <<<')
-        tl = val.templateList
-
-        nBlockShots = 0
-        for t in tl:
-            nTemplateShots = 0
-            for seed in t.seedList:
-                nSeedShots = 0
-                if seed.bSource:                                                # Source seed
-                    nSeedShots = 1                                              # at least one SP
-                    for growStep in seed.grid.growList:                         # iterate through all grow steps
-                        nSeedShots *= growStep.steps                            # multiply seed's shots at each level
-                    nTemplateShots += nSeedShots                                # add to template's SPs
-
-            for roll in t.rollList:
-                nTemplateShots *= roll.steps                                    # template is rolled a number of times
-            nBlockShots += nTemplateShots
-
-        self.setText(f'{len(tl)} template(s), {nBlockShots} src points')
-        self.update()
-
-    def onValueChanged(self, _):                                                # unused val replaced by _
-        print(f'>>>{lineNo():5d} MyBlockParameter.ValueChanged <<<')
-
-    def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
-        print(f'>>>{lineNo():5d} MyBlockParameter.ChildAdded <<<')
-
-    def onChildRemoved(self, _):                                                # child unused and replaced by _
-        print(f'>>>{lineNo():5d} MyBlockParameter.ChildRemoved <<<')
-
-    def onRemoved(self):
-        print(f'>>>{lineNo():5d} MyBlockParameter.Removed')
-
-    def onParentChanged(self):
-        print(f'>>>{lineNo():5d} MyBlockParameter.ParentChanged <<<')
-
-    def onLimitsChanged(self):
-        print(f'>>>{lineNo():5d} MyBlockParameter.LimitsChanged <<<')
-
-    def onDefaultChanged(self):
-        print(f'>>>{lineNo():5d} MyBlockParameter.DefaultChanged <<<')
-
-    def onNameChanged(self):
-        print(f'>>>{lineNo():5d} MyBlockParameter.NameChanged <<<')
-
-    def onOptionsChanged(self, *_):                                             # change, info not used and replaced by *_
-        print(f'>>>{lineNo():5d} MyBlockParameter.OptionsChanged <<<')
-
-    def onStateChanged(self, *_):                                               # unused change, info replaced by *_
-        print(f'>>>{lineNo():5d} MyBlockParameter.StateChanged <<<')
-
-    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        print(f'>>>{lineNo():5d} MyBlockParameter.TreeStateChanged <<<')
-
-        if not isinstance(param, MyBlockParameter):
-            raise ValueError("Need 'MyBlockParameter' instances at this point")
-
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-
-class MyBlockParameterItem(MyGroupParameterItem):
-    def __init__(self, param, depth):
-        super().__init__(param, depth)
-
-        self.setPreviewLabel(MyBlockPreviewLabel(param))
-
-
-class MyBlockParameter(MyGroupParameter):
-
-    itemClass = MyBlockParameterItem
-
-    def __init__(self, **opts):
-        opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
-        opts['tip'] = 'Right click to manage block'
-
-        MyGroupParameter.__init__(self, **opts)
-        if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyBlockParameter opts')
-
-        self.block = RollBlock()
-        self.block = opts.get('value', self.block)
-
-        self.addChild(dict(name='Source boundary', type='myRectF', value=self.block.borders.srcBorder, flat=True, expanded=False))
-        self.addChild(dict(name='Receiver boundary', type='myRectF', value=self.block.borders.recBorder, flat=True, expanded=False))
-        self.addChild(dict(name='Template list', type='myTemplateList', value=self.block.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m'))
-
-        self.parS = self.child('Source boundary')
-        self.parR = self.child('Receiver boundary')
-        self.parT = self.child('Template list')
-
-        self.parS.sigValueChanged.connect(self.valueChanged)
-        self.parR.sigValueChanged.connect(self.valueChanged)
-        self.parT.sigValueChanged.connect(self.valueChanged)
-
-        self.sigNameChanged.connect(self.nameChanged)
-        self.sigContextMenu.connect(self.contextMenu)
-
-    def nameChanged(self, _):
-        self.block.name = self.name()
-
-    def valueChanged(self):
-        self.block.borders.recBorder = self.parR.value()
-        self.block.borders.srcBorder = self.parS.value()
-        self.block.templateList = self.parT.value()
-        self.sigValueChanging.emit(self, self.value())
-
-    def value(self):
-        return self.block
-
-    def contextMenu(self, name=None):
-        parent = self.parent()
-        index = parent.children().index(self)
-
-        if not isinstance(parent, MyBlockListParameter):
-            raise ValueError("Need 'MyBlockListParameter' instances at this point")
-
-        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
-        if name == 'remove':
-            reply = QMessageBox.question(None, 'Please confirm', 'Delete selected block ?', QMessageBox.Yes, QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                self.remove()
-                parent.blockList.pop(index)
-                parent.sigChildRemoved.emit(self, parent)
-
-        elif name == 'moveUp':
-            if index > 0:
-                self.remove()
-
-                block = parent.blockList.pop(index)
-                parent.blockList.insert(index - 1, block)
-                parent.insertChild(index - 1, dict(name=block.name, type='myBlock', value=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-
-        elif name == 'moveDown':
-            n = len(parent.children())
-            if index < n - 1:
-                self.remove()
-
-                block = parent.blockList.pop(index)
-                parent.blockList.insert(index + 1, block)
-                parent.insertChild(index + 1, dict(name=block.name, type='myBlock', value=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-
-        elif name == 'preview':
-            ...
-        elif name == 'export':
-            ...
 
 
 class MyBlockListParameter(MyGroupParameter):
@@ -1561,7 +1978,7 @@ class MyBlockListParameter(MyGroupParameter):
             raise ValueError('Need at least one block at this point')
 
         for n, block in enumerate(self.blockList):
-            self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(n == 0), renamable=True, flat=True, decimals=5, suffix='m'))
+            self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m'))
 
         self.sigContextMenu.connect(self.contextMenu)
         self.sigChildAdded.connect(self.onChildAdded)
@@ -1595,7 +2012,6 @@ class MyBlockListParameter(MyGroupParameter):
             self.addChild(dict(name=newName, type='myBlock', value=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
             self.sigAddNew.emit(self, name)
 
-            # try this:
             self.sigValueChanging.emit(self, self.value())
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
@@ -1612,18 +2028,23 @@ class MyPatternPreviewLabel(MyPreviewLabel):
         param.sigValueChanging.connect(self.onValueChanging)
 
         self.decimals = param.opts.get('decimals', 3)
+
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
     def onValueChanging(self, *_):                                              # unused param, val replaced by *_
+
         n = 1
         x = 0.0
         y = 0.0
         z = 0.0
         d = self.decimals
+        t = f'{n} : ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
 
-        self.setText(f'{n} : ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})')
+        self.setText(t)
         self.update()
+
+        print(f'>>>{lineNo():5d} MyPatternPreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyPatternParameterItem(MyGroupParameterItem):
@@ -1648,6 +2069,7 @@ class MyPatternParameter(MyGroupParameter):
             raise KeyError('Cannot set "children" argument in myPattern Parameter opts')
 
         d = opts.get('decimals', 7)
+
         self.pattern = RollPattern()
         self.pattern = opts.get('value', self.pattern)
 
@@ -1762,7 +2184,6 @@ class MyPatternListParameter(MyGroupParameter):
             self.addChild(dict(name=newName, type='myPattern', value=pattern, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
             self.sigAddNew.emit(self, name)
 
-            # try this:
             self.sigValueChanging.emit(self, self.value())
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
@@ -1770,158 +2191,6 @@ class MyPatternListParameter(MyGroupParameter):
 
     def onChildRemoved(self, _):                                                # child unused and replaced by _
         print(f'>>>{lineNo():5d} PatternList.ChildRemoved <<<')
-
-
-class MyLocalGridPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-
-        param.sigValueChanging.connect(self.onValueChanging)
-
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-    def onValueChanging(self, _, val):                                          # unused param replaced by _
-        fold = val.fold
-
-        if fold < 0:
-            self.setText(f'{val.binSize.x()}x{val.binSize.y()}m, fold undefined')
-        else:
-            self.setText(f'{val.binSize.x()}x{val.binSize.y()}m, fold {fold} max')
-
-        self.update()
-
-
-class MyLocalGridParameterItem(MyGroupParameterItem):
-    def __init__(self, param, depth):
-        super().__init__(param, depth)
-
-        self.setPreviewLabel(MyLocalGridPreviewLabel(param))
-
-
-class MyLocalGridParameter(MyGroupParameter):
-
-    itemClass = MyLocalGridParameterItem
-
-    def __init__(self, **opts):
-        # opts['expanded'] = False                                              # to overrule user-requested options
-        # opts['flat'] = True
-
-        MyGroupParameter.__init__(self, **opts)
-        if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyLocalGridParameter opts')
-
-        d = opts.get('decimals', 7)
-        s = opts.get('suffix', 'm')
-
-        self.binGrid = RollBinGrid()
-        self.binGrid = opts.get('value', self.binGrid)
-
-        self.addChild(dict(name='Bin size [x]', value=self.binGrid.binSize.x(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Bin size [y]', value=self.binGrid.binSize.y(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Bin offset [x]', value=self.binGrid.shift.x(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Bin offset [y]', value=self.binGrid.shift.y(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Stake nr @ origin', value=self.binGrid.stake.x(), type='float', decimals=d, suffix='#'))
-        self.addChild(dict(name='Line nr @ origin', value=self.binGrid.stake.y(), type='float', decimals=d, suffix='#'))
-        self.addChild(dict(name='Max fold', value=self.binGrid.fold, type='int'))
-
-        self.parBx = self.child('Bin size [x]')
-        self.parBy = self.child('Bin size [y]')
-        self.parDx = self.child('Bin offset [x]')
-        self.parDy = self.child('Bin offset [y]')
-        self.parLx = self.child('Stake nr @ origin')
-        self.parLy = self.child('Line nr @ origin')
-        self.parFo = self.child('Max fold')
-
-        self.sigTreeStateChanged.connect(self.changed)
-
-    def changed(self):
-        # local grid
-        self.binGrid.binSize.setX(self.parBx.value())
-        self.binGrid.binSize.setY(self.parBy.value())
-        self.binGrid.shift.setX(self.parDx.value())
-        self.binGrid.shift.setY(self.parDy.value())
-        self.binGrid.stake.setX(self.parLx.value())
-        self.binGrid.stake.setY(self.parLy.value())
-        self.binGrid.fold = self.parFo.value()
-        self.sigValueChanging.emit(self, self.value())
-
-    def value(self):
-        return self.binGrid
-
-
-class MyGlobalGridPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-
-        param.sigValueChanging.connect(self.onValueChanging)
-
-        self.decimals = param.opts.get('decimals', 3)
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-    def onValueChanging(self, _, val):                                          # unused param replaced by _
-        x = val.orig.x()
-        y = val.orig.y()
-        a = val.angle
-        d = self.decimals
-
-        # self.setText(f'o({x:.{d}g}, {y:.{d}g}), a={a:.{d}g} deg')
-        # self.setText(f'o({x:,.{d}f}, {y:,.{d}f}), a={a:.{d}g} deg')
-        self.setText(f'o({x:,}, {y:,}), a={a:.{d}g} deg')
-        self.update()
-
-
-class MyGlobalGridParameterItem(MyGroupParameterItem):
-    def __init__(self, param, depth):
-        super().__init__(param, depth)
-
-        self.setPreviewLabel(MyGlobalGridPreviewLabel(param))
-
-
-class MyGlobalGridParameter(MyGroupParameter):
-
-    itemClass = MyGlobalGridParameterItem
-
-    def __init__(self, **opts):
-        # opts['expanded'] = False                                              # to overrule user-requested options
-        # opts['flat'] = True
-
-        MyGroupParameter.__init__(self, **opts)
-        if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyGlobalGridParameter opts')
-
-        d = opts.get('decimals', 7)
-        s = opts.get('suffix', 'm')
-
-        self.binGrid = RollBinGrid()
-        self.binGrid = opts.get('value', self.binGrid)
-
-        self.addChild(dict(name='Bin origin   [E]', value=self.binGrid.orig.x(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Bin origin   [N]', value=self.binGrid.orig.y(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Scale factor [E]', value=self.binGrid.scale.x(), type='float', decimals=d, suffix='x'))
-        self.addChild(dict(name='Scale factor [N]', value=self.binGrid.scale.y(), type='float', decimals=d, suffix='x'))
-        self.addChild(dict(name='Azimuth', value=self.binGrid.angle, type='float', decimals=d, suffix='°E-ccw'))
-
-        self.parOx = self.child('Bin origin   [E]')
-        self.parOy = self.child('Bin origin   [N]')
-        self.parSx = self.child('Scale factor [E]')
-        self.parSy = self.child('Scale factor [N]')
-        self.parAz = self.child('Azimuth')
-
-        self.sigTreeStateChanged.connect(self.changed)
-
-    def changed(self):
-        # global grid
-        self.binGrid.orig.setX(self.parOx.value())
-        self.binGrid.orig.setY(self.parOy.value())
-        self.binGrid.scale.setX(self.parSx.value())
-        self.binGrid.scale.setY(self.parSy.value())
-        self.binGrid.angle = self.parAz.value()
-        self.sigValueChanging.emit(self, self.value())
-
-    def value(self):
-        return self.binGrid
 
 
 class MyGridParameter(MyGroupParameter):
@@ -1956,6 +2225,7 @@ class MyGridParameter(MyGroupParameter):
         self.binGrid.shift = self.parL.value().shift
         self.binGrid.stake = self.parL.value().stake
         self.binGrid.fold = self.parL.value().fold
+
         self.sigValueChanging.emit(self, self.value())
 
     def changedG(self):
@@ -1963,294 +2233,11 @@ class MyGridParameter(MyGroupParameter):
         self.binGrid.orig = self.parG.value().orig
         self.binGrid.scale = self.parG.value().scale
         self.binGrid.angle = self.parG.value().angle
+
         self.sigValueChanging.emit(self, self.value())
 
     def value(self):
         return self.binGrid
-
-
-class MyBinAnglesPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-
-        param.sigValueChanging.connect(self.onValueChanging)
-
-        self.decimals = param.opts.get('decimals', 3)
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-    def onValueChanging(self, _, val):                                          # unused param replaced by _
-        d = self.decimals
-        y = val.reflection.y()
-        x = val.reflection.x()
-
-        if x == 0.0:
-            self.setText(f'AoI < {y:.{d}g} deg')
-        else:
-            self.setText(f'{x:.{d}g} < AoI < {y:.{d}g} deg')
-        self.update()
-
-
-class MyBinAnglesParameterItem(MyGroupParameterItem):
-    def __init__(self, param, depth):
-        super().__init__(param, depth)
-
-        self.setPreviewLabel(MyBinAnglesPreviewLabel(param))
-
-
-class MyBinAnglesParameter(MyGroupParameter):
-
-    itemClass = MyBinAnglesParameterItem
-
-    def __init__(self, **opts):
-        # opts['expanded'] = False                                              # to overrule user-requested options
-        # opts['flat'] = True
-
-        MyGroupParameter.__init__(self, **opts)
-        if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyBinAnglesParameter opts')
-
-        d = opts.get('decimals', 7)
-
-        self.angles = RollAngles()
-        self.angles = opts.get('value', self.angles)
-        tip1 = 'for angles around 0° use min > max. E.g. from 330° (min) to 30° (max)'
-        tip2 = 'incidence angles are not used with the Cmp binning method'
-
-        self.addChild(dict(name='Min azimuth', value=self.angles.azimuthal.x(), type='float', decimals=d, suffix='°E-ccw', limits=[0.0, 360.0], tip=tip1))
-        self.addChild(dict(name='Max azimuth', value=self.angles.azimuthal.y(), type='float', decimals=d, suffix='°E-ccw', limits=[0.0, 360.0], tip=tip1))
-        self.addChild(dict(name='Min inclination', value=self.angles.reflection.x(), type='float', decimals=d, suffix='°Aoi', limits=[0.0, 90.0], tip=tip2))
-        self.addChild(dict(name='Max inclination', value=self.angles.reflection.y(), type='float', decimals=d, suffix='°Aoi', limits=[0.0, 90.0], tip=tip2))
-
-        self.parAx = self.child('Min azimuth')
-        self.parAy = self.child('Max azimuth')
-        self.parIx = self.child('Min inclination')
-        self.parIy = self.child('Max inclination')
-
-        self.sigTreeStateChanged.connect(self.changed)
-
-    def changed(self):
-        #  read parameter changes here
-        self.angles.azimuthal.setX(self.parAx.value())
-        self.angles.azimuthal.setY(self.parAy.value())
-        self.angles.reflection.setX(self.parIx.value())
-        self.angles.reflection.setY(self.parIy.value())
-        self.sigValueChanging.emit(self, self.value())
-
-    def value(self):
-        return self.angles
-
-
-class MyBinOffsetPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-
-        param.sigValueChanging.connect(self.onValueChanging)
-
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-    def onValueChanging(self, _, val):                                          # unused param replaced by _
-
-        x = max(abs(val.rctOffsets.left()), abs(val.rctOffsets.right()))
-        y = max(abs(val.rctOffsets.top()), abs(val.rctOffsets.bottom()))
-        d = math.hypot(x, y)
-        r = val.radOffsets.y()
-
-        if r >= d:
-            self.setText('rectangular constraints')
-        elif r < x:
-            self.setText('radial constraints')
-        else:
-            self.setText('mixed constraints')
-
-        self.update()
-
-
-class MyBinOffsetParameterItem(MyGroupParameterItem):
-    def __init__(self, param, depth):
-        super().__init__(param, depth)
-
-        self.setPreviewLabel(MyBinOffsetPreviewLabel(param))
-
-
-class MyBinOffsetParameter(MyGroupParameter):
-
-    itemClass = MyBinOffsetParameterItem
-
-    def __init__(self, **opts):
-        # opts['expanded'] = False                                              # to overrule user-requested options
-        # opts['flat'] = True
-
-        MyGroupParameter.__init__(self, **opts)
-        if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyBinOffsetParameter opts')
-
-        d = opts.get('decimals', 7)
-        s = opts.get('suffix', 'm')
-
-        self.offset = RollOffset()
-        self.offset = opts.get('value', self.offset)
-
-        self.addChild(dict(name='Min x-offset', value=self.offset.rctOffsets.left(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Max x-offset', value=self.offset.rctOffsets.right(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Min y-offset', value=self.offset.rctOffsets.top(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Max y-offset', value=self.offset.rctOffsets.bottom(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Min r-offset', value=self.offset.radOffsets.x(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Max r-offset', value=self.offset.radOffsets.y(), type='float', decimals=d, suffix=s))
-
-        self.parXmin = self.child('Min x-offset')
-        self.parXmax = self.child('Max x-offset')
-        self.parYmin = self.child('Min y-offset')
-        self.parYmax = self.child('Max y-offset')
-        self.parRmin = self.child('Min r-offset')
-        self.parRmax = self.child('Max r-offset')
-
-        self.sigTreeStateChanged.connect(self.changed)
-
-    def changed(self):
-        #  read parameter changes here
-        xmin = self.parXmin.value()
-        xmax = self.parXmax.value()
-        ymin = self.parYmin.value()
-        ymax = self.parYmax.value()
-        rmin = self.parRmin.value()
-        rmax = self.parRmax.value()
-
-        self.offset.rctOffsets.setLeft(min(xmin, xmax))
-        self.offset.rctOffsets.setRight(max(xmin, xmax))
-        self.offset.rctOffsets.setTop(min(ymin, ymax))
-        self.offset.rctOffsets.setBottom(max(ymin, ymax))
-        self.offset.radOffsets.setX(min(rmin, rmax))
-        self.offset.radOffsets.setY(max(rmin, rmax))
-        self.sigValueChanging.emit(self, self.value())
-
-    def value(self):
-        return self.offset
-
-
-class MyUniqOffPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-
-        param.sigValueChanging.connect(self.onValueChanging)
-
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-    def onValueChanging(self, _, val):                                          # unused param replaced by _
-        if not val.apply:
-            self.setText('Not used')
-        else:
-            self.setText(f'@ {val.dOffset}m, {val.dAzimuth}°')
-        self.update()
-
-
-class MyUniqOffParameterItem(MyGroupParameterItem):
-    def __init__(self, param, depth):
-        super().__init__(param, depth)
-
-        self.setPreviewLabel(MyUniqOffPreviewLabel(param))
-
-
-class MyUniqOffParameter(MyGroupParameter):
-
-    itemClass = MyUniqOffParameterItem
-
-    def __init__(self, **opts):
-        # opts['expanded'] = False                                              # to overrule user-requested options
-        # opts['flat'] = True
-
-        MyGroupParameter.__init__(self, **opts)
-        if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyUniqOffParameter opts')
-
-        d = opts.get('decimals', 7)
-
-        self.unique = RollOffset()
-        self.unique = opts.get('value', self.unique)
-
-        self.addChild(dict(name='Apply pruning', value=self.unique.apply, type='bool'))
-        self.addChild(dict(name='Delta offset', value=self.unique.dOffset, type='float', decimals=d, suffix='m'))
-        self.addChild(dict(name='Delta azimuth', value=self.unique.dAzimuth, type='float', decimals=d, suffix='deg'))
-
-        self.parP = self.child('Apply pruning')
-        self.parO = self.child('Delta offset')
-        self.parA = self.child('Delta azimuth')
-
-        self.sigTreeStateChanged.connect(self.changed)
-
-    def changed(self):
-        #  read parameter changes here
-        self.unique.apply = self.parP.value()
-        self.unique.dOffset = self.parO.value()
-        self.unique.dAzimuth = self.parA.value()
-        self.sigValueChanging.emit(self, self.value())
-
-    def value(self):
-        return self.unique
-
-
-class MyBinMethodPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-
-        param.sigValueChanging.connect(self.onValueChanging)
-
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
-
-    def onValueChanging(self, _, val):                                          # unused param replaced by _
-        binningMethod = val.method.value
-        method = binningList[binningMethod]
-
-        self.setText(f'{method} @ Vint={val.vint}m/s')
-        self.update()
-
-
-class MyBinMethodParameterItem(MyGroupParameterItem):
-    def __init__(self, param, depth):
-        super().__init__(param, depth)
-
-        self.setPreviewLabel(MyBinMethodPreviewLabel(param))
-
-
-class MyBinMethodParameter(MyGroupParameter):
-
-    itemClass = MyBinMethodParameterItem
-
-    def __init__(self, **opts):
-        # opts['expanded'] = False                                              # to overrule user-requested options
-        # opts['flat'] = True
-
-        MyGroupParameter.__init__(self, **opts)
-        if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyBinMethodParameter opts')
-
-        d = opts.get('decimals', 7)
-
-        self.binning = RollBinning()
-        self.binning = opts.get('value', self.binning)
-        binningMethod = self.binning.method.value
-
-        self.addChild(dict(name='Binning method', type='myList', value=binningList[binningMethod], default=binningList[binningMethod], limits=binningList))
-        self.addChild(dict(name='Interval velocity', type='float', value=self.binning.vint, decimals=d, suffix='m/s'))
-
-        self.parM = self.child('Binning method')
-        self.parV = self.child('Interval velocity')
-
-        self.sigTreeStateChanged.connect(self.changed)
-
-    def changed(self):
-        #  read parameter changes here
-        index = binningList.index(self.parM.value())
-
-        self.binning.method = BinningType(index)
-        self.binning.vint = self.parV.value()
-        self.sigValueChanging.emit(self, self.value())
-
-    def value(self):
-        return self.binning
 
 
 class MyAnalysisParameter(MyGroupParameter):
@@ -2341,6 +2328,7 @@ class MyReflectorsParameter(MyGroupParameter):
     def changed(self):
         self.plane = self.parP.value()
         self.sphere = self.parS.value()
+
         self.sigValueChanging.emit(self, self.value())
 
     def value(self):
@@ -2427,6 +2415,7 @@ class MySurveyParameter(MyGroupParameter):
 
         self.survey = RollSurvey()                                              # (re)set the survey object
         self.survey = opts.get('value', self.survey)
+
         brush = '#add8e6'
 
         self.addChild(dict(brush=brush, name='Survey configuration', type='myConfiguration', value=self.survey))
@@ -2440,49 +2429,52 @@ class MySurveyParameter(MyGroupParameter):
         return self.survey
 
 
-# first, register some simple parameters, already defined in other files
-registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
-registerParameterItemType('myInt', MyNumericParameterItem, SimpleParameter, override=True)
+def registerAllParameterTypes():
 
-# then, register the parameters, already defined in other files
-registerParameterType('myCmap', MyCmapParameter, override=True)
-registerParameterType('myCrs', MyCrsParameter, override=True)
-registerParameterType('myCrs2', MyCrs2Parameter, override=True)
-registerParameterType('myGroup', MyGroupParameter, override=True)
-registerParameterType('myList', MyListParameter, override=True)
-registerParameterType('myMarker', MyMarkerParameter, override=True)
-registerParameterType('myNVector', MyNVectorParameter, override=True)
-registerParameterType('myPen', MyPenParameter, override=True)
-registerParameterType('myPoint3D', MyPoint3DParameter, override=True)
-registerParameterType('myRectF', MyRectParameter, override=True)
-registerParameterType('mySlider', MySliderParameter, override=True)
-registerParameterType('mySymbols', MySymbolParameter, override=True)
-registerParameterType('myVector', MyVectorParameter, override=True)
+    # first, register some simple parameters, already defined in other files
 
-# next, register parameters, defined in this  file
-registerParameterType('myAnalysis', MyAnalysisParameter, override=True)
-registerParameterType('myBinAngles', MyBinAnglesParameter, override=True)
-registerParameterType('myGrid', MyGridParameter, override=True)
-registerParameterType('myBinMethod', MyBinMethodParameter, override=True)
-registerParameterType('myBinOffset', MyBinOffsetParameter, override=True)
-registerParameterType('myBlock', MyBlockParameter, override=True)
-registerParameterType('myBlockList', MyBlockListParameter, override=True)
-registerParameterType('myCircle', MyCircleParameter, override=True)
-registerParameterType('myConfiguration', MyConfigurationParameter, override=True)
-registerParameterType('myGlobalGrid', MyGlobalGridParameter, override=True)
-registerParameterType('myLocalGrid', MyLocalGridParameter, override=True)
-registerParameterType('myPattern', MyPatternParameter, override=True)
-registerParameterType('myPatternList', MyPatternListParameter, override=True)
-registerParameterType('myPlane', MyPlaneParameter, override=True)
-registerParameterType('myReflectors', MyReflectorsParameter, override=True)
-registerParameterType('MyRoll', MyRollParameter, override=True)
-registerParameterType('MyRollList', MyRollListParameter, override=True)
-registerParameterType('mySeed', MySeedParameter, override=True)
-registerParameterType('mySeedList', MySeedListParameter, override=True)
-registerParameterType('mySphere', MySphereParameter, override=True)
-registerParameterType('mySpiral', MySpiralParameter, override=True)
-registerParameterType('mySurvey', MySurveyParameter, override=True)
-registerParameterType('myTemplate', MyTemplateParameter, override=True)
-registerParameterType('myTemplateList', MyTemplateListParameter, override=True)
-registerParameterType('myUniqOff', MyUniqOffParameter, override=True)
-registerParameterType('myWell', MyWellParameter, override=True)
+    # registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
+    # registerParameterItemType('myInt', MyNumericParameterItem, SimpleParameter, override=True)
+
+    # then, register the parameters, already defined in other files
+    registerParameterType('myCmap', MyCmapParameter, override=True)
+    registerParameterType('myCrs', MyCrsParameter, override=True)
+    registerParameterType('myCrs2', MyCrs2Parameter, override=True)
+    registerParameterType('myGroup', MyGroupParameter, override=True)
+    registerParameterType('myList', MyListParameter, override=True)
+    registerParameterType('myMarker', MyMarkerParameter, override=True)
+    registerParameterType('myNVector', MyNVectorParameter, override=True)
+    registerParameterType('myPen', MyPenParameter, override=True)
+    registerParameterType('myPoint3D', MyPoint3DParameter, override=True)
+    registerParameterType('myRectF', MyRectParameter, override=True)
+    registerParameterType('mySlider', MySliderParameter, override=True)
+    registerParameterType('mySymbols', MySymbolParameter, override=True)
+    registerParameterType('myVector', MyVectorParameter, override=True)
+
+    # next, register parameters, defined in this  file
+    registerParameterType('myAnalysis', MyAnalysisParameter, override=True)
+    registerParameterType('myBinAngles', MyBinAnglesParameter, override=True)
+    registerParameterType('myGrid', MyGridParameter, override=True)
+    registerParameterType('myBinMethod', MyBinMethodParameter, override=True)
+    registerParameterType('myBinOffset', MyBinOffsetParameter, override=True)
+    registerParameterType('myBlock', MyBlockParameter, override=True)
+    registerParameterType('myBlockList', MyBlockListParameter, override=True)
+    registerParameterType('myCircle', MyCircleParameter, override=True)
+    registerParameterType('myConfiguration', MyConfigurationParameter, override=True)
+    registerParameterType('myGlobalGrid', MyGlobalGridParameter, override=True)
+    registerParameterType('myLocalGrid', MyLocalGridParameter, override=True)
+    registerParameterType('myPattern', MyPatternParameter, override=True)
+    registerParameterType('myPatternList', MyPatternListParameter, override=True)
+    registerParameterType('myPlane', MyPlaneParameter, override=True)
+    registerParameterType('myReflectors', MyReflectorsParameter, override=True)
+    registerParameterType('MyRoll', MyRollParameter, override=True)
+    registerParameterType('MyRollList', MyRollListParameter, override=True)
+    registerParameterType('mySeed', MySeedParameter, override=True)
+    registerParameterType('mySeedList', MySeedListParameter, override=True)
+    registerParameterType('mySphere', MySphereParameter, override=True)
+    registerParameterType('mySpiral', MySpiralParameter, override=True)
+    registerParameterType('mySurvey', MySurveyParameter, override=True)
+    registerParameterType('myTemplate', MyTemplateParameter, override=True)
+    registerParameterType('myTemplateList', MyTemplateListParameter, override=True)
+    registerParameterType('myUniqOff', MyUniqOffParameter, override=True)
+    registerParameterType('myWell', MyWellParameter, override=True)
