@@ -14,7 +14,7 @@ from qgis.gui import QgsProjectionSelectionWidget
 
 class MyCrsParameterItem(WidgetParameterItem):
     def __init__(self, param, depth):
-        self.crs = QgsCoordinateReferenceSystem('EPSG:4326')                               # create invalid crs object
+        self.crs = QgsCoordinateReferenceSystem('EPSG:4326')                    # create invalid crs object
         self.crs = param.opts.get('value', self.crs)
 
         super().__init__(param, depth)
@@ -45,9 +45,8 @@ class MyCrsParameter(Parameter):
 
         Parameter.__init__(self, **opts)
 
-        # crs = QgsCoordinateReferenceSystem('EPSG:4326')
-        self.crs = QgsCoordinateReferenceSystem('EPSG:4326')                    # create invalid crs object
-        self.crs = opts.get('value', self.crs)
+        crs = QgsCoordinateReferenceSystem('EPSG:4326')                         # create invalid crs object
+        self.crs = opts.get('value', crs)
 
 
 registerParameterType('myCrs', MyCrsParameter, override=True)
