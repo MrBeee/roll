@@ -711,8 +711,8 @@ class MyBlockPreviewLabel(MyPreviewLabel):
         # block's source- and receiver boundaries are ignored
         templates = param.child('Template list')
 
-        nBlockShots = 0
         nTemplates = 0
+        nBlockShots = 0
         if templates.hasChildren():
             for template in templates:
                 nTemplates += 1
@@ -721,29 +721,43 @@ class MyBlockPreviewLabel(MyPreviewLabel):
                 seeds = template.child('Seed list')
                 if seeds.hasChildren():
                     for seed in seeds:
+                        nSeedShots = 0
                         bSource = seed.child('Source seed').opts['value']
 
                         if bSource:
-                            nPlane = seed.child('Grid grow steps', 'Planes', 'N').opts['value']
-                            nLines = seed.child('Grid grow steps', 'Lines', 'N').opts['value']
-                            nPoint = seed.child('Grid grow steps', 'Points', 'N').opts['value']
-                            nSeedShots = nPlane * nLines * nPoint
+                            seedType = seed.child('Seed type').opts['value']
+                            if seedType == 'Circle':
+                                nSeedShots = seed.child('Circle grow steps', 'Points').opts['value']
+                            elif seedType == 'Spiral':
+                                nSeedShots = seed.child('Spiral grow steps', 'Points').opts['value']
+                            elif seedType == 'Well':
+                                nSeedShots = seed.child('Well grow steps', 'Points').opts['value']
+                            else:
+                                # grid stationary or rolling
+                                nPlane = seed.child('Grid grow steps', 'Planes', 'N').opts['value']
+                                nLines = seed.child('Grid grow steps', 'Lines', 'N').opts['value']
+                                nPoint = seed.child('Grid grow steps', 'Points', 'N').opts['value']
+
+                                nSeedShots = nPlane * nLines * nPoint
+
+                                if seedType == 'Grid (roll along)':
+                                    # only the rolling shots are afffected by roll along operations
+                                    nPlane = template.child('Roll steps', 'Planes', 'N').opts['value']
+                                    nLines = template.child('Roll steps', 'Lines', 'N').opts['value']
+                                    nPoint = template.child('Roll steps', 'Points', 'N').opts['value']
+
+                                    nRollSteps = nPlane * nLines * nPoint
+                                    nSeedShots *= nRollSteps
+
                             nTemplateShots += nSeedShots
-
-                nPlane = template.child('Roll steps', 'Planes', 'N').opts['value']
-                nLines = template.child('Roll steps', 'Lines', 'N').opts['value']
-                nPoint = template.child('Roll steps', 'Points', 'N').opts['value']
-                nRollSteps = nPlane * nLines * nPoint
-
-                nTemplateShots *= nRollSteps
                 nBlockShots += nTemplateShots
 
-        t = f'{nTemplates} template(s), {nBlockShots} src points'
+        t = f'{nTemplates} template(s), {int(nBlockShots + 0.5)} src points'
 
         self.setText(t)
         self.update()
 
-        print(f'+++{lineNo():5d} MyBlockPreviewLabel.showInformation | {t} +++++++')
+        print(f'+++{lineNo():5d} MyBlockPreviewLabel.showInformation | {t} +++')
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
         print(f'>>>{lineNo():5d} MyBlockPreviewLabel.ValueChanging <<<')
@@ -857,41 +871,48 @@ class MyTemplatePreviewLabel(MyPreviewLabel):
         self.showInformation(param)
 
     def showInformation(self, param):
-
-        nPlane = param.child('Roll steps', 'Planes', 'N').opts['value']
-        nLines = param.child('Roll steps', 'Lines', 'N').opts['value']
-        nPoint = param.child('Roll steps', 'Points', 'N').opts['value']
-
-        nRollSteps = nPlane * nLines * nPoint
-
-        nSource = 0
-        nSeed = 0
+        nSeeds = 0
         nTemplateShots = 0
 
         seeds = param.child('Seed list')
         if seeds.hasChildren():
             for seed in seeds:
-                nSeed += 1
+                nSeeds += 1
                 bSource = seed.child('Source seed').opts['value']
 
                 if bSource:
-                    nSource += 1
+                    seedType = seed.child('Seed type').opts['value']
+                    if seedType == 'Circle':
+                        nSeedShots = seed.child('Circle grow steps', 'Points').opts['value']
+                    elif seedType == 'Spiral':
+                        nSeedShots = seed.child('Spiral grow steps', 'Points').opts['value']
+                    elif seedType == 'Well':
+                        nSeedShots = seed.child('Well grow steps', 'Points').opts['value']
+                    else:
+                        # grid stationary or rolling
+                        nPlane = seed.child('Grid grow steps', 'Planes', 'N').opts['value']
+                        nLines = seed.child('Grid grow steps', 'Lines', 'N').opts['value']
+                        nPoint = seed.child('Grid grow steps', 'Points', 'N').opts['value']
 
-                    nPlane = seed.child('Grid grow steps', 'Planes', 'N').opts['value']
-                    nLines = seed.child('Grid grow steps', 'Lines', 'N').opts['value']
-                    nPoint = seed.child('Grid grow steps', 'Points', 'N').opts['value']
+                        nSeedShots = nPlane * nLines * nPoint
 
-                    nSeedShots = nPlane * nLines * nPoint
+                        if seedType == 'Grid (roll along)':
+                            # only the rolling shots are afffected by roll along operations
+                            nPlane = param.child('Roll steps', 'Planes', 'N').opts['value']
+                            nLines = param.child('Roll steps', 'Lines', 'N').opts['value']
+                            nPoint = param.child('Roll steps', 'Points', 'N').opts['value']
+
+                            nRollSteps = nPlane * nLines * nPoint
+                            nSeedShots *= nRollSteps
+
                     nTemplateShots += nSeedShots
 
-        nTemplateShots *= nRollSteps
-
-        t = f'{nSeed} seed(s), {nTemplateShots} src points'
+        t = f'{nSeeds} seed(s), {int(nTemplateShots + 0.5)} src points'
 
         self.setText(t)
         self.update()
 
-        print(f'+++{lineNo():5d} MyTemplatePreviewLabel.showInformation | {t} +++++++')
+        print(f'+++{lineNo():5d} MyTemplatePreviewLabel.showInformation | {t} +++')
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
         print(f'>>>{lineNo():5d} MyTemplatePreviewLabel.ValueChanging <<<')
@@ -1195,7 +1216,7 @@ class MySeedListPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'+++{lineNo():5d} MySeedListPreviewLabel.showInformation | {t} +++++++')
+        print(f'+++{lineNo():5d} MySeedListPreviewLabel.showInformation | {t} +++')
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
         print(f'>>>{lineNo():5d} MySeedListPreviewLabel.ValueChanging <<<')
