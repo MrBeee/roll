@@ -379,9 +379,6 @@ class MyPlanePreviewLabel(MyPreviewLabel):
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MyPlaneParameter.TreeStateChanged <<<')
 
-        if not isinstance(param, MyPlaneParameter):
-            raise ValueError("Need 'MyPlaneParameter' instances at this point")
-
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
@@ -421,9 +418,6 @@ class MyPlaneParameter(MyGroupParameter):
         self.parD = self.child('Plane dip')
 
         self.sigTreeStateChanged.connect(self.changed)
-        # self.parO.sigTreeStateChanged.connect(self.changed)
-        # self.parA.sigValueChanged.connect(self.changed)
-        # self.parD.sigValueChanged.connect(self.changed)
 
     def changed(self):
         self.plane.anchor = self.parO.value()
@@ -462,9 +456,6 @@ class MySpherePreviewLabel(MyPreviewLabel):
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MySphereParameter.TreeStateChanged <<<')
 
-        if not isinstance(param, MySphereParameter):
-            raise ValueError("Need 'MySphereParameter' instances at this point")
-
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
@@ -501,8 +492,6 @@ class MySphereParameter(MyGroupParameter):
         self.parR = self.child('Sphere radius')
 
         self.sigTreeStateChanged.connect(self.changed)
-        # self.parO.sigValueChanged.connect(self.changed)
-        # self.parR.sigValueChanged.connect(self.changed)
 
     def changed(self):
         self.sphere.origin = self.parO.value()
@@ -767,9 +756,6 @@ class MyBlockPreviewLabel(MyPreviewLabel):
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MyBlockParameter.TreeStateChanged <<<')
 
-        if not isinstance(param, MyBlockParameter):
-            raise ValueError("Need 'MyBlockParameter' instances at this point")
-
         self.showInformation(param)
 
 
@@ -921,12 +907,6 @@ class MyTemplatePreviewLabel(MyPreviewLabel):
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MyTemplateParameter.TreeStateChanged <<<')
 
-        if not isinstance(param, MyTemplateParameter):
-            raise ValueError("Need 'MyTemplateParameter' instances at this point")
-
-        # val = param.opts.get('value', None)
-        # self.onValueChanging(None, val)
-
         self.showInformation(param)
 
 
@@ -970,7 +950,7 @@ class MyTemplateParameter(MyGroupParameter):
         self.template.name = self.name()
 
     def changed(self):
-        # self.template.rollList = self.parR.value()
+        self.template.rollList = self.parR.value()
         self.template.seedList = self.parS.value()
 
         self.sigValueChanging.emit(self, self.value())
@@ -1074,9 +1054,6 @@ class MyRollListParameter(MyGroupParameter):
         self.par2 = self.child('Points')
 
         self.sigTreeStateChanged.connect(self.changed)
-        # self.par0.sigValueChanged.connect(self.changed)
-        # self.par1.sigValueChanged.connect(self.changed)
-        # self.par2.sigValueChanged.connect(self.changed)
 
     def changed(self):
         self.moveList[0] = self.par0.value()
@@ -1159,10 +1136,6 @@ class MyRollParameter(MyGroupParameter):
         self.setTilt()
 
         self.sigTreeStateChanged.connect(self.changed)
-        # self.parN.sigValueChanged.connect(self.changed)
-        # self.parX.sigValueChanged.connect(self.changed)
-        # self.parY.sigValueChanged.connect(self.changed)
-        # self.parZ.sigValueChanged.connect(self.changed)
 
     def setAzimuth(self):
         azimuth = math.degrees(math.atan2(self.row.increment.y(), self.row.increment.x()))
@@ -1225,9 +1198,6 @@ class MySeedListPreviewLabel(MyPreviewLabel):
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MySeedListPreviewLabel.TreeStateChanged <<<')
 
-        if not isinstance(param, MySeedListParameter):
-            raise ValueError("Need 'MySeedListParameter' instances at this point")
-
         self.showInformation(param)
 
 
@@ -1278,7 +1248,6 @@ class MySeedListParameter(MyGroupParameter):
 
             # this solution gives preference to source seeds over receiver seeds, provided at least one receiver seed is present
             # this is useful for templates (e.g. zigzag) where multiple source seeds are combined with a single receiver seed
-
             haveReceiverSeed = False
             for s in self.seedList:
                 if s.bSource is False:                                          # there's at least one receiver seed present
@@ -1294,7 +1263,6 @@ class MySeedListParameter(MyGroupParameter):
                 seed.color = QColor('#7700b0f0')
 
             # using append/addChild instead of insert(0, ...) will add the item at the end of the list
-
             # self.seedList.insert(0, seed)
             self.seedList.append(seed)
 
@@ -1328,8 +1296,8 @@ class MySeedPreviewLabel(MyPreviewLabel):
         else:
             kind = 'grid'
             nSteps = 1
-            for growStep in val.grid.growList:                                           # iterate through all grow steps
-                nSteps *= growStep.steps                                            # multiply seed's shots at each level
+            for growStep in val.grid.growList:                                  # iterate through all grow steps
+                nSteps *= growStep.steps                                        # multiply seed's shots at each level
 
         if val.bSource:
             seed = 'src'
@@ -1345,9 +1313,6 @@ class MySeedPreviewLabel(MyPreviewLabel):
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
-
-        if not isinstance(param, MySeedParameter):
-            raise ValueError("Need 'MySeedParameter' instances at this point")
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
@@ -1640,12 +1605,6 @@ class MySpiralParameter(MyGroupParameter):
         self.parN = self.child('Points')
 
         self.sigTreeStateChanged.connect(self.changed)
-        # self.parR1.sigValueChanged.connect(self.changed)
-        # self.parR2.sigValueChanged.connect(self.changed)
-        # self.parDr.sigValueChanged.connect(self.changed)
-        # self.parA.sigValueChanged.connect(self.changed)
-        # self.parI.sigValueChanged.connect(self.changed)
-        # self.parN.sigValueChanged.connect(self.changed)
 
         self.changed()
 
@@ -2047,25 +2006,33 @@ class MyPatternPreviewLabel(MyPreviewLabel):
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-        self.decimals = param.opts.get('decimals', 3)
+        self.showInformation(param)
 
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
+    def showInformation(self, param):
 
-    def onValueChanging(self, *_):                                              # unused param, val replaced by *_
+        nPlane = param.child('Pattern grow steps', 'Planes', 'N').opts['value']
+        nLines = param.child('Pattern grow steps', 'Lines', 'N').opts['value']
+        nPoint = param.child('Pattern grow steps', 'Points', 'N').opts['value']
+        nPoints = nPlane * nLines * nPoint
 
-        n = 1
-        x = 0.0
-        y = 0.0
-        z = 0.0
-        d = self.decimals
-        t = f'{n} : ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
+        t = f'{nPoints} points ({nPlane} x {nLines} x {nPoint})'
 
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyPatternPreviewLabel.ValueChanging | {t} <<<')
+        print(f'+++{lineNo():5d} MyPatternPreviewLabel.showInformation | {t} +++')
+
+    def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        print(f'>>>{lineNo():5d} MyPatternPreviewLabel.ValueChanging <<<')
+
+        self.showInformation(param)
+
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        print(f'>>>{lineNo():5d} MyPatternPreviewLabel.TreeStateChanged <<<')
+
+        self.showInformation(param)
 
 
 class MyPatternParameterItem(MyGroupParameterItem):
@@ -2299,17 +2266,13 @@ class MyAnalysisParameter(MyGroupParameter):
         self.parM = self.child('Binning method')
 
         self.sigTreeStateChanged.connect(self.changed)
-        # self.parB.sigValueChanged.connect(self.changed)
-        # self.parA.sigValueChanged.connect(self.changed)
-        # self.parO.sigValueChanged.connect(self.changed)
-        # self.parU.sigValueChanged.connect(self.changed)
-        # self.parM.sigValueChanged.connect(self.changed)
 
     def changed(self):
         self.area = self.parB.value()
         self.angles = self.parA.value()
-
-        # parO.value(), parU.value(), parM.value() must be added !
+        self.offset = self.parO.value()
+        self.unique = self.parU.value()
+        self.binning = self.parM.value()
 
         self.sigValueChanging.emit(self, self.value())
 
@@ -2343,8 +2306,6 @@ class MyReflectorsParameter(MyGroupParameter):
         self.parS = self.child('Buried sphere')
 
         self.sigTreeStateChanged.connect(self.changed)
-        # self.parP.sigValueChanged.connect(self.changed)
-        # self.parS.sigValueChanged.connect(self.changed)
 
     def changed(self):
         self.plane = self.parP.value()
@@ -2372,16 +2333,16 @@ class MyConfigurationParameter(MyGroupParameter):
         self.survey = opts.get('value', survey)
 
         # survey Configuration
-        # the use of 'type' caused errors: 'str' object is not callable error in python. Solved by prepending with an underscore
+        # the use of 'type' caused errors: 'str' object is not callable error in python. Solved by using 'typ' and 'nam' instead
         # see: https://stackoverflow.com/questions/6039605/why-does-code-like-str-str-cause-a-typeerror-but-only-the-second-time
-        self._crs = self.survey.crs
-        self._type = self.survey.type
-        self._name = self.survey.name
+        self.crs = self.survey.crs
+        self.typ = self.survey.type
+        self.nam = self.survey.name
         surTypes = [e.name for e in surveyType]
 
-        self.addChild(dict(name='Survey CRS', type='myCrs2', value=self._crs, default=self._crs, expanded=False, flat=True))
-        self.addChild(dict(name='Survey type', type='myList', value=self._type.name, default=self._type.name, limits=surTypes))
-        self.addChild(dict(name='Survey name', type='str', value=self._name, default=self._name))
+        self.addChild(dict(name='Survey CRS', type='myCrs2', value=self.crs, default=self.crs, expanded=False, flat=True))
+        self.addChild(dict(name='Survey type', type='myList', value=self.typ.name, default=self.typ.name, limits=surTypes))
+        self.addChild(dict(name='Survey name', type='str', value=self.nam, default=self.nam))
 
         self.parC = self.child('Survey CRS')
         self.parT = self.child('Survey type')
@@ -2390,14 +2351,14 @@ class MyConfigurationParameter(MyGroupParameter):
         self.sigTreeStateChanged.connect(self.changed)
 
     def changed(self):
-        self._crs = self.parC.value()
-        self._type = self.parT.value()
-        self._name = self.parN.value()
+        self.crs = self.parC.value()
+        self.typ = self.parT.value()
+        self.nam = self.parN.value()
 
         self.sigValueChanging.emit(self, self.value())
 
     def value(self):
-        return (self._crs, self._type, self._name)
+        return (self.crs, self.typ, self.nam)
 
 
 class MySurveyPreviewLabel(MyPreviewLabel):
