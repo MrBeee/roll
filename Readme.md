@@ -132,7 +132,6 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 6	Still To Do
 
-- Refactor some 'parameters' in file ```my_parameters.py```
 - Create wizard for Marine towed-streamer geometry
 - Implement multiprocessing instead of worker thread for background tasks
 - Consider relational database instead of numpy arrays for geometry tables
