@@ -1,4 +1,4 @@
-# document courtasy of https://djangowaves.com/tips-tricks/gitignore-for-a-python-project/
+# initial document courtesy of https://djangowaves.com/tips-tricks/gitignore-for-a-python-project/
 __pycache__
 *.py[cod]
 *$py.class

@@ -2231,8 +2231,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def fileNew(self):                                                          # better create new file created through a wizard
         if self.maybeKillThread() and self.maybeSave():                         # make sure thread is killed AND current file  is saved (all only when needed)
-            self.textEdit.clear()                                               # reset the text editor
-            self.survey = RollSurvey()                                          # empty the survey object create survey name is "untitled"
+
+            self.parseText(exampleSurveyXmlText())
+            self.textEdit.setPlainText(exampleSurveyXmlText())
+            self.textEdit.moveCursor(QTextCursor.Start)
+            self.survey.calcTransforms()                                        # (re)calculate the transforms being used
+            self.survey.calcSeedData()                                          # needed for circles, spirals & well-seeds; may affect bounding box
+            self.survey.calcBoundingRect()                                      # (re)calculate the boundingBox as part of parsing the data
+            self.survey.calcNoShotPoints()                                      # (re)calculate nr of SPs
+
             self.setCurrentFileName()                                           # update self.fileName, set textEditModified(False) and setWindowModified(False)
 
             self.actionProjected.setChecked(False)                              # request 'local' plotting

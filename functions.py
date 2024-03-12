@@ -595,20 +595,25 @@ def aboutText() -> str:
     else:
         numbaVersion = numba.__version__
 
+    sourceUrl = "<a href='https://github.com/MrBeee/roll'>here</a>"
+    sampleUrl = "<a href='https://github.com/MrBeee/roll_samples'>here</a>"
+
     text = (
-        f'Roll can be used to generate seismic survey geometries.\n'
-        f'Both for Land/OBN as well as marine seismic surveys.\n'
-        f' » Roll version: {rollVersion}.\n\n'
-        f'The following Qt-framework is used:\n'
-        f' » Qt version: {QT_VERSION_STR}\n'
-        f' » PyQt version: {PYQT_VERSION_STR}\n\n'
-        f'The following libraries are (possibly) used:\n'
-        f' » Numba version: {numbaVersion}\n'
-        f' » Numpy version: {np.__version__}\n'
-        f' » PyQtGraph version: {pg.__version__}\n'
-        f' » Rasterio version: {rio.__version__}\n'
-        f' » Wellpathpy version: {wp.__version__}\n\n'
-        f'Copyright © 2022-2023 by Duijndam.Dev'
+        f'Roll can be used to generate seismic survey geometries. <br>'
+        f'Both for Land/OBN as well as marine seismic surveys. <ul>'
+        f'<li>Roll version: {rollVersion}. </li></ul>'
+        f'The following Qt-framework is used: <ul>'
+        f'<li>Qt version: {QT_VERSION_STR} </li>'
+        f'<li>PyQt version: {PYQT_VERSION_STR} </li></ul>'
+        f'The following libraries are used: <ul>'
+        f'<li>Numba version: {numbaVersion} </li>'
+        f'<li>Numpy version: {np.__version__} </li>'
+        f'<li>PyQtGraph version: {pg.__version__} </li>'
+        f'<li>Rasterio version: {rio.__version__} </li>'
+        f'<li>Wellpathpy version: {wp.__version__} </li></ul>'
+        f'Source code is available on GitHub {sourceUrl} <br> '
+        f'Sample projects are available on GitHub {sampleUrl} <br><br> '
+        f'Copyright © 2022-2024 by Duijndam.Dev'
     )
 
     return text
@@ -635,7 +640,7 @@ def exampleSurveyXmlText() -> str:
     xmlText = """<?xml version="1.0" encoding="UTF-8"?>
     <survey version="1.0">
         <type>Orthogonal</type>
-        <name>Example survey</name>
+        <name>New survey</name>
         <surveyCrs>
             <spatialrefsys nativeFormat="Wkt">
                 <wkt>PROJCRS["Amersfoort / RD New",BASEGEOGCRS["Amersfoort",DATUM["Amersfoort",ELLIPSOID["Bessel 1841",6377397.155,299.1528128,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4289]],CONVERSION["RD New",METHOD["Oblique Stereographic",ID["EPSG",9809]],PARAMETER["Latitude of natural origin",52.1561605555556,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",5.38763888888889,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["Scale factor at natural origin",0.9999079,SCALEUNIT["unity",1],ID["EPSG",8805]],PARAMETER["False easting",155000,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",463000,LENGTHUNIT["metre",1],ID["EPSG",8807]]],CS[Cartesian,2],AXIS["easting (X)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["northing (Y)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["Engineering survey, topographic mapping."],AREA["Netherlands - onshore, including Waddenzee, Dutch Wadden Islands and 12-mile offshore coastal zone."],BBOX[50.75,3.2,53.7,7.22]],ID["EPSG",28992]]</wkt>
