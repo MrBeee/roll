@@ -553,10 +553,12 @@ class MyLocalGridParameter(MyGroupParameter):
 
         self.addChild(dict(name='Bin size [x]', value=self.binGrid.binSize.x(), type='float', decimals=d, suffix=s))
         self.addChild(dict(name='Bin size [y]', value=self.binGrid.binSize.y(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Bin offset [x]', value=self.binGrid.shift.x(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Bin offset [y]', value=self.binGrid.shift.y(), type='float', decimals=d, suffix=s))
-        self.addChild(dict(name='Stake nr @ origin', value=self.binGrid.stake.x(), type='float', decimals=d, suffix='#'))
-        self.addChild(dict(name='Line nr @ origin', value=self.binGrid.stake.y(), type='float', decimals=d, suffix='#'))
+        self.addChild(dict(name='Bin offset [x]', value=self.binGrid.binShift.x(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Bin offset [y]', value=self.binGrid.binShift.y(), type='float', decimals=d, suffix=s))
+        self.addChild(dict(name='Stake nr @ origin', value=self.binGrid.stakeOrig.x(), type='float', decimals=d, suffix='#'))
+        self.addChild(dict(name='Line nr @ origin', value=self.binGrid.stakeOrig.y(), type='float', decimals=d, suffix='#'))
+        self.addChild(dict(name='Stake increments', value=self.binGrid.stakeSize.x(), type='float', decimals=d, suffix='m'))
+        self.addChild(dict(name='Line increments', value=self.binGrid.stakeSize.y(), type='float', decimals=d, suffix='m'))
         self.addChild(dict(name='Max fold', value=self.binGrid.fold, type='int'))
 
         self.parBx = self.child('Bin size [x]')
@@ -565,6 +567,9 @@ class MyLocalGridParameter(MyGroupParameter):
         self.parDy = self.child('Bin offset [y]')
         self.parLx = self.child('Stake nr @ origin')
         self.parLy = self.child('Line nr @ origin')
+        self.parSx = self.child('Stake increments')
+        self.parSy = self.child('Line increments')
+
         self.parFo = self.child('Max fold')
 
         self.sigTreeStateChanged.connect(self.changed)
@@ -573,10 +578,12 @@ class MyLocalGridParameter(MyGroupParameter):
         # local grid
         self.binGrid.binSize.setX(self.parBx.value())
         self.binGrid.binSize.setY(self.parBy.value())
-        self.binGrid.shift.setX(self.parDx.value())
-        self.binGrid.shift.setY(self.parDy.value())
-        self.binGrid.stake.setX(self.parLx.value())
-        self.binGrid.stake.setY(self.parLy.value())
+        self.binGrid.binShift.setX(self.parDx.value())
+        self.binGrid.binShift.setY(self.parDy.value())
+        self.binGrid.stakeOrig.setX(self.parLx.value())
+        self.binGrid.stakeOrig.setY(self.parLy.value())
+        self.binGrid.stakeSize.setX(self.parSx.value())
+        self.binGrid.stakeSize.setY(self.parSy.value())
         self.binGrid.fold = self.parFo.value()
 
         self.sigValueChanging.emit(self, self.value())
@@ -1122,8 +1129,8 @@ class MyRollParameter(MyGroupParameter):
         self.addChild(dict(name='dX', type='float', decimals=d, suffix=s, value=self.row.increment.x()))
         self.addChild(dict(name='dY', type='float', decimals=d, suffix=s, value=self.row.increment.y()))
         self.addChild(dict(name='dZ', type='float', decimals=d, suffix=s, value=self.row.increment.z()))
-        self.addChild(dict(name='azimuth', type='myFloat', decimals=d, suffix='deg', value=0.0, enabled=False, readonly=True))     # set value through setAzimuth()     # myFloat
-        self.addChild(dict(name='tilt', type='myFloat', decimals=d, suffix='deg', value=0.0, enabled=False, readonly=True))        # set value through setTilt()    # myFloat
+        self.addChild(dict(name='azimuth', type='float', decimals=d, suffix='deg', value=0.0, enabled=False, readonly=True))     # set value through setAzimuth()     # myFloat
+        self.addChild(dict(name='tilt', type='float', decimals=d, suffix='deg', value=0.0, enabled=False, readonly=True))        # set value through setTilt()    # myFloat
 
         self.parN = self.child('N')
         self.parX = self.child('dX')
@@ -2210,8 +2217,9 @@ class MyGridParameter(MyGroupParameter):
     def changedL(self):
         # local grid
         self.binGrid.binSize = self.parL.value().binSize
-        self.binGrid.shift = self.parL.value().shift
-        self.binGrid.stake = self.parL.value().stake
+        self.binGrid.binShift = self.parL.value().binShift
+        self.binGrid.stakeOrig = self.parL.value().stakeOrig
+        self.binGrid.stakeSize = self.parL.value().stakeSize
         self.binGrid.fold = self.parL.value().fold
 
         self.sigValueChanging.emit(self, self.value())

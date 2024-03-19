@@ -1931,14 +1931,11 @@ class RollBinGrid:
     # assign default values
     def __init__(self) -> None:
         # local grid
-        # -1 to catch errors
-        self.fold: int = -1
-        # -1 to catch errors
-        self.binSize = QPointF(-1.0, -1.0)
-        # -1 to catch errors
-        self.shift = QPointF(-1.0, -1.0)
-        # -1 to catch errors
-        self.stake = QPointF(-1.0, -1.0)
+        self.fold: int = -1                                                     # -1 to catch errors
+        self.binSize = QPointF(-1.0, -1.0)                                      # -1 to catch errors
+        self.binShift = QPointF(-1.0, -1.0)                                     # -1 to catch errors
+        self.stakeOrig = QPointF(-1.0, -1.0)                                    # -1 to catch errors
+        self.stakeSize = QPointF(-1.0, -1.0)                                    # -1 to catch errors
 
         # global grid
         self.orig = QPointF(0.0, 0.0)
@@ -1954,16 +1951,17 @@ class RollBinGrid:
 
         localElem.setAttribute('fold', str(self.fold))
 
-        localElem.setAttribute('x0', str(self.shift.x()))
-        localElem.setAttribute('y0', str(self.shift.y()))
+        localElem.setAttribute('x0', str(self.binShift.x()))
+        localElem.setAttribute('y0', str(self.binShift.y()))
 
         localElem.setAttribute('dx', str(self.binSize.x()))
         localElem.setAttribute('dy', str(self.binSize.y()))
 
-        # s0 = stake number at grid origin
-        localElem.setAttribute('s0', str(self.stake.x()))
-        # l0 = line number at grid origin
-        localElem.setAttribute('l0', str(self.stake.y()))
+        localElem.setAttribute('s0', str(self.stakeOrig.x()))                   # s0 = stake number at grid origin
+        localElem.setAttribute('l0', str(self.stakeOrig.y()))                   # l0 = line number at grid origin
+
+        localElem.setAttribute('ds', str(self.stakeSize.x()))                   # ds = stake number interval [m]
+        localElem.setAttribute('dl', str(self.stakeSize.y()))                   # dl = line number interval [m]
 
         # global grid parameters
         globalElem = doc.createElement('global')
@@ -2012,12 +2010,16 @@ class RollBinGrid:
         self.binSize.setX(toFloat(localElem.attribute('dx')))
         self.binSize.setY(toFloat(localElem.attribute('dy')))
 
-        self.shift.setX(toFloat(localElem.attribute('x0')))
-        self.shift.setY(toFloat(localElem.attribute('y0')))
+        self.binShift.setX(toFloat(localElem.attribute('x0')))
+        self.binShift.setY(toFloat(localElem.attribute('y0')))
 
         # default (stake, line) origin = (1000, 1000)
-        self.stake.setX(toFloat(localElem.attribute('s0'), 1000.0))
-        self.stake.setY(toFloat(localElem.attribute('l0'), 1000.0))
+        self.stakeOrig.setX(toFloat(localElem.attribute('s0'), 1000.0))
+        self.stakeOrig.setY(toFloat(localElem.attribute('l0'), 1000.0))
+
+        # if no stake number intervals are given; default to bin interval
+        self.stakeSize.setX(toFloat(localElem.attribute('ds'), self.binSize.x()))
+        self.stakeSize.setY(toFloat(localElem.attribute('dl'), self.binSize.y()))
 
         globalElem = parent.namedItem('global').toElement()
         if globalElem.isNull():
@@ -2596,9 +2598,9 @@ class RollSurvey(pg.GraphicsObject):
 
         r0 = self.globalSphere.radius
         r1 = r0 * q
-        s0 = self.globalSphere.origin
-        s1 = toLocTransform.map(s0.toPointF())                                  # transform the 2D point to local coordinates
-        s2 = QVector3D(s1.x(), s1.y(), s0.z() * q)                              # 3D point in local coordinates, with z axis scaled as well
+        o0 = self.globalSphere.origin
+        s1 = toLocTransform.map(o0.toPointF())                                  # transform the 2D point to local coordinates
+        s2 = QVector3D(s1.x(), s1.y(), o0.z() * q)                              # 3D point in local coordinates, with z axis scaled as well
         self.localSphere = RollSphere(s2, r1)                                   # initiate the local sphere
 
         w = self.output.rctOutput.width()
@@ -2608,11 +2610,14 @@ class RollSurvey(pg.GraphicsObject):
 
         dx = self.grid.binSize.x()
         dy = self.grid.binSize.y()
-        ox = self.grid.shift.x()
-        oy = self.grid.shift.y()
+        ox = self.grid.binShift.x()
+        oy = self.grid.binShift.y()
 
-        s0 = self.grid.stake.x()
-        l0 = self.grid.stake.y()
+        s0 = self.grid.stakeOrig.x()
+        l0 = self.grid.stakeOrig.y()
+
+        ds = self.grid.stakeSize.x()
+        dl = self.grid.stakeSize.y()
 
         nx = math.ceil(w / dx)
         ny = math.ceil(h / dy)
@@ -2642,12 +2647,12 @@ class RollSurvey(pg.GraphicsObject):
 
         self.stkTransform = QTransform()
         self.stkTransform.translate(-ox, -oy)                                   # first shift origin by small offset (usually 1/2 bin size)
-        self.stkTransform.scale(dx, dy)                                         # then scale it according to the bingrid
+        self.stkTransform.scale(ds, dl)                                         # then scale it according to the stake / line intervals
         self.stkTransform.translate(-s0, -l0)                                   # then shift origin to the (stake, line) origin
         self.stkTransform, _ = self.stkTransform.inverted()                     # invert the transform before applying
 
         self.st2Transform = QTransform()
-        self.st2Transform.scale(dx, dy)                                         # scale it according to the bingrid (no shift applied)
+        self.st2Transform.scale(ds, dl)                                         # scale it according to the stake / line intervals
         self.st2Transform.translate(-s0, -l0)                                   # then shift origin to (stake, line) origin
         self.st2Transform, _ = self.st2Transform.inverted()                     # invert the transform before applying
 
