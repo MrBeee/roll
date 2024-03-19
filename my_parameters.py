@@ -3,7 +3,8 @@ import os
 
 import numpy as np
 import wellpathpy as wp
-from pyqtgraph.parametertree import registerParameterType
+from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
+from pyqtgraph.parametertree.parameterTypes.basetypes import SimpleParameter
 from qgis.PyQt.QtCore import QFileInfo, QSettings
 from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox
@@ -37,8 +38,7 @@ from .my_group import MyGroupParameter, MyGroupParameterItem
 from .my_list import MyListParameter
 from .my_marker import MyMarkerParameter
 from .my_n_vector import MyNVectorParameter
-
-# from .my_numerics import MyNumericParameterItem
+from .my_numerics import MyNumericParameterItem
 from .my_pen import MyPenParameter
 from .my_point3D import MyPoint3DParameter
 from .my_preview_label import MyPreviewLabel
@@ -935,7 +935,7 @@ class MyTemplateParameter(MyGroupParameter):
         template = RollTemplate()
         self.template = opts.get('value', template)
 
-        self.addChild(dict(name='Roll steps', type='MyRollList', value=self.template.rollList, default=self.template.rollList, expanded=True, flat=True, decimals=d, suffix=s))
+        self.addChild(dict(name='Roll steps', type='myRollList', value=self.template.rollList, default=self.template.rollList, expanded=True, flat=True, decimals=d, suffix=s))
         self.addChild(dict(name='Seed list', type='mySeedList', value=self.template.seedList, brush='#add8e6', flat=True))
 
         self.parR = self.child('Roll steps')
@@ -1045,9 +1045,9 @@ class MyRollListParameter(MyGroupParameter):
         while len(self.moveList) < 3:
             self.moveList.insert(0, RollTranslate())                                # First, make sure there are ALWAYS 3 grow steps for every grid
 
-        self.addChild(dict(name='Planes', type='MyRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[0], default=self.moveList[0]))
-        self.addChild(dict(name='Lines', type='MyRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[1], default=self.moveList[1]))
-        self.addChild(dict(name='Points', type='MyRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[2], default=self.moveList[2]))
+        self.addChild(dict(name='Planes', type='myRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[0], default=self.moveList[0]))
+        self.addChild(dict(name='Lines', type='myRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[1], default=self.moveList[1]))
+        self.addChild(dict(name='Points', type='myRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[2], default=self.moveList[2]))
 
         self.par0 = self.child('Planes')
         self.par1 = self.child('Lines')
@@ -1122,8 +1122,8 @@ class MyRollParameter(MyGroupParameter):
         self.addChild(dict(name='dX', type='float', decimals=d, suffix=s, value=self.row.increment.x()))
         self.addChild(dict(name='dY', type='float', decimals=d, suffix=s, value=self.row.increment.y()))
         self.addChild(dict(name='dZ', type='float', decimals=d, suffix=s, value=self.row.increment.z()))
-        self.addChild(dict(name='azimuth', type='float', decimals=d, suffix='deg', enabled=False, readonly=True))     # set value through setAzimuth()     # myFloat
-        self.addChild(dict(name='tilt', type='float', decimals=d, suffix='deg', enabled=False, readonly=True))        # set value through setTilt()    # myFloat
+        self.addChild(dict(name='azimuth', type='myFloat', decimals=d, suffix='deg', value=0.0, enabled=False, readonly=True))     # set value through setAzimuth()     # myFloat
+        self.addChild(dict(name='tilt', type='myFloat', decimals=d, suffix='deg', value=0.0, enabled=False, readonly=True))        # set value through setTilt()    # myFloat
 
         self.parN = self.child('N')
         self.parX = self.child('dX')
@@ -1361,7 +1361,7 @@ class MySeedParameter(MyGroupParameter):
                 nPattern = 0
         self.addChild(dict(name='Seed pattern', type='myList', value=pl[nPattern], default=pl[nPattern], limits=pl))
 
-        self.addChild(dict(name='Grid grow steps', type='MyRollList', value=self.seed.grid.growList, default=self.seed.grid.growList, expanded=True, flat=True, decimals=d, suffix='m', brush='#add8e6'))
+        self.addChild(dict(name='Grid grow steps', type='myRollList', value=self.seed.grid.growList, default=self.seed.grid.growList, expanded=True, flat=True, decimals=d, suffix='m', brush='#add8e6'))
         self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
         self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
         self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
@@ -2063,7 +2063,7 @@ class MyPatternParameter(MyGroupParameter):
 
         self.addChild(dict(name='Pattern origin', type='myPoint3D', value=self.pattern.origin, expanded=False, flat=True, decimals=d))
         self.addChild(dict(name='Pattern color', type='color', value=self.pattern.color))
-        self.addChild(dict(name='Pattern grow steps', type='MyRollList', value=self.pattern.growList, default=self.pattern.growList, expanded=True, flat=True, brush='#add8e6', decimals=5, suffix='m'))
+        self.addChild(dict(name='Pattern grow steps', type='myRollList', value=self.pattern.growList, default=self.pattern.growList, expanded=True, flat=True, brush='#add8e6', decimals=5, suffix='m'))
 
         self.parC = self.child('Pattern color')
         self.parO = self.child('Pattern origin')
@@ -2413,10 +2413,11 @@ class MySurveyParameter(MyGroupParameter):
 
 def registerAllParameterTypes():
 
-    # first, register some simple parameters, already defined in other files
-
-    # registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
-    # registerParameterItemType('myInt', MyNumericParameterItem, SimpleParameter, override=True)
+    # first, register *simple* parameters, already defined in other files
+    registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
+    registerParameterItemType('myInt', MyNumericParameterItem, SimpleParameter, override=True)
+    # registerParameterItemType('myFloat', MyNumericParameterItem, MySimpleParameter, override=True)
+    # registerParameterItemType('myInt', MyNumericParameterItem, MySimpleParameter, override=True)
 
     # then, register the parameters, already defined in other files
     registerParameterType('myCmap', MyCmapParameter, override=True)
@@ -2449,8 +2450,8 @@ def registerAllParameterTypes():
     registerParameterType('myPatternList', MyPatternListParameter, override=True)
     registerParameterType('myPlane', MyPlaneParameter, override=True)
     registerParameterType('myReflectors', MyReflectorsParameter, override=True)
-    registerParameterType('MyRoll', MyRollParameter, override=True)
-    registerParameterType('MyRollList', MyRollListParameter, override=True)
+    registerParameterType('myRoll', MyRollParameter, override=True)
+    registerParameterType('myRollList', MyRollListParameter, override=True)
     registerParameterType('mySeed', MySeedParameter, override=True)
     registerParameterType('mySeedList', MySeedListParameter, override=True)
     registerParameterType('mySphere', MySphereParameter, override=True)

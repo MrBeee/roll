@@ -75,6 +75,8 @@ The templates can be converted into geometry files, consisting of (a) a source f
 
 The geometry files themselves can also be exported as SPS-files.
 
+
+
 #### 2	Import of SPS data
 
 If (legacy) SPS data is available, this can be imported from the file menu, and is treated the same as the internally generated geometry files. This makes it handy to analyze survey performance based solely on SPS-data. This SPS data can also be exported as shapefiles to the current QGIS project.
@@ -106,6 +108,8 @@ xpsFormatList = [
 
 The user can expand this list with new SPS 'flavors', by defining new 'point' and 'relational' record formats
 
+
+
 #### 3	Editing a survey file
 
 As it is cumbersome to manipulate xml-data directly, the user is helped on two levels:
@@ -113,9 +117,12 @@ As it is cumbersome to manipulate xml-data directly, the user is helped on two l
 1. Creating a new project is done using a **survey wizard**. At present there is one wizard suitable to generate templates for land seismic and OBN-data. A marine wizard is in the making.
 2. Parameters can be modified added or deleted from the **property pane**. Behind the scenes, this updates the xml-structure, which is always visible from the Xml-tab in the main window.
 
+
+
 #### 4	External dependencies
 
-Roll depends on the following Python libraries that need to be installed separately (using pip install ...)
+Roll depends on the following Python libraries that need to be installed separately 
+In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'```,  where --upgrade forces the installation of the latest version
 
 | Library    | Minimum Version | Description (purpose)                                      |
 | :--------- | :-------------- | :--------------------------------------------------------- |
@@ -124,13 +131,25 @@ Roll depends on the following Python libraries that need to be installed separat
 | rasterio   | 1.3.6           | Export of figures as GeoTiff  files                        |
 | wellpathpy | 0.50            | Handle sensors  & sources in a well trajectory (VSPs etc.) |
 
+
+
 #### 5	Current status
 
-As of **8 Feb 2024**, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
+On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
+
+There is still functionality to be added.
 
 Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
 
-#### 6	Still To Do
+
+
+#### 6	Changelog
+
+- 2024-03-13 (0.2.1) Initial release on the QGIS plugin website
+
+
+
+#### 7	Still To Do
 
 - Create wizard for Marine towed-streamer geometry
 - Implement multiprocessing instead of worker thread for background tasks

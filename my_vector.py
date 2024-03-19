@@ -89,8 +89,8 @@ class MyVectorParameter(MyGroupParameter):
         self.addChild(dict(name='dX', type='float', value=self.vector.x(), default=self.vector.x(), decimals=d, suffix=s))
         self.addChild(dict(name='dY', type='float', value=self.vector.y(), default=self.vector.y(), decimals=d, suffix=s))
         self.addChild(dict(name='dZ', type='float', value=self.vector.z(), default=self.vector.z(), decimals=d, suffix=s))
-        self.addChild(dict(name='azimuth', type='float', enabled=False, readonly=True, decimals=d, suffix='deg'))   # set value through setAzimuth()    # myFloat
-        self.addChild(dict(name='tilt', type='float', enabled=False, readonly=True))                                # set value through setTilt()    # myFloat
+        self.addChild(dict(name='azimuth', type='float', value=0.0, enabled=False, readonly=True, decimals=d, suffix='deg'))   # set value through setAzimuth()    # myFloat
+        self.addChild(dict(name='tilt', type='float', value=0.0, enabled=False, readonly=True))                                # set value through setTilt()    # myFloat
 
         self.parX = self.child('dX')
         self.parY = self.child('dY')

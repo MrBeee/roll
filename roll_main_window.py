@@ -736,11 +736,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.binChild = self.anaChild.child('Binning area')
         self.binChild.sigTreeStateChanged.connect(self.binAreaHasChanged)
 
-        # deal with a bug, not showing tooltip information
+        # deal with a bug, not showing tooltip information in the list of parameterItems
         for item in self.paramTree.listAllItems():                              # Bug. See: https://github.com/pyqtgraph/pyqtgraph/issues/2744
-            p = item.param
-            if 'tip' in p.opts:
-                item.setToolTip(0, p.opts['tip'])
+            p = item.param                                                      # get parameter belonging to parameterItem
+            p.setToDefault()                                                    # set all parameters to their default value
+            if hasattr(item, 'updateDefaultBtn'):                               # note: not all parameterItems have this method
+                item.updateDefaultBtn()                                         # reset the default-buttons to their grey value
+            if 'tip' in p.opts:                                                 # this solves the above mentioned bug
+                item.setToolTip(0, p.opts['tip'])                               # the widgets now get their tooltips
 
     def applyPropertyChanges(self):
         # build new survey object from scratch, and start adding to it
