@@ -1725,6 +1725,10 @@ class MyWellParameter(MyGroupParameter):
         self.parI = self.child('AHD interval')
         self.parN = self.child('Points')
 
+        self.parW = self.child('Origin [well]')
+        self.parG = self.child('Origin [global]')
+        self.parL = self.child('Origin [local]')
+
         self.parC.sigValueChanged.connect(self.changedC)
         self.parF.sigValueChanged.connect(self.changedF)
         self.parA.sigValueChanged.connect(self.changedA)
@@ -1740,15 +1744,15 @@ class MyWellParameter(MyGroupParameter):
 
         self.well.readHeader(config.surveyCrs, config.glbTransform)
 
-        self.child('Origin [well]', 'X').setValue(self.well.origW.x())
-        self.child('Origin [well]', 'Y').setValue(self.well.origW.y())
-        self.child('Origin [well]', 'Z').setValue(self.well.origW.z())
+        self.parW.child('X').setValue(self.well.origW.x())                      # well origin in well CRS coordinates
+        self.parW.child('Y').setValue(self.well.origW.y())
+        self.parW.child('Z').setValue(self.well.origW.z())
 
-        x = self.child('Origin [global]', 'X').setValue(self.well.origG.x())
-        y = self.child('Origin [global]', 'Y').setValue(self.well.origG.y())
+        self.parG.child('X').setValue(self.well.origG.x())                      # well origin in survey global coordinates
+        self.parG.child('Y').setValue(self.well.origG.y())
 
-        x = self.child('Origin [local]', 'X').setValue(self.well.origL.x())
-        y = self.child('Origin [local]', 'Y').setValue(self.well.origL.y())
+        self.parL.child('X').setValue(self.well.origL.x())                      # well origin in survey local coordinates
+        self.parL.child('Y').setValue(self.well.origL.y())
 
         self.changedA()
 
@@ -1768,11 +1772,11 @@ class MyWellParameter(MyGroupParameter):
 
         self.well.readHeader(config.surveyCrs, config.glbTransform)
 
-        x = self.child('Origin [global]', 'X').setValue(self.well.origG.x())        # these will  be different with a different well-CRS
-        y = self.child('Origin [global]', 'Y').setValue(self.well.origG.y())
+        self.parG.child('X').setValue(self.well.origG.x())                      # well origin in survey global coordinates
+        self.parG.child('Y').setValue(self.well.origG.y())
 
-        x = self.child('Origin [local]', 'X').setValue(self.well.origL.x())
-        y = self.child('Origin [local]', 'Y').setValue(self.well.origL.y())
+        self.parL.child('X').setValue(self.well.origL.x())                      # well origin in survey local coordinates
+        self.parL.child('Y').setValue(self.well.origL.y())
 
         self.changedA()                                                         # check ahd0 and nr of allowed intervals
 
