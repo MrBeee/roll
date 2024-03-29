@@ -9,19 +9,14 @@ from enum import Enum
 import numpy as np
 import pyqtgraph as pg
 import wellpathpy as wp
-from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
-                       QgsPointXY, QgsProject, QgsVector3D)
-from qgis.PyQt.QtCore import (QFileInfo, QLineF, QMarginsF, QPointF, QRectF,
-                              QThread, pyqtSignal)
-from qgis.PyQt.QtGui import (QBrush, QColor, QPainter, QPainterPath, QPicture,
-                             QPolygonF, QTransform, QVector3D)
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVector3D
+from qgis.PyQt.QtCore import QFileInfo, QLineF, QMarginsF, QPointF, QRectF, QThread, pyqtSignal
+from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPainterPath, QPicture, QPolygonF, QTransform, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement, QDomNode
 
 from . import config  # used to pass initial settings
-from .functions import (clipLineF, clipRectF, containsPoint2D, containsPoint3D,
-                        deviation, read_well_header, read_wws_header, toFloat,
-                        toInt)
+from .functions import clipLineF, clipRectF, containsPoint2D, containsPoint3D, deviation, read_well_header, read_wws_header, toFloat, toInt
 from .rdp import filterRdp
 from .sps_io_and_qc import pntType1, relType2
 
@@ -1358,6 +1353,7 @@ class RollWell:
     def __init__(self, name: str = '') -> None:
         # input variables
         self.name = name                                                        # path to well file
+        self.errorText = None                                                   # text explaining which error occurred
 
         if config.surveyCrs is not None and config.surveyCrs.isValid():         # copy crs from project
             self.crs = config.surveyCrs
@@ -1384,9 +1380,10 @@ class RollWell:
         # for self.lod0 See: https://python.hotexamples.com/examples/PyQt5.QtGui/QPainter/drawPolyline/python-qpainter-drawpolyline-method-examples.html
 
     def readHeader(self, surveyCrs, glbTransform):
-        f = self.name
+        self.errorText = None                                                    # text explaining which error occurred
         header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
 
+        f = self.name
         ext = QFileInfo(f).suffix()
         if ext == 'wws':                                                        # read the well survey file
             md, _, _ = wp.read_csv(f, delimiter=None, skiprows=0, comments='#')   # inc, azi unused and replaced by _, _
@@ -1428,7 +1425,12 @@ class RollWell:
             if header['elevation'] is None:
                 header['elevation'] = md[0] - depth[0]
         else:
-            raise ValueError(f'unsupported file extension: {ext}')
+            self.errorText = f'unsupported file extension: {ext}'
+            return False
+
+        if header['surface_easting'] is None or header['surface_northing'] is None or header['elevation'] is None:
+            self.errorText = 'invalid or missing file header'
+            return False
 
         self.origW = QVector3D(header['surface_easting'], header['surface_northing'], header['elevation'])
 
@@ -1436,8 +1438,7 @@ class RollWell:
         wellToGlobalTransform = QgsCoordinateTransform(surveyCrs, self.crs, QgsProject.instance())
 
         if not wellToGlobalTransform.isValid():                                 # no valid transform found
-            self.origG = QPointF(-999.0, -999.0)
-            self.origL = QPointF(-999.0, -999.0)
+            self.errorText = 'invalid or coordinate transform'
             return False
 
         # now create the origin in global survey coordinates (well-crs -> project-crs)

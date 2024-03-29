@@ -2,8 +2,8 @@ import math
 import os
 
 from pyqtgraph.parametertree import registerParameterType
-from qgis.PyQt.QtCore import QFileInfo, QSettings
-from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtCore import QFileInfo, QPointF, QSettings
+from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox
 
 from . import config  # used to pass initial settings
@@ -1639,24 +1639,18 @@ class MyWellPreviewLabel(MyPreviewLabel):
         self.showInformation(param)
 
     def showInformation(self, param):
-        c = param.child('Well CRS').opts['value']
         f = param.child('Well file').opts['value']
         s = param.child('AHD interval').opts['value']
         n = param.child('Points').opts['value']
-
         d = self.decimals
         e = False
 
-        if not f is None and os.path.exists(f):                                 # check filename first
+        if param.well.errorText is not None:
+            t = param.well.errorText
+            e = True
+        elif not f is None and os.path.exists(f):                                 # check filename first
             f = QFileInfo(f).fileName()
             t = f'{n:.{d}g} points, in {f}, d{s:.{d}g}m'
-            e = False
-            if not c.isValid():                                                 # file available; next check CRS
-                t = 'An invalid CRS has been selected'
-                e = True
-            elif c.isGeographic():
-                t = 'No valid CRS (use of lat/lon angles)'
-                e = True
         else:
             t = 'No valid well file selected'
             e = True
@@ -1742,7 +1736,12 @@ class MyWellParameter(MyGroupParameter):
         if f is None or not os.path.exists(f):
             return
 
-        self.well.readHeader(config.surveyCrs, config.glbTransform)
+        success = self.well.readHeader(config.surveyCrs, config.glbTransform)
+
+        if not success:
+            self.well.origW = QVector3D(-999.0, -999.0, -999.0)
+            self.well.origG = QPointF(-999.0, -999.0)
+            self.well.origL = QPointF(-999.0, -999.0)
 
         self.parW.child('X').setValue(self.well.origW.x())                      # well origin in well CRS coordinates
         self.parW.child('Y').setValue(self.well.origW.y())
@@ -1754,23 +1753,38 @@ class MyWellParameter(MyGroupParameter):
         self.parL.child('X').setValue(self.well.origL.x())                      # well origin in survey local coordinates
         self.parL.child('Y').setValue(self.well.origL.y())
 
-        self.changedA()
+        if success:
+            self.changedA()                                                     # check ahd0 and nr of allowed intervals
+        else:
+            self.sigValueChanging.emit(self, self.value())
 
     def changedC(self):
         self.well.crs = self.parC.value()
+        self.well.errorText = None
 
         if not self.well.crs.isValid():
+            self.well.errorText = 'An invalid CRS has been selected'
             QMessageBox.information(None, 'Invalid CRS', 'An invalid CRS has been selected.   \nPlease change Well CRS', QMessageBox.Ok)
             return
 
         if self.well.crs.isGeographic():
-            QMessageBox.information(None, 'Invalid CRS', 'A geographic CRS has been selected (using lat/lon values)   \nPlease change Well CRS', QMessageBox.Ok)
+            self.well.errorText = 'geographic CRS selected (using lat/lon angles)'
+            QMessageBox.information(None, 'Invalid CRS', 'A geographic CRS has been selected (using lat/lon angles)   \nPlease change Well CRS', QMessageBox.Ok)
             return
 
         if self.well.name is None or not os.path.exists(self.well.name):
             return
 
-        self.well.readHeader(config.surveyCrs, config.glbTransform)
+        success = self.well.readHeader(config.surveyCrs, config.glbTransform)
+
+        if not success:
+            self.well.origW = QVector3D(-999.0, -999.0, -999.0)
+            self.well.origG = QPointF(-999.0, -999.0)
+            self.well.origL = QPointF(-999.0, -999.0)
+
+        self.parW.child('X').setValue(self.well.origW.x())                      # well origin in well CRS coordinates
+        self.parW.child('Y').setValue(self.well.origW.y())
+        self.parW.child('Z').setValue(self.well.origW.z())
 
         self.parG.child('X').setValue(self.well.origG.x())                      # well origin in survey global coordinates
         self.parG.child('Y').setValue(self.well.origG.y())
@@ -1778,7 +1792,10 @@ class MyWellParameter(MyGroupParameter):
         self.parL.child('X').setValue(self.well.origL.x())                      # well origin in survey local coordinates
         self.parL.child('Y').setValue(self.well.origL.y())
 
-        self.changedA()                                                         # check ahd0 and nr of allowed intervals
+        if success:
+            self.changedA()                                                     # check ahd0 and nr of allowed intervals
+        else:
+            self.sigValueChanging.emit(self, self.value())
 
     def changedA(self):
         a = self.well.ahd0 = self.parA.value()

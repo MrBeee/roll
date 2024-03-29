@@ -36,7 +36,7 @@ class MyCrsParameterItem(WidgetParameterItem):
 
     def defaultClicked(self):                                                   # need to overwrite WidgetParameterItem version
         self.param.setToDefault()                                               # to ensure sigValueChanged is emitted
-        self.updateDefaultBtn()
+        self.updateDefaultBtn()                                                 # wouldn't be needed if this would be part of setValue...
         self.param.sigValueChanged.emit(self.param, self.widget.value())
 
 

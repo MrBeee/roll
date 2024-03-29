@@ -1,7 +1,8 @@
 from pyqtgraph.parametertree import registerParameterType
 from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.core import QgsCoordinateReferenceSystem
-from qgis.PyQt.QtWidgets import QHBoxLayout, QMessageBox, QSizePolicy, QSpacerItem, QWidget
+from qgis.PyQt.QtWidgets import (QHBoxLayout, QMessageBox, QSizePolicy,
+                                 QSpacerItem, QWidget)
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
 from .my_preview_label import MyPreviewLabel
@@ -19,7 +20,15 @@ class CrsPreviewLabel(MyPreviewLabel):
         self.onCrsChanging(None, val)                                           # initialize the label in __init__()
 
     def onCrsChanging(self, _, val):
-        self.setText(val.description())
+        t = val.description()
+        e = not val.isValid() or val.isGeographic()
+        if not val.isValid():
+            t = 'Invalid CRS'
+        if val.isGeographic():
+            t = 'Geographic CRS (lat/long)'
+
+        self.setText(t)
+        self.setErrorCondition(e)
         self.update()
 
 
@@ -79,14 +88,10 @@ class MyCrs2Parameter(MyGroupParameter):
         crs = self.parC.value()
 
         if not crs.isValid():
-            QMessageBox.information(None, 'Invalid CRS', 'An invalid coordinate system has been selected', QMessageBox.Cancel)
-            self.parC.setValue(self.crs)
-            return
+            QMessageBox.warning(None, 'Invalid CRS', 'An invalid coordinate system has been selected', QMessageBox.Ok)
 
         if crs.isGeographic():
-            QMessageBox.information(None, 'Invalid CRS', 'An invalid coordinate system has been selected\n(using lat/lon coordinates)', QMessageBox.Cancel)
-            self.parC.setValue(self.crs)
-            return
+            QMessageBox.warning(None, 'Invalid CRS', 'An invalid coordinate system has been selected\nGeographic (using lat/lon coordinates)', QMessageBox.Ok)
 
         self.crs = crs
 
