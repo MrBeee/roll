@@ -135,8 +135,9 @@ application = 'Roll'
 # used to share a 'global' variable between roll_main_window.py and my_parameters.py
 patternList = []
 
-# currently used as a backdoor to access survey.crs from other parameters
-crs = None
+# currently used as a backdoor to access survey.crs and global transform from other parameters
+surveyCrs = None
+surveyTransform = None
 
 # Example on using config.py
 # A) Set a default value of 'x' in config.py

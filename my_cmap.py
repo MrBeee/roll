@@ -1,7 +1,6 @@
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import \
-    WidgetParameterItem
+from pyqtgraph.parametertree.parameterTypes.basetypes import WidgetParameterItem
 from qgis.PyQt.QtCore import QSize, Qt
 from qgis.PyQt.QtGui import QIcon, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import QComboBox

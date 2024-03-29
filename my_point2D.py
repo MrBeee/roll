@@ -1,6 +1,6 @@
 from pyqtgraph.parametertree import registerParameterType
 from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
-from qgis.PyQt.QtGui import QVector3D
+from qgis.PyQt.QtCore import QPointF
 from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
@@ -9,34 +9,33 @@ from .my_preview_label import MyPreviewLabel
 registerParameterType('myGroup', MyGroupParameter, override=True)
 
 
-class MyPoint3DPreviewLabel(MyPreviewLabel):
+class MyPoint2DPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onPointChanging)                    # connect signal to slot
 
         self.decimals = param.opts.get('decimals', 7)                           # get nr of decimals from param and provide default value
-        val = param.opts.get('value', QVector3D())                              # get *value*  from param and provide default value
+        val = param.opts.get('value', QPointF())                              # get *value*  from param and provide default value
         self.onPointChanging(None, val)                                         # initialize the label in __init__()
 
     def onPointChanging(self, _, val):                                          # param unused and eplaced by _
-        vector = QVector3D(val)                                                 # if needed transform QPointF into vector
+        point = QPointF(val)                                                    # if needed transform object into point
 
-        x = vector.x()                                                          # prepare label text
-        y = vector.y()
-        z = vector.z()
+        x = point.x()                                                          # prepare label text
+        y = point.y()
         d = self.decimals
 
-        self.setText(f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})')
+        self.setText(f'({x:.{d}g}, {y:.{d}g})')
         self.update()
 
 
-class MyPoint3DParameterItem(MyGroupParameterItem):
+class MyPoint2DParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
 
         self.itemWidget = QWidget()
         spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = MyPoint3DPreviewLabel(param)
+        self.label = MyPoint2DPreviewLabel(param)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -53,10 +52,9 @@ class MyPoint3DParameterItem(MyGroupParameterItem):
         tw.setItemWidget(self, 1, self.itemWidget)
 
 
-class MyPoint3DParameter(MyGroupParameter):
-    """major change in implementation. See roll-2024-02-29 folder"""
+class MyPoint2DParameter(MyGroupParameter):
 
-    itemClass = MyPoint3DParameterItem
+    itemClass = MyPoint2DParameterItem
 
     def __init__(self, **opts):
         # opts['expanded'] = False                                              # to overrule user-requested options
@@ -64,35 +62,31 @@ class MyPoint3DParameter(MyGroupParameter):
 
         MyGroupParameter.__init__(self, **opts)
         if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in MyPoint3D Parameter opts')
+            raise KeyError('Cannot set "children" argument in MyPoint2D Parameter opts')
 
         d = opts.get('decimals', 7)
         e = opts.get('enabled', True)
         r = opts.get('readonly', False)
 
-        self.vector = QVector3D()
-        self.vector = opts.get('value', QVector3D())
+        self.point = QPointF()
+        self.point = opts.get('value', QPointF())
 
-        self.addChild(dict(name='X', type='myFloat', value=self.vector.x(), default=self.vector.x(), decimals=d, enabled=e, readonly=r))    # myFloat
-        self.addChild(dict(name='Y', type='myFloat', value=self.vector.y(), default=self.vector.y(), decimals=d, enabled=e, readonly=r))    # myFloat
-        self.addChild(dict(name='Z', type='myFloat', value=self.vector.z(), default=self.vector.z(), decimals=d, enabled=e, readonly=r))    # myFloat
+        self.addChild(dict(name='X', type='myFloat', value=self.point.x(), default=self.point.x(), decimals=d, enabled=e, readonly=r))    # myFloat
+        self.addChild(dict(name='Y', type='myFloat', value=self.point.y(), default=self.point.y(), decimals=d, enabled=e, readonly=r))    # myFloat
 
         self.parX = self.child('X')
         self.parY = self.child('Y')
-        self.parZ = self.child('Z')
 
         self.parX.sigValueChanged.connect(self.changed)
         self.parY.sigValueChanged.connect(self.changed)
-        self.parZ.sigValueChanged.connect(self.changed)
 
     def changed(self):
-        self.vector.setX(self.parX.value())                                     # update the values of the three children
-        self.vector.setY(self.parY.value())
-        self.vector.setZ(self.parZ.value())
+        self.point.setX(self.parX.value())                                     # update the values of the three children
+        self.point.setY(self.parY.value())
         self.sigValueChanging.emit(self, self.value())                          # inform the preview label on the changes
 
     def value(self):
-        return self.vector
+        return self.point
 
 
-registerParameterType('myPoint3D', MyPoint3DParameter, override=True)
+registerParameterType('myPoint2D', MyPoint2DParameter, override=True)

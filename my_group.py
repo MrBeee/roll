@@ -75,6 +75,7 @@ class MyGroupParameterItem(GroupParameterItem):
         self.titleChanged()  # sets the size hint for column 0 which is based on the new font
 
     def contextMenuEvent(self, ev):
+        """method overloaded to allow for icons in the context menu"""
         opts = self.param.opts
 
         if not 'context' in opts:

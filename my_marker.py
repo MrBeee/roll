@@ -7,6 +7,7 @@ from qgis.PyQt.QtGui import QBrush, QPen, QPixmap
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
+from .my_preview_label import MyPreviewLabel
 from .my_slider import MySliderParameter
 from .my_symbols import MySymbolParameter, MySymbolParameterItem
 
@@ -80,7 +81,7 @@ class SymbolPreviewLabel(QLabel):
         self.update()
 
 
-class TextPreviewLabel(QLabel):
+class TextPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onMarkerChanging)
@@ -88,12 +89,6 @@ class TextPreviewLabel(QLabel):
         self.symbolKeys = MySymbolParameterItem.getsymbolKeys()                 # get from my_symbols.py
         self.symbolNames = MySymbolParameterItem.getsymbolNames()               # get from my_symbols.py
         assert len(self.symbolNames) == len(self.symbolKeys), 'Error; the symbol list in pyqtgraph must have been altered'
-
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
 
         opts = param.opts
         sym = opts.get('symbol', 'o')

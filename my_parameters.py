@@ -1,12 +1,9 @@
 import math
 import os
 
-import numpy as np
-import wellpathpy as wp
-from pyqtgraph.parametertree import registerParameterItemType, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import SimpleParameter
+from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt.QtCore import QFileInfo, QSettings
-from qgis.PyQt.QtGui import QColor, QVector3D
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QMessageBox
 
 from . import config  # used to pass initial settings
@@ -30,7 +27,6 @@ from .classes import (
     binningList,
     surveyType,
 )
-from .functions import lineNo, read_well_header, read_wws_header
 from .my_cmap import MyCmapParameter
 from .my_crs import MyCrsParameter
 from .my_crs2 import MyCrs2Parameter
@@ -38,8 +34,9 @@ from .my_group import MyGroupParameter, MyGroupParameterItem
 from .my_list import MyListParameter
 from .my_marker import MyMarkerParameter
 from .my_n_vector import MyNVectorParameter
-from .my_numerics import MyNumericParameterItem
+from .my_numerics import MyFloatParameter, MyIntParameter
 from .my_pen import MyPenParameter
+from .my_point2D import MyPoint2DParameter
 from .my_point3D import MyPoint3DParameter
 from .my_preview_label import MyPreviewLabel
 from .my_rectf import MyRectParameter
@@ -73,7 +70,7 @@ class MyBinAnglesPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyBinAnglesPreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MyBinAnglesPreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyBinAnglesParameterItem(MyGroupParameterItem):
@@ -136,7 +133,6 @@ class MyBinOffsetPreviewLabel(MyPreviewLabel):
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
-
         x = max(abs(val.rctOffsets.left()), abs(val.rctOffsets.right()))
         y = max(abs(val.rctOffsets.top()), abs(val.rctOffsets.bottom()))
         d = math.hypot(x, y)
@@ -152,7 +148,7 @@ class MyBinOffsetPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyBinOffsetPreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MyBinOffsetPreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyBinOffsetParameterItem(MyGroupParameterItem):
@@ -236,7 +232,7 @@ class MyUniqOffPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyUniqOffPreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MyUniqOffPreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyUniqOffParameterItem(MyGroupParameterItem):
@@ -301,7 +297,7 @@ class MyBinMethodPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyBinMethodPreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MyBinMethodPreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyBinMethodParameterItem(MyGroupParameterItem):
@@ -374,10 +370,10 @@ class MyPlanePreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyPlanePreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MyPlanePreviewLabel.ValueChanging | {t} <<<')
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        print(f'>>>{lineNo():5d} MyPlaneParameter.TreeStateChanged <<<')
+        # print(f'>>>{lineNo():5d} MyPlaneParameter.TreeStateChanged <<<')
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
@@ -451,10 +447,10 @@ class MySpherePreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MySpherePreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MySpherePreviewLabel.ValueChanging | {t} <<<')
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        print(f'>>>{lineNo():5d} MySphereParameter.TreeStateChanged <<<')
+        # print(f'>>>{lineNo():5d} MySphereParameter.TreeStateChanged <<<')
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
@@ -523,7 +519,7 @@ class MyLocalGridPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyLocalGridPreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MyLocalGridPreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyLocalGridParameterItem(MyGroupParameterItem):
@@ -615,7 +611,7 @@ class MyGlobalGridPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyGlobalGridPreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MyGlobalGridPreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyGlobalGridParameterItem(MyGroupParameterItem):
@@ -753,15 +749,15 @@ class MyBlockPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'+++{lineNo():5d} MyBlockPreviewLabel.showInformation | {t} +++')
+        # print(f'+++{lineNo():5d} MyBlockPreviewLabel.showInformation | {t} +++')
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        print(f'>>>{lineNo():5d} MyBlockPreviewLabel.ValueChanging <<<')
+        # print(f'>>>{lineNo():5d} MyBlockPreviewLabel.ValueChanging <<<')
 
         self.showInformation(param)
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        print(f'>>>{lineNo():5d} MyBlockParameter.TreeStateChanged <<<')
+        # print(f'>>>{lineNo():5d} MyBlockParameter.TreeStateChanged <<<')
 
         self.showInformation(param)
 
@@ -905,14 +901,14 @@ class MyTemplatePreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'+++{lineNo():5d} MyTemplatePreviewLabel.showInformation | {t} +++')
+        # print(f'+++{lineNo():5d} MyTemplatePreviewLabel.showInformation | {t} +++')
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        print(f'>>>{lineNo():5d} MyTemplatePreviewLabel.ValueChanging <<<')
+        # print(f'>>>{lineNo():5d} MyTemplatePreviewLabel.ValueChanging <<<')
         self.showInformation(param)
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        print(f'>>>{lineNo():5d} MyTemplateParameter.TreeStateChanged <<<')
+        # print(f'>>>{lineNo():5d} MyTemplateParameter.TreeStateChanged <<<')
 
         self.showInformation(param)
 
@@ -1021,7 +1017,7 @@ class MyRollListPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyRollListPreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MyRollListPreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyRollListParameterItem(MyGroupParameterItem):
@@ -1095,7 +1091,7 @@ class MyRollPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyRollPreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MyRollPreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyRollParameterItem(MyGroupParameterItem):
@@ -1129,8 +1125,8 @@ class MyRollParameter(MyGroupParameter):
         self.addChild(dict(name='dX', type='float', decimals=d, suffix=s, value=self.row.increment.x()))
         self.addChild(dict(name='dY', type='float', decimals=d, suffix=s, value=self.row.increment.y()))
         self.addChild(dict(name='dZ', type='float', decimals=d, suffix=s, value=self.row.increment.z()))
-        self.addChild(dict(name='azimuth', type='float', decimals=d, suffix='deg', value=0.0, enabled=False, readonly=True))     # set value through setAzimuth()     # myFloat
-        self.addChild(dict(name='tilt', type='float', decimals=d, suffix='deg', value=0.0, enabled=False, readonly=True))        # set value through setTilt()    # myFloat
+        self.addChild(dict(name='azimuth', type='myFloat', decimals=d, suffix='deg', value=0.0, enabled=False, readonly=True))     # set value through setAzimuth()     # myFloat
+        self.addChild(dict(name='tilt', type='myFloat', decimals=d, suffix='deg', value=0.0, enabled=False, readonly=True))        # set value through setTilt()    # myFloat
 
         self.parN = self.child('N')
         self.parX = self.child('dX')
@@ -1196,14 +1192,16 @@ class MySeedListPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'+++{lineNo():5d} MySeedListPreviewLabel.showInformation | {t} +++')
+        self.setErrorCondition(nSource == 0 or nChilds == nSource)
+
+        # print(f'+++{lineNo():5d} MySeedListPreviewLabel.showInformation | {t} +++')
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        print(f'>>>{lineNo():5d} MySeedListPreviewLabel.ValueChanging <<<')
+        # print(f'>>>{lineNo():5d} MySeedListPreviewLabel.ValueChanging <<<')
         self.showInformation(param)
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        print(f'>>>{lineNo():5d} MySeedListPreviewLabel.TreeStateChanged <<<')
+        # print(f'>>>{lineNo():5d} MySeedListPreviewLabel.TreeStateChanged <<<')
 
         self.showInformation(param)
 
@@ -1316,10 +1314,10 @@ class MySeedPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MySeedPreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.ValueChanging | {t} <<<')
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
+        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
@@ -1493,7 +1491,7 @@ class MyCirclePreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyCirclePreviewLabel.ValueChanging | {t} <<<')
+        # print(f'>>>{lineNo():5d} MyCirclePreviewLabel.ValueChanging | {t} <<<')
 
 
 class MyCircleParameterItem(MyGroupParameterItem):
@@ -1525,7 +1523,7 @@ class MyCircleParameter(MyGroupParameter):
         self.addChild(dict(name='Radius', value=self.circle.radius, type='float', decimals=d, suffix=s))
         self.addChild(dict(name='Start angle', value=self.circle.azi0, type='float', decimals=d, suffix='°E', tip=tip))
         self.addChild(dict(name='Point interval', value=self.circle.dist, type='float', suffix=s, tip=tip))
-        self.addChild(dict(name='Points', value=self.circle.points, type='int', decimals=d, enabled=False, readonly=True))    # myInt
+        self.addChild(dict(name='Points', value=self.circle.points, type='myInt', decimals=d, enabled=False, readonly=True))    # myInt
 
         self.parR = self.child('Radius')
         self.parA = self.child('Start angle')
@@ -1569,7 +1567,7 @@ class MySpiralPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'>>>{lineNo():5d} MySpiralPreviewLabel.ValueChanging | {t} <<< ')
+        # print(f'>>>{lineNo():5d} MySpiralPreviewLabel.ValueChanging | {t} <<< ')
 
 
 class MySpiralParameterItem(MyGroupParameterItem):
@@ -1602,7 +1600,7 @@ class MySpiralParameter(MyGroupParameter):
         self.addChild(dict(name='Radius incr', value=self.spiral.radInc, type='float', decimals=d, suffix='m/360°'))
         self.addChild(dict(name='Start angle', value=self.spiral.azi0, type='float', decimals=d, suffix='°E', tip=tip))
         self.addChild(dict(name='Point interval', value=self.spiral.dist, type='float', decimals=d, suffix='m', tip=tip))
-        self.addChild(dict(name='Points', value=self.spiral.points, type='int', decimals=d, enabled=False, readonly=True))    # myInt
+        self.addChild(dict(name='Points', value=self.spiral.points, type='myInt', decimals=d, enabled=False, readonly=True))    # myInt
 
         self.parR1 = self.child('Min radius')
         self.parR2 = self.child('Max radius')
@@ -1634,28 +1632,50 @@ class MyWellPreviewLabel(MyPreviewLabel):
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
         self.decimals = param.opts.get('decimals', 5)
 
-        val = param.opts.get('value', None)
-        self.onValueChanging(None, val)
+        self.showInformation(param)
 
-    def onValueChanging(self, _, val):                                          # unused param replaced by _
-        f = val.name
-        s = val.dAhd
-        n = val.nAhd
+    def showInformation(self, param):
+        c = param.child('Well CRS').opts['value']
+        f = param.child('Well file').opts['value']
+        s = param.child('AHD interval').opts['value']
+        n = param.child('Points').opts['value']
+
         d = self.decimals
+        e = False
 
-        if not f is None and os.path.exists(f):
+        if not f is None and os.path.exists(f):                                 # check filename first
             f = QFileInfo(f).fileName()
             t = f'{n:.{d}g} points, in {f}, d{s:.{d}g}m'
+            e = False
+            if not c.isValid():                                                 # file available; next check CRS
+                t = 'An invalid CRS has been selected'
+                e = True
+            elif c.isGeographic():
+                t = 'No valid CRS (use of lat/lon angles)'
+                e = True
         else:
             t = 'No valid well file selected'
+            e = True
 
         self.setText(t)
+        self.setErrorCondition(e)
         self.update()
 
-        print(f'>>>{lineNo():5d} MyWellPreviewLabel.ValueChanging | {t} <<<')
+        # print(f'+++{lineNo():5d} MyWellPreviewLabel.showInformation | {t} +++')
+
+    def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        # print(f'>>>{lineNo():5d} MyWellPreviewLabel.ValueChanging <<<')
+
+        self.showInformation(param)
+
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
+
+        self.showInformation(param)
 
 
 class MyWellParameterItem(MyGroupParameterItem):
@@ -1690,22 +1710,23 @@ class MyWellParameter(MyGroupParameter):
         fileName = self.well.name if self.well.name is not None and os.path.exists(self.well.name) else None
 
         self.addChild(dict(name='Well file', type='file', value=fileName, selectFile=fileName, acceptMode='AcceptOpen', fileMode='ExistingFile', viewMode='Detail', directory=directory, nameFilter=nameFilter))
-        self.addChild(dict(name='Well origin', type='myPoint3D', value=self.well.orig, decimals=d, expanded=True, flat=True, enabled=False, readonly=True))
         self.addChild(dict(name='Well CRS', type='myCrs', value=self.well.crs, default=self.well.crs, expanded=False, flat=True))
+        self.addChild(dict(name='Origin [well]', type='myPoint3D', value=self.well.origW, decimals=d, expanded=False, flat=True, enabled=False, readonly=True))
+        self.addChild(dict(name='Origin [global]', type='myPoint2D', value=self.well.origG, decimals=d, expanded=False, flat=True, enabled=False, readonly=True))
+        self.addChild(dict(name='Origin [local]', type='myPoint2D', value=self.well.origL, decimals=d, expanded=False, flat=True, enabled=False, readonly=True))
 
         self.addChild(dict(name='AHD start', type='float', value=self.well.ahd0, decimals=d, limits=[0.0, None], suffix='m ref SRD', tip=tip))
         self.addChild(dict(name='AHD interval', type='float', value=self.well.dAhd, decimals=d, limits=[1.0, None], suffix='m'))
         self.addChild(dict(name='Points', type='int', value=self.well.nAhd, decimals=d, limits=[1, None]))
 
-        self.parF = self.child('Well file')
-        self.parO = self.child('Well origin')
         self.parC = self.child('Well CRS')
+        self.parF = self.child('Well file')
         self.parA = self.child('AHD start')
         self.parI = self.child('AHD interval')
         self.parN = self.child('Points')
 
-        self.parF.sigValueChanged.connect(self.changedF)
         self.parC.sigValueChanged.connect(self.changedC)
+        self.parF.sigValueChanged.connect(self.changedF)
         self.parA.sigValueChanged.connect(self.changedA)
         self.parI.sigValueChanged.connect(self.changedI)
         self.parN.sigValueChanged.connect(self.changedN)
@@ -1713,97 +1734,47 @@ class MyWellParameter(MyGroupParameter):
         self.changedF()                                                         # this will initialise 'value'
 
     def changedF(self):
-        f = self.well.name = self.parF.value()                                  # only the file has changed; rest comes from self.well object
-        a = self.well.ahd0
-        s = self.well.dAhd
-        n = self.well.nAhd
-
+        f = self.well.name = self.parF.value()                                  # file name has changed
         if f is None or not os.path.exists(f):
             return
 
-        header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
-        # Note: datum = kb (kelly bushing), dfe (drill floor elevation), or rt (rotary table)
+        self.well.readHeader(config.surveyCrs, config.glbTransform)
 
-        ext = QFileInfo(f).suffix()
-        if ext == 'wws':
-            md, _, _ = wp.read_csv(f, delimiter=None, skiprows=0, comments='#')   # inc, azi unused and replaced by _, _
-            z = self.well.ahdMax = md[-1]                                       # maximum along-hole-depth
-            print('max ah depth', self.well.ahdMax)
+        self.child('Origin [well]', 'X').setValue(self.well.origW.x())
+        self.child('Origin [well]', 'Y').setValue(self.well.origW.y())
+        self.child('Origin [well]', 'Z').setValue(self.well.origW.z())
 
-            td = a + (n - 1) * s
-            if td > z:
-                td = math.floor(z)
-                n = 1                                                           # can only accommodate a single point
-                self.well.nAhd = n
-                self.well.ahd0 = td
-                self.parN.setValue(n, blockSignal=self.changedN)
-                self.parA.setValue(td, blockSignal=self.changedA)
-            else:
-                nMax = int((z - a + s) / s)                                     # max nr points that fit in the well
-                self.well.nAhd = min(n, nMax)
-                self.parN.setValue(n, blockSignal=self.changedN)
+        x = self.child('Origin [global]', 'X').setValue(self.well.origG.x())
+        y = self.child('Origin [global]', 'Y').setValue(self.well.origG.y())
 
-            # where is the well 'in space'? First see if there's a header file, to pull information from:
-            hdrFile = os.path.splitext(f)[0]
-            hdrFile = hdrFile + '.hdr'
-            if os.path.exists(hdrFile):                                         # open the header file
-                header = wp.read_header_json(hdrFile)                           # read header in json format, as described in header dict above
-            else:
-                header = read_wws_header(f)                                     # get header information from wws file itself
+        x = self.child('Origin [local]', 'X').setValue(self.well.origL.x())
+        y = self.child('Origin [local]', 'Y').setValue(self.well.origL.y())
 
-        elif ext == 'well':
-            header, index = read_well_header(f)
-            pos2D = np.loadtxt(f, delimiter=None, skiprows=index, comments='!')   # read the 4 column ascii data; skip header rows
-            # transpose array to 4 rows, and read these rows
-            _, _, depth, md = pos2D.T                                           # north, east unused and replaced by _, _
-
-            hdrFile = os.path.splitext(f)[0]                                    # the self-contained 'well' file does not require a separate header file;
-            hdrFile = hdrFile + '.hdr'                                          # but a header file may be used to override the included header data
-            if os.path.exists(hdrFile):                                         # open the header file
-                header = wp.read_header_json(hdrFile)                           # read header in json format, as described in header dict above
-
-            md = md.flatten()
-            if header['elevation'] is None:                                     # no separate header file has been provided
-                header['elevation'] = md[0] - depth[0]                          # use data itself to derive wellhead elevation
-
-            z = self.well.ahdMax = md[-1]                                       # maximum along-hole-depth
-
-            td = a + (n - 1) * s
-            if td > z:
-                td = math.floor(z)
-                n = 1
-                self.well.nAhd = n
-                self.well.ahd0 = td
-                self.parN.setValue(n, blockSignal=self.changedN)
-                self.parA.setValue(td, blockSignal=self.changedA)
-            else:
-                nMax = int((z - a + s) / s)
-                self.well.nAhd = min(n, nMax)
-                self.parN.setValue(n, blockSignal=self.changedN)
-
-        else:
-            raise ValueError(f'unsupported file extension: {ext}')
-
-        self.well.orig = QVector3D(header['surface_easting'], header['surface_northing'], header['elevation'])
-        self.parO.setValue(self.well.orig)
-
-        self.sigValueChanging.emit(self, self.value())
+        self.changedA()
 
     def changedC(self):
-        c = self.parC.value()
+        self.well.crs = self.parC.value()
 
-        if not c.isValid():
+        if not self.well.crs.isValid():
             QMessageBox.information(None, 'Invalid CRS', 'An invalid CRS has been selected.   \nPlease change Well CRS', QMessageBox.Ok)
-            self.parC.setValue(self.well.crs)
-            return False
+            return
 
-        if c.isGeographic():
-            QMessageBox.information(None, 'Invalid CRS', 'An invalid CRS has been selected (using lat/lon values)   \nPlease change Well CRS', QMessageBox.Ok)
-            self.parC.setValue(self.well.crs)
-            return False
+        if self.well.crs.isGeographic():
+            QMessageBox.information(None, 'Invalid CRS', 'A geographic CRS has been selected (using lat/lon values)   \nPlease change Well CRS', QMessageBox.Ok)
+            return
 
-        self.well.crs = c
-        return True
+        if self.well.name is None or not os.path.exists(self.well.name):
+            return
+
+        self.well.readHeader(config.surveyCrs, config.glbTransform)
+
+        x = self.child('Origin [global]', 'X').setValue(self.well.origG.x())        # these will  be different with a different well-CRS
+        y = self.child('Origin [global]', 'Y').setValue(self.well.origG.y())
+
+        x = self.child('Origin [local]', 'X').setValue(self.well.origL.x())
+        y = self.child('Origin [local]', 'Y').setValue(self.well.origL.y())
+
+        self.changedA()                                                         # check ahd0 and nr of allowed intervals
 
     def changedA(self):
         a = self.well.ahd0 = self.parA.value()
@@ -1811,7 +1782,7 @@ class MyWellParameter(MyGroupParameter):
         n = self.well.nAhd = self.parN.value()
         z = self.well.ahdMax
 
-        if z is None:
+        if z < 0.0:
             return
 
         # do integrity checks here
@@ -1836,7 +1807,7 @@ class MyWellParameter(MyGroupParameter):
         n = self.well.nAhd = self.parN.value()
         z = self.well.ahdMax
 
-        if z is None:
+        if z < 0.0:
             return
 
         # do integrity checks here
@@ -1862,7 +1833,7 @@ class MyWellParameter(MyGroupParameter):
         n = self.well.nAhd = self.parN.value()
         z = self.well.ahdMax
 
-        if z is None:
+        if z < 0.0:
             return
 
         # do integrity checks here
@@ -2002,10 +1973,12 @@ class MyBlockListParameter(MyGroupParameter):
             self.sigValueChanging.emit(self, self.value())
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
-        print(f'>>>{lineNo():5d} BlockList.ChildAdded <<<')
+        # print(f'>>>{lineNo():5d} BlockList.ChildAdded <<<')
+        pass
 
     def onChildRemoved(self, _):                                                # child unused and replaced by _
-        print(f'>>>{lineNo():5d} BlockList.ChildRemoved <<<')
+        # print(f'>>>{lineNo():5d} BlockList.ChildRemoved <<<')
+        pass
 
 
 class MyPatternPreviewLabel(MyPreviewLabel):
@@ -2029,15 +2002,15 @@ class MyPatternPreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        print(f'+++{lineNo():5d} MyPatternPreviewLabel.showInformation | {t} +++')
+        # print(f'+++{lineNo():5d} MyPatternPreviewLabel.showInformation | {t} +++')
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        print(f'>>>{lineNo():5d} MyPatternPreviewLabel.ValueChanging <<<')
+        # print(f'>>>{lineNo():5d} MyPatternPreviewLabel.ValueChanging <<<')
 
         self.showInformation(param)
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        print(f'>>>{lineNo():5d} MyPatternPreviewLabel.TreeStateChanged <<<')
+        # print(f'>>>{lineNo():5d} MyPatternPreviewLabel.TreeStateChanged <<<')
 
         self.showInformation(param)
 
@@ -2182,10 +2155,12 @@ class MyPatternListParameter(MyGroupParameter):
             self.sigValueChanging.emit(self, self.value())
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
-        print(f'>>>{lineNo():5d} PatternList.ChildAdded <<<')
+        # print(f'>>>{lineNo():5d} PatternList.ChildAdded <<<')
+        pass
 
     def onChildRemoved(self, _):                                                # child unused and replaced by _
-        print(f'>>>{lineNo():5d} PatternList.ChildRemoved <<<')
+        # print(f'>>>{lineNo():5d} PatternList.ChildRemoved <<<')
+        pass
 
 
 class MyGridParameter(MyGroupParameter):
@@ -2422,10 +2397,8 @@ class MySurveyParameter(MyGroupParameter):
 def registerAllParameterTypes():
 
     # first, register *simple* parameters, already defined in other files
-    registerParameterItemType('myFloat', MyNumericParameterItem, SimpleParameter, override=True)
-    registerParameterItemType('myInt', MyNumericParameterItem, SimpleParameter, override=True)
-    # registerParameterItemType('myFloat', MyNumericParameterItem, MySimpleParameter, override=True)
-    # registerParameterItemType('myInt', MyNumericParameterItem, MySimpleParameter, override=True)
+    registerParameterType('myInt', MyIntParameter, override=True)
+    registerParameterType('myFloat', MyFloatParameter, override=True)
 
     # then, register the parameters, already defined in other files
     registerParameterType('myCmap', MyCmapParameter, override=True)
@@ -2436,6 +2409,7 @@ def registerAllParameterTypes():
     registerParameterType('myMarker', MyMarkerParameter, override=True)
     registerParameterType('myNVector', MyNVectorParameter, override=True)
     registerParameterType('myPen', MyPenParameter, override=True)
+    registerParameterType('myPoint2D', MyPoint2DParameter, override=True)
     registerParameterType('myPoint3D', MyPoint3DParameter, override=True)
     registerParameterType('myRectF', MyRectParameter, override=True)
     registerParameterType('mySlider', MySliderParameter, override=True)

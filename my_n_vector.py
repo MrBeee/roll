@@ -5,18 +5,13 @@ from qgis.PyQt.QtGui import QVector3D
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
+from .my_preview_label import MyPreviewLabel
 
 
-class NVectorPreviewLabel(QLabel):
+class NVectorPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
         param.sigValueChanging.connect(self.onVectorChanging)
-
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        font = self.font()
-        font.setPointSizeF(font.pointSize() - 0.5)
-        self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
 
         opts = param.opts
         self.decimals = opts.get('decimals', 3)

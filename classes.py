@@ -9,14 +9,19 @@ from enum import Enum
 import numpy as np
 import pyqtgraph as pg
 import wellpathpy as wp
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVector3D
-from qgis.PyQt.QtCore import QFileInfo, QLineF, QMarginsF, QPointF, QRectF, QThread, pyqtSignal
-from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPainterPath, QPicture, QPolygonF, QTransform, QVector3D
+from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
+                       QgsPointXY, QgsProject, QgsVector3D)
+from qgis.PyQt.QtCore import (QFileInfo, QLineF, QMarginsF, QPointF, QRectF,
+                              QThread, pyqtSignal)
+from qgis.PyQt.QtGui import (QBrush, QColor, QPainter, QPainterPath, QPicture,
+                             QPolygonF, QTransform, QVector3D)
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement, QDomNode
 
 from . import config  # used to pass initial settings
-from .functions import clipLineF, clipRectF, containsPoint2D, containsPoint3D, deviation, read_well_header, read_wws_header, toFloat, toInt
+from .functions import (clipLineF, clipRectF, containsPoint2D, containsPoint3D,
+                        deviation, read_well_header, read_wws_header, toFloat,
+                        toInt)
 from .rdp import filterRdp
 from .sps_io_and_qc import pntType1, relType2
 
@@ -1352,24 +1357,105 @@ class RollWell:
     # assign default name
     def __init__(self, name: str = '') -> None:
         # input variables
-        # path to well
-        self.name = name
-        self.crs = QgsCoordinateReferenceSystem('EPSG:4326')                   # create invalid crs object
-        self.ahd0 = 1000.0
-        self.dAhd = 15.0
-        self.nAhd = 12
-        # calculated variables
-        # ahd max, used to set limits for ahd0 and nAhd
-        self.ahdMax = None
-        # seed wellhead location in original CRS coordinates
-        self.orig = QVector3D()
-        # well origin, converted from global coordinates to survey coordinates
-        self.head = QPointF()
-        # polygon in survey coordinates, to draw well trajectory
-        self.polygon = None
-        # points in survey coordinates, to draw well trajectory
-        self.pntList2D = []
+        self.name = name                                                        # path to well file
+
+        if config.surveyCrs is not None and config.surveyCrs.isValid():         # copy crs from project
+            self.crs = config.surveyCrs
+        else:
+            self.crs = QgsCoordinateReferenceSystem('EPSG:23095')               # ED50 / TM 5 NE (arbitrarily)
+
+        self.ahd0 = 1000.0                                                      # first (along hole) depth
+        self.dAhd = 15.0                                                        # along hole depth increment
+        self.nAhd = 12                                                          # nr of along hole stations
+
+        # variables, calculated and serialized
+        self.ahdMax = -999.0                                                    # ahd max, used to set limits for ahd0 and nAhd
+        self.origW = QVector3D(-999.0, -999.0, -999.0)                          # wellhead location in original well coordinates
+        self.origG = QPointF(-999.0, -999.0)                                    # wellhead location in global project coordinates
+        self.origL = QPointF(-999.0, -999.0)                                    # wellhead location in local project coordinates
+
+        # variables, calculated but not serialized
+        self.polygon = None                                                     # polygon in survey coordinates, to draw well trajectory
+        self.pntList2D = []                                                     # points in survey coordinates, to draw well trajectory
+
+        # please note the seed's origin isn't shown in the property editor, when using a well-based seed
+        # instead, the well's origin is shown in 3 different CRSes; (a) well (b) global (c) local
+
         # for self.lod0 See: https://python.hotexamples.com/examples/PyQt5.QtGui/QPainter/drawPolyline/python-qpainter-drawpolyline-method-examples.html
+
+    def readHeader(self, surveyCrs, glbTransform):
+        f = self.name
+        header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
+
+        ext = QFileInfo(f).suffix()
+        if ext == 'wws':                                                        # read the well survey file
+            md, _, _ = wp.read_csv(f, delimiter=None, skiprows=0, comments='#')   # inc, azi unused and replaced by _, _
+            self.ahdMax = md[-1]                                                # maximum along-hole-depth
+
+            # where is the well located ? First see if there's a header file, to pull information from.
+            hdrFile = os.path.splitext(f)[0]
+            hdrFile = hdrFile + '.hdr'
+            # open the header file
+            if os.path.exists(hdrFile):
+                # read header in json format
+                header = wp.read_header_json(hdrFile)
+            else:
+                # get header information from wws-file itself
+                header = read_wws_header(f)
+
+        elif ext == 'well':
+            header, index = read_well_header(f)
+
+            # read the 4 column ascii data; skip header rows
+            pos2D = np.loadtxt(f, delimiter=None, skiprows=index, comments='!')
+
+            # transpose array to 4 rows, and read these rows
+            _, _, depth, md = pos2D.T
+
+            # determine maximum along-hole-depth
+            self.ahdMax = md[-1]
+
+            # the self-contained 'well' file does not require a separate header file;
+            hdrFile = os.path.splitext(f)[0]
+
+            # but a header file could be used to override the included header data
+            hdrFile = hdrFile + '.hdr'
+            if os.path.exists(hdrFile):
+                # read header in json format, as described in header dict above
+                header = wp.read_header_json(hdrFile)
+
+            # no separate header file has been provided
+            if header['elevation'] is None:
+                header['elevation'] = md[0] - depth[0]
+        else:
+            raise ValueError(f'unsupported file extension: {ext}')
+
+        self.origW = QVector3D(header['surface_easting'], header['surface_northing'], header['elevation'])
+
+        # note: if survey's crs and well's crs are the same, the wellToGlobalTransform has no effect
+        wellToGlobalTransform = QgsCoordinateTransform(surveyCrs, self.crs, QgsProject.instance())
+
+        if not wellToGlobalTransform.isValid():                                 # no valid transform found
+            self.origG = QPointF(-999.0, -999.0)
+            self.origL = QPointF(-999.0, -999.0)
+            return False
+
+        # now create the origin in global survey coordinates (well-crs -> project-crs)
+        x0, y0 = wellToGlobalTransform.transform(header['surface_easting'], header['surface_northing'])
+
+        x0 = round(x0, 2)
+        y0 = round(y0, 2)
+        self.origG = QPointF(x0, y0)
+
+        # create transform from global- to survey coordinates
+        toLocalTransform, _ = glbTransform.inverted()
+
+        # convert orig from global- to local coordinates
+        self.origL = toLocalTransform.map(self.origG)
+        self.origL.setX(round(self.origL.x(), 2))
+        self.origL.setY(round(self.origL.y(), 2))
+
+        return True
 
     def calcPointList(self, surveyCrs, glbTransform):
         # See: https://stackoverflow.com/questions/49322017/merging-1d-arrays-into-a-2d-array
@@ -1382,10 +1468,12 @@ class RollWell:
         td = a + (n - 1) * s
         header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
 
-        # note: if survey's crs and well's crs are the same, the crsTransform has no effect
-        crsTransform = QgsCoordinateTransform(surveyCrs, self.crs, QgsProject.instance())
-        # create transform from global- to survey coordinates
-        wellTransform, _ = glbTransform.inverted()
+        # note: if survey's crs and well's crs are the same, the wellToGlobalTransform has no effect
+        wellToGlobalTransform = QgsCoordinateTransform(surveyCrs, self.crs, QgsProject.instance())
+
+        # create transform from global- to local coordinates
+        toLocalTransform, _ = glbTransform.inverted()
+
         # create list of available ahd-depth-levels
         depths = list(np.linspace(a, td, num=n))
 
@@ -1435,7 +1523,7 @@ class RollWell:
         else:
             raise ValueError(f'unsupported file extension: {ext}')
 
-        # this is the key routine that resamples to (x, y, z) values
+        # this is the key routine that resamples well trajectory to (x, y, z) values
         pos = dev.minimum_curvature().resample(depths=depths)
         pos_wellhead = pos.to_wellhead(surface_northing=header['surface_northing'], surface_easting=header['surface_easting'])
         pos_tvdss = pos_wellhead.to_tvdss(datum_elevation=header['elevation'])
@@ -1452,32 +1540,45 @@ class RollWell:
         for i in range(n):
             # use 3D values; survey points reside in well
             vector = QgsVector3D(x[i], y[i], z[i])
-            # crsTransform may affect elevation
-            vector = crsTransform.transform(vector)
-            # z-value not used in wellTransform
+
+            # wellToGlobalTransform may affect elevation
+            vector = wellToGlobalTransform.transform(vector)
+
+            # z-value not used in toLocalTransform
             pnt2D = QPointF(vector.x(), vector.y())
+
             # convert 2D point from global coordinates to survey coordinates
-            pnt2D = wellTransform.map(pnt2D)
+            pnt2D = toLocalTransform.map(pnt2D)
+
             # create 3D point to be added to list after survey transform
             pnt3D = QVector3D(pnt2D.x(), pnt2D.y(), vector.z())
+
             # points to derive cdp coverage from
             pointList.append(pnt3D)
 
         # now create the well trajectory; 2D points in survey coordinates (well-crs -> project-crs -> survey grid); start with origin
-        x0, y0 = crsTransform.transform(header['surface_easting'], header['surface_northing'])
-        # convert from global- to survey coordinates; unpack tuple to create a QPointF
-        self.head = QPointF(*wellTransform.map(x0, y0))
+        x0, y0 = wellToGlobalTransform.transform(header['surface_easting'], header['surface_northing'])
+
+        x0 = round(x0, 2)
+        y0 = round(y0, 2)
+
         # convert from global- to survey coordinates; unpack tuple to create a QVector3D
-        seedOrigin = QVector3D(*wellTransform.map(x0, y0), 0.0)
+        x0, y0 = toLocalTransform.map(x0, y0)
+        x0 = round(x0, 2)
+        y0 = round(y0, 2)
+        z0 = round(header['elevation'], 2)
+        seedOrigin = QVector3D(x0, y0, z0)
 
         # create a well trajectory to be displayed; start with 50 points along trajectory
         steps = 50
         depths = list(range(0, int(dev.md[-1]) + 1, steps))
+
         # this is the key routine that resamples to (x, y, z) values
         pos = dev.minimum_curvature().resample(depths=depths)
         pos_wellhead = pos.to_wellhead(surface_northing=header['surface_northing'], surface_easting=header['surface_easting'])
         pos_tvdss = pos_wellhead.to_tvdss(datum_elevation=header['elevation'])
         data = list(zip(pos_tvdss.easting, pos_tvdss.northing))
+
         # create mask point list with 2.5 m accuracy
         mask = filterRdp(data, threshold=2.5)
         # apply the mask and reduce mumber of points
@@ -1489,10 +1590,10 @@ class RollWell:
         # create polygon to draw well trajectory
         self.polygon = QPolygonF()
         for p in data:                                                          # create point iterator
-            # crsTransform may affect elevation
-            pnt2D = crsTransform.transform(QgsPointXY(*p)).toQPointF()
+            # wellToGlobalTransform may affect elevation
+            pnt2D = wellToGlobalTransform.transform(QgsPointXY(*p)).toQPointF()
             # convert 2D point from global coordinates to survey coordinates
-            pnt2D = wellTransform.map(pnt2D)
+            pnt2D = toLocalTransform.map(pnt2D)
             # points to display on map
             self.pntList2D.append(pnt2D)
             # add points to polygon
@@ -1513,9 +1614,18 @@ class RollWell:
         nameElement.appendChild(text)
         wellElem.appendChild(nameElement)
 
-        wellElem.setAttribute('s0', str(self.ahd0))
         wellElem.setAttribute('ds', str(self.dAhd))
         wellElem.setAttribute('ns', str(self.nAhd))
+        wellElem.setAttribute('s0', str(self.ahd0))
+        wellElem.setAttribute('smax', str(self.ahdMax))
+
+        wellElem.setAttribute('wx', str(round(self.origW.x(), 2)))
+        wellElem.setAttribute('wy', str(round(self.origW.y(), 2)))
+        wellElem.setAttribute('wz', str(round(self.origW.z(), 2)))
+        wellElem.setAttribute('gx', str(round(self.origG.x(), 2)))
+        wellElem.setAttribute('gy', str(round(self.origG.y(), 2)))
+        wellElem.setAttribute('lx', str(round(self.origL.x(), 2)))
+        wellElem.setAttribute('ly', str(round(self.origL.y(), 2)))
 
         wellCrs = doc.createElement('wellCrs')
         wellElem.appendChild(wellCrs)
@@ -1535,9 +1645,27 @@ class RollWell:
         if not nameElem.isNull():
             self.name = nameElem.text()
 
-        self.ahd0 = toFloat(wellElem.attribute('s0'))
         self.dAhd = toFloat(wellElem.attribute('ds'))
         self.nAhd = toInt(wellElem.attribute('ns'))
+        self.ahd0 = toFloat(wellElem.attribute('s0'))
+        self.ahdMax = toFloat(wellElem.attribute('smax'), -999.0)
+
+        x0 = toFloat(wellElem.attribute('x0'), -999.0)                          # 'old' xml-attribute
+        y0 = toFloat(wellElem.attribute('y0'), -999.0)                          # 'old' xml-attribute
+        z0 = toFloat(wellElem.attribute('z0'), -999.0)                          # 'old' xml-attribute
+
+        self.origW.setX(toFloat(wellElem.attribute('wx'), x0))                  # these parameters need to be calculated
+        self.origW.setY(toFloat(wellElem.attribute('wy'), y0))                  # using input from a 'well file'
+        self.origW.setZ(toFloat(wellElem.attribute('wz'), z0))
+
+        self.origG.setX(toFloat(wellElem.attribute('gx'), -999.0))              # well coordinates converted to 'global' survey crs
+        self.origG.setY(toFloat(wellElem.attribute('gy'), -999.0))
+
+        hx = toFloat(wellElem.attribute('hx'), -999.0)
+        hy = toFloat(wellElem.attribute('hy'), -999.0)
+
+        self.origL.setX(toFloat(wellElem.attribute('lx'), hx))                  # 'global' well coordinates converted to local survey grid
+        self.origL.setY(toFloat(wellElem.attribute('ly'), hy))
 
         crsElem = wellElem.namedItem('wellCrs').toElement()
         if not crsElem.isNull():
@@ -1584,9 +1712,9 @@ class RollSeed:
             nameElement.appendChild(text)
             seedElem.appendChild(nameElement)
 
-        seedElem.setAttribute('x0', str(self.origin.x()))
-        seedElem.setAttribute('y0', str(self.origin.y()))
-        seedElem.setAttribute('z0', str(self.origin.z()))
+        seedElem.setAttribute('x0', str(round(self.origin.x(), 2)))
+        seedElem.setAttribute('y0', str(round(self.origin.y(), 2)))
+        seedElem.setAttribute('z0', str(round(self.origin.z(), 2)))
         seedElem.setAttribute('src', str(self.bSource))
         seedElem.setAttribute('azi', str(self.bAzimuth))
         seedElem.setAttribute('patno', str(self.patternNo))
@@ -2549,6 +2677,8 @@ class RollSurvey(pg.GraphicsObject):
         self.glbTransform.rotate(p)
         self.glbTransform.scale(q, r)
 
+        config.glbTransform = self.glbTransform                              # for global access to this transform
+
         # set up a QMatrix4x4 using the three transform steps (translate, rotate, scale)
         # glbMatrix1 = QMatrix4x4()
         # glbMatrix1.translate(QVector3D(x, y, 0))
@@ -2576,18 +2706,18 @@ class RollSurvey(pg.GraphicsObject):
         # by building up the local plane from 3 transformed points, the correct normal was found
         # the plane's anchor is simply one of the three points that were used for the transform
 
-        toLocTransform, _ = self.glbTransform.inverted()                        # get inverse transform
+        toLocalTransform, _ = self.glbTransform.inverted()                      # get inverse transform
 
         o0 = self.globalPlane.anchor                                            # get the plane's anchor
-        o1 = toLocTransform.map(o0.toPointF())                                  # transform the 2D point
+        o1 = toLocalTransform.map(o0.toPointF())                                # transform the 2D point
         o2 = QVector3D(o1.x(), o1.y(), o0.z())                                  # 3D point in local coordinates
 
         p0 = o0 + QVector3D(1000.0, 0.0, 0.0)                                   # shift the anchor in x-direction
-        p1 = toLocTransform.map(p0.toPointF())                                  # transform the shifted 2D point
+        p1 = toLocalTransform.map(p0.toPointF())                                # transform the shifted 2D point
         p2 = QVector3D(p1.x(), p1.y(), self.globalPlane.depthAt(p0.toPointF()))   # 3D point in local coordinates
 
         q0 = o0 + QVector3D(0.0, 1000.0, 0.0)                                   # shift the anchor in y-direction
-        q1 = toLocTransform.map(q0.toPointF())                                  # transform the shifted 2D point
+        q1 = toLocalTransform.map(q0.toPointF())                                # transform the shifted 2D point
         q2 = QVector3D(q1.x(), q1.y(), self.globalPlane.depthAt(q0.toPointF()))   # 3D point in local coordinates
 
         n = QVector3D.normal(o2, p2, q2)                                        # Get the normalized normal vector of a plane defined by p2 - o2 and q2 - o2
@@ -2599,7 +2729,7 @@ class RollSurvey(pg.GraphicsObject):
         r0 = self.globalSphere.radius
         r1 = r0 * q
         o0 = self.globalSphere.origin
-        s1 = toLocTransform.map(o0.toPointF())                                  # transform the 2D point to local coordinates
+        s1 = toLocalTransform.map(o0.toPointF())                                  # transform the 2D point to local coordinates
         s2 = QVector3D(s1.x(), s1.y(), o0.z() * q)                              # 3D point in local coordinates, with z axis scaled as well
         self.localSphere = RollSphere(s2, r1)                                   # initiate the local sphere
 
@@ -2615,7 +2745,6 @@ class RollSurvey(pg.GraphicsObject):
 
         s0 = self.grid.stakeOrig.x()
         l0 = self.grid.stakeOrig.y()
-
         ds = self.grid.stakeSize.x()
         dl = self.grid.stakeSize.y()
 
@@ -5202,6 +5331,8 @@ class RollSurvey(pg.GraphicsObject):
             return None
 
     def checkIntegrity(self):
+        """this routine checks survey integrity, after edits have been made"""
+
         e = 'Survey format error'
         if len(self.blockList) == 0:
             QMessageBox.warning(None, e, 'A survey needs at least one block')
@@ -5231,7 +5362,7 @@ class RollSurvey(pg.GraphicsObject):
                             QMessageBox.warning(None, e, f'{c.description()}. Invalid CRS (using lat/lon values).   \nPlease change CRS in well-seed')
                             return False
 
-                            # the next check is too much hassle to implement; we'll need to update the parameter tree as well, to reflect changes in CRS
+                            # the next check is too much hassle to implement, as we'll need to update the parameter tree too, to reflect changes in well CRS
                             # reply = QMessageBox.question(None, e, f'{c.description()}. Invalid CRS (using lat/lon values).  \nUse project CRS instead ?', QMessageBox.Ok, QMessageBox.Cancel)
                             # if reply == QMessageBox.Cancel:
                             #     return False
@@ -5928,7 +6059,7 @@ class RollSurvey(pg.GraphicsObject):
                 # draw well trajectory as part of this template; move this up to paint()
                 painter.drawPolyline(seed.well.polygon)
                 # draw small circle where well surfaces
-                painter.drawEllipse(seed.well.head, 5.0, 5.0)
+                painter.drawEllipse(seed.well.origL, 5.0, 5.0)
 
                 # need the in-well points as well...
                 if lod > config.lod2 and not self.mouseGrabbed:

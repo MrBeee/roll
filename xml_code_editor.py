@@ -27,8 +27,11 @@ See also: https://carsonfarmer.com/2009/07/syntax-highlighting-with-pyqt/
 For cpp: https://github.com/d1vanov/basic-xml-syntax-highlighter
 """
 from qgis.PyQt.QtCore import QRect, QRegExp, Qt
-from qgis.PyQt.QtGui import QColor, QFont, QPainter, QSyntaxHighlighter, QTextCharFormat, QTextCursor, QTextFormat, QTextOption
-from qgis.PyQt.QtWidgets import QApplication, QPlainTextEdit, QTextEdit, QWidget
+from qgis.PyQt.QtGui import (QColor, QFont, QPainter, QSyntaxHighlighter,
+                             QTextCharFormat, QTextCursor, QTextFormat,
+                             QTextOption)
+from qgis.PyQt.QtWidgets import (QApplication, QPlainTextEdit, QTextEdit,
+                                 QWidget)
 
 # classes definition
 
@@ -84,7 +87,6 @@ class XMLHighlighter(QSyntaxHighlighter):
         keywordFormat.setForeground(QColor('#000070'))   # blue
         keywordFormat.setFontWeight(QFont.Bold)
         keywordPatterns = [
-            '\\b?xml\\b',
             '/>',
             '>',
             '<',
@@ -92,7 +94,7 @@ class XMLHighlighter(QSyntaxHighlighter):
             '\\b?(spatialrefsys|wkt|proj4|srsid|srid|authid|description|projectionacronym|ellipsoidacronym|geographicflag)\\b',
             '\\b?(survey|type|name|surveyCrs|limits|angles|binning|offset|output|unique|well|spiral|circle)\\b',
             '\\b?(grid|b?local|global|block_list|block|borders|plane|sphere|reflectors|rec_border|src_border)\\b',
-            '\\b?(template_list|template|roll_list|translate|seed_list|seed|grow_list|pattern_list|pattern)\\b',
+            '\\b?(template_list|template|roll_list|translate|seed_list|seed|grow_list|pattern_list|pattern|wellCrs|xml)\\b',
         ]
 
         self.highlightingRules += [(QRegExp(pattern), keywordFormat) for pattern in keywordPatterns]
