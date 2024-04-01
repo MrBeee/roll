@@ -135,7 +135,9 @@
     <addaction name="actionCut"/>
     <addaction name="actionCopy"/>
     <addaction name="actionPaste"/>
-    <addaction name="actionSelAll"/>
+    <addaction name="actionSelectAll"/>
+    <addaction name="separator"/>
+    <addaction name="actionFind"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -366,7 +368,7 @@
     <string>Ctrl+V</string>
    </property>
   </action>
-  <action name="actionSelAll">
+  <action name="actionSelectAll">
    <property name="icon">
     <iconset>
      <normaloff>resources/icons8-select-all-48.png</normaloff>resources/icons8-select-all-48.png</iconset>
@@ -833,6 +835,18 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+I</string>
+   </property>
+  </action>
+  <action name="actionFind">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionEditFind.svg</normaloff>resources/mActionEditFind.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Find</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
    </property>
   </action>
  </widget>

@@ -1732,12 +1732,9 @@ class MyWellParameter(MyGroupParameter):
         self.changedF()                                                         # this will initialise 'value'
 
     def changedF(self):
-        f = self.well.name = self.parF.value()                                  # file name has changed
-        if f is None or not os.path.exists(f):
-            return
+        self.well.name = self.parF.value()                                      # file name has changed
 
         success = self.well.readHeader(config.surveyCrs, config.glbTransform)
-
         if not success:
             self.well.origW = QVector3D(-999.0, -999.0, -999.0)
             self.well.origG = QPointF(-999.0, -999.0)
@@ -1760,27 +1757,13 @@ class MyWellParameter(MyGroupParameter):
 
     def changedC(self):
         self.well.crs = self.parC.value()
-        self.well.errorText = None
-
-        if not self.well.crs.isValid():
-            self.well.errorText = 'An invalid CRS has been selected'
-            QMessageBox.information(None, 'Invalid CRS', 'An invalid CRS has been selected.   \nPlease change Well CRS', QMessageBox.Ok)
-            return
-
-        if self.well.crs.isGeographic():
-            self.well.errorText = 'geographic CRS selected (using lat/lon angles)'
-            QMessageBox.information(None, 'Invalid CRS', 'A geographic CRS has been selected (using lat/lon angles)   \nPlease change Well CRS', QMessageBox.Ok)
-            return
-
-        if self.well.name is None or not os.path.exists(self.well.name):
-            return
 
         success = self.well.readHeader(config.surveyCrs, config.glbTransform)
-
         if not success:
             self.well.origW = QVector3D(-999.0, -999.0, -999.0)
             self.well.origG = QPointF(-999.0, -999.0)
             self.well.origL = QPointF(-999.0, -999.0)
+            QMessageBox.warning(None, 'Well Seed error', self.well.errorText)
 
         self.parW.child('X').setValue(self.well.origW.x())                      # well origin in well CRS coordinates
         self.parW.child('Y').setValue(self.well.origW.y())

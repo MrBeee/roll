@@ -1,14 +1,17 @@
 import time
 
-try:
-    ptvsdInstalled = True
-    import ptvsd  # needed to debug a worker thread. See: https://github.com/microsoft/ptvsd/issues/1189
-except ImportError as ie:
-    ptvsdInstalled = False
-
 from qgis.PyQt.QtCore import QMutex, QObject, QThread, pyqtSignal
 
 from .classes import RollSurvey
+
+# ptvsd  is needed to debug a worker thread.
+# See: https://github.com/microsoft/ptvsd/issues/1189
+
+# try:                                                                          # uncomment to debug thread
+#     ptvsdInstalled = True                                                     # uncomment to debug thread
+#     import ptvsd                                                              # uncomment to debug thread
+# except ImportError as ie:                                                     # uncomment to debug thread
+#     ptvsdInstalled = False                                                    # uncomment to debug thread
 
 # See: https://stackoverflow.com/questions/20324804/how-to-use-qthread-correctly-in-pyqt-with-movetothread
 # See: https://realpython.com/python-pyqt-qthread/#using-qthread-vs-pythons-threading
@@ -33,10 +36,8 @@ class BinningThread(QThread):
         # most likely the survey object is too complex, so the to/from xml detour make an easy fix.
         # See: https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
 
-        # create 'virgin' object
-        self.survey = RollSurvey()
-        # fully populate the object
-        self.survey.fromXmlString(xmlString)
+        self.survey = RollSurvey()                                              # create 'virgin' object
+        self.survey.fromXmlString(xmlString)                                    # fully populate the object
 
     def run(self):
         for x in range(5, 101, 2):
@@ -85,8 +86,8 @@ class BinFromGeometryWorker(QObject):
         self.survey.calcNoShotPoints()
 
         try:
-            if ptvsdInstalled:
-                ptvsd.debug_this_thread()
+            # if ptvsdInstalled:                                                # uncomment to debug thread
+            #     ptvsd.debug_this_thread()                                     # uncomment to debug thread
 
             # calculate fold map and min/max offsets
             success = self.survey.setupBinFromGeometry(self.extended)
@@ -124,10 +125,9 @@ class BinningWorker(QObject):
         self.survey.calcNoShotPoints()
 
         try:
-            # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
-            # Please comment the next line when you are not debugging, as it will cause an exception (ConnectionRefusedError)
-            if ptvsdInstalled:
-                ptvsd.debug_this_thread()
+            # if ptvsdInstalled:                                                # uncomment to debug thread
+            #     ptvsd.debug_this_thread()                                     # uncomment to debug thread
+
             success = self.survey.setupBinFromTemplates(self.extended)          # calculate fold map and min/max offsets
         except BaseException as e:
             self.survey.threadError = str(e)
@@ -155,10 +155,9 @@ class GeometryWorker(QObject):
         self.survey.calcNoShotPoints()
 
         try:
-            # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
-            # Please comment the next line when you are not debugging, as it will cause an exception (ConnectionRefusedError)
-            if ptvsdInstalled:
-                ptvsd.debug_this_thread()
+            # if ptvsdInstalled:                                                # uncomment to debug thread
+            #     ptvsd.debug_this_thread()                                     # uncomment to debug thread
+
             success = self.survey.setupGeometryFromTemplates()                  # calculate src, rel, rec geometry arrays
         except BaseException as e:
             self.survey.threadError = str(e)

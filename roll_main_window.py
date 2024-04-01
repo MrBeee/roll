@@ -62,46 +62,70 @@ import pyqtgraph as pg
 from console import console
 from numpy.compat import asstr
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import (QDateTime, QFile, QFileInfo, QIODevice,
-                              QItemSelection, QItemSelectionModel, QModelIndex,
-                              QPoint, QSettings, Qt, QTextStream, QThread)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
-                             QTextCursor, QTextOption, QTransform)
-from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
-                                      QPrintPreviewDialog)
-from qgis.PyQt.QtWidgets import (QAction, QApplication, QButtonGroup,
-                                 QCheckBox, QDialogButtonBox, QDockWidget,
-                                 QFileDialog, QFrame, QGraphicsEllipseItem,
-                                 QGridLayout, QGroupBox, QHBoxLayout,
-                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
-                                 QPlainTextEdit, QProgressBar, QPushButton,
-                                 QRadioButton, QSplitter, QTabWidget,
-                                 QVBoxLayout, QWidget)
+from qgis.PyQt.QtCore import QDateTime, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
+from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
+from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QApplication,
+    QButtonGroup,
+    QCheckBox,
+    QDialogButtonBox,
+    QDockWidget,
+    QFileDialog,
+    QFrame,
+    QGraphicsEllipseItem,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QRadioButton,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
 from .classes import BinningType, RollSurvey, surveyType
+from .find import Find
 from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
-                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
-                             identifyQgisPointLayer, readQgisPointLayer,
-                             updateQgisPointLayer)
+from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
-                            deletePntDuplicates, deletePntOrphans,
-                            deleteRelDuplicates, deleteRelOrphans,
-                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
-                            findRecOrphans, findSrcOrphans, getRecGeometry,
-                            getSrcGeometry, markUniqueRPSrecords,
-                            markUniqueSPSrecords, markUniqueXPSrecords,
-                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
-                            relType2)
-from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
-                               TableView, XpsTableModel)
-from .worker_threads import (BinFromGeometryWorker, BinningWorker,
-                             GeometryWorker)
+from .sps_io_and_qc import (
+    calcMaxXPStraces,
+    calculateLineStakeTransform,
+    deletePntDuplicates,
+    deletePntOrphans,
+    deleteRelDuplicates,
+    deleteRelOrphans,
+    fileExportAsR01,
+    fileExportAsS01,
+    fileExportAsX01,
+    findRecOrphans,
+    findSrcOrphans,
+    getRecGeometry,
+    getSrcGeometry,
+    markUniqueRPSrecords,
+    markUniqueSPSrecords,
+    markUniqueXPSrecords,
+    pntType1,
+    readRPSFiles,
+    readSPSFiles,
+    readXPSFiles,
+    relType2,
+)
+from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
+from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -467,7 +491,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tabWidget.addTab(self.tabGeom, 'Geometry')
         self.tabWidget.addTab(self.tabSps, 'SPS import')
         self.tabWidget.addTab(self.tabTraces, 'Trace table')
-        self.tabWidget.currentChanged.connect(self.onTabChange)                 # active tabechanged!
+        self.tabWidget.currentChanged.connect(self.onTabChange)                 # active tab changed!
 
         self.createLayoutTab()
         # self.createXmlTab()
@@ -568,8 +592,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # See: https://stackoverflow.com/questions/40041131/pyqt-global-copy-paste-actions-for-custom-widgets
         self.actionCut.triggered.connect(self.cut)
         self.actionCopy.triggered.connect(self.copy)
+        self.actionFind.triggered.connect(self.find)
         self.actionPaste.triggered.connect(self.paste)
-        self.actionSelAll.triggered.connect(self.selectAll)
+        self.actionSelectAll.triggered.connect(self.selectAll)
 
         # the following setEnabled items need to be re-wired, they are still connected to the textEdit
         self.textEdit.copyAvailable.connect(self.actionCut.setEnabled)
@@ -820,8 +845,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if isinstance(widget, QCodeEditor):
             widget.setFocus()
 
-    # deal with the edit menu here. Cut, copy, paste and select_all are no longer hardwired to the xml-textEdit:
-    # See: https://doc.qt.io/qt-6/qkeysequence.html
+    # deal with the edit menu here.
+    # the idea is that Cut, copy, paste and select_all are no longer hardwired to the xml-textEdit
+    # See: https://doc.qt.io/qt-6/qkeysequence.html  # Maybe use QApplication.activeWindow() instead
     def cut(self):
         currentWidget = QApplication.focusWidget()
         try:
@@ -853,6 +879,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         except AttributeError as e:                                             # current widget does not support selectAll(), so ignore command
             print('Exception occurred: ', e)
         return
+
+    def find(self):
+        # find only operates on the xml-text edit
+        self.tabWidget.setCurrentIndex(1)                                       # make sure we display the 'xml' tab
+        Find(self).show()                                                       # show find and replace dialog
 
     # create tabbed pages
     def createLayoutTab(self):

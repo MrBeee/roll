@@ -9,14 +9,19 @@ from enum import Enum
 import numpy as np
 import pyqtgraph as pg
 import wellpathpy as wp
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVector3D
-from qgis.PyQt.QtCore import QFileInfo, QLineF, QMarginsF, QPointF, QRectF, QThread, pyqtSignal
-from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPainterPath, QPicture, QPolygonF, QTransform, QVector3D
+from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
+                       QgsPointXY, QgsProject, QgsVector3D)
+from qgis.PyQt.QtCore import (QFileInfo, QLineF, QMarginsF, QPointF, QRectF,
+                              QThread, pyqtSignal)
+from qgis.PyQt.QtGui import (QBrush, QColor, QPainter, QPainterPath, QPicture,
+                             QPolygonF, QTransform, QVector3D)
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement, QDomNode
 
 from . import config  # used to pass initial settings
-from .functions import clipLineF, clipRectF, containsPoint2D, containsPoint3D, deviation, read_well_header, read_wws_header, toFloat, toInt
+from .functions import (clipLineF, clipRectF, containsPoint2D, containsPoint3D,
+                        deviation, read_well_header, read_wws_header, toFloat,
+                        toInt)
 from .rdp import filterRdp
 from .sps_io_and_qc import pntType1, relType2
 
@@ -1380,52 +1385,70 @@ class RollWell:
         # for self.lod0 See: https://python.hotexamples.com/examples/PyQt5.QtGui/QPainter/drawPolyline/python-qpainter-drawpolyline-method-examples.html
 
     def readHeader(self, surveyCrs, glbTransform):
-        self.errorText = None                                                    # text explaining which error occurred
         header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
+        self.errorText = None                                                   # text explaining which error occurred
 
         f = self.name
+        if f is None or not os.path.exists(f):                                  # check filename first
+            self.errorText = 'No valid well file selected'
+            return False
+
+        if not self.crs.isValid():                                              # then check CRS
+            self.errorText = 'An invalid CRS has been selected'
+            return False
+
+        if self.crs.isGeographic():
+            self.errorText = 'geographic CRS selected (using lat/lon angles)'
+            return False
+
         ext = QFileInfo(f).suffix()
-        if ext == 'wws':                                                        # read the well survey file
-            md, _, _ = wp.read_csv(f, delimiter=None, skiprows=0, comments='#')   # inc, azi unused and replaced by _, _
-            self.ahdMax = md[-1]                                                # maximum along-hole-depth
 
-            # where is the well located ? First see if there's a header file, to pull information from.
-            hdrFile = os.path.splitext(f)[0]
-            hdrFile = hdrFile + '.hdr'
-            # open the header file
-            if os.path.exists(hdrFile):
-                # read header in json format
-                header = wp.read_header_json(hdrFile)
+        try:
+            if ext == 'wws':                                                        # read the well survey file
+                md, _, _ = wp.read_csv(f, delimiter=None, skiprows=0, comments='#')   # inc, azi unused and replaced by _, _
+                self.ahdMax = md[-1]                                                # maximum along-hole-depth
+
+                # where is the well located ? First see if there's a header file, to pull information from.
+                hdrFile = os.path.splitext(f)[0]
+                hdrFile = hdrFile + '.hdr'
+                # open the header file
+                if os.path.exists(hdrFile):
+                    # read header in json format
+                    header = wp.read_header_json(hdrFile)
+                else:
+                    # get header information from wws-file itself
+                    header = read_wws_header(f)
+
+            elif ext == 'well':
+                header, index = read_well_header(f)
+
+                # read the 4 column ascii data; skip header rows
+                pos2D = np.loadtxt(f, delimiter=None, skiprows=index, comments='!')
+
+                # transpose array to 4 rows, and read these rows
+                _, _, depth, md = pos2D.T
+
+                # determine maximum along-hole-depth
+                self.ahdMax = md[-1]
+
+                # the self-contained 'well' file does not require a separate header file;
+                hdrFile = os.path.splitext(f)[0]
+
+                # but a header file could be used to override the included header data
+                hdrFile = hdrFile + '.hdr'
+                if os.path.exists(hdrFile):
+                    # read header in json format, as described in header dict above
+                    header = wp.read_header_json(hdrFile)
+
+                # no separate header file has been provided
+                if header['elevation'] is None:
+                    header['elevation'] = md[0] - depth[0]
             else:
-                # get header information from wws-file itself
-                header = read_wws_header(f)
+                self.errorText = f'unsupported file extension: {ext}'
+                return False
 
-        elif ext == 'well':
-            header, index = read_well_header(f)
-
-            # read the 4 column ascii data; skip header rows
-            pos2D = np.loadtxt(f, delimiter=None, skiprows=index, comments='!')
-
-            # transpose array to 4 rows, and read these rows
-            _, _, depth, md = pos2D.T
-
-            # determine maximum along-hole-depth
-            self.ahdMax = md[-1]
-
-            # the self-contained 'well' file does not require a separate header file;
-            hdrFile = os.path.splitext(f)[0]
-
-            # but a header file could be used to override the included header data
-            hdrFile = hdrFile + '.hdr'
-            if os.path.exists(hdrFile):
-                # read header in json format, as described in header dict above
-                header = wp.read_header_json(hdrFile)
-
-            # no separate header file has been provided
-            if header['elevation'] is None:
-                header['elevation'] = md[0] - depth[0]
-        else:
-            self.errorText = f'unsupported file extension: {ext}'
+        except BaseException as e:
+            self.errorText = str(e)
             return False
 
         if header['surface_easting'] is None or header['surface_northing'] is None or header['elevation'] is None:
@@ -1438,7 +1461,7 @@ class RollWell:
         wellToGlobalTransform = QgsCoordinateTransform(surveyCrs, self.crs, QgsProject.instance())
 
         if not wellToGlobalTransform.isValid():                                 # no valid transform found
-            self.errorText = 'invalid or coordinate transform'
+            self.errorText = 'invalid coordinate transform'
             return False
 
         # now create the origin in global survey coordinates (well-crs -> project-crs)
@@ -1459,6 +1482,127 @@ class RollWell:
         return True
 
     def calcPointList(self, surveyCrs, glbTransform):
+        # See: https://stackoverflow.com/questions/49322017/merging-1d-arrays-into-a-2d-array
+        # See: https://www.appsloveworld.com/numpy/100/17/how-can-i-efficiently-transfer-data-from-a-numpy-array-to-a-qpolygonf-when-using
+        # See: https://stackoverflow.com/questions/5081875/ctypes-beginner for working with ctypes
+
+        success = self.readHeader(surveyCrs, glbTransform)
+        if not success:
+            return [], QVector3D(-999.0, -999.0, -999.0)
+
+        f = self.name
+        a = self.ahd0
+        s = self.dAhd
+        n = self.nAhd
+        td = a + (n - 1) * s
+
+        # note: if survey's crs and well's crs are the same, the wellToGlobalTransform has no effect
+        wellToGlobalTransform = QgsCoordinateTransform(surveyCrs, self.crs, QgsProject.instance())
+
+        # create transform from global- to local coordinates
+        toLocalTransform, _ = glbTransform.inverted()
+
+        # create list of available ahd-depth-levels that show source/sensor positions
+        ahdList = list(np.linspace(a, td, num=n))
+
+        ext = QFileInfo(f).suffix()
+
+        try:
+            if ext == 'wws':                                                        # read contents well survey file
+                md, inc, azi = wp.read_csv(f, delimiter=None, skiprows=0, comments='#')
+
+                # get an approximate deviation survey from the position log
+                dev = wp.deviation(md=md, inc=inc, azi=azi)
+            elif ext == 'well':
+                _, index = read_well_header(f)                                      # need index to get to the data
+
+                # read the 4 column ascii data; skip header rows
+                pos2D = np.loadtxt(f, delimiter=None, skiprows=index, comments='!')
+
+                north, east, depth, md = pos2D.T                                    # transpose array to 4 rows, and read these rows
+                self.ahdMax = md[-1]                                                # maximum along-hole-depth
+
+                # for next line; see position_log.py line 409 and further in imported module wellpathpy
+                # from here, things are the same as for the wws solution
+                dev = deviation(north, east, depth)
+            else:
+                raise ValueError(f'unsupported file extension: {ext}')
+
+        except BaseException as e:
+            self.errorText = str(e)
+            return [], QVector3D(-999.0, -999.0, -999.0)
+
+        # this is the key routine that resamples a well trajectory into (x, y, z) values
+        pos = dev.minimum_curvature().resample(depths=ahdList)
+        pos_wellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
+        pos_tvdss = pos_wellhead.to_tvdss(datum_elevation=self.origW.z())
+
+        x = pos_tvdss.easting
+        y = pos_tvdss.northing
+        z = pos_tvdss.depth
+        n = len(x)
+
+        # first create the list of 3D points in survey coordinates (well-crs -> project-crs -> survey grid)
+
+        pointList = []                                                          # points to derive cdp coverage from
+        for i in range(n):                                                      # iterate over all points
+            # use 3D values; survey points reside below surface in a well
+            vector = QgsVector3D(x[i], y[i], z[i])
+
+            # wellToGlobalTransform may affect elevation
+            vector = wellToGlobalTransform.transform(vector)
+
+            # z-value not used in toLocalTransform
+            pnt2D = QPointF(vector.x(), vector.y())
+
+            # convert 2D point from global coordinates to survey coordinates
+            pnt2D = toLocalTransform.map(pnt2D)
+
+            # create 3D point to be added to list after survey transform
+            pnt3D = QVector3D(pnt2D.x(), pnt2D.y(), vector.z())
+
+            # points to derive cdp coverage from
+            pointList.append(pnt3D)
+
+        # now display the well trajectory; use 2D points in local coordinates (well-crs -> project-crs -> local grid)
+        steps = 50                                                              # start with 50 points along trajectory
+        displayList = list(range(0, int(dev.md[-1]) + 1, steps))                # range only likes int values
+
+        # this is the key routine that resamples to (x, y, z) values
+        pos = dev.minimum_curvature().resample(depths=displayList)              # use minimum curvature interpolation
+        pos_wellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
+        pos_tvdss = pos_wellhead.to_tvdss(datum_elevation=self.origW.z())
+
+        data = list(zip(pos_tvdss.easting, pos_tvdss.northing))                 # create list with (x, y) pairs
+
+        # create mask point list with 2.5 m accuracy
+        mask = filterRdp(data, threshold=2.5)                                   # create a numpy mask
+
+        # apply the mask and reduce mumber of points
+        data = np.array(data)[mask]                                             # apply the mask
+
+        # the (reduced) data points are still in well-crs coordinates
+        self.pntList2D = []                                                     # points to display on map
+
+        # create polygon to draw well trajectory
+        self.polygon = QPolygonF()
+        for p in data:                                                          # using point iterator
+            # wellToGlobalTransform may affect elevation
+            pnt2D = wellToGlobalTransform.transform(QgsPointXY(*p)).toQPointF()
+
+            # convert 2D point from global coordinates to survey coordinates
+            pnt2D = toLocalTransform.map(pnt2D)
+
+            # points to display on map
+            self.pntList2D.append(pnt2D)
+
+            # add points to polygon
+            self.polygon.append(pnt2D)
+
+        # return list and well origin in local coordinates; borrow z from well coords
+        return pointList, QVector3D(self.origL.x(), self.origL.y(), self.origW.z())
+
+    def calcPointListOld(self, surveyCrs, glbTransform):
         # See: https://stackoverflow.com/questions/49322017/merging-1d-arrays-into-a-2d-array
         # See: https://www.appsloveworld.com/numpy/100/17/how-can-i-efficiently-transfer-data-from-a-numpy-array-to-a-qpolygonf-when-using
         # See: https://stackoverflow.com/questions/5081875/ctypes-beginner for working with ctypes
@@ -1623,8 +1767,10 @@ class RollWell:
         wellElem.setAttribute('wx', str(round(self.origW.x(), 2)))
         wellElem.setAttribute('wy', str(round(self.origW.y(), 2)))
         wellElem.setAttribute('wz', str(round(self.origW.z(), 2)))
+
         wellElem.setAttribute('gx', str(round(self.origG.x(), 2)))
         wellElem.setAttribute('gy', str(round(self.origG.y(), 2)))
+
         wellElem.setAttribute('lx', str(round(self.origL.x(), 2)))
         wellElem.setAttribute('ly', str(round(self.origL.y(), 2)))
 
@@ -2587,8 +2733,7 @@ class RollTemplate:
 
 
 class RollSurvey(pg.GraphicsObject):
-    # signal to keep track of worker thread progress
-    progress = pyqtSignal(int)
+    progress = pyqtSignal(int)                                                  # signal to keep track of worker thread progress
 
     # See: https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py
     # This example gives insight in the mouse drag event
@@ -2607,7 +2752,7 @@ class RollSurvey(pg.GraphicsObject):
         self.nNextRecLine = 0                                                   # to control moving along with rel-records
 
         self.threadProgress = 0                                                 # progress percentage
-        self.threadError = None                                                 # exception text
+        self.errorText = None                                                   # text explaining which error occurred
 
         self.binTransform = None                                                # binning transform
         self.cmpTransform = None                                                # plotting transform local <--> global CRS
@@ -2841,7 +2986,7 @@ class RollSurvey(pg.GraphicsObject):
             self.output.recGeom = np.zeros(shape=(self.nShotPoints * 100), dtype=pntType1)
             success = self.geometryFromTemplates()
         except BaseException as e:
-            self.threadError = str(e)
+            self.errorText = str(e)
             success = False
 
         return success
@@ -2889,10 +3034,10 @@ class RollSurvey(pg.GraphicsObject):
                         raise NotImplementedError('More than three roll steps currently not allowed.')
 
         except StopIteration:
-            self.threadError = 'geometry creation canceled by user'
+            self.errorText = 'geometry creation canceled by user'
             return False
         except BaseException as e:
-            self.threadError = str(e)
+            self.errorText = str(e)
             return False
 
         #  first remove all remaining receiver duplicates
@@ -3238,8 +3383,8 @@ class RollSurvey(pg.GraphicsObject):
 
     def binFromGeometry(self, fullAnalysis) -> bool:
         """only cmp binning implemented here, using a nested dictionary to access the src position"""
-        # always start at zero
-        self.threadProgress = 0
+
+        self.threadProgress = 0                                                 # always start at zero
 
         # as we access the srcGeom and relGeom from relGem, we need to create some quick lookup tables
         # nested dictionary to access src positions
@@ -3369,10 +3514,10 @@ class RollSurvey(pg.GraphicsObject):
                             continue
 
         except StopIteration:
-            self.threadError = 'binning from geometry canceled by user'
+            self.errorText = 'binning from geometry canceled by user'
             return False
         except BaseException as e:
-            self.threadError = str(e)
+            self.errorText = str(e)
             return False
 
         # min/max fold is straightforward
@@ -3400,8 +3545,7 @@ class RollSurvey(pg.GraphicsObject):
     def binFromGeometry2(self, fullAnalysis) -> bool:
         """only cmp binning implemented, working from the shot points rather than the relation records"""
 
-        # always start at zero
-        self.threadProgress = 0
+        self.threadProgress = 0                                                 # always start at zero
 
         toLocalTransform = QTransform()                                         # setup empty (unit) transform
         toLocalTransform, _ = self.glbTransform.inverted()                      # transform to local survey coordinates
@@ -3670,10 +3814,10 @@ class RollSurvey(pg.GraphicsObject):
                         continue
 
         except StopIteration:
-            self.threadError = 'binning from geometry canceled by user'
+            self.errorText = 'binning from geometry canceled by user'
             return False
         except BaseException as e:
-            self.threadError = str(e)
+            self.errorText = str(e)
             return False
 
         # min/max fold is straightforward
@@ -3701,8 +3845,7 @@ class RollSurvey(pg.GraphicsObject):
     def binFromGeometry3(self, fullAnalysis) -> bool:
         """all binning methods implemented, working from the shot points rather than the relation records"""
 
-        # always start at zero
-        self.threadProgress = 0
+        self.threadProgress = 0                                                 # always start at zero
 
         toLocalTransform = QTransform()                                         # setup empty (unit) transform
         toLocalTransform, _ = self.glbTransform.inverted()                      # transform to local survey coordinates
@@ -3982,10 +4125,10 @@ class RollSurvey(pg.GraphicsObject):
                         continue
 
         except StopIteration:
-            self.threadError = 'binning from geometry canceled by user'
+            self.errorText = 'binning from geometry canceled by user'
             return False
         except BaseException as e:
-            self.threadError = str(e)
+            self.errorText = str(e)
             return False
 
         # min/max fold is straightforward
@@ -4013,8 +4156,7 @@ class RollSurvey(pg.GraphicsObject):
     def binFromGeometry4(self, fullAnalysis) -> bool:
         """all binning methods implemented, using numpy arrays, rather than a for-loop"""
 
-        # always start at zero
-        self.threadProgress = 0
+        self.threadProgress = 0                                                 # always start at zero
 
         toLocalTransform = QTransform()                                         # setup empty (unit) transform
         toLocalTransform, _ = self.glbTransform.inverted()                      # transform to local survey coordinates
@@ -4264,10 +4406,10 @@ class RollSurvey(pg.GraphicsObject):
                         continue
 
         except StopIteration:
-            self.threadError = 'binning from geometry canceled by user'
+            self.errorText = 'binning from geometry canceled by user'
             return False
         except BaseException as e:
-            self.threadError = str(e)
+            self.errorText = str(e)
             return False
 
         # min/max fold is straightforward
@@ -4355,10 +4497,10 @@ class RollSurvey(pg.GraphicsObject):
                         raise NotImplementedError('More than three roll steps currently not allowed.')
 
         except StopIteration:
-            self.threadError = 'binning from templates canceled by user'
+            self.errorText = 'binning from templates canceled by user'
             return False
         except BaseException as e:
-            self.threadError = str(e)
+            self.errorText = str(e)
             return False
 
         # min/max fold is straightforward
@@ -5347,15 +5489,18 @@ class RollSurvey(pg.GraphicsObject):
         for block in self.blockList:
             for template in block.templateList:
                 for seed in template.seedList:
-                    if seed.type == 4:                                          # well site
-                        f = seed.well.name
-                        # check if well-file exists
+                    if seed.type == 4:                                          # well site; check for errors
+                        f = seed.well.name                                      # check if well-file exists
                         if f is None or not os.path.exists(f):
                             QMessageBox.warning(None, e, 'A well-seed should point to an existing well-file')
                             return False
-                        c = seed.well.crs
 
-                        if not c.isValid():                                     # check if crs is valid
+                        if seed.well.errorText is not None:
+                            QMessageBox.warning(None, e, f'{seed.well.errorText} in well file:\n{f}')
+                            return False
+
+                        c = seed.well.crs                                       # check if crs is valid
+                        if not c.isValid():
                             QMessageBox.warning(None, e, 'Invalid CRS.   \nPlease change CRS in well-seed')
                             return False
 

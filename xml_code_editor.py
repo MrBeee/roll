@@ -25,13 +25,14 @@ There's also a way to edit xml in a bit more sophisticated manner: https://githu
 Here's a way to highlight python code: https://wiki.python.org/moin/PyQt/Python%20syntax%20highlighting
 See also: https://carsonfarmer.com/2009/07/syntax-highlighting-with-pyqt/
 For cpp: https://github.com/d1vanov/basic-xml-syntax-highlighter
+
+To add find and replace dialog, see: https://github.com/goldsborough/Writer-Tutorial/tree/master.
+And in particular: https://web.archive.org/web/20170515141231/http://www.binpress.com/tutorial/building-a-text-editor-with-pyqt-part-3/147
 """
+
 from qgis.PyQt.QtCore import QRect, QRegExp, Qt
-from qgis.PyQt.QtGui import (QColor, QFont, QPainter, QSyntaxHighlighter,
-                             QTextCharFormat, QTextCursor, QTextFormat,
-                             QTextOption)
-from qgis.PyQt.QtWidgets import (QApplication, QPlainTextEdit, QTextEdit,
-                                 QWidget)
+from qgis.PyQt.QtGui import QColor, QFont, QPainter, QSyntaxHighlighter, QTextCharFormat, QTextCursor, QTextFormat, QTextOption
+from qgis.PyQt.QtWidgets import QApplication, QPlainTextEdit, QTextEdit, QWidget
 
 # classes definition
 
