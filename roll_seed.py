@@ -35,7 +35,7 @@ class RollSeed:
 
         # calculated variables
         self.boundingBox = QRectF()                                             # Constructs a null rectangle.size of the seed after all grow steps have been done
-        # self.salvo = QLineF()                                                   # draws line From FIRST to LAST point of FIRST grow step (quick draw)
+        # self.salvo = QLineF()                                                 # draws line From FIRST to LAST point of FIRST grow step (quick draw)
         self.pointList = []                                                     # point list to derive cdp coverage from
         self.pointArray = None                                                  # numpy array to derive cdp coverage from
         self.blockBorder = QRectF()                                             # inherited from seed -> template -> block's srcBorder / recBorder depending on seed type

@@ -761,8 +761,8 @@ class Page_1(SurveyWizardPage):
         self.parent.survey.typ_ = self.field('type')                            # Survey type
 
         nsla = self.field('nslant')                                             # nr templates in a slanted survey
-        nzz = self.field('nzz')                                                # nr source fleets in a zigzag survey
-        mir = self.field('mir')                                                # mirrored zigzag survey
+        nzz = self.field('nzz')                                                 # nr source fleets in a zigzag survey
+        mir = self.field('mir')                                                 # mirrored zigzag survey
 
         # set initial offset values
         templateInShift = 0.5 * (nsl - 1) * sli

@@ -2801,73 +2801,49 @@ class RollSurvey(pg.GraphicsObject):
             # use a solid pen, 2 pixels wide
             painter.setPen(pg.mkPen(seed.color, width=2))
 
-            if seed.typ_ < 2 and seed.rendered is False:                       # grid based seed
-                if seed.typ_ == 1:
-                    # no rolling along; fixed grid
+            if seed.typ_ < 2 and seed.rendered is False:                        # grid based seed
+                if seed.typ_ == 1:                                              # no rolling along; fixed grid
                     templateOffset = QVector3D()
                     seed.rendered = True
 
-                # how deep is the grow list ?
-                length = len(seed.grid.growList)
-
+                length = len(seed.grid.growList)                                # how deep is the grow list ?
                 if length == 0:
-                    # always start at (0, 0, 0)
-                    offset = QVector3D(0.0, 0.0, 0.0)
+                    offset = QVector3D(0.0, 0.0, 0.0)                           # always start at (0, 0, 0)
                     offset += templateOffset                                    # start here
-                    # move the line into place
-                    salvo = seed.grid.salvo.translated(offset.toPointF())
-                    # check line against block's src/rec border
-                    salvo = clipLineF(salvo, seed.blockBorder)
-                    # check line against viewbox
-                    salvo = clipLineF(salvo, viewbox)
+                    salvo = seed.grid.salvo.translated(offset.toPointF())       # move the line into place
+                    salvo = clipLineF(salvo, seed.blockBorder)                  # check line against block's src/rec border
+                    salvo = clipLineF(salvo, viewbox)                           # check line against viewbox
 
                     if not salvo.isNull():
                         if lod < config.lod2 or self.mouseGrabbed:              # just draw lines
                             painter.drawLine(salvo)
                         else:
-                            # start at templateOffset and add seed's origin
-                            seedOrigin = offset + seed.origin
-                            # is it within block limits ?
-                            if containsPoint3D(seed.blockBorder, seedOrigin):
-                                # is it within the viewbox ?
-                                if containsPoint3D(viewbox, seedOrigin):
-                                    # paint seed picture
-                                    painter.drawPicture(seedOrigin.toPointF(), seed.pointPicture)
-                                    if lod > config.lod3 and seed.patternPicture is not None:
-                                        # paint pattern picture
+                            seedOrigin = offset + seed.origin                   # start at templateOffset and add seed's origin
+                            if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
+                                if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
+                                    painter.drawPicture(seedOrigin.toPointF(), seed.pointPicture)   # paint seed picture
+                                    if lod > config.lod3 and seed.patternPicture is not None:       # paint pattern picture
                                         painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
 
                 elif length == 1:
-                    # always start at (0, 0, 0)
-                    offset = QVector3D(0.0, 0.0, 0.0)
+                    offset = QVector3D(0.0, 0.0, 0.0)                           # always start at (0, 0, 0)
                     offset += templateOffset                                    # start here
-                    # move the line into place
-                    salvo = seed.salvo.grid.translated(offset.toPointF())
-                    # check line against block's src/rec border
-                    salvo = clipLineF(salvo, seed.blockBorder)
-                    # check line against viewbox
-                    salvo = clipLineF(salvo, viewbox)
+                    salvo = seed.salvo.grid.translated(offset.toPointF())       # move the line into place
+                    salvo = clipLineF(salvo, seed.blockBorder)                  # check line against block's src/rec border
+                    salvo = clipLineF(salvo, viewbox)                           # check line against viewbox
 
                     if not salvo.isNull():
                         if lod < config.lod2 or self.mouseGrabbed:              # just draw lines
                             painter.drawLine(salvo)
                         else:
-                            # iterate over 1st step
-                            for i in range(seed.grid.growList[0].steps):
-                                # start at templateOffset and add seed's origin
-                                seedOrigin = offset + seed.origin
-                                # we now have the correct location
-                                seedOrigin += seed.grid.growList[0].increment * i
-                                # is it within block limits ?
-                                if containsPoint3D(seed.blockBorder, seedOrigin):
-                                    # is it within the viewbox ?
-                                    if containsPoint3D(viewbox, seedOrigin):
-                                        # paint seed picture
-                                        painter.drawPicture(seedOrigin.toPointF(), seed.pointPicture)
-                                        if lod > config.lod3 and seed.patternPicture is not None:
-                                            # paint pattern picture
+                            for i in range(seed.grid.growList[0].steps):        # iterate over 1st step
+                                seedOrigin = offset + seed.origin               # start at templateOffset and add seed's origin
+                                seedOrigin += seed.grid.growList[0].increment * i   # we now have the correct location
+                                if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
+                                    if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
+                                        painter.drawPicture(seedOrigin.toPointF(), seed.pointPicture)  # paint seed picture
+                                        if lod > config.lod3 and seed.patternPicture is not None:   # paint pattern picture
                                             painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
-
                 elif length == 2:
                     # iterate over 1st step
                     for i in range(seed.grid.growList[0].steps):

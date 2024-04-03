@@ -39,6 +39,8 @@ from .roll_template import RollTemplate
 from .roll_translate import RollTranslate
 from .roll_well import RollWell
 
+### class MyBinAngles #########################################################
+
 
 class MyBinAnglesPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
@@ -116,6 +118,9 @@ class MyBinAnglesParameter(MyGroupParameter):
 
     def value(self):
         return self.angles
+
+
+### class MyBinOffset #########################################################
 
 
 class MyBinOffsetPreviewLabel(MyPreviewLabel):
@@ -209,6 +214,9 @@ class MyBinOffsetParameter(MyGroupParameter):
         return self.offset
 
 
+### class MyUniqOff ###########################################################
+
+
 class MyUniqOffPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
@@ -275,6 +283,9 @@ class MyUniqOffParameter(MyGroupParameter):
         return self.unique
 
 
+### class MyBinMethod #########################################################
+
+
 class MyBinMethodPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
@@ -337,6 +348,9 @@ class MyBinMethodParameter(MyGroupParameter):
 
     def value(self):
         return self.binning
+
+
+### class MyPlane #############################################################
 
 
 class MyPlanePreviewLabel(MyPreviewLabel):
@@ -421,6 +435,9 @@ class MyPlaneParameter(MyGroupParameter):
         return self.plane
 
 
+### class MySphere ############################################################
+
+
 class MySpherePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
@@ -492,6 +509,9 @@ class MySphereParameter(MyGroupParameter):
 
     def value(self):
         return self.sphere
+
+
+### class MyLocalGrid #########################################################
 
 
 class MyLocalGridPreviewLabel(MyPreviewLabel):
@@ -583,6 +603,9 @@ class MyLocalGridParameter(MyGroupParameter):
         return self.binGrid
 
 
+### class MyGlobalGrid ########################################################
+
+
 class MyGlobalGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
@@ -660,6 +683,9 @@ class MyGlobalGridParameter(MyGroupParameter):
 
     def value(self):
         return self.binGrid
+
+
+### class MyBlock #############################################################
 
 
 class MyBlockPreviewLabel(MyPreviewLabel):
@@ -845,6 +871,9 @@ class MyBlockParameter(MyGroupParameter):
             ...
 
 
+### class MyTemplate ##########################################################
+
+
 class MyTemplatePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
@@ -994,6 +1023,9 @@ class MyTemplateParameter(MyGroupParameter):
             ...
 
 
+### class MyRollList ##########################################################
+
+
 class MyRollListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
@@ -1062,6 +1094,9 @@ class MyRollListParameter(MyGroupParameter):
 
     def value(self):
         return self.moveList
+
+
+### class MyRoll ##############################################################
 
 
 class MyRollPreviewLabel(MyPreviewLabel):
@@ -1157,6 +1192,9 @@ class MyRollParameter(MyGroupParameter):
 
     def value(self):
         return self.row
+
+
+### class MySeedList ##########################################################
 
 
 class MySeedListPreviewLabel(MyPreviewLabel):
@@ -1271,6 +1309,9 @@ class MySeedListParameter(MyGroupParameter):
 
             self.sigAddNew.emit(self, name)
             self.sigValueChanging.emit(self, self.value())
+
+
+### class MySeed ##############################################################
 
 
 class MySeedPreviewLabel(MyPreviewLabel):
@@ -1465,6 +1506,9 @@ class MySeedParameter(MyGroupParameter):
             ...
 
 
+### class MyCircle ############################################################
+
+
 class MyCirclePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
         super().__init__()
@@ -1538,6 +1582,9 @@ class MyCircleParameter(MyGroupParameter):
 
     def value(self):
         return self.circle
+
+
+### class MySpiral ############################################################
 
 
 class MySpiralPreviewLabel(MyPreviewLabel):
@@ -1620,6 +1667,9 @@ class MySpiralParameter(MyGroupParameter):
 
     def value(self):
         return self.spiral
+
+
+### class MyWell ##############################################################
 
 
 class MyWellPreviewLabel(MyPreviewLabel):
@@ -1856,6 +1906,9 @@ class MyWellParameter(MyGroupParameter):
         return self.well
 
 
+### class MyTemplateList ######################################################
+
+
 class MyTemplateListParameter(MyGroupParameter):
 
     itemClass = MyGroupParameterItem
@@ -1910,6 +1963,9 @@ class MyTemplateListParameter(MyGroupParameter):
             self.sigAddNew.emit(self, name)
 
             self.sigValueChanging.emit(self, self.value())
+
+
+### class MyBlockList #########################################################
 
 
 class MyBlockListParameter(MyGroupParameter):
@@ -1978,6 +2034,9 @@ class MyBlockListParameter(MyGroupParameter):
     def onChildRemoved(self, _):                                                # child unused and replaced by _
         # print(f'>>>{lineNo():5d} BlockList.ChildRemoved <<<')
         pass
+
+
+### class MyPattern ###########################################################
 
 
 class MyPatternPreviewLabel(MyPreviewLabel):
@@ -2109,6 +2168,9 @@ class MyPatternParameter(MyGroupParameter):
             ...
 
 
+### class MyPatternList #######################################################
+
+
 class MyPatternListParameter(MyGroupParameter):
 
     itemClass = MyGroupParameterItem
@@ -2162,6 +2224,9 @@ class MyPatternListParameter(MyGroupParameter):
         pass
 
 
+### class MyGrid ##############################################################
+
+
 class MyGridParameter(MyGroupParameter):
 
     itemClass = MyGroupParameterItem
@@ -2208,6 +2273,9 @@ class MyGridParameter(MyGroupParameter):
 
     def value(self):
         return self.binGrid
+
+
+### class MyAnalysis ##########################################################
 
 
 class MyAnalysisParameter(MyGroupParameter):
@@ -2262,6 +2330,9 @@ class MyAnalysisParameter(MyGroupParameter):
         return (self.area, self.angles, self.binning, self.offset, self.unique)
 
 
+### class MyReflector #########################################################
+
+
 class MyReflectorsParameter(MyGroupParameter):
 
     itemClass = MyGroupParameterItem
@@ -2297,6 +2368,9 @@ class MyReflectorsParameter(MyGroupParameter):
 
     def value(self):
         return (self.plane, self.sphere)
+
+
+### class MyConfiguration #####################################################
 
 
 class MyConfigurationParameter(MyGroupParameter):
@@ -2341,6 +2415,9 @@ class MyConfigurationParameter(MyGroupParameter):
 
     def value(self):
         return (self.crs, self.typ, self.nam)
+
+
+### class MySurvey ############################################################
 
 
 class MySurveyPreviewLabel(MyPreviewLabel):
@@ -2391,6 +2468,9 @@ class MySurveyParameter(MyGroupParameter):
 
     def value(self):
         return self.survey
+
+
+### method registerAllParameterTypes ##########################################
 
 
 def registerAllParameterTypes():
