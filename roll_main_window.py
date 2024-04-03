@@ -3049,8 +3049,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.textEdit.document().print_(printer)
 
     def viewDebug(self):
-        self.debug = not self.debug
-        self.actionDebug.setChecked(self.debug)
+        self.debug = not self.debug                                             # toggle status
+        self.actionDebug.setChecked(self.debug)                                 # update status in button
+        # See also: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
 
         if self.debug:
             # builtins.print = self.oldPrint                                    # use/restore builtins.print
@@ -3073,7 +3074,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # dateTime = QDateTime.currentDateTime().toString("dd-MM-yyyy hh:mm:ss")
         dateTime = QDateTime.currentDateTime().toString('yyyy-MM-ddTHH:mm:ss')  # UTC time; same format as is used in QGis
 
-        if index == MsgType.Debug and not self.debug:                         # debug message needs to be suppressed
+        if index == MsgType.Debug and not self.debug:                         # debug message, which needs to be suppressed
             return
 
         # use &nbsp; (non-breaking-space) to prevent html eating up subsequent spaces !

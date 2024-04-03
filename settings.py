@@ -6,6 +6,13 @@ from qgis.PyQt.QtCore import QStandardPaths, pyqtSignal
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QHeaderView, QVBoxLayout
 
+try:
+    import numba  # pylint: disable=W0611  # need to TRY importing numba, only to see if it is available
+
+    haveNumba = True
+except ImportError:
+    haveNumba = False
+
 from . import config  # used to pass initial settings
 from .functions import makeParmsFromPen, makePenFromParms
 
@@ -74,14 +81,14 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[  # Qt light blue background
-                    dict(name='Bin area color', type='color', default=QColor(config.binAreaColor), value=QColor(config.binAreaColor)),
-                    dict(name='Cmp area color', type='color', default=QColor(config.cmpAreaColor), value=QColor(config.cmpAreaColor)),
-                    dict(name='Rec area color', type='color', default=QColor(config.recAreaColor), value=QColor(config.recAreaColor)),
-                    dict(name='Src area color', type='color', default=QColor(config.srcAreaColor), value=QColor(config.srcAreaColor)),
-                    dict(name='Bin area pen', type='myPen', flat=True, expanded=False, value=binAreaPenParam),
-                    dict(name='Cmp area pen', type='myPen', flat=True, expanded=False, value=cmpAreaPenParam),
-                    dict(name='Rec area pen', type='myPen', flat=True, expanded=False, value=recAreaPenParam),
-                    dict(name='Src area pen', type='myPen', flat=True, expanded=False, value=srcAreaPenParam),
+                    dict(name='Bin area color', type='color', value=QColor(config.binAreaColor), default=QColor(config.binAreaColor)),
+                    dict(name='Cmp area color', type='color', value=QColor(config.cmpAreaColor), default=QColor(config.cmpAreaColor)),
+                    dict(name='Rec area color', type='color', value=QColor(config.recAreaColor), default=QColor(config.recAreaColor)),
+                    dict(name='Src area color', type='color', value=QColor(config.srcAreaColor), default=QColor(config.srcAreaColor)),
+                    dict(name='Bin area pen', type='myPen', flat=True, expanded=False, value=binAreaPenParam, default=binAreaPenParam),
+                    dict(name='Cmp area pen', type='myPen', flat=True, expanded=False, value=cmpAreaPenParam, default=cmpAreaPenParam),
+                    dict(name='Rec area pen', type='myPen', flat=True, expanded=False, value=recAreaPenParam, default=recAreaPenParam),
+                    dict(name='Src area pen', type='myPen', flat=True, expanded=False, value=srcAreaPenParam, default=srcAreaPenParam),
                     dict(name='Analysis color map', type='myCmap', default=config.analysisCmap, value=config.analysisCmap),
                     dict(name='Inactive color map', type='myCmap', default=config.inActiveCmap, value=config.inActiveCmap),
                 ],
@@ -128,10 +135,25 @@ class SettingsDialog(QDialog):
             ),
         ]
 
+        enableFlag = True if config.useNumba and haveNumba else False
+        tip = 'Warning: this is an experimental option to speed up processing.\nIt requires the Numba package to be installed'
+
+        misParams = [
+            dict(
+                name='Miscellaneous Settings',
+                type='myGroup',
+                brush='#add8e6',
+                children=[
+                    dict(name='Use Numba', type='bool', value=config.useNumba, default=config.useNumba, enabled=enableFlag, tip=tip),
+                ],
+            ),
+        ]
+
         self.parameters = pg.parametertree.Parameter.create(name='Analysis Settings', type='group', children=colorParams)
         self.parameters.addChildren(lodParams)
         self.parameters.addChildren(spsParams)
         self.parameters.addChildren(geoParams)
+        self.parameters.addChildren(misParams)
 
         self.parameters.sigTreeStateChanged.connect(self.updateSettings)
 
@@ -141,9 +163,12 @@ class SettingsDialog(QDialog):
         self.paramTree.header().resizeSection(0, 275)
 
         for item in self.paramTree.listAllItems():                              # Bug. See: https://github.com/pyqtgraph/pyqtgraph/issues/2744
-            p = item.param
-            if 'tip' in p.opts:
-                item.setToolTip(0, p.opts['tip'])
+            p = item.param                                                      # get parameter belonging to parameterItem
+            p.setToDefault()                                                    # set all parameters to their default value
+            if hasattr(item, 'updateDefaultBtn'):                               # note: not all parameterItems have this method
+                item.updateDefaultBtn()                                         # reset the default-buttons to their grey value
+            if 'tip' in p.opts:                                                 # this solves the above mentioned bug
+                item.setToolTip(0, p.opts['tip'])                               # the widgets now get their tooltips
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.paramTree)
@@ -287,6 +312,9 @@ def readSettings(self):
     config.srcPointSymbol = self.settings.value('settings/geo/srcPointSymbol', 'o')
     config.srcSymbolSize = self.settings.value('settings/geo/srcSymbolSize', 25)
 
+    # miscellaneous information
+    config.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)    # assume Numba not installed (and used) by default
+
 
 def writeSettings(self):
     # main window information
@@ -325,3 +353,6 @@ def writeSettings(self):
     self.settings.setValue('settings/geo/srcBrushColor', config.srcBrushColor)
     self.settings.setValue('settings/geo/srcPointSymbol', config.srcPointSymbol)
     self.settings.setValue('settings/geo/srcSymbolSize', config.srcSymbolSize)
+
+    # miscellaneous information
+    self.settings.setValue('settings/misc/useNumba', config.useNumba)

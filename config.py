@@ -139,6 +139,8 @@ patternList = []
 surveyCrs = None
 surveyTransform = None
 
+useNumba = False
+
 # Example on using config.py
 # A) Set a default value of 'x' in config.py
 #

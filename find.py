@@ -1,8 +1,7 @@
 import re
 
-from qgis.PyQt.QtCore import QPoint
 from qgis.PyQt.QtGui import QTextCursor
-from qgis.PyQt.QtWidgets import QDialog, QGridLayout, QPushButton, QRadioButton, QTextEdit
+from qgis.PyQt.QtWidgets import QDialog, QGridLayout, QLineEdit, QPushButton, QRadioButton
 
 # To add find and replace dialog, see: https://github.com/goldsborough/Writer-Tutorial/tree/master.
 # And in particular: https://web.archive.org/web/20170515141231/http://www.binpress.com/tutorial/building-a-text-editor-with-pyqt-part-3/147
@@ -37,11 +36,13 @@ class Find(QDialog):
         regexRadio = QRadioButton('RegEx', self)
 
         # The field into which to type the query
-        self.findField = QTextEdit(self)
+        self.findField = QLineEdit(self)
+        # self.findField = QTextEdit(self)
         self.findField.resize(250, 30)
 
         # The field into which to type the text to replace the queried text
-        self.replaceField = QTextEdit(self)
+        self.replaceField = QLineEdit(self)
+        # self.replaceField = QTextEdit(self)
         self.replaceField.resize(250, 30)
 
         layout = QGridLayout()
@@ -56,7 +57,7 @@ class Find(QDialog):
 
         # self.setGeometry(300, 300, 360, 250)
         nWidth = 360
-        nHeight = 120
+        nHeight = 100
         if self.parent is not None:                                             # center dialog on main window !
             xPos = self.parent.x() + (self.parent.width() - nWidth) // 2
             yPos = self.parent.y() + (self.parent.height() - nHeight) // 2
@@ -75,7 +76,8 @@ class Find(QDialog):
         text = self.parent.textEdit.toPlainText()
 
         # And the text to find
-        query = self.findField.toPlainText()
+        # query = self.findField.toPlainText()
+        query = self.findField.text()
 
         if self.normalRadio.isChecked():
             # Use normal string search to find the query from the last starting position
@@ -114,7 +116,8 @@ class Find(QDialog):
         # Security
         if cursor.hasSelection():
             # We insert the new text, which will override the selected text
-            cursor.insertText(self.replaceField.toPlainText())
+            # cursor.insertText(self.replaceField.toPlainText())
+            cursor.insertText(self.replaceField.text())
 
             # And set the new cursor
             self.parent.textEdit.setTextCursor(cursor)

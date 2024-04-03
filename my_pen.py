@@ -6,8 +6,11 @@ from qgis.PyQt.QtGui import QColor
 
 
 class MyPenParameterItem(PenParameterItem):
-    # def __init__(self, param, depth):
-    #     super().__init__(param, depth)
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        # hide the (non-functional) default button at the top level
+        self.defaultBtn.setVisible(False)
 
     def updateDepth(self, depth):
         """

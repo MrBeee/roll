@@ -9,23 +9,22 @@ from enum import Enum
 import numpy as np
 import pyqtgraph as pg
 import wellpathpy as wp
-from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
-                       QgsPointXY, QgsProject, QgsVector3D)
-from qgis.PyQt.QtCore import (QFileInfo, QLineF, QMarginsF, QPointF, QRectF,
-                              QThread, pyqtSignal)
-from qgis.PyQt.QtGui import (QBrush, QColor, QPainter, QPainterPath, QPicture,
-                             QPolygonF, QTransform, QVector3D)
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVector3D
+from qgis.PyQt.QtCore import QFileInfo, QLineF, QMarginsF, QPointF, QRectF, QThread, pyqtSignal
+from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPainterPath, QPicture, QPolygonF, QTransform, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement, QDomNode
 
 from . import config  # used to pass initial settings
-from .functions import (clipLineF, clipRectF, containsPoint2D, containsPoint3D,
-                        deviation, read_well_header, read_wws_header, toFloat,
-                        toInt)
+from .functions import clipLineF, clipRectF, containsPoint2D, containsPoint3D, deviation, read_well_header, read_wws_header, toFloat, toInt
 from .rdp import filterRdp
 from .sps_io_and_qc import pntType1, relType2
 
-# from numba import jit
+try:
+    from numba import *  # pylint: disable=w0401,w0614 # I don't want to change 3rd party code on en/disabling numba
+except ImportError:
+    from .nonumba import *  # pylint: disable=w0401,w0614 # I don't want to change 3rd party code on en/disabling numba
+
 
 # See: https://realpython.com/python-multiple-constructors/#instantiating-classes-in-python for multiple constructors
 # See: https://stackoverflow.com/questions/39513191/python-operator-overloading-with-multiple-operands for operator overlaoding
@@ -4014,7 +4013,7 @@ class RollSurvey(pg.GraphicsObject):
                             cmpPoints[nR][0] = None                             # don't bother with y or z; later only test on x
 
                     # check which cmp values are valid (i.e. not None)
-                    I = cmpPoints[:, 0] != None                               # pylint: disable=C0121 # we need to do a per-element comparison, can't use "is not None"
+                    I = cmpPoints[:, 0] != None                                 # pylint: disable=C0121 # we need to do a per-element comparison, can't use "is not None"
                     if np.count_nonzero(I) == 0:
                         continue
 
@@ -4035,7 +4034,7 @@ class RollSurvey(pg.GraphicsObject):
                             cmpPoints[nR][0] = None                             # don't bother with y or z; later only test on x
 
                     # check which cmp values are valid (i.e. not None)
-                    I = cmpPoints[:, 0] != None                               # pylint: disable=C0121 # we need to do a per-element comparison, can't use "is not None"
+                    I = cmpPoints[:, 0] != None                                 # pylint: disable=C0121 # we need to do a per-element comparison, can't use "is not None"
                     if np.count_nonzero(I) == 0:
                         continue
 
@@ -4446,10 +4445,11 @@ class RollSurvey(pg.GraphicsObject):
         else:
             return self.binFromTemplates(False)
 
-    # https://github.com/pyqtgraph/pyqtgraph/issues/1253
-    # the above link shows how to use numba with PyQtGraph
-    # @jit(nopython=True)
-    # @jit
+    # See: https://github.com/pyqtgraph/pyqtgraph/issues/1253, how to use numba with PyQtGraph
+    # See: https://numba.readthedocs.io/en/stable/user/jit.html for preferred way of using @jit
+    # See: https://stackoverflow.com/questions/57774497/how-do-i-make-a-dummy-do-nothing-jit-decorator
+
+    @jit  # pylint: disable=e0602 # undefined variable in case of using nonumba
     def binFromTemplates(self, fullAnalysis) -> bool:
         try:
             for block in self.blockList:                                        # get all blocks
@@ -4525,8 +4525,7 @@ class RollSurvey(pg.GraphicsObject):
 
         return True
 
-    # @jit(nopython=True)
-    # @jit
+    @jit  # pylint: disable=e0602 # undefined variable in case of using nonumba
     def binTemplate(self, block, template, templateOffset, fullAnalysis):
         """iterate over all seeds in a template; make sure we start wih *source* seeds"""
 
