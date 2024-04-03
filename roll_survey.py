@@ -278,9 +278,6 @@ class SeedType(Enum):
     well = 3
 
 
-# CLASS ###############################################################################
-
-
 class RollSurvey(pg.GraphicsObject):
     progress = pyqtSignal(int)                                                  # signal to keep track of worker thread progress
 
@@ -616,9 +613,8 @@ class RollSurvey(pg.GraphicsObject):
         return True
 
     def geomTemplate(self, nBlock, block, template, templateOffset):
-
-        # iterate over all seeds in a template; make sure we start wih *source* seeds
-        # iterate over all seeds in a template, using the growList
+        """iterate over all seeds in a template; make sure we start wih *source* seeds
+        iterate using the three levels in the growList (slow approach)"""
         for srcSeed in template.seedList:
             while len(srcSeed.grid.growList) < 3:
                 # First, make sure there are 3 grow steps for every srcSeed
@@ -775,7 +771,8 @@ class RollSurvey(pg.GraphicsObject):
                                                     self.output.recGeom.resize(arraySize + 1000, refcheck=False)
 
     def geomTemplate2(self, nBlock, block, template, templateOffset):
-        """use numpy arrays instead of iterating over the growList"""
+        """use numpy arrays instead of iterating over the growList
+        this provides a much faster approach then using the growlist"""
 
         # convert the template offset to a numpy array
         npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
@@ -931,7 +928,8 @@ class RollSurvey(pg.GraphicsObject):
             return self.binFromGeometry4(False)
 
     def binFromGeometry(self, fullAnalysis) -> bool:
-        """only cmp binning implemented here, using a nested dictionary to access the src position"""
+        """Partial implementation; only cmp binning implemented here,
+        using a nested dictionary to access the src position, hence slow"""
 
         self.threadProgress = 0                                                 # always start at zero
 
@@ -1092,7 +1090,8 @@ class RollSurvey(pg.GraphicsObject):
         return True
 
     def binFromGeometry2(self, fullAnalysis) -> bool:
-        """only cmp binning implemented, working from the shot points rather than the relation records"""
+        """only cmp binning implemented,
+        now working from the shot points rather than the relation records"""
 
         self.threadProgress = 0                                                 # always start at zero
 
@@ -1392,7 +1391,8 @@ class RollSurvey(pg.GraphicsObject):
         return True
 
     def binFromGeometry3(self, fullAnalysis) -> bool:
-        """all binning methods implemented, working from the shot points rather than the relation records"""
+        """all binning methods implemented,
+        working from the shot points rather than the relation records"""
 
         self.threadProgress = 0                                                 # always start at zero
 
@@ -1703,7 +1703,8 @@ class RollSurvey(pg.GraphicsObject):
         return True
 
     def binFromGeometry4(self, fullAnalysis) -> bool:
-        """all binning methods implemented, using numpy arrays, rather than a for-loop"""
+        """all binning methods implemented,
+        using numpy arrays, rather than a for-loop"""
 
         self.threadProgress = 0                                                 # always start at zero
 
@@ -1984,6 +1985,7 @@ class RollSurvey(pg.GraphicsObject):
         return True
 
     def setupBinFromTemplates(self, fullAnalysis) -> bool:
+        """this routine is used for working from templates only"""
 
         if self.nShotPoints == -1:                                              # calcNoShotPoints has been skipped ?!?
             raise ValueError('nr shot points must be known at this point')
@@ -2076,731 +2078,14 @@ class RollSurvey(pg.GraphicsObject):
         return True
 
     @jit  # pylint: disable=e0602 # undefined variable in case of using nonumba
-    def binTemplate(self, block, template, templateOffset, fullAnalysis):
-        """iterate over all seeds in a template; make sure we start wih *source* seeds"""
-
-        # iterate over all seeds in a template
-        for srcSeed in template.seedList:
-            while len(srcSeed.grid.growList) < 3:
-                # First, make sure there are 3 grow steps for every srcSeed
-                srcSeed.grid.growList.insert(0, RollTranslate())
-
-            if not srcSeed.bSource:                                             # work with source seeds here
-                continue
-
-            for i in range(srcSeed.grid.growList[0].steps):
-                # start with a new QVector3D object
-                srcOff0 = QVector3D(templateOffset)
-                srcOff0 += srcSeed.grid.growList[0].increment * i
-
-                for j in range(srcSeed.grid.growList[1].steps):
-                    srcOff1 = srcOff0 + srcSeed.grid.growList[1].increment * j
-
-                    for k in range(srcSeed.grid.growList[2].steps):
-                        # we now have the correct offset
-                        srcOff2 = srcOff1 + srcSeed.grid.growList[2].increment * k
-                        # we now have the correct location
-                        srcLoc = srcOff2 + srcSeed.origin
-
-                        if QThread.currentThread().isInterruptionRequested():   # maybe stop at each shot...
-                            raise StopIteration
-
-                        self.nShotPoint += 1
-                        # apply integer divide
-                        threadProgress = (100 * self.nShotPoint) // self.nShotPoints
-                        if threadProgress > self.threadProgress:
-                            self.threadProgress = threadProgress
-                            # print("progress % = ", threadProgress)
-                            self.progress.emit(threadProgress + 1)
-
-                        # is it within block limits (or is the border empty) ?
-                        if containsPoint3D(block.borders.srcBorder, srcLoc):
-
-                            # now iterate over all seeds to find the receivers
-                            for recSeed in template.seedList:                   # iterate over all seeds in a template
-                                while len(recSeed.grid.growList) < 3:
-                                    # First, make sure there are 3 grow steps for every recSeed
-                                    recSeed.grid.growList.insert(0, RollTranslate())
-
-                                if recSeed.bSource:                             # work with receiver seeds here
-                                    continue
-
-                                for l in range(recSeed.grid.growList[0].steps):
-                                    # start with a new QVector3D object
-                                    recOff0 = QVector3D(templateOffset)
-                                    recOff0 += recSeed.grid.growList[0].increment * l
-
-                                    for m in range(recSeed.grid.growList[1].steps):
-                                        recOff1 = recOff0 + recSeed.grid.growList[1].increment * m
-
-                                        for n in range(recSeed.grid.growList[2].steps):
-                                            recOff2 = recOff1 + recSeed.grid.growList[2].increment * n
-
-                                            recLoc = QVector3D(recOff2)
-                                            recLoc += recSeed.origin            # we now have the correct location
-
-                                            # print("recLoc: ", recLoc.x(), recLoc.y() )
-
-                                            # is it within block limits (or is the border empty) ?
-                                            if containsPoint3D(block.borders.recBorder, recLoc):
-
-                                                # now we have a valid src-point and rec-point
-                                                cmpLoc = QPointF()
-
-                                                cmpBinning = True
-                                                if cmpBinning:
-                                                    cmpLoc = 0.5 * (srcLoc.toPointF() + recLoc.toPointF())
-
-                                                if containsPoint2D(self.output.rctOutput, cmpLoc):
-                                                    # now we need to process a valid trace
-
-                                                    # local position in bin area
-                                                    loc = self.binTransform.map(cmpLoc)
-                                                    nx = int(loc.x())
-                                                    ny = int(loc.y())
-
-                                                    vecOffset = recLoc - srcLoc             # determine offset vector
-                                                    rctOffset = vecOffset.toPointF()        # loose the z-component
-
-                                                    # first check if offset falls within offset analysis rectangle
-                                                    if containsPoint2D(self.offset.rctOffsets, rctOffset):
-
-                                                        # now do the 'expensive' sqrt operation
-                                                        radOffset = math.hypot(rctOffset.x(), rctOffset.y())
-
-                                                        # now check radial offset range. Only do this test if max offset > 0.0
-                                                        if self.offset.radOffsets.y() == 0.0 or (radOffset < self.offset.radOffsets.y() and radOffset >= self.offset.radOffsets.x()):
-
-                                                            if fullAnalysis:
-                                                                # ('SrcX', np.float32), ('SrcY', np.float32),    # Src (x, y)
-                                                                # ('RecX', np.float32), ('RecY', np.float32),    # Rec (x, y)
-                                                                # ('CmpX', np.float32), ('CmpY', np.float32),    # Cmp (x, y); needed for spider plot when binning against dipping plane
-                                                                # ('SrcL', np.int32  ), ('SrcP', np.int32  ),    # SrcLine, SrcPoint
-                                                                # ('RecL', np.int32  ), ('RecP', np.int32  )])   # RecLine, RecPoint
-
-                                                                fold = self.output.binOutput[nx, ny]
-                                                                if fold < self.grid.fold:                       # prevent overwriting next bin
-                                                                    # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(),
-                                                                    #                                         recLoc.x(), recLoc.y(),
-                                                                    #                                         cmpLoc.x(), cmpLoc.y(),
-                                                                    #                                         0, 0, 0, 0)
-                                                                    # line & stake nrs for reporting in extended np-array
-                                                                    stkLoc = self.st2Transform.map(cmpLoc)
-                                                                    self.output.anaOutput[nx][ny][fold][0] = int(stkLoc.x())
-                                                                    self.output.anaOutput[nx][ny][fold][1] = int(stkLoc.y())
-                                                                    self.output.anaOutput[nx][ny][fold][2] = fold + 1        # to make fold run from 1 to N
-                                                                    self.output.anaOutput[nx][ny][fold][3] = srcLoc.x()
-                                                                    self.output.anaOutput[nx][ny][fold][4] = srcLoc.y()
-                                                                    self.output.anaOutput[nx][ny][fold][5] = recLoc.x()
-                                                                    self.output.anaOutput[nx][ny][fold][6] = recLoc.y()
-                                                                    self.output.anaOutput[nx][ny][fold][7] = cmpLoc.x()
-                                                                    self.output.anaOutput[nx][ny][fold][8] = cmpLoc.y()
-                                                                # self.output.anaOutput[nx][ny][fold][9]
-
-                                                            # all selection criteria have been fullfilled; use the trace
-                                                            self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
-                                                            self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], radOffset)
-                                                            self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], radOffset)
-                                                            # print (cmpLoc.x(), cmpLoc.y(), loc.x(), loc.y(), stk.x(), stk.y(), self.output.binOutput[nx, ny])
-
-    def binTemplate2(self, block, template, templateOffset, fullAnalysis):
-        """forget about the seed's *growList*; make use of the seed's *pointList*"""
-
-        # iterate over all seeds in a template; make sure we start wih *source* seeds
-        for srcSeed in template.seedList:
-
-            if not srcSeed.bSource:                                             # work with source seeds here
-                continue
-
-            for src in srcSeed.pointList:
-                srcLoc = src + templateOffset
-
-                # begin thread progress code
-                # maybe stop at each shot...
-                if QThread.currentThread().isInterruptionRequested():
-                    raise StopIteration
-
-                self.nShotPoint += 1
-                # apply integer divide
-                threadProgress = (100 * self.nShotPoint) // self.nShotPoints
-                if threadProgress > self.threadProgress:
-                    self.threadProgress = threadProgress
-                    self.progress.emit(threadProgress + 1)
-                # end thread progress code
-
-                # is it within block limits (or is the border empty) ?
-                if containsPoint3D(block.borders.srcBorder, srcLoc):
-
-                    # now iterate over all seeds to find the receivers
-                    for recSeed in template.seedList:                           # iterate over all seeds in a template
-                        if recSeed.bSource:                                     # work with receiver seeds here
-                            continue
-
-                        for rec in recSeed.pointList:
-                            recLoc = rec + templateOffset
-
-                            # is it within block limits (or is the border empty) ?
-                            if containsPoint3D(block.borders.recBorder, recLoc):
-
-                                # now we have a valid src-point and rec-point
-                                cmpLoc = QPointF()
-
-                                cmpBinning = True
-                                if cmpBinning:
-                                    cmpLoc = 0.5 * (srcLoc.toPointF() + recLoc.toPointF())
-
-                                    if containsPoint2D(self.output.rctOutput, cmpLoc):
-                                        # now we need to process a valid trace
-
-                                        # local position in bin area
-                                        loc = self.binTransform.map(cmpLoc)
-                                        nx = int(loc.x())
-                                        ny = int(loc.y())
-
-                                        rctOffset = recLoc - srcLoc             # determine offset vector
-
-                                        # first check if offset falls within offset analysis rectangle
-
-                                        if containsPoint3D(self.offset.rctOffsets, rctOffset):
-
-                                            # now do the 'expensive' sqrt operation
-                                            radOffset = math.hypot(rctOffset.x(), rctOffset.y())
-
-                                            # now check radial offset range. Only do this test if max offset > 0.0
-                                            if self.offset.radOffsets.y() == 0.0 or (radOffset < self.offset.radOffsets.y() and radOffset >= self.offset.radOffsets.x()):
-
-                                                if fullAnalysis:
-                                                    # ('SrcX', np.float32), ('SrcY', np.float32),    # Src (x, y)
-                                                    # ('RecX', np.float32), ('RecY', np.float32),    # Rec (x, y)
-                                                    # ('CmpX', np.float32), ('CmpY', np.float32),    # Cmp (x, y); needed for spider plot when binning against dipping plane
-                                                    # ('SrcL', np.int32  ), ('SrcP', np.int32  ),    # SrcLine, SrcPoint
-                                                    # ('RecL', np.int32  ), ('RecP', np.int32  )])   # RecLine, RecPoint
-
-                                                    fold = self.output.binOutput[nx, ny]
-                                                    if fold < self.grid.fold:                       # prevent overwriting next bin
-                                                        # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(),
-                                                        #                                         recLoc.x(), recLoc.y(),
-                                                        #                                         cmpLoc.x(), cmpLoc.y(),
-                                                        #                                         0, 0, 0, 0)
-                                                        # line & stake nrs for reporting in extended np-array
-                                                        stkLoc = self.st2Transform.map(cmpLoc)
-                                                        self.output.anaOutput[nx][ny][fold][0] = int(stkLoc.x())
-                                                        self.output.anaOutput[nx][ny][fold][1] = int(stkLoc.y())
-                                                        self.output.anaOutput[nx][ny][fold][2] = fold + 1            # to make fold run from 1 to N
-                                                        self.output.anaOutput[nx][ny][fold][3] = srcLoc.x()
-                                                        self.output.anaOutput[nx][ny][fold][4] = srcLoc.y()
-                                                        self.output.anaOutput[nx][ny][fold][5] = recLoc.x()
-                                                        self.output.anaOutput[nx][ny][fold][6] = recLoc.y()
-                                                        self.output.anaOutput[nx][ny][fold][7] = cmpLoc.x()
-                                                        self.output.anaOutput[nx][ny][fold][8] = cmpLoc.y()
-                                                    # self.output.anaOutput[nx][ny][fold][9]
-
-                                                    # print (self.output.anaOutput[nx, ny, fold])
-                                                    # print(cmpLoc.x(), cmpLoc.y(), loc.x(), loc.y(), stkLoc.x(), stkLoc.y(), self.output.binOutput[nx, ny])
-
-                                                # all selection criteria have been fullfilled; use the trace
-                                                self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
-                                                self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], radOffset)
-                                                self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], radOffset)
-                                                print(cmpLoc.x(), cmpLoc.y(), loc.x(), loc.y(), self.output.binOutput[nx, ny])
-
-    def binTemplate3(self, block, template, templateOffset, fullAnalysis):
-        """move away from the seed's *pointList*, start using *pointArray* for a significant speed up"""
-
-        # convert the template offset to a numpy array
-        npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
-
-        # iterate over all seeds in a template; make sure we start wih *source* seeds
-        for srcSeed in template.seedList:
-
-            if not srcSeed.bSource:                                             # work with source seeds here
-                continue
-
-            for src in srcSeed.pointList:
-                srcLoc = src + templateOffset
-
-                # begin thread progress code
-                if QThread.currentThread().isInterruptionRequested():           # maybe stop at each shot...
-                    raise StopIteration
-
-                self.nShotPoint += 1
-                # apply integer divide
-                threadProgress = (100 * self.nShotPoint) // self.nShotPoints
-                if threadProgress > self.threadProgress:
-                    self.threadProgress = threadProgress
-                    self.progress.emit(threadProgress + 1)
-                # end thread progress code
-
-                # is it within block limits (or is the border empty) ?
-                if containsPoint3D(block.borders.srcBorder, srcLoc):
-
-                    # now iterate over all seeds to find the receivers
-                    for recSeed in template.seedList:                           # iterate over all seeds in a template
-                        if recSeed.bSource:                                     # work with receiver seeds here
-                            continue
-
-                        # we are in a receiver seed right now; use the numpy array functions to apply selection criteria
-                        recPoints = recSeed.pointArray + npTemplateOffset
-
-                        # deal with block's receiver border if it isn't null()
-                        if not block.borders.recBorder.isNull():
-                            l = block.borders.recBorder.left()
-                            r = block.borders.recBorder.right()
-                            t = block.borders.recBorder.top()
-                            b = block.borders.recBorder.bottom()
-                            I = (recPoints[:, 0] >= l) & (recPoints[:, 0] <= r) & (recPoints[:, 1] >= t) & (recPoints[:, 1] <= b)
-                            if np.count_nonzero(I) == 0:
-                                continue
-                            recPoints = recPoints[I, :]
-
-                        srcArray = np.array([srcLoc.x(), srcLoc.y(), srcLoc.z()], dtype=np.float32)
-                        cmpPoints = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
-                        # create all cmp-locations for this shot point
-                        cmpPoints = (recPoints + srcArray) * 0.5
-
-                        l = self.output.rctOutput.left()
-                        r = self.output.rctOutput.right()
-                        t = self.output.rctOutput.top()
-                        b = self.output.rctOutput.bottom()
-                        I = (cmpPoints[:, 0] >= l) & (cmpPoints[:, 0] <= r) & (cmpPoints[:, 1] >= t) & (cmpPoints[:, 1] <= b)
-                        if np.count_nonzero(I) == 0:
-                            continue
-
-                        # filter the cmp-array
-                        cmpPoints = cmpPoints[I, :]
-                        # filter the rec-array too, as we still need this
-                        recPoints = recPoints[I, :]
-
-                        cmpBinning = True
-                        if cmpBinning:
-                            offArray = np.zeros(shape=(recPoints.shape[0], 2), dtype=np.float32)
-                            offArray = recPoints - srcArray                      # define the offset array
-
-                            l = self.offset.rctOffsets.left()
-                            r = self.offset.rctOffsets.right()
-                            t = self.offset.rctOffsets.top()
-                            b = self.offset.rctOffsets.bottom()
-                            I = (offArray[:, 0] >= l) & (offArray[:, 0] <= r) & (offArray[:, 1] >= t) & (offArray[:, 1] <= b)
-                            if np.count_nonzero(I) == 0:
-                                continue
-
-                            # print(I)
-                            # filter the off-array
-                            offArray = offArray[I, :]
-                            # filter the cmp-array too, as we still need this
-                            cmpPoints = cmpPoints[I, :]
-                            # filter the rec-array too, as we still need this
-                            recPoints = recPoints[I, :]
-
-                            hypArray = np.zeros(shape=(recPoints.shape[0], 1), dtype=np.float32)
-                            # calculate per row
-                            hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
-
-                            r1 = self.offset.radOffsets.x()
-                            r2 = self.offset.radOffsets.y()
-                            if r2 > 0:                                          # we need to apply radial offset crieria
-                                I = (hypArray[:] >= r1) & (hypArray[:] <= r2)
-                                if np.count_nonzero(I) == 0:
-                                    continue
-                                # print(I)
-                                # filter the radial offset-array
-                                hypArray = hypArray[I]
-                                # filter the off-array too, as we still need this
-                                offArray = offArray[I, :]
-                                # filter the cmp-array too, as we still need this
-                                cmpPoints = cmpPoints[I, :]
-                                # filter the rec-array too, as we still need this
-                                recPoints = recPoints[I, :]
-
-                            #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
-                            # process all traces
-                            for count, item in enumerate(cmpPoints):
-                                cmpX = item[0]
-                                cmpY = item[1]
-                                # local position in bin area
-                                x, y = self.binTransform.map(cmpX, cmpY)
-                                nx = int(x)
-                                ny = int(y)
-
-                                if fullAnalysis:
-
-                                    fold = self.output.binOutput[nx, ny]
-                                    if fold < self.grid.fold:                   # prevent overwriting next bin
-                                        # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(), recLoc.x(), recLoc.y(), cmpLoc.x(), cmpLoc.y(), 0, 0, 0, 0)
-
-                                        # line & stake nrs for reporting in extended np-array
-                                        stkX, stkY = self.st2Transform.map(cmpX, cmpY)
-                                        self.output.anaOutput[nx][ny][fold][0] = int(stkX)
-                                        self.output.anaOutput[nx][ny][fold][1] = int(stkY)
-                                        self.output.anaOutput[nx][ny][fold][2] = fold + 1           # to make fold run from 1 to N
-                                        self.output.anaOutput[nx][ny][fold][3] = srcArray[0]
-                                        self.output.anaOutput[nx][ny][fold][4] = srcArray[1]
-                                        self.output.anaOutput[nx][ny][fold][5] = recPoints[count, 0]
-                                        self.output.anaOutput[nx][ny][fold][6] = recPoints[count, 1]
-                                        self.output.anaOutput[nx][ny][fold][7] = cmpPoints[count, 0]
-                                        self.output.anaOutput[nx][ny][fold][8] = cmpPoints[count, 1]
-                                    # self.output.anaOutput[nx][ny][fold][9]
-
-                                # all selection criteria have been fullfilled; use the trace
-                                self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
-                                self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], hypArray[count])
-                                self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], hypArray[count])
-
-    def binTemplate4(self, block, template, templateOffset, fullAnalysis):
-        """further move away from the seed's *pointList*, start using *pointArray* for a significant speed up"""
-
-        # convert the template offset to a numpy array
-        npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
-
-        # iterate over all seeds in a template; make sure we start wih *source* seeds
-        for srcSeed in template.seedList:
-
-            if not srcSeed.bSource:                                             # work only with source seeds here
-                continue
-
-            # we are in a source seed right now; use the numpy array functions to apply selection criteria
-            srcArray = srcSeed.pointArray + npTemplateOffset
-
-            # deal with block's source  border if it isn't null()
-            if not block.borders.srcBorder.isNull():
-                l = block.borders.srcBorder.left()
-                r = block.borders.srcBorder.right()
-                t = block.borders.srcBorder.top()
-                b = block.borders.srcBorder.bottom()
-                I = (srcArray[:, 0] >= l) & (srcArray[:, 0] <= r) & (srcArray[:, 1] >= t) & (srcArray[:, 1] <= b)
-                if np.count_nonzero(I) == 0:
-                    continue                                                    # if nothing succeeds; pick next seed
-                srcArray = srcArray[I, :]                                       # filter the source array
-
-            for src in srcArray:                                                # iterate over all sources
-
-                # begin thread progress code
-                if QThread.currentThread().isInterruptionRequested():           # maybe stop at each shot...
-                    raise StopIteration
-
-                self.nShotPoint += 1
-                threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
-                if threadProgress > self.threadProgress:
-                    self.threadProgress = threadProgress
-                    self.progress.emit(threadProgress + 1)
-                # end thread progress code
-
-                # now iterate over all seeds to find the receivers
-                for recSeed in template.seedList:                               # iterate over all rec seeds in a template
-                    if recSeed.bSource:                                         # work with receiver seeds here
-                        continue
-
-                    # we are in a receiver seed right now; use the numpy array functions to apply selection criteria
-                    recPoints = recSeed.pointArray + npTemplateOffset
-
-                    # deal with block's receiver border if it isn't null()
-                    if not block.borders.recBorder.isNull():
-                        l = block.borders.recBorder.left()
-                        r = block.borders.recBorder.right()
-                        t = block.borders.recBorder.top()
-                        b = block.borders.recBorder.bottom()
-                        I = (recPoints[:, 0] >= l) & (recPoints[:, 0] <= r) & (recPoints[:, 1] >= t) & (recPoints[:, 1] <= b)
-                        if np.count_nonzero(I) == 0:
-                            continue
-                        recPoints = recPoints[I, :]
-
-                    cmpPoints = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
-                    # create all cmp-locations for this shot point
-                    cmpPoints = (recPoints + src) * 0.5
-
-                    l = self.output.rctOutput.left()
-                    r = self.output.rctOutput.right()
-                    t = self.output.rctOutput.top()
-                    b = self.output.rctOutput.bottom()
-                    I = (cmpPoints[:, 0] >= l) & (cmpPoints[:, 0] <= r) & (cmpPoints[:, 1] >= t) & (cmpPoints[:, 1] <= b)
-                    if np.count_nonzero(I) == 0:
-                        continue
-
-                    # filter the cmp-array
-                    cmpPoints = cmpPoints[I, :]
-                    # filter the rec-array too, as we still need this
-                    recPoints = recPoints[I, :]
-
-                    cmpBinning = True
-                    if cmpBinning:
-                        offArray = np.zeros(shape=(recPoints.shape[0], 2), dtype=np.float32)
-                        offArray = recPoints - src                       # define the offset array
-
-                        l = self.offset.rctOffsets.left()
-                        r = self.offset.rctOffsets.right()
-                        t = self.offset.rctOffsets.top()
-                        b = self.offset.rctOffsets.bottom()
-                        I = (offArray[:, 0] >= l) & (offArray[:, 0] <= r) & (offArray[:, 1] >= t) & (offArray[:, 1] <= b)
-                        if np.count_nonzero(I) == 0:
-                            continue
-
-                        # filter the off-array
-                        offArray = offArray[I, :]
-                        # filter the cmp-array too, as we still need this
-                        cmpPoints = cmpPoints[I, :]
-                        # filter the rec-array too, as we still need this
-                        recPoints = recPoints[I, :]
-
-                        hypArray = np.zeros(shape=(recPoints.shape[0], 1), dtype=np.float32)
-                        # calculate per row
-                        hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
-
-                        r1 = self.offset.radOffsets.x()                         # minimum radius
-                        r2 = self.offset.radOffsets.y()                         # maximum radius
-                        if r2 > 0:                                              # we need to apply the radial offset selection criteria
-                            I = (hypArray[:] >= r1) & (hypArray[:] <= r2)
-                            if np.count_nonzero(I) == 0:
-                                continue                                        # continue with next recSeed
-
-                            # filter the radial offset-array
-                            hypArray = hypArray[I]
-                            # filter the off-array too, as we still need this
-                            offArray = offArray[I, :]
-                            # filter the cmp-array too, as we still need this
-                            cmpPoints = cmpPoints[I, :]
-                            # filter the rec-array too, as we still need this
-                            recPoints = recPoints[I, :]
-
-                        #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
-                        # process all traces
-                        for count, cmp in enumerate(cmpPoints):
-                            try:                                                # protect against potential index errors
-                                cmpX = cmp[0]
-                                cmpY = cmp[1]
-                                # local position in bin area
-                                x, y = self.binTransform.map(cmpX, cmpY)
-                                nx = int(x)
-                                ny = int(y)
-
-                                if fullAnalysis:
-                                    fold = self.output.binOutput[nx, ny]
-                                    if fold < self.grid.fold:                   # prevent overwriting next bin
-                                        # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(), recLoc.x(), recLoc.y(), cmpLoc.x(), cmpLoc.y(), 0, 0, 0, 0)
-
-                                        # line & stake nrs for reporting in extended np-array
-                                        stkX, stkY = self.st2Transform.map(cmpX, cmpY)
-                                        self.output.anaOutput[nx][ny][fold][0] = int(stkX)
-                                        self.output.anaOutput[nx][ny][fold][1] = int(stkY)
-                                        self.output.anaOutput[nx][ny][fold][2] = fold + 1           # to make fold run from 1 to N
-                                        self.output.anaOutput[nx][ny][fold][3] = src[0]
-                                        self.output.anaOutput[nx][ny][fold][4] = src[1]
-                                        self.output.anaOutput[nx][ny][fold][5] = recPoints[count, 0]
-                                        self.output.anaOutput[nx][ny][fold][6] = recPoints[count, 1]
-                                        self.output.anaOutput[nx][ny][fold][7] = cmpPoints[count, 0]
-                                        self.output.anaOutput[nx][ny][fold][8] = cmpPoints[count, 1]
-                                    # self.output.anaOutput[nx][ny][fold][9]
-
-                                # all selection criteria have been fullfilled; use the trace
-                                self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
-                                self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], hypArray[count])
-                                self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], hypArray[count])
-
-                            # rather than checking nx, ny & fold, use exception handling to deal with index errors
-                            # note: the other exceptions are handled in binFromTemplates()
-                            except IndexError:
-                                continue
-
-    def binTemplate5(self, block, template, templateOffset, fullAnalysis):
-        """using *pointArray* for a significant speed up, introduce different binning methods"""
-
-        # convert the template offset (a QVector3D) to a numpy array
-        npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
-
-        # iterate over all seeds in a template; make sure we start wih *source* seeds
-        for srcSeed in template.seedList:
-
-            if not srcSeed.bSource:                                             # work only with source seeds here
-                continue
-
-            # we are in a source seed right now; use the numpy array functions to apply selection criteria
-            srcArray = srcSeed.pointArray + npTemplateOffset
-
-            # deal with block's source  border if it isn't null()
-            if not block.borders.srcBorder.isNull():
-                l = block.borders.srcBorder.left()
-                r = block.borders.srcBorder.right()
-                t = block.borders.srcBorder.top()
-                b = block.borders.srcBorder.bottom()
-                I = (srcArray[:, 0] >= l) & (srcArray[:, 0] <= r) & (srcArray[:, 1] >= t) & (srcArray[:, 1] <= b)
-                if np.count_nonzero(I) == 0:
-                    continue                                                    # if nothing succeeds; pick next seed
-                srcArray = srcArray[I, :]                                       # filter the source array
-
-            for src in srcArray:                                                # iterate over all sources
-
-                # begin thread progress code
-                if QThread.currentThread().isInterruptionRequested():           # maybe stop at each shot...
-                    raise StopIteration
-
-                self.nShotPoint += 1
-                threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
-                if threadProgress > self.threadProgress:
-                    self.threadProgress = threadProgress
-                    self.progress.emit(threadProgress + 1)
-                # end thread progress code
-
-                # now iterate over all seeds to find the receivers
-                for recSeed in template.seedList:                           # iterate over all rec seeds in a template
-                    if recSeed.bSource:                                     # work with receiver seeds here
-                        continue
-
-                    # we are in a receiver seed right now; use the numpy array functions to apply selection criteria
-                    recPoints = recSeed.pointArray + npTemplateOffset
-
-                    # deal with block's receiver border if it isn't null()
-                    if not block.borders.recBorder.isNull():
-                        l = block.borders.recBorder.left()
-                        r = block.borders.recBorder.right()
-                        t = block.borders.recBorder.top()
-                        b = block.borders.recBorder.bottom()
-                        I = (recPoints[:, 0] >= l) & (recPoints[:, 0] <= r) & (recPoints[:, 1] >= t) & (recPoints[:, 1] <= b)
-                        if np.count_nonzero(I) == 0:
-                            continue
-                        recPoints = recPoints[I, :]
-
-                    cmpPoints = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
-
-                    if self.binning.method == BinningType.cmp:
-                        # create all cmp-locations for this shot point, by simply taking the average from src and rec locations
-                        cmpPoints = (recPoints + src) * 0.5
-                    elif self.binning.method == BinningType.plane:
-                        # create all cmp-locations using the following steps:
-                        # 1. mirror the source location against the plane
-                        # 2. find out where/if the lines defined by the source-mirror with the receivers cuts through the plane
-                        # 3. these locations are the cmp locations for binning against a dipping plane
-                        srcMirror3D = self.localPlane.mirrorPoint3D(QVector3D(*src))
-
-                        # now iterate over recPoints to find all intersection points with the dipping plane
-                        # in a second revision, the for loop should be replaced by a 'native numpy' routine
-                        for nR, rec in enumerate(recPoints):                     # iterate over all receivers
-                            recPoint3D = QVector3D(*rec)
-                            cmpPoint3D = self.localPlane.IntersectLineAtPoint3D(srcMirror3D, recPoint3D, self.angles.reflection.x(), self.angles.reflection.y())
-
-                            if cmpPoint3D is not None:
-                                cmpPoints[nR][0] = cmpPoint3D.x()
-                                cmpPoints[nR][1] = cmpPoint3D.y()
-                                cmpPoints[nR][2] = cmpPoint3D.z()
-                            else:
-                                cmpPoints[nR][0] = None                         # don't bother with y or z; later only test on x
-
-                        # check which cmp values are valid (i.e. not None)
-                        I = cmpPoints[:, 0] != None                           # pylint: disable=C0121 # we need to do a per-element comparison, can't use "is not None"
-                        if np.count_nonzero(I) == 0:
-                            continue
-
-                        cmpPoints = cmpPoints[I, :]                             # filter the cmp-array
-                        recPoints = recPoints[I, :]                             # filter the rec-array
-                    elif self.binning.method == BinningType.sphere:
-                        for nR, rec in enumerate(recPoints):                        # iterate over all receivers
-                            cmpPoint = self.localSphere.ReflectSphereAtPointNp(src, rec, self.angles.reflection.x(), self.angles.reflection.y())
-
-                            if cmpPoint is not None:
-                                cmpPoints[nR] = cmpPoint
-                            else:
-                                cmpPoints[nR][0] = None                         # don't bother with y or z; later only test on x
-
-                        # check which cmp values are valid (i.e. not None)
-                        I = cmpPoints[:, 0] != None                           # pylint: disable=C0121 # we need to do a per-element comparison, can't use "is not None"
-                        if np.count_nonzero(I) == 0:
-                            continue
-
-                        cmpPoints = cmpPoints[I, :]                             # filter the cmp-array
-                        recPoints = recPoints[I, :]                             # filter the rec-array too, as we still need this for offsets
-
-                    # find the cmp locations that contribute to the output area
-                    l = self.output.rctOutput.left()
-                    r = self.output.rctOutput.right()
-                    t = self.output.rctOutput.top()
-                    b = self.output.rctOutput.bottom()
-
-                    I = (cmpPoints[:, 0] >= l) & (cmpPoints[:, 0] <= r) & (cmpPoints[:, 1] >= t) & (cmpPoints[:, 1] <= b)
-                    if np.count_nonzero(I) == 0:
-                        continue
-
-                    # filter the cmp-array
-                    cmpPoints = cmpPoints[I, :]
-                    # filter the rec-array too, as we still need this
-                    recPoints = recPoints[I, :]
-
-                    offArray = np.zeros(shape=(recPoints.shape[0], 2), dtype=np.float32)
-                    offArray = recPoints - src                       # define the offset array
-
-                    l = self.offset.rctOffsets.left()
-                    r = self.offset.rctOffsets.right()
-                    t = self.offset.rctOffsets.top()
-                    b = self.offset.rctOffsets.bottom()
-                    I = (offArray[:, 0] >= l) & (offArray[:, 0] <= r) & (offArray[:, 1] >= t) & (offArray[:, 1] <= b)
-                    if np.count_nonzero(I) == 0:
-                        continue
-
-                    # filter the off-array
-                    offArray = offArray[I, :]
-                    # filter the cmp-array too, as we still need this
-                    cmpPoints = cmpPoints[I, :]
-                    # filter the rec-array too, as we still need this
-                    recPoints = recPoints[I, :]
-
-                    hypArray = np.zeros(shape=(recPoints.shape[0], 1), dtype=np.float32)
-                    # calculate per row
-                    hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
-
-                    r1 = self.offset.radOffsets.x()                         # minimum radius
-                    r2 = self.offset.radOffsets.y()                         # maximum radius
-                    if r2 > 0:                                              # we need to apply the radial offset selection criteria
-                        I = (hypArray[:] >= r1) & (hypArray[:] <= r2)
-                        if np.count_nonzero(I) == 0:
-                            continue                                        # continue with next recSeed
-
-                        # filter the radial offset-array
-                        hypArray = hypArray[I]
-                        # filter the off-array too, as we still need this
-                        offArray = offArray[I, :]
-                        # filter the cmp-array too, as we still need this
-                        cmpPoints = cmpPoints[I, :]
-                        # filter the rec-array too, as we still need this
-                        recPoints = recPoints[I, :]
-
-                    #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
-                    # process all traces
-                    for count, cmp in enumerate(cmpPoints):
-                        try:                                                # protect against potential index errors
-                            cmpX = cmp[0]
-                            cmpY = cmp[1]
-                            # local position in bin area
-                            x, y = self.binTransform.map(cmpX, cmpY)
-                            nx = int(x)
-                            ny = int(y)
-
-                            if fullAnalysis:
-                                fold = self.output.binOutput[nx, ny]
-                                if fold < self.grid.fold:                   # prevent overwriting next bin
-                                    # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(), recLoc.x(), recLoc.y(), cmpLoc.x(), cmpLoc.y(), 0, 0, 0, 0)
-
-                                    # line & stake nrs for reporting in extended np-array
-                                    stkX, stkY = self.st2Transform.map(cmpX, cmpY)
-                                    self.output.anaOutput[nx][ny][fold][0] = int(stkX)
-                                    self.output.anaOutput[nx][ny][fold][1] = int(stkY)
-                                    self.output.anaOutput[nx][ny][fold][2] = fold + 1           # to make fold run from 1 to N
-                                    self.output.anaOutput[nx][ny][fold][3] = src[0]
-                                    self.output.anaOutput[nx][ny][fold][4] = src[1]
-                                    self.output.anaOutput[nx][ny][fold][5] = recPoints[count, 0]
-                                    self.output.anaOutput[nx][ny][fold][6] = recPoints[count, 1]
-                                    self.output.anaOutput[nx][ny][fold][7] = cmpPoints[count, 0]
-                                    self.output.anaOutput[nx][ny][fold][8] = cmpPoints[count, 1]
-                                # self.output.anaOutput[nx][ny][fold][9]
-
-                            # all selection criteria have been fullfilled; use the trace
-                            self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
-                            self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], hypArray[count])
-                            self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], hypArray[count])
-
-                        # rather than checking nx, ny & fold, use exception handling to deal with index errors
-                        # note: the other exceptions are handled in binFromTemplates()
-                        except IndexError:
-                            continue
-
     def binTemplate6(self, block, template, templateOffset, fullAnalysis):
-        """using *pointArray* for a significant speed up, introduce *vectorized* binning methods, removing for loop"""
+        """
+        using *pointArray* for a significant speed up,
+        introduced *vectorized* binning methods, removed need for a for loop
+
+        On 25/03/2024 the earlier implementations of binTemplate v1 to v5 have been removed.
+        They are still available in the roll-2024-03-04 folder in classes.py
+        """
 
         # convert the template offset (a QVector3D) to a numpy array
         npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
@@ -3038,7 +2323,7 @@ class RollSurvey(pg.GraphicsObject):
         for block in self.blockList:
             for template in block.templateList:
                 for seed in template.seedList:
-                    if seed.type == 4:                                          # well site; check for errors
+                    if seed.typ_ == 4:                                          # well site; check for errors
                         f = seed.well.name                                      # check if well-file exists
                         if f is None or not os.path.exists(f):
                             QMessageBox.warning(None, e, 'A well-seed should point to an existing well-file')
@@ -3092,17 +2377,17 @@ class RollSurvey(pg.GraphicsObject):
                     self.seedList.append(seed)
                     # do this as well in the seed's preparation phase
                     seed.calcPointPicture()
-                    if seed.type < 2:                                           # grid
+                    if seed.typ_ < 2:                                           # grid
                         seed.pointList = seed.grid.calcPointList(seed.origin)   # calculate the point list for this seed type
                         seed.grid.calcSalvoLine(seed.origin)                    # calc line to be drawn in low LOD values
 
-                    elif seed.type == 2:                                        # circle
+                    elif seed.typ_ == 2:                                        # circle
                         seed.pointList = seed.circle.calcPointList(seed.origin)   # calculate the point list for this seed type
 
-                    elif seed.type == 3:                                        # spiral
+                    elif seed.typ_ == 3:                                        # spiral
                         seed.pointList = seed.spiral.calcPointList(seed.origin)   # calculate the point list for this seed type
                         seed.spiral.calcSpiralPath(seed.origin)                 # calc spiral path to be drawn
-                    elif seed.type == 4:                                        # well site
+                    elif seed.typ_ == 4:                                        # well site
                         seed.pointList, seed.origin = seed.well.calcPointList(self.crs, self.glbTransform)  # calculate the well's point list
 
                     # at this point; convert the point-lists to numpy-arrays for more efficient processing
@@ -3110,108 +2395,61 @@ class RollSurvey(pg.GraphicsObject):
 
     def createBasicSkeleton(self, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=2):
 
-        # create a block
-        block = RollBlock('block-1')
-
-        # add block to survey object
-        self.blockList.append(block)
+        block = RollBlock('block-1')                                            # create a block
+        self.blockList.append(block)                                            # add block to survey object
 
         for template in range(nTemplates):
+            templateName = f'template-{template + 1}'                           # get suitable template name
+            template = RollTemplate(templateName)                               # create template
+            block.templateList.append(template)                                 # add template to block object
 
-            # create a template
-            templateName = f'template-{template + 1}'
-            template = RollTemplate(templateName)
+            roll1 = RollTranslate()                                             # create the 'first' roll object
+            template.rollList.append(roll1)                                     # add roll object to template's rollList
 
-            # add template to block object
-            block.templateList.append(template)
-
-            # create a 'vertical' roll object
-            roll1 = RollTranslate()
-
-            # add roll object to template's rollList
-            template.rollList.append(roll1)
-
-            # create a 'horizontal' roll object
-            roll2 = RollTranslate()
-
-            # add roll object to template's rollList
-            template.rollList.append(roll2)
+            roll2 = RollTranslate()                                             # create a 'second' roll object
+            template.rollList.append(roll2)                                     # add roll object to template's rollList
 
             for srcSeed in range(nSrcSeeds):
-
-                # create a source seed object
-                seedName = f'src-{srcSeed + 1}'
+                seedName = f'src-{srcSeed + 1}'                                 # create a source seed object
                 seedSrc = RollSeed(seedName)
                 seedSrc.bSource = True
                 seedSrc.color = QColor('#77FF8989')
+                template.seedList.append(seedSrc)                               # add seed object to template
 
-                # add seed object to template
-                template.seedList.append(seedSrc)
-
-                # create a 'lines' grow object
-                growR1 = RollTranslate()
-
-                # add grow object to seed's growlist
-                seedSrc.grid.growList.append(growR1)
-
-                # create a 'points' grow object
-                growR2 = RollTranslate()
-
-                # add grow object to seed
-                seedSrc.grid.growList.append(growR2)
+                growR1 = RollTranslate()                                        # create a 'lines' grow object
+                seedSrc.grid.growList.append(growR1)                            # add grow object to seed
+                growR2 = RollTranslate()                                        # create a 'points' grow object
+                seedSrc.grid.growList.append(growR2)                            # add grow object to seed
 
             for recSeed in range(nRecSeeds):
-
-                # create a receiver seed object
-                seedName = f'rec-{recSeed + 1}'
+                seedName = f'rec-{recSeed + 1}'                                 # create a receiver seed object
                 seedRec = RollSeed(seedName)
                 seedRec.bSource = False
                 seedRec.color = QColor('#7787A4D9')
+                template.seedList.append(seedRec)                               # add seed object to template
 
-                # add seed object to template
-                template.seedList.append(seedRec)
-
-                # create a 'lines' grow object
-                growR1 = RollTranslate()
-
-                # add grow object to seed's growlist
-                seedRec.grid.growList.append(growR1)
-
-                # create a 'points' grow object
-                growR2 = RollTranslate()
-
-                # add grow object to seed
-                seedRec.grid.growList.append(growR2)
+                growR1 = RollTranslate()                                        # create a 'lines' grow object
+                seedRec.grid.growList.append(growR1)                            # add grow object to seed's growlist
+                growR2 = RollTranslate()                                        # create a 'points' grow object
+                seedRec.grid.growList.append(growR2)                            # add grow object to seed
 
         for pattern in range(nPatterns):
-            patternName = f'pattern-{pattern + 1}'
+            patternName = f'pattern-{pattern + 1}'                              # create suitable pattern name
+            pattern = RollPattern(patternName)                                  # create the pattern
 
-            # first create a pattern
-            pattern = RollPattern(patternName)
+            grow1 = RollTranslate()                                             # create a 'vertical' grow object
+            pattern.growList.append(grow1)                                      # add grow object to pattern's growList
+            grow2 = RollTranslate()                                             # create a 'horizontal' grow object
+            pattern.growList.append(grow2)                                      # add grow object to pattern's growList
+            self.patternList.append(pattern)                                    # add block to survey object
 
-            # create a 'vertical' grow object
-            grow1 = RollTranslate()
-
-            # add grow object to pattern's growList
-            pattern.growList.append(grow1)
-
-            # create a 'horizontal' grow object
-            grow2 = RollTranslate()
-
-            # add grow object to pattern's growList
-            pattern.growList.append(grow2)
-
-            # add block to survey object
-            self.patternList.append(pattern)
-
-    # the root element is created within the survey object
     def writeXml(self, doc: QDomDocument):
-
         doc.clear()
 
         instruction = doc.createProcessingInstruction('xml', 'version="1.0" encoding="UTF-8"')
         doc.appendChild(instruction)
 
+        # root is created within the survey object; other elements are appended to root
         root = doc.createElement('survey')
         root.setAttribute('version', '1.0')
         doc.appendChild(root)
@@ -3351,7 +2589,7 @@ class RollSurvey(pg.GraphicsObject):
         for block in self.blockList:
             for template in block.templateList:
                 for seed in template.seedList:
-                    if seed.type < 2 and seed.patternNo > -1 and seed.patternNo < len(self.patternList):
+                    if seed.typ_ < 2 and seed.patternNo > -1 and seed.patternNo < len(self.patternList):
                         translate = seed.grid.growList[-1]
                         if translate and seed.bAzimuth:                         # need to reorient the pattern
                             # get the slant angle (deviation from orthogonal
@@ -3563,8 +2801,8 @@ class RollSurvey(pg.GraphicsObject):
             # use a solid pen, 2 pixels wide
             painter.setPen(pg.mkPen(seed.color, width=2))
 
-            if seed.type < 2 and seed.rendered is False:                       # grid based seed
-                if seed.type == 1:
+            if seed.typ_ < 2 and seed.rendered is False:                       # grid based seed
+                if seed.typ_ == 1:
                     # no rolling along; fixed grid
                     templateOffset = QVector3D()
                     seed.rendered = True
@@ -3701,7 +2939,7 @@ class RollSurvey(pg.GraphicsObject):
                     # do something recursively; not  implemented yet
                     raise NotImplementedError('More than three grow steps currently not allowed.')
 
-            if seed.type == 2 and seed.rendered is False:                       # circle seed
+            if seed.typ_ == 2 and seed.rendered is False:                       # circle seed
                 seed.rendered = True
                 if lod < config.lod2 or self.mouseGrabbed:                      # just draw a circle
 
@@ -3717,7 +2955,7 @@ class RollSurvey(pg.GraphicsObject):
                         # paint seed picture
                         painter.drawPicture(p, seed.pointPicture)
 
-            if seed.type == 3 and seed.rendered is False:                       # spiral seed
+            if seed.typ_ == 3 and seed.rendered is False:                       # spiral seed
                 seed.rendered = True
                 if lod < config.lod2 or self.mouseGrabbed:                      # just draw two circles
 
@@ -3749,7 +2987,7 @@ class RollSurvey(pg.GraphicsObject):
                         # paint seed picture
                         painter.drawPicture(p, seed.pointPicture)
 
-            if seed.type == 4 and seed.rendered is False:                       # well seed
+            if seed.typ_ == 4 and seed.rendered is False:                       # well seed
                 seed.rendered = True
                 # draw well trajectory as part of this template; move this up to paint()
                 painter.drawPolyline(seed.well.polygon)

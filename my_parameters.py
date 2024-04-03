@@ -1284,13 +1284,13 @@ class MySeedPreviewLabel(MyPreviewLabel):
         self.onValueChanging(None, val)
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
-        if val.type == 2:
+        if val.typ_ == 2:
             kind = 'circle'
             nSteps = len(val.pointList)
-        elif val.type == 3:
+        elif val.typ_ == 3:
             kind = 'spiral'
             nSteps = len(val.pointList)
-        elif val.type == 4:
+        elif val.typ_ == 4:
             kind = 'well'
             nSteps = len(val.pointList)
         else:
@@ -1345,7 +1345,7 @@ class MySeedParameter(MyGroupParameter):
         d = opts.get('decimals', 7)
 
         self.seedTypes = ['Grid (roll along)', 'Grid (stationary)', 'Circle', 'Spiral', 'Well']
-        self.addChild(dict(name='Seed type', type='myList', value=self.seedTypes[self.seed.type], default=self.seedTypes[self.seed.type], limits=self.seedTypes, brush='#add8e6'))
+        self.addChild(dict(name='Seed type', type='myList', value=self.seedTypes[self.seed.typ_], default=self.seedTypes[self.seed.typ_], limits=self.seedTypes, brush='#add8e6'))
         self.addChild(dict(name='Source seed', type='bool', value=self.seed.bSource))
         self.addChild(dict(name='Seed color', type='color', value=self.seed.color))
         self.addChild(dict(name='Seed origin', type='myPoint3D', value=self.seed.origin, expanded=False, flat=True, decimals=d))
@@ -1353,7 +1353,7 @@ class MySeedParameter(MyGroupParameter):
         # A 'global' patternList has been defined using config.py as a backdoor;
         # as patterns are defined on a seperate (not-easy-to-access) branch in the RollSurvey object
         pl = config.patternList
-        if self.seed.type > 1:
+        if self.seed.typ_ > 1:
             nPattern = 0
         else:
             nPattern = self.seed.patternNo + 1
@@ -1398,7 +1398,7 @@ class MySeedParameter(MyGroupParameter):
 
     def typeChanged(self):
         seedType = self.parT.value()
-        self.seed.type = self.seedTypes.index(seedType)
+        self.seed.typ_ = self.seedTypes.index(seedType)
 
         if seedType == 'Well':
             self.parO.show(False)
@@ -2318,7 +2318,7 @@ class MyConfigurationParameter(MyGroupParameter):
         # the use of 'type' caused errors: 'str' object is not callable error in python. Solved by using 'typ' and 'nam' instead
         # see: https://stackoverflow.com/questions/6039605/why-does-code-like-str-str-cause-a-typeerror-but-only-the-second-time
         self.crs = self.survey.crs
-        self.typ = self.survey.type
+        self.typ = self.survey.typ_
         self.nam = self.survey.name
         surTypes = [e.name for e in SurveyType]
 

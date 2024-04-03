@@ -131,7 +131,7 @@ class RollTemplate:
             # get the seed's boundingbox
             seedBounds = seed.calcBoundingRect()
 
-            if seed.type == 0 and roll is True:                                 # rolling grid of seeds
+            if seed.typ_ == 0 and roll is True:                                 # rolling grid of seeds
                 if seed.bSource:                                                # it's a source seed
                     # take note of it; handy for QC
                     self.nSrcSeeds += 1

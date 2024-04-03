@@ -754,11 +754,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         CFG = self.parameters.child('Survey configuration')
         # copy.crs = CFG.child('Survey CRS').value()
-        # copy.type = SurveyType[CFG.child('Survey type').value()]
+        # copy.typ_ = SurveyType[CFG.child('Survey type').value()]
         # copy.name = CFG.child('Survey name').value()
 
         copy.crs, surType, copy.name = CFG.value()                              # get tuple of data from parameter
-        copy.type = SurveyType[surType]                                         # SurveyType is an enum
+        copy.typ_ = SurveyType[surType]                                         # SurveyType is an enum
         config.surveyCrs = copy.crs                                             # needed for global access to crs
 
         ANA = self.parameters.child('Survey analysis')
