@@ -1,5 +1,6 @@
 from pyqtgraph.parametertree import Parameter, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import WidgetParameterItem
+from pyqtgraph.parametertree.parameterTypes.basetypes import \
+    WidgetParameterItem
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.gui import QgsProjectionSelectionWidget
 

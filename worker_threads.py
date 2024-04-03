@@ -2,7 +2,7 @@ import time
 
 from qgis.PyQt.QtCore import QMutex, QObject, QThread, pyqtSignal
 
-from .classes import RollSurvey
+from .roll_survey import RollSurvey
 
 # ptvsd  is needed to debug a worker thread.
 # See: https://github.com/microsoft/ptvsd/issues/1189

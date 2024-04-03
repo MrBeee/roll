@@ -4,7 +4,8 @@ import pyqtgraph as pg
 from console import console
 from qgis.PyQt.QtCore import QStandardPaths, pyqtSignal
 from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QHeaderView, QVBoxLayout
+from qgis.PyQt.QtWidgets import (QDialog, QDialogButtonBox, QHeaderView,
+                                 QVBoxLayout)
 
 try:
     import numba  # pylint: disable=W0611  # need to TRY importing numba, only to see if it is available
@@ -136,7 +137,7 @@ class SettingsDialog(QDialog):
         ]
 
         enableFlag = True if config.useNumba and haveNumba else False
-        tip = 'Warning: this is an experimental option to speed up processing.\nIt requires the Numba package to be installed'
+        tip = 'This is an experimental option to speed up processing.\nIt requires the Numba package to be installed'
 
         misParams = [
             dict(

@@ -94,12 +94,13 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
-from .classes import BinningType, RollSurvey, surveyType
 from .find import Find
 from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
 from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
+from .roll_binning import BinningType
+from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
 from .sps_io_and_qc import (
     calcMaxXPStraces,
@@ -753,11 +754,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         CFG = self.parameters.child('Survey configuration')
         # copy.crs = CFG.child('Survey CRS').value()
-        # copy.type = surveyType[CFG.child('Survey type').value()]
+        # copy.type = SurveyType[CFG.child('Survey type').value()]
         # copy.name = CFG.child('Survey name').value()
 
         copy.crs, surType, copy.name = CFG.value()                              # get tuple of data from parameter
-        copy.type = surveyType[surType]                                         # surveyType is an enum
+        copy.type = SurveyType[surType]                                         # SurveyType is an enum
         config.surveyCrs = copy.crs                                             # needed for global access to crs
 
         ANA = self.parameters.child('Survey analysis')

@@ -1,7 +1,76 @@
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<!-- Uploaded to: SVG Repo, www.svgrepo.com, Transformed by: SVG Repo Mixer Tools -->
-<svg width="64px" height="64px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" version="1.1" fill="#000000">
-<g id="SVGRepo_bgCarrier" stroke-width="0"/>
-<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"/>
-<g id="SVGRepo_iconCarrier"> <path style="fill:#11008f;stroke:#222222;stroke-width:2" d="m 63,53 c 0,0 38,26 34,43 C 81,103 53,61 53,61"/> <circle cx="36" cy="36" r="32" fill="none" stroke="#222222" style="stroke-width:2"/> <circle cx="36" cy="36" r="29" fill="none" stroke="#4441e6" style="stroke-width:6"/> <circle cx="36" cy="36" r="27" fill="#eeea77" stroke="#222222" style="stroke-width:1;fill-opacity:0.7"/> </g>
-</svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Transformed by: SVG Repo Mixer Tools -->
+
+<svg
+   width="64px"
+   height="64px"
+   viewBox="0 0 100 100"
+   version="1.1"
+   fill="#000000"
+   id="svg13"
+   sodipodi:docname="mActionEditFind.svg"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs17" />
+  <sodipodi:namedview
+     id="namedview15"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="16.046875"
+     inkscape:cx="25.176241"
+     inkscape:cy="32.031159"
+     inkscape:window-width="2560"
+     inkscape:window-height="1361"
+     inkscape:window-x="2551"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="SVGRepo_iconCarrier" />
+  <g
+     id="SVGRepo_bgCarrier"
+     stroke-width="0" />
+  <g
+     id="SVGRepo_tracerCarrier"
+     stroke-linecap="round"
+     stroke-linejoin="round" />
+  <g
+     id="SVGRepo_iconCarrier">
+    <path
+       style="fill:#11008f;stroke:#222222;stroke-width:2"
+       d="m 63,53 c 0,0 38,26 34,43 C 81,103 53,61 53,61"
+       id="path4" />
+    <circle
+       cx="36"
+       cy="36"
+       r="32"
+       fill="none"
+       stroke="#222222"
+       style="stroke-width:2"
+       id="circle6" />
+    <circle
+       cx="36"
+       cy="36"
+       r="29"
+       fill="none"
+       stroke="#4441e6"
+       style="stroke-width:6"
+       id="circle8" />
+    <circle
+       cx="36"
+       cy="36"
+       r="27"
+       fill="#eeea77"
+       stroke="#222222"
+       style="stroke-width:1;fill-opacity:0.69999999;fill:#f0cd11"
+       id="circle10" />
+  </g>
+</svg>

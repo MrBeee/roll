@@ -5,7 +5,8 @@ import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QAbstractTableModel, QEvent, Qt, QVariant
 from qgis.PyQt.QtGui import QBrush, QColor, QKeySequence
-from qgis.PyQt.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QMessageBox, QTableView
+from qgis.PyQt.QtWidgets import (QAbstractItemView, QApplication, QHeaderView,
+                                 QMessageBox, QTableView)
 
 # TableModel requires a 2D array to work from
 # this means flattening the 4D analysis array from 4D to 2D, before it can be used:

@@ -7,26 +7,6 @@ from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox
 
 from . import config  # used to pass initial settings
-from .classes import (
-    BinningType,
-    RollAngles,
-    RollBinGrid,
-    RollBinning,
-    RollBlock,
-    RollCircle,
-    RollOffset,
-    RollPattern,
-    RollPlane,
-    RollSeed,
-    RollSphere,
-    RollSpiral,
-    RollSurvey,
-    RollTemplate,
-    RollTranslate,
-    RollWell,
-    binningList,
-    surveyType,
-)
 from .my_cmap import MyCmapParameter
 from .my_crs import MyCrsParameter
 from .my_crs2 import MyCrs2Parameter
@@ -43,6 +23,21 @@ from .my_rectf import MyRectParameter
 from .my_slider import MySliderParameter
 from .my_symbols import MySymbolParameter
 from .my_vector import MyVectorParameter
+from .roll_angles import RollAngles
+from .roll_bingrid import RollBinGrid
+from .roll_binning import BinningList, BinningType, RollBinning
+from .roll_block import RollBlock
+from .roll_circle import RollCircle
+from .roll_offset import RollOffset
+from .roll_pattern import RollPattern
+from .roll_plane import RollPlane
+from .roll_seed import RollSeed
+from .roll_sphere import RollSphere
+from .roll_spiral import RollSpiral
+from .roll_survey import RollSurvey, SurveyType
+from .roll_template import RollTemplate
+from .roll_translate import RollTranslate
+from .roll_well import RollWell
 
 
 class MyBinAnglesPreviewLabel(MyPreviewLabel):
@@ -291,7 +286,7 @@ class MyBinMethodPreviewLabel(MyPreviewLabel):
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
         binningMethod = val.method.value
-        method = binningList[binningMethod]
+        method = BinningList[binningMethod]
         t = f'{method} @ Vint={val.vint}m/s'
 
         self.setText(t)
@@ -325,7 +320,7 @@ class MyBinMethodParameter(MyGroupParameter):
         d = opts.get('decimals', 7)
         binningMethod = self.binning.method.value
 
-        self.addChild(dict(name='Binning method', type='myList', value=binningList[binningMethod], default=binningList[binningMethod], limits=binningList))
+        self.addChild(dict(name='Binning method', type='myList', value=BinningList[binningMethod], default=BinningList[binningMethod], limits=BinningList))
         self.addChild(dict(name='Interval velocity', type='float', value=self.binning.vint, decimals=d, suffix='m/s'))
 
         self.parM = self.child('Binning method')
@@ -334,7 +329,7 @@ class MyBinMethodParameter(MyGroupParameter):
         self.sigTreeStateChanged.connect(self.changed)
 
     def changed(self):
-        index = binningList.index(self.parM.value())
+        index = BinningList.index(self.parM.value())
         self.binning.method = BinningType(index)
         self.binning.vint = self.parV.value()
 
@@ -2325,7 +2320,7 @@ class MyConfigurationParameter(MyGroupParameter):
         self.crs = self.survey.crs
         self.typ = self.survey.type
         self.nam = self.survey.name
-        surTypes = [e.name for e in surveyType]
+        surTypes = [e.name for e in SurveyType]
 
         self.addChild(dict(name='Survey CRS', type='myCrs2', value=self.crs, default=self.crs, expanded=False, flat=True))
         self.addChild(dict(name='Survey type', type='myList', value=self.typ.name, default=self.typ.name, limits=surTypes))

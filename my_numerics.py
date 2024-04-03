@@ -1,5 +1,6 @@
 from pyqtgraph.parametertree import Parameter, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import WidgetParameterItem
+from pyqtgraph.parametertree.parameterTypes.basetypes import \
+    WidgetParameterItem
 from pyqtgraph.widgets.SpinBox import SpinBox
 
 

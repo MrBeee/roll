@@ -3,25 +3,12 @@ import uuid
 # import matplotlib.pyplot as plt  # to create a png file
 import numpy as np
 import rasterio as rio
-from qgis.core import (
-    QgsColorRampShader,
-    QgsFeature,
-    QgsField,
-    QgsFillSymbol,
-    QgsGeometry,
-    QgsMarkerSymbol,
-    QgsPalLayerSettings,
-    QgsPointXY,
-    QgsProject,
-    QgsRasterLayer,
-    QgsRasterShader,
-    QgsSingleBandPseudoColorRenderer,
-    QgsStyle,
-    QgsTextFormat,
-    QgsVectorDataProvider,
-    QgsVectorLayer,
-    QgsVectorLayerSimpleLabeling,
-)
+from qgis.core import (QgsColorRampShader, QgsFeature, QgsField, QgsFillSymbol,
+                       QgsGeometry, QgsMarkerSymbol, QgsPalLayerSettings,
+                       QgsPointXY, QgsProject, QgsRasterLayer, QgsRasterShader,
+                       QgsSingleBandPseudoColorRenderer, QgsStyle,
+                       QgsTextFormat, QgsVectorDataProvider, QgsVectorLayer,
+                       QgsVectorLayerSimpleLabeling)
 from qgis.PyQt.QtCore import QFileInfo, QRectF, QVariant
 from qgis.PyQt.QtGui import QPolygonF, QTransform
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox

@@ -323,168 +323,168 @@ def isFileInUse(file_path):
         return False
 
 
-def deviation(northing, easting, depth):
-    """Deviation survey
+# def deviation(northing, easting, depth):
+#     """Deviation survey
 
-    Compute an approximate deviation survey from the position log, i.e. the
-    measured that would be convertable to this well path. It is assumed
-    that inclination, azimuth, and measured-depth starts at 0.
+#     Compute an approximate deviation survey from the position log, i.e. the
+#     measured that would be convertable to this well path. It is assumed
+#     that inclination, azimuth, and measured-depth starts at 0.
 
-    Returns
-    -------
-    dev : deviation
+#     Returns
+#     -------
+#     dev : deviation
 
-    The implementation is based on this [1] stackexchange answer by tma,
-    which is included verbatim for future reference.
+#     The implementation is based on this [1] stackexchange answer by tma,
+#     which is included verbatim for future reference.
 
-        In order to get a better picture you should look at the problem in
-        2d. Your arc from (x1,y1,z1) to (x2,y2,z2) lives in a 2d plane,
-        also in the same pane the tangents (a1,i1) and (a2, i2). The 2d
-        plane is given by the vector (x1,y1,y3) to (x2,y2,z2) and vector
-        converted from polar to Cartesian of (a1, i1). In case their
-        co-linear is just a straight line and your done. Given the angle
-        between the (x1,y1,z2) and (a1, i1) be alpha, then the angle
-        between (x2,y2,z2) and (a2, i2) is â€“alpha. Use the normal vector of
-        the 2d plane and rotate normalized vector (x1,y1,z1) to (x2,y2,z2)
-        by alpha (maybe â€“alpha) and converter back to polar coordinates,
-        which gives you (a2,i2). If d is the distance from (x1,y1,z1) to
-        (x2,y2,z2) then MD = d* alpha /sin(alpha).
+#         In order to get a better picture you should look at the problem in
+#         2d. Your arc from (x1,y1,z1) to (x2,y2,z2) lives in a 2d plane,
+#         also in the same pane the tangents (a1,i1) and (a2, i2). The 2d
+#         plane is given by the vector (x1,y1,y3) to (x2,y2,z2) and vector
+#         converted from polar to Cartesian of (a1, i1). In case their
+#         co-linear is just a straight line and your done. Given the angle
+#         between the (x1,y1,z2) and (a1, i1) be alpha, then the angle
+#         between (x2,y2,z2) and (a2, i2) is â€“alpha. Use the normal vector of
+#         the 2d plane and rotate normalized vector (x1,y1,z1) to (x2,y2,z2)
+#         by alpha (maybe â€“alpha) and converter back to polar coordinates,
+#         which gives you (a2,i2). If d is the distance from (x1,y1,z1) to
+#         (x2,y2,z2) then MD = d* alpha /sin(alpha).
 
-    In essence, the well path (in cartesian coordinates) is evaluated in
-    segments from top to bottom, and for every segment the inclination and
-    azimuth "downwards" are reconstructed. The reconstructed inc and azi is
-    used as "entry angle" of the well bore into the next segment. This uses
-    some assumptions deriving from knowing that the position log was
-    calculated with the min-curve method, since a straight
-    cartesian-to-spherical conversion could be very sensitive [2].
+#     In essence, the well path (in cartesian coordinates) is evaluated in
+#     segments from top to bottom, and for every segment the inclination and
+#     azimuth "downwards" are reconstructed. The reconstructed inc and azi is
+#     used as "entry angle" of the well bore into the next segment. This uses
+#     some assumptions deriving from knowing that the position log was
+#     calculated with the min-curve method, since a straight
+#     cartesian-to-spherical conversion could be very sensitive [2].
 
-    [1] https://math.stackexchange.com/a/1191620
-    [2] I observed low error on average, but some segments could be off by
-        80 degrees azimuth
-    """
-    upper = zip(northing[:-1], easting[:-1], depth[:-1])
-    lower = zip(northing[1:], easting[1:], depth[1:])
+#     [1] https://math.stackexchange.com/a/1191620
+#     [2] I observed low error on average, but some segments could be off by
+#         80 degrees azimuth
+#     """
+#     upper = zip(northing[:-1], easting[:-1], depth[:-1])
+#     lower = zip(northing[1:], easting[1:], depth[1:])
 
-    # Assume the initial depth and angles are all zero, but this can likely
-    # be parametrised.
-    incs, azis, mds = [0], [0], [0]
-    i1, a1 = 0, 0
+#     # Assume the initial depth and angles are all zero, but this can likely
+#     # be parametrised.
+#     incs, azis, mds = [0], [0], [0]
+#     i1, a1 = 0, 0
 
-    for up, lo in zip(upper, lower):
-        up = np.array(up)
-        lo = np.array(lo)
+#     for up, lo in zip(upper, lower):
+#         up = np.array(up)
+#         lo = np.array(lo)
 
-        # Make two vectors
-        # v1 is the vector from the upper survey station to the lower
-        # v2 is the vector formed by the initial inc/azi (given by the
-        # previous iteration).
-        #
-        # The v1 and v2 vectors form a plane the well path arc lives in.
-        v1 = lo - up
-        v2 = np.array(wp.geometry.direction_vector(i1, a1))
+#         # Make two vectors
+#         # v1 is the vector from the upper survey station to the lower
+#         # v2 is the vector formed by the initial inc/azi (given by the
+#         # previous iteration).
+#         #
+#         # The v1 and v2 vectors form a plane the well path arc lives in.
+#         v1 = lo - up
+#         v2 = np.array(wp.geometry.direction_vector(i1, a1))
 
-        alpha = wp.geometry.angle_between(v1, v2)
-        normal = wp.geometry.normal_vector(v1, v2)
+#         alpha = wp.geometry.angle_between(v1, v2)
+#         normal = wp.geometry.normal_vector(v1, v2)
 
-        # v3 is the "exit vector", i.e. the direction of the well bore
-        # at the lower survey station, which would in turn be "entry
-        # direction" in the next segment.
-        v3 = wp.geometry.rotate(v1, normal, -alpha)
-        i2, a2 = wp.geometry.spherical(*v3)
+#         # v3 is the "exit vector", i.e. the direction of the well bore
+#         # at the lower survey station, which would in turn be "entry
+#         # direction" in the next segment.
+#         v3 = wp.geometry.rotate(v1, normal, -alpha)
+#         i2, a2 = wp.geometry.spherical(*v3)
 
-        # d is the length of the vector (straight line) from the upper
-        # station to the lower station.
-        d = np.linalg.norm(v1)
-        incs.append(i2)
-        azis.append(a2)
-        if alpha == 0:
-            mds.append(d)
-        else:
-            mds.append(d * alpha / np.sin(alpha))
-        # The current lower station is the upper station in the next
-        # segment.
-        i1 = i2
-        a1 = a2
+#         # d is the length of the vector (straight line) from the upper
+#         # station to the lower station.
+#         d = np.linalg.norm(v1)
+#         incs.append(i2)
+#         azis.append(a2)
+#         if alpha == 0:
+#             mds.append(d)
+#         else:
+#             mds.append(d * alpha / np.sin(alpha))
+#         # The current lower station is the upper station in the next
+#         # segment.
+#         i1 = i2
+#         a1 = a2
 
-    mds = np.cumsum(mds)
-    return wp.deviation(md=np.array(mds), inc=np.array(incs), azi=np.array(azis))
-
-
-def read_wws_header(filename):
-    header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
-    # Note: datum = kb (kelly bushing), dfe (drill floor elevation), or rt (rotary table)
-
-    # need to adjust northing and easting and elevation; use keywords from the well file itself
-    keywords = ['$Wellbore_name:', '$Well_name:', '$Status_of_Well:', '$Well_northing:', '$Well_easting:', '$Derrick_elevation:']
-    # example output
-    # 0 $Wellbore_name: PR01
-    # 1 $Well_name: PR01
-    # 2 $Status_of_Well: EXISTING
-    # 3 $Well_northing: 7623750.00
-    # 4 $Well_easting: 185250.00
-    # 5 $Derrick_elevation: 0.00
-
-    with open(filename, 'r', encoding='utf-8') as file:
-        for index, line in enumerate(file):
-            if not line.startswith('#'):
-                break
-            for i, k in enumerate(keywords):
-                if k in line:
-                    val = line.split(':')                                   # behind ':' sits the keyword value
-                    val = val[1].split('\n')                                # if keyword value followed by \n, get rid of it
-                    val = val[0].split('[')                                 # if keyword value followed by '[', get rid of what follows
-                    if len(val) > 1:
-                        unit = val[1].split(']')[0]
-                    else:
-                        unit = None
-                    val = val[0].strip()    	                            # turn list into string, get rid of leading/trailing spaces
-                    print('line:', index + 1, 'keyword nr:', i + 1, 'keyword:', k, 'value:', val, 'unit:', unit)
-                    if i == 3:
-                        header['surface_northing'] = float(val)
-                        header['surface_coordinates_units'] = unit
-                    if i == 4:
-                        header['surface_easting'] = float(val)
-                    if i == 5:
-                        header['elevation'] = float(val)
-                        header['elevation_units'] = unit
-    return header
+#     mds = np.cumsum(mds)
+#     return wp.deviation(md=np.array(mds), inc=np.array(incs), azi=np.array(azis))
 
 
-def read_well_header(filename):
-    header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
-    # Note: datum = kb (kelly bushing), dfe (drill floor elevation), or rt (rotary table)
+# def read_wws_header(filename):
+#     header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
+#     # Note: datum = kb (kelly bushing), dfe (drill floor elevation), or rt (rotary table)
 
-    # need to adjust northing and easting and elevation; use keywords from the well file itself
-    keywords = ['Depth-Unit:', 'UniqOff Well ID:', 'Operator:', 'State:', 'County:', 'Surface coordinate:', 'Replacement velocity [from KB to SRD]:']
+#     # need to adjust northing and easting and elevation; use keywords from the well file itself
+#     keywords = ['$Wellbore_name:', '$Well_name:', '$Status_of_Well:', '$Well_northing:', '$Well_easting:', '$Derrick_elevation:']
+#     # example output
+#     # 0 $Wellbore_name: PR01
+#     # 1 $Well_name: PR01
+#     # 2 $Status_of_Well: EXISTING
+#     # 3 $Well_northing: 7623750.00
+#     # 4 $Well_easting: 185250.00
+#     # 5 $Derrick_elevation: 0.00
 
-    with open(filename, 'r', encoding='utf-8') as file:
-        nExclamation = 0
-        index = 0
-        for index, line in enumerate(file):
-            if line.startswith('!'):
-                nExclamation += 1
-                if nExclamation == 2:
-                    break                                               # time to start reading the data
-                else:
-                    continue
+#     with open(filename, 'r', encoding='utf-8') as file:
+#         for index, line in enumerate(file):
+#             if not line.startswith('#'):
+#                 break
+#             for i, k in enumerate(keywords):
+#                 if k in line:
+#                     val = line.split(':')                                   # behind ':' sits the keyword value
+#                     val = val[1].split('\n')                                # if keyword value followed by \n, get rid of it
+#                     val = val[0].split('[')                                 # if keyword value followed by '[', get rid of what follows
+#                     if len(val) > 1:
+#                         unit = val[1].split(']')[0]
+#                     else:
+#                         unit = None
+#                     val = val[0].strip()    	                            # turn list into string, get rid of leading/trailing spaces
+#                     print('line:', index + 1, 'keyword nr:', i + 1, 'keyword:', k, 'value:', val, 'unit:', unit)
+#                     if i == 3:
+#                         header['surface_northing'] = float(val)
+#                         header['surface_coordinates_units'] = unit
+#                     if i == 4:
+#                         header['surface_easting'] = float(val)
+#                     if i == 5:
+#                         header['elevation'] = float(val)
+#                         header['elevation_units'] = unit
+#     return header
 
-            for i, k in enumerate(keywords):
-                if k in line:
-                    val = line.split(':')                               # behind ':' sits the keyword value
-                    val = val[1].split('\n')                            # if keyword value followed by \n, get rid of it
-                    val = val[0].strip()    	                        # turn list into string, get rid of leading/trailing spaces
 
-                    print('line:', index + 1, 'keyword nr:', i + 1, 'keyword:', k, 'value:', val)
+# def read_well_header(filename):
+#     header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
+#     # Note: datum = kb (kelly bushing), dfe (drill floor elevation), or rt (rotary table)
 
-                    if i == 0:
-                        header['elevation_units'] = val.lower()[0]
-                        header['surface_coordinates_units'] = 'm'       # actually should be equal to coordinate units of CRS; could be feet
-                    if i == 5:
-                        val = val.strip(' ()')
-                        val = val.split(',')
-                        header['surface_northing'] = float(val[1])
-                        header['surface_easting'] = float(val[0])
-    return header, index
+#     # need to adjust northing and easting and elevation; use keywords from the well file itself
+#     keywords = ['Depth-Unit:', 'UniqOff Well ID:', 'Operator:', 'State:', 'County:', 'Surface coordinate:', 'Replacement velocity [from KB to SRD]:']
+
+#     with open(filename, 'r', encoding='utf-8') as file:
+#         nExclamation = 0
+#         index = 0
+#         for index, line in enumerate(file):
+#             if line.startswith('!'):
+#                 nExclamation += 1
+#                 if nExclamation == 2:
+#                     break                                               # time to start reading the data
+#                 else:
+#                     continue
+
+#             for i, k in enumerate(keywords):
+#                 if k in line:
+#                     val = line.split(':')                               # behind ':' sits the keyword value
+#                     val = val[1].split('\n')                            # if keyword value followed by \n, get rid of it
+#                     val = val[0].strip()    	                        # turn list into string, get rid of leading/trailing spaces
+
+#                     print('line:', index + 1, 'keyword nr:', i + 1, 'keyword:', k, 'value:', val)
+
+#                     if i == 0:
+#                         header['elevation_units'] = val.lower()[0]
+#                         header['surface_coordinates_units'] = 'm'       # actually should be equal to coordinate units of CRS; could be feet
+#                     if i == 5:
+#                         val = val.strip(' ()')
+#                         val = val.split(',')
+#                         header['surface_northing'] = float(val[1])
+#                         header['surface_easting'] = float(val[0])
+#     return header, index
 
 
 def get_unpicklable(instance, exception=None, string='', first_only=True):

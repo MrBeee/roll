@@ -2,9 +2,8 @@ import math
 
 from pyqtgraph.parametertree import registerParameterType
 from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
-from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QVector3D
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
 from .my_preview_label import MyPreviewLabel

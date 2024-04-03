@@ -2,7 +2,6 @@ from datetime import datetime
 
 import numpy as np
 import pyqtgraph as pg
-
 # from numpy.compat import asstr
 from qgis.PyQt.QtCore import QFile, QIODevice, QTextStream
 from qgis.PyQt.QtWidgets import QFileDialog
