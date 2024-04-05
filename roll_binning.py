@@ -25,6 +25,7 @@ class RollBinning:
     def __init__(self, method=BinningType.cmp, vint=2000.0) -> None:  # assign default values
         self.method = method
         self.vint = vint
+        self.slowness = None
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
 

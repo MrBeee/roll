@@ -921,6 +921,8 @@ class RollSurvey(pg.GraphicsObject):
 
         # Now do the binning
         if fullAnalysis:
+            self.binning.slowness = (1.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
+
             success = self.binFromGeometry4(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
             return success
@@ -1288,11 +1290,11 @@ class RollSurvey(pg.GraphicsObject):
                 if np.count_nonzero(I) == 0:
                     continue
 
-                cmpPoints = cmpPoints[I, :]                                           # filter the cmp-array
-                recPoints = recPoints[I, :]                                           # filter the rec-array too, as we still need this for offsets
+                cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array
+                recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this for offsets
 
                 ofVectors = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
-                ofVectors = recPoints - srcPoints                                    # define the offset array
+                ofVectors = recPoints - srcPoints                               # define the offset array
 
                 l = self.offset.rctOffsets.left()
                 r = self.offset.rctOffsets.right()
@@ -1302,25 +1304,25 @@ class RollSurvey(pg.GraphicsObject):
                 if np.count_nonzero(I) == 0:
                     continue
 
-                ofVectors = ofVectors[I, :]                                       # filter the offset-array
-                cmpPoints = cmpPoints[I, :]                                       # filter the cmp-array too, as we still need this
-                recPoints = recPoints[I, :]                                       # filter the rec-array too, as we still need this
+                ofVectors = ofVectors[I, :]                                     # filter the offset-array
+                cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array too, as we still need this
+                recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this
 
                 hypRRR = np.zeros(shape=(recPoints.shape[0], 1), dtype=np.float32)
                 # calculate per row
                 hypRRR = np.hypot(ofVectors[:, 0], ofVectors[:, 1])
 
-                r1 = self.offset.radOffsets.x()                             # minimum radius
-                r2 = self.offset.radOffsets.y()                             # maximum radius
-                if r2 > 0:                                                  # we need to apply the radial offset selection criteria
+                r1 = self.offset.radOffsets.x()                                 # minimum radius
+                r2 = self.offset.radOffsets.y()                                 # maximum radius
+                if r2 > 0:                                                      # we need to apply the radial offset selection criteria
                     I = (hypRRR[:] >= r1) & (hypRRR[:] <= r2)
                     if np.count_nonzero(I) == 0:
-                        continue                                            # continue with next recSeed
+                        continue                                                # continue with next recSeed
                     # print(I)
-                    hypRRR = hypRRR[I]                                      # filter the radial offset-array
-                    ofVectors = ofVectors[I, :]                                   # filter the off-array too, as we still need this
-                    cmpPoints = cmpPoints[I, :]                                   # filter the cmp-array too, as we still need this
-                    recPoints = recPoints[I, :]                                   # filter the rec-array too, as we still need this
+                    hypRRR = hypRRR[I]                                          # filter the radial offset-array
+                    ofVectors = ofVectors[I, :]                                 # filter the off-array too, as we still need this
+                    cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array too, as we still need this
+                    recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this
 
                 #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
 
@@ -1336,7 +1338,7 @@ class RollSurvey(pg.GraphicsObject):
 
                         if fullAnalysis:
                             fold = self.output.binOutput[nx, ny]
-                            if fold < self.grid.fold:                   # prevent overwriting next bin
+                            if fold < self.grid.fold:                           # prevent overwriting next bin
                                 # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(), recLoc.x(), recLoc.y(), cmpLoc.x(), cmpLoc.y(), 0, 0, 0, 0)
 
                                 # line & stake nrs for reporting in extended np-array
@@ -1635,14 +1637,12 @@ class RollSurvey(pg.GraphicsObject):
                     recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this
 
                 #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
-
-                # process all traces
-                for count, cmp in enumerate(cmpPoints):
+                for count, cmp in enumerate(cmpPoints):                         # process all traces
                     try:
                         cmpX = cmp[0]
                         cmpY = cmp[1]
-                        # local position in bin area
-                        x, y = self.binTransform.map(cmpX, cmpY)
+
+                        x, y = self.binTransform.map(cmpX, cmpY)                # local position in bin area
                         nx = int(x)
                         ny = int(y)
 
@@ -1832,7 +1832,7 @@ class RollSurvey(pg.GraphicsObject):
                         I = (self.output.recGeom['Index'] == recInd) & (self.output.recGeom['Line'] == recLin) & (self.output.recGeom['Point'] >= recMin) & (self.output.recGeom['Point'] <= recMax)
 
                         recLine = self.output.recGeom[I]                        # select the filtered receivers
-                        recArray = np.concatenate((recPoints, recLine))          # need to supply arrays to be concatenated as a tuple !
+                        recArray = np.concatenate((recPoints, recLine))         # need to supply arrays to be concatenated as a tuple !
                         # See: https://stackoverflow.com/questions/50997928/typeerror-only-integer-scalar-arrays-can-be-converted-to-a-scalar-index-with-1d
 
                 # at this stage we have recPoints defined. We can now use the same approach as used in template based binning.
@@ -1991,6 +1991,7 @@ class RollSurvey(pg.GraphicsObject):
             raise ValueError('nr shot points must be known at this point')
 
         if fullAnalysis:
+            self.binning.slowness = (1.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
             success = self.binFromTemplates(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
             return success
@@ -2204,30 +2205,25 @@ class RollSurvey(pg.GraphicsObject):
                     # calculate per row
                     hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
 
-                    r1 = self.offset.radOffsets.x()                         # minimum radius
-                    r2 = self.offset.radOffsets.y()                         # maximum radius
-                    if r2 > 0:                                              # we need to apply the radial offset selection criteria
+                    r1 = self.offset.radOffsets.x()                             # minimum radius
+                    r2 = self.offset.radOffsets.y()                             # maximum radius
+                    if r2 > 0:                                                  # we need to apply the radial offset selection criteria
                         I = (hypArray[:] >= r1) & (hypArray[:] <= r2)
                         if np.count_nonzero(I) == 0:
-                            continue                                        # continue with next recSeed
+                            continue                                            # continue with next recSeed
 
-                        # filter the radial offset-array
-                        hypArray = hypArray[I]
-                        # filter the off-array too, as we still need this
-                        offArray = offArray[I, :]
-                        # filter the cmp-array too, as we still need this
-                        cmpPoints = cmpPoints[I, :]
-                        # filter the rec-array too, as we still need this
-                        recPoints = recPoints[I, :]
+                        hypArray = hypArray[I]                                  # filter the radial offset-array
+                        offArray = offArray[I, :]                               # filter the off-array too, as we still need this
+                        cmpPoints = cmpPoints[I, :]                             # filter the cmp-array too, as we still need this
+                        recPoints = recPoints[I, :]                             # filter the rec-array too, as we still need this
 
                     #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
-                    # process all traces
-                    for count, cmp in enumerate(cmpPoints):
-                        try:                                                # protect against potential index errors
+                    for count, cmp in enumerate(cmpPoints):                     # process all traces
+                        try:                                                    # protect against potential index errors
                             cmpX = cmp[0]
                             cmpY = cmp[1]
-                            # local position in bin area
-                            x, y = self.binTransform.map(cmpX, cmpY)
+
+                            x, y = self.binTransform.map(cmpX, cmpY)            # get local position in bin area
                             nx = int(x)
                             ny = int(y)
 
@@ -2950,4 +2946,4 @@ class RollSurvey(pg.GraphicsObject):
                         painter.drawPicture(p, seed.pointPicture)               # paint seed picture
 
     def generateSvg(self, nodes):
-        pass                                                                    # for the time being don't do anything; not implemented
+        pass                                                                    # for the time being don't do anything; not implemented; keep PyLint happy

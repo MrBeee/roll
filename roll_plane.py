@@ -151,39 +151,39 @@ class RollPlane:
             return (None, None)                                                 # no valid distances > 0.0 found
 
         denominator = denominator[I]                                            # filter the denominator array
-        ptTo = ptTo[I]                                                   # filter the end points too
-        ray = ray[I]                                                    # filter the rays too
+        ptTo = ptTo[I]                                                          # filter the end points too
+        ray = ray[I]                                                            # filter the rays too
 
         nominator = np.inner(npNormal, ptTo) + self.dist                        # setup the nominator array
         nominator = nominator[I]                                                # filter the nominator array as well
 
         U = nominator / denominator                                             # setup the ratio array
 
-        I = (U[:] >= 0.0) & (U[:] <= 1.0)                                      # only use these ratios
+        I = (U[:] >= 0.0) & (U[:] <= 1.0)                                       # only use these ratios
 
         if np.count_nonzero(I) == 0:
             return (None, None)                                                 # no valid ratios found
 
         denominator = denominator[I]                                            # filter the denominator array
-        ptTo = ptTo[I]                                                   # filter the end points too
-        ray = ray[I]                                                    # filter the rays too
-        U = U[I]                                                      # filter the ratio array
+        ptTo = ptTo[I]                                                          # filter the end points too
+        ray = ray[I]                                                            # filter the rays too
+        U = U[I]                                                                # filter the ratio array
 
-        # length = np.apply_along_axis(np.linalg.norm, 1, ray)                    # calculate the length of each row in the array
+        # length = np.apply_along_axis(np.linalg.norm, 1, ray)                  # calculate the length of each row in the array
         length = np.linalg.norm(ray, axis=1)
         # See: https://stackoverflow.com/questions/7741878/how-to-apply-numpy-linalg-norm-to-each-row-of-a-matrix/19794741#19794741
 
         cosAoI = denominator / length                                           # normalize to 0.0 - 1.0 cos() range
-        aoi = np.arccos(cosAoI)                                              # go from cos to angle
+        aoi = np.arccos(cosAoI)                                                 # go from cos to angle
 
         I = (aoi[:] >= aoiMin) & (aoi[:] <= aoiMax)                             # only use these angles
 
         if np.count_nonzero(I) == 0:
             return (None, None)                                                 # no valid angles found
 
-        U = U[I]                                                             # filter the ratio array
+        U = U[I]                                                                # filter the ratio array
         ptTo = ptTo[I]                                                          # filter the end points too
-        ray = ray[I]                                                           # filter the rays too
+        ray = ray[I]                                                            # filter the rays too
         rayU = ray * U[:, None]                                                 # get rays (x, y, z) multiplied per row by U(n)
         # See: https://stackoverflow.com/questions/68245372/how-to-multiply-each-row-in-matrix-by-its-scalar-in-numpy
 
@@ -201,7 +201,7 @@ class RollPlane:
 
     def angleOfIncidence(self, point3D: QVector3D) -> float:
         phi = 0.0
-        length = point3D.lenght()
+        length = point3D.length()
 
         if length > 0.0:
             phi = math.acos(point3D * self.normal / length)
