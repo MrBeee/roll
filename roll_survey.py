@@ -2247,7 +2247,7 @@ class RollSurvey(pg.GraphicsObject):
                                     self.output.anaOutput[nx][ny][fold][6] = recPoints[count, 1]
                                     self.output.anaOutput[nx][ny][fold][7] = cmpPoints[count, 0]
                                     self.output.anaOutput[nx][ny][fold][8] = cmpPoints[count, 1]
-                                # self.output.anaOutput[nx][ny][fold][9]
+                                    # self.output.anaOutput[nx][ny][fold][9]
 
                             # all selection criteria have been fullfilled; use the trace
                             self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
@@ -2948,3 +2948,6 @@ class RollSurvey(pg.GraphicsObject):
                     for i in range(length):
                         p = seed.pointList[i].toPointF()
                         painter.drawPicture(p, seed.pointPicture)               # paint seed picture
+
+    def generateSvg(self, nodes):
+        pass                                                                    # for the time being don't do anything; not implemented

@@ -193,3 +193,6 @@ class RollPattern(pg.GraphicsObject):
     def paint(self, painter, *_):                                               # used in wizard
         # the paint function actually is: paint(self, painter, option, widget) but option & widget are not being used
         painter.drawPicture(0, 0, self.patternPicture)
+
+    def generateSvg(self, nodes):
+        pass                                                                    # for the time being don't do anything; not implemented
