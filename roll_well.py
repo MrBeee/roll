@@ -2,7 +2,8 @@ import os
 
 import numpy as np
 import wellpathpy as wp
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVector3D
+from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
+                       QgsPointXY, QgsProject, QgsVector3D)
 from qgis.PyQt.QtCore import QFileInfo, QPointF
 from qgis.PyQt.QtGui import QPolygonF, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
@@ -22,7 +23,7 @@ class RollWell:
         if config.surveyCrs is not None and config.surveyCrs.isValid():         # copy crs from project
             self.crs = config.surveyCrs
         else:
-            self.crs = QgsCoordinateReferenceSystem('EPSG:23095')               # ED50 / TM 5 NE (arbitrarily)
+            self.crs = QgsCoordinateReferenceSystem('EPSG:23095')               # ED50 / TM 5 NE (arbitrarily chosen)
 
         self.ahd0 = 1000.0                                                      # first (along hole) depth
         self.dAhd = 15.0                                                        # along hole depth increment
@@ -35,11 +36,12 @@ class RollWell:
         self.origL = QPointF(-999.0, -999.0)                                    # wellhead location in local project coordinates
 
         # variables, calculated but not serialized
-        self.polygon = None                                                     # polygon in survey coordinates, to draw well trajectory
-        self.pntList2D = []                                                     # points in survey coordinates, to draw well trajectory
+        self.polygon = QPolygonF()                                              # polygon in local coordinates, to draw well trajectory
+        self.pntList2D = []                                                     # points  in local coordinates, to draw well trajectory
 
-        # please note the seed's origin isn't shown in the property editor, when using a well-based seed
-        # instead, the well's origin is shown in 3 different CRSes; (a) well (b) global (c) local
+        # please note the seed's origin is hidden in the property editor, when using a well-based seed
+        # instead, the well's origin is shown in 3 different CRSes; (a) well (b) global survey (c) local survey
+        # in the xml file, the seed origin is shown in the local survey coordinates
 
         # for self.lod0 See: https://python.hotexamples.com/examples/PyQt5.QtGui/QPainter/drawPolyline/python-qpainter-drawpolyline-method-examples.html
 

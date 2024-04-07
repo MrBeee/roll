@@ -182,12 +182,18 @@ class LineROI(pg.LineSegmentROI):
         self.getViewBox().disableAutoRange(axis='xy')
         return True
 
+    def generateSvg(self, nodes):
+        pass                                                                    # for the time being don't do anything; not implemented; keep PyLint happy
+
 
 class QHLine(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.HLine)
         self.setFrameShadow(QFrame.Sunken)
+
+    def generateSvg(self, nodes):
+        pass                                                                    # for the time being don't do anything; not implemented; keep PyLint happy
 
 
 def silentPrint(*_, **__):
@@ -219,7 +225,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rect = False                                                       # zoom using a rectangle
         self.antA = False                                                       # anti-alias painting
         self.glob = False                                                       # global coordinates
-        self.ruler = False                                                       # show a ruler to measure distances
+        self.ruler = False                                                      # show a ruler to measure distances
 
         # exception handling
         # self.oldExceptHook = sys.excepthook                                     # make a copy before changing it
@@ -322,6 +328,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # self.settings = QSettings()   ## doesn't work as expected with QCoreApplication.setXXX
 
         self.settings = QSettings(config.organization, config.application)
+        self.fileName = ''
         self.workingDirectory = ''
         self.importDirectory = ''
 
@@ -2254,7 +2261,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             self.setCurrentFileName()                                           # update self.fileName, set textEditModified(False) and setWindowModified(False)
 
-            self.actionProjected.setChecked(False)                              # request 'local' plotting
+            self.actionProjected.setChecked(False)                              # set to 'local' plotting (not global)
             self.plotProjected()                                                # enforce 'local' plotting and plotSurvey()
 
             return True                                                         # we emptied the document, and reset the survey object
@@ -2554,6 +2561,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.plotWidget.enableAutoRange()                                       # make the plot 'fit' the survey outline.
         self.plotSurvey()                                                       # plot the survey object
         self.resetSurveyProperties()                                            # update the parameter pane
+        self.survey.checkIntegrity()                                            # check for survey integrity; in particular well file validity
         return success
 
     def fileImportSPS(self) -> bool:
@@ -2758,7 +2766,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.fileLoad(action.data())
 
     def fileSave(self):
-        if not self.fileName:
+        if not self.fileName:                                                   # need to have a valid filename first, and set the workingDirectory
             return self.fileSaveAs()
 
         plainText = self.textEdit.toPlainText()
@@ -2768,7 +2776,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         success = file.open(QIODevice.WriteOnly | QIODevice.Truncate)
 
         if success:
-            _ = QTextStream(file) << plainText                                  # unused stream replaced by _
+            _ = QTextStream(file) << plainText                                  # unused stream replaced by _ to make PyLint happy
             self.appendLogMessage(f'Saved&nbsp;&nbsp;: {self.fileName}')
             self.textEdit.document().setModified(False)
             file.close()
@@ -2808,11 +2816,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         return success
 
     def fileSaveAs(self):
-        fileName = os.path.join(self.workingDirectory, self.survey.name)        # join dir + file name
+        fileName = os.path.join(self.workingDirectory, self.survey.name)        # join dir & survey name, as proposed file path
         fn, _ = QFileDialog.getSaveFileName(
-            self, 'Save as...', fileName, 'Survey files (*.roll);; All files (*.*)'  # that's me  # caption  # start directory + filename
-        )                          # file extensions
-        # options -> not used
+            self,  # that's me
+            'Save as...',  # dialog caption
+            fileName,  # start directory + filename
+            'Survey files (*.roll);; All files (*.*)'  # file extensions
+            # options                                                           # options not used
+        )
         if not fn:
             return False
 
@@ -2836,10 +2847,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def fileExportAsCsv(self, fileName, extension):
         fn, selectedFilter = QFileDialog.getSaveFileName(
             self,  # that's me
-            'Save as...',  # caption
+            'Save as...',  # dialog caption
             fileName + extension,  # start directory + filename
             'comma separated file (*.csv);;semicolumn separated file (*.csv);;space separated file (*.csv);;tab separated file (*.csv);;All files (*.*)',  # file extensions
-        )                                                                       # (options -> not used)
+            # options                                                           # options not used
+        )
 
         delimiter = ','                                                         # default delimiter value
         if fn:                                                                  # we have a valid file name

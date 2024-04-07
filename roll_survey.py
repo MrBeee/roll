@@ -446,16 +446,11 @@ class RollSurvey(pg.GraphicsObject):
         sx = w / nx
         sy = h / ny
 
-        # it is fine to have 'zeroes' where there is no fold
-        self.output.binOutput = np.zeros(shape=(nx, ny), dtype=np.uint32)
-        # start with empty array of the right size and type
-        self.output.minOffset = np.empty(shape=(nx, ny), dtype=np.float32)
-        # start with empty array of the right size and type
-        self.output.maxOffset = np.empty(shape=(nx, ny), dtype=np.float32)
-        # start min offset with +inf
-        self.output.minOffset.fill(np.Inf)
-        # start max offset with -inf
-        self.output.maxOffset.fill(np.NINF)
+        self.output.binOutput = np.zeros(shape=(nx, ny), dtype=np.uint32)       # start with empty array of the right size and type
+        self.output.minOffset = np.zeros(shape=(nx, ny), dtype=np.float32)      # start with empty array of the right size and type
+        self.output.maxOffset = np.zeros(shape=(nx, ny), dtype=np.float32)      # start with empty array of the right size and type
+        self.output.minOffset.fill(np.Inf)                                      # start min offset with +inf (use np.full instead)
+        self.output.maxOffset.fill(np.NINF)                                     # start max offset with -inf (use np.full instead)
 
         self.binTransform = QTransform()
         self.binTransform.translate(x0, y0)
@@ -2322,27 +2317,22 @@ class RollSurvey(pg.GraphicsObject):
                     if seed.typ_ == 4:                                          # well site; check for errors
                         f = seed.well.name                                      # check if well-file exists
                         if f is None or not os.path.exists(f):
-                            QMessageBox.warning(None, e, 'A well-seed should point to an existing well-file')
+                            QMessageBox.warning(None, e, f'A well-seed should point to an existing well-file\nRemove seed or adjust name in well-seed "{seed.name}"')
                             return False
 
                         if seed.well.errorText is not None:
-                            QMessageBox.warning(None, e, f'{seed.well.errorText} in well file:\n{f}')
+                            QMessageBox.warning(None, e, f'{seed.well.errorText} in well file:\n{f}\nRemove seed or correct error in well-seed "{seed.name}"')
                             return False
 
-                        c = seed.well.crs                                       # check if crs is valid
+                        c = seed.well.crs                                       # check if crs is valid; not really needed already checked in RollWell
                         if not c.isValid():
-                            QMessageBox.warning(None, e, 'Invalid CRS.   \nPlease change CRS in well-seed')
+                            QMessageBox.warning(None, e, f'Invalid CRS in well-seed\nPlease change CRS in well-seed "{seed.name}"')
                             return False
 
-                        if c.isGeographic():                                   # check if crs is projected
-                            QMessageBox.warning(None, e, f'{c.description()}. Invalid CRS (using lat/lon values).   \nPlease change CRS in well-seed')
+                        if c.isGeographic():                                   # check if crs is projected; not really needed already checked in RollWell
+                            QMessageBox.warning(None, e, f'{c.description()}. Invalid CRS (using lat/lon values) in well-seed\nPlease change CRS in well-seed "{seed.name}"')
                             return False
 
-                            # the next check is too much hassle to implement, as we'll need to update the parameter tree too, to reflect changes in well CRS
-                            # reply = QMessageBox.question(None, e, f'{c.description()}. Invalid CRS (using lat/lon values).  \nUse project CRS instead ?', QMessageBox.Ok, QMessageBox.Cancel)
-                            # if reply == QMessageBox.Cancel:
-                            #     return False
-                            # c = self.crs                                        # use project CRS as proposed
                 nSrc = 0
                 nRec = 0
                 for seed in template.seedList:

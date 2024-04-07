@@ -145,11 +145,8 @@ class RollSeed:
         return self.boundingBox  # return  bounding rectangle
 
     def calcPointArray(self):
-        length = len(self.pointList)
-        assert length > 0, 'need 1 or more points in a seed'
-
-        # start with empty array of the right size and type
-        self.pointArray = np.empty(shape=(length, 3), dtype=np.float32)
+        length = max(len(self.pointList), 1)                                    # need 1 or more points for a valid numpy array
+        self.pointArray = np.zeros(shape=(length, 3), dtype=np.float32)         # start with empty array of the right size and type
 
         for count, item in enumerate(self.pointList):
             self.pointArray[count, 0] = item.x()
