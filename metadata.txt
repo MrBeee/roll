@@ -25,7 +25,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:<p>2024-03-30 (0.2.3) updated metadata.txt (a) about text and (b) dependencies
+changelog:<p>2024-04-08 (0.2.4) improved handling of well-files
+  <p>2024-03-30 (0.2.3) updated metadata.txt (a) about text and (b) dependencies
   <p>2024-03-30 (0.2.2) improved handling of line- and stake numbers; refactoring of input parameters
   <p>2024-03-13 (0.2.1) Initial release on the QGIS plugin website
 

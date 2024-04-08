@@ -145,6 +145,7 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 6	Changelog
 
+- 2024-04-08 (0.2.4) improved handling of well-files
 - 2024-03-30 (0.2.3) updated metadata.txt (a) about text and (b) dependencies
 - 2024-03-30 (0.2.2) improved handling of line- and stake numbers; refactoring of parameter handling
 - 2024-03-13 (0.2.1) Initial release on the QGIS plugin website
