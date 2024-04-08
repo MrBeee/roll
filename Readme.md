@@ -154,6 +154,8 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 7	Still To Do
 
+- Include TWT of `src » crp » rec` times in trace table 
+- Implement 'Unique Fold' pruning of fold & min/max offset analysis
 - Create wizard for Marine towed-streamer geometry
 - Implement multiprocessing instead of worker thread for background tasks
 - Consider relational database instead of numpy arrays for geometry tables
