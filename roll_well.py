@@ -36,8 +36,8 @@ class RollWell:
         self.origL = QPointF(-999.0, -999.0)                                    # wellhead location in local project coordinates
 
         # variables, calculated but not serialized
-        self.polygon = QPolygonF()                                              # polygon in local coordinates, to draw well trajectory
-        self.pntList2D = []                                                     # points  in local coordinates, to draw well trajectory
+        self.polygon = QPolygonF()                                              # polygon in local coordinates, to draw well trajectory; start empty
+        self.pntList2D = []                                                     # points  in local coordinates, to draw well trajectory; start empty
 
         # please note the seed's origin is hidden in the property editor, when using a well-based seed
         # instead, the well's origin is shown in 3 different CRSes; (a) well (b) global survey (c) local survey

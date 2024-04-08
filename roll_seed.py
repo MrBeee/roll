@@ -1,5 +1,5 @@
 """
-This module provides Seed Class, core of the placement of src,rec points in a survey area
+This module provides Seed Class, core of the placement of src & rec points in a survey area
 """
 
 import numpy as np
