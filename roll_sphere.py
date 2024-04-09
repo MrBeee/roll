@@ -34,7 +34,7 @@ class RollSphere:
         aoiMax = math.radians(aoiMax)
 
         # create two normalized rays starting from the center of the sphere
-        ray1 = (ptTo - self.origin).normalized()                              # ray from center to src
+        ray1 = (ptTo - self.origin).normalized()                                # ray from center to src
         ray2 = (ptFrom - self.origin).normalized()                              # ray from center to rec
 
         # create the bisection ray
@@ -60,24 +60,24 @@ class RollSphere:
         npOrig = np.array([self.origin.x(), self.origin.y(), self.origin.z()], dtype=np.float32)
 
         # create two normalized rays starting from the center of the sphere
-        ray1 = ptTo - npOrig                                                # ray from center to src
-        ray2 = ptFrom - npOrig                                                # ray from center to rec
+        ray1 = ptTo - npOrig                                                    # ray from center to src
+        ray2 = ptFrom - npOrig                                                  # ray from center to rec
         len1 = np.linalg.norm(ray1, axis=0)                                     # get length of the vector
         len2 = np.linalg.norm(ray2, axis=0)                                     # get length of the vectors
-        ray1 /= len1                                                             # normalize the vector
-        ray2 /= len2                                                             # normalize the vectors
+        ray1 /= len1                                                            # normalize the vector
+        ray2 /= len2                                                            # normalize the vectors
 
         # create the bisection ray
         ray3 = 0.5 * (ray1 + ray2)                                              # bisection ray to define a point on sphere
         ptRef = npOrig + ray3 * self.radius                                     # reflection point at the surface of sphere
 
         # now check AoI from point on sphere upwards
-        ray4 = ptFrom - ptRef                                                 # ray from reflection to src
+        ray4 = ptFrom - ptRef                                                   # ray from reflection to src
         len4 = np.linalg.norm(ray4, axis=0)                                     # get length of the vectors
-        ray4 /= len4                                                             # normalize the vector
+        ray4 /= len4                                                            # normalize the vector
 
         cosAoI = np.inner(ray3, ray4)                                           # calculate the inner product
-        aoi = np.arccos(cosAoI)                                              # go from cos to angle
+        aoi = np.arccos(cosAoI)                                                 # go from cos to angle
 
         if aoi > aoiMax or aoi < aoiMin:
             return None                                                         # AoI out of range
@@ -91,8 +91,8 @@ class RollSphere:
         npOrig = np.array([self.origin.x(), self.origin.y(), self.origin.z()], dtype=np.float32)
 
         # create two normalized rays starting from the center of the sphere
-        raySrc = ptSrc - npOrig                                               # ray from sphere center to src
-        rayRec = ptRec - npOrig                                               # ray from sphere center to rec
+        raySrc = ptSrc - npOrig                                                 # ray from sphere center to src
+        rayRec = ptRec - npOrig                                                 # ray from sphere center to rec
         lenSrc = np.linalg.norm(raySrc, axis=0)                                 # get length of the src vector
         lenRec = np.linalg.norm(rayRec, axis=1)                                 # get length of the rec vectors
         raySrc = raySrc / lenSrc                                                # normalize the src vector
@@ -104,14 +104,14 @@ class RollSphere:
         ptRef = npOrig + rayMid * self.radius                                   # reflection points at the surface of sphere
 
         # now check AoI from points-on-sphere upwards; redefine raySrc
-        raySrc = ptSrc - ptRef                                                # rays from sphere surface to src
+        raySrc = ptSrc - ptRef                                                  # rays from sphere surface to src
         lenSrc = np.linalg.norm(raySrc, axis=1)                                 # get length of the vectors
         raySrc = raySrc / lenSrc[:, None]                                       # normalize the src vectors
 
         # calculate the inner product of src- and bisection rays
         cosAoI = np.multiply(raySrc, rayMid)                                    # element wise multiplication      (N x 3) * (N x 3) -> (N x 3)
-        cosAoI = np.sum(cosAoI, axis=1)                                       # sum per row, to get the wanted dot product (N x 3) -> (N x 1)
-        aoi = np.arccos(cosAoI)                                              # go from cos to angle
+        cosAoI = np.sum(cosAoI, axis=1)                                         # sum per row, to get the wanted dot product (N x 3) -> (N x 1)
+        aoi = np.arccos(cosAoI)                                                 # go from cos to angle
 
         I = (aoi[:] >= aoiMin) & (aoi[:] <= aoiMax)                             # only use these angles
 

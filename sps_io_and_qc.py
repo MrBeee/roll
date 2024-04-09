@@ -2,6 +2,7 @@ from datetime import datetime
 
 import numpy as np
 import pyqtgraph as pg
+
 # from numpy.compat import asstr
 from qgis.PyQt.QtCore import QFile, QIODevice, QTextStream
 from qgis.PyQt.QtWidgets import QFileDialog
@@ -69,7 +70,13 @@ pntType2 = np.dtype(
 )
 
 # pntType3 is used to shorten the SPS/RPS records to Line-Point-Index records
-pntType3 = np.dtype([('Line', 'f4'), ('Point', 'f4'), ('Index', 'i4')])  # F10.2  # F10.2  # I1
+pntType3 = np.dtype(
+    [
+        ('Line', 'f4'),
+        ('Point', 'f4'),
+        ('Index', 'i4'),
+    ]
+)  # F10.2  # F10.2  # I1
 
 pntType4 = np.dtype(
     [
@@ -89,7 +96,13 @@ pntType4 = np.dtype(
     ]
 )
 
-pntType5 = np.dtype([('LocX', 'f4'), ('LocY', 'f4'), ('Elev', 'f4')])  # F9.1  # F10.1   # F6.1
+pntType5 = np.dtype(
+    [
+        ('LocX', 'f4'),  # F9.1
+        ('LocY', 'f4'),  # F10.1
+        ('Elev', 'f4'),  # F6.1
+    ]
+)
 
 relType = np.dtype(
     [
@@ -287,6 +300,10 @@ def markUniqueRPSrecords(rpsImport, sort=True) -> int:
     for index in np.nditer(rpsIndices):
         rpsImport[index]['Uniq'] = 1
 
+    # note, probably the above for loop can be avoided by using type conversion.
+    # the following example shows a bool turned into an int turned into a float:
+    # data[0::,2]=data[0::,2].astype(int).astype(float)
+
     if sort:
         rpsImport.sort(order=['Index', 'Line', 'Point'])
 
@@ -303,6 +320,10 @@ def markUniqueSPSrecords(spsImport, sort=True) -> int:
     for index in np.nditer(spsIndices):
         spsImport[index]['Uniq'] = 1
 
+    # note, probably the above for loop can be avoided by using type conversion.
+    # the following example shows a bool turned into an int turned into a float:
+    # data[0::,2]=data[0::,2].astype(int).astype(float)
+
     if sort:
         spsImport.sort(order=['Index', 'Line', 'Point'])
 
@@ -318,6 +339,10 @@ def markUniqueXPSrecords(xpsImport, sort=True) -> int:
 
     for index in np.nditer(xpsIndices):
         xpsImport[index]['Uniq'] = 1
+
+    # note, probably the above for loop can be avoided by using type conversion.
+    # the following example shows a bool turned into an int turned into a float:
+    # data[0::,2]=data[0::,2].astype(int).astype(float)
 
     if sort:
         xpsImport.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])

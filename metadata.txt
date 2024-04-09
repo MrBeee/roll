@@ -6,7 +6,7 @@
 name=Roll
 qgisMinimumVersion=3.28
 description=Design and analysis of 3D seismic survey geometries
-version=0.2.3
+version=0.2.4
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is for creating and analyzing 3D seismic survey geometries. It is dependent on the following Python packages:

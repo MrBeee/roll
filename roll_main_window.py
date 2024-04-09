@@ -183,7 +183,7 @@ class LineROI(pg.LineSegmentROI):
         return True
 
     def generateSvg(self, nodes):
-        pass                                                                    # for the time being don't do anything; not implemented; keep PyLint happy
+        pass                                                                    # for the time being don't do anything; just to keep PyLint happy
 
 
 class QHLine(QFrame):
@@ -193,7 +193,7 @@ class QHLine(QFrame):
         self.setFrameShadow(QFrame.Sunken)
 
     def generateSvg(self, nodes):
-        pass                                                                    # for the time being don't do anything; not implemented; keep PyLint happy
+        pass                                                                    # for the time being don't do anything; just to keep PyLint happy
 
 
 def silentPrint(*_, **__):
@@ -821,8 +821,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.anaOutput.flush()
                 # self.anaOutput._mmap.close()                                  # See: https://stackoverflow.com/questions/6397495/unmap-of-numpy-memmap
                 del self.anaOutput
-                self.D2_Output = None                                           # remove reference to self.anaOutput
-                self.anaOutput = None                                           # remove self.anaOutput itself
+                self.D2_Output = None                                           # first remove reference to self.anaOutput
+                self.anaOutput = None                                           # then remove self.anaOutput itself
                 gc.collect()                                                    # get the garbage collector going
 
             self.enableExport(False)
@@ -2473,8 +2473,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     # Note also numpy.load can be used to access a file from disk, in a memory-mapped mode
                     # See: https://numpy.org/doc/stable/reference/generated/numpy.load.html
                     anaFileName = self.fileName + '.ana.npy'
-                    self.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r+', shape=(nx, ny, fold, 10))
-                    self.D2_Output = self.anaOutput.reshape(nx * ny * fold, 10)   # create a 2 dim array for table access
+                    self.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r+', shape=(nx, ny, fold, 13))
+                    self.D2_Output = self.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
                     self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.D2_Output.shape[0]:,} traces')
 
                     # for i in range(nx):
@@ -2753,11 +2753,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def fileOpen(self):
         if self.maybeKillThread() and self.maybeSave():                         # current file may be modified; save it or discard edits
             fn, _ = QFileDialog.getOpenFileName(
-                self, 'Open File...', self.workingDirectory, 'Survey files (*.roll);; All files (*.*)'  # self; that's me  # caption  # start directory + filename
-            )                      # file extensions
-            # options -> not being used
+                self,  # self; that's me
+                'Open File...',  # caption
+                self.workingDirectory,  # start directory + filename
+                'Survey files (*.roll);; All files (*.*)'  # file extensions
+                # options                                                       # not being used
+            )
             if fn:
                 self.workingDirectory = os.path.dirname(fn)                     # retrieve the directory name
+
+                # sync workingDirectory to settings, so it available outside of RollMainWindow
+                self.settings.setValue('settings/workingDirectory', self.workingDirectory)
+
                 self.fileLoad(fn)                                               # load() does all the hard work
 
     def fileOpenRecent(self):
@@ -3203,12 +3210,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         try:
             anaFileName = self.fileName + '.ana.npy'
             if os.path.exists(anaFileName):
-                self.anaOutput = np.memmap(anaFileName, shape=(nx, ny, fold, 10), dtype=np.float32, mode='r+')
+                self.anaOutput = np.memmap(anaFileName, shape=(nx, ny, fold, 13), dtype=np.float32, mode='r+')
             else:
-                self.anaOutput = np.memmap(anaFileName, shape=(nx, ny, fold, 10), dtype=np.float32, mode='w+')
+                self.anaOutput = np.memmap(anaFileName, shape=(nx, ny, fold, 13), dtype=np.float32, mode='w+')
             self.anaOutput.fill(0.0)                                            # enforce zero values for all elements
 
-            # self.D2_output = self.anaOutput.reshape(nx * ny * fold, 10)
+            # self.D2_output = self.anaOutput.reshape(nx * ny * fold, 13)
             # self.D2_output[:,:] = 0.0
 
         except MemoryError as e:

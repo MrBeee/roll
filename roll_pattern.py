@@ -195,4 +195,4 @@ class RollPattern(pg.GraphicsObject):
         painter.drawPicture(0, 0, self.patternPicture)
 
     def generateSvg(self, nodes):
-        pass                                                                    # for the time being don't do anything; not implemented; keep PyLint happy
+        pass                                                                    # for the time being don't do anything; just to keep PyLint happy

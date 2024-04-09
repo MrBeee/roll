@@ -32,9 +32,9 @@ from .roll_unique import RollUnique
 from .sps_io_and_qc import pntType1, relType2
 
 try:
-    from numba import *  # pylint: disable=w0401,w0614 # I don't want to change 3rd party code on en/disabling numba
+    from numba import *  # pylint: disable=w0401,w0614 # I don't want to modify 3rd party code on en/disabling numba
 except ImportError:
-    from .nonumba import *  # pylint: disable=w0401,w0614 # I don't want to change 3rd party code on en/disabling numba
+    from .nonumba import *  # pylint: disable=w0401,w0614 # I don't want to modify 3rd party code on en/disabling numba
 
 
 # See: https://realpython.com/python-multiple-constructors/#instantiating-classes-in-python for multiple constructors
@@ -95,156 +95,6 @@ except ImportError:
 # if len(self.name) > 0:
 #     name_elem = ET.SubElement(seed_elem, 'name')
 #     name_elem.text = self.name
-
-# See: https://stackoverflow.com/questions/62196835/how-to-get-string-name-for-qevent-in-pyqt5
-event_lookup = {
-    '0': 'QEvent::None',
-    '114': 'QEvent::ActionAdded',
-    '113': 'QEvent::ActionChanged',
-    '115': 'QEvent::ActionRemoved',
-    '99': 'QEvent::ActivationChange',
-    '121': 'QEvent::ApplicationActivate',
-    '122': 'QEvent::ApplicationDeactivate',
-    '36': 'QEvent::ApplicationFontChange',
-    '37': 'QEvent::ApplicationLayoutDirectionChange',
-    '38': 'QEvent::ApplicationPaletteChange',
-    '214': 'QEvent::ApplicationStateChange',
-    '35': 'QEvent::ApplicationWindowIconChange',
-    '68': 'QEvent::ChildAdded',
-    '69': 'QEvent::ChildPolished',
-    '71': 'QEvent::ChildRemoved',
-    '40': 'QEvent::Clipboard',
-    '19': 'QEvent::Close',
-    '200': 'QEvent::CloseSoftwareInputPanel',
-    '178': 'QEvent::ContentsRectChange',
-    '82': 'QEvent::ContextMenu',
-    '183': 'QEvent::CursorChange',
-    '52': 'QEvent::DeferredDelete',
-    '60': 'QEvent::DragEnter',
-    '62': 'QEvent::DragLeave',
-    '61': 'QEvent::DragMove',
-    '63': 'QEvent::Drop',
-    '170': 'QEvent::DynamicPropertyChange',
-    '98': 'QEvent::EnabledChange',
-    '10': 'QEvent::Enter',
-    '150': 'QEvent::EnterEditFocus',
-    '124': 'QEvent::EnterWhatsThisMode',
-    '206': 'QEvent::Expose',
-    '116': 'QEvent::FileOpen',
-    '8': 'QEvent::FocusIn',
-    '9': 'QEvent::FocusOut',
-    '23': 'QEvent::FocusAboutToChange',
-    '97': 'QEvent::FontChange',
-    '198': 'QEvent::Gesture',
-    '202': 'QEvent::GestureOverride',
-    '188': 'QEvent::GrabKeyboard',
-    '186': 'QEvent::GrabMouse',
-    '159': 'QEvent::GraphicsSceneContextMenu',
-    '164': 'QEvent::GraphicsSceneDragEnter',
-    '166': 'QEvent::GraphicsSceneDragLeave',
-    '165': 'QEvent::GraphicsSceneDragMove',
-    '167': 'QEvent::GraphicsSceneDrop',
-    '163': 'QEvent::GraphicsSceneHelp',
-    '160': 'QEvent::GraphicsSceneHoverEnter',
-    '162': 'QEvent::GraphicsSceneHoverLeave',
-    '161': 'QEvent::GraphicsSceneHoverMove',
-    '158': 'QEvent::GraphicsSceneMouseDoubleClick',
-    '155': 'QEvent::GraphicsSceneMouseMove',
-    '156': 'QEvent::GraphicsSceneMousePress',
-    '157': 'QEvent::GraphicsSceneMouseRelease',
-    '182': 'QEvent::GraphicsSceneMove',
-    '181': 'QEvent::GraphicsSceneResize',
-    '168': 'QEvent::GraphicsSceneWheel',
-    '18': 'QEvent::Hide',
-    '27': 'QEvent::HideToParent',
-    '127': 'QEvent::HoverEnter',
-    '128': 'QEvent::HoverLeave',
-    '129': 'QEvent::HoverMove',
-    '96': 'QEvent::IconDrag',
-    '101': 'QEvent::IconTextChange',
-    '83': 'QEvent::InputMethod',
-    '207': 'QEvent::InputMethodQuery',
-    '169': 'QEvent::KeyboardLayoutChange',
-    '6': 'QEvent::KeyPress',
-    '7': 'QEvent::KeyRelease',
-    '89': 'QEvent::LanguageChange',
-    '90': 'QEvent::LayoutDirectionChange',
-    '76': 'QEvent::LayoutRequest',
-    '11': 'QEvent::Leave',
-    '151': 'QEvent::LeaveEditFocus',
-    '125': 'QEvent::LeaveWhatsThisMode',
-    '88': 'QEvent::LocaleChange',
-    '176': 'QEvent::NonClientAreaMouseButtonDblClick',
-    '174': 'QEvent::NonClientAreaMouseButtonPress',
-    '175': 'QEvent::NonClientAreaMouseButtonRelease',
-    '173': 'QEvent::NonClientAreaMouseMove',
-    '177': 'QEvent::MacSizeChange',
-    '43': 'QEvent::MetaCall',
-    '102': 'QEvent::ModifiedChange',
-    '4': 'QEvent::MouseButtonDblClick',
-    '2': 'QEvent::MouseButtonPress',
-    '3': 'QEvent::MouseButtonRelease',
-    '5': 'QEvent::MouseMove',
-    '109': 'QEvent::MouseTrackingChange',
-    '13': 'QEvent::Move',
-    '197': 'QEvent::NativeGesture',
-    '208': 'QEvent::OrientationChange',
-    '12': 'QEvent::Paint',
-    '39': 'QEvent::PaletteChange',
-    '131': 'QEvent::ParentAboutToChange',
-    '21': 'QEvent::ParentChange',
-    '212': 'QEvent::PlatformPanel',
-    '217': 'QEvent::PlatformSurface',
-    '75': 'QEvent::Polish',
-    '74': 'QEvent::PolishRequest',
-    '123': 'QEvent::QueryWhatsThis',
-    '106': 'QEvent::ReadOnlyChange',
-    '199': 'QEvent::RequestSoftwareInputPanel',
-    '14': 'QEvent::Resize',
-    '204': 'QEvent::ScrollPrepare',
-    '205': 'QEvent::Scroll',
-    '117': 'QEvent::Shortcut',
-    '51': 'QEvent::ShortcutOverride',
-    '17': 'QEvent::Show',
-    '26': 'QEvent::ShowToParent',
-    '50': 'QEvent::SockAct',
-    '192': 'QEvent::StateMachineSignal',
-    '193': 'QEvent::StateMachineWrapped',
-    '112': 'QEvent::StatusTip',
-    '100': 'QEvent::StyleChange',
-    '87': 'QEvent::TabletMove',
-    '92': 'QEvent::TabletPress',
-    '93': 'QEvent::TabletRelease',
-    '171': 'QEvent::TabletEnterProximity',
-    '172': 'QEvent::TabletLeaveProximity',
-    '219': 'QEvent::TabletTrackingChange',
-    '22': 'QEvent::ThreadChange',
-    '1': 'QEvent::Timer',
-    '120': 'QEvent::ToolBarChange',
-    '110': 'QEvent::ToolTip',
-    '184': 'QEvent::ToolTipChange',
-    '194': 'QEvent::TouchBegin',
-    '209': 'QEvent::TouchCancel',
-    '196': 'QEvent::TouchEnd',
-    '195': 'QEvent::TouchUpdate',
-    '189': 'QEvent::UngrabKeyboard',
-    '187': 'QEvent::UngrabMouse',
-    '78': 'QEvent::UpdateLater',
-    '77': 'QEvent::UpdateRequest',
-    '111': 'QEvent::WhatsThis',
-    '118': 'QEvent::WhatsThisClicked',
-    '31': 'QEvent::Wheel',
-    '132': 'QEvent::WinEventAct',
-    '24': 'QEvent::WindowActivate',
-    '103': 'QEvent::WindowBlocked',
-    '25': 'QEvent::WindowDeactivate',
-    '34': 'QEvent::WindowIconChange',
-    '105': 'QEvent::WindowStateChange',
-    '33': 'QEvent::WindowTitleChange',
-    '104': 'QEvent::WindowUnblocked',
-    '203': 'QEvent::WinIdChange',
-    '126': 'QEvent::ZOrderChange',
-}
 
 
 class SurveyType(Enum):
@@ -916,7 +766,7 @@ class RollSurvey(pg.GraphicsObject):
 
         # Now do the binning
         if fullAnalysis:
-            self.binning.slowness = (1.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
+            self.binning.slowness = (1000.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
 
             success = self.binFromGeometry4(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
@@ -924,783 +774,13 @@ class RollSurvey(pg.GraphicsObject):
         else:
             return self.binFromGeometry4(False)
 
-    def binFromGeometry(self, fullAnalysis) -> bool:
-        """Partial implementation; only cmp binning implemented here,
-        using a nested dictionary to access the src position, hence slow"""
-
-        self.threadProgress = 0                                                 # always start at zero
-
-        # as we access the srcGeom and relGeom from relGem, we need to create some quick lookup tables
-        # nested dictionary to access src positions
-        self.output.srcDict = defaultdict(dict)
-        for record in self.output.srcGeom:
-            point = QPointF(record['East'], record['North'])
-            self.output.srcDict[int(record['Line'])][int(record['Point'])] = point
-
-        # nested dictionary to access rec positions
-        self.output.recDict = defaultdict(dict)
-        for record in self.output.recGeom:
-            point = QPointF(record['East'], record['North'])
-            self.output.recDict[int(record['Line'])][int(record['Point'])] = point
-
-        toLocalTransform = QTransform()                                         # setup empty (unit) transform
-        toLocalTransform, _ = self.glbTransform.inverted()
-
-        # we iterate from RecMin to RecMax in the relation records
-        # so we need to find out what the incremental station value is
-        recPoints = self.output.recGeom['Point']
-        uniquePoints = np.unique(recPoints)
-        nPoints = uniquePoints.shape[0]
-        nMax = uniquePoints[-1]
-        nMin = uniquePoints[0]
-        delta = (nMax - nMin) / (nPoints - 1)
-        delta = int(round(delta))
-
-        nRelRecords = self.output.relGeom.shape[0]
-
-        try:
-            for index, relRecord in enumerate(self.output.relGeom):
-
-                # maybe stop at each record...
-                if QThread.currentThread().isInterruptionRequested():
-                    raise StopIteration
-
-                threadProgress = (100 * index) // nRelRecords
-                if threadProgress > self.threadProgress:
-                    self.threadProgress = threadProgress
-                    self.progress.emit(threadProgress + 1)
-
-                try:
-                    srcGlob = self.output.srcDict[relRecord['SrcLin']][relRecord['SrcPnt']]
-                except KeyError:
-                    continue
-
-                recMin = int(round(relRecord['RecMin']))
-                recMax = int(round(relRecord['RecMax']))
-                # recNum = (recMax - recMin) / delta + 1
-
-                for j in range(recMin, recMax + delta, delta):
-
-                    try:
-                        recGlob = self.output.recDict[relRecord['RecLin']][j]
-                    except KeyError:
-                        continue
-
-                    cmpLoc = QPointF()
-
-                    cmpBinning = True
-                    if cmpBinning:
-                        cmpGlob = 0.5 * (srcGlob + recGlob)
-
-                    cmpLoc = toLocalTransform.map(cmpGlob)
-
-                    if containsPoint2D(self.output.rctOutput, cmpLoc):
-                        # now we need to process a valid trace
-                        # local position in bin area
-                        loc = self.binTransform.map(cmpLoc)
-                        nx = int(loc.x())
-                        ny = int(loc.y())
-
-                        try:                                                    # index nx, ny might be wrong
-                            # need local positions for inline/crossline offset criteria
-                            srcLoc = QPointF()
-                            recLoc = QPointF()
-                            srcLoc = toLocalTransform.map(srcGlob)
-                            recLoc = toLocalTransform.map(recGlob)
-
-                            # determine offset vector on the *local* grid
-                            rctOffset = recLoc - srcLoc
-
-                            # first check if offset falls within offset analysis rectangle
-                            if containsPoint2D(self.offset.rctOffsets, rctOffset):
-
-                                # now do the 'expensive' sqrt operation
-                                radOffset = math.hypot(rctOffset.x(), rctOffset.y())
-
-                                # now check radial offset range. Only do this test if max offset > 0.0
-                                if self.offset.radOffsets.y() == 0.0 or (radOffset < self.offset.radOffsets.y() and radOffset >= self.offset.radOffsets.x()):
-
-                                    if fullAnalysis:
-                                        # ('SrcX', np.float32), ('SrcY', np.float32),    # Src (x, y)
-                                        # ('RecX', np.float32), ('RecY', np.float32),    # Rec (x, y)
-                                        # ('CmpX', np.float32), ('CmpY', np.float32),    # Cmp (x, y); needed for spider plot when binning against dipping plane
-                                        # ('SrcL', np.int32  ), ('SrcP', np.int32  ),    # SrcLine, SrcPoint
-                                        # ('RecL', np.int32  ), ('RecP', np.int32  )])   # RecLine, RecPoint
-
-                                        fold = self.output.binOutput[nx, ny]
-                                        if fold < self.grid.fold:                   # prevent overwriting next bin
-                                            # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(),
-                                            #                                         recLoc.x(), recLoc.y(),
-                                            #                                         cmpLoc.x(), cmpLoc.y(),
-                                            #                                         0, 0, 0, 0)
-                                            # line & stake nrs for reporting in extended np-array
-                                            stkLoc = self.st2Transform.map(cmpLoc)
-                                            self.output.anaOutput[nx][ny][fold][0] = int(stkLoc.x())        # pylint: disable=E1136
-                                            self.output.anaOutput[nx][ny][fold][1] = int(stkLoc.y())
-                                            self.output.anaOutput[nx][ny][fold][2] = fold + 1               # to make fold run from 1 to N
-                                            self.output.anaOutput[nx][ny][fold][3] = round(srcLoc.x(), 1)   # round to overcome transform inaccuracies
-                                            self.output.anaOutput[nx][ny][fold][4] = round(srcLoc.y(), 1)
-                                            self.output.anaOutput[nx][ny][fold][5] = round(recLoc.x(), 1)
-                                            self.output.anaOutput[nx][ny][fold][6] = round(recLoc.y(), 1)
-                                            self.output.anaOutput[nx][ny][fold][7] = round(cmpLoc.x(), 1)
-                                            self.output.anaOutput[nx][ny][fold][8] = round(cmpLoc.y(), 1)
-                                        # self.output.anaOutput[nx][ny][fold][9]
-
-                                        # print (self.output.anaOutput[nx, ny, fold])
-
-                                    # all offset criteria have been fullfilled; use the trace
-                                    self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
-                                    self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], radOffset)
-                                    self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], radOffset)
-                                # print (cmpLoc.x(), cmpLoc.y(), loc.x(), loc.y(), stk.x(), stk.y(), self.output.binOutput[nx, ny])
-
-                        except IndexError:
-                            continue
-
-        except StopIteration:
-            self.errorText = 'binning from geometry canceled by user'
-            return False
-        except BaseException as e:
-            self.errorText = str(e)
-            return False
-
-        # min/max fold is straightforward
-        self.output.maximumFold = self.output.binOutput.max()
-        self.output.minimumFold = self.output.binOutput.min()
-
-        # calc min offset against max (inf) values
-        self.output.minMinOffset = self.output.minOffset.min()
-        # replace (inf) by (-inf) for max values
-        self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF
-        # calc max values against (-inf) minimum
-        self.output.maxMinOffset = self.output.minOffset.max()
-
-        # calc max offset against max (-inf) values
-        self.output.maxMaxOffset = self.output.maxOffset.max()
-        # replace (-inf) by (inf) for min values
-        self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf
-        # calc min offset against min (inf) values
-        self.output.minMaxOffset = self.output.maxOffset.min()
-        # replace (inf) by (-inf) for max values
-        self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF
-
-        return True
-
-    def binFromGeometry2(self, fullAnalysis) -> bool:
-        """only cmp binning implemented,
-        now working from the shot points rather than the relation records"""
-
-        self.threadProgress = 0                                                 # always start at zero
-
-        toLocalTransform = QTransform()                                         # setup empty (unit) transform
-        toLocalTransform, _ = self.glbTransform.inverted()                      # transform to local survey coordinates
-
-        # if needed, fill the source and receiver arrays with local coordinates
-        minLocX = np.min(self.output.srcGeom['LocX'])                           # determine if there's any data there...
-        maxLocX = np.max(self.output.srcGeom['LocY'])                           # determine if there's any data there...
-        if minLocX == maxLocX == 0.0:                                           # comparisons can be chained
-            # See: https://stackoverflow.com/questions/6304509/are-there-sideeffects-in-python-using-if-a-b-c-pass
-            # See: https://docs.python.org/3/library/stdtypes.html
-            for record in self.output.srcGeom:
-                srcX = record['East']
-                srcY = record['North']
-                x, y = toLocalTransform.map(srcX, srcY)
-                record['LocX'] = x
-                record['LocY'] = y
-
-        minLocX = np.min(self.output.recGeom['LocX'])                           # determine if there's any data there...
-        maxLocX = np.max(self.output.recGeom['LocY'])                           # determine if there's any data there...
-        if minLocX == maxLocX == 0.0:                                           # comparisons can be chained
-            for record in self.output.recGeom:
-                recX = record['East']
-                recY = record['North']
-                x, y = toLocalTransform.map(recX, recY)
-                record['LocX'] = x
-                record['LocY'] = y
-
-        # relType2= np.dtype([('SrcLin', 'f4'),   # F10.2
-        #                     ('SrcPnt', 'f4'),   # F10.2
-        #                     ('SrcInd', 'i4'),   # I1
-        #                     ('RecNo',  'i4'),   # I8
-        #                     ('RecLin', 'f4'),   # F10.2
-        #                     ('RecMin', 'f4'),   # F10.2
-        #                     ('RecMax', 'f4'),   # F10.2
-        #                     ('RecInd', 'i4'),   # I1
-        #                     ('Uniq',   'i4'),   # check if record is unique
-        #                     ('InSps',  'i4'),   # check if record is orphan
-        #                     ('InRps',  'i4') ]) # check if record is orphan
-
-        # pntType1= np.dtype([('Line',   'f4'),   # F10.2
-        #                     ('Point',  'f4'),   # F10.2
-        #                     ('Index',  'i4'),   # I1
-        #                     ('Code',   'U2'),   # A2
-        #                     ('Depth',  'f4'),   # I4
-        #                     ('East',   'f4'),   # F9.1
-        #                     ('North',  'f4'),   # F10.1
-        #                     ('Elev',   'f4'),   # F6.1
-        #                     ('Uniq',   'i4'),   # check if record is unique
-        #                     ('InXps',  'i4'),   # check if record is orphan
-        #                     ('LocX',   'f4'),   # F9.1
-        #                     ('LocY',   'f4') ]) # F10.1
-
-        # pntType2= np.dtype([('Line',   'f4'),   # F10.2
-        #                     ('Point',  'f4'),   # F10.2
-        #                     ('Index',  'i4'),   # I1
-        #                     ('Code',   'U2'),   # A2
-        #                     ('Depth',  'f4'),   # I4
-        #                     ('East',   'f4'),   # F9.1
-        #                     ('North',  'f4'),   # F10.1
-        #                     ('Elev',   'f4'),   # F6.1
-        #                     ('Uniq',   'i4'),   # check if record is unique
-        #                     ('InXps',  'i4') ]) # check if record is orphan
-
-        # Find out where shots start and stop in the relation file
-        # Therefore create reference to relation file.
-
-        # The 1st element is the first entry into the rel file for a shot number
-        # The 2nd element is the last  entry into the rel file for a shot number
-        relFileIndices = np.zeros(shape=(self.output.srcGeom.shape[0], 2), dtype=np.int32)
-
-        # now iterate over srcGeom to check where shots are referenced
-        # the next for loop assumes that:
-        # 1. any duplicate records have been removed
-        # 2. any orphans (missing corresponding src/rel records) have been removed
-        # 2. source records are ordered (sorted) on shotindex / shotline / shotpoint
-        # 3. relation records are sorted on shotindex / shotline / shotpoint followed by recindex / recline / recpoint
-
-        assert self.output.relGeom[0]['SrcLin'] == self.output.srcGeom[0]['Line'], 'error in geometry files'
-        assert self.output.relGeom[0]['SrcPnt'] == self.output.srcGeom[0]['Point'], 'error in geometry files'
-        assert self.output.relGeom[0]['SrcInd'] == self.output.srcGeom[0]['Index'], 'error in geometry files'
-
-        # to be sure; sort the three geometry arrays in order: index; line; point
-        self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
-        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
-        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
-
-        marker = 0
-        for index, srcRecord in enumerate(self.output.srcGeom):                 # find the relevant relation records for each shot point
-
-            relFileIndices[index][0] = marker
-            for j in range(marker, self.output.relGeom.shape[0]):
-
-                if self.output.relGeom[j]['SrcPnt'] == srcRecord['Point'] and self.output.relGeom[j]['SrcLin'] == srcRecord['Line'] and self.output.relGeom[j]['SrcInd'] == srcRecord['Index']:
-                    relFileIndices[index][1] = j + 1                            # last number will stay out of scope for range: 0 - n
-                else:
-                    marker = j
-                    break
-
-        # now iterate over the shot points and select the range of applicable receivers
-        # assume the receivers have been sorted index/line/point
-
-        self.nShotPoint = 0
-        self.nShotPoints = self.output.srcGeom.shape[0]
-
-        try:
-            for index, srcRecord in enumerate(self.output.srcGeom):
-                # convert the source record to an [x, y, z] value
-                srcPoints = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32)
-
-                # begin thread progress code
-                if QThread.currentThread().isInterruptionRequested():           # maybe stop at each shot...
-                    raise StopIteration
-
-                self.nShotPoint += 1
-                threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
-                if threadProgress > self.threadProgress:
-                    self.threadProgress = threadProgress
-                    self.progress.emit(threadProgress + 1)
-                # end thread progress code
-
-                minRecord = relFileIndices[index][0]                            # range of relevant relation records
-                maxRecord = relFileIndices[index][1]
-
-                if maxRecord == minRecord:                                      # no receivers found; move to next shot !
-                    continue
-
-                relSlice = self.output.relGeom[minRecord:maxRecord]             # create a slice out of the relation file
-
-                recIndex = relSlice[0]['RecInd']
-                minLine = np.min(relSlice['RecLin'])
-                maxLine = np.max(relSlice['RecLin'])
-                minMinPoint = np.min(relSlice['RecMin'])                        # determine if it is a purely square block
-                maxMinPoint = np.max(relSlice['RecMin'])
-                minMaxPoint = np.min(relSlice['RecMax'])
-                maxMaxPoint = np.max(relSlice['RecMax'])
-
-                if minMinPoint == maxMinPoint and minMaxPoint == maxMaxPoint:
-                    # if it is a square block, make a simple single square selection in receiver array. See binTemplate4()
-                    I = (
-                        (self.output.recGeom['Index'] == recIndex)
-                        & (self.output.recGeom['Line'] >= minLine)
-                        & (self.output.recGeom['Line'] <= maxLine)
-                        & (self.output.recGeom['Point'] >= minMinPoint)
-                        & (self.output.recGeom['Point'] <= maxMaxPoint)
-                    )
-                    if np.count_nonzero(I) == 0:
-                        continue                                                # no receivers found; move to next shot !
-                    recPoints = self.output.recGeom[I]                           # select the filtered receivers
-
-                else:
-                    # there are different min/max rec points on different rec lines.
-                    # we need to determine the recPoints line by line; per relation record
-
-                    recPoints = np.zeros(shape=(0), dtype=pntType1)              # setup empty numpy array
-                    for relRecord in relSlice:
-                        recInd = relRecord['RecInd']
-                        recLin = relRecord['RecLin']
-                        recMin = relRecord['RecMin']
-                        recMax = relRecord['RecMax']
-
-                        # select appropriate receivers on a receiver line
-                        I = (self.output.recGeom['Index'] == recInd) & (self.output.recGeom['Line'] == recLin) & (self.output.recGeom['Point'] >= recMin) & (self.output.recGeom['Point'] <= recMax)
-
-                        recLine = self.output.recGeom[I]                        # select the filtered receivers
-                        recPoints = np.concatenate((recPoints, recLine))          # need to supply arrays to be concatenated as a tuple !
-                        # See: https://stackoverflow.com/questions/50997928/typeerror-only-integer-scalar-arrays-can-be-converted-to-a-scalar-index-with-1d
-
-                # at this stage we have recPoints defined. We can now use the same approach as used in template based binning.
-                # we combine recPoints with source point to create cmp array, define offsets, etc...
-
-                # we are not dealing with the block's src border; should have been done while generating geometry
-                # we are not dealing with the block's rec border; should have been done while generating geometry
-                # it is essential that any orphans & duplicates in recPoints have been removed at this stage
-                # for cmp and offset calcuations, we need numpy arrays in the form of local (x, y, z) coordinates
-
-                recPoints = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
-                recPoints[:, 0] = recPoints['LocX']
-                recPoints[:, 1] = recPoints['LocY']
-                recPoints[:, 2] = recPoints['Elev']
-
-                # setup a cmp array with the same size as recPoints
-                cmpPoints = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
-
-                # create all cmp-locations for this shot point
-                cmpPoints = (recPoints + srcPoints) * 0.5
-
-                l = self.output.rctOutput.left()
-                r = self.output.rctOutput.right()
-                t = self.output.rctOutput.top()
-                b = self.output.rctOutput.bottom()
-                I = (cmpPoints[:, 0] >= l) & (cmpPoints[:, 0] <= r) & (cmpPoints[:, 1] >= t) & (cmpPoints[:, 1] <= b)
-                if np.count_nonzero(I) == 0:
-                    continue
-
-                cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array
-                recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this for offsets
-
-                ofVectors = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
-                ofVectors = recPoints - srcPoints                               # define the offset array
-
-                l = self.offset.rctOffsets.left()
-                r = self.offset.rctOffsets.right()
-                t = self.offset.rctOffsets.top()
-                b = self.offset.rctOffsets.bottom()
-                I = (ofVectors[:, 0] >= l) & (ofVectors[:, 0] <= r) & (ofVectors[:, 1] >= t) & (ofVectors[:, 1] <= b)
-                if np.count_nonzero(I) == 0:
-                    continue
-
-                ofVectors = ofVectors[I, :]                                     # filter the offset-array
-                cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array too, as we still need this
-                recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this
-
-                hypRRR = np.zeros(shape=(recPoints.shape[0], 1), dtype=np.float32)
-                # calculate per row
-                hypRRR = np.hypot(ofVectors[:, 0], ofVectors[:, 1])
-
-                r1 = self.offset.radOffsets.x()                                 # minimum radius
-                r2 = self.offset.radOffsets.y()                                 # maximum radius
-                if r2 > 0:                                                      # we need to apply the radial offset selection criteria
-                    I = (hypRRR[:] >= r1) & (hypRRR[:] <= r2)
-                    if np.count_nonzero(I) == 0:
-                        continue                                                # continue with next recSeed
-                    # print(I)
-                    hypRRR = hypRRR[I]                                          # filter the radial offset-array
-                    ofVectors = ofVectors[I, :]                                 # filter the off-array too, as we still need this
-                    cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array too, as we still need this
-                    recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this
-
-                #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
-
-                # process all traces
-                for count, cmp in enumerate(cmpPoints):
-                    try:
-                        cmpX = cmp[0]
-                        cmpY = cmp[1]
-                        # local position in bin area
-                        x, y = self.binTransform.map(cmpX, cmpY)
-                        nx = int(x)
-                        ny = int(y)
-
-                        if fullAnalysis:
-                            fold = self.output.binOutput[nx, ny]
-                            if fold < self.grid.fold:                           # prevent overwriting next bin
-                                # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(), recLoc.x(), recLoc.y(), cmpLoc.x(), cmpLoc.y(), 0, 0, 0, 0)
-
-                                # line & stake nrs for reporting in extended np-array
-                                stkX, stkY = self.st2Transform.map(cmpX, cmpY)
-                                self.output.anaOutput[nx][ny][fold][0] = int(stkX)
-                                self.output.anaOutput[nx][ny][fold][1] = int(stkY)
-                                self.output.anaOutput[nx][ny][fold][2] = fold + 1       # to make fold run from 1 to N
-                                self.output.anaOutput[nx][ny][fold][3] = srcPoints[0]
-                                self.output.anaOutput[nx][ny][fold][4] = srcPoints[1]
-                                self.output.anaOutput[nx][ny][fold][5] = recPoints[count, 0]
-                                self.output.anaOutput[nx][ny][fold][6] = recPoints[count, 1]
-                                self.output.anaOutput[nx][ny][fold][7] = cmpPoints[count, 0]
-                                self.output.anaOutput[nx][ny][fold][8] = cmpPoints[count, 1]
-                            # self.output.anaOutput[nx][ny][fold][9]
-
-                        # all selection criteria have been fullfilled; use the trace
-                        self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
-                        self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], hypRRR[count])
-                        self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], hypRRR[count])
-
-                    # rather than checking nx, ny & fold, use exception handling to deal with index errors
-                    except IndexError:
-                        continue
-
-        except StopIteration:
-            self.errorText = 'binning from geometry canceled by user'
-            return False
-        except BaseException as e:
-            self.errorText = str(e)
-            return False
-
-        # min/max fold is straightforward
-        self.output.maximumFold = self.output.binOutput.max()
-        self.output.minimumFold = self.output.binOutput.min()
-
-        # calc min offset against max (inf) values
-        self.output.minMinOffset = self.output.minOffset.min()
-        # replace (inf) by (-inf) for max values
-        self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF
-        # calc max values against (-inf) minimum
-        self.output.maxMinOffset = self.output.minOffset.max()
-
-        # calc max offset against max (-inf) values
-        self.output.maxMaxOffset = self.output.maxOffset.max()
-        # replace (-inf) by (inf) for min values
-        self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf
-        # calc min offset against min (inf) values
-        self.output.minMaxOffset = self.output.maxOffset.min()
-        # replace (inf) by (-inf) for max values
-        self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF
-
-        return True
-
-    def binFromGeometry3(self, fullAnalysis) -> bool:
-        """all binning methods implemented,
-        working from the shot points rather than the relation records"""
-
-        self.threadProgress = 0                                                 # always start at zero
-
-        toLocalTransform = QTransform()                                         # setup empty (unit) transform
-        toLocalTransform, _ = self.glbTransform.inverted()                      # transform to local survey coordinates
-
-        # if needed, fill the source and receiver arrays with local coordinates
-        minLocX = np.min(self.output.srcGeom['LocX'])                           # determine if there's any data there...
-        maxLocX = np.max(self.output.srcGeom['LocY'])                           # determine if there's any data there...
-        if minLocX == 0.0 and maxLocX == 0.0:
-            for record in self.output.srcGeom:
-                srcX = record['East']
-                srcY = record['North']
-                x, y = toLocalTransform.map(srcX, srcY)
-                record['LocX'] = x
-                record['LocY'] = y
-
-        minLocX = np.min(self.output.recGeom['LocX'])                           # determine if there's any data there...
-        maxLocX = np.max(self.output.recGeom['LocY'])                           # determine if there's any data there...
-        if minLocX == 0.0 and maxLocX == 0.0:
-            for record in self.output.recGeom:
-                recX = record['East']
-                recY = record['North']
-                x, y = toLocalTransform.map(recX, recY)
-                record['LocX'] = x
-                record['LocY'] = y
-
-        # Find out where shots start and stop in the relation file
-        # Therefore create reference to relation file.
-
-        # The 1st element is the first entry into the rel file for a shot number
-        # The 2nd element is the last  entry into the rel file for a shot number
-        relFileIndices = np.zeros(shape=(self.output.srcGeom.shape[0], 2), dtype=np.int32)
-
-        # now iterate over srcGeom to check where shots are referenced
-        # the next for loop assumes that:
-        # 1. any duplicate records have been removed
-        # 2. any orphans (missing corresponding src/rel records) have been removed
-        # 2. source records are ordered (sorted) on shotindex / shotline / shotpoint
-        # 3. relation records are sorted on shotindex / shotline / shotpoint followed by recindex / recline / recpoint
-
-        assert self.output.relGeom[0]['SrcLin'] == self.output.srcGeom[0]['Line'], 'error in geometry files'
-        assert self.output.relGeom[0]['SrcPnt'] == self.output.srcGeom[0]['Point'], 'error in geometry files'
-        assert self.output.relGeom[0]['SrcInd'] == self.output.srcGeom[0]['Index'], 'error in geometry files'
-
-        # to be sure; sort the three geometry arrays in order: index; line; point
-        self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
-        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
-        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
-
-        marker = 0
-        for index, srcRecord in enumerate(self.output.srcGeom):                 # find the relevant relation records for each shot point
-
-            relFileIndices[index][0] = marker
-            for j in range(marker, self.output.relGeom.shape[0]):
-
-                if self.output.relGeom[j]['SrcPnt'] == srcRecord['Point'] and self.output.relGeom[j]['SrcLin'] == srcRecord['Line'] and self.output.relGeom[j]['SrcInd'] == srcRecord['Index']:
-                    relFileIndices[index][1] = j + 1                            # last number will stay out of scope for range: 0 - n
-                else:
-                    marker = j
-                    break
-
-        # now iterate over the shot points and select the range of applicable receivers
-        # assume the receivers have been sorted based on index/line/point
-
-        self.nShotPoint = 0
-        self.nShotPoints = self.output.srcGeom.shape[0]
-
-        try:
-            for index, srcRecord in enumerate(self.output.srcGeom):
-                # convert the source record to a single [x, y, z] value
-                src = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32)
-
-                # begin thread progress code
-                if QThread.currentThread().isInterruptionRequested():           # maybe stop at each shot...
-                    raise StopIteration
-
-                self.nShotPoint += 1
-                threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
-                if threadProgress > self.threadProgress:
-                    self.threadProgress = threadProgress
-                    self.progress.emit(threadProgress + 1)
-                # end thread progress code
-
-                minRecord = relFileIndices[index][0]                            # range of relevant relation records
-                maxRecord = relFileIndices[index][1]
-
-                if maxRecord == minRecord:                                      # no receivers found; move to next shot !
-                    continue
-
-                relSlice = self.output.relGeom[minRecord:maxRecord]             # create a slice out of the relation file
-
-                recIndex = relSlice[0]['RecInd']
-                minLine = np.min(relSlice['RecLin'])
-                maxLine = np.max(relSlice['RecLin'])
-                minMinPoint = np.min(relSlice['RecMin'])                        # determine if it is a purely square block
-                maxMinPoint = np.max(relSlice['RecMin'])
-                minMaxPoint = np.min(relSlice['RecMax'])
-                maxMaxPoint = np.max(relSlice['RecMax'])
-
-                if minMinPoint == maxMinPoint and minMaxPoint == maxMaxPoint:
-                    # if it is a square block, make a simple single square selection in receiver array. See binTemplate4()
-                    I = (
-                        (self.output.recGeom['Index'] == recIndex)
-                        & (self.output.recGeom['Line'] >= minLine)
-                        & (self.output.recGeom['Line'] <= maxLine)
-                        & (self.output.recGeom['Point'] >= minMinPoint)
-                        & (self.output.recGeom['Point'] <= maxMaxPoint)
-                    )
-                    if np.count_nonzero(I) == 0:
-                        continue                                                # no receivers found; move to next shot !
-                    recArray = self.output.recGeom[I]                           # select the filtered receivers
-
-                else:
-                    # there are different min/max rec points on different rec lines.
-                    # we need to determine the recPoints line by line; per relation record
-                    recArray = np.zeros(shape=(0), dtype=pntType1)             # setup empty numpy array
-                    for relRecord in relSlice:
-                        recInd = relRecord['RecInd']
-                        recLin = relRecord['RecLin']
-                        recMin = relRecord['RecMin']
-                        recMax = relRecord['RecMax']
-
-                        # select appropriate receivers on a receiver line
-                        I = (self.output.recGeom['Index'] == recInd) & (self.output.recGeom['Line'] == recLin) & (self.output.recGeom['Point'] >= recMin) & (self.output.recGeom['Point'] <= recMax)
-
-                        recLine = self.output.recGeom[I]                        # select the filtered receivers
-                        recArray = np.concatenate((recPoints, recLine))          # need to supply arrays to be concatenated as a tuple !
-                        # See: https://stackoverflow.com/questions/50997928/typeerror-only-integer-scalar-arrays-can-be-converted-to-a-scalar-index-with-1d
-
-                # at this stage we have recPoints defined. We can now use the same approach as used in template based binning.
-                # we combine recPoints with source point to create cmp array, define offsets, etc...
-
-                # we are not dealing with the block's src border; should have been done while generating geometry
-                # we are not dealing with the block's rec border; should have been done while generating geometry
-                # it is essential that any orphans & duplicates in recPoints have been removed at this stage
-                # for cmp and offset calcuations, we need numpy arrays in the form of local (x, y, z) coordinates
-
-                recPoints = np.zeros(shape=(recArray.shape[0], 3), dtype=np.float32)
-                recPoints[:, 0] = recArray['LocX']
-                recPoints[:, 1] = recArray['LocY']
-                recPoints[:, 2] = recArray['Elev']
-
-                # setup a cmp array with the same size as recPoints
-                cmpPoints = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
-
-                if self.binning.method == BinningType.cmp:
-                    # create all cmp-locations for this shot point, by simply taking the average from src and rec locations
-                    cmpPoints = (recPoints + src) * 0.5
-                elif self.binning.method == BinningType.plane:
-                    # create all cmp-locations using the following steps:
-                    # 1. mirror the source location against the plane
-                    # 2. find out where/if the lines defined by the source-mirror to the receivers cut through the plane
-                    # 3. these locations are the cmp locations for binning against a dipping plane
-                    srcMirror3D = self.localPlane.mirrorPoint3D(QVector3D(*src))
-
-                    # now iterate over recPoints to find all intersection points with the dipping plane
-                    # in a second revision, the for loop should be replaced by a 'native numpy' routine
-                    for nR, rec in enumerate(recPoints):                           # iterate over all receivers
-                        recPoint3D = QVector3D(*rec)
-                        cmpPoint3D = self.localPlane.IntersectLineAtPoint3D(srcMirror3D, recPoint3D, self.angles.reflection.x(), self.angles.reflection.y())
-
-                        if cmpPoint3D is not None:
-                            cmpPoints[nR][0] = cmpPoint3D.x()
-                            cmpPoints[nR][1] = cmpPoint3D.y()
-                            cmpPoints[nR][2] = cmpPoint3D.z()
-                        else:
-                            cmpPoints[nR][0] = None                             # don't bother with y or z; later only test on x
-
-                    # check which cmp values are valid (i.e. not None)
-                    I = cmpPoints[:, 0] != None                                 # pylint: disable=C0121 # we need to do a per-element comparison, can't use "is not None"
-                    if np.count_nonzero(I) == 0:
-                        continue
-
-                    cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array
-                    recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this for offsets
-                elif self.binning.method == BinningType.sphere:
-                    srcPoint3D = QVector3D(*src)                                # source point used in iteration over receivers; *src is same as src[0], src[1], src[2]
-
-                    for nR, rec in enumerate(recPoints):                        # iterate over all receivers
-                        recPoint3D = QVector3D(*rec)                            # *rec is same as rec[0], rec[1], rec[2]
-                        cmpPoint3D = self.localSphere.ReflectSphereAtPoint3D(srcPoint3D, recPoint3D, self.angles.reflection.x(), self.angles.reflection.y())
-
-                        if cmpPoint3D is not None:
-                            cmpPoints[nR][0] = cmpPoint3D.x()
-                            cmpPoints[nR][1] = cmpPoint3D.y()
-                            cmpPoints[nR][2] = cmpPoint3D.z()
-                        else:
-                            cmpPoints[nR][0] = None                             # don't bother with y or z; later only test on x
-
-                    # check which cmp values are valid (i.e. not None)
-                    I = cmpPoints[:, 0] != None                                 # pylint: disable=C0121 # we need to do a per-element comparison, can't use "is not None"
-                    if np.count_nonzero(I) == 0:
-                        continue
-
-                    cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array
-                    recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this for offsets
-
-                # find the cmp locations that contribute to the output area
-                l = self.output.rctOutput.left()
-                r = self.output.rctOutput.right()
-                t = self.output.rctOutput.top()
-                b = self.output.rctOutput.bottom()
-                I = (cmpPoints[:, 0] >= l) & (cmpPoints[:, 0] <= r) & (cmpPoints[:, 1] >= t) & (cmpPoints[:, 1] <= b)
-                if np.count_nonzero(I) == 0:
-                    continue
-
-                cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array
-                recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this for offsets
-
-                ofVectors = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
-                ofVectors = recPoints - src                                     # define the offset array
-
-                l = self.offset.rctOffsets.left()
-                r = self.offset.rctOffsets.right()
-                t = self.offset.rctOffsets.top()
-                b = self.offset.rctOffsets.bottom()
-                I = (ofVectors[:, 0] >= l) & (ofVectors[:, 0] <= r) & (ofVectors[:, 1] >= t) & (ofVectors[:, 1] <= b)
-                if np.count_nonzero(I) == 0:
-                    continue
-
-                ofVectors = ofVectors[I, :]                                     # filter the offset-array
-                cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array too, as we still need this
-                recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this
-
-                hypRRR = np.zeros(shape=(recPoints.shape[0], 1), dtype=np.float32)
-                # calculate per row
-                hypRRR = np.hypot(ofVectors[:, 0], ofVectors[:, 1])
-
-                r1 = self.offset.radOffsets.x()                                 # minimum radius
-                r2 = self.offset.radOffsets.y()                                 # maximum radius
-                if r2 > 0:                                                      # we need to apply the radial offset selection criteria
-                    I = (hypRRR[:] >= r1) & (hypRRR[:] <= r2)
-                    if np.count_nonzero(I) == 0:
-                        continue                                                # continue with next recSeed
-                    # print(I)
-                    hypRRR = hypRRR[I]                                          # filter the radial offset-array
-                    ofVectors = ofVectors[I, :]                                 # filter the off-array too, as we still need this
-                    cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array too, as we still need this
-                    recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this
-
-                #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
-                for count, cmp in enumerate(cmpPoints):                         # process all traces
-                    try:
-                        cmpX = cmp[0]
-                        cmpY = cmp[1]
-
-                        x, y = self.binTransform.map(cmpX, cmpY)                # local position in bin area
-                        nx = int(x)
-                        ny = int(y)
-
-                        if fullAnalysis:
-                            fold = self.output.binOutput[nx, ny]
-                            if fold < self.grid.fold:                           # prevent overwriting next bin
-                                # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(), recLoc.x(), recLoc.y(), cmpLoc.x(), cmpLoc.y(), 0, 0, 0, 0)
-
-                                # line & stake nrs for reporting in extended np-array
-                                stkX, stkY = self.st2Transform.map(cmpX, cmpY)
-                                self.output.anaOutput[nx][ny][fold][0] = int(stkX)
-                                self.output.anaOutput[nx][ny][fold][1] = int(stkY)
-                                self.output.anaOutput[nx][ny][fold][2] = fold + 1       # to make fold run from 1 to N
-                                self.output.anaOutput[nx][ny][fold][3] = src[0]
-                                self.output.anaOutput[nx][ny][fold][4] = src[1]
-                                self.output.anaOutput[nx][ny][fold][5] = recPoints[count, 0]
-                                self.output.anaOutput[nx][ny][fold][6] = recPoints[count, 1]
-                                self.output.anaOutput[nx][ny][fold][7] = cmpPoints[count, 0]
-                                self.output.anaOutput[nx][ny][fold][8] = cmpPoints[count, 1]
-                            # self.output.anaOutput[nx, ny, fold, 9]
-
-                        # all selection criteria have been fullfilled; use the trace
-                        self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
-                        self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], hypRRR[count])
-                        self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], hypRRR[count])
-
-                    # rather than checking nx, ny & fold, use exception handling to deal with index errors
-                    except IndexError:
-                        continue
-
-        except StopIteration:
-            self.errorText = 'binning from geometry canceled by user'
-            return False
-        except BaseException as e:
-            self.errorText = str(e)
-            return False
-
-        # min/max fold is straightforward
-        self.output.maximumFold = self.output.binOutput.max()
-        self.output.minimumFold = self.output.binOutput.min()
-
-        # calc min offset against max (inf) values
-        self.output.minMinOffset = self.output.minOffset.min()
-        # replace (inf) by (-inf) for max values
-        self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF
-        # calc max values against (-inf) minimum
-        self.output.maxMinOffset = self.output.minOffset.max()
-
-        # calc max offset against max (-inf) values
-        self.output.maxMaxOffset = self.output.maxOffset.max()
-        # replace (-inf) by (inf) for min values
-        self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf
-        # calc min offset against min (inf) values
-        self.output.minMaxOffset = self.output.maxOffset.min()
-        # replace (inf) by (-inf) for max values
-        self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF
-
-        return True
-
     def binFromGeometry4(self, fullAnalysis) -> bool:
-        """all binning methods implemented,
-        using numpy arrays, rather than a for-loop"""
+        """
+        all binning methods implemented, using numpy arrays, rather than a for-loop
 
+        On 09/04/2024 the earlier implementations of binTemplate v1 to v5 have been removed.
+        They are still available in the roll-2024-08-04 folder in classes.py
+        """
         self.threadProgress = 0                                                 # always start at zero
 
         toLocalTransform = QTransform()                                         # setup empty (unit) transform
@@ -1881,45 +961,61 @@ class RollSurvey(pg.GraphicsObject):
                 cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array
                 recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this for offsets
 
-                ofVectors = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
-                ofVectors = recPoints - src                                     # define the offset array
+                size = recPoints.shape[0]
+                offArray = np.zeros(shape=(size, 3), dtype=np.float32)          # allocate the offset array according to rec array
+                offArray = recPoints - src                                      # define the offset array
 
                 l = self.offset.rctOffsets.left()
                 r = self.offset.rctOffsets.right()
                 t = self.offset.rctOffsets.top()
                 b = self.offset.rctOffsets.bottom()
-                I = (ofVectors[:, 0] >= l) & (ofVectors[:, 0] <= r) & (ofVectors[:, 1] >= t) & (ofVectors[:, 1] <= b)
+                I = (offArray[:, 0] >= l) & (offArray[:, 0] <= r) & (offArray[:, 1] >= t) & (offArray[:, 1] <= b)
                 if np.count_nonzero(I) == 0:
                     continue
 
-                ofVectors = ofVectors[I, :]                                     # filter the offset-array
+                offArray = offArray[I, :]                                       # filter the offset-array
                 cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array too, as we still need this
                 recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this
 
-                hypRRR = np.zeros(shape=(recPoints.shape[0], 1), dtype=np.float32)
-                hypRRR = np.hypot(ofVectors[:, 0], ofVectors[:, 1])             # calculate radial offset size
+                size = recPoints.shape[0]
+                hypArray = np.zeros(shape=(size, 1), dtype=np.float32)          # allocate the radius array according to rec array
+                hypArray = np.hypot(offArray[:, 0], offArray[:, 1])             # calculate radial offset size
+                aziArray = np.arctan2(offArray[:, 0], offArray[:, 1])           # calculate offset angles
+                aziArray = np.rad2deg(aziArray)                                 # get angles in degrees instead of radians
 
-                r1 = self.offset.radOffsets.x()                                 # minimum radius
-                r2 = self.offset.radOffsets.y()                                 # maximum radius
+                r1 = self.offset.radOffsets.x()                                 # r1 = minimum radius
+                r2 = self.offset.radOffsets.y()                                 # r2 = maximum radius
                 if r2 > 0:                                                      # we need to apply the radial offset selection criteria
-                    I = (hypRRR[:] >= r1) & (hypRRR[:] <= r2)
+                    I = (hypArray[:] >= r1) & (hypArray[:] <= r2)
                     if np.count_nonzero(I) == 0:
                         continue                                                # continue with next recSeed
                     # print(I)
-                    hypRRR = hypRRR[I]                                          # filter the radial offset-array
-                    ofVectors = ofVectors[I, :]                                 # filter the off-array too, as we still need this
+                    hypArray = hypArray[I]                                      # filter the radial offset-array
+                    aziArray = aziArray[I]                                      # filter the offset-angle array too
+                    offArray = offArray[I, :]                                   # filter the off-array too, as we still need this
                     cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array too, as we still need this
                     recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this
 
-                #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
+                # now work on the TWT aspect of the src, cmp & rec positions
+                if self.binning.method == BinningType.cmp:
+                    upDnArray = recPoints - src                                 # straigth rays; total length of both legs
+                    totalTime = np.linalg.norm(upDnArray, axis=1)               # get length of the rays
+                else:
+                    downArray = cmpPoints - src                                 # 1st leg of the rays
+                    up__Array = cmpPoints - recPoints                           # 2nd leg of the rays
+                    downTime = np.linalg.norm(downArray, axis=1)                # get length of the 1st leg
+                    up__Time = np.linalg.norm(up__Array, axis=1)                # get length of the 2nd leg
+                    totalTime = downTime + up__Time                             # total length of both legs
 
-                # process all traces
-                for count, cmp in enumerate(cmpPoints):
+                totalTime *= self.binning.slowness                              # convert distance into travel time
+
+                #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
+                for count, cmp in enumerate(cmpPoints):                         # process all traces
                     try:
                         cmpX = cmp[0]
                         cmpY = cmp[1]
-                        # local position in bin area
-                        x, y = self.binTransform.map(cmpX, cmpY)
+
+                        x, y = self.binTransform.map(cmpX, cmpY)                # local position in bin area
                         nx = int(x)
                         ny = int(y)
 
@@ -1939,12 +1035,15 @@ class RollSurvey(pg.GraphicsObject):
                                 self.output.anaOutput[nx][ny][fold][6] = recPoints[count, 1]
                                 self.output.anaOutput[nx][ny][fold][7] = cmpPoints[count, 0]
                                 self.output.anaOutput[nx][ny][fold][8] = cmpPoints[count, 1]
-                                # self.output.anaOutput[nx, ny, fold, 9]
+                                self.output.anaOutput[nx][ny][fold][9] = totalTime[count]
+                                self.output.anaOutput[nx][ny][fold][10] = hypArray[count]
+                                self.output.anaOutput[nx][ny][fold][11] = aziArray[count]
+                                self.output.anaOutput[nx][ny][fold][12] = 1
 
                         # all selection criteria have been fullfilled; use the trace
                         self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
-                        self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], hypRRR[count])
-                        self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], hypRRR[count])
+                        self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], hypArray[count])
+                        self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], hypArray[count])
 
                     # rather than checking nx, ny & fold, use exception handling to deal with index errors
                     except IndexError:
@@ -1986,7 +1085,7 @@ class RollSurvey(pg.GraphicsObject):
             raise ValueError('nr shot points must be known at this point')
 
         if fullAnalysis:
-            self.binning.slowness = (1.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
+            self.binning.slowness = (1000.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
             success = self.binFromTemplates(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
             return success
@@ -2050,6 +1149,32 @@ class RollSurvey(pg.GraphicsObject):
         except BaseException as e:
             self.errorText = str(e)
             return False
+
+        # implement code to handle unique offsets
+        if self.unique.apply:                                               # slot offsets and azimuths and prune data
+            slottedOffset = self.output.anaOutput[:, :, :, 10]              # grab every 10th element of 4th dimension
+            slot = 200.0
+            scalar = 1.0 / slot
+            slottedOffset = slottedOffset * scalar
+            slottedOffset = np.round(slottedOffset)
+            slottedOffset = slottedOffset * slot
+            self.output.anaOutput[:, :, :, 10] = slottedOffset
+
+            slottedAzimuth = self.output.anaOutput[:, :, :, 11]              # grab every 10th element of 4th dimension
+            slot = 10.0
+            scalar = 1.0 / slot
+            slottedAzimuth = slottedAzimuth * scalar
+            slottedAzimuth = np.round(slottedAzimuth)
+            slottedAzimuth = slottedAzimuth * slot
+            self.output.anaOutput[:, :, :, 11] = slottedAzimuth
+
+            # Now we need to find unique rows in terms of line, stake, offset and azimuth values
+            # See:  https://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
+            # See:  https://www.geeksforgeeks.org/find-unique-rows-in-a-numpy-array/
+
+            # testUnique = self.output.anaOutput[:, :, :, [0, 1, 10, 11]]     # extract stake, line, offset and azimuth
+            # unique, indices = np.unique(testUnique, return_index=True)
+            # self.output.anaOutput[:, :, :, 12] = indices.astype(int)        # write unique offsets back into analysis array
 
         # min/max fold is straightforward
         self.output.maximumFold = self.output.binOutput.max()
@@ -2173,13 +1298,12 @@ class RollSurvey(pg.GraphicsObject):
                     if np.count_nonzero(I) == 0:
                         continue
 
-                    # filter the cmp-array
-                    cmpPoints = cmpPoints[I, :]
-                    # filter the rec-array too, as we still need this
-                    recPoints = recPoints[I, :]
+                    cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array
+                    recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this
 
-                    offArray = np.zeros(shape=(recPoints.shape[0], 2), dtype=np.float32)
-                    offArray = recPoints - src                       # define the offset array
+                    size = recPoints.shape[0]
+                    offArray = np.zeros(shape=(size, 3), dtype=np.float32)      # allocate the offset array according to rec array
+                    offArray = recPoints - src                                  # fill the offset array with  (x,y,z) values
 
                     l = self.offset.rctOffsets.left()
                     r = self.offset.rctOffsets.right()
@@ -2189,38 +1313,51 @@ class RollSurvey(pg.GraphicsObject):
                     if np.count_nonzero(I) == 0:
                         continue
 
-                    # filter the off-array
-                    offArray = offArray[I, :]
-                    # filter the cmp-array too, as we still need this
-                    cmpPoints = cmpPoints[I, :]
-                    # filter the rec-array too, as we still need this
-                    recPoints = recPoints[I, :]
+                    offArray = offArray[I, :]                                   # filter the off-array
+                    cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array too, as we still need this
+                    recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this
 
-                    hypArray = np.zeros(shape=(recPoints.shape[0], 1), dtype=np.float32)
-                    # calculate per row
-                    hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
+                    size = recPoints.shape[0]
+                    hypArray = np.zeros(shape=(size, 1), dtype=np.float32)      # allocate the radius array according to rec array
+                    hypArray = np.hypot(offArray[:, 0], offArray[:, 1])         # calculate radial offset per row
+                    aziArray = np.arctan2(offArray[:, 0], offArray[:, 1])       # calculate offset angles
+                    aziArray = np.rad2deg(aziArray)                             # get angles in degrees instead of radians
 
-                    r1 = self.offset.radOffsets.x()                             # minimum radius
-                    r2 = self.offset.radOffsets.y()                             # maximum radius
+                    r1 = self.offset.radOffsets.x()                             # r1 = minimum radius
+                    r2 = self.offset.radOffsets.y()                             # r2 = maximum radius
                     if r2 > 0:                                                  # we need to apply the radial offset selection criteria
                         I = (hypArray[:] >= r1) & (hypArray[:] <= r2)
                         if np.count_nonzero(I) == 0:
                             continue                                            # continue with next recSeed
 
                         hypArray = hypArray[I]                                  # filter the radial offset-array
+                        aziArray = aziArray[I]                                  # filter the offset-angle array
                         offArray = offArray[I, :]                               # filter the off-array too, as we still need this
                         cmpPoints = cmpPoints[I, :]                             # filter the cmp-array too, as we still need this
                         recPoints = recPoints[I, :]                             # filter the rec-array too, as we still need this
 
+                    # now work on the TWT aspect of the src, cmp & rec positions
+                    if self.binning.method == BinningType.cmp:
+                        upDnArray = recPoints - src                             # straigth rays; total length of both legs
+                        totalTime = np.linalg.norm(upDnArray, axis=1)           # get length of the rays
+                    else:
+                        downArray = cmpPoints - src                             # 1st leg of the rays
+                        up__Array = cmpPoints - recPoints                       # 2nd leg of the rays
+                        downTime = np.linalg.norm(downArray, axis=1)            # get length of the 1st leg
+                        up__Time = np.linalg.norm(up__Array, axis=1)            # get length of the 2nd leg
+                        totalTime = downTime + up__Time                         # total length of both legs
+
+                    totalTime *= self.binning.slowness                          # convert distance into travel time
+
                     #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
                     for count, cmp in enumerate(cmpPoints):                     # process all traces
                         try:                                                    # protect against potential index errors
-                            cmpX = cmp[0]
+                            cmpX = cmp[0]                                       # decompose (x, y, z) cmp into x, y components
                             cmpY = cmp[1]
 
                             x, y = self.binTransform.map(cmpX, cmpY)            # get local position in bin area
-                            nx = int(x)
-                            ny = int(y)
+                            nx = int(x)                                         # truncate into integer indices
+                            ny = int(y)                                         # truncate into integer indices
 
                             if fullAnalysis:
                                 fold = self.output.binOutput[nx, ny]
@@ -2238,7 +1375,10 @@ class RollSurvey(pg.GraphicsObject):
                                     self.output.anaOutput[nx][ny][fold][6] = recPoints[count, 1]
                                     self.output.anaOutput[nx][ny][fold][7] = cmpPoints[count, 0]
                                     self.output.anaOutput[nx][ny][fold][8] = cmpPoints[count, 1]
-                                    # self.output.anaOutput[nx][ny][fold][9]
+                                    self.output.anaOutput[nx][ny][fold][9] = totalTime[count]
+                                    self.output.anaOutput[nx][ny][fold][10] = hypArray[count]
+                                    self.output.anaOutput[nx][ny][fold][11] = aziArray[count]
+                                    self.output.anaOutput[nx][ny][fold][12] = 1
 
                             # all selection criteria have been fullfilled; use the trace
                             self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
@@ -2936,4 +2076,4 @@ class RollSurvey(pg.GraphicsObject):
                         painter.drawPicture(p, seed.pointPicture)               # paint seed picture
 
     def generateSvg(self, nodes):
-        pass                                                                    # for the time being don't do anything; not implemented; keep PyLint happy
+        pass                                                                    # for the time being don't do anything; just to keep PyLint happy

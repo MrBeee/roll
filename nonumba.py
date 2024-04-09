@@ -1,6 +1,7 @@
 import functools
 
 # See: https://stackoverflow.com/questions/3888158
+# use numba decorators when numba package is not available
 
 
 def optional_arg_decorator(fn):

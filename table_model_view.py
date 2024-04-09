@@ -10,8 +10,8 @@ from qgis.PyQt.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QM
 # TableModel requires a 2D array to work from
 # this means flattening the 4D analysis array from 4D to 2D, before it can be used:
 
-# self.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=(nx, ny, fold, 10))
-# self.D2_Output = self.anaOutput.reshape(nx * ny * fold, 10)
+# self.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=(nx, ny, fold, 13))
+# self.D2_Output = self.anaOutput.reshape(nx * ny * fold, 13)
 
 # When using a Treeview approach, flattening won't be required; now we will have:
 # index = model.index(row, column, parent) for each record
@@ -39,8 +39,9 @@ class AnaTableModel(QAbstractTableModel):
     def __init__(self, data):
         super().__init__()
         self._data = None
-        self._header = ['stake', 'line', 'fold', 'src-x', 'src-y', 'rec-x', 'rec-y', 'cmp-x', 'cmp-y', 'TWT']
-        self._format = '%d', '%d', '%d', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f'
+        self._header = ['stake', 'line', 'fold', 'src-x', 'src-y', 'rec-x', 'rec-y', 'cmp-x', 'cmp-y', 'TWT [ms]', 'offset', 'azimuth', 'unique']
+        self._format = '%d', '%d', '%d', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%d'
+
         self.setData(data)
 
     def data(self, index, role):
@@ -48,8 +49,9 @@ class AnaTableModel(QAbstractTableModel):
             if self._data is not None:
                 if index.column() < 3:                                          # Show int values for first three columns
                     value = str(int(self._data[index.row(), index.column()]))
-                else:                                                           # show floats for the remainder
-                    value = str(self._data[index.row(), index.column()])
+                else:
+                    value = f'{float(self._data[index.row(), index.column()]):,.2f}'                                                                              # show floats for the remainder
+                    # value = str(self._data[index.row(), index.column()])
             else:
                 value = '  n/a  '
             return value

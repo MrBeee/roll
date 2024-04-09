@@ -1741,10 +1741,10 @@ class MyWellParameter(MyGroupParameter):
 
         d = opts.get('decimals', 7)
 
-        settings = QSettings(config.organization, config.application)
-        directory = settings.value('settings/workingDirectory', '')             # start folder for well selection
+        self.settings = QSettings(config.organization, config.application)
+        directory = self.settings.value('settings/importDirectory', '')         # start folder for well selection
 
-        nameFilter = 'Deviation files [md,inc,azi] (*.wws);;OpendTect files [n,e,z,md] (*.well);;All files (*.*)'
+        nameFilter = 'Well files (*.wws *.well);;Deviation files [md,inc,azi] (*.wws);;OpendTect files [n,e,z,md] (*.well);;All files (*.*)'
         tip = 'SRD = Seismic Reference Datum; the horizontal surface at which TWT is assumed to be zero'
         fileName = self.well.name if self.well.name is not None and os.path.exists(self.well.name) else None
 
@@ -1778,6 +1778,10 @@ class MyWellParameter(MyGroupParameter):
 
     def changedF(self):
         self.well.name = self.parF.value()                                      # file name has changed
+
+        if self.well.name is not None and os.path.isfile(self.well.name):       # do we have a valid file name and not 'None'
+            importDirectory = os.path.dirname(self.well.name)                   # retrieve the directory name from the well file
+            self.settings.setValue('settings/importDirectory', importDirectory)   # update the settings accordingly
 
         success = self.well.readHeader(config.surveyCrs, config.glbTransform)
         if not success:
