@@ -764,9 +764,10 @@ class RollSurvey(pg.GraphicsObject):
         if self.nShotPoints == -1:                                              # calcNoShotPoints has been skipped ?!?
             raise ValueError('nr shot points must be known at this point')
 
+        self.binning.slowness = (1000.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
+
         # Now do the binning
         if fullAnalysis:
-            self.binning.slowness = (1000.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
 
             success = self.binFromGeometry4(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
@@ -1081,11 +1082,12 @@ class RollSurvey(pg.GraphicsObject):
     def setupBinFromTemplates(self, fullAnalysis) -> bool:
         """this routine is used for working from templates only"""
 
+        self.binning.slowness = (1000.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
+
         if self.nShotPoints == -1:                                              # calcNoShotPoints has been skipped ?!?
             raise ValueError('nr shot points must be known at this point')
 
         if fullAnalysis:
-            self.binning.slowness = (1000.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
             success = self.binFromTemplates(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
             return success
@@ -1181,6 +1183,7 @@ class RollSurvey(pg.GraphicsObject):
             D2_Output = self.output.anaOutput.reshape(shape2D)
 
             self.message.emit('postprocessing unique fold - find unique values')
+            self.progress.emit(11)
             testUnique = D2_Output[:, [0, 1, 10, 11]]     # extract stake, line, offset and azimuth
             _, indices = np.unique(testUnique, return_index=True, axis=0)
 
@@ -1189,6 +1192,8 @@ class RollSurvey(pg.GraphicsObject):
                 D2_Output[index][12] = -1.0
 
             self.message.emit('postprocessing unique fold - save unique values')
+            self.progress.emit(89)
+
             self.output.anaOutput = D2_Output.reshape(shape4D)                  # reshape to 4D and copy data back to self.output.anaOutput
 
             # now we need to recalculate fold, min & max offset, after pruning the original data
@@ -1234,40 +1239,50 @@ class RollSurvey(pg.GraphicsObject):
 
         # max fold is straightforward
         self.message.emit('postprocessing - calc min/max offsets 1/9')
+        self.progress.emit(10)
         self.output.maximumFold = self.output.binOutput.max()
 
         # min fold is straightforward
         self.message.emit('postprocessing - calc min/max offsets 2/9')
+        self.progress.emit(20)
         self.output.minimumFold = self.output.binOutput.min()
 
         # calc min offset against max (inf) values
         self.message.emit('postprocessing - calc min/max offsets 3/9')
+        self.progress.emit(30)
         self.output.minMinOffset = self.output.minOffset.min()
 
         # replace (inf) by (-inf) for max values
         self.message.emit('postprocessing - calc min/max offsets 4/9')
+        self.progress.emit(40)
         self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF
 
         # calc max values against (-inf) minimum
         self.message.emit('postprocessing - calc min/max offsets 5/9')
+        self.progress.emit(50)
         self.output.maxMinOffset = self.output.minOffset.max()
 
         # calc max offset against max (-inf) values
         self.message.emit('postprocessing - calc min/max offsets 6/9')
+        self.progress.emit(60)
         self.output.maxMaxOffset = self.output.maxOffset.max()
 
         # replace (-inf) by (inf) for min values
         self.message.emit('postprocessing - calc min/max offsets 7/9')
+        self.progress.emit(70)
         self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf
 
         # calc min offset against min (inf) values
         self.message.emit('postprocessing - calc min/max offsets 8/9')
+        self.progress.emit(80)
         self.output.minMaxOffset = self.output.maxOffset.min()
 
         # replace (inf) by (-inf) for max values
         self.message.emit('postprocessing - calc min/max offsets 9/9')
+        self.progress.emit(90)
         self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF
 
+        self.progress.emit(100)
         return True
 
     @jit  # pylint: disable=e0602 # undefined variable in case of using nonumba

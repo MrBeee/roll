@@ -62,21 +62,35 @@ import pyqtgraph as pg
 from console import console
 from numpy.compat import asstr
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import (QDateTime, QFile, QFileInfo, QIODevice,
-                              QItemSelection, QItemSelectionModel, QModelIndex,
-                              QPoint, QSettings, Qt, QTextStream, QThread)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
-                             QTextCursor, QTextOption, QTransform)
-from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
-                                      QPrintPreviewDialog)
-from qgis.PyQt.QtWidgets import (QAction, QApplication, QButtonGroup,
-                                 QCheckBox, QDialogButtonBox, QDockWidget,
-                                 QFileDialog, QFrame, QGraphicsEllipseItem,
-                                 QGridLayout, QGroupBox, QHBoxLayout,
-                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
-                                 QPlainTextEdit, QProgressBar, QPushButton,
-                                 QRadioButton, QSplitter, QTabWidget,
-                                 QVBoxLayout, QWidget)
+from qgis.PyQt.QtCore import QDateTime, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
+from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
+from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QApplication,
+    QButtonGroup,
+    QCheckBox,
+    QDialogButtonBox,
+    QDockWidget,
+    QFileDialog,
+    QFrame,
+    QGraphicsEllipseItem,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QRadioButton,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
@@ -84,26 +98,35 @@ from .find import Find
 from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
-                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
-                             identifyQgisPointLayer, readQgisPointLayer,
-                             updateQgisPointLayer)
+from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
 from .roll_binning import BinningType
 from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
-                            deletePntDuplicates, deletePntOrphans,
-                            deleteRelDuplicates, deleteRelOrphans,
-                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
-                            findRecOrphans, findSrcOrphans, getRecGeometry,
-                            getSrcGeometry, markUniqueRPSrecords,
-                            markUniqueSPSrecords, markUniqueXPSrecords,
-                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
-                            relType2)
-from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
-                               TableView, XpsTableModel)
-from .worker_threads import (BinFromGeometryWorker, BinningWorker,
-                             GeometryWorker)
+from .sps_io_and_qc import (
+    calcMaxXPStraces,
+    calculateLineStakeTransform,
+    deletePntDuplicates,
+    deletePntOrphans,
+    deleteRelDuplicates,
+    deleteRelOrphans,
+    fileExportAsR01,
+    fileExportAsS01,
+    fileExportAsX01,
+    findRecOrphans,
+    findSrcOrphans,
+    getRecGeometry,
+    getSrcGeometry,
+    markUniqueRPSrecords,
+    markUniqueSPSrecords,
+    markUniqueXPSrecords,
+    pntType1,
+    readRPSFiles,
+    readSPSFiles,
+    readXPSFiles,
+    relType2,
+)
+from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
+from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -3237,8 +3260,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.progressLabel.setText('Bin from Templates - basic analysis')
 
         self.statusbar.addWidget(self.progressBar)
-        self.statusbar.addWidget(self.progressLabel)
         self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
+        self.statusbar.addWidget(self.progressLabel)
         self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
 
         # enable/disable menu items
@@ -3291,8 +3314,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.progressLabel.setText('Bin from Geometry - basic analysis')
 
         self.statusbar.addWidget(self.progressBar)
-        self.statusbar.addWidget(self.progressLabel)
         self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
+        self.statusbar.addWidget(self.progressLabel)
         self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
 
         # enable/disable menu items
@@ -3348,8 +3371,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.progressLabel.setText('Bin from imported SPS - basic analysis')
 
         self.statusbar.addWidget(self.progressBar)
-        self.statusbar.addWidget(self.progressLabel)
         self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
+        self.statusbar.addWidget(self.progressLabel)
         self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
 
         # enable/disable menu items
@@ -3395,8 +3418,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.progressLabel.setText('Create Geometry from Templates')
 
         self.statusbar.addWidget(self.progressBar)
-        self.statusbar.addWidget(self.progressLabel)
         self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
+        self.statusbar.addWidget(self.progressLabel)
         self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
 
         # enable/disable menu items
