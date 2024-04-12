@@ -297,12 +297,9 @@ def markUniqueRPSrecords(rpsImport, sort=True) -> int:
 
     rpsUnique, rpsIndices = np.unique(rpsImport, return_index=True)
 
+    # note, this for-loop is needed to set 'Uniq' value at the applicable indices
     for index in np.nditer(rpsIndices):
         rpsImport[index]['Uniq'] = 1
-
-    # note, probably the above for loop can be avoided by using type conversion.
-    # the following example shows a bool turned into an int turned into a float:
-    # data[0::,2]=data[0::,2].astype(int).astype(float)
 
     if sort:
         rpsImport.sort(order=['Index', 'Line', 'Point'])
@@ -317,12 +314,9 @@ def markUniqueSPSrecords(spsImport, sort=True) -> int:
 
     spsUnique, spsIndices = np.unique(spsImport, return_index=True)
 
+    # note, this for-loop is needed to set 'Uniq' value at the applicable indices
     for index in np.nditer(spsIndices):
         spsImport[index]['Uniq'] = 1
-
-    # note, probably the above for loop can be avoided by using type conversion.
-    # the following example shows a bool turned into an int turned into a float:
-    # data[0::,2]=data[0::,2].astype(int).astype(float)
 
     if sort:
         spsImport.sort(order=['Index', 'Line', 'Point'])
@@ -337,12 +331,9 @@ def markUniqueXPSrecords(xpsImport, sort=True) -> int:
 
     xpsUnique, xpsIndices = np.unique(xpsImport, return_index=True)
 
+    # note, this for-loop is needed to set 'Uniq' value at the applicable indices
     for index in np.nditer(xpsIndices):
         xpsImport[index]['Uniq'] = 1
-
-    # note, probably the above for loop can be avoided by using type conversion.
-    # the following example shows a bool turned into an int turned into a float:
-    # data[0::,2]=data[0::,2].astype(int).astype(float)
 
     if sort:
         xpsImport.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])

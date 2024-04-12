@@ -92,7 +92,7 @@ class BinFromGeometryWorker(QObject):
             # calculate fold map and min/max offsets
             success = self.survey.setupBinFromGeometry(self.extended)
         except BaseException as e:
-            self.survey.threadError = str(e)
+            self.survey.errorText = str(e)
             success = False
 
         self.finished.emit(success)
@@ -130,7 +130,7 @@ class BinningWorker(QObject):
 
             success = self.survey.setupBinFromTemplates(self.extended)          # calculate fold map and min/max offsets
         except BaseException as e:
-            self.survey.threadError = str(e)
+            self.survey.errorText = str(e)
             success = False
 
         self.finished.emit(success)
@@ -160,7 +160,7 @@ class GeometryWorker(QObject):
 
             success = self.survey.setupGeometryFromTemplates()                  # calculate src, rel, rec geometry arrays
         except BaseException as e:
-            self.survey.threadError = str(e)
+            self.survey.errorText = str(e)
             success = False
 
         self.finished.emit(success)

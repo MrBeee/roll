@@ -11,10 +11,9 @@ class RollUnique:
     def __init__(self) -> None:
         self.apply = False
         self.dOffset = 200.0
-        self.dAzimuth = 180.0
+        self.dAzimuth = 5.0
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
-
         uniqueElem = doc.createElement('unique')
         uniqueElem.setAttribute('apply', str(self.apply))
         uniqueElem.setAttribute('deltaoff', str(self.dOffset))

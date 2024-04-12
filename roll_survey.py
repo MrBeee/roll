@@ -3,19 +3,18 @@ This module provides the main classes used in Roll
 """
 import math
 import os
-from collections import defaultdict
 from enum import Enum
 
 import numpy as np
 import pyqtgraph as pg
 from qgis.core import QgsCoordinateReferenceSystem
-from qgis.PyQt.QtCore import QMarginsF, QPointF, QRectF, QThread, pyqtSignal
+from qgis.PyQt.QtCore import QMarginsF, QRectF, QThread, pyqtSignal
 from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QTransform, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
-from .functions import clipLineF, containsPoint2D, containsPoint3D
+from .functions import clipLineF, containsPoint3D
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -130,6 +129,7 @@ class SeedType(Enum):
 
 class RollSurvey(pg.GraphicsObject):
     progress = pyqtSignal(int)                                                  # signal to keep track of worker thread progress
+    message = pyqtSignal(str)                                                   # signal to update statusbar progresss text
 
     # See: https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py
     # This example gives insight in the mouse drag event
@@ -425,7 +425,7 @@ class RollSurvey(pg.GraphicsObject):
                         raise NotImplementedError('More than three roll steps currently not allowed.')
 
         except StopIteration:
-            self.errorText = 'geometry creation canceled by user'
+            self.errorText = 'geometry creation cancelled by user'
             return False
         except BaseException as e:
             self.errorText = str(e)
@@ -1026,19 +1026,19 @@ class RollSurvey(pg.GraphicsObject):
 
                                 # line & stake nrs for reporting in extended np-array
                                 stkX, stkY = self.st2Transform.map(cmpX, cmpY)
-                                self.output.anaOutput[nx][ny][fold][0] = int(stkX)
-                                self.output.anaOutput[nx][ny][fold][1] = int(stkY)
-                                self.output.anaOutput[nx][ny][fold][2] = fold + 1       # to make fold run from 1 to N
-                                self.output.anaOutput[nx][ny][fold][3] = src[0]
-                                self.output.anaOutput[nx][ny][fold][4] = src[1]
-                                self.output.anaOutput[nx][ny][fold][5] = recPoints[count, 0]
-                                self.output.anaOutput[nx][ny][fold][6] = recPoints[count, 1]
-                                self.output.anaOutput[nx][ny][fold][7] = cmpPoints[count, 0]
-                                self.output.anaOutput[nx][ny][fold][8] = cmpPoints[count, 1]
-                                self.output.anaOutput[nx][ny][fold][9] = totalTime[count]
-                                self.output.anaOutput[nx][ny][fold][10] = hypArray[count]
-                                self.output.anaOutput[nx][ny][fold][11] = aziArray[count]
-                                self.output.anaOutput[nx][ny][fold][12] = 1
+                                self.output.anaOutput[nx, ny, fold, 0] = int(stkX)
+                                self.output.anaOutput[nx, ny, fold, 1] = int(stkY)
+                                self.output.anaOutput[nx, ny, fold, 2] = fold + 1       # to make fold run from 1 to N
+                                self.output.anaOutput[nx, ny, fold, 3] = src[0]
+                                self.output.anaOutput[nx, ny, fold, 4] = src[1]
+                                self.output.anaOutput[nx, ny, fold, 5] = recPoints[count, 0]
+                                self.output.anaOutput[nx, ny, fold, 6] = recPoints[count, 1]
+                                self.output.anaOutput[nx, ny, fold, 7] = cmpPoints[count, 0]
+                                self.output.anaOutput[nx, ny, fold, 8] = cmpPoints[count, 1]
+                                self.output.anaOutput[nx, ny, fold, 9] = totalTime[count]
+                                self.output.anaOutput[nx, ny, fold, 10] = hypArray[count]
+                                self.output.anaOutput[nx, ny, fold, 11] = aziArray[count]
+                                self.output.anaOutput[nx, ny, fold, 12] = 1
 
                         # all selection criteria have been fullfilled; use the trace
                         self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
@@ -1050,7 +1050,7 @@ class RollSurvey(pg.GraphicsObject):
                         continue
 
         except StopIteration:
-            self.errorText = 'binning from geometry canceled by user'
+            self.errorText = 'binning from geometry cancelled by user'
             return False
         except BaseException as e:
             self.errorText = str(e)
@@ -1144,24 +1144,26 @@ class RollSurvey(pg.GraphicsObject):
                         raise NotImplementedError('More than three roll steps currently not allowed.')
 
         except StopIteration:
-            self.errorText = 'binning from templates canceled by user'
+            self.errorText = 'binning from templates cancelled by user'
             return False
         except BaseException as e:
             self.errorText = str(e)
             return False
 
         # implement code to handle unique offsets
-        if self.unique.apply:                                               # slot offsets and azimuths and prune data
-            slottedOffset = self.output.anaOutput[:, :, :, 10]              # grab every 10th element of 4th dimension
-            slot = 200.0
+        if self.unique.apply:                                                   # slot offsets and azimuths and prune data
+            self.message.emit('postprocessing unique fold - offsets')
+            slottedOffset = self.output.anaOutput[:, :, :, 10]                  # grab every 10th element of 4th dimension (=offset)
+            slot = self.unique.dOffset
             scalar = 1.0 / slot
             slottedOffset = slottedOffset * scalar
             slottedOffset = np.round(slottedOffset)
             slottedOffset = slottedOffset * slot
             self.output.anaOutput[:, :, :, 10] = slottedOffset
 
-            slottedAzimuth = self.output.anaOutput[:, :, :, 11]              # grab every 10th element of 4th dimension
-            slot = 10.0
+            self.message.emit('postprocessing unique fold - azimuths')
+            slottedAzimuth = self.output.anaOutput[:, :, :, 11]                 # grab every 11th element of 4th dimension (=azimuths)
+            slot = self.unique.dAzimuth
             scalar = 1.0 / slot
             slottedAzimuth = slottedAzimuth * scalar
             slottedAzimuth = np.round(slottedAzimuth)
@@ -1171,29 +1173,99 @@ class RollSurvey(pg.GraphicsObject):
             # Now we need to find unique rows in terms of line, stake, offset and azimuth values
             # See:  https://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
             # See:  https://www.geeksforgeeks.org/find-unique-rows-in-a-numpy-array/
+            # See:  https://www.sharpsightlabs.com/blog/numpy-unique/
+            # See:  https://www.sharpsightlabs.com/blog/numpy-axes-explained/
 
-            # testUnique = self.output.anaOutput[:, :, :, [0, 1, 10, 11]]     # extract stake, line, offset and azimuth
-            # unique, indices = np.unique(testUnique, return_index=True)
-            # self.output.anaOutput[:, :, :, 12] = indices.astype(int)        # write unique offsets back into analysis array
+            shape4D = self.output.anaOutput.shape
+            shape2D = (shape4D[0] * shape4D[1] * shape4D[2], shape4D[3])
+            D2_Output = self.output.anaOutput.reshape(shape2D)
 
-        # min/max fold is straightforward
+            self.message.emit('postprocessing unique fold - find unique values')
+            testUnique = D2_Output[:, [0, 1, 10, 11]]     # extract stake, line, offset and azimuth
+            _, indices = np.unique(testUnique, return_index=True, axis=0)
+
+            # note, this for-loop is needed to set 'Uniq' value at the applicable indices
+            for index in indices:
+                D2_Output[index][12] = -1.0
+
+            self.message.emit('postprocessing unique fold - save unique values')
+            self.output.anaOutput = D2_Output.reshape(shape4D)                  # reshape to 4D and copy data back to self.output.anaOutput
+
+            # now we need to recalculate fold, min & max offset, after pruning the original data
+            # See: https://www.geeksforgeeks.org/python-slicing-multi-dimensional-arrays/
+
+            rows = shape4D[0]                                                   # get dimensions from analysis array itself
+            cols = shape4D[1]
+
+            self.message.emit('postprocessing unique fold - sorting traces ')
+
+            self.nShotPoint = 0                                                 # reuse variables to implement progress in statusbar
+            self.nShotPoints = rows * cols                                      # calc nr of applicable points
+            self.threadProgress = 0                                             # reset counter
+            for row in range(rows):
+                for col in range(cols):
+
+                    # begin thread progress code
+                    if QThread.currentThread().isInterruptionRequested():       # maybe stop at each shot...
+                        raise StopIteration
+
+                    self.nShotPoint += 1
+                    threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
+                    if threadProgress > self.threadProgress:
+                        self.threadProgress = threadProgress
+                        self.progress.emit(threadProgress + 1)
+                    # end thread progress code
+
+                    slice2D = self.output.anaOutput[row, col, :, :]             # get all traces belonging to one bin
+                    sortedSlice = slice2D[slice2D[:, -1].argsort()]             # sort these traces on last column (uique -1 flag)
+                    self.output.anaOutput[row, col, :, :] = sortedSlice         # put sorted traces back into analysis array
+
+                    uniqueFld = np.count_nonzero(slice2D[:, -1], axis=0)        # get unique fold count
+                    if uniqueFld > 0:
+                        minOffset = np.min(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
+                        maxOffset = np.max(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
+                    else:
+                        minOffset = 0.0                                         # no traces available
+                        maxOffset = 0.0                                         # no traces available
+
+                    self.output.binOutput[row, col] = uniqueFld                 # adjust fold value table
+                    self.output.minOffset[row, col] = minOffset                 # adjust min offset table
+                    self.output.maxOffset[row, col] = maxOffset                 # adjust max offset table
+
+        # max fold is straightforward
+        self.message.emit('postprocessing - calc min/max offsets 1/9')
         self.output.maximumFold = self.output.binOutput.max()
+
+        # min fold is straightforward
+        self.message.emit('postprocessing - calc min/max offsets 2/9')
         self.output.minimumFold = self.output.binOutput.min()
 
         # calc min offset against max (inf) values
+        self.message.emit('postprocessing - calc min/max offsets 3/9')
         self.output.minMinOffset = self.output.minOffset.min()
+
         # replace (inf) by (-inf) for max values
+        self.message.emit('postprocessing - calc min/max offsets 4/9')
         self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF
+
         # calc max values against (-inf) minimum
+        self.message.emit('postprocessing - calc min/max offsets 5/9')
         self.output.maxMinOffset = self.output.minOffset.max()
 
         # calc max offset against max (-inf) values
+        self.message.emit('postprocessing - calc min/max offsets 6/9')
         self.output.maxMaxOffset = self.output.maxOffset.max()
+
         # replace (-inf) by (inf) for min values
+        self.message.emit('postprocessing - calc min/max offsets 7/9')
         self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf
+
         # calc min offset against min (inf) values
+        self.message.emit('postprocessing - calc min/max offsets 8/9')
         self.output.minMaxOffset = self.output.maxOffset.min()
+
         # replace (inf) by (-inf) for max values
+        self.message.emit('postprocessing - calc min/max offsets 9/9')
         self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF
 
         return True
@@ -1365,20 +1437,25 @@ class RollSurvey(pg.GraphicsObject):
                                     # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(), recLoc.x(), recLoc.y(), cmpLoc.x(), cmpLoc.y(), 0, 0, 0, 0)
 
                                     # line & stake nrs for reporting in extended np-array
+
+                                    # from numpy documentation: note that x[0, 2] == x[0][2] though the second case is more inefficient
+                                    # as a new temporary array is created after the first index that is subsequently indexed by 2.
+                                    # for this reason replaced [a][b][c][d] indices by [a, b, c, d]
+
                                     stkX, stkY = self.st2Transform.map(cmpX, cmpY)
-                                    self.output.anaOutput[nx][ny][fold][0] = int(stkX)
-                                    self.output.anaOutput[nx][ny][fold][1] = int(stkY)
-                                    self.output.anaOutput[nx][ny][fold][2] = fold + 1           # to make fold run from 1 to N
-                                    self.output.anaOutput[nx][ny][fold][3] = src[0]
-                                    self.output.anaOutput[nx][ny][fold][4] = src[1]
-                                    self.output.anaOutput[nx][ny][fold][5] = recPoints[count, 0]
-                                    self.output.anaOutput[nx][ny][fold][6] = recPoints[count, 1]
-                                    self.output.anaOutput[nx][ny][fold][7] = cmpPoints[count, 0]
-                                    self.output.anaOutput[nx][ny][fold][8] = cmpPoints[count, 1]
-                                    self.output.anaOutput[nx][ny][fold][9] = totalTime[count]
-                                    self.output.anaOutput[nx][ny][fold][10] = hypArray[count]
-                                    self.output.anaOutput[nx][ny][fold][11] = aziArray[count]
-                                    self.output.anaOutput[nx][ny][fold][12] = 1
+                                    self.output.anaOutput[nx, ny, fold, 0] = int(stkX)
+                                    self.output.anaOutput[nx, ny, fold, 1] = int(stkY)
+                                    self.output.anaOutput[nx, ny, fold, 2] = fold + 1           # to make fold run from 1 to N
+                                    self.output.anaOutput[nx, ny, fold, 3] = src[0]
+                                    self.output.anaOutput[nx, ny, fold, 4] = src[1]
+                                    self.output.anaOutput[nx, ny, fold, 5] = recPoints[count, 0]
+                                    self.output.anaOutput[nx, ny, fold, 6] = recPoints[count, 1]
+                                    self.output.anaOutput[nx, ny, fold, 7] = cmpPoints[count, 0]
+                                    self.output.anaOutput[nx, ny, fold, 8] = cmpPoints[count, 1]
+                                    self.output.anaOutput[nx, ny, fold, 9] = totalTime[count]
+                                    self.output.anaOutput[nx, ny, fold, 10] = hypArray[count]
+                                    self.output.anaOutput[nx, ny, fold, 11] = aziArray[count]
+                                    # self.output.anaOutput[nx, ny, fold, 12] = -1
 
                             # all selection criteria have been fullfilled; use the trace
                             self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1

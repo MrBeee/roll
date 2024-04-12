@@ -49,6 +49,8 @@ class AnaTableModel(QAbstractTableModel):
             if self._data is not None:
                 if index.column() < 3:                                          # Show int values for first three columns
                     value = str(int(self._data[index.row(), index.column()]))
+                elif index.column() == 12:                                      # Show True / False for unique values
+                    value = 'True' if self._data[index.row(), index.column()] == -1.0 else ''
                 else:
                     value = f'{float(self._data[index.row(), index.column()]):,.2f}'                                                                              # show floats for the remainder
                     # value = str(self._data[index.row(), index.column()])
@@ -72,8 +74,12 @@ class AnaTableModel(QAbstractTableModel):
         return self._format
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
-            return self._header[section]
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return self._header[section]
+            else:
+                return f'{section + 1:,}'
+
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
     def setHeaderData(self, section, orientation, data, role=Qt.EditRole):
@@ -296,13 +302,13 @@ class TableView(QTableView):
             rowMax = indices[count - 1].row()                                   # subtract one as count is exclusive
 
             data = self.model().getData()                                       # get numpy data
-            copied = data[rowMin : rowMax + 1]                                    # select records; add 1, as the last nr. is exclusive
+            copied = data[rowMin : rowMax + 1]                                  # select records; add 1, as the last nr. is exclusive
 
             memFile = io.BytesIO()                                              # create tempory file in memory
             delimiter = '\t'                                                    # use tab separator, easier for Excel than commas
             fmt = self.model().getFormat()                                      # the format string resides with the model
 
-            np.savetxt(memFile, copied, delimiter=delimiter, fmt=fmt)          # save file as tab seperated ascii data
+            np.savetxt(memFile, copied, delimiter=delimiter, fmt=fmt)           # save file as tab seperated ascii data
             outStr = memFile.getvalue().decode('UTF-8')                         # convert bytes to unicode string
             QApplication.clipboard().setText(outStr)                            # copy the whole lot to the cipboard
 
@@ -499,13 +505,17 @@ class RpsTableModel(QAbstractTableModel):
                 return QVariant()
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
-            if section == 2:
-                return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
-            elif section != 3:
-                return self._header[section] + f'\n[{ self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                if section == 2:
+                    return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
+                elif section != 3:
+                    return self._header[section] + f'\n[{ self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
+                else:
+                    return self._header[section] + '\n« min »\n« max »'
             else:
-                return self._header[section] + '\n« min »\n« max »'
+                return f'{section + 1:,}'
+
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
     def getData(self):
@@ -671,13 +681,17 @@ class SpsTableModel(QAbstractTableModel):
                 return QVariant()
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
-            if section == 2:
-                return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
-            elif section != 3:
-                return self._header[section] + f'\n[{ self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                if section == 2:
+                    return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
+                elif section != 3:
+                    return self._header[section] + f'\n[{ self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
+                else:
+                    return self._header[section] + '\n« min »\n« max »'
             else:
-                return self._header[section] + '\n« min »\n« max »'
+                return f'{section + 1:,}'
+
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
     def getData(self):
@@ -874,16 +888,16 @@ class XpsTableModel(QAbstractTableModel):
         self._sort = sort
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if orientation == Qt.Vertical:                                          # leave vertical header alone
-            return QAbstractTableModel.headerData(self, section, orientation, role)
-
         if role == Qt.DisplayRole:
-            if section in (0, 3, 7):
-                return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
+            if orientation == Qt.Horizontal:
+                if section in (0, 3, 7):
+                    return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
+                else:
+                    return self._header[section] + f'\n[{ self._minMax[0][section]}]:\n[{self._minMax[1][section]}]'
             else:
-                return self._header[section] + f'\n[{ self._minMax[0][section]}]:\n[{self._minMax[1][section]}]'
+                return f'{section + 1:,}'
 
-        elif role == Qt.BackgroundRole and self.getSort() > -1:                 # highlight sorting column(s)
+        if role == Qt.BackgroundRole and self.getSort() > -1:                   # highlight sorting column(s)
             if self.getSort() < 3 and section < 3:                              # See: https://www.w3.org/TR/SVG11/types.html#ColorKeywords
                 return QBrush(QColor(250, 250, 210))                            # lightgoldenrodyellow
             elif self.getSort() == 3 and section == 3:

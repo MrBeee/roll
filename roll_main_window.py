@@ -62,35 +62,21 @@ import pyqtgraph as pg
 from console import console
 from numpy.compat import asstr
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QDateTime, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
-from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
-from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
-from qgis.PyQt.QtWidgets import (
-    QAction,
-    QApplication,
-    QButtonGroup,
-    QCheckBox,
-    QDialogButtonBox,
-    QDockWidget,
-    QFileDialog,
-    QFrame,
-    QGraphicsEllipseItem,
-    QGridLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QHeaderView,
-    QLabel,
-    QMainWindow,
-    QMessageBox,
-    QPlainTextEdit,
-    QProgressBar,
-    QPushButton,
-    QRadioButton,
-    QSplitter,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
-)
+from qgis.PyQt.QtCore import (QDateTime, QFile, QFileInfo, QIODevice,
+                              QItemSelection, QItemSelectionModel, QModelIndex,
+                              QPoint, QSettings, Qt, QTextStream, QThread)
+from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
+                             QTextCursor, QTextOption, QTransform)
+from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
+                                      QPrintPreviewDialog)
+from qgis.PyQt.QtWidgets import (QAction, QApplication, QButtonGroup,
+                                 QCheckBox, QDialogButtonBox, QDockWidget,
+                                 QFileDialog, QFrame, QGraphicsEllipseItem,
+                                 QGridLayout, QGroupBox, QHBoxLayout,
+                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
+                                 QPlainTextEdit, QProgressBar, QPushButton,
+                                 QRadioButton, QSplitter, QTabWidget,
+                                 QVBoxLayout, QWidget)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
@@ -98,35 +84,26 @@ from .find import Find
 from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
+from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
+                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
+                             identifyQgisPointLayer, readQgisPointLayer,
+                             updateQgisPointLayer)
 from .roll_binning import BinningType
 from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (
-    calcMaxXPStraces,
-    calculateLineStakeTransform,
-    deletePntDuplicates,
-    deletePntOrphans,
-    deleteRelDuplicates,
-    deleteRelOrphans,
-    fileExportAsR01,
-    fileExportAsS01,
-    fileExportAsX01,
-    findRecOrphans,
-    findSrcOrphans,
-    getRecGeometry,
-    getSrcGeometry,
-    markUniqueRPSrecords,
-    markUniqueSPSrecords,
-    markUniqueXPSrecords,
-    pntType1,
-    readRPSFiles,
-    readSPSFiles,
-    readXPSFiles,
-    relType2,
-)
-from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
-from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
+from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
+                            deletePntDuplicates, deletePntOrphans,
+                            deleteRelDuplicates, deleteRelOrphans,
+                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
+                            findRecOrphans, findSrcOrphans, getRecGeometry,
+                            getSrcGeometry, markUniqueRPSrecords,
+                            markUniqueSPSrecords, markUniqueXPSrecords,
+                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
+                            relType2)
+from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
+                               TableView, XpsTableModel)
+from .worker_threads import (BinFromGeometryWorker, BinningWorker,
+                             GeometryWorker)
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -242,8 +219,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.worker = None                                                      # 'moveToThread' object
         self.thread = None                                                      # corresponding worker thread
         self.startTime = None                                                   # thread start time
-        self.progressBar = None                                                 # progressbar in statusbar
-        self.progressLabel = None                                               # label next to progressbar
+
+        # statusbar widgets
+        self.posWidgetStatusbar = QLabel('(x, y): (0.00, 0.00)')                # mouse' position label, in bottom right corner
+        self.progressLabel = QLabel('doing a lot of stuff in the background')   # label next to progressbar indicating background process
+        self.progressBar = QProgressBar()                                       # progressbar in statusbar
+        self.progressBar.setMaximumWidth(500)                                   # to avoid 'jitter' when the mouse moves and posWidgetStatusbar changes width
+        height = self.posWidgetStatusbar.height()                               # needed to avoid statusbar 'growing' vertically by adding the progressbar
+        self.progressBar.setMaximumHeight(height)                               # to avoid ugly appearance on statusbar
 
         # binning analysis
         self.imageType = 0                                                      # 1 = fold map
@@ -651,7 +634,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.setCentralWidget(self.tabWidget)
 
         self.posWidgetStatusbar = QLabel('(x, y): (0.00, 0.00)')
-        self.statusbar.addPermanentWidget(self.posWidgetStatusbar, stretch=0)
+        self.statusbar.addPermanentWidget(self.posWidgetStatusbar, stretch=0)   # widget in bottomright corner of statusbar
 
         self.parseText(exampleSurveyXmlText())
         self.textEdit.setPlainText(exampleSurveyXmlText())
@@ -1347,17 +1330,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         fold = 0
         for i in range(0, twoFold, 2):
-            self.spiderSrcX[i] = self.anaOutput[nX][nY][fold][3]
-            self.spiderSrcX[i + 1] = self.anaOutput[nX][nY][fold][7]
+            self.spiderSrcX[i] = self.anaOutput[nX, nY, fold, 3]
+            self.spiderSrcX[i + 1] = self.anaOutput[nX, nY, fold, 7]
 
-            self.spiderSrcY[i] = self.anaOutput[nX][nY][fold][4]
-            self.spiderSrcY[i + 1] = self.anaOutput[nX][nY][fold][8]
+            self.spiderSrcY[i] = self.anaOutput[nX, nY, fold, 4]
+            self.spiderSrcY[i + 1] = self.anaOutput[nX, nY, fold, 8]
 
-            self.spiderRecX[i] = self.anaOutput[nX][nY][fold][5]
-            self.spiderRecX[i + 1] = self.anaOutput[nX][nY][fold][7]
+            self.spiderRecX[i] = self.anaOutput[nX, nY, fold, 5]
+            self.spiderRecX[i + 1] = self.anaOutput[nX, nY, fold, 7]
 
-            self.spiderRecY[i] = self.anaOutput[nX][nY][fold][6]
-            self.spiderRecY[i + 1] = self.anaOutput[nX][nY][fold][8]
+            self.spiderRecY[i] = self.anaOutput[nX, nY, fold, 6]
+            self.spiderRecY[i + 1] = self.anaOutput[nX, nY, fold, 8]
             fold += 1
 
         invBinTransform, _ = self.survey.binTransform.inverted()
@@ -2320,11 +2303,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # by now the thread has finished, so clean up and return 'True'
         self.worker = None                                                      # moveToThread object
         self.thread = None                                                      # corresponding worker thread
-        if self.progressBar is not None:
-            self.statusbar.removeWidget(self.progressBar)
-            self.statusbar.removeWidget(self.progressLabel)
-            self.progressBar = None                                            # progressbar in statusbar
-            self.progressLabel = None                                           # label next to progressbar
+
+        self.statusbar.removeWidget(self.progressBar)
+        self.statusbar.removeWidget(self.progressLabel)
 
         self.imageData = None                                                   # numpy array to be displayed
         self.imageItem = None                                                   # pg ImageItem showing analysis result
@@ -2476,7 +2457,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     self.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r+', shape=(nx, ny, fold, 13))
                     self.D2_Output = self.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
                     self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.D2_Output.shape[0]:,} traces')
-
+                    print(self.anaOutput)
                     # for i in range(nx):
                     #     for j in range(ny):
                     #         for k in range(fold):
@@ -3246,21 +3227,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.binFromSps(True)
 
     def binFromTemplates(self, fullAnalysis):
+
         if fullAnalysis:
             success = self.prepFullBinningConditions()
             if not success:
                 return
-            self.progressLabel = QLabel('Bin from Templates - full analysis')
+            self.progressLabel.setText('Bin from Templates - full analysis')
         else:
-            self.progressLabel = QLabel('Bin from Templates - basic analysis')
+            self.progressLabel.setText('Bin from Templates - basic analysis')
 
-        self.progressBar = QProgressBar()
-        self.progressBar.setMaximumWidth(500)                                   # to avoid 'jitter' when the mouse moves and posWidgetStatusbar changes width
-        height = self.posWidgetStatusbar.height()                               # needed to avoid statusbar 'growing' vertically by adding the progressbar
-        self.progressBar.setMaximumHeight(height)
         self.statusbar.addWidget(self.progressBar)
         self.statusbar.addWidget(self.progressLabel)
         self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
+        self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
 
         # enable/disable menu items
         self.enableProcessingMenuItems(False)
@@ -3289,6 +3268,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # Step 5: Connect signals and slots
         self.thread.started.connect(self.worker.run)                            # start thread
         self.worker.survey.progress.connect(self.threadProgress)                # report thread progress from the survey object in the worker
+        self.worker.survey.message.connect(self.threadMessage)                  # update thread task-description in statusbar
         self.worker.finished.connect(self.binningThreadFinished)                # stop thread;
         self.worker.finished.connect(self.thread.quit)
         # self.worker.finished.connect(self.worker.deleteLater)                 # See: http://qt-project.org/forums/viewthread/19848
@@ -3306,17 +3286,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             success = self.prepFullBinningConditions()
             if not success:
                 return
-            self.progressLabel = QLabel('Bin from Geometry - full analysis')
+            self.progressLabel.setText('Bin from Geometry - full analysis')
         else:
-            self.progressLabel = QLabel('Bin from Geometry - basic analysis')
+            self.progressLabel.setText('Bin from Geometry - basic analysis')
 
-        self.progressBar = QProgressBar()
-        self.progressBar.setMaximumWidth(500)                                   # to avoid 'jitter' when the mouse moves and posWidgetStatusbar changes width
-        height = self.posWidgetStatusbar.height()                               # needed to avoid statusbar 'growing' vertically by adding the progressbar
-        self.progressBar.setMaximumHeight(height)
         self.statusbar.addWidget(self.progressBar)
         self.statusbar.addWidget(self.progressLabel)
         self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
+        self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
 
         # enable/disable menu items
         self.enableProcessingMenuItems(False)
@@ -3348,6 +3325,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # Step 5: Connect signals and slots
         self.thread.started.connect(self.worker.run)                            # start thread
         self.worker.survey.progress.connect(self.threadProgress)                # report thread progress from the survey object in the worker
+        self.worker.survey.message.connect(self.threadMessage)                  # update thread task-description in statusbar
         self.worker.finished.connect(self.binningThreadFinished)                # stop thread;
         self.worker.finished.connect(self.thread.quit)
         # self.worker.finished.connect(self.worker.deleteLater)                 # See: http://qt-project.org/forums/viewthread/19848
@@ -3365,17 +3343,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             success = self.prepFullBinningConditions()
             if not success:
                 return
-            self.progressLabel = QLabel('Bin from imported SPS - full analysis')
+            self.progressLabel.setText('Bin from imported SPS - full analysis')
         else:
-            self.progressLabel = QLabel('Bin from imported SPS - basic analysis')
+            self.progressLabel.setText('Bin from imported SPS - basic analysis')
 
-        self.progressBar = QProgressBar()
-        self.progressBar.setMaximumWidth(500)                                   # to avoid 'jitter' when the mouse moves and posWidgetStatusbar changes width
-        height = self.posWidgetStatusbar.height()                               # needed to avoid statusbar 'growing' vertically by adding the progressbar
-        self.progressBar.setMaximumHeight(height)
         self.statusbar.addWidget(self.progressBar)
         self.statusbar.addWidget(self.progressLabel)
         self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
+        self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
 
         # enable/disable menu items
         self.enableProcessingMenuItems(False)
@@ -3407,6 +3382,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # Step 5: Connect signals and slots
         self.thread.started.connect(self.worker.run)                            # start thread
         self.worker.survey.progress.connect(self.threadProgress)                # report thread progress from the survey object in the worker
+        self.worker.survey.message.connect(self.threadMessage)                  # update thread task-description in statusbar
         self.worker.finished.connect(self.binningThreadFinished)                # stop thread;
         self.worker.finished.connect(self.thread.quit)
         # self.worker.finished.connect(self.worker.deleteLater)                 # See: http://qt-project.org/forums/viewthread/19848
@@ -3416,14 +3392,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.thread.start(QThread.NormalPriority)
 
     def createGeometryFromTemplates(self):
-        self.progressBar = QProgressBar()
-        self.progressBar.setMaximumWidth(500)                                   # to avoid 'jitter' when the mouse moves and posWidgetStatusbar changes width
-        height = self.posWidgetStatusbar.height()                               # needed to avoid statusbar 'growing' vertically by adding the progressbar
-        self.progressBar.setMaximumHeight(height)
+        self.progressLabel.setText('Create Geometry from Templates')
+
         self.statusbar.addWidget(self.progressBar)
-        self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
-        self.progressLabel = QLabel('Create Geometry from Templates')
         self.statusbar.addWidget(self.progressLabel)
+        self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
+        self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
 
         # enable/disable menu items
         self.enableProcessingMenuItems(False)
@@ -3446,6 +3420,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # Step 5: Connect signals and slots
         self.thread.started.connect(self.worker.run)                            # start thread
         self.worker.survey.progress.connect(self.threadProgress)                # report thread progress from the survey object in the worker
+        self.worker.survey.message.connect(self.threadMessage)                  # update thread task-description in statusbar
         self.worker.finished.connect(self.geometryThreadFinished)               # stop thread;
         self.worker.finished.connect(self.thread.quit)
         # self.worker.finished.connect(self.worker.deleteLater)                 # See: http://qt-project.org/forums/viewthread/19848
@@ -3455,8 +3430,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.thread.start(QThread.NormalPriority)
 
     def threadProgress(self, val):
-        if self.progressBar is not None:
+        if self.progressBar is not None:                                        # in case thread is rumming before GUI set up
             self.progressBar.setValue(val)
+
+    def threadMessage(self, val):
+        if self.progressLabel is not None:                                      # in case thread is rumming before GUI set up
+            self.progressLabel.setText(val)
 
     def stopWorkerThread(self):
         if self.thread is not None and self.thread.isRunning():
@@ -3472,7 +3451,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.enableExport(False)                                            # no plots to export
 
             self.appendLogMessage('Thread : . . . aborted binning operation', MsgType.Error)
-            self.appendLogMessage(f'Thread : . . . {self.worker.survey.threadError}', MsgType.Error)
+            self.appendLogMessage(f'Thread : . . . {self.worker.survey.errorText}', MsgType.Error)
             QMessageBox.information(self, 'Interrupted', 'Worker thread aborted')
         else:
             # copy analysis arrays from worker
@@ -3569,10 +3548,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.statusbar.removeWidget(self.progressLabel)
 
     def geometryThreadFinished(self, success):
-
         if not success:
             self.appendLogMessage('Thread : . . . aborted geometry creation', MsgType.Error)
-            self.appendLogMessage(f'Thread : . . . {self.worker.survey.threadError}', MsgType.Error)
+            self.appendLogMessage(f'Thread : . . . {self.worker.survey.errorText}', MsgType.Error)
             QMessageBox.information(self, 'Interrupted', 'Worker thread aborted')
         else:
 
@@ -3612,8 +3590,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # enable/disable menu items
         self.enableProcessingMenuItems(True)
-
         self.tabWidget.setCurrentIndex(2)                                       # make sure we display the 'Geometry' tab
+
         self.statusbar.removeWidget(self.progressBar)
         self.statusbar.removeWidget(self.progressLabel)
 

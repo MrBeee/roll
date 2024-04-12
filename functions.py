@@ -659,7 +659,7 @@ def exampleSurveyXmlText() -> str:
             <binning method="cmp"/>
             <offset xmax="5976.0" ymin="-776.0" ymax="776.0" xmin="-5976.0" rmin="0.0" rmax="6027.0"/>
             <output xmax="7225.0" ymin="1400.0" ymax="1800.0" xmin="6975.0"/>
-            <unique apply="False" deltaoff="200.0" deltaazi="180.0"/>
+            <unique apply="False" deltaoff="200.0" deltaazi="5.0"/>
         </limits>
         <reflectors>
             <plane z0="-2000.0" y0="450000.0" dip="4.0" azi="45.0" x0="150000.0"/>
