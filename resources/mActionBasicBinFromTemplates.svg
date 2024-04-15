@@ -4,7 +4,7 @@
    width="32"
    version="1.1"
    id="svg8"
-   sodipodi:docname="mActionStartGeometry.svg"
+   sodipodi:docname="mActionBasicBinFromTemplates.svg"
    inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -60,8 +60,8 @@
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
      inkscape:zoom="32.09375"
-     inkscape:cx="12.323272"
-     inkscape:cy="16.031159"
+     inkscape:cx="9.6592016"
+     inkscape:cy="15.75073"
      inkscape:window-width="2560"
      inkscape:window-height="1361"
      inkscape:window-x="-9"
@@ -70,18 +70,17 @@
      inkscape:current-layer="svg8" />
   <text
      xml:space="preserve"
-     style="font-size:17.1986px;line-height:1.25;font-family:sans-serif;letter-spacing:-0.0992233px;fill:#910000;stroke-width:1.98447;fill-opacity:1"
-     x="-0.82946759"
-     y="30.446505"
-     id="text7472"
-     transform="scale(0.99223221,1.0078286)"><tspan
+     style="font-size:17.3333px;line-height:1.25;font-family:sans-serif;letter-spacing:1.36px;fill:#0000ff;stroke-width:2"
+     x="0.25246835"
+     y="30.716017"
+     id="text7472"><tspan
        sodipodi:role="line"
        id="tspan7470"
-       x="-0.82946759"
-       y="30.446505"
-       style="fill:#910000;stroke-width:1.98447;fill-opacity:1">Geo</tspan></text>
+       x="0.25246835"
+       y="30.716017"
+       style="fill:#0000ff;stroke-width:2">Bin</tspan></text>
   <path
-     style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:1.15494px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     style="fill:#0000ff;fill-opacity:1;stroke:#0000ff;stroke-width:1.15494px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
      d="M 17.64924,14.146384 17.69166,2.1781335 29.271334,8.8644785 Z"
      id="path12468" />
   <rect

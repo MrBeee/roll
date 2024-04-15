@@ -145,6 +145,7 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 6	Changelog
 
+- 2024-04-13 (0.2.5) included TWT values in trace table and implemented 'Unique Fold' capability
 - 2024-04-08 (0.2.4) improved handling of well-files
 - 2024-03-30 (0.2.3) updated metadata.txt (a) about text and (b) dependencies
 - 2024-03-30 (0.2.2) improved handling of line- and stake numbers; refactoring of parameter handling
@@ -154,9 +155,14 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 7	Still To Do
 
-- Include TWT of `src » crp » rec` times in trace table 
-- Implement 'Unique Fold' pruning of fold & min/max offset analysis
 - Create wizard for Marine towed-streamer geometry
+- Improve analysis capabilities
+  - Show pattern details
+  - Add KxKy pattern analysis
+  - Add Offset plots in inline and x-line directions
+  - Add Kr stack response in inline and x-line directions
+  - Add KxKy single bin stack response
+
 - Implement multiprocessing instead of worker thread for background tasks
 - Consider relational database instead of numpy arrays for geometry tables
 

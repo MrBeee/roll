@@ -4,7 +4,7 @@
    width="32"
    version="1.1"
    id="svg8"
-   sodipodi:docname="mActionStartBinning.svg"
+   sodipodi:docname="mActionBasicBinFromGeometry.svg"
    inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -60,8 +60,8 @@
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
      inkscape:zoom="32.09375"
-     inkscape:cx="14.223953"
-     inkscape:cy="16"
+     inkscape:cx="9.6592016"
+     inkscape:cy="16.031159"
      inkscape:window-width="2560"
      inkscape:window-height="1361"
      inkscape:window-x="-9"
@@ -70,7 +70,7 @@
      inkscape:current-layer="svg8" />
   <text
      xml:space="preserve"
-     style="font-size:17.3333px;line-height:1.25;font-family:sans-serif;letter-spacing:1.36px;fill:#0000ff;stroke-width:2"
+     style="font-size:17.3333px;line-height:1.25;font-family:sans-serif;letter-spacing:1.36px;fill:#008000;stroke-width:2;fill-opacity:1"
      x="0.25246835"
      y="30.716017"
      id="text7472"><tspan
@@ -78,7 +78,7 @@
        id="tspan7470"
        x="0.25246835"
        y="30.716017"
-       style="fill:#0000ff;stroke-width:2">Bin</tspan></text>
+       style="fill:#008000;stroke-width:2;fill-opacity:1">Bin</tspan></text>
   <path
      style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:1.15494px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
      d="M 17.64924,14.146384 17.69166,2.1781335 29.271334,8.8644785 Z"

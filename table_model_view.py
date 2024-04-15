@@ -51,8 +51,8 @@ class AnaTableModel(QAbstractTableModel):
                     value = str(int(self._data[index.row(), index.column()]))
                 elif index.column() == 12:                                      # Show True / False for unique values
                     value = 'True' if self._data[index.row(), index.column()] == -1.0 else ''
-                else:
-                    value = f'{float(self._data[index.row(), index.column()]):,.2f}'                                                                              # show floats for the remainder
+                else:                                                           # Show floats for the remainder if fold > 0 (fold = col nr 2)
+                    value = f'{float(self._data[index.row(), index.column()]):,.2f}' if self._data[index.row(), 2] > 0 else ''
                     # value = str(self._data[index.row(), index.column()])
             else:
                 value = '  n/a  '
@@ -531,23 +531,21 @@ class RpsTableModel(QAbstractTableModel):
         if data is not None:
             self._minMax = np.zeros(shape=(2, 8), dtype=np.float32)
 
-            self._minMax[0][0] = data['Line'].min()
-            self._minMax[0][1] = data['Point'].min()
-            self._minMax[0][2] = data['Index'].min()
-            # self._minMax[0][3] = data['Code' ].min()
-            self._minMax[0][4] = data['Depth'].min()
-            self._minMax[0][5] = data['East'].min()
-            self._minMax[0][6] = data['North'].min()
-            self._minMax[0][7] = data['Elev'].min()
+            self._minMax[0, 0] = data['Line'].min()
+            self._minMax[0, 1] = data['Point'].min()
+            self._minMax[0, 2] = data['Index'].min()
+            self._minMax[0, 4] = data['Depth'].min()                            # skipped self._minMax[0, 3] = data['Code' ].min()
+            self._minMax[0, 5] = data['East'].min()
+            self._minMax[0, 6] = data['North'].min()
+            self._minMax[0, 7] = data['Elev'].min()
 
-            self._minMax[1][0] = data['Line'].max()
-            self._minMax[1][1] = data['Point'].max()
-            self._minMax[1][2] = data['Index'].max()
-            # self._minMax[1][3] = data['Code' ].max()
-            self._minMax[1][4] = data['Depth'].max()
-            self._minMax[1][5] = data['East'].max()
-            self._minMax[1][6] = data['North'].max()
-            self._minMax[1][7] = data['Elev'].max()
+            self._minMax[1, 0] = data['Line'].max()
+            self._minMax[1, 1] = data['Point'].max()
+            self._minMax[1, 2] = data['Index'].max()
+            self._minMax[1, 4] = data['Depth'].max()                            # skipped self._minMax[1, 3] = data['Code' ].max()
+            self._minMax[1, 5] = data['East'].max()
+            self._minMax[1, 6] = data['North'].max()
+            self._minMax[1, 7] = data['Elev'].max()
 
         self._data = data
         self.layoutChanged.emit()
@@ -707,23 +705,21 @@ class SpsTableModel(QAbstractTableModel):
         if data is not None:
             self._minMax = np.zeros(shape=(2, 8), dtype=np.float32)
 
-            self._minMax[0][0] = data['Line'].min()
-            self._minMax[0][1] = data['Point'].min()
-            self._minMax[0][2] = data['Index'].min()
-            # self._minMax[0][3] = data['Code' ].min()
-            self._minMax[0][4] = data['Depth'].min()
-            self._minMax[0][5] = data['East'].min()
-            self._minMax[0][6] = data['North'].min()
-            self._minMax[0][7] = data['Elev'].min()
+            self._minMax[0, 0] = data['Line'].min()
+            self._minMax[0, 1] = data['Point'].min()
+            self._minMax[0, 2] = data['Index'].min()
+            self._minMax[0, 4] = data['Depth'].min()                            # skipped: self._minMax[0, 3] = data['Code' ].min()
+            self._minMax[0, 5] = data['East'].min()
+            self._minMax[0, 6] = data['North'].min()
+            self._minMax[0, 7] = data['Elev'].min()
 
-            self._minMax[1][0] = data['Line'].max()
-            self._minMax[1][1] = data['Point'].max()
-            self._minMax[1][2] = data['Index'].max()
-            # self._minMax[1][3] = data['Code' ].max()
-            self._minMax[1][4] = data['Depth'].max()
-            self._minMax[1][5] = data['East'].max()
-            self._minMax[1][6] = data['North'].max()
-            self._minMax[1][7] = data['Elev'].max()
+            self._minMax[1, 0] = data['Line'].max()
+            self._minMax[1, 1] = data['Point'].max()
+            self._minMax[1, 2] = data['Index'].max()
+            self._minMax[1, 4] = data['Depth'].max()                            # skipped: self._minMax[1, 3] = data['Code' ].max()
+            self._minMax[1, 5] = data['East'].max()
+            self._minMax[1, 6] = data['North'].max()
+            self._minMax[1, 7] = data['Elev'].max()
 
         self._data = data
         self.layoutChanged.emit()
@@ -862,23 +858,23 @@ class XpsTableModel(QAbstractTableModel):
         if data is not None:
             self._minMax = np.zeros(shape=(2, 8), dtype=np.float32)
 
-            self._minMax[0][0] = data['SrcLin'].min()
-            self._minMax[0][1] = data['SrcPnt'].min()
-            self._minMax[0][2] = data['SrcInd'].min()
-            self._minMax[0][3] = data['RecNo'].min()
-            self._minMax[0][4] = data['RecLin'].min()
-            self._minMax[0][5] = data['RecMin'].min()
-            self._minMax[0][6] = data['RecMax'].min()
-            self._minMax[0][7] = data['RecInd'].min()
+            self._minMax[0, 0] = data['SrcLin'].min()
+            self._minMax[0, 1] = data['SrcPnt'].min()
+            self._minMax[0, 2] = data['SrcInd'].min()
+            self._minMax[0, 3] = data['RecNo'].min()
+            self._minMax[0, 4] = data['RecLin'].min()
+            self._minMax[0, 5] = data['RecMin'].min()
+            self._minMax[0, 6] = data['RecMax'].min()
+            self._minMax[0, 7] = data['RecInd'].min()
 
-            self._minMax[1][0] = data['SrcLin'].max()
-            self._minMax[1][1] = data['SrcPnt'].max()
-            self._minMax[1][2] = data['SrcInd'].max()
-            self._minMax[1][3] = data['RecNo'].max()
-            self._minMax[1][4] = data['RecLin'].max()
-            self._minMax[1][5] = data['RecMin'].max()
-            self._minMax[1][6] = data['RecMax'].max()
-            self._minMax[1][7] = data['RecInd'].max()
+            self._minMax[1, 0] = data['SrcLin'].max()
+            self._minMax[1, 1] = data['SrcPnt'].max()
+            self._minMax[1, 2] = data['SrcInd'].max()
+            self._minMax[1, 3] = data['RecNo'].max()
+            self._minMax[1, 4] = data['RecLin'].max()
+            self._minMax[1, 5] = data['RecMin'].max()
+            self._minMax[1, 6] = data['RecMax'].max()
+            self._minMax[1, 7] = data['RecInd'].max()
 
         self._data = data
         self.layoutChanged.emit()

@@ -2327,8 +2327,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.worker = None                                                      # moveToThread object
         self.thread = None                                                      # corresponding worker thread
 
-        self.statusbar.removeWidget(self.progressBar)
-        self.statusbar.removeWidget(self.progressLabel)
+        self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
 
         self.imageData = None                                                   # numpy array to be displayed
         self.imageItem = None                                                   # pg ImageItem showing analysis result
@@ -3172,9 +3171,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionGeometryFromTemplates.setEnabled(enable)
         self.actionStopThread.setEnabled(not enable)
 
+    def testBasicBinningConditions(self):
+        if self.survey.unique.apply:                                            # can't do unique fold with basic binning
+            QMessageBox.information(
+                self,
+                'Please adjust',
+                "Applying 'Unique offsets' requires using a 'Full Binning' process, as it is implemented as a post-processing step on the trace table",
+                QMessageBox.Cancel,
+            )
+            return False
+
     def testFullBinningConditions(self):
-        if not self.survey.grid.fold > 0:                                        # the size of the analysis file is defined by the grid's fold
-            QMessageBox.question(
+        if self.survey.grid.fold <= 0:                                          # the size of the analysis file is defined by the grid's fold
+            QMessageBox.information(
                 self,
                 'Please adjust',
                 "'Full Binning' requires selecting a max fold value > 0 in the 'local grid' settings, to allocate space for a memory mapped file.\n\n"
@@ -3184,18 +3193,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return False
 
         if not self.fileName:
-            QMessageBox.question(self, 'Please confirm', "'Full Binning' requires saving this file first, to obtain a valid filename in a directory with write access.", QMessageBox.Cancel)
+            QMessageBox.information(self, 'Please adjust', "'Full Binning' requires saving this file first, to obtain a valid filename in a directory with write access.", QMessageBox.Cancel)
             return False
 
         return True
 
     def prepFullBinningConditions(self):
-        if self.anaOutput is not None:                                      # get rid of current memory mapped array first
-            self.anaOutput.flush()                                          # write all stuff to disk
-            del self.anaOutput                                              # delete object
-            self.D2_Output = None                                           # remove reference to self.anaOutput
-            self.anaOutput = None                                           # remove self.anaOutput itself
-            gc.collect()                                                    # free up memory as much as possible
+        if self.anaOutput is not None:                                          # get rid of current memory mapped array first
+            self.anaOutput.flush()                                              # write all stuff to disk
+            del self.anaOutput                                                  # delete object
+            self.D2_Output = None                                               # remove reference to self.anaOutput
+            self.anaOutput = None                                               # remove self.anaOutput itself
+            gc.collect()                                                        # free up memory as much as possible
 
         # prepare for a new memory mapped object; calculate memmap size
         w = self.survey.output.rctOutput.width()
@@ -3229,21 +3238,24 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         return True
 
     def basicBinFromTemplates(self):
-        self.binFromTemplates(False)
+        if self.testBasicBinningConditions():
+            self.binFromTemplates(False)
 
     def fullBinFromTemplates(self):
         if self.testFullBinningConditions():
             self.binFromTemplates(True)
 
     def basicBinFromGeometry(self):
-        self.binFromGeometry(False)
+        if self.testBasicBinningConditions():
+            self.binFromGeometry(False)
 
     def fullBinFromGeometry(self):
         if self.testFullBinningConditions():
             self.binFromGeometry(True)
 
     def basicBinFromSps(self):
-        self.binFromSps(False)
+        if self.testBasicBinningConditions():
+            self.binFromSps(False)
 
     def fullBinFromSps(self):
         if self.testFullBinningConditions():
@@ -3259,13 +3271,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         else:
             self.progressLabel.setText('Bin from Templates - basic analysis')
 
-        self.statusbar.addWidget(self.progressBar)
-        self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
-        self.statusbar.addWidget(self.progressLabel)
-        self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
-
-        # enable/disable menu items
-        self.enableProcessingMenuItems(False)
+        self.showStatusbarWidgets()                                             # show two temporary progress widgets
+        self.enableProcessingMenuItems(False)                                   # enable/disable menu items
 
         xmlString = self.survey.toXmlString()
         self.appendLogMessage(f"Thread : started 'Bin from templates', using {self.survey.nShotPoints:,} shot points", MsgType.Binning)
@@ -3313,13 +3320,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         else:
             self.progressLabel.setText('Bin from Geometry - basic analysis')
 
-        self.statusbar.addWidget(self.progressBar)
-        self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
-        self.statusbar.addWidget(self.progressLabel)
-        self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
-
-        # enable/disable menu items
-        self.enableProcessingMenuItems(False)
+        self.showStatusbarWidgets()                                             # show two temporary progress widgets
+        self.enableProcessingMenuItems(False)                                   # enable/disable menu items
 
         xmlString = self.survey.toXmlString()
         self.appendLogMessage(f"Thread : started 'Bin from geometry', using {self.srcGeom.shape[0]:,} shot points", MsgType.Binning)
@@ -3370,13 +3372,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         else:
             self.progressLabel.setText('Bin from imported SPS - basic analysis')
 
-        self.statusbar.addWidget(self.progressBar)
-        self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
-        self.statusbar.addWidget(self.progressLabel)
-        self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
-
-        # enable/disable menu items
-        self.enableProcessingMenuItems(False)
+        self.showStatusbarWidgets()                                             # show two temporary progress widgets
+        self.enableProcessingMenuItems(False)                                   # enable/disable menu items
 
         xmlString = self.survey.toXmlString()
         self.appendLogMessage(f"Thread : started 'Bin from Imported SPS', using {self.spsImport.shape[0]:,} shot points", MsgType.Binning)
@@ -3417,13 +3414,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def createGeometryFromTemplates(self):
         self.progressLabel.setText('Create Geometry from Templates')
 
-        self.statusbar.addWidget(self.progressBar)
-        self.progressBar.show()                                                 # forces showing progressbar, when binning is started from Ctrl+Shift+B
-        self.statusbar.addWidget(self.progressLabel)
-        self.progressLabel.show()                                               # forces showing progressLabel, when binning is started from Ctrl+Shift+B
-
-        # enable/disable menu items
-        self.enableProcessingMenuItems(False)
+        self.showStatusbarWidgets()                                             # show two temporary progress widgets
+        self.enableProcessingMenuItems(False)                                   # enable/disable menu items
 
         xmlString = self.survey.toXmlString()
         self.appendLogMessage(f"Thread : started 'Create Geometry from Templates', from {self.survey.nShotPoints:,} shot points", MsgType.Geometry)
@@ -3567,8 +3559,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # enable/disable menu items
         self.enableProcessingMenuItems(True)
 
-        self.statusbar.removeWidget(self.progressBar)
-        self.statusbar.removeWidget(self.progressLabel)
+        self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
 
     def geometryThreadFinished(self, success):
         if not success:
@@ -3614,9 +3605,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # enable/disable menu items
         self.enableProcessingMenuItems(True)
         self.tabWidget.setCurrentIndex(2)                                       # make sure we display the 'Geometry' tab
+        self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
 
-        self.statusbar.removeWidget(self.progressBar)
-        self.statusbar.removeWidget(self.progressLabel)
+    def showStatusbarWidgets(self):
+        self.progressBar.setValue(0)                                            # reset to zero, to avoid glitches in progress shown
+        self.statusbar.addWidget(self.progressBar)                              # add temporary widget to statusbar (again)
+        self.progressBar.show()                                                 # forces showing progressbar (again)
+        self.statusbar.addWidget(self.progressLabel)                            # add temporary widget to statusbar (again)
+        self.progressLabel.show()                                               # forces showing progressLabel (again)
+
+    def hideStatusbarWidgets(self):
+        self.statusbar.removeWidget(self.progressBar)                           # remove widget from statusbar (don't kill it)
+        self.progressBar.setValue(0)                                            # reset progressbar to zero out, when of sight
+        self.statusbar.removeWidget(self.progressLabel)                         # remove progress label as well
 
 
 # See: https://forum.qt.io/topic/84824/accessing-the-main-window-from-python/8

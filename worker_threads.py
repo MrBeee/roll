@@ -7,11 +7,11 @@ from .roll_survey import RollSurvey
 # ptvsd  is needed to debug a worker thread.
 # See: https://github.com/microsoft/ptvsd/issues/1189
 
-try:                                                                          # uncomment to debug thread
-    ptvsdInstalled = True                                                     # uncomment to debug thread
-    import ptvsd  # uncomment to debug thread
-except ImportError as ie:                                                     # uncomment to debug thread
-    ptvsdInstalled = False                                                    # uncomment to debug thread
+# try:                                                                          # uncomment to debug thread
+#     ptvsdInstalled = True                                                     # uncomment to debug thread
+#     import ptvsd  # uncomment to debug thread
+# except ImportError as ie:                                                     # uncomment to debug thread
+#     ptvsdInstalled = False                                                    # uncomment to debug thread
 
 # See: https://stackoverflow.com/questions/20324804/how-to-use-qthread-correctly-in-pyqt-with-movetothread
 # See: https://realpython.com/python-pyqt-qthread/#using-qthread-vs-pythons-threading
@@ -79,18 +79,15 @@ class BinFromGeometryWorker(QObject):
 
     def run(self):
         """Long-running task."""
-        # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
-        # Please comment the next line when you are not debugging, as it will cause an exception (ConnectionRefusedError)
-
-        # necessary step before calculating geometry
-        self.survey.calcNoShotPoints()
+        self.survey.calcNoShotPoints()                                          # necessary step before calculating geometry
 
         try:
-            if ptvsdInstalled:                                                # uncomment to debug thread
-                ptvsd.debug_this_thread()                                     # uncomment to debug thread
+            # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
+            # Please comment the next line when you are not debugging, as it will cause an exception (ConnectionRefusedError)
+            # if ptvsdInstalled:                                                # uncomment to debug thread
+            #     ptvsd.debug_this_thread()                                     # uncomment to debug thread
 
-            # calculate fold map and min/max offsets
-            success = self.survey.setupBinFromGeometry(self.extended)
+            success = self.survey.setupBinFromGeometry(self.extended)           # calculate fold map and min/max offsets
         except BaseException as e:
             self.survey.errorText = str(e)
             success = False
@@ -120,13 +117,13 @@ class BinningWorker(QObject):
 
     def run(self):
         """Long-running task."""
-
-        # necessary step before calculating geometry
-        self.survey.calcNoShotPoints()
+        self.survey.calcNoShotPoints()                                          # necessary step before calculating geometry
 
         try:
-            if ptvsdInstalled:                                                # uncomment to debug thread
-                ptvsd.debug_this_thread()                                     # uncomment to debug thread
+            # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
+            # Please comment the next line when you are not debugging, as it will cause an exception (ConnectionRefusedError)
+            # if ptvsdInstalled:                                                # uncomment to debug thread
+            #     ptvsd.debug_this_thread()                                     # uncomment to debug thread
 
             success = self.survey.setupBinFromTemplates(self.extended)          # calculate fold map and min/max offsets
         except BaseException as e:
@@ -151,12 +148,13 @@ class GeometryWorker(QObject):
     def run(self):
         """Long-running task."""
 
-        # necessary step before calculating geometry
-        self.survey.calcNoShotPoints()
+        self.survey.calcNoShotPoints()                                          # necessary step before calculating geometry
 
         try:
-            if ptvsdInstalled:                                                # uncomment to debug thread
-                ptvsd.debug_this_thread()                                     # uncomment to debug thread
+            # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
+            # Please comment the next line when you are not debugging, as it will cause an exception (ConnectionRefusedError)
+            # if ptvsdInstalled:                                                # uncomment to debug thread
+            #     ptvsd.debug_this_thread()                                     # uncomment to debug thread
 
             success = self.survey.setupGeometryFromTemplates()                  # calculate src, rel, rec geometry arrays
         except BaseException as e:
@@ -167,7 +165,7 @@ class GeometryWorker(QObject):
 
 
 class Worker(QObject):
-    # Example Worker using getters and setter using a mutex
+    # Example Worker using getters and setters using a mutex
     # See: https://stackoverflow.com/questions/9190169/threading-and-information-passing-how-to
 
     finished = pyqtSignal()

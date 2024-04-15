@@ -1039,7 +1039,7 @@ class RollSurvey(pg.GraphicsObject):
                                 self.output.anaOutput[nx, ny, fold, 9] = totalTime[count]
                                 self.output.anaOutput[nx, ny, fold, 10] = hypArray[count]
                                 self.output.anaOutput[nx, ny, fold, 11] = aziArray[count]
-                                self.output.anaOutput[nx, ny, fold, 12] = 1
+                                # self.output.anaOutput[nx, ny, fold, 12] = -1
 
                         # all selection criteria have been fullfilled; use the trace
                         self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
@@ -1057,26 +1057,8 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = str(e)
             return False
 
-        # min/max fold is straightforward
-        self.output.maximumFold = self.output.binOutput.max()
-        self.output.minimumFold = self.output.binOutput.min()
-
-        # calc min offset against max (inf) values
-        self.output.minMinOffset = self.output.minOffset.min()
-        # replace (inf) by (-inf) for max values
-        self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF
-        # calc max values against (-inf) minimum
-        self.output.maxMinOffset = self.output.minOffset.max()
-
-        # calc max offset against max (-inf) values
-        self.output.maxMaxOffset = self.output.maxOffset.max()
-        # replace (-inf) by (inf) for min values
-        self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf
-        # calc min offset against min (inf) values
-        self.output.minMaxOffset = self.output.maxOffset.min()
-        # replace (inf) by (-inf) for max values
-        self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF
-
+        self.calcUniqueFoldValues()
+        self.calcFoldAndOffsetEssentials()
         return True
 
     def setupBinFromTemplates(self, fullAnalysis) -> bool:
@@ -1152,137 +1134,140 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = str(e)
             return False
 
-        # implement code to handle unique offsets
-        if self.unique.apply:                                                   # slot offsets and azimuths and prune data
-            self.message.emit('postprocessing unique fold - offsets')
-            slottedOffset = self.output.anaOutput[:, :, :, 10]                  # grab every 10th element of 4th dimension (=offset)
-            slot = self.unique.dOffset
-            scalar = 1.0 / slot
-            slottedOffset = slottedOffset * scalar
-            slottedOffset = np.round(slottedOffset)
-            slottedOffset = slottedOffset * slot
-            self.output.anaOutput[:, :, :, 10] = slottedOffset
+        self.calcUniqueFoldValues()
+        self.calcFoldAndOffsetEssentials()
+        return True
 
-            self.message.emit('postprocessing unique fold - azimuths')
-            slottedAzimuth = self.output.anaOutput[:, :, :, 11]                 # grab every 11th element of 4th dimension (=azimuths)
-            slot = self.unique.dAzimuth
-            scalar = 1.0 / slot
-            slottedAzimuth = slottedAzimuth * scalar
-            slottedAzimuth = np.round(slottedAzimuth)
-            slottedAzimuth = slottedAzimuth * slot
-            self.output.anaOutput[:, :, :, 11] = slottedAzimuth
-
-            # Now we need to find unique rows in terms of line, stake, offset and azimuth values
-            # See:  https://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
-            # See:  https://www.geeksforgeeks.org/find-unique-rows-in-a-numpy-array/
-            # See:  https://www.sharpsightlabs.com/blog/numpy-unique/
-            # See:  https://www.sharpsightlabs.com/blog/numpy-axes-explained/
-
-            shape4D = self.output.anaOutput.shape
-            shape2D = (shape4D[0] * shape4D[1] * shape4D[2], shape4D[3])
-            D2_Output = self.output.anaOutput.reshape(shape2D)
-
-            self.message.emit('postprocessing unique fold - find unique values')
-            self.progress.emit(11)
-            testUnique = D2_Output[:, [0, 1, 10, 11]]     # extract stake, line, offset and azimuth
-            _, indices = np.unique(testUnique, return_index=True, axis=0)
-
-            # note, this for-loop is needed to set 'Uniq' value at the applicable indices
-            for index in indices:
-                D2_Output[index][12] = -1.0
-
-            self.message.emit('postprocessing unique fold - save unique values')
-            self.progress.emit(89)
-
-            self.output.anaOutput = D2_Output.reshape(shape4D)                  # reshape to 4D and copy data back to self.output.anaOutput
-
-            # now we need to recalculate fold, min & max offset, after pruning the original data
-            # See: https://www.geeksforgeeks.org/python-slicing-multi-dimensional-arrays/
-
-            rows = shape4D[0]                                                   # get dimensions from analysis array itself
-            cols = shape4D[1]
-
-            self.message.emit('postprocessing unique fold - sorting traces ')
-
-            self.nShotPoint = 0                                                 # reuse variables to implement progress in statusbar
-            self.nShotPoints = rows * cols                                      # calc nr of applicable points
-            self.threadProgress = 0                                             # reset counter
-            for row in range(rows):
-                for col in range(cols):
-
-                    # begin thread progress code
-                    if QThread.currentThread().isInterruptionRequested():       # maybe stop at each shot...
-                        raise StopIteration
-
-                    self.nShotPoint += 1
-                    threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
-                    if threadProgress > self.threadProgress:
-                        self.threadProgress = threadProgress
-                        self.progress.emit(threadProgress + 1)
-                    # end thread progress code
-
-                    slice2D = self.output.anaOutput[row, col, :, :]             # get all traces belonging to one bin
-                    sortedSlice = slice2D[slice2D[:, -1].argsort()]             # sort these traces on last column (uique -1 flag)
-                    self.output.anaOutput[row, col, :, :] = sortedSlice         # put sorted traces back into analysis array
-
-                    uniqueFld = np.count_nonzero(slice2D[:, -1], axis=0)        # get unique fold count
-                    if uniqueFld > 0:
-                        minOffset = np.min(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
-                        maxOffset = np.max(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
-                    else:
-                        minOffset = 0.0                                         # no traces available
-                        maxOffset = 0.0                                         # no traces available
-
-                    self.output.binOutput[row, col] = uniqueFld                 # adjust fold value table
-                    self.output.minOffset[row, col] = minOffset                 # adjust min offset table
-                    self.output.maxOffset[row, col] = maxOffset                 # adjust max offset table
-
+    def calcFoldAndOffsetEssentials(self):
         # max fold is straightforward
-        self.message.emit('postprocessing - calc min/max offsets 1/9')
+        self.message.emit('Calc min/max offsets - step 1/9')
         self.progress.emit(10)
         self.output.maximumFold = self.output.binOutput.max()
 
         # min fold is straightforward
-        self.message.emit('postprocessing - calc min/max offsets 2/9')
+        self.message.emit('Calc min/max offsets - step 2/9')
         self.progress.emit(20)
         self.output.minimumFold = self.output.binOutput.min()
 
         # calc min offset against max (inf) values
-        self.message.emit('postprocessing - calc min/max offsets 3/9')
+        self.message.emit('Calc min/max offsets - step 3/9')
         self.progress.emit(30)
         self.output.minMinOffset = self.output.minOffset.min()
 
         # replace (inf) by (-inf) for max values
-        self.message.emit('postprocessing - calc min/max offsets 4/9')
+        self.message.emit('Calc min/max offsets - step 4/9')
         self.progress.emit(40)
         self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF
 
         # calc max values against (-inf) minimum
-        self.message.emit('postprocessing - calc min/max offsets 5/9')
+        self.message.emit('Calc min/max offsets - step 5/9')
         self.progress.emit(50)
         self.output.maxMinOffset = self.output.minOffset.max()
 
         # calc max offset against max (-inf) values
-        self.message.emit('postprocessing - calc min/max offsets 6/9')
+        self.message.emit('Calc min/max offsets - step 6/9')
         self.progress.emit(60)
         self.output.maxMaxOffset = self.output.maxOffset.max()
 
         # replace (-inf) by (inf) for min values
-        self.message.emit('postprocessing - calc min/max offsets 7/9')
+        self.message.emit('Calc min/max offsets - step 7/9')
         self.progress.emit(70)
         self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf
 
         # calc min offset against min (inf) values
-        self.message.emit('postprocessing - calc min/max offsets 8/9')
+        self.message.emit('Calc min/max offsets - step 8/9')
         self.progress.emit(80)
         self.output.minMaxOffset = self.output.maxOffset.min()
 
         # replace (inf) by (-inf) for max values
-        self.message.emit('postprocessing - calc min/max offsets 9/9')
+        self.message.emit('Calc min/max offsets - step 9/9')
         self.progress.emit(90)
         self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF
 
         self.progress.emit(100)
+        return True
+
+    def calcUniqueFoldValues(self) -> bool:
+        """implement code to handle unique offsets"""
+        if self.unique.apply is False:                                          # slot offsets and azimuths and prune data
+            return False
+
+        if self.output.anaOutput is None:                                       # this array is essential to calculate unique fold
+            return False
+
+        # Now we need to find unique rows in terms of line, stake, offset and azimuth values
+        # See: https://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
+        # See: https://www.geeksforgeeks.org/find-unique-rows-in-a-numpy-array/
+        # See: https://www.sharpsightlabs.com/blog/numpy-unique/
+        # See: https://www.sharpsightlabs.com/blog/numpy-axes-explained/
+        # See: https://www.geeksforgeeks.org/python-slicing-multi-dimensional-arrays/
+
+        self.message.emit('Calculate unique fold')
+
+        offSlot = self.unique.dOffset                                       # slots and scalars for unique offset, azimuth
+        offScalar = 1.0 / offSlot
+        aziSlot = self.unique.dAzimuth
+        aziScalar = 1.0 / aziSlot
+
+        rows = self.output.anaOutput.shape[0]                               # get dimensions from analysis array itself
+        cols = self.output.anaOutput.shape[1]
+
+        self.nShotPoint = 0                                                 # reuse nShotPoint(s) to implement progress in statusbar
+        self.nShotPoints = rows * cols                                      # calc nr of applicable points
+        self.threadProgress = 0                                             # reset counter
+
+        for row in range(rows):
+            for col in range(cols):
+                # begin thread progress code
+                if QThread.currentThread().isInterruptionRequested():       # maybe stop at each shot...
+                    raise StopIteration
+
+                self.nShotPoint += 1
+                threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
+                if threadProgress > self.threadProgress:
+                    self.threadProgress = threadProgress
+                    self.progress.emit(threadProgress + 1)
+                # end thread progress code
+
+                fold = self.output.binOutput[row, col]                      # check available traces for this bin
+                if fold <= 0:
+                    continue                                                # nothing to see here
+
+                slice2D = self.output.anaOutput[row, col, 0:fold, :]          # get all available traces belonging to this bin
+
+                slottedOffset = slice2D[:, 10]                              # grab 10th element of 2nd dimension (=offset)
+                slottedOffset = slottedOffset * offScalar
+                slottedOffset = np.round(slottedOffset)
+                slottedOffset = slottedOffset * offSlot
+                slice2D[:, 10] = slottedOffset                              # write it back into the 2D slice
+
+                slottedAzimuth = slice2D[:, 11]                             # grab 11th element of 2nd dimension (=azimuth)
+                slottedAzimuth = slottedAzimuth * aziScalar
+                slottedAzimuth = np.round(slottedAzimuth)
+                slottedAzimuth = slottedAzimuth * aziSlot
+                slice2D[:, 11] = slottedAzimuth                             # write it back into the 2D slice
+
+                slottedOffAzi = np.column_stack((slottedOffset, slottedAzimuth))
+                _, indices = np.unique(slottedOffAzi, return_index=True, axis=0)
+
+                for index in indices:                                       # flag unique offset, azimuth values
+                    slice2D[index, 12] = -1.0
+
+                slice2D = slice2D[slice2D[:, -1].argsort()]                 # sort the traces on last column (unique -1 flag)
+                self.output.anaOutput[row, col, 0:fold, :] = slice2D        # put sorted traces back into analysis array
+
+                uniqueFld = np.count_nonzero(slice2D[:, -1], axis=0)        # get unique fold count from last column (nr12)
+                if uniqueFld > 0:
+                    minOffset = np.min(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
+                    maxOffset = np.max(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
+                else:
+                    minOffset = 0.0                                         # no traces available
+                    maxOffset = 0.0                                         # no traces available
+
+                self.output.binOutput[row, col] = uniqueFld                 # adjust fold value table
+                self.output.minOffset[row, col] = minOffset                 # adjust min offset table
+                self.output.maxOffset[row, col] = maxOffset                 # adjust max offset table
+
         return True
 
     @jit  # pylint: disable=e0602 # undefined variable in case of using nonumba

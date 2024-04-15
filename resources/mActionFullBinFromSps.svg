@@ -4,7 +4,7 @@
    width="32"
    version="1.1"
    id="svg8"
-   sodipodi:docname="mActionStopBinning.svg"
+   sodipodi:docname="mActionFullBinFromSps.svg"
    inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -59,25 +59,18 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
-     inkscape:zoom="32.09375"
-     inkscape:cx="14.223953"
-     inkscape:cy="16"
-     inkscape:window-width="2560"
-     inkscape:window-height="1361"
-     inkscape:window-x="-9"
-     inkscape:window-y="-9"
-     inkscape:window-maximized="1"
+     inkscape:zoom="45.387417"
+     inkscape:cx="11.192529"
+     inkscape:cy="12.525498"
+     inkscape:window-width="2426"
+     inkscape:window-height="1243"
+     inkscape:window-x="2683"
+     inkscape:window-y="37"
+     inkscape:window-maximized="0"
      inkscape:current-layer="svg8" />
-  <rect
-     style="opacity:0;fill:#ffffff;stroke:#2cbe2c;stroke-width:0"
-     id="rect7369"
-     width="8.5998049"
-     height="5.8578382"
-     x="1.6825706"
-     y="2.2745862" />
   <text
      xml:space="preserve"
-     style="font-size:17.3333px;line-height:1.25;font-family:sans-serif;letter-spacing:1.36px;fill:#0000ff;stroke-width:2"
+     style="font-size:17.3333px;line-height:1.25;font-family:sans-serif;letter-spacing:1.36px;fill:#9600ad;stroke-width:2;fill-opacity:1"
      x="0.25246835"
      y="30.716017"
      id="text7472"><tspan
@@ -85,48 +78,28 @@
        id="tspan7470"
        x="0.25246835"
        y="30.716017"
-       style="fill:#0000ff;stroke-width:2">Bin</tspan></text>
-  <g
-     id="g10683"
-     transform="matrix(1.5534103,0,0,1.4406682,10.866565,0.46720981)"
-     style="fill:#d40000">
-    <g
-       id="g10675"
-       style="fill:#d40000">
-      <g
-         stroke-linejoin="round"
-         transform="translate(0,-20)"
-         id="g10182"
-         style="fill:#d40000">
-        <rect
-           fill="#f05050"
-           height="11.780038"
-           rx="1.0709128"
-           stroke="#000000"
-           stroke-width="0.199666"
-           width="11.780038"
-           x="0.12001011"
-           y="20.12001"
-           id="rect10174"
-           style="fill:#d40000" />
-        <g
-           fill="#fcffff"
-           fill-rule="evenodd"
-           stroke="#ffffff"
-           stroke-linecap="round"
-           stroke-width="2"
-           id="g10180"
-           style="fill:#d40000">
-          <path
-             d="m 9.5,22.5 -7,7"
-             id="path10176"
-             style="fill:#d40000" />
-          <path
-             d="m 9.5,29.5 -7,-7"
-             id="path10178"
-             style="fill:#d40000" />
-        </g>
-      </g>
-    </g>
-  </g>
+       style="fill:#9600ad;stroke-width:2;fill-opacity:1">Bin</tspan></text>
+  <path
+     style="fill:#9600ad;fill-opacity:1;stroke:#9600ad;stroke-width:1.15494px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="M 17.64924,14.146384 17.69166,2.1781335 29.271334,8.8644785 Z"
+     id="path12468" />
+  <rect
+     style="opacity:0;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:#0000ff;stroke-width:0;stroke-opacity:1"
+     id="rect16893"
+     width="16.95034"
+     height="3.0847127"
+     x="3.3028238"
+     y="6.6679649"
+     rx="1.6635671"
+     inkscape:highlight-color="#aaaaaa" />
+  <text
+     xml:space="preserve"
+     style="font-size:16px;line-height:1.25;font-family:sans-serif;letter-spacing:0.68px;fill:#800000"
+     x="2.1271591"
+     y="13.36353"
+     id="text317"><tspan
+       sodipodi:role="line"
+       id="tspan315"
+       x="2.1271591"
+       y="13.36353">+</tspan></text>
 </svg>

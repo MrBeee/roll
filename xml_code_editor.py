@@ -342,3 +342,9 @@ if __name__ == '__main__':
         sys.exit(app.exec_())
 
     run_test()
+
+
+# Some help with painting lines in QPlainTextEdit
+# See: https://forum.qt.io/topic/77201/custom-painted-line-on-qplaintextedit-doesn-t-disappear
+# See: https://stackoverflow.com/questions/72603157/overwrite-paintevent-in-qtextedit-to-draw-rectangle-around-word
+# See: https://forum.qt.io/topic/1099/qtextedit-and-custom-paint-event/4

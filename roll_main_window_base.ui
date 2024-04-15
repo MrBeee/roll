@@ -650,7 +650,7 @@
   <action name="actionBasicBinFromTemplates">
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionStartBinning.svg</normaloff>resources/mActionStartBinning.svg</iconset>
+     <normaloff>resources/mActionBasicBinFromTemplates.svg</normaloff>resources/mActionBasicBinFromTemplates.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Basic Binning from Templates</string>
@@ -689,7 +689,7 @@
   <action name="actionFullBinFromTemplates">
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionStartExtendedBinning.svg</normaloff>resources/mActionStartExtendedBinning.svg</iconset>
+     <normaloff>resources/mActionFullBinFromTemplates2.svg</normaloff>resources/mActionFullBinFromTemplates2.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Full Binning from Templates</string>
@@ -745,7 +745,7 @@
   <action name="actionGeometryFromTemplates">
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionStartGeometry.svg</normaloff>resources/mActionStartGeometry.svg</iconset>
+     <normaloff>resources/mActionGeomFromTemplates.svg</normaloff>resources/mActionGeomFromTemplates.svg</iconset>
    </property>
    <property name="text">
     <string>Create Geometry from Templates</string>
@@ -755,6 +755,10 @@
    </property>
   </action>
   <action name="actionBasicBinFromGeometry">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionBasicBinFromGeometry.svg</normaloff>resources/mActionBasicBinFromGeometry.svg</iconset>
+   </property>
    <property name="text">
     <string>Basic Binning from Geometry</string>
    </property>
@@ -763,6 +767,10 @@
    </property>
   </action>
   <action name="actionFullBinFromGeometry">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionFullBinFromGeometry2.svg</normaloff>resources/mActionFullBinFromGeometry2.svg</iconset>
+   </property>
    <property name="text">
     <string>Full Binning from Geometry</string>
    </property>
@@ -816,6 +824,10 @@
    </property>
   </action>
   <action name="actionBasicBinFromSps">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionBasicBinFromSps.svg</normaloff>resources/mActionBasicBinFromSps.svg</iconset>
+   </property>
    <property name="text">
     <string>Basic Binning from &amp;Imported SPS</string>
    </property>
@@ -827,6 +839,10 @@
    </property>
   </action>
   <action name="actionFullBinFromSps">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionFullBinFromSps2.svg</normaloff>resources/mActionFullBinFromSps2.svg</iconset>
+   </property>
    <property name="text">
     <string>Full Binning from I&amp;mported SPS</string>
    </property>
