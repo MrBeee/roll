@@ -309,6 +309,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.colorBarItem = None                                                # ColorbarItem, added to imageItem
         self.histogram = None                                                   # histogram for image (not used yet)
 
+        # analysis plots settings
+        self.analysisPointList = [QPoint(), QPoint(-1, -1), QPoint(-1, -1), QPoint(-1, -1), QPoint(-1, -1), QPoint(-1, -1)]
+
         # export layers to QGIS
         self.rpsLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
         self.spsLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
@@ -452,6 +455,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.dockDisplay.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+d'))
         self.menu_View.addAction(self.dockDisplay.toggleViewAction())           # show/hide as requested
 
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
         # second docking pane
         self.dockLogging = QDockWidget('Logging pane')
         self.dockLogging.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
@@ -478,40 +483,76 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.dockLogging.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+l'))
         self.menu_View.addAction(self.dockLogging.toggleViewAction())
 
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
         self.survey = RollSurvey()                                              # (re)set the survey object; needed in property pane
 
-        self.tabWidget = QTabWidget()
-        self.tabWidget.setTabPosition(QTabWidget.South)
-        self.tabWidget.setTabShape(QTabWidget.Rounded)
-        self.tabWidget.setDocumentMode(False)                                   # has only effect on OSX ?!
-        self.tabWidget.resize(300, 200)
+        self.mainTabWidget = QTabWidget()
+        self.mainTabWidget.setTabPosition(QTabWidget.South)
+        self.mainTabWidget.setTabShape(QTabWidget.Rounded)
+        self.mainTabWidget.setDocumentMode(False)                               # has only effect on OSX ?!
+        self.mainTabWidget.resize(300, 200)
+
+        self.analysisTabWidget = QTabWidget()
+        self.analysisTabWidget.setTabPosition(QTabWidget.South)
+        self.analysisTabWidget.setTabShape(QTabWidget.Rounded)
+        self.analysisTabWidget.setDocumentMode(False)                           # has only effect on OSX ?!
+        self.analysisTabWidget.resize(300, 200)
+
+        # See: https://stackoverflow.com/questions/69152935/adding-the-same-object-to-a-qtabwidget
+        # See: pyqtgraph/examples/RemoteSpeedTest.py to keep gui responsive when updating a plot (uses multiprocessing)
+
+        self.plotTitles = [
+            'New survey',
+            'Offsets for inline cross-section',
+            'Offsets for x-line cross-section',
+            'AoI for inline cross-section',
+            'Aoi for x-line cross-section',
+            'Stack response for inline cross-section',
+            'Stack response for x-line cross-section',
+        ]
+
+        self.offTrkWidget = self.createPlotWidget(self.plotTitles[1], 'inline', 'offset', 'm', 'm')
+        self.offBinWidget = self.createPlotWidget(self.plotTitles[2], 'x-line', 'offset', 'm', 'm')
+        self.aoiTrkWidget = self.createPlotWidget(self.plotTitles[3], 'inline', 'angle of incidence', 'm', 'deg', False)    # no fixed aspect ratio
+        self.aoiBinWidget = self.createPlotWidget(self.plotTitles[4], 'x-line', 'angle of incidence', 'm', 'deg', False)    # no fixed aspect ratio
+        self.stkTrkWidget = self.createPlotWidget(self.plotTitles[5], 'inline', '|Kr|', 'm', '1/km')
+        self.stkBinWidget = self.createPlotWidget(self.plotTitles[6], 'x-line', '|Kr|', 'm', '1/km')
 
         # Create the various views (tabs) on the data
-        # Use QCodeEditor with a XMLHighlighter instead of a 'plain' QPlainTextEdit
+        # Use QCodeEditor with a XmlHighlighter instead of a 'plain' QPlainTextEdit
         # See: https://github.com/luchko/QCodeEditor/blob/master/QCodeEditor.py
 
         self.textEdit = QCodeEditor(SyntaxHighlighter=XMLHighlighter)           # only one widget on Xml-tab; add directly
         self.textEdit.document().setModified(False)
 
-        # initialize tabWidget; the other tabs have multiple widgets per page, start with giving them a simple QWidget
-        self.tabLayout = QWidget()
+        # The following tabs have multiple widgets per page, start by giving them a simple QWidget
         self.tabGeom = QWidget()
         self.tabSps = QWidget()
         self.tabTraces = QWidget()
 
-        # Add tabs
-        self.tabWidget.addTab(self.tabLayout, 'Layout')
-        self.tabWidget.addTab(self.textEdit, 'Xml')
-        self.tabWidget.addTab(self.tabGeom, 'Geometry')
-        self.tabWidget.addTab(self.tabSps, 'SPS import')
-        self.tabWidget.addTab(self.tabTraces, 'Trace table')
-        self.tabWidget.currentChanged.connect(self.onTabChange)                 # active tab changed!
-
         self.createLayoutTab()
-        # self.createXmlTab()
         self.createGeomTab()
         self.createSpsTab()
         self.createTracesTab()
+
+        # Add tabs to main tab widget
+        self.mainTabWidget.addTab(self.layoutWidget, 'Layout')
+        self.mainTabWidget.addTab(self.textEdit, 'Xml')
+        self.mainTabWidget.addTab(self.tabGeom, 'Geometry')
+        self.mainTabWidget.addTab(self.tabSps, 'SPS import')
+        self.mainTabWidget.addTab(self.analysisTabWidget, 'Analysis')
+        self.mainTabWidget.currentChanged.connect(self.onMainTabChange)         # active tab changed!
+
+        # Add tabs to analysis tab widget
+        self.analysisTabWidget.addTab(self.tabTraces, 'Trace table')
+        self.analysisTabWidget.addTab(self.offTrkWidget, 'Offset Inline')
+        self.analysisTabWidget.addTab(self.offBinWidget, 'Offset X-line')
+        self.analysisTabWidget.addTab(self.aoiTrkWidget, 'AoI Inline')
+        self.analysisTabWidget.addTab(self.aoiBinWidget, 'AoI X-line')
+        self.analysisTabWidget.addTab(self.stkTrkWidget, 'Stack Inline')
+        self.analysisTabWidget.addTab(self.stkBinWidget, 'Stack X-line')
+        self.analysisTabWidget.currentChanged.connect(self.onAnalysisTabChange)   # active tab changed!
 
         self.setCurrentFileName()
 
@@ -520,9 +561,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.setWindowModified(self.textEdit.document().isModified())                   # update window status based on document status
         self.textEdit.cursorPositionChanged.connect(self.cursorPositionChanged)         # to show cursor position in statusbar
 
-        self.plotWidget.scene().sigMouseMoved.connect(self.MouseMovedInPlot)
-        self.plotWidget.getViewBox().sigRangeChangedManually.connect(self.mouseBeingDragged)  # essential to find plotting state for LOD plotting
-        self.plotWidget.plotItem.sigRangeChanged.connect(self.plotViewRangeChanged)     # to handle changes in tickmarks when zooming
+        self.layoutWidget.scene().sigMouseMoved.connect(self.MouseMovedInPlot)
+        self.layoutWidget.getViewBox().sigRangeChangedManually.connect(self.mouseBeingDragged)  # essential to find plotting state for LOD plotting
+        self.layoutWidget.plotItem.sigRangeChanged.connect(self.plotViewRangeChanged)     # to handle changes in tickmarks when zooming
 
         self.actionDebug.setCheckable(True)
         self.actionDebug.setChecked(self.debug)
@@ -530,7 +571,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionDebug.triggered.connect(self.viewDebug)
 
         # the following actions are related to the plotWidget
-        self.actionZoomAll.triggered.connect(self.plotWidget.autoRange)
+        self.actionZoomAll.triggered.connect(self.layoutWidget.autoRange)
         self.actionZoomRect.setCheckable(True)
         self.actionZoomRect.setChecked(self.rect)
         self.actionZoomRect.triggered.connect(self.plotZoomRect)
@@ -653,8 +694,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # for the export items
         self.enableExport(False)
 
-        # make the tab widget the central widget
-        self.setCentralWidget(self.tabWidget)
+        # make the main tab widget the central widget
+        self.setCentralWidget(self.mainTabWidget)
 
         self.posWidgetStatusbar = QLabel('(x, y): (0.00, 0.00)')
         self.statusbar.addPermanentWidget(self.posWidgetStatusbar, stretch=0)   # widget in bottomright corner of statusbar
@@ -662,6 +703,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.parseText(exampleSurveyXmlText())
         self.textEdit.setPlainText(exampleSurveyXmlText())
         self.textEdit.moveCursor(QTextCursor.Start)
+
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
         # third docking pane, used to display survey properties
         # defined late, as it needs access to loaded survey object
@@ -698,6 +741,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.dockProperty.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+p'))
         self.menu_View.addAction(self.dockProperty.toggleViewAction())          # show/hide as requested
+
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
         self.plotSurvey()
 
@@ -854,10 +899,203 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             print(f'│     data:      {str(data)}')
             print('└───────────────────────────────────────')
 
-    def onTabChange(self, _index):                                               # manage focus when active tab is changed; doesn't work 100% yet !
-        widget = self.tabWidget.currentWidget()
+    def onMainTabChange(self, _index):                                          # manage focus when active tab is changed; doesn't work 100% yet !
+        widget = self.mainTabWidget.currentWidget()
         if isinstance(widget, QCodeEditor):
             widget.setFocus()
+
+    def onAnalysisTabChange(self, index):                                       # manage focus when active tab is changed; doesn't work 100% yet !
+
+        if self.anaOutput is None:                                              # we need self.anaOutput to display meaningful information
+            return
+
+        xSize = self.anaOutput.shape[0]                                         # useful for all tabs
+        ySize = self.anaOutput.shape[1]
+        nFold = self.anaOutput.shape[2]
+        dx = self.survey.grid.binSize.x()                                       # x bin size
+        dy = self.survey.grid.binSize.y()                                       # y bin size
+        ox = 0.5 * dx
+        oy = 0.5 * dy
+
+        if self.spiderPoint == QPoint(-1, -1):                                  # work with the spider point
+            self.spiderPoint = QPoint(xSize / 2, ySize / 2)                     # give it a meaningful value
+
+        nX = self.spiderPoint.x()
+        nY = self.spiderPoint.y()
+
+        if index == 0:                                                          # trace table needs no further updates
+            return
+        elif index == 1:                                                        # Offsets inline (common y)
+            # if self.analysisPointList[index] == self.spiderPoint:              # nothing to be done now
+            #     return
+
+            self.analysisPointList[index] = self.spiderPoint                    # for next time around
+
+            with pg.BusyCursor():
+                slice3D = self.anaOutput[:, nY, :, :]                           # we are left with 3 dimension[col, fold, param]
+                slice2D = slice3D.reshape(xSize * nFold, 13)                    # convert to 2D
+
+                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
+                    unqInline = slice2D[:, 12]                                  # get all available cmp values belonging to this row
+                    useUnique = True if unqInline.min() == -1 else False        # are there any -1 records ?
+                else:
+                    useUnique = False                                           # unique not required or not available
+
+                if useUnique:
+                    I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
+                else:
+                    I = slice2D[:, 2] > 0                                       # fold > 0
+
+                if np.count_nonzero(I) == 0:
+                    return                                                      # nothing to show; return
+
+                slice2D = slice2D[I, :]                                         # filter the 2D slice
+
+                x__Inline = slice2D[:, 7]                                       # get all available cmp values belonging to this row
+                offInline = slice2D[:, 10]                                      # get all available offsets belonging to this row
+
+                x = np.empty((2 * x__Inline.size), dtype=x__Inline.dtype)
+                x[0::2] = x__Inline - ox
+                x[1::2] = x__Inline + ox
+
+                y = np.empty((2 * offInline.size), dtype=offInline.dtype)
+                y[0::2] = offInline
+                y[1::2] = offInline
+
+                plotTitle = f'{self.plotTitles[1]} [trk={nY}]'
+                self.offTrkWidget.setTitle(plotTitle, color='b', size='16pt')
+                self.offTrkWidget.plotItem.clear()
+                rec = self.offTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+
+        elif index == 2:                                                        # offsets x-line (common x)
+            # if self.analysisPointList[index] == self.spiderPoint:             # nothing to be done now
+            #     return
+
+            self.analysisPointList[index] = self.spiderPoint                    # for next time around
+
+            with pg.BusyCursor():
+                slice3D = self.anaOutput[nX, :, :, :]                           # we are left with 3 dimensions [col, fold, param]
+                slice2D = slice3D.reshape(ySize * nFold, 13)                    # convert to 2D
+
+                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
+                    unqInline = slice2D[:, 12]                                  # get all available cmp values belonging to this row
+                    useUnique = True if unqInline.min() == -1 else False        # are there any -1 records ?
+                else:
+                    useUnique = False                                           # unique not required or not available
+
+                if useUnique:
+                    I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
+                else:
+                    I = slice2D[:, 2] > 0                                       # fold > 0
+
+                if np.count_nonzero(I) == 0:
+                    return                                                      # nothing to show; return
+
+                slice2D = slice2D[I, :]                                         # filter the 2D slice
+
+                y__Inline = slice2D[:, 8]                                       # get all available cmp values belonging to this row
+                offInline = slice2D[:, 10]                                      # get all available offsets belonging to this row
+
+                x = np.empty((2 * y__Inline.size), dtype=y__Inline.dtype)
+                x[0::2] = y__Inline - oy
+                x[1::2] = y__Inline + oy
+
+                y = np.empty((2 * offInline.size), dtype=offInline.dtype)
+                y[0::2] = offInline
+                y[1::2] = offInline
+
+                plotTitle = f'{self.plotTitles[2]} [bin={nX}]'
+                self.offBinWidget.setTitle(plotTitle, color='b', size='16pt')
+                self.offBinWidget.plotItem.clear()
+                rec = self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+
+        elif index == 3:                                                        # Azimuths inline (common y)
+            # if self.analysisPointList[index] == self.spiderPoint:             # nothing to be done now
+            #     return
+
+            self.analysisPointList[index] = self.spiderPoint                    # for next time around
+
+            with pg.BusyCursor():
+                slice3D = self.anaOutput[:, nY, :, :]                           # we are left with 3 dimension[col, fold, param]
+                slice2D = slice3D.reshape(xSize * nFold, 13)                    # convert to 2D
+
+                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
+                    unqInline = slice2D[:, 12]                                  # get all available cmp values belonging to this row
+                    useUnique = True if unqInline.min() == -1 else False        # are there any -1 records ?
+                else:
+                    useUnique = False                                           # unique not required or not available
+
+                if useUnique:
+                    I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
+                else:
+                    I = slice2D[:, 2] > 0                                       # fold > 0
+
+                if np.count_nonzero(I) == 0:
+                    return                                                      # nothing to show; return
+
+                slice2D = slice2D[I, :]                                         # filter the 2D slice
+
+                x__Inline = slice2D[:, 7]                                       # get all available cmp values belonging to this row
+                aziInline = slice2D[:, 11]                                      # get all available offsets belonging to this row
+
+                x = np.empty((2 * x__Inline.size), dtype=x__Inline.dtype)
+                x[0::2] = x__Inline - ox
+                x[1::2] = x__Inline + ox
+
+                y = np.empty((2 * aziInline.size), dtype=aziInline.dtype)
+                y[0::2] = aziInline
+                y[1::2] = aziInline
+
+                plotTitle = f'{self.plotTitles[3]} [trk={nY}]'
+                self.aoiTrkWidget.setTitle(plotTitle, color='b', size='16pt')
+                self.aoiTrkWidget.plotItem.clear()
+                rec = self.aoiTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+
+        elif index == 4:                                                        # offsets x-line (common x)
+            # if self.analysisPointList[index] == self.spiderPoint:               # nothing to be done now
+            #     return
+
+            self.analysisPointList[index] = self.spiderPoint                    # for next time around
+
+            with pg.BusyCursor():
+                slice3D = self.anaOutput[nX, :, :, :]                           # we are left with 3 dimension[col, fold, param]
+                slice2D = slice3D.reshape(ySize * nFold, 13)                    # convert to 2D
+
+                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
+                    unqInline = slice2D[:, 12]                                  # get all available cmp values belonging to this row
+                    useUnique = True if unqInline.min() == -1 else False        # are there any -1 records ?
+                else:
+                    useUnique = False                                           # unique not required or not available
+
+                if useUnique:
+                    I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
+                else:
+                    I = slice2D[:, 2] > 0                                       # fold > 0
+
+                if np.count_nonzero(I) == 0:
+                    return                                                      # nothing to show; return
+
+                slice2D = slice2D[I, :]                                         # filter the 2D slice
+
+                y__Inline = slice2D[:, 8]                                       # get all available cmp values belonging to this row
+                aziInline = slice2D[:, 11]                                      # get all available offsets belonging to this row
+                unqInline = slice2D[:, 12]                                      # get all available cmp values belonging to this row
+
+                x = np.empty((2 * y__Inline.size), dtype=y__Inline.dtype)
+                x[0::2] = y__Inline - oy
+                x[1::2] = y__Inline + oy
+
+                y = np.empty((2 * aziInline.size), dtype=aziInline.dtype)
+                y[0::2] = aziInline
+                y[1::2] = aziInline
+
+                plotTitle = f'{self.plotTitles[4]} [bin={nX}]'
+                self.aoiBinWidget.setTitle(plotTitle, color='b', size='16pt')
+                self.aoiBinWidget.plotItem.clear()
+                rec = self.aoiBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+
+            # SOFAR NOW
+            col = self.spiderPoint.y()                                          # dummy statemenmt for debugging
 
     # deal with the edit menu here.
     # the idea is that Cut, copy, paste and select_all are no longer hardwired to the xml-textEdit
@@ -896,29 +1134,37 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def find(self):
         # find only operates on the xml-text edit
-        self.tabWidget.setCurrentIndex(1)                                       # make sure we display the 'xml' tab
+        self.mainTabWidget.setCurrentIndex(1)                                   # make sure we display the 'xml' tab
         Find(self).show()                                                       # show find and replace dialog
+
+    def createPlotWidget(self, plotTitle='', xAxisTitle='', yAxisTitle='', unitX='', unitY='', aspectLocked=True):
+        """Create a plot widget for first usage"""
+        w = pg.PlotWidget(background='w')
+        w.setAspectLocked(True)                                                 # setting can be changed through a toolbar
+        w.showGrid(x=True, y=True, alpha=0.75)                                  # shows the grey grid lines
+        w.setMinimumSize(150, 150)                                              # prevent excessive widget shrinking
+        # See: https://stackoverflow.com/questions/44402399/how-to-disable-the-default-context-menu-of-pyqtgraph for context menu options
+        w.setMenuEnabled(False, enableViewBoxMenu=None)                         # get rid of context menu but keep ViewBox menu
+        # w.ctrlMenu = None                                                     # get rid of 'Plot Options' in context menu
+        # w.scene().contextMenu = None                                          # get rid of 'Export' in context menu
+
+        # set up plot title
+        w.setTitle(plotTitle, color='b', size='16pt')
+
+        # setup axes
+        styles = {'color': '#000', 'font-size': '10pt'}
+        w.showAxes(True, showValues=(True, False, False, True))                 # show values at the left and at the bottom
+        w.setLabel('bottom', xAxisTitle, units=unitX, **styles)                 # shows axis at the bottom, and shows the units label
+        w.setLabel('left', yAxisTitle, units=unitY, **styles)                   # shows axis at the left, and shows the units label
+        w.setLabel('top', ' ', **styles)                                        # shows axis at the top, no label, no tickmarks
+        w.setLabel('right', ' ', **styles)                                      # shows axis at the right, no label, no tickmarks
+        w.setAspectLocked(aspectLocked)
+
+        return w
 
     # create tabbed pages
     def createLayoutTab(self):
-
-        # Create plot widget for first tab
-        self.plotWidget = pg.PlotWidget(background='w')
-        self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
-        self.plotWidget.showGrid(x=True, y=True, alpha=0.75)                    # shows the grey grid lines
-        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
-        # See: https://stackoverflow.com/questions/44402399/how-to-disable-the-default-context-menu-of-pyqtgraph for context menu options
-        self.plotWidget.setMenuEnabled(False, enableViewBoxMenu=None)           # get rid of context menu but keep ViewBox menu
-        # self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options' in context menu
-        # self.plotWidget.scene().contextMenu = None                              # get rid of 'Export' in context menu
-
-        # create layout for geometry tab
-        self.tabLayout.layout = QVBoxLayout(self)
-        self.tabLayout.layout.setContentsMargins(0, 0, 0, 0)
-        self.tabLayout.layout.addWidget(self.plotWidget)
-
-        # put PyQtGraph on geometry tab
-        self.tabLayout.setLayout(self.tabLayout.layout)
+        self.layoutWidget = self.createPlotWidget()
 
     def createTracesTab(self):
         # analysis table; to copy data to clipboard, create a subclassed QTableView, see bottom of following article:
@@ -1340,6 +1586,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         nX = self.spiderPoint.x()
         nY = self.spiderPoint.y()
 
+        # Action required depends on active tab. Layout tab, or one of the analysis tabs require action.
+        mainTabIndex = self.mainTabWidget.currentIndex()
+        analysisIndex = self.analysisTabWidget.currentIndex()
+
+        if mainTabIndex == 4 and analysisIndex > 0:
+            self.onAnalysisTabChange(analysisIndex)
+            return
+
         twoFold = 2 * self.binOutput[nX, nY]                                    # max fold times two
         twoFold = min(twoFold, self.survey.grid.fold * 2)                       # limit to available cmp records
 
@@ -1410,7 +1664,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if index < 3:
             self.xpsImport.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
         elif index == 3:
-            self.xpsImport.sort(order=['RecNo', 'SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+            self.xpsImport.sort(order=['RecNum', 'SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
         else:
             self.xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax'])
         self.xpsModel.setData(self.xpsImport)
@@ -1495,7 +1749,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if index < 3:
             self.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
         elif index == 3:
-            self.relGeom.sort(order=['RecNo', 'SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+            self.relGeom.sort(order=['RecNum', 'SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
         else:
             self.relGeom.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax'])
         self.relModel.setData(self.relGeom)
@@ -1763,12 +2017,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             else:
                 self.colorBarItem.getAxis('left').setLabel(label)
 
-    def handleImageSelection(self):                                             # change rendered image, if available
+    def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
         self.imageType = self.analysisGroup.checkedId()
-        self.tabWidget.setCurrentIndex(0)                                       # make sure we display the 'Layout' tab
+        self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the 'Layout' tab
 
         if self.imageItem is not None and self.colorBarItem is None:
-            self.colorBarItem = self.plotWidget.plotItem.addColorBar(self.imageItem, colorMap=config.inActiveCmap, label='N/A', limits=(0, None), rounding=10.0, values=(0, 10))
+            self.colorBarItem = self.layoutWidget.plotItem.addColorBar(self.imageItem, colorMap=config.inActiveCmap, label='N/A', limits=(0, None), rounding=10.0, values=(0, 10))
 
         if self.imageData is None or self.imageType == 0:
             self.imageItem = None
@@ -1835,8 +2089,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.posWidgetStatusbar.setText(f'Line: {line} Col: {col}')
 
     def MouseMovedInPlot(self, pos):                                            # See: https://stackoverflow.com/questions/46166205/display-coordinates-in-pyqtgraph
-        if self.plotWidget.sceneBoundingRect().contains(pos):                   # is mouse moved within the scene area ?
-            mousePoint = self.plotWidget.plotItem.vb.mapSceneToView(pos)        # get scene coordinates
+        if self.layoutWidget.sceneBoundingRect().contains(pos):                   # is mouse moved within the scene area ?
+            mousePoint = self.layoutWidget.plotItem.vb.mapSceneToView(pos)        # get scene coordinates
 
             if self.glob:                                                       # plot is using global coordinates
                 toLocTransform, _ = self.survey.glbTransform.inverted()
@@ -1899,24 +2153,24 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def plotZoomRect(self):
         self.rect = not self.rect
         if self.rect:
-            self.plotWidget.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+            self.layoutWidget.getViewBox().setMouseMode(pg.ViewBox.RectMode)
         else:
-            self.plotWidget.getViewBox().setMouseMode(pg.ViewBox.PanMode)
+            self.layoutWidget.getViewBox().setMouseMode(pg.ViewBox.PanMode)
 
     def plotAspectRatio(self):
         self.XisY = not self.XisY
-        self.plotWidget.setAspectLocked(self.XisY)
+        self.layoutWidget.setAspectLocked(self.XisY)
 
     def plotAntiAlias(self):
         self.antA = not self.antA
-        self.plotWidget.setAntialiasing(self.antA)                              # enabl/disable aa plotting
+        self.layoutWidget.setAntialiasing(self.antA)                              # enabl/disable aa plotting
 
     def plotGridLines(self):
         self.grid = not self.grid
         if self.grid:
-            self.plotWidget.showGrid(x=True, y=True, alpha=0.75)                # show the grey grid lines
+            self.layoutWidget.showGrid(x=True, y=True, alpha=0.75)                # show the grey grid lines
         else:
-            self.plotWidget.showGrid(x=False, y=False)                          # don't show the grey grid lines
+            self.layoutWidget.showGrid(x=False, y=False)                          # don't show the grey grid lines
 
     def plotProjected(self):
         self.glob = self.actionProjected.isChecked()
@@ -1952,9 +2206,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     self.appendLogMessage(s3, MsgType.Debug)
 
         self.handleSpiderPlot()                                                 # spider label should move depending on local/global coords
-
+        self.layoutWidget.autoRange()                                             # show the full range of objects when changing local vs global coordinates
         self.plotSurvey()
-        self.plotWidget.autoRange()
 
     def plotRuler(self):
         self.ruler = not self.ruler
@@ -1970,18 +2223,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.textEdit.document().setModified(True)                          # we edited the document; so it's been modified
 
         self.plotSurvey()
-        # self.plotWidget.enableAutoRange()                                     # makes the plot 'fit' the survey outline.
+        # self.layoutWidget.enableAutoRange()                                     # makes the plot 'fit' the survey outline.
 
     def plotViewRangeChanged(self):
-        # handle resizing of plot in view of bin-aligned gridlines
-        axLft = self.plotWidget.plotItem.getAxis('left')                        # get y-axis
-        axBot = self.plotWidget.plotItem.getAxis('bottom')                      # get x-axis
-        axTop = self.plotWidget.plotItem.getAxis('left')                        # get y-axis
-        axRgt = self.plotWidget.plotItem.getAxis('bottom')                      # get x-axis
+        """handle resizing of plot in view of bin-aligned gridlines"""
+        axLft = self.layoutWidget.plotItem.getAxis('left')                      # get y-axis
+        axBot = self.layoutWidget.plotItem.getAxis('bottom')                    # get x-axis
+        axTop = self.layoutWidget.plotItem.getAxis('left')                      # get y-axis
+        axRgt = self.layoutWidget.plotItem.getAxis('bottom')                    # get x-axis
 
-        vb = self.plotWidget.getViewBox().viewRect()                            # view area in world coords
-        dx = self.survey.grid.binSize.x()                                          # x bin size
-        dy = self.survey.grid.binSize.y()                                          # y bin size
+        vb = self.layoutWidget.getViewBox().viewRect()                          # view area in world coords
+        dx = self.survey.grid.binSize.x()                                       # x bin size
+        dy = self.survey.grid.binSize.y()                                       # y bin size
 
         if vb.width() > dx and vb.height() > dy:                                # area must be > a single bin to do something
             if not self.glob and (vb.width() < 30.0 * dx or vb.height() < 30.0 * dy):   # scale grid towards bin size
@@ -2000,41 +2253,41 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def plotSurvey(self):
         # first we are going to see how large the survey area is, to establish a boundingbox
         # See: https://www.geeksforgeeks.org/pyqtgraph-removing-item-from-plot-window/
-        # self.plotWidget.plotItem.removeItem(self.legend)
-        # self.plotWidget.plotItem.removeItem(self.srcLines)
-        # self.plotWidget.plotItem.removeItem(self.recLines)
+        # self.layoutWidget.plotItem.removeItem(self.legend)
+        # self.layoutWidget.plotItem.removeItem(self.srcLines)
+        # self.layoutWidget.plotItem.removeItem(self.recLines)
         # See also: https://groups.google.com/g/pyqtgraph/c/tlryVLCDmmQ when the view does not refresh
 
-        self.plotWidget.plotItem.clear()
-        self.plotWidget.setTitle(self.survey.name, color='b', size='16pt')
-        self.plotWidget.showAxes(True, showValues=(True, False, False, True))   # show values at the left and at the bottom
+        self.layoutWidget.plotItem.clear()
+        self.layoutWidget.setTitle(self.survey.name, color='b', size='16pt')
+        self.layoutWidget.showAxes(True, showValues=(True, False, False, True))   # show values at the left and at the bottom
 
         transform = QTransform()                                                # empty (unit) transform
 
         # setup axes first
         styles = {'color': '#000', 'font-size': '10pt'}
         if self.glob:                                                           # global -> easting & westing
-            self.plotWidget.setLabel('bottom', 'Easting', units='m', **styles)  # shows axis at the bottom, and shows the units label
-            self.plotWidget.setLabel('left', 'Northing', units='m', **styles)   # shows axis at the left, and shows the units label
-            self.plotWidget.setLabel('top', ' ', **styles)                      # shows axis at the top, no label, no tickmarks
-            self.plotWidget.setLabel('right', ' ', **styles)                    # shows axis at the right, no label, no tickmarks
+            self.layoutWidget.setLabel('bottom', 'Easting', units='m', **styles)  # shows axis at the bottom, and shows the units label
+            self.layoutWidget.setLabel('left', 'Northing', units='m', **styles)   # shows axis at the left, and shows the units label
+            self.layoutWidget.setLabel('top', ' ', **styles)                      # shows axis at the top, no label, no tickmarks
+            self.layoutWidget.setLabel('right', ' ', **styles)                    # shows axis at the right, no label, no tickmarks
             transform = self.survey.glbTransform                                # get global coordinate conversion transform
         else:                                                                   # local -> inline & crossline
-            self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
-            self.plotWidget.setLabel('left', 'crossline', units='m', **styles)  # shows axis at the left, and shows the units label
-            self.plotWidget.setLabel('top', ' ', **styles)                      # shows axis at the top, no label, no tickmarks
-            self.plotWidget.setLabel('right', ' ', **styles)                    # shows axis at the right, no label, no tickmarks
+            self.layoutWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
+            self.layoutWidget.setLabel('left', 'crossline', units='m', **styles)  # shows axis at the left, and shows the units label
+            self.layoutWidget.setLabel('top', ' ', **styles)                      # shows axis at the top, no label, no tickmarks
+            self.layoutWidget.setLabel('right', ' ', **styles)                    # shows axis at the right, no label, no tickmarks
 
         # add image, if available and required
         if self.imageItem is not None and self.imageType > 0:
             self.imageItem.setTransform(self.survey.cmpTransform * transform)   # combine two transforms
-            self.plotWidget.plotItem.addItem(self.imageItem)
+            self.layoutWidget.plotItem.addItem(self.imageItem)
 
         # add survey geometry if templates are to be displayed (controlled by checkbox)
         if self.cbTemplat.isChecked():
             surveyItem = self.survey
             surveyItem.setTransform(transform)                                  # always do this; will reset transform for 'local' plot
-            self.plotWidget.plotItem.addItem(surveyItem)                        # this plots the survey geometry
+            self.layoutWidget.plotItem.addItem(surveyItem)                      # this plots the survey geometry
 
         # to add SPS data, i.e. point lists, please have a look at:
         # https://pyqtgraph.readthedocs.io/en/latest/api_reference/graphicsItems/plotitem.html#pyqtgraph.PlotItem.plot and :
@@ -2047,13 +2300,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 spsTransform, _ = self.survey.glbTransform.inverted()
 
-            # sps = self.plotWidget.plot( x=self.spsCoordE, y=self.spsCoordN, connect=self.spsCoordI, pxMode=False,
+            # sps = self.layoutWidget.plot( x=self.spsCoordE, y=self.spsCoordN, connect=self.spsCoordI, pxMode=False,
             #                             symbol=config.spsPointSymbol,
             #                             symbolPen=pg.mkPen("k"),
             #                             symbolSize=config.spsSymbolSize,
             #                             symbolBrush=QColor(config.spsBrushColor))
 
-            sps = self.plotWidget.plot(
+            sps = self.layoutWidget.plot(
                 x=self.spsCoordE,
                 y=self.spsCoordN,
                 connect='all',
@@ -2071,13 +2324,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 rpsTransform, _ = self.survey.glbTransform.inverted()
 
-            # rps = self.plotWidget.plot( x=self.rpsCoordE, y=self.rpsCoordN, connect=self.rpsCoordI, pxMode=False,
+            # rps = self.layoutWidget.plot( x=self.rpsCoordE, y=self.rpsCoordN, connect=self.rpsCoordI, pxMode=False,
             #                             symbol=config.rpsPointSymbol,
             #                             symbolPen=pg.mkPen("k"),
             #                             symbolSize=config.rpsSymbolSize,
             #                             symbolBrush=QColor(config.rpsBrushColor ))
 
-            rps = self.plotWidget.plot(
+            rps = self.layoutWidget.plot(
                 x=self.rpsCoordE,
                 y=self.rpsCoordN,
                 connect='all',
@@ -2095,7 +2348,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 srcTransform, _ = self.survey.glbTransform.inverted()
 
-            src = self.plotWidget.plot(
+            src = self.layoutWidget.plot(
                 x=self.srcCoordE,
                 y=self.srcCoordN,
                 connect=self.srcCoordI,
@@ -2112,13 +2365,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 recTransform, _ = self.survey.glbTransform.inverted()
 
-            # rec = self.plotWidget.plot( x=self.recCoordE, y=self.recCoordN, connect=self.recCoordI, pxMode=False,
+            # rec = self.layoutWidget.plot( x=self.recCoordE, y=self.recCoordN, connect=self.recCoordI, pxMode=False,
             #                             symbol=config.recPointSymbol,
             #                             symbolPen=pg.mkPen("k"),
             #                             symbolSize=config.recSymbolSize,
             #                             symbolBrush=QColor(config.recBrushColor ))
 
-            rec = self.plotWidget.plot(
+            rec = self.layoutWidget.plot(
                 x=self.recCoordE,
                 y=self.recCoordN,
                 connect='all',
@@ -2133,23 +2386,23 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         if self.cbSpider.isChecked() and self.anaOutput is not None and self.binOutput is not None and self.spiderSrcX is not None:
 
-            src = self.plotWidget.plot(
+            src = self.layoutWidget.plot(
                 x=self.spiderSrcX, y=self.spiderSrcY, connect='pairs', symbol='o', pen=pg.mkPen('r', width=2), symbolSize=5, pxMode=False, symbolPen=pg.mkPen('r'), symbolBrush=QColor('#77FF2929')
             )
             src.setTransform(transform)
 
-            rec = self.plotWidget.plot(
+            rec = self.layoutWidget.plot(
                 x=self.spiderRecX, y=self.spiderRecY, connect='pairs', symbol='o', pen=pg.mkPen('b', width=2), symbolSize=5, pxMode=False, symbolPen=pg.mkPen('b'), symbolBrush=QColor('#772929FF')
             )
             rec.setTransform(transform)
 
-            self.plotWidget.plotItem.addItem(self.spiderText)
+            self.layoutWidget.plotItem.addItem(self.spiderText)
 
         if self.cbTemplat.isChecked():
             # Add a marker for the origin
             oriX = [0.0]
             oriY = [0.0]
-            orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='o', symbolSize=16, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+            orig = self.layoutWidget.plot(x=oriX, y=oriY, symbol='o', symbolSize=16, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
             orig.setTransform(transform)
 
         if self.survey.binning.method == BinningType.sphere:
@@ -2165,7 +2418,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             sphereArea.setPen(pg.mkPen(100, 100, 100))
             sphereArea.setBrush(QBrush(QColor(config.binAreaColor)))            # use same color as binning region
             sphereArea.setTransform(transform)
-            self.plotWidget.plotItem.addItem(sphereArea)
+            self.layoutWidget.plotItem.addItem(sphereArea)
 
         if self.ruler:
             # add ruler if required
@@ -2175,7 +2428,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             p4 = pg.mkPen('b', width=3)
 
             # get default location for ruler, dependent on current viewRect
-            viewRect = self.plotWidget.plotItem.vb.viewRect()
+            viewRect = self.layoutWidget.plotItem.vb.viewRect()
             ptCenter = viewRect.center()
             pt1 = (ptCenter + viewRect.topLeft()) / 2.0
             pt2 = (ptCenter + viewRect.bottomRight()) / 2.0
@@ -2184,14 +2437,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if self.rulerState is not None:                                     # restore state, if possible
                 self.lineROI.setState(self.rulerState)
 
-            self.plotWidget.plotItem.addItem(self.lineROI)
+            self.layoutWidget.plotItem.addItem(self.lineROI)
             self.lineROI.sigRegionChanged.connect(self.roiChanged)
 
             length = len(self.lineROI.getHandles()) + 1
             self.roiLabels = [pg.TextItem(anchor=(0.5, 1.3), border='b', color='b', fill=(130, 255, 255, 200), text='label') for _ in range(length)]
 
             for label in self.roiLabels:
-                self.plotWidget.plotItem.addItem(label)
+                self.layoutWidget.plotItem.addItem(label)
                 label.setZValue(1000)
             self.roiChanged()
 
@@ -2559,9 +2812,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.handleImageSelection()                                         # change selection and plot survey
             self.spiderPoint = QPoint(-1, -1)                                   # reset the spider location
 
-        self.enableExport(True)                                                 # enable export in File Menu
-        self.enableProcessingMenuItems(True)                                    # enables processing menu items except stop thread
-        self.plotWidget.enableAutoRange()                                       # make the plot 'fit' the survey outline.
+        self.enableExport(True)                                                 # enable export items in File Menu
+        self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable stop thread
+        self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
         self.plotSurvey()                                                       # plot the survey object
         self.resetSurveyProperties()                                            # update the parameter pane
         self.survey.checkIntegrity()                                            # check for survey integrity; in particular well file validity
@@ -2746,7 +2999,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.xpsModel.setData(self.xpsImport)
         self.rpsModel.setData(self.rpsImport)
 
-        self.tabWidget.setCurrentIndex(3)                                       # make sure we display the 'SPS import' tab
+        self.mainTabWidget.setCurrentIndex(3)                                   # make sure we display the 'SPS import' tab
         self.cbRpsList.setEnabled(nRps > 0)                                     # update the GUI
         self.cbSpsList.setEnabled(nSps > 0)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save sps data as numpy arrays upon saving the file
@@ -3524,7 +3777,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.survey.cmpTransform = self.worker.survey.cmpTransform
 
             if self.colorBarItem is None:
-                self.colorBarItem = self.plotWidget.plotItem.addColorBar(self.imageItem, colorMap=config.analysisCmap, label=label, limits=(0, None), rounding=10.0, values=(0.0, self.imageMax))
+                self.colorBarItem = self.layoutWidget.plotItem.addColorBar(self.imageItem, colorMap=config.analysisCmap, label=label, limits=(0, None), rounding=10.0, values=(0.0, self.imageMax))
             else:
                 self.colorBarItem.setImageItem(self.imageItem)
                 self.colorBarItem.setLevels(low=0.0, high=self.imageMax)
@@ -3604,11 +3857,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # enable/disable menu items
         self.enableProcessingMenuItems(True)
-        self.tabWidget.setCurrentIndex(2)                                       # make sure we display the 'Geometry' tab
+        self.mainTabWidget.setCurrentIndex(2)                                   # make sure we display the 'Geometry' tab
         self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
 
     def showStatusbarWidgets(self):
-        self.progressBar.setValue(0)                                            # reset to zero, to avoid glitches in progress shown
+        self.progressBar.setValue(0)                                            # first reset to zero, to avoid future glitches in progress shown
         self.statusbar.addWidget(self.progressBar)                              # add temporary widget to statusbar (again)
         self.progressBar.show()                                                 # forces showing progressbar (again)
         self.statusbar.addWidget(self.progressLabel)                            # add temporary widget to statusbar (again)
@@ -3616,7 +3869,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def hideStatusbarWidgets(self):
         self.statusbar.removeWidget(self.progressBar)                           # remove widget from statusbar (don't kill it)
-        self.progressBar.setValue(0)                                            # reset progressbar to zero out, when of sight
+        self.progressBar.setValue(0)                                            # reset progressbar to zero, when out of sight
         self.statusbar.removeWidget(self.progressLabel)                         # remove progress label as well
 
 

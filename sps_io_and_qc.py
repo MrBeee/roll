@@ -108,7 +108,7 @@ relType = np.dtype(
     [
         ('RecID', 'U2'),  # A1 ('X')
         ('TapeNo', 'U8'),  # 3A2
-        ('RecNo', 'i4'),  # I8
+        ('RecNum', 'i4'),  # I8
         ('RecInc', 'i4'),  # I1
         ('Instru', 'U2'),  # A1
         ('SrcLin', 'f4'),  # F10.2
@@ -129,7 +129,7 @@ relType2 = np.dtype(
         ('SrcLin', 'f4'),  # F10.2
         ('SrcPnt', 'f4'),  # F10.2
         ('SrcInd', 'i4'),  # I1
-        ('RecNo', 'i4'),  # I8
+        ('RecNum', 'i4'),  # I8
         ('RecLin', 'f4'),  # F10.2
         ('RecMin', 'f4'),  # F10.2
         ('RecMax', 'f4'),  # F10.2
@@ -690,13 +690,13 @@ def fileExportAsX01(parent, fileName, data, crs):
         fn += extension                                                         # just add the file extension
 
     fmt = '%1s', '%6s', '%8d', '%1d', '%1s', '%10.2f', '%10.2f', '%1d', '%5d', '%5d', '%1d', '%10.2f', '%10.2f', '%10.2f', '%1d'
-    # 'RecID', 'TapeNo', 'RecNo', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'
+    # 'RecID', 'TapeNo', 'RecNum', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'
 
     # relType2 used in the rel/rps model:
     # ('SrcLin', 'f4'),   # F10.2
     # ('SrcPnt', 'f4'),   # F10.2
     # ('SrcInd', 'i4'),   # I1
-    # ('RecNo',  'i4'),   # I8
+    # ('RecNum',  'i4'),  # I8
     # ('RecLin', 'f4'),   # F10.2
     # ('RecMin', 'f4'),   # F10.2
     # ('RecMax', 'f4'),   # F10.2
@@ -708,7 +708,7 @@ def fileExportAsX01(parent, fileName, data, crs):
     # need relType for export to xps
     # ('RecID',  'U2'),   # A1 ('X')
     # ('TapeNo', 'U8'),   # 3A2
-    # ('RecNo',  'i4'),   # I8
+    # ('RecNum',  'i4'),  # I8
     # ('RecInc', 'i4'),   # I1
     # ('Instru', 'U2'),   # A1
     # ('SrcLin', 'f4'),   # F10.2
@@ -726,7 +726,7 @@ def fileExportAsX01(parent, fileName, data, crs):
     xpsData = np.zeros(shape=size, dtype=relType)
     xpsData['RecID'] = 'X'
     xpsData['TapeNo'] = ' tape1'
-    xpsData['RecNo'] = data['RecNo']
+    xpsData['RecNum'] = data['RecNum']
     xpsData['RecInc'] = 1
     xpsData['Instru'] = '1'
     xpsData['SrcLin'] = data['SrcLin']

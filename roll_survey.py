@@ -569,7 +569,7 @@ class RollSurvey(pg.GraphicsObject):
                                                     self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStake.y())
                                                     self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStake.x())
                                                     self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
-                                                    self.output.relGeom[self.nRelRecord]['RecNo'] = self.nShotPoint
+                                                    self.output.relGeom[self.nRelRecord]['RecNum'] = self.nShotPoint
                                                     self.output.relGeom[self.nRelRecord]['RecLin'] = int(recStake.y())
                                                     self.output.relGeom[self.nRelRecord]['RecMin'] = recMin
                                                     self.output.relGeom[self.nRelRecord]['RecMax'] = recMax
@@ -740,7 +740,7 @@ class RollSurvey(pg.GraphicsObject):
                             self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStkY)
                             self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStkX)
                             self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
-                            self.output.relGeom[self.nRelRecord]['RecNo'] = self.nShotPoint
+                            self.output.relGeom[self.nRelRecord]['RecNum'] = self.nShotPoint
                             self.output.relGeom[self.nRelRecord]['RecLin'] = int(recStkY)
                             self.output.relGeom[self.nRelRecord]['RecMin'] = int(recStkX)
                             self.output.relGeom[self.nRelRecord]['RecMax'] = int(recStkX)
@@ -1188,7 +1188,7 @@ class RollSurvey(pg.GraphicsObject):
         return True
 
     def calcUniqueFoldValues(self) -> bool:
-        """implement code to handle unique offsets"""
+        """code to calculate unique offsets as a post-processing step"""
         if self.unique.apply is False:                                          # slot offsets and azimuths and prune data
             return False
 
@@ -1218,7 +1218,8 @@ class RollSurvey(pg.GraphicsObject):
 
         for row in range(rows):
             for col in range(cols):
-                # begin thread progress code
+
+                # begin of thread progress code
                 if QThread.currentThread().isInterruptionRequested():       # maybe stop at each shot...
                     raise StopIteration
 
@@ -1227,13 +1228,13 @@ class RollSurvey(pg.GraphicsObject):
                 if threadProgress > self.threadProgress:
                     self.threadProgress = threadProgress
                     self.progress.emit(threadProgress + 1)
-                # end thread progress code
+                # end of thread progress code
 
                 fold = self.output.binOutput[row, col]                      # check available traces for this bin
                 if fold <= 0:
                     continue                                                # nothing to see here
 
-                slice2D = self.output.anaOutput[row, col, 0:fold, :]          # get all available traces belonging to this bin
+                slice2D = self.output.anaOutput[row, col, 0:fold, :]        # get all available traces belonging to this bin
 
                 slottedOffset = slice2D[:, 10]                              # grab 10th element of 2nd dimension (=offset)
                 slottedOffset = slottedOffset * offScalar

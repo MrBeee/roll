@@ -791,7 +791,7 @@ class XpsTableModel(QAbstractTableModel):
         # relType2= np.dtype([('SrcLin', 'f4'),   # F10.2
         #                     ('SrcPnt', 'f4'),   # F10.2
         #                     ('SrcInd', 'i4'),   # I1
-        #                     ('RecNo',  'i4'),   # I8
+        #                     ('RecNum', 'i4'),   # I8
         #                     ('RecLin', 'f4'),   # F10.2
         #                     ('RecMin', 'f4'),   # F10.2
         #                     ('RecMax', 'f4'),   # F10.2
@@ -861,7 +861,7 @@ class XpsTableModel(QAbstractTableModel):
             self._minMax[0, 0] = data['SrcLin'].min()
             self._minMax[0, 1] = data['SrcPnt'].min()
             self._minMax[0, 2] = data['SrcInd'].min()
-            self._minMax[0, 3] = data['RecNo'].min()
+            self._minMax[0, 3] = data['RecNum'].min()                           # replaced 'RecNo' by 'RecNum'. Please regenerate geometry data
             self._minMax[0, 4] = data['RecLin'].min()
             self._minMax[0, 5] = data['RecMin'].min()
             self._minMax[0, 6] = data['RecMax'].min()
@@ -870,7 +870,7 @@ class XpsTableModel(QAbstractTableModel):
             self._minMax[1, 0] = data['SrcLin'].max()
             self._minMax[1, 1] = data['SrcPnt'].max()
             self._minMax[1, 2] = data['SrcInd'].max()
-            self._minMax[1, 3] = data['RecNo'].max()
+            self._minMax[1, 3] = data['RecNum'].max()                           # replaced 'RecNo' by 'RecNum'. Please regenerate geometry data
             self._minMax[1, 4] = data['RecLin'].max()
             self._minMax[1, 5] = data['RecMin'].max()
             self._minMax[1, 6] = data['RecMax'].max()
