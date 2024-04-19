@@ -102,6 +102,84 @@ def getNameFromQtEnum(enum, value):
     return result
 
 
+# See: https://github.com/bensarthou/pynufft_benchmark/blob/master/NDFT.py
+def ndft_1Da(x, f, kMax, dK):
+    """non-equispaced discrete Fourier transform on x with weights (1/0) in f"""
+    # n = x.shape[0]                                            # normalize by maximum nr of available races
+    n = np.count_nonzero(f)                                     # normalize by actual  nr of available traces
+    a = 1 / n if n > 0 else 0
+    k = np.arange(0, kMax, dK)
+    r = np.dot(f, np.exp(2j * np.pi * k * x[:, np.newaxis])) * a
+    return r
+
+
+def ndft_1Db(x, kMax, dK):
+    """non-equispaced discrete Fourier transform on x with equal weights defined by size of transform"""
+    n = x.shape[0]
+    a = 1 / n if n > 0 else 0
+    k = np.arange(0, kMax, dK)
+    r = np.exp(2j * np.pi * k * x[:, np.newaxis]) * a
+    s = r.sum(axis=0)
+    return s
+
+
+def dummyText_on_nDFT():
+    # For the Kr stack response, we need to do a DFT (not an FFT)
+    # With a stack response you don't have even intervals between subsequent points as in a 'nornal' DFT/FFT
+    # The intervals are defined by the |offset| increments between subsequent traces
+    # The keyword here is "NUFFT" (Non Uniform FFT) as well as "NFFT" (another package).
+    # See: https://nl.mathworks.com/help/matlab/ref/double.nufft.html
+    # See: https://pynufft.readthedocs.io/en/latest/index.html
+    # And: https://pynufft.readthedocs.io/en/latest/tutor/example.html
+    # See: https://github.com/bensarthou/pynufft_benchmark
+    # Ref: https://stackoverflow.com/questions/62785140/coding-a-discrete-fourier-transform-on-python-without-using-built-in-functions
+    # Ref: https://stackoverflow.com/questions/63534781/how-to-obtain-frequencies-in-non-uniform-dfft
+
+    # See: https://en.wikipedia.org/wiki/Non-uniform_discrete_Fourier_transform
+    # See: https://www-user.tu-chemnitz.de/~potts/nfft/
+    # See: https://github.com/ghisvail/pyNFFT
+    # See: https://pythonhosted.org/pyNFFT/tutorial.html
+    # See: https://pythonhosted.org/pyNFFT/api/nfft.html
+    # See: https://stackoverflow.com/questions/26014375/fourier-coefficients-for-nfft-non-uniform-fast-fourier-transform
+    # See: https://stackoverflow.com/questions/67350588/example-python-nfft-fourier-transform-issues-with-signal-reconstruction-normal
+    # See: https://indico.cern.ch/event/484296/contributions/2002827/attachments/1215869/1775559/OscarBLANCO_Commissioning2016.pdf
+    # See: https://notebook.community/jakevdp/nfft/notebooks/ImplementationWalkthrough
+    # See: https://rdrr.io/github/gzt/rNFFT/man/ndft_1d.html
+
+    # def progress(count, total, status=''):
+    # 	bar_len = 60
+    # 	filled_len = int(round(bar_len * count / float(total)))
+    # 	percents = round(100.0 * count / float(total), 1)
+    # 	bar = '=' * filled_len + '-' * (bar_len - filled_len)
+    # 	sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+    # 	sys.stdout.flush()
+    #
+    # def ndft_1D(x, f, N):
+    # 	"""non-equispaced discrete Fourier transform"""
+    # 	k = -(N // 2) + np.arange(N)
+    # 	return np.dot(f, np.exp(2j * np.pi * k * x[:, np.newaxis]))
+    #
+    #
+    # def ndft_2D(x, f, Nd):
+    # 	M,N = Nd[0], Nd[1]
+    # 	K = np.shape(x)[0]
+    # 	ndft2d = [0.0 for i in range(K)]
+    # 	for k in range(K):
+    # 		# print('k',k ,'sur ', K)
+    # 		progress(k, K)
+    # 		sum_ = 0.0
+    # 		for m in range(M):
+    # 			for n in range(N):
+    # 				# print(n,m)
+    # 				value = f[m, n]
+    # 				e = np.exp(- 1j * 2*np.pi * (x[k,0] + x[k,1]))
+    # 				sum_ += value * e
+    # 		ndft2d[k] = sum_ / M / N
+    # 	return ndft2d
+    #
+    ...
+
+
 def makeParmsFromPen(pen):
     ps = Qt.PenStyle
     cs = Qt.PenCapStyle
