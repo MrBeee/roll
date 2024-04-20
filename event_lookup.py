@@ -1,5 +1,7 @@
 # See: https://stackoverflow.com/questions/62196835/how-to-get-string-name-for-qevent-in-pyqt5
 
+# usage: print(event_lookup[str(event.type())])
+
 event_lookup = {
     '0': 'QEvent::None',
     '114': 'QEvent::ActionAdded',

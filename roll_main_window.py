@@ -253,7 +253,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # binning analysis
         self.imageType = 0                                                      # 1 = fold map
-        self.imageMax = 0.0                                                     # max value for image's colorbar (minimum is always 0)
+        self.layoutMax = 0.0                                                     # max value for image's colorbar (minimum is always 0)
         self.minimumFold = 0                                                    # fold minimum
         self.maximumFold = 0                                                    # fold maximum
         self.minMinOffset = 0.0                                                 # min-offset minimum
@@ -310,14 +310,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spiderText = None                                                  # text label describing spider bin, stake, fold
 
         # fold, min/max offset image parameters
-        self.imageData = None                                                   # numpy array to be displayed
-        self.imageItem = None                                                   # pg ImageItem showing analysis result
-        self.imageColorBar = None                                               # ColorBarItem, added to imageItem
-        self.histogram = None                                                   # histogram for image (not used yet)
+        self.layoutImage = None                                                 # 2D numpy array to be displayed
+        self.layoutImItem = None                                                # pg ImageItem showing analysis result
+        self.layoutColorBar = None                                              # colorBar, added to imageItem
+        # self.histogram = None                                                   # histogram for image (not used yet)
 
         # analysis plots settings
-        self.stkTrkImage = None
-        self.stkBinImage = None
+        self.stkTrkImItem = None
+        self.stkBinImItem = None
 
         self.stkTrkColorBar = None
         self.stkBinColorBar = None
@@ -915,12 +915,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             print('└───────────────────────────────────────')
 
     def onMainTabChange(self, index):                                           # manage focus when active tab is changed; doesn't work 100% yet !
-        widget = self.mainTabWidget.currentWidget()
-        if isinstance(widget, QCodeEditor):
-            widget.setFocus()
-
         if index == 0:                                                          # main plotting widget
             self.handleSpiderPlot()
+        else:
+            widget = self.mainTabWidget.currentWidget()
+            if isinstance(widget, QCodeEditor):
+                widget.setFocus()
 
     def onAnalysisTabChange(self, index):                                       # manage focus when active tab is changed; doesn't work 100% yet !
 
@@ -1137,19 +1137,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 tr.translate(x0, 0.0)                                           # move image to correct location
                 tr.scale(dx, 0.1)                                               # scale horizontal and vertical axes
 
-                self.stkTrkImage = pg.ImageItem()                               # create PyqtGraph image item
-                self.stkTrkImage.setImage(self.inlineStk, levels=(-50.0, 0.0))  # plot with log scale from -50 to 0
-                self.stkTrkImage.setTransform(tr)
+                self.stkTrkImItem = pg.ImageItem()                              # create PyqtGraph image item
+                self.stkTrkImItem.setImage(self.inlineStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
+                self.stkTrkImItem.setTransform(tr)
 
                 if self.stkTrkColorBar is None:
-                    self.stkTrkColorBar = self.stkTrkWidget.plotItem.addColorBar(self.stkTrkImage, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0))
+                    self.stkTrkColorBar = self.stkTrkWidget.plotItem.addColorBar(
+                        self.stkTrkImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0)
+                    )
                     self.stkTrkColorBar.setLevels(low=-50.0, high=0.0)
                 else:
-                    self.stkTrkColorBar.setImageItem(self.stkTrkImage)
+                    self.stkTrkColorBar.setImageItem(self.stkTrkImItem)
                     self.stkTrkColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
 
                 self.stkTrkWidget.plotItem.clear()
-                self.stkTrkWidget.plotItem.addItem(self.stkTrkImage)
+                self.stkTrkWidget.plotItem.addItem(self.stkTrkImItem)
 
                 plotTitle = f'{self.plotTitles[5]} [line={linNo}]'
                 self.stkTrkWidget.setTitle(plotTitle, color='b', size='16pt')
@@ -1190,19 +1192,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 tr.translate(y0, 0.0)                                           # move image to correct location
                 tr.scale(dy, 0.1)                                               # scale horizontal and vertical axes
 
-                self.stkBinImage = pg.ImageItem()                               # create PyqtGraph image item
-                self.stkBinImage.setImage(self.x_lineStk, levels=(-50.0, 0.0))  # plot with log scale from -50 to 0
-                self.stkBinImage.setTransform(tr)
+                self.stkBinImItem = pg.ImageItem()                              # create PyqtGraph image item
+                self.stkBinImItem.setImage(self.x_lineStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
+                self.stkBinImItem.setTransform(tr)
 
                 if self.stkBinColorBar is None:
-                    self.stkBinColorBar = self.stkBinWidget.plotItem.addColorBar(self.stkBinImage, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0))
+                    self.stkBinColorBar = self.stkBinWidget.plotItem.addColorBar(
+                        self.stkBinImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0)
+                    )
                     self.stkBinColorBar.setLevels(low=-50.0, high=0.0)
                 else:
-                    self.stkBinColorBar.setImageItem(self.stkBinImage)
+                    self.stkBinColorBar.setImageItem(self.stkBinImItem)
                     self.stkBinColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
 
                 self.stkBinWidget.plotItem.clear()
-                self.stkBinWidget.plotItem.addItem(self.stkBinImage)
+                self.stkBinWidget.plotItem.addItem(self.stkBinImItem)
 
                 plotTitle = f'{self.plotTitles[6]} [stake={stkNo}]'
                 self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
@@ -1212,6 +1216,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             # See: https://groups.google.com/g/pyqtgraph/c/9Vv1kJdxE6U/m/FuCsSg182jUJ
             # See: https://doc.qt.io/qtforpython-6/PySide6/QtCharts/QPolarChart.html
             # See: https://www.youtube.com/watch?v=DyPjsj6azY4
+            # See: https://stackoverflow.com/questions/50720719/how-to-create-a-color-circle-in-pyqt
+            # See: https://stackoverflow.com/questions/70471687/pyqt-creating-color-circle
+
+            # To rewire signals and slots
+            # See: https://stackoverflow.com/questions/21586643/pyqt-widget-connect-and-disconnect
 
             col = self.spiderPoint.y()                                          # dummy statemenmt for debugging
 
@@ -2130,47 +2139,47 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def setColorbarLabel(self, label):                                          # I should really subclass colorbarItem to properly set the text label
         if label is not None:
-            if self.imageColorBar.horizontal:
-                self.imageColorBar.getAxis('bottom').setLabel(label)
+            if self.layoutColorBar.horizontal:
+                self.layoutColorBar.getAxis('bottom').setLabel(label)
             else:
-                self.imageColorBar.getAxis('left').setLabel(label)
+                self.layoutColorBar.getAxis('left').setLabel(label)
 
     def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
         self.imageType = self.analysisGroup.checkedId()
         self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the 'Layout' tab
 
-        if self.imageItem is not None and self.imageColorBar is None:
-            self.imageColorBar = self.layoutWidget.plotItem.addColorBar(self.imageItem, colorMap=config.inActiveCmap, label='N/A', limits=(0, None), rounding=10.0, values=(0, 10))
+        if self.layoutImItem is not None and self.layoutColorBar is None:
+            self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.inActiveCmap, label='N/A', limits=(0, None), rounding=10.0, values=(0, 10))
 
-        if self.imageData is None or self.imageType == 0:
-            self.imageItem = None
+        if self.layoutImage is None or self.imageType == 0:
+            self.layoutImItem = None
             label = 'N/A'
-            self.imageMax = 10
+            self.layoutMax = 10
             colorMap = config.inActiveCmap
         else:
             if self.imageType == 1:
-                self.imageData = self.binOutput                   # don't make a copy, just a view
-                self.imageMax = self.maximumFold
+                self.layoutImage = self.binOutput                                # don't make a copy, just a view
+                self.layoutMax = self.maximumFold
                 label = 'fold'
             elif self.imageType == 2:
-                self.imageData = self.minOffset
-                self.imageMax = self.maxMinOffset
+                self.layoutImage = self.minOffset
+                self.layoutMax = self.maxMinOffset
                 label = 'minimum offset'
             elif self.imageType == 3:
-                self.imageData = self.maxOffset
-                self.imageMax = self.maxMaxOffset
+                self.layoutImage = self.maxOffset
+                self.layoutMax = self.maxMaxOffset
                 label = 'maximum offset'
             else:
                 raise NotImplementedError('selected analysis type currently not implemented.')
 
             colorMap = config.analysisCmap
-            self.imageItem = pg.ImageItem()                                     # create PyqtGraph image item
-            self.imageItem.setImage(self.imageData, levels=(0.0, self.imageMax))
-            self.imageColorBar.setImageItem(self.imageItem)
+            self.layoutImItem = pg.ImageItem()                                     # create PyqtGraph image item
+            self.layoutImItem.setImage(self.layoutImage, levels=(0.0, self.layoutMax))
+            self.layoutColorBar.setImageItem(self.layoutImItem)
 
-        if self.imageColorBar is not None:
-            self.imageColorBar.setLevels(low=0.0, high=self.imageMax)
-            self.imageColorBar.setColorMap(colorMap)
+        if self.layoutColorBar is not None:
+            self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
+            self.layoutColorBar.setColorMap(colorMap)
             self.setColorbarLabel(label)
 
         self.plotSurvey()
@@ -2251,18 +2260,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 sx = 0
                 sy = 0
 
-            if self.imageData is not None and bx >= 0 and by >= 0 and bx < self.imageData.shape[0] and by < self.imageData.shape[1]:
+            if self.layoutImage is not None and bx >= 0 and by >= 0 and bx < self.layoutImage.shape[0] and by < self.layoutImage.shape[1]:
                 # provide statusbar information within the analysis area
                 if self.imageType == 0:
                     self.posWidgetStatusbar.setText(f'S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
                 elif self.imageType == 1:
-                    fold = self.imageData[bx, by]
+                    fold = self.layoutImage[bx, by]
                     self.posWidgetStatusbar.setText(f'fold:{fold:,d}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
                 elif self.imageType == 2:
-                    offset = float(self.imageData[bx, by])
+                    offset = float(self.layoutImage[bx, by])
                     self.posWidgetStatusbar.setText(f'|min offset|:{offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
                 elif self.imageType == 3:
-                    offset = float(self.imageData[bx, by])
+                    offset = float(self.layoutImage[bx, by])
                     self.posWidgetStatusbar.setText(f'|max offset|:{offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
             else:
                 # provide statusbar information outside the analysis area
@@ -2397,9 +2406,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.layoutWidget.setLabel('right', ' ', **styles)                  # shows axis at the right, no label, no tickmarks
 
         # add image, if available and required
-        if self.imageItem is not None and self.imageType > 0:
-            self.imageItem.setTransform(self.survey.cmpTransform * transform)   # combine two transforms
-            self.layoutWidget.plotItem.addItem(self.imageItem)
+        if self.layoutImItem is not None and self.imageType > 0:
+            self.layoutImItem.setTransform(self.survey.cmpTransform * transform)   # combine two transforms
+            self.layoutWidget.plotItem.addItem(self.layoutImItem)
 
         # add survey geometry if templates are to be displayed (controlled by checkbox)
         if self.cbTemplat.isChecked():
@@ -2700,8 +2709,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
 
-        self.imageData = None                                                   # numpy array to be displayed
-        self.imageItem = None                                                   # pg ImageItem showing analysis result
+        self.layoutImage = None                                                   # numpy array to be displayed
+        self.layoutImItem = None                                                   # pg ImageItem showing analysis result
 
         self.enableExport(False)                                                # nothing to export, and reset self.imageType to 0
         self.handleImageSelection()                                             # update the colorbar accordingly
@@ -2782,11 +2791,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.minimumFold} - Max:{self.maximumFold} ')
                 self.imageType = self.analysisGroup.setCheckedId(1)             # select fold map as plot type (1 = fold)
-                self.imageData = self.binOutput                                 # use fold map for image data np-array
+                self.layoutImage = self.binOutput                                 # use fold map for image data np-array
 
-                self.imageMax = self.maximumFold                                # use appropriate maximum
-                self.imageItem = pg.ImageItem()                                 # create PyqtGraph image item
-                self.imageItem.setImage(self.imageData, levels=(0.0, self.imageMax))
+                self.layoutMax = self.maximumFold                                # use appropriate maximum
+                self.layoutImItem = pg.ImageItem()                                 # create PyqtGraph image item
+                self.layoutImItem.setImage(self.layoutImage, levels=(0.0, self.layoutMax))
             else:
                 self.binOutput = None
 
@@ -3830,8 +3839,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def binningThreadFinished(self, success):                                   # extra argument only available in BinningWorker class
 
         if not success:
-            self.imageData = None                                               # numpy array to be displayed
-            self.imageItem = None                                               # pg ImageItem showing analysis result
+            self.layoutImage = None                                               # numpy array to be displayed
+            self.layoutImItem = None                                               # pg ImageItem showing analysis result
             self.handleImageSelection()                                         # change selection and plot survey
 
             self.enableExport(False)                                            # no plots to export
@@ -3874,32 +3883,32 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.imageType = self.analysisGroup.setCheckedId(1)             # select fold map as a default
 
             if self.imageType == 1:
-                self.imageData = self.binOutput
-                self.imageMax = self.maximumFold
+                self.layoutImage = self.binOutput
+                self.layoutMax = self.maximumFold
                 label = 'fold'
             elif self.imageType == 2:
-                self.imageData = self.minOffset
-                self.imageMax = self.maxMinOffset
+                self.layoutImage = self.minOffset
+                self.layoutMax = self.maxMinOffset
                 label = 'minimum offset'
             elif self.imageType == 3:
-                self.imageData = self.maxOffset
-                self.imageMax = self.maxMaxOffset
+                self.layoutImage = self.maxOffset
+                self.layoutMax = self.maxMaxOffset
                 label = 'maximum offset'
             else:
                 raise NotImplementedError('selected analysis type currently not implemented.')
 
-            self.imageItem = pg.ImageItem()                                     # create PyqtGraph image item
-            self.imageItem.setImage(self.imageData, levels=(0.0, self.imageMax))
+            self.layoutImItem = pg.ImageItem()                                     # create PyqtGraph image item
+            self.layoutImItem.setImage(self.layoutImage, levels=(0.0, self.layoutMax))
 
             # just to be sure; copy cmpTransform back from worker's survey object
             self.survey.cmpTransform = self.worker.survey.cmpTransform
 
-            if self.imageColorBar is None:
-                self.imageColorBar = self.layoutWidget.plotItem.addColorBar(self.imageItem, colorMap=config.analysisCmap, label=label, limits=(0, None), rounding=10.0, values=(0.0, self.imageMax))
+            if self.layoutColorBar is None:
+                self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.analysisCmap, label=label, limits=(0, None), rounding=10.0, values=(0.0, self.layoutMax))
             else:
-                self.imageColorBar.setImageItem(self.imageItem)
-                self.imageColorBar.setLevels(low=0.0, high=self.imageMax)
-                self.imageColorBar.setColorMap(config.analysisCmap)
+                self.layoutColorBar.setImageItem(self.layoutImItem)
+                self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
+                self.layoutColorBar.setColorMap(config.analysisCmap)
                 self.setColorbarLabel(label)
 
             self.enableExport()                                                 # enable menu items and button group
