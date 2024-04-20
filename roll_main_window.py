@@ -514,12 +514,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.plotTitles = [
             'New survey',
-            'Offsets for inline cross-section',
-            'Offsets for x-line cross-section',
-            'Azi for inline cross-section',
-            'Azi for x-line cross-section',
-            'Stack response for inline cross-section',
-            'Stack response for x-line cross-section',
+            'Offsets for inline direction',
+            'Offsets for x-line direction',
+            'Azimuth for inline direction',
+            'Azimuth for x-line direction',
+            'Stack response for inline direction',
+            'Stack response for x-line direction',
         ]
 
         self.offTrkWidget = self.createPlotWidget(self.plotTitles[1], 'inline', 'offset', 'm', 'm', False)  # False -> no fixed aspect ratio
@@ -914,10 +914,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             print(f'│     data:      {str(data)}')
             print('└───────────────────────────────────────')
 
-    def onMainTabChange(self, _index):                                          # manage focus when active tab is changed; doesn't work 100% yet !
+    def onMainTabChange(self, index):                                           # manage focus when active tab is changed; doesn't work 100% yet !
         widget = self.mainTabWidget.currentWidget()
         if isinstance(widget, QCodeEditor):
             widget.setFocus()
+
+        if index == 0:                                                          # main plotting widget
+            self.handleSpiderPlot()
 
     def onAnalysisTabChange(self, index):                                       # manage focus when active tab is changed; doesn't work 100% yet !
 
