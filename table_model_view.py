@@ -146,6 +146,11 @@ class TableView(QTableView):
         # See: https://stackoverflow.com/questions/22577327/how-to-retrieve-the-selected-rows-of-a-qtableview
         # See: https://forum.qt.io/topic/10708/solved-rowcount-tableview to get the model's methods
         # See: https://doc.qt.io/qt-6/qkeysequence.html for standard key sequence definitions
+        # See: https://stackoverflow.com/questions/45368148/connecting-to-events-of-another-widget to bind to a specific event from another widget
+        # See: https://doc.qt.io/qt-5/qobject.html#installEventFilter
+        # See: https://gist.github.com/stevenliebregt/8e4211937b671ac637b610650a11914f
+        # See: https://www.xingyulei.com/post/qt-detect-click/index.html
+        # See: https://pythonqwt.readthedocs.io/en/stable/examples/eventfilter.html
 
         if event.type() == QEvent.KeyPress and event.matches(QKeySequence.Copy):
             self.copy()

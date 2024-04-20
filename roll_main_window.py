@@ -316,7 +316,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.histogram = None                                                   # histogram for image (not used yet)
 
         # analysis plots settings
-        self.analysisPointList = [QPoint(-1, -1) for x in range(7)]             # one point for each plotting tab
         self.stkTrkImage = None
         self.stkBinImage = None
 
@@ -864,22 +863,27 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if self.binAreaChanged:                                                 # we need to throw away the analysis results
             self.binAreaChanged = False                                         # reset this flag
 
+            self.inlineStk = None                                               # numpy array with inline Kr stack reponse
+            self.x_lineStk = None                                               # numpy array with x_line Kr stack reponse
+            self.xyCellStk = None                                               # numpy array with cell's KxKy stack response
+            self.xyPatResp = None                                               # numpy array with pattern's KxKy response
+
             self.binOutput = None                                               # numpy array with foldmap
             self.minOffset = None                                               # numpy array with minimum offset
             self.maxOffset = None                                               # numpy array with maximum offset
 
-            binFileName = self.fileName + '.bin.npy'
+            binFileName = self.fileName + '.bin.npy'                            # file names for analysis files
             minFileName = self.fileName + '.min.npy'
             maxFileName = self.fileName + '.max.npy'
 
             try:
-                os.remove(binFileName)
+                os.remove(binFileName)                                          # remove file names, if possible
                 os.remove(minFileName)
                 os.remove(maxFileName)
             except OSError:
                 print('cant delete analysis file')
 
-            if self.anaOutput is not None:                                      # resize the array accordingly
+            if self.anaOutput is not None:                                      # remove memory mapped file, as well
                 self.anaOutput.flush()
                 # self.anaOutput._mmap.close()                                  # See: https://stackoverflow.com/questions/6397495/unmap-of-numpy-memmap
                 del self.anaOutput
@@ -939,14 +943,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         nX = self.spiderPoint.x()
         nY = self.spiderPoint.y()
 
+        ori = self.survey.cmpTransform.map(0.0, 0.0)                            # see where (0, 0) ends up in local coords
+        stk = self.survey.stkTransform.map(ori[0], ori[1])                      # see where (0, 0) ends up in line & stake numbers
+        stkNo = int(stk[0]) + self.spiderPoint.x()
+        linNo = int(stk[1]) + self.spiderPoint.y()
+
         if index == 0:                                                          # trace table needs no further updates
             return
         elif index == 1:                                                        # Offsets inline (common y)
-            # if self.analysisPointList[index] == self.spiderPoint:              # nothing to be done now
-            #     return
-
-            self.analysisPointList[index] = self.spiderPoint                    # for next time around
-
             with pg.BusyCursor():
                 slice3D = self.anaOutput[:, nY, :, :]                           # we are left with 3 dimension[col, fold, param]
                 slice2D = slice3D.reshape(xSize * nFold, param)                 # convert to 2D
@@ -978,18 +982,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 y[0::2] = offInline
                 y[1::2] = offInline
 
-                line = round(slice2D[0, 1])
-                plotTitle = f'{self.plotTitles[1]} [line={line}]'
+                plotTitle = f'{self.plotTitles[1]} [line={linNo}]'
                 self.offTrkWidget.setTitle(plotTitle, color='b', size='16pt')
                 self.offTrkWidget.plotItem.clear()
                 rec = self.offTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
         elif index == 2:                                                        # offsets x-line (common x)
-            # if self.analysisPointList[index] == self.spiderPoint:             # nothing to be done now
-            #     return
-
-            self.analysisPointList[index] = self.spiderPoint                    # for next time around
-
             with pg.BusyCursor():
                 slice3D = self.anaOutput[nX, :, :, :]                           # we are left with 3 dimensions [col, fold, param]
                 slice2D = slice3D.reshape(ySize * nFold, param)                 # convert to 2D
@@ -1021,18 +1019,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 y[0::2] = offInline
                 y[1::2] = offInline
 
-                stake = round(slice2D[0, 0])
-                plotTitle = f'{self.plotTitles[2]} [stake={stake}]'
+                plotTitle = f'{self.plotTitles[2]} [stake={stkNo}]'
                 self.offBinWidget.setTitle(plotTitle, color='b', size='16pt')
                 self.offBinWidget.plotItem.clear()
                 rec = self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
         elif index == 3:                                                        # Azimuths inline (common y)
-            # if self.analysisPointList[index] == self.spiderPoint:             # nothing to be done now
-            #     return
-
-            self.analysisPointList[index] = self.spiderPoint                    # for next time around
-
             with pg.BusyCursor():
                 slice3D = self.anaOutput[:, nY, :, :]                           # we are left with 3 dimension[col, fold, param]
                 slice2D = slice3D.reshape(xSize * nFold, param)                 # convert to 2D
@@ -1064,18 +1056,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 y[0::2] = aziInline
                 y[1::2] = aziInline
 
-                line = round(slice2D[0, 1])
-                plotTitle = f'{self.plotTitles[3]} [line={line}]'
+                plotTitle = f'{self.plotTitles[3]} [line={linNo}]'
                 self.aziTrkWidget.setTitle(plotTitle, color='b', size='16pt')
                 self.aziTrkWidget.plotItem.clear()
                 rec = self.aziTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
         elif index == 4:                                                        # offsets x-line (common x)
-            # if self.analysisPointList[index] == self.spiderPoint:               # nothing to be done now
-            #     return
-
-            self.analysisPointList[index] = self.spiderPoint                    # for next time around
-
             with pg.BusyCursor():
                 slice3D = self.anaOutput[nX, :, :, :]                           # we are left with 3 dimension[col, fold, param]
                 slice2D = slice3D.reshape(ySize * nFold, param)                 # convert to 2D
@@ -1108,15 +1094,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 y[0::2] = aziInline
                 y[1::2] = aziInline
 
-                stake = round(slice2D[0, 0])
-                plotTitle = f'{self.plotTitles[4]} [stake={stake}]'
+                plotTitle = f'{self.plotTitles[4]} [stake={stkNo}]'
                 self.aziBinWidget.setTitle(plotTitle, color='b', size='16pt')
                 self.aziBinWidget.plotItem.clear()
                 rec = self.aziBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
         elif index == 5:                                                        # stack response inline (common y)
-            self.analysisPointList[index] = self.spiderPoint                    # for next time around
-
             with pg.BusyCursor():
                 slice3D = self.anaOutput[:, nY, :, :]                           # we are left with 3 dimension[col, fold, param]
                 if self.survey.unique.apply is True:                            # we'd like to use unique offsets
@@ -1127,7 +1110,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     useUnique = False                                           # unique not required or not available
 
                 if useUnique:
-                    I = (slice3D[:, :, 2] > 0) & (slice2D[:, 12] == -1)         # fold > 0 AND unique == -1
+                    I = (slice3D[:, :, 2] > 0) & (slice3D[:, :, 12] == -1)      # fold > 0 AND unique == -1
                 else:
                     I = slice3D[:, :, 2] > 0                                    # fold > 0
 
@@ -1165,16 +1148,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.stkTrkWidget.plotItem.clear()
                 self.stkTrkWidget.plotItem.addItem(self.stkTrkImage)
 
-                line = round(slice3D[0, 0, 1])
-                plotTitle = f'{self.plotTitles[5]} [line={line}]'
+                plotTitle = f'{self.plotTitles[5]} [line={linNo}]'
                 self.stkTrkWidget.setTitle(plotTitle, color='b', size='16pt')
 
         elif index == 6:                                                        # stack response x-line (common x)
-            # if self.analysisPointList[index] == self.spiderPoint:              # nothing to be done now
-            #     return
-
-            self.analysisPointList[index] = self.spiderPoint                    # for next time around
-
             with pg.BusyCursor():
                 slice3D = self.anaOutput[nX, :, :, :]                           # we are left with 3 dimensions [col, fold, param]
 
@@ -1224,11 +1201,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.stkBinWidget.plotItem.clear()
                 self.stkBinWidget.plotItem.addItem(self.stkBinImage)
 
-                stake = round(slice3D[0, 0, 0])
-                plotTitle = f'{self.plotTitles[6]} [stake={stake}]'
+                plotTitle = f'{self.plotTitles[6]} [stake={stkNo}]'
                 self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
 
-            # SOFAR NOW
+            # SOFAR NOW. For Polar Coordinates, see:
+            # See: https://stackoverflow.com/questions/57174173/polar-coordinate-system-in-pyqtgraph
+            # See: https://groups.google.com/g/pyqtgraph/c/9Vv1kJdxE6U/m/FuCsSg182jUJ
+            # See: https://doc.qt.io/qtforpython-6/PySide6/QtCharts/QPolarChart.html
+            # See: https://www.youtube.com/watch?v=DyPjsj6azY4
+
             col = self.spiderPoint.y()                                          # dummy statemenmt for debugging
 
     # deal with the edit menu here.
@@ -2403,14 +2384,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if self.glob:                                                           # global -> easting & westing
             self.layoutWidget.setLabel('bottom', 'Easting', units='m', **styles)  # shows axis at the bottom, and shows the units label
             self.layoutWidget.setLabel('left', 'Northing', units='m', **styles)   # shows axis at the left, and shows the units label
-            self.layoutWidget.setLabel('top', ' ', **styles)                      # shows axis at the top, no label, no tickmarks
-            self.layoutWidget.setLabel('right', ' ', **styles)                    # shows axis at the right, no label, no tickmarks
+            self.layoutWidget.setLabel('top', ' ', **styles)                    # shows axis at the top, no label, no tickmarks
+            self.layoutWidget.setLabel('right', ' ', **styles)                  # shows axis at the right, no label, no tickmarks
             transform = self.survey.glbTransform                                # get global coordinate conversion transform
         else:                                                                   # local -> inline & crossline
             self.layoutWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
             self.layoutWidget.setLabel('left', 'crossline', units='m', **styles)  # shows axis at the left, and shows the units label
-            self.layoutWidget.setLabel('top', ' ', **styles)                      # shows axis at the top, no label, no tickmarks
-            self.layoutWidget.setLabel('right', ' ', **styles)                    # shows axis at the right, no label, no tickmarks
+            self.layoutWidget.setLabel('top', ' ', **styles)                    # shows axis at the top, no label, no tickmarks
+            self.layoutWidget.setLabel('right', ' ', **styles)                  # shows axis at the right, no label, no tickmarks
 
         # add image, if available and required
         if self.imageItem is not None and self.imageType > 0:
