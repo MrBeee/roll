@@ -3,6 +3,7 @@
 # usage: print(event_lookup[str(event.type())])
 
 event_lookup = {
+    '216': 'QEvent::UNKNOWN EVENT !',
     '0': 'QEvent::None',
     '114': 'QEvent::ActionAdded',
     '113': 'QEvent::ActionChanged',

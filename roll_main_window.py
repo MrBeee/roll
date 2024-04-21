@@ -44,6 +44,7 @@ To find out where libraries reside, use 'inspect':
 # In the following QGIS releases python stub files that describes the API are included in the qgis package so also much better Pylance language server can be then used
 # If you have *.pyi files in C:/OSGeo4W64/apps/qgis-ltr/python/qgis go with the Pylance language server.
 
+import contextlib
 import gc
 import os
 import os.path
@@ -62,7 +63,7 @@ import pyqtgraph as pg
 from console import console
 from numpy.compat import asstr
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QDateTime, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
+from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
 from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
 from qgis.PyQt.QtWidgets import (
@@ -94,6 +95,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
+from .event_lookup import event_lookup
 from .find import Find
 from .functions import aboutText, exampleSurveyXmlText, licenseText, ndft_1Da, rawcount
 from .land_wizard import LandSurveyWizard
@@ -223,8 +225,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.XisY = True                                                        # equal x / y scaling
         self.grid = True                                                        # use grid lines
         self.rect = False                                                       # zoom using a rectangle
-        self.antA = False                                                       # anti-alias painting
         self.glob = False                                                       # global coordinates
+        self.antiA = [False for i in range(10)]                                 # anti-alias painting
         self.ruler = False                                                      # show a ruler to measure distances
 
         # exception handling
@@ -253,7 +255,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # binning analysis
         self.imageType = 0                                                      # 1 = fold map
-        self.layoutMax = 0.0                                                     # max value for image's colorbar (minimum is always 0)
+        self.layoutMax = 0.0                                                    # max value for image's colorbar (minimum is always 0)
         self.minimumFold = 0                                                    # fold minimum
         self.maximumFold = 0                                                    # fold maximum
         self.minMinOffset = 0.0                                                 # min-offset minimum
@@ -262,10 +264,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.maxMaxOffset = 0.0                                                 # max-offset maximum
         self.binAreaChanged = False                                             # set when binning area changes in property tree
 
-        # binning numpy arrays
+        # numpy binning arrays
         self.binOutput = None                                                   # numpy array with foldmap
         self.minOffset = None                                                   # numpy array with minimum offset
         self.maxOffset = None                                                   # numpy array with maximum offset
+        self.layoutImg = None                                                   # numpy array to be displayed; binOutput / minOffset / maxOffset
+
         self.anaOutput = None                                                   # memory mapped numpy trace record array
         self.D2_Output = None                                                   # flattened 2D-version of self.anaOutput
 
@@ -274,6 +278,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.x_lineStk = None                                                   # numpy array with x_line Kr stack reponse
         self.xyCellStk = None                                                   # numpy array with cell's KxKy stack response
         self.xyPatResp = None                                                   # numpy array with pattern's KxKy response
+
+        # layout and analysis image-items
+        self.layoutImItem = None                                                # pg ImageItems showing analysis result
+        self.stkTrkImItem = None
+        self.stkBinImItem = None
+
+        # corresponding color bars
+        self.layoutColorBar = None                                              # colorBars, added to imageItem
+        self.stkTrkColorBar = None
+        self.stkBinColorBar = None
 
         # rps, sps, xps input arrays
         self.rpsImport = None                                                   # numpy array with list of RPS records
@@ -308,19 +322,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spiderRecX = None                                                  # numpy array with list of REC part of spider plot
         self.spiderRecY = None                                                  # numpy array with list of REC part of spider plot
         self.spiderText = None                                                  # text label describing spider bin, stake, fold
-
-        # fold, min/max offset image parameters
-        self.layoutImage = None                                                 # 2D numpy array to be displayed
-        self.layoutImItem = None                                                # pg ImageItem showing analysis result
-        self.layoutColorBar = None                                              # colorBar, added to imageItem
-        # self.histogram = None                                                   # histogram for image (not used yet)
-
-        # analysis plots settings
-        self.stkTrkImItem = None
-        self.stkBinImItem = None
-
-        self.stkTrkColorBar = None
-        self.stkBinColorBar = None
 
         # export layers to QGIS
         self.rpsLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
@@ -522,6 +523,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             'Stack response for x-line direction',
         ]
 
+        # these widgets need to have "installEventFilter()" applied to catch the window activation event in "eventFilter()"
+        # this will make it possile to route the plotting toolbar button signal and slots to the active plot
         self.offTrkWidget = self.createPlotWidget(self.plotTitles[1], 'inline', 'offset', 'm', 'm', False)  # False -> no fixed aspect ratio
         self.offBinWidget = self.createPlotWidget(self.plotTitles[2], 'x-line', 'offset', 'm', 'm', False)
         self.aziTrkWidget = self.createPlotWidget(self.plotTitles[3], 'inline', 'angle of incidence', 'm', 'deg', False)
@@ -535,16 +538,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.textEdit = QCodeEditor(SyntaxHighlighter=XMLHighlighter)           # only one widget on Xml-tab; add directly
         self.textEdit.document().setModified(False)
+        self.textEdit.installEventFilter(self)                                  # catch the 'Show' event to connect to toolbar buttons
 
         # The following tabs have multiple widgets per page, start by giving them a simple QWidget
         self.tabGeom = QWidget()
         self.tabSps = QWidget()
         self.tabTraces = QWidget()
 
+        self.tabGeom.installEventFilter(self)                                   # catch the 'Show' event to connect to toolbar buttons
+        self.tabSps.installEventFilter(self)                                    # catch the 'Show' event to connect to toolbar buttons
+        self.tabTraces.installEventFilter(self)                                 # catch the 'Show' event to connect to toolbar buttons
+
         self.createLayoutTab()
         self.createGeomTab()
         self.createSpsTab()
-        self.createTracesTab()
+        self.createTraceTableTab()
 
         # Add tabs to main tab widget
         self.mainTabWidget.addTab(self.layoutWidget, 'Layout')
@@ -591,7 +599,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionAspectRatio.triggered.connect(self.plotAspectRatio)
 
         self.actionAntiAlias.setCheckable(True)
-        self.actionAntiAlias.setChecked(self.antA)
+        self.actionAntiAlias.setChecked(self.antiA[0])
         self.actionAntiAlias.triggered.connect(self.plotAntiAlias)
 
         self.actionGridLines.setCheckable(True)
@@ -761,6 +769,44 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.appendLogMessage('Plugin : Started')
         self.statusbar.showMessage('Ready', 3000)
+
+    def eventFilter(self, source, event):
+        if event.type() == QEvent.Show and isinstance(source, pg.PlotWidget):   # do 'cheap' test first
+            plotItem = source.getPlotItem()
+            viewBox = plotItem.getViewBox()
+            print(f'{plotItem} ... {event_lookup[str(event.type())]}')
+
+            with contextlib.suppress(RuntimeError):                             # rewire zoomAll button
+                self.actionZoomAll.triggered.disconnect()
+            self.actionZoomAll.triggered.connect(source.autoRange)
+
+            plotIndex = self.getVisiblePlotIndex(source)                        # update toolbar status
+            if plotIndex is not None:
+                self.actionZoomAll.setEnabled(True)                             # useful for all plots
+                self.actionZoomRect.setEnabled(True)                            # useful for all plots
+                self.actionAspectRatio.setEnabled(True)                         # useful for all plots
+                self.actionAntiAlias.setEnabled(True)                           # useful for plots only
+                self.actionRuler.setEnabled(plotIndex == 0)                     # useful for 1st plot only
+                self.actionProjected.setEnabled(plotIndex == 0)                 # useful for 1st plot only
+
+                self.actionAntiAlias.setChecked(self.antiA[plotIndex])          # useful for all plots
+
+                self.XisY = plotItem.saveState()['view']['aspectLocked']        # update XisY status
+                self.actionAspectRatio.setChecked(self.XisY)
+
+                self.rect = viewBox.getState()['mouseMode'] == pg.ViewBox.RectMode  # update rect status
+                self.actionZoomRect.setChecked(self.rect)
+
+        elif event.type() == QEvent.Show:
+            self.actionZoomAll.setEnabled(False)                                # useful for plots only
+            self.actionZoomRect.setEnabled(False)                               # useful for plots only
+            self.actionAspectRatio.setEnabled(False)                            # useful for plots only
+            self.actionAntiAlias.setEnabled(False)                              # useful for plots only
+            self.actionRuler.setEnabled(False)                                  # useful for 1st plot only
+            self.actionProjected.setEnabled(False)                              # useful for 1st plot only
+
+        # SOFAR NOW
+        return super().eventFilter(source, event)
 
     def applyPropertyChangesAndHide(self):
         self.applyPropertyChanges()
@@ -1271,7 +1317,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         w.showGrid(x=True, y=True, alpha=0.75)                                  # shows the grey grid lines
         w.setMinimumSize(150, 150)                                              # prevent excessive widget shrinking
         # See: https://stackoverflow.com/questions/44402399/how-to-disable-the-default-context-menu-of-pyqtgraph for context menu options
-        w.setMenuEnabled(False, enableViewBoxMenu=None)                         # get rid of context menu but keep ViewBox menu
+        w.setContextMenuActionVisible('Transforms', False)
+        w.setContextMenuActionVisible('Downsample', False)
+        w.setContextMenuActionVisible('Average', False)
+        w.setContextMenuActionVisible('Alpha', False)
+        w.setContextMenuActionVisible('Points', False)
+
+        # w.setMenuEnabled(False, enableViewBoxMenu=None)                       # get rid of context menu but keep ViewBox menu
         # w.ctrlMenu = None                                                     # get rid of 'Plot Options' in context menu
         # w.scene().contextMenu = None                                          # get rid of 'Export' in context menu
 
@@ -1287,13 +1339,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         w.setLabel('right', ' ', **styles)                                      # shows axis at the right, no label, no tickmarks
         w.setAspectLocked(aspectLocked)
 
+        w.installEventFilter(self)                                              # catch the 'Show' event to connect to toolbar buttons
         return w
 
     # create tabbed pages
     def createLayoutTab(self):
         self.layoutWidget = self.createPlotWidget()
 
-    def createTracesTab(self):
+    def createTraceTableTab(self):
         # analysis table; to copy data to clipboard, create a subclassed QTableView, see bottom of following article:
         # See: https://stackoverflow.com/questions/40225270/copy-paste-multiple-items-from-qtableview-in-pyqt4
         self.anaModel = AnaTableModel(self.D2_Output)
@@ -2151,22 +2204,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if self.layoutImItem is not None and self.layoutColorBar is None:
             self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.inActiveCmap, label='N/A', limits=(0, None), rounding=10.0, values=(0, 10))
 
-        if self.layoutImage is None or self.imageType == 0:
+        if self.layoutImg is None or self.imageType == 0:
             self.layoutImItem = None
             label = 'N/A'
             self.layoutMax = 10
             colorMap = config.inActiveCmap
         else:
             if self.imageType == 1:
-                self.layoutImage = self.binOutput                                # don't make a copy, just a view
+                self.layoutImg = self.binOutput                                 # don't make a copy, just a view
                 self.layoutMax = self.maximumFold
                 label = 'fold'
             elif self.imageType == 2:
-                self.layoutImage = self.minOffset
+                self.layoutImg = self.minOffset
                 self.layoutMax = self.maxMinOffset
                 label = 'minimum offset'
             elif self.imageType == 3:
-                self.layoutImage = self.maxOffset
+                self.layoutImg = self.maxOffset
                 self.layoutMax = self.maxMaxOffset
                 label = 'maximum offset'
             else:
@@ -2174,7 +2227,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             colorMap = config.analysisCmap
             self.layoutImItem = pg.ImageItem()                                     # create PyqtGraph image item
-            self.layoutImItem.setImage(self.layoutImage, levels=(0.0, self.layoutMax))
+            self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
             self.layoutColorBar.setImageItem(self.layoutImItem)
 
         if self.layoutColorBar is not None:
@@ -2260,37 +2313,79 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 sx = 0
                 sy = 0
 
-            if self.layoutImage is not None and bx >= 0 and by >= 0 and bx < self.layoutImage.shape[0] and by < self.layoutImage.shape[1]:
+            if self.layoutImg is not None and bx >= 0 and by >= 0 and bx < self.layoutImg.shape[0] and by < self.layoutImg.shape[1]:
                 # provide statusbar information within the analysis area
                 if self.imageType == 0:
                     self.posWidgetStatusbar.setText(f'S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
                 elif self.imageType == 1:
-                    fold = self.layoutImage[bx, by]
+                    fold = self.layoutImg[bx, by]
                     self.posWidgetStatusbar.setText(f'fold:{fold:,d}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
                 elif self.imageType == 2:
-                    offset = float(self.layoutImage[bx, by])
+                    offset = float(self.layoutImg[bx, by])
                     self.posWidgetStatusbar.setText(f'|min offset|:{offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
                 elif self.imageType == 3:
-                    offset = float(self.layoutImage[bx, by])
+                    offset = float(self.layoutImg[bx, by])
                     self.posWidgetStatusbar.setText(f'|max offset|:{offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
             else:
                 # provide statusbar information outside the analysis area
                 self.posWidgetStatusbar.setText(f'S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
 
+    def getVisiblePlotIndex(self, plotWidget):
+        if plotWidget == self.layoutWidget:
+            return 0
+        elif plotWidget == self.offTrkWidget:
+            return 1
+        elif plotWidget == self.offBinWidget:
+            return 2
+        elif plotWidget == self.aziTrkWidget:
+            return 3
+        elif plotWidget == self.aziBinWidget:
+            return 4
+        elif plotWidget == self.stkTrkWidget:
+            return 5
+        elif plotWidget == self.stkBinWidget:
+            return 6
+        return None
+
+    def getVisiblePlotWidget(self):
+        if self.layoutWidget.isVisible():
+            return (self.layoutWidget, 0)
+        if self.offTrkWidget.isVisible():
+            return (self.offTrkWidget, 1)
+        if self.offBinWidget.isVisible():
+            return (self.offBinWidget, 2)
+        if self.aziTrkWidget.isVisible():
+            return (self.aziTrkWidget, 3)
+        if self.aziBinWidget.isVisible():
+            return (self.aziBinWidget, 4)
+        if self.stkTrkWidget.isVisible():
+            return (self.stkTrkWidget, 5)
+        if self.stkBinWidget.isVisible():
+            return (self.stkBinWidget, 6)
+        return (None, None)
+
     def plotZoomRect(self):
-        self.rect = not self.rect
-        if self.rect:
-            self.layoutWidget.getViewBox().setMouseMode(pg.ViewBox.RectMode)
-        else:
-            self.layoutWidget.getViewBox().setMouseMode(pg.ViewBox.PanMode)
+        visiblePlot = self.getVisiblePlotWidget()[0]
+        if visiblePlot is not None:
+            viewBox = visiblePlot.getViewBox()
+            self.rect = viewBox.getState()['mouseMode'] == pg.ViewBox.RectMode   # get rect status
+            if self.rect:
+                viewBox.setMouseMode(pg.ViewBox.PanMode)
+            else:
+                viewBox.setMouseMode(pg.ViewBox.RectMode)
 
     def plotAspectRatio(self):
-        self.XisY = not self.XisY
-        self.layoutWidget.setAspectLocked(self.XisY)
+        visiblePlot = self.getVisiblePlotWidget()[0]
+        if visiblePlot is not None:
+            plotItem = visiblePlot.getPlotItem()
+            self.XisY = not plotItem.saveState()['view']['aspectLocked']        # get XisY status
+            visiblePlot.setAspectLocked(self.XisY)
 
     def plotAntiAlias(self):
-        self.antA = not self.antA
-        self.layoutWidget.setAntialiasing(self.antA)                              # enabl/disable aa plotting
+        visiblePlot, index = self.getVisiblePlotWidget()
+        if visiblePlot is not None:                                             # there's no internal AA state
+            self.antiA[index] = not self.antiA[index]                           # maintain it externally
+            visiblePlot.setAntialiasing(self.antiA[index])                      # enable/disable aa plotting
 
     def plotGridLines(self):
         self.grid = not self.grid
@@ -2709,8 +2804,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
 
-        self.layoutImage = None                                                   # numpy array to be displayed
-        self.layoutImItem = None                                                   # pg ImageItem showing analysis result
+        self.layoutImg = None                                                   # numpy array to be displayed
+        self.layoutImItem = None                                                # pg ImageItem showing analysis result
 
         self.enableExport(False)                                                # nothing to export, and reset self.imageType to 0
         self.handleImageSelection()                                             # update the colorbar accordingly
@@ -2778,7 +2873,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         success = self.parseText(plainText)                                     # parse the string; load the textEdit even if parsing fails !
         self.textEdit.setPlainText(plainText)                                   # update plainText widget, and reset undo/redo & modified status
 
-        if success:                                                             # read the corresponding analysis files
+        if success:                                                             # reset arrays and read the corresponding analysis files
+            self.inlineStk = None                                               # numpy array with inline Kr stack reponse
+            self.x_lineStk = None                                               # numpy array with x_line Kr stack reponse
+            self.xyCellStk = None                                               # numpy array with cell's KxKy stack response
+            self.xyPatResp = None                                               # numpy array with pattern's KxKy response
+
+            # self.offTrkWidget.plotItem.clear()                                  # clear all analysis plots
+            # self.offBinWidget.plotItem.clear()
+            # self.aziTrkWidget.plotItem.clear()
+            # self.aziBinWidget.plotItem.clear()
+            # self.stkTrkWidget.plotItem.clear()
+            # self.stkBinWidget.plotItem.clear()
+
             self.rpsLayerId = None                                              # QGIS layerId used when updating an existing vector layer
             self.spsLayerId = None
             self.recLayerId = None
@@ -2791,11 +2898,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.minimumFold} - Max:{self.maximumFold} ')
                 self.imageType = self.analysisGroup.setCheckedId(1)             # select fold map as plot type (1 = fold)
-                self.layoutImage = self.binOutput                                 # use fold map for image data np-array
+                self.layoutImg = self.binOutput                                 # use fold map for image data np-array
 
-                self.layoutMax = self.maximumFold                                # use appropriate maximum
-                self.layoutImItem = pg.ImageItem()                                 # create PyqtGraph image item
-                self.layoutImItem.setImage(self.layoutImage, levels=(0.0, self.layoutMax))
+                self.layoutMax = self.maximumFold                               # use appropriate maximum
+                self.layoutImItem = pg.ImageItem()                              # create PyqtGraph image item
+                self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
             else:
                 self.binOutput = None
 
@@ -2937,7 +3044,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.srcModel.setData(self.srcGeom)
 
             self.handleImageSelection()                                         # change selection and plot survey
-            self.spiderPoint = QPoint(-1, -1)                                   # reset the spider location
+
+        self.spiderPoint = QPoint(-1, -1)                                       # reset the spider location
+        analysisIndex = self.analysisTabWidget.currentIndex()                   # get current analysis plot index
+        self.onAnalysisTabChange(analysisIndex)                                 # repaint current analysis plot
 
         self.enableExport(True)                                                 # enable export items in File Menu
         self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable stop thread
@@ -3839,8 +3949,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def binningThreadFinished(self, success):                                   # extra argument only available in BinningWorker class
 
         if not success:
-            self.layoutImage = None                                               # numpy array to be displayed
-            self.layoutImItem = None                                               # pg ImageItem showing analysis result
+            self.layoutImg = None                                               # numpy array to be displayed
+            self.layoutImItem = None                                            # pg ImageItem showing analysis result
             self.handleImageSelection()                                         # change selection and plot survey
 
             self.enableExport(False)                                            # no plots to export
@@ -3883,22 +3993,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.imageType = self.analysisGroup.setCheckedId(1)             # select fold map as a default
 
             if self.imageType == 1:
-                self.layoutImage = self.binOutput
+                self.layoutImg = self.binOutput
                 self.layoutMax = self.maximumFold
                 label = 'fold'
             elif self.imageType == 2:
-                self.layoutImage = self.minOffset
+                self.layoutImg = self.minOffset
                 self.layoutMax = self.maxMinOffset
                 label = 'minimum offset'
             elif self.imageType == 3:
-                self.layoutImage = self.maxOffset
+                self.layoutImg = self.maxOffset
                 self.layoutMax = self.maxMaxOffset
                 label = 'maximum offset'
             else:
                 raise NotImplementedError('selected analysis type currently not implemented.')
 
-            self.layoutImItem = pg.ImageItem()                                     # create PyqtGraph image item
-            self.layoutImItem.setImage(self.layoutImage, levels=(0.0, self.layoutMax))
+            self.layoutImItem = pg.ImageItem()                                  # create PyqtGraph image item
+            self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
 
             # just to be sure; copy cmpTransform back from worker's survey object
             self.survey.cmpTransform = self.worker.survey.cmpTransform
