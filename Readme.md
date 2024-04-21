@@ -145,11 +145,11 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 6	Changelog
 
-- 2024-04-21 (0.2.6) added 'Analysis' tab, containing
+- 2024-04-21 (0.2.6) added 'Analysis' tab, containing:
   - The Trace table (full binning results)
-  - In/ and X-line offsets
-  - In/ and X-line azimuths
-  - In/ and X-line stack response
+  - In-/ and X-line offsets
+  - In-/ and X-line azimuths
+  - In-/ and X-line stack response
 
 - 2024-04-13 (0.2.5) included TWT values in trace table and implemented 'Unique Fold' capability
 - 2024-04-08 (0.2.4) improved handling of well-files
