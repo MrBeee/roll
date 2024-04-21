@@ -223,9 +223,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # toolbar parameters
         self.debug = False                                                      # use debug settings
         self.XisY = True                                                        # equal x / y scaling
-        self.grid = True                                                        # use grid lines
         self.rect = False                                                       # zoom using a rectangle
         self.glob = False                                                       # global coordinates
+        self.gridX = True                                                       # use grid lines
+        self.gridY = True                                                       # use grid lines
         self.antiA = [False for i in range(10)]                                 # anti-alias painting
         self.ruler = False                                                      # show a ruler to measure distances
 
@@ -523,10 +524,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             'Stack response for x-line direction',
         ]
 
-        # these widgets need to have "installEventFilter()" applied to catch the window activation event in "eventFilter()"
-        # this will make it possile to route the plotting toolbar button signal and slots to the active plot
-        self.offTrkWidget = self.createPlotWidget(self.plotTitles[1], 'inline', 'offset', 'm', 'm', False)  # False -> no fixed aspect ratio
-        self.offBinWidget = self.createPlotWidget(self.plotTitles[2], 'x-line', 'offset', 'm', 'm', False)
+        # these widgets have "installEventFilter()" applied to catch the window 'Show' event in "eventFilter()"
+        # this makes it possile to reroute commands and status from the plotting toolbar buttons to the active plot
+        self.offTrkWidget = self.createPlotWidget(self.plotTitles[1], 'inline', 'offset', 'm', 'm')                         # False -> no fixed aspect ratio
+        self.offBinWidget = self.createPlotWidget(self.plotTitles[2], 'x-line', 'offset', 'm', 'm')
         self.aziTrkWidget = self.createPlotWidget(self.plotTitles[3], 'inline', 'angle of incidence', 'm', 'deg', False)
         self.aziBinWidget = self.createPlotWidget(self.plotTitles[4], 'x-line', 'angle of incidence', 'm', 'deg', False)    # no fixed aspect ratio
         self.stkTrkWidget = self.createPlotWidget(self.plotTitles[5], 'inline', '|Kr|', 'm', '1/km', False)
@@ -602,9 +603,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionAntiAlias.setChecked(self.antiA[0])
         self.actionAntiAlias.triggered.connect(self.plotAntiAlias)
 
-        self.actionGridLines.setCheckable(True)
-        self.actionGridLines.setChecked(self.grid)
-        self.actionGridLines.triggered.connect(self.plotGridLines)
+        self.actionPlotGridX.setCheckable(True)
+        self.actionPlotGridX.setChecked(self.gridX)
+        self.actionPlotGridX.triggered.connect(self.plotGridX)
+
+        self.actionPlotGridY.setCheckable(True)
+        self.actionPlotGridY.setChecked(self.gridY)
+        self.actionPlotGridY.triggered.connect(self.plotGridY)
 
         self.actionProjected.setCheckable(True)
         self.actionProjected.setChecked(self.glob)
@@ -790,6 +795,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.actionProjected.setEnabled(plotIndex == 0)                 # useful for 1st plot only
 
                 self.actionAntiAlias.setChecked(self.antiA[plotIndex])          # useful for all plots
+
+                self.gridX = plotItem.saveState()['xGridCheck']                 # update x-gridline status
+                self.actionPlotGridX.setChecked(self.gridX)
+
+                self.gridY = plotItem.saveState()['yGridCheck']                 # update y-gridline status
+                self.actionPlotGridY.setChecked(self.gridY)
 
                 self.XisY = plotItem.saveState()['view']['aspectLocked']        # update XisY status
                 self.actionAspectRatio.setChecked(self.XisY)
@@ -2384,15 +2395,28 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def plotAntiAlias(self):
         visiblePlot, index = self.getVisiblePlotWidget()
         if visiblePlot is not None:                                             # there's no internal AA state
-            self.antiA[index] = not self.antiA[index]                           # maintain it externally
+            self.antiA[index] = not self.antiA[index]                           # maintain status externally
             visiblePlot.setAntialiasing(self.antiA[index])                      # enable/disable aa plotting
 
-    def plotGridLines(self):
-        self.grid = not self.grid
-        if self.grid:
-            self.layoutWidget.showGrid(x=True, y=True, alpha=0.75)                # show the grey grid lines
-        else:
-            self.layoutWidget.showGrid(x=False, y=False)                          # don't show the grey grid lines
+    def plotGridX(self):
+        visiblePlot = self.getVisiblePlotWidget()[0]
+        if visiblePlot is not None:
+            plotItem = visiblePlot.getPlotItem()
+            self.gridX = not plotItem.saveState()['xGridCheck']                 # update x-gridline status
+            if self.gridX:
+                visiblePlot.showGrid(x=True, alpha=0.75)                       # show the grey grid lines
+            else:
+                visiblePlot.showGrid(x=False)                                   # don't show the grey grid lines
+
+    def plotGridY(self):
+        visiblePlot = self.getVisiblePlotWidget()[0]
+        if visiblePlot is not None:
+            plotItem = visiblePlot.getPlotItem()
+            self.gridY = not plotItem.saveState()['yGridCheck']                 # update y-gridline status
+            if self.gridY:
+                visiblePlot.showGrid(y=True, alpha=0.75)                        # show the grey grid lines
+            else:
+                visiblePlot.showGrid(y=False)                                   # don't show the grey grid lines
 
     def plotProjected(self):
         self.glob = self.actionProjected.isChecked()

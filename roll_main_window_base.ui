@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>848</width>
+    <width>910</width>
     <height>757</height>
    </rect>
   </property>
@@ -26,7 +26,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>848</width>
+     <width>910</width>
      <height>26</height>
     </rect>
    </property>
@@ -223,7 +223,8 @@
    <addaction name="actionZoomRect"/>
    <addaction name="actionAspectRatio"/>
    <addaction name="actionAntiAlias"/>
-   <addaction name="actionGridLines"/>
+   <addaction name="actionPlotGridX"/>
+   <addaction name="actionPlotGridY"/>
    <addaction name="actionProjected"/>
    <addaction name="actionRuler"/>
   </widget>
@@ -554,7 +555,7 @@
     <string>AntiAlias</string>
    </property>
    <property name="toolTip">
-    <string>Antialiased plotting</string>
+    <string>Use anti-aliased plotting</string>
    </property>
   </action>
   <action name="actionZoomRect">
@@ -572,19 +573,19 @@
     <string>Zoom to selection rectangle</string>
    </property>
   </action>
-  <action name="actionGridLines">
+  <action name="actionPlotGridX">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionPlotGrid.svg</normaloff>resources/mActionPlotGrid.svg</iconset>
+     <normaloff>resources/mActionHorizontalGrid.svg</normaloff>resources/mActionHorizontalGrid.svg</iconset>
    </property>
    <property name="text">
-    <string>GridLines</string>
+    <string>Vertical grid lines</string>
    </property>
    <property name="toolTip">
-    <string>Show grid lines</string>
+    <string>Show vertical grid lines</string>
    </property>
   </action>
   <action name="actionProjected">
@@ -599,7 +600,7 @@
     <string>Projected</string>
    </property>
    <property name="toolTip">
-    <string>Global coordinates</string>
+    <string>Use global coordinates</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+P</string>
@@ -863,6 +864,21 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="actionPlotGridY">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionVerticalGrid.svg</normaloff>resources/mActionVerticalGrid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Horizontal grid lines</string>
+   </property>
+   <property name="toolTip">
+    <string>Show horizontal grid lines</string>
    </property>
   </action>
  </widget>

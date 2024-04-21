@@ -6,7 +6,7 @@
 name=Roll
 qgisMinimumVersion=3.28
 description=Design and analysis of 3D seismic survey geometries
-version=0.2.5
+version=0.2.6
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is for creating and analyzing 3D seismic survey geometries. It is dependent on the following Python packages:
@@ -25,7 +25,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:<p>2024-04-13 (0.2.5) added TWT values to trace table and implemented 'Unique Fold' capability
+changelog:<p>2024-04-13 (0.2.6) added 'Analysis' tab, containing seven analysis plots
+  <p>2024-04-13 (0.2.5) added TWT values to trace table and implemented 'Unique Fold' capability
   <p>2024-04-08 (0.2.4) improved handling of well-files
   <p>2024-03-30 (0.2.3) updated metadata.txt (a) about text and (b) dependencies
   <p>2024-03-30 (0.2.2) improved handling of line- and stake numbers; refactoring of input parameters

@@ -137,13 +137,19 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
 
-There is still functionality to be added.
+Currently, there is still some functionality left to be added.
 
 Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
 
 
 
 #### 6	Changelog
+
+- 2024-04-21 (0.2.6) added 'Analysis' tab, containing
+  - The Trace table (full binning results)
+  - In/ and X-line offsets
+  - In/ and X-line azimuths
+  - In/ and X-line stack response
 
 - 2024-04-13 (0.2.5) included TWT values in trace table and implemented 'Unique Fold' capability
 - 2024-04-08 (0.2.4) improved handling of well-files
@@ -157,12 +163,9 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 - Create wizard for Marine towed-streamer geometry
 - Improve analysis capabilities
-  - Show pattern details
-  - Add KxKy pattern analysis
-  - Add Offset plots in inline and x-line directions
-  - Add Kr stack response in inline and x-line directions
-  - Add KxKy single bin stack response
-
+  - Show pattern details and add KxKy pattern analysis
+  - Add KxKy stack response for a single bin (analyzing cmp-spider)
+  
 - Implement multiprocessing instead of worker thread for background tasks
 - Consider relational database instead of numpy arrays for geometry tables
 
