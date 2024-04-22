@@ -145,6 +145,8 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 6	Changelog
 
+- 2024-04-22 (0.2.7) removed all numba @jit references, as exception handling with numba causes problems. Will revisit later.
+  
 - 2024-04-21 (0.2.6) added 'Analysis' tab, containing:
   - The Trace table (full binning results)
   - In-/ and X-line offsets

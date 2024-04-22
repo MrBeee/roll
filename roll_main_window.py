@@ -1279,8 +1279,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             # To rewire signals and slots
             # See: https://stackoverflow.com/questions/21586643/pyqt-widget-connect-and-disconnect
 
-            col = self.spiderPoint.y()                                          # dummy statemenmt for debugging
-
     # deal with the edit menu here.
     # the idea is that Cut, copy, paste and select_all are no longer hardwired to the xml-textEdit
     # See: https://doc.qt.io/qt-6/qkeysequence.html  # Maybe use QApplication.activeWindow() instead
@@ -1350,7 +1348,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         w.setLabel('right', ' ', **styles)                                      # shows axis at the right, no label, no tickmarks
         w.setAspectLocked(aspectLocked)
 
-        w.installEventFilter(self)                                              # catch the 'Show' event to connect to toolbar buttons
+        w.installEventFilter(self)                                              # filter the 'Show' event to connect to toolbar buttons
         return w
 
     # create tabbed pages

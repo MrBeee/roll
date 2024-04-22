@@ -31,7 +31,10 @@ from .roll_unique import RollUnique
 from .sps_io_and_qc import pntType1, relType2
 
 try:
-    from numba import *  # pylint: disable=w0401,w0614 # I don't want to modify 3rd party code on en/disabling numba
+    if False:  # Too many issues with numba, try later
+        from numba import *  # pylint: disable=w0401,w0614 # I don't want to modify 3rd party code on en/disabling numba
+    else:
+        from .nonumba import *  # pylint: disable=w0401,w0614 # I don't want to modify 3rd party code on en/disabling numba
 except ImportError:
     from .nonumba import *  # pylint: disable=w0401,w0614 # I don't want to modify 3rd party code on en/disabling numba
 
@@ -1080,7 +1083,10 @@ class RollSurvey(pg.GraphicsObject):
     # See: https://numba.readthedocs.io/en/stable/user/jit.html for preferred way of using @jit
     # See: https://stackoverflow.com/questions/57774497/how-do-i-make-a-dummy-do-nothing-jit-decorator
 
-    @jit  # pylint: disable=used-before-assignment # undefined variable in case of using nonumba (suppressing E601 does not work !)
+    # can't use @jit here, as numba does not support handling exceptions (try -> except)
+    # See: http://numba.pydata.org/numba-doc/dev/reference/pysupported.html
+    # See: https://stackoverflow.com/questions/18176602/how-to-get-the-name-of-an-exception-that-was-caught-in-python for workaround
+    # @jit  # pylint: disable=used-before-assignment # undefined variable in case of using nonumba (suppressing E601 does not work !)
     def binFromTemplates(self, fullAnalysis) -> bool:
         try:
             for block in self.blockList:                                        # get all blocks
@@ -1271,7 +1277,7 @@ class RollSurvey(pg.GraphicsObject):
 
         return True
 
-    @jit  # pylint: disable=e0602 # undefined variable in case of using nonumba
+    # @jit  # pylint: disable=e0602 # undefined variable in case of using nonumba
     def binTemplate6(self, block, template, templateOffset, fullAnalysis):
         """
         using *pointArray* for a significant speed up,

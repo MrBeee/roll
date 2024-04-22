@@ -4,8 +4,7 @@ import pyqtgraph as pg
 from console import console
 from qgis.PyQt.QtCore import QStandardPaths, pyqtSignal
 from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtWidgets import (QDialog, QDialogButtonBox, QHeaderView,
-                                 QVBoxLayout)
+from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QHeaderView, QVBoxLayout
 
 try:
     import numba  # pylint: disable=W0611  # need to TRY importing numba, only to see if it is available
@@ -136,7 +135,6 @@ class SettingsDialog(QDialog):
             ),
         ]
 
-        enableFlag = True if config.useNumba and haveNumba else False
         tip = 'This is an experimental option to speed up processing.\nIt requires the Numba package to be installed'
 
         misParams = [
@@ -145,7 +143,8 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Use Numba', type='bool', value=config.useNumba, default=config.useNumba, enabled=enableFlag, tip=tip),
+                    # dict(name='Use Numba', type='bool', value=config.useNumba, default=config.useNumba, enabled=haveNumba, tip=tip),
+                    dict(name='Use Numba', type='bool', value=config.useNumba, default=config.useNumba, enabled=False, tip=tip),
                 ],
             ),
         ]
@@ -195,6 +194,7 @@ class SettingsDialog(QDialog):
         LOD = self.parameters.child('Level of Detail Settings')
         SPS = self.parameters.child('SPS Settings')
         GEO = self.parameters.child('Geometry Settings')
+        MIS = self.parameters.child('Miscellaneous Settings')
 
         # sps settings
         config.spsDialect = SPS.child('Local SPS dialect').value()
@@ -248,6 +248,9 @@ class SettingsDialog(QDialog):
         config.srcPointSymbol = srcValue.symbol()
         config.srcBrushColor = srcValue.color().name(QColor.HexArgb)
         config.srcSymbolSize = srcValue.size()
+
+        # miscellaneous settings
+        config.useNumba = MIS.child('Use Numba').value()
 
 
 def readSettings(self):
