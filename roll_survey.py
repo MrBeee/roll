@@ -1,6 +1,7 @@
 """
 This module provides the main classes used in Roll
 """
+import importlib
 import math
 import os
 from enum import Enum
@@ -30,14 +31,14 @@ from .roll_translate import RollTranslate
 from .roll_unique import RollUnique
 from .sps_io_and_qc import pntType1, relType2
 
-try:
-    if False:  # Too many issues with numba, try later
-        from numba import *  # pylint: disable=w0401,w0614 # I don't want to modify 3rd party code on en/disabling numba
-    else:
-        from .nonumba import *  # pylint: disable=w0401,w0614 # I don't want to modify 3rd party code on en/disabling numba
-except ImportError:
-    from .nonumba import *  # pylint: disable=w0401,w0614 # I don't want to modify 3rd party code on en/disabling numba
-
+# to do: incorporate this in the setup... routines that prepare running the background thread.
+if config.useNumba is True:
+    try:
+        numba = importlib.import_module('numba')
+    except ImportError:
+        numba = importlib.import_module('.nonumba', package='roll')
+else:
+    numba = importlib.import_module('.nonumba', package='roll')
 
 # See: https://realpython.com/python-multiple-constructors/#instantiating-classes-in-python for multiple constructors
 # See: https://stackoverflow.com/questions/39513191/python-operator-overloading-with-multiple-operands for operator overlaoding
@@ -1086,7 +1087,7 @@ class RollSurvey(pg.GraphicsObject):
     # can't use @jit here, as numba does not support handling exceptions (try -> except)
     # See: http://numba.pydata.org/numba-doc/dev/reference/pysupported.html
     # See: https://stackoverflow.com/questions/18176602/how-to-get-the-name-of-an-exception-that-was-caught-in-python for workaround
-    # @jit  # pylint: disable=used-before-assignment # undefined variable in case of using nonumba (suppressing E601 does not work !)
+    @numba.jit  # pylint: disable=used-before-assignment # undefined variable in case of using nonumba (suppressing E601 does not work !)
     def binFromTemplates(self, fullAnalysis) -> bool:
         try:
             for block in self.blockList:                                        # get all blocks
@@ -1277,7 +1278,7 @@ class RollSurvey(pg.GraphicsObject):
 
         return True
 
-    # @jit  # pylint: disable=e0602 # undefined variable in case of using nonumba
+    @numba.jit  # pylint: disable=e0602 # undefined variable in case of using nonumba
     def binTemplate6(self, block, template, templateOffset, fullAnalysis):
         """
         using *pointArray* for a significant speed up,

@@ -9,6 +9,7 @@ except ImportError:
     numba = None
 
 import configparser
+import importlib
 import os
 import pickle
 import re
@@ -21,6 +22,11 @@ import rasterio as rio
 import wellpathpy as wp
 from qgis.PyQt.QtCore import PYQT_VERSION_STR, QT_VERSION_STR, QLineF, QPointF, QRectF, Qt
 from qgis.PyQt.QtGui import QColor, QPen, QPolygonF, QVector3D
+
+from . import config  # used to pass 'global' settings
+
+# explicit access to module required in function jitted(method: str):
+functions_numba = importlib.import_module('.functions_numba', package='roll')
 
 
 # See: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch14s08.html for introspective functions
@@ -102,6 +108,43 @@ def getNameFromQtEnum(enum, value):
     return result
 
 
+def getMethodFromModule(pmm: str):
+    """getting a method from a package defined by a 'dot' separated string "package.module.method"
+    note: within 'roll' the package name is 'roll'"""
+    package, module, method = pmm.split('.')
+    module = importlib.import_module(module, package=package)
+    method = getattr(module, method)
+    return method
+
+
+def jit(method, *args, **kwargs):                                             # pylint: disable=W0613 # unused argument
+    """execute a jit_xxx method or a nit_xxx method from functions_numba, depending on config.useNumba status.
+    'functions_numba' refers to a module that has been imported and defined at the start of this module"""
+    if config.useNumba is True:
+        decorated_method = 'jit_' + method
+    else:
+        decorated_method = 'nit_' + method
+
+    func = getattr(functions_numba, decorated_method, None)                # None is default value in case of errors
+    if func is not None:
+        return func(*args, **kwargs)
+    else:
+        return None
+
+
+def jitted(method: str):
+    """return a jit_xxx method or a nit_xxx method from functions_numba, depending on config.useNumba status.
+    'functions_numba' refers to a module that has been imported and defined at the start of this module"""
+
+    if config.useNumba is True:
+        decorated_method = 'jit_' + method
+    else:
+        decorated_method = 'nit_' + method
+
+    func = getattr(functions_numba, decorated_method, None)                 # None is default value in case of errors
+    return func
+
+
 # See: https://github.com/bensarthou/pynufft_benchmark/blob/master/NDFT.py
 def ndft_1Da(x, f, kMax, dK):
     """non-equispaced discrete Fourier transform on x with weights (1/0) in f"""
@@ -177,6 +220,7 @@ def dummyText_on_nDFT():
     # 		ndft2d[k] = sum_ / M / N
     # 	return ndft2d
     #
+    # https://stackoverflow.com/questions/11333454/2d-fft-using-1d-fft
     ...
 
 

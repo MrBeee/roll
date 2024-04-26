@@ -135,7 +135,7 @@ class SettingsDialog(QDialog):
             ),
         ]
 
-        tip = 'This is an experimental option to speed up processing.\nIt requires the Numba package to be installed'
+        tip = 'This is an experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
 
         misParams = [
             dict(
@@ -143,8 +143,8 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    # dict(name='Use Numba', type='bool', value=config.useNumba, default=config.useNumba, enabled=haveNumba, tip=tip),
-                    dict(name='Use Numba', type='bool', value=config.useNumba, default=config.useNumba, enabled=False, tip=tip),
+                    dict(name='Use Numba', type='bool', value=config.useNumba, default=config.useNumba, enabled=haveNumba, tip=tip),
+                    # dict(name='Use Numba', type='bool', value=config.useNumba, default=config.useNumba, enabled=False, tip=tip),
                 ],
             ),
         ]

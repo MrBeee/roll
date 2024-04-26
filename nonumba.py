@@ -1,3 +1,12 @@
+"""use of nonumba.py is best done as follows (avoids using: from nonumba import *)
+try:
+    numba = importlib.import_module('numba')
+except ImportError:
+    numba = importlib.import_module('.nonumba', package='roll') # relative import requires package name
+
+then, decorate functions with: @numba.jit(nopython=True)
+"""
+
 import functools
 
 # See: https://stackoverflow.com/questions/3888158

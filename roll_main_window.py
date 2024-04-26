@@ -44,6 +44,9 @@ To find out where libraries reside, use 'inspect':
 # In the following QGIS releases python stub files that describes the API are included in the qgis package so also much better Pylance language server can be then used
 # If you have *.pyi files in C:/OSGeo4W64/apps/qgis-ltr/python/qgis go with the Pylance language server.
 
+# This file is getting TOO BIG. Need to split class into multiple documents.
+# See: https://www.reddit.com/r/Python/comments/91wbhc/how_do_i_split_a_huge_class_over_multiple_files/?rdt=44096
+
 import contextlib
 import gc
 import os
@@ -97,7 +100,7 @@ from qgis.PyQt.QtXml import QDomDocument
 from . import config  # used to pass initial settings
 from .event_lookup import event_lookup
 from .find import Find
-from .functions import aboutText, exampleSurveyXmlText, licenseText, ndft_1Da, rawcount
+from .functions import aboutText, exampleSurveyXmlText, jit, licenseText, rawcount
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
 from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
@@ -284,11 +287,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.layoutImItem = None                                                # pg ImageItems showing analysis result
         self.stkTrkImItem = None
         self.stkBinImItem = None
+        self.stkCelImItem = None
 
         # corresponding color bars
         self.layoutColorBar = None                                              # colorBars, added to imageItem
         self.stkTrkColorBar = None
         self.stkBinColorBar = None
+        self.stkCelColorBar = None
 
         # rps, sps, xps input arrays
         self.rpsImport = None                                                   # numpy array with list of RPS records
@@ -522,6 +527,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             'Azimuth for x-line direction',
             'Stack response for inline direction',
             'Stack response for x-line direction',
+            'Kx-Ky strack response for a single bin',
         ]
 
         # these widgets have "installEventFilter()" applied to catch the window 'Show' event in "eventFilter()"
@@ -530,8 +536,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.offBinWidget = self.createPlotWidget(self.plotTitles[2], 'x-line', 'offset', 'm', 'm')
         self.aziTrkWidget = self.createPlotWidget(self.plotTitles[3], 'inline', 'angle of incidence', 'm', 'deg', False)
         self.aziBinWidget = self.createPlotWidget(self.plotTitles[4], 'x-line', 'angle of incidence', 'm', 'deg', False)    # no fixed aspect ratio
-        self.stkTrkWidget = self.createPlotWidget(self.plotTitles[5], 'inline', '|Kr|', 'm', '1/km', False)
-        self.stkBinWidget = self.createPlotWidget(self.plotTitles[6], 'x-line', '|Kr|', 'm', '1/km', False)
+        self.stkTrkWidget = self.createPlotWidget(self.plotTitles[5], 'inline', '|Kr|', 'm', ' 1/km', False)
+        self.stkBinWidget = self.createPlotWidget(self.plotTitles[6], 'x-line', '|Kr|', 'm', ' 1/km', False)
+        self.stkCelWidget = self.createPlotWidget(self.plotTitles[7], 'Kx', 'Ky', ' 1/km', ' 1/km')
 
         # Create the various views (tabs) on the data
         # Use QCodeEditor with a XmlHighlighter instead of a 'plain' QPlainTextEdit
@@ -571,6 +578,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.analysisTabWidget.addTab(self.aziBinWidget, 'Azi X-line')
         self.analysisTabWidget.addTab(self.stkTrkWidget, 'Stack Inline')
         self.analysisTabWidget.addTab(self.stkBinWidget, 'Stack X-line')
+        self.analysisTabWidget.addTab(self.stkCelWidget, 'Kx-Ky Stack')
         self.analysisTabWidget.currentChanged.connect(self.onAnalysisTabChange)   # active tab changed!
 
         self.setCurrentFileName()
@@ -816,7 +824,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.actionRuler.setEnabled(False)                                  # useful for 1st plot only
             self.actionProjected.setEnabled(False)                              # useful for 1st plot only
 
-        # SOFAR NOW
         return super().eventFilter(source, event)
 
     def applyPropertyChangesAndHide(self):
@@ -1012,24 +1019,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return
         elif index == 1:                                                        # Offsets inline (common y)
             with pg.BusyCursor():
-                slice3D = self.anaOutput[:, nY, :, :]                           # we are left with 3 dimension[col, fold, param]
-                slice2D = slice3D.reshape(xSize * nFold, param)                 # convert to 2D
-
-                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
-                    havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
-                    useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
-                else:
-                    useUnique = False                                           # unique not required or not available
-
-                if useUnique:
-                    I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
-                else:
-                    I = slice2D[:, 2] > 0                                       # fold > 0
-
-                if np.count_nonzero(I) == 0:
-                    return                                                      # nothing to show; return
-
-                slice2D = slice2D[I, :]                                         # filter the 2D slice
+                slice2D, I, noData = jit('slice2D', self.anaOutput[:, nY, :, :], self.survey.unique.apply)
+                if noData:
+                    return
 
                 x__Inline = slice2D[:, 7]                                       # get all available cmp values belonging to this row
                 offInline = slice2D[:, 10]                                      # get all available offsets belonging to this row
@@ -1045,28 +1037,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 plotTitle = f'{self.plotTitles[1]} [line={linNo}]'
                 self.offTrkWidget.setTitle(plotTitle, color='b', size='16pt')
                 self.offTrkWidget.plotItem.clear()
-                rec = self.offTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+                self.offTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
         elif index == 2:                                                        # offsets x-line (common x)
             with pg.BusyCursor():
-                slice3D = self.anaOutput[nX, :, :, :]                           # we are left with 3 dimensions [col, fold, param]
-                slice2D = slice3D.reshape(ySize * nFold, param)                 # convert to 2D
-
-                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
-                    havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
-                    useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
-                else:
-                    useUnique = False                                           # unique not required or not available
-
-                if useUnique:
-                    I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
-                else:
-                    I = slice2D[:, 2] > 0                                       # fold > 0
-
-                if np.count_nonzero(I) == 0:
-                    return                                                      # nothing to show; return
-
-                slice2D = slice2D[I, :]                                         # filter the 2D slice
+                slice2D, I, noData = jit('slice2D', self.anaOutput[nX, :, :, :], self.survey.unique.apply)
+                if noData:
+                    return
 
                 y__Inline = slice2D[:, 8]                                       # get all available cmp values belonging to this row
                 offInline = slice2D[:, 10]                                      # get all available offsets belonging to this row
@@ -1082,28 +1059,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 plotTitle = f'{self.plotTitles[2]} [stake={stkNo}]'
                 self.offBinWidget.setTitle(plotTitle, color='b', size='16pt')
                 self.offBinWidget.plotItem.clear()
-                rec = self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+                self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
         elif index == 3:                                                        # Azimuths inline (common y)
             with pg.BusyCursor():
-                slice3D = self.anaOutput[:, nY, :, :]                           # we are left with 3 dimension[col, fold, param]
-                slice2D = slice3D.reshape(xSize * nFold, param)                 # convert to 2D
-
-                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
-                    havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
-                    useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
-                else:
-                    useUnique = False                                           # unique not required or not available
-
-                if useUnique:
-                    I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
-                else:
-                    I = slice2D[:, 2] > 0                                       # fold > 0
-
-                if np.count_nonzero(I) == 0:
-                    return                                                      # nothing to show; return
-
-                slice2D = slice2D[I, :]                                         # filter the 2D slice
+                slice2D, I, noData = jit('slice2D', self.anaOutput[:, nY, :, :], self.survey.unique.apply)
+                if noData:
+                    return
 
                 x__Inline = slice2D[:, 7]                                       # get all available cmp values belonging to this row
                 aziInline = slice2D[:, 11]                                      # get all available offsets belonging to this row
@@ -1119,32 +1081,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 plotTitle = f'{self.plotTitles[3]} [line={linNo}]'
                 self.aziTrkWidget.setTitle(plotTitle, color='b', size='16pt')
                 self.aziTrkWidget.plotItem.clear()
-                rec = self.aziTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+                self.aziTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
         elif index == 4:                                                        # offsets x-line (common x)
             with pg.BusyCursor():
-                slice3D = self.anaOutput[nX, :, :, :]                           # we are left with 3 dimension[col, fold, param]
-                slice2D = slice3D.reshape(ySize * nFold, param)                 # convert to 2D
-
-                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
-                    havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
-                    useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
-                else:
-                    useUnique = False                                           # unique not required or not available
-
-                if useUnique:
-                    I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
-                else:
-                    I = slice2D[:, 2] > 0                                       # fold > 0
-
-                if np.count_nonzero(I) == 0:
-                    return                                                      # nothing to show; return
-
-                slice2D = slice2D[I, :]                                         # filter the 2D slice
+                slice2D, I, noData = jit('slice2D', self.anaOutput[nX, :, :, :], self.survey.unique.apply)
+                if noData:
+                    return
 
                 y__Inline = slice2D[:, 8]                                       # get all available cmp values belonging to this row
                 aziInline = slice2D[:, 11]                                      # get all available offsets belonging to this row
-                havUnique = slice2D[:, 12]                                      # get all available cmp values belonging to this row
 
                 x = np.empty((2 * y__Inline.size), dtype=y__Inline.dtype)
                 x[0::2] = y__Inline - oy
@@ -1157,42 +1103,24 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 plotTitle = f'{self.plotTitles[4]} [stake={stkNo}]'
                 self.aziBinWidget.setTitle(plotTitle, color='b', size='16pt')
                 self.aziBinWidget.plotItem.clear()
-                rec = self.aziBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+                self.aziBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
         elif index == 5:                                                        # stack response inline (common y)
             with pg.BusyCursor():
-                slice3D = self.anaOutput[:, nY, :, :]                           # we are left with 3 dimension[col, fold, param]
-                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
-                    slice2D = slice3D.reshape(xSize * nFold, param)             # convert to 2D
-                    havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
-                    useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
-                else:
-                    useUnique = False                                           # unique not required or not available
+                dK = 0.0001
+                kMax = 0.02 + dK
+                kStart = 1000.0 * (0.0 - 0.5 * dK)                              # scale by factor 1000 as we want to show [1/km] on scale
+                kDelta = 1000.0 * dK                                            # same here
 
-                if useUnique:
-                    I = (slice3D[:, :, 2] > 0) & (slice3D[:, :, 12] == -1)      # fold > 0 AND unique == -1
-                else:
-                    I = slice3D[:, :, 2] > 0                                    # fold > 0
+                slice3D, I, noData = jit('slice3D', self.anaOutput[:, nY, :, :], self.survey.unique.apply)
+                if noData:
+                    return
 
-                if np.count_nonzero(I) == 0:
-                    return                                                      # nothing to show; return
-
-                if self.inlineStk is None:
-                    self.inlineStk = np.zeros(shape=(xSize, 200), dtype=np.float32)  # start with empty array of the right size and type
-
-                for n in range(xSize):
-                    offInline = slice3D[n, :, 10]                               # get all available offsets belonging to this row
-                    incInline = I[n, :]                                         # get all available offsets belonging to this row
-                    # todo: add check on np.count_nonzero(incInline)
-                    # just return array of -50 dB values in case of no valid traces
-                    response = ndft_1Da(offInline, incInline, 0.02, 0.0001)
-                    abs_response = np.abs(response)
-                    log_response = np.round(np.log(abs_response) * 20.0, 2)
-                    self.inlineStk[n, :] = log_response
+                self.inlineStk = jit('ndft_1D', kMax, dK, slice3D, I)
 
                 tr = QTransform()  # prepare ImageItem transformation:
-                tr.translate(x0, 0.0)                                           # move image to correct location
-                tr.scale(dx, 0.1)                                               # scale horizontal and vertical axes
+                tr.translate(x0, kStart)                                        # move image to correct location
+                tr.scale(dx, kDelta)                                            # scale horizontal and vertical axes
 
                 self.stkTrkImItem = pg.ImageItem()                              # create PyqtGraph image item
                 self.stkTrkImItem.setImage(self.inlineStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
@@ -1215,39 +1143,20 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         elif index == 6:                                                        # stack response x-line (common x)
             with pg.BusyCursor():
-                slice3D = self.anaOutput[nX, :, :, :]                           # we are left with 3 dimensions [col, fold, param]
+                dK = 0.0001
+                kMax = 0.02 + dK
+                kStart = 1000.0 * (0.0 - 0.5 * dK)                              # scale by factor 1000 as we want to show [1/km] on scale
+                kDelta = 1000.0 * dK                                            # same here
 
-                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
-                    slice2D = slice3D.reshape(ySize * nFold, param)             # convert 3D slice to 2D
-                    havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
-                    useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
-                else:
-                    useUnique = False                                           # unique not required or not available
+                slice3D, I, noData = jit('slice3D', self.anaOutput[nX, :, :, :], self.survey.unique.apply)
+                if noData:
+                    return
 
-                if useUnique:
-                    I = (slice3D[:, :, 2] > 0) & (slice3D[:, :, 12] == -1)      # fold > 0 AND unique == -1
-                else:
-                    I = slice3D[:, :, 2] > 0                                    # fold > 0
-
-                if np.count_nonzero(I) == 0:
-                    return                                                      # nothing to show; return
-
-                if self.x_lineStk is None:
-                    self.x_lineStk = np.zeros(shape=(ySize, 200), dtype=np.float32)      # start with empty array of the right size and type
-
-                for n in range(ySize):
-                    offInline = slice3D[n, :, 10]                               # get all available offsets belonging to this row
-                    incInline = I[n, :]                                         # get all available offsets belonging to this row
-                    # todo: add check on np.count_nonzero(incInline)
-                    # just return array of -50 dB values in case of no valid traces
-                    response = ndft_1Da(offInline, incInline, 0.02, 0.0001)
-                    abs_response = np.abs(response)
-                    log_response = np.round(np.log(abs_response) * 20.0, 2)
-                    self.x_lineStk[n, :] = log_response
+                self.x_lineStk = jit('ndft_1D', kMax, dK, slice3D, I)
 
                 tr = QTransform()  # prepare ImageItem transformation:
-                tr.translate(y0, 0.0)                                           # move image to correct location
-                tr.scale(dy, 0.1)                                               # scale horizontal and vertical axes
+                tr.translate(y0, kStart)                                        # move image to correct location
+                tr.scale(dy, kDelta)                                            # scale horizontal and vertical axes
 
                 self.stkBinImItem = pg.ImageItem()                              # create PyqtGraph image item
                 self.stkBinImItem.setImage(self.x_lineStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
@@ -1267,6 +1176,60 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 plotTitle = f'{self.plotTitles[6]} [stake={stkNo}]'
                 self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
+
+        elif index == 7:                                                        # stack response kXkY
+            with pg.BusyCursor():
+                slice2D = self.anaOutput[nX, nY, :, :]                          # we are left with 2 dimensions [fold, param]
+
+                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
+                    havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
+                    useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
+                else:
+                    useUnique = False                                           # unique not required or not available
+
+                if useUnique:
+                    I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
+                else:
+                    I = slice2D[:, 2] > 0                                       # fold > 0
+
+                if np.count_nonzero(I) == 0:
+                    return                                                      # nothing to show; return
+
+                slice2D = slice2D[I, :]                                         # filter the 2D slice
+
+                offsetX = slice2D[:, 5] - slice2D[:, 3]                         # x-component of available offsets
+                offsetY = slice2D[:, 6] - slice2D[:, 4]                         # y-component of available offsets
+
+                dK = 0.00005
+                kMin = -0.005
+                kMax = dK - kMin
+
+                # 'jit'prepends 'jit_' or 'nit_' to a method, and calls a function from 'functions_numba.py' trying to speed things up
+                self.xyCellStk = jit('ndft_2D', kMin, kMax, dK, offsetX, offsetY)
+
+                kStart = 1000.0 * (kMin - 0.5 * dK)                             # scale by factor 1000 as we want to show [1/km] on scale
+                kDelta = 1000.0 * dK                                            # same here
+                tr = QTransform()                                               # prepare ImageItem transformation:
+                tr.translate(kStart, kStart)                                    # move image to correct location
+                tr.scale(kDelta, kDelta)                                        # scale horizontal and vertical axes
+
+                self.stkCelImItem = pg.ImageItem()                              # create PyqtGraph image item
+                self.stkCelImItem.setImage(self.xyCellStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
+                self.stkCelImItem.setTransform(tr)
+                if self.stkCelColorBar is None:
+                    self.stkCelColorBar = self.stkCelWidget.plotItem.addColorBar(
+                        self.stkCelImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0)
+                    )
+                    self.stkCelColorBar.setLevels(low=-50.0, high=0.0)
+                else:
+                    self.stkCelColorBar.setImageItem(self.stkCelImItem)
+                    self.stkCelColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
+
+                self.stkCelWidget.plotItem.clear()
+                self.stkCelWidget.plotItem.addItem(self.stkCelImItem)
+
+                plotTitle = f'{self.plotTitles[7]} [stake={stkNo}, line={linNo}, fold={offsetX.shape[0]}]'
+                self.stkCelWidget.setTitle(plotTitle, color='b', size='16pt')
 
             # SOFAR NOW. For Polar Coordinates, see:
             # See: https://stackoverflow.com/questions/57174173/polar-coordinate-system-in-pyqtgraph
@@ -1749,9 +1712,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         xSize = self.anaOutput.shape[0]
         ySize = self.anaOutput.shape[1]
 
-        if self.spiderPoint == QPoint(-1, -1):
+        if self.spiderPoint == QPoint(-1, -1):                                  # no valid position yet; move to center
             self.spiderPoint = QPoint(xSize / 2, ySize / 2)
-        elif direction == Direction.Rt:
+        elif direction == Direction.Rt:                                         # valid position, so move spider around
             self.spiderPoint += QPoint(1, 0) * step
         elif direction == Direction.Lt:
             self.spiderPoint -= QPoint(1, 0) * step
@@ -2208,7 +2171,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
         self.imageType = self.analysisGroup.checkedId()
-        self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the 'Layout' tab
+        # self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the 'Layout' tab
 
         if self.layoutImItem is not None and self.layoutColorBar is None:
             self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.inActiveCmap, label='N/A', limits=(0, None), rounding=10.0, values=(0, 10))
@@ -2354,6 +2317,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return 5
         elif plotWidget == self.stkBinWidget:
             return 6
+        elif plotWidget == self.stkCelWidget:
+            return 6
         return None
 
     def getVisiblePlotWidget(self):
@@ -2371,6 +2336,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return (self.stkTrkWidget, 5)
         if self.stkBinWidget.isVisible():
             return (self.stkBinWidget, 6)
+        if self.stkCelWidget.isVisible():
+            return (self.stkCelWidget, 7)
         return (None, None)
 
     def plotZoomRect(self):
@@ -2450,7 +2417,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     self.appendLogMessage(s3, MsgType.Debug)
 
         self.handleSpiderPlot()                                                 # spider label should move depending on local/global coords
-        self.layoutWidget.autoRange()                                             # show the full range of objects when changing local vs global coordinates
+        self.layoutWidget.autoRange()                                           # show the full range of objects when changing local vs global coordinates
         self.plotSurvey()
 
     def plotRuler(self):
@@ -3683,7 +3650,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionGeometryFromTemplates.setEnabled(enable)
         self.actionStopThread.setEnabled(not enable)
 
-    def testBasicBinningConditions(self):
+    def testBasicBinningConditions(self) -> bool:
         if self.survey.unique.apply:                                            # can't do unique fold with basic binning
             QMessageBox.information(
                 self,
@@ -3692,8 +3659,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 QMessageBox.Cancel,
             )
             return False
+        else:
+            return True
 
-    def testFullBinningConditions(self):
+    def testFullBinningConditions(self) -> bool:
         if self.survey.grid.fold <= 0:                                          # the size of the analysis file is defined by the grid's fold
             QMessageBox.information(
                 self,
