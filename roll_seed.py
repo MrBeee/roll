@@ -2,6 +2,8 @@
 This module provides Seed Class, core of the placement of src & rec points in a survey area
 """
 
+from enum import Enum
+
 import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QRectF
@@ -13,6 +15,14 @@ from .roll_circle import RollCircle
 from .roll_grid import RollGrid
 from .roll_spiral import RollSpiral
 from .roll_well import RollWell
+
+
+class SeedType(Enum):
+    rollingGrid = 0
+    fixedGrid = 1
+    circle = 2
+    spiral = 3
+    well = 4
 
 
 class RollSeed:
@@ -27,7 +37,7 @@ class RollSeed:
         self.color = QColor()                                                   # color of seed to discriminate different sources / receivers
 
         # seed subtypes
-        self.typ_ = 0                                                           # Seed type 0 = rolling, 1 = fixed, 2 = circle, 3 = spiral, 4 = well,
+        self.type = 0                                                           # Seed type 0 = rolling, 1 = fixed, 2 = circle, 3 = spiral, 4 = well,
         self.grid = RollGrid()
         self.circle = RollCircle()
         self.spiral = RollSpiral()
@@ -58,16 +68,16 @@ class RollSeed:
         seedElem.setAttribute('src', str(self.bSource))
         seedElem.setAttribute('azi', str(self.bAzimuth))
         seedElem.setAttribute('patno', str(self.patternNo))
-        seedElem.setAttribute('typno', str(self.typ_))
+        seedElem.setAttribute('typno', str(self.type))
         seedElem.setAttribute('argb', str(self.color.name(QColor.HexArgb)))
 
-        if self.typ_ < 2:
+        if self.type < 2:
             self.grid.writeXml(seedElem, doc)
-        elif self.typ_ == 2:
+        elif self.type == 2:
             self.circle.writeXml(seedElem, doc)
-        elif self.typ_ == 3:
+        elif self.type == 3:
             self.spiral.writeXml(seedElem, doc)
-        elif self.typ_ == 4:
+        elif self.type == 4:
             self.well.writeXml(seedElem, doc)
 
         parent.appendChild(seedElem)
@@ -86,7 +96,7 @@ class RollSeed:
         self.bSource = parent.attribute('src') == 'True'
         self.bAzimuth = parent.attribute('azi') == 'True'
         self.patternNo = int(parent.attribute('patno'))
-        self.typ_ = int(parent.attribute('typno'))
+        self.type = int(parent.attribute('typno'))
 
         if parent.hasAttribute('argb'):
             self.color = QColor(parent.attribute('argb'))
@@ -101,13 +111,13 @@ class RollSeed:
                 # light blue
                 self.color = QColor('#7787A4D9')
 
-        if self.typ_ < 2:
+        if self.type < 2:
             self.grid.readXml(parent)
-        elif self.typ_ == 2:
+        elif self.type == 2:
             self.circle.readXml(parent)
-        elif self.typ_ == 3:
+        elif self.type == 3:
             self.spiral.readXml(parent)
-        elif self.typ_ == 4:
+        elif self.type == 4:
             self.well.readXml(parent)
 
     def resetBoundingRect(self):
@@ -116,16 +126,16 @@ class RollSeed:
 
     # we're in a RollSeed here
     def calcBoundingRect(self):
-        if self.typ_ < 2:
+        if self.type < 2:
             self.boundingBox = self.grid.calcBoundingRect(self.origin)          # grid
 
-        elif self.typ_ == 2:                                                    # circle
+        elif self.type == 2:                                                    # circle
             self.boundingBox = self.circle.calcBoundingRect(self.origin)
 
-        elif self.typ_ == 3:                                                    # spiral
+        elif self.type == 3:                                                    # spiral
             self.boundingBox = self.spiral.calcBoundingRect(self.origin)
 
-        elif self.typ_ == 4:                                                    # well
+        elif self.type == 4:                                                    # well
             self.boundingBox = self.well.polygon.boundingRect()
             # can be more precise by only using the list of in-well points instead of the whole well trajectory
 

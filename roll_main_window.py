@@ -66,72 +66,50 @@ import pyqtgraph as pg
 from console import console
 from numpy.compat import asstr
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
-from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
-from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
-from qgis.PyQt.QtWidgets import (
-    QAction,
-    QApplication,
-    QButtonGroup,
-    QCheckBox,
-    QDialogButtonBox,
-    QDockWidget,
-    QFileDialog,
-    QFrame,
-    QGraphicsEllipseItem,
-    QGridLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QHeaderView,
-    QLabel,
-    QMainWindow,
-    QMessageBox,
-    QPlainTextEdit,
-    QProgressBar,
-    QPushButton,
-    QRadioButton,
-    QSplitter,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
-)
+from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
+                              QItemSelection, QItemSelectionModel, QModelIndex,
+                              QPoint, QSettings, Qt, QTextStream, QThread)
+from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
+                             QTextCursor, QTextOption, QTransform)
+from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
+                                      QPrintPreviewDialog)
+from qgis.PyQt.QtWidgets import (QAction, QApplication, QButtonGroup,
+                                 QCheckBox, QDialogButtonBox, QDockWidget,
+                                 QFileDialog, QFrame, QGraphicsEllipseItem,
+                                 QGridLayout, QGroupBox, QHBoxLayout,
+                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
+                                 QPlainTextEdit, QProgressBar, QPushButton,
+                                 QRadioButton, QSplitter, QTabWidget,
+                                 QVBoxLayout, QWidget)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
 from .event_lookup import event_lookup
 from .find import Find
-from .functions import aboutText, exampleSurveyXmlText, jit, licenseText, rawcount
+from .functions import (aboutText, exampleSurveyXmlText, jit, licenseText,
+                        rawcount)
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
+from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
+                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
+                             identifyQgisPointLayer, readQgisPointLayer,
+                             updateQgisPointLayer)
 from .roll_binning import BinningType
 from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (
-    calcMaxXPStraces,
-    calculateLineStakeTransform,
-    deletePntDuplicates,
-    deletePntOrphans,
-    deleteRelDuplicates,
-    deleteRelOrphans,
-    fileExportAsR01,
-    fileExportAsS01,
-    fileExportAsX01,
-    findRecOrphans,
-    findSrcOrphans,
-    getRecGeometry,
-    getSrcGeometry,
-    markUniqueRPSrecords,
-    markUniqueSPSrecords,
-    markUniqueXPSrecords,
-    pntType1,
-    readRPSFiles,
-    readSPSFiles,
-    readXPSFiles,
-    relType2,
-)
-from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
-from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
+from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
+                            deletePntDuplicates, deletePntOrphans,
+                            deleteRelDuplicates, deleteRelOrphans,
+                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
+                            findRecOrphans, findSrcOrphans, getRecGeometry,
+                            getSrcGeometry, markUniqueRPSrecords,
+                            markUniqueSPSrecords, markUniqueXPSrecords,
+                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
+                            relType2)
+from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
+                               TableView, XpsTableModel)
+from .worker_threads import (BinFromGeometryWorker, BinningWorker,
+                             GeometryWorker)
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -282,18 +260,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.x_lineStk = None                                                   # numpy array with x_line Kr stack reponse
         self.xyCellStk = None                                                   # numpy array with cell's KxKy stack response
         self.xyPatResp = None                                                   # numpy array with pattern's KxKy response
+        self.offAziPlt = None                                                   # numpy array with offset distribution
 
         # layout and analysis image-items
         self.layoutImItem = None                                                # pg ImageItems showing analysis result
         self.stkTrkImItem = None
         self.stkBinImItem = None
         self.stkCelImItem = None
+        self.offAziImItem = None
 
         # corresponding color bars
         self.layoutColorBar = None                                              # colorBars, added to imageItem
         self.stkTrkColorBar = None
         self.stkBinColorBar = None
         self.stkCelColorBar = None
+        self.offAziColorBar = None
 
         # rps, sps, xps input arrays
         self.rpsImport = None                                                   # numpy array with list of RPS records
@@ -528,6 +509,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             'Stack response for inline direction',
             'Stack response for x-line direction',
             'Kx-Ky strack response for a single bin',
+            '|Offset| distribution in binning area',
+            'Offset/azimuth distribution in binning area',
         ]
 
         # these widgets have "installEventFilter()" applied to catch the window 'Show' event in "eventFilter()"
@@ -538,7 +521,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.aziBinWidget = self.createPlotWidget(self.plotTitles[4], 'x-line', 'angle of incidence', 'm', 'deg', False)    # no fixed aspect ratio
         self.stkTrkWidget = self.createPlotWidget(self.plotTitles[5], 'inline', '|Kr|', 'm', ' 1/km', False)
         self.stkBinWidget = self.createPlotWidget(self.plotTitles[6], 'x-line', '|Kr|', 'm', ' 1/km', False)
-        self.stkCelWidget = self.createPlotWidget(self.plotTitles[7], 'Kx', 'Ky', ' 1/km', ' 1/km')
+        self.stkCelWidget = self.createPlotWidget(self.plotTitles[7], 'Kx', 'Ky', '1/km', '1/km')
+        self.offsetWidget = self.createPlotWidget(self.plotTitles[8], '|offset|', 'frequency', 'm', ' #', False)
+        self.offAziWidget = self.createPlotWidget(self.plotTitles[9], 'azimuth', '|offset|', 'deg', 'm', False)
 
         # Create the various views (tabs) on the data
         # Use QCodeEditor with a XmlHighlighter instead of a 'plain' QPlainTextEdit
@@ -579,6 +564,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.analysisTabWidget.addTab(self.stkTrkWidget, 'Stack Inline')
         self.analysisTabWidget.addTab(self.stkBinWidget, 'Stack X-line')
         self.analysisTabWidget.addTab(self.stkCelWidget, 'Kx-Ky Stack')
+        self.analysisTabWidget.addTab(self.offsetWidget, '|O| Histogram')
+        self.analysisTabWidget.addTab(self.offAziWidget, 'O/A Histogram')
         self.analysisTabWidget.currentChanged.connect(self.onAnalysisTabChange)   # active tab changed!
 
         self.setCurrentFileName()
@@ -886,11 +873,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         CFG = self.parameters.child('Survey configuration')
         # copy.crs = CFG.child('Survey CRS').value()
-        # copy.typ_ = SurveyType[CFG.child('Survey type').value()]
+        # copy.type = SurveyType[CFG.child('Survey type').value()]
         # copy.name = CFG.child('Survey name').value()
 
         copy.crs, surType, copy.name = CFG.value()                              # get tuple of data from parameter
-        copy.typ_ = SurveyType[surType]                                         # SurveyType is an enum
+        copy.type = SurveyType[surType]                                         # SurveyType is an enum
         config.surveyCrs = copy.crs                                             # needed for global access to crs
 
         ANA = self.parameters.child('Survey analysis')
@@ -931,6 +918,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.x_lineStk = None                                               # numpy array with x_line Kr stack reponse
             self.xyCellStk = None                                               # numpy array with cell's KxKy stack response
             self.xyPatResp = None                                               # numpy array with pattern's KxKy response
+            self.offAziPlt = None                                               # numpy array with offset distribution
 
             self.binOutput = None                                               # numpy array with foldmap
             self.minOffset = None                                               # numpy array with minimum offset
@@ -1118,7 +1106,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 self.inlineStk = jit('ndft_1D', kMax, dK, slice3D, I)
 
-                tr = QTransform()  # prepare ImageItem transformation:
+                tr = QTransform()                                               # prepare ImageItem transformation:
                 tr.translate(x0, kStart)                                        # move image to correct location
                 tr.scale(dx, kDelta)                                            # scale horizontal and vertical axes
 
@@ -1230,6 +1218,98 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 plotTitle = f'{self.plotTitles[7]} [stake={stkNo}, line={linNo}, fold={offsetX.shape[0]}]'
                 self.stkCelWidget.setTitle(plotTitle, color='b', size='16pt')
+        elif index == 8:                                                        # offset histogram
+            with pg.BusyCursor():
+
+                fold = self.anaOutput[:, :, :, 2]                           # we are left with 1 dimensions [offset]
+                offsets = self.anaOutput[:, :, :, 10]                           # we are left with 1 dimensions [offset]
+                include = self.anaOutput[:, :, :, 12]                           # we are left with 1 dimensions [offset]
+
+                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
+                    useUnique = True if include.min() == -1 else False          # are there any -1 records ?
+                else:
+                    useUnique = False                                           # unique not required or not available
+
+                if useUnique:
+                    I = (fold > 0) & (include == -1)                            # fold > 0 AND unique == -1
+                else:
+                    I = fold > 0                                                # fold value > 0
+
+                if np.count_nonzero(I) == 0:                                    # nothing to show here
+                    return
+
+                offsets = offsets[I]                                            # filter the 1D slice
+                count = offsets.shape[0]                                        # nr available traces
+
+                y, x = np.histogram(offsets, bins='auto')                       # create a histogram the easy way
+
+                ## Using stepMode="center" causes the plot to draw two lines for each sample.
+                ## notice that len(x) == len(y)+1
+                # plt1.plot(x, y, stepMode='center', fillLevel=0, fillOutline=True, brush=(0, 0, 255, 150))
+                # bgi = pg.BarGraphItem(x0=x[:-1], x1=x[1:], height=y, pen='w', brush=(0,0,255,150))
+
+                plotTitle = f'{self.plotTitles[8]} [{count:,} traces]'
+                self.offsetWidget.setTitle(plotTitle, color='b', size='16pt')
+                self.offsetWidget.plotItem.clear()
+                self.offsetWidget.plot(x, y, stepMode='center', fillLevel=0, fillOutline=True, brush=(0, 0, 255, 150), pen=pg.mkPen('k', width=1))
+        elif index == 9:                                                        # Offset/azimuth histogram
+            with pg.BusyCursor():
+                fold = self.anaOutput[:, :, :, 2]                               # we are left with 1 dimensions [offset]
+                offsets = self.anaOutput[:, :, :, 10]                           # we are left with 1 dimensions [offset]
+                azimuth = self.anaOutput[:, :, :, 11]                           # we are left with 1 dimensions [offset]
+                include = self.anaOutput[:, :, :, 12]                           # we are left with 1 dimensions [offset]
+
+                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
+                    useUnique = True if include.min() == -1 else False          # are there any -1 records ?
+                else:
+                    useUnique = False                                           # unique not required or not available
+
+                if useUnique:
+                    I = (fold > 0) & (include == -1)                            # fold > 0 AND unique == -1
+                else:
+                    I = fold > 0                                                # fold value > 0
+
+                if np.count_nonzero(I) == 0:                                    # nothing to show here
+                    return
+
+                offsets = offsets[I]                                            # filter the 1D slice
+                azimuth = azimuth[I]                                            # filter the 1D slice
+                count = offsets.shape[0]                                        # nr available traces
+                if count == 0:
+                    return
+
+                dA = 5.0                                                       # azimuth increments
+                aMin = -180.0                                                    # max x-scale
+                aMax = 180.0                                                    # max x-scale
+                aMax += dA                                                      # make sure end value is included
+
+                dO = 100.0                                                      # offsets increments
+                oMax = ceil(self.maxMaxOffset / dO) * dO + dO                   # max y-scale; make sure end value is included
+
+                aR = np.arange(aMin, aMax, dA)                                  # numpy array with values [0 ... fMax]
+                oR = np.arange(0, oMax, dO)                                     # numpy array with values [0 ... oMax]
+
+                self.offAziPlt, _x, _y = np.histogram2d(x=azimuth, y=offsets, bins=[aR, oR], range=None, density=None, weights=None)
+
+                tr = QTransform()                                               # prepare ImageItem transformation:
+                tr.translate(aMin, 0)                                           # move image to correct location
+                tr.scale(dA, dO)                                                # scale horizontal and vertical axes
+
+                self.offAziImItem = pg.ImageItem()                              # create PyqtGraph image item
+                self.offAziImItem.setImage(self.offAziPlt)                      #
+                self.offAziImItem.setTransform(tr)
+                if self.offAziColorBar is None:
+                    self.offAziColorBar = self.offAziWidget.plotItem.addColorBar(self.offAziImItem, colorMap=config.analysisCmap, label='frequency', rounding=10.0)
+                    self.offAziColorBar.setLevels(low=0.0)                      # , high=0.0
+                else:
+                    self.offAziColorBar.setImageItem(self.offAziImItem)
+                    self.offAziColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
+
+                self.offAziWidget.plotItem.clear()
+                self.offAziWidget.plotItem.addItem(self.offAziImItem)
+
+                plotTitle = f'{self.plotTitles[9]} [{count:,} traces]'
+                self.offAziWidget.setTitle(plotTitle, color='b', size='16pt')
 
             # SOFAR NOW. For Polar Coordinates, see:
             # See: https://stackoverflow.com/questions/57174173/polar-coordinate-system-in-pyqtgraph
@@ -2319,6 +2399,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return 6
         elif plotWidget == self.stkCelWidget:
             return 6
+        elif plotWidget == self.offsetWidget:
+            return 7
+
         return None
 
     def getVisiblePlotWidget(self):
@@ -2338,6 +2421,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return (self.stkBinWidget, 6)
         if self.stkCelWidget.isVisible():
             return (self.stkCelWidget, 7)
+        if self.offsetWidget.isVisible():
+            return (self.offsetWidget, 8)
+
         return (None, None)
 
     def plotZoomRect(self):

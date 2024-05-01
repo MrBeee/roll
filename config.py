@@ -122,10 +122,10 @@ xpsFormatList = [
     # configuration settings for locations of fields in SPS data;
     # all indices are 'zero' based and the last number is not included
     # the first character is therefore [0, 1], the last one is [79, 80]
-    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', recNo=[8, 11], srcLin=[23, 27], srcPnt=[33, 37], srcInd=[37, 38], recLin=[57, 61], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
-    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', recNo=[8, 15], srcLin=[29, 33], srcPnt=[33, 37], srcInd=[37, 38], recLin=[61, 65], recMin=[65, 69], recMax=[75, 79], recInd=[79, 80]),
-    dict(name='SEG rev2.1', hdr='H', src='S', rec='R', rel='X', recNo=[7, 15], srcLin=[17, 27], srcPnt=[27, 37], srcInd=[37, 38], recLin=[49, 59], recMin=[59, 69], recMax=[69, 79], recInd=[79, 80]),
-    dict(name='Sudan', hdr='H', src='S', rec='R', rel='X', recNo=[4, 12], srcLin=[13, 17], srcPnt=[33, 37], srcInd=[37, 38], recLin=[47, 51], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', recNum=[8, 11], srcLin=[23, 27], srcPnt=[33, 37], srcInd=[37, 38], recLin=[57, 61], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', recNum=[8, 15], srcLin=[29, 33], srcPnt=[33, 37], srcInd=[37, 38], recLin=[61, 65], recMin=[65, 69], recMax=[75, 79], recInd=[79, 80]),
+    dict(name='SEG rev2.1', hdr='H', src='S', rec='R', rel='X', recNum=[7, 15], srcLin=[17, 27], srcPnt=[27, 37], srcInd=[37, 38], recLin=[49, 59], recMin=[59, 69], recMax=[69, 79], recInd=[79, 80]),
+    dict(name='Sudan', hdr='H', src='S', rec='R', rel='X', recNum=[4, 12], srcLin=[13, 17], srcPnt=[33, 37], srcInd=[37, 38], recLin=[47, 51], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
 ]
 
 # for access to QSettings()

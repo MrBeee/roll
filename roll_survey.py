@@ -124,13 +124,6 @@ class PaintMode(Enum):
     allTemplates = 4
 
 
-class SeedType(Enum):
-    grid = 0
-    circle = 1
-    spiral = 2
-    well = 3
-
-
 class RollSurvey(pg.GraphicsObject):
     progress = pyqtSignal(int)                                                  # signal to keep track of worker thread progress
     message = pyqtSignal(str)                                                   # signal to update statusbar progresss text
@@ -180,8 +173,12 @@ class RollSurvey(pg.GraphicsObject):
 
         # survey configuration
         self.crs = QgsCoordinateReferenceSystem()                               # create invalid crs object
-        self.typ_ = SurveyType.Orthogonal
+        self.type = SurveyType.Orthogonal                                       # survey type as defined in class SurveyType()
         self.name: str = name
+
+        # note: type() is a builtin Python function, so it is recommended NOT to use it as a variable name
+        # as in that case you'll overwrite a built-in function, which can have undesired side effects
+        # so using "self.type = xxx" is fine, but "type = xxx" is NOT fine
 
         # survey painting mode
         self.PaintMode = PaintMode.allTemplates
@@ -1215,6 +1212,7 @@ class RollSurvey(pg.GraphicsObject):
         offScalar = 1.0 / offSlot
         aziSlot = self.unique.dAzimuth
         aziScalar = 1.0 / aziSlot
+        writeBack = self.unique.write
 
         rows = self.output.anaOutput.shape[0]                               # get dimensions from analysis array itself
         cols = self.output.anaOutput.shape[1]
@@ -1239,7 +1237,7 @@ class RollSurvey(pg.GraphicsObject):
 
                 fold = self.output.binOutput[row, col]                      # check available traces for this bin
                 if fold <= 0:
-                    continue                                                # nothing to see here
+                    continue                                                # nothing to see here, move to next bin
 
                 slice2D = self.output.anaOutput[row, col, 0:fold, :]        # get all available traces belonging to this bin
 
@@ -1247,16 +1245,20 @@ class RollSurvey(pg.GraphicsObject):
                 slottedOffset = slottedOffset * offScalar
                 slottedOffset = np.round(slottedOffset)
                 slottedOffset = slottedOffset * offSlot
-                slice2D[:, 10] = slottedOffset                              # write it back into the 2D slice
+                if writeBack:
+                    slice2D[:, 10] = slottedOffset                          # write it back into the 2D slice
 
                 slottedAzimuth = slice2D[:, 11]                             # grab 11th element of 2nd dimension (=azimuth)
                 slottedAzimuth = slottedAzimuth * aziScalar
                 slottedAzimuth = np.round(slottedAzimuth)
                 slottedAzimuth = slottedAzimuth * aziSlot
-                slice2D[:, 11] = slottedAzimuth                             # write it back into the 2D slice
+                if writeBack:
+                    slice2D[:, 11] = slottedAzimuth                         # write it back into the 2D slice
 
                 slottedOffAzi = np.column_stack((slottedOffset, slottedAzimuth))
                 _, indices = np.unique(slottedOffAzi, return_index=True, axis=0)
+
+                (_U, _I, _C) = np.unique(slottedOffAzi, return_index=True, return_counts=True, axis=0)
 
                 for index in indices:                                       # flag unique offset, azimuth values
                     slice2D[index, 12] = -1.0
@@ -1539,7 +1541,7 @@ class RollSurvey(pg.GraphicsObject):
         for block in self.blockList:
             for template in block.templateList:
                 for seed in template.seedList:
-                    if seed.typ_ == 4:                                          # well site; check for errors
+                    if seed.type == 4:                                          # well site; check for errors
                         f = seed.well.name                                      # check if well-file exists
                         if f is None or not os.path.exists(f):
                             QMessageBox.warning(None, e, f'A well-seed should point to an existing well-file\nRemove seed or adjust name in well-seed "{seed.name}"')
@@ -1588,17 +1590,17 @@ class RollSurvey(pg.GraphicsObject):
                     self.seedList.append(seed)
                     # do this as well in the seed's preparation phase
                     seed.calcPointPicture()
-                    if seed.typ_ < 2:                                           # grid
+                    if seed.type < 2:                                           # grid
                         seed.pointList = seed.grid.calcPointList(seed.origin)   # calculate the point list for this seed type
                         seed.grid.calcSalvoLine(seed.origin)                    # calc line to be drawn in low LOD values
 
-                    elif seed.typ_ == 2:                                        # circle
+                    elif seed.type == 2:                                        # circle
                         seed.pointList = seed.circle.calcPointList(seed.origin)   # calculate the point list for this seed type
 
-                    elif seed.typ_ == 3:                                        # spiral
+                    elif seed.type == 3:                                        # spiral
                         seed.pointList = seed.spiral.calcPointList(seed.origin)   # calculate the point list for this seed type
                         seed.spiral.calcSpiralPath(seed.origin)                 # calc spiral path to be drawn
-                    elif seed.typ_ == 4:                                        # well site
+                    elif seed.type == 4:                                        # well site
                         seed.pointList, seed.origin = seed.well.calcPointList(self.crs, self.glbTransform)  # calculate the well's point list
 
                     # at this point; convert the point-lists to numpy-arrays for more efficient processing
@@ -1667,7 +1669,9 @@ class RollSurvey(pg.GraphicsObject):
 
         pathElement = doc.createElement('type')
 
-        text = doc.createTextNode(self.typ_.name)
+        surveyType = self.type.name                                             # debug statement
+
+        text = doc.createTextNode(self.type.name)
         pathElement.appendChild(text)
         root.appendChild(pathElement)
 
@@ -1730,7 +1734,10 @@ class RollSurvey(pg.GraphicsObject):
                 # print(tagName + "---->")
 
                 if tagName == 'type':
-                    self.typ_ = SurveyType[e.text()]
+                    elementText = e.text()
+                    surveyType = SurveyType[elementText]                        # debug statement
+
+                    self.type = SurveyType[e.text()]
 
                 if tagName == 'name':
                     self.name = e.text()
@@ -1800,7 +1807,7 @@ class RollSurvey(pg.GraphicsObject):
         for block in self.blockList:
             for template in block.templateList:
                 for seed in template.seedList:
-                    if seed.typ_ < 2 and seed.patternNo > -1 and seed.patternNo < len(self.patternList):
+                    if seed.type < 2 and seed.patternNo > -1 and seed.patternNo < len(self.patternList):
                         translate = seed.grid.growList[-1]
                         if translate and seed.bAzimuth:                         # need to reorient the pattern
                             # get the slant angle (deviation from orthogonal
@@ -2012,8 +2019,8 @@ class RollSurvey(pg.GraphicsObject):
             # use a solid pen, 2 pixels wide
             painter.setPen(pg.mkPen(seed.color, width=2))
 
-            if seed.typ_ < 2 and seed.rendered is False:                        # grid based seed
-                if seed.typ_ == 1:                                              # no rolling along; fixed grid
+            if seed.type < 2 and seed.rendered is False:                        # grid based seed
+                if seed.type == 1:                                              # no rolling along; fixed grid
                     templateOffset = QVector3D()
                     seed.rendered = True
 
@@ -2102,7 +2109,7 @@ class RollSurvey(pg.GraphicsObject):
                     # do something recursively; not  implemented yet
                     raise NotImplementedError('More than three grow steps currently not allowed.')
 
-            if seed.typ_ == 2 and seed.rendered is False:                       # circle seed
+            if seed.type == 2 and seed.rendered is False:                       # circle seed
                 seed.rendered = True
                 if lod < config.lod2 or self.mouseGrabbed:                      # just draw a circle
 
@@ -2118,7 +2125,7 @@ class RollSurvey(pg.GraphicsObject):
                         # paint seed picture
                         painter.drawPicture(p, seed.pointPicture)
 
-            if seed.typ_ == 3 and seed.rendered is False:                       # spiral seed
+            if seed.type == 3 and seed.rendered is False:                       # spiral seed
                 seed.rendered = True
                 if lod < config.lod2 or self.mouseGrabbed:                      # just draw two circles
 
@@ -2149,7 +2156,7 @@ class RollSurvey(pg.GraphicsObject):
                         p = seed.pointList[i].toPointF()
                         painter.drawPicture(p, seed.pointPicture)               # paint seed picture
 
-            if seed.typ_ == 4 and seed.rendered is False:                       # well seed
+            if seed.type == 4 and seed.rendered is False:                       # well seed
                 seed.rendered = True
                 painter.drawPolyline(seed.well.polygon)                         # draw well trajectory as part of this template; move this up to paint()
                 painter.drawEllipse(seed.well.origL, 5.0, 5.0)                  # draw small circle where well surfaces

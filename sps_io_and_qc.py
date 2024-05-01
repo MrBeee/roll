@@ -267,7 +267,7 @@ def readXPSFiles(filenames, resultArray, fmt) -> int:
 
             # This is the order that parameters appear on in an xps file
             # However, we move RecNo to the fourth place in the xps record
-            recNo = toInt(line[fmt['recNo'][0] : fmt['recNo'][1]].strip())
+            recNum = toInt(line[fmt['recNum'][0] : fmt['recNum'][1]].strip())
             srcLin = toFloat(line[fmt['srcLin'][0] : fmt['srcLin'][1]].strip())
             srcPnt = toFloat(line[fmt['srcPnt'][0] : fmt['srcPnt'][1]].strip())
             srcInd = toInt(line[fmt['srcInd'][0] : fmt['srcInd'][1]].strip())
@@ -276,7 +276,7 @@ def readXPSFiles(filenames, resultArray, fmt) -> int:
             recMax = toFloat(line[fmt['recMax'][0] : fmt['recMax'][1]].strip())
             recInd = toInt(line[fmt['recInd'][0] : fmt['recInd'][1]].strip())
 
-            record = (srcLin, srcPnt, srcInd, recNo, recLin, recMin, recMax, recInd, 0, 0, 0)
+            record = (srcLin, srcPnt, srcInd, recNum, recLin, recMin, recMax, recInd, 0, 0, 0)
             resultArray[index] = record
             index += 1
         f.close()

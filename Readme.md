@@ -98,9 +98,9 @@ xpsFormatList = [
     # configuration settings for locations of fields in SPS data;
     # all indices are 'zero' based and the last number is not included
     # the first character is therefore [0, 1], the last one is [79, 80]
-    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', recNo=[8, 11], srcLin=[23, 27], srcPnt=[33, 37], srcInd=[37, 38], recLin=[57, 61], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
-    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', recNo=[8, 15], srcLin=[29, 33], srcPnt=[33, 37], srcInd=[37, 38], recLin=[61, 65], recMin=[65, 69], recMax=[75, 79], recInd=[79, 80]),
-    dict(name='SEG rev2.1', hdr='H', src='S', rec='R', rel='X', recNo=[7, 15], srcLin=[17, 27], srcPnt=[27, 37], srcInd=[37, 38], recLin=[49, 59], recMin=[59, 69], recMax=[69, 79], recInd=[79, 80]),
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', recNum=[8, 11], srcLin=[23, 27], srcPnt=[33, 37], srcInd=[37, 38], recLin=[57, 61], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', recNum=[8, 15], srcLin=[29, 33], srcPnt=[33, 37], srcInd=[37, 38], recLin=[61, 65], recMin=[65, 69], recMax=[75, 79], recInd=[79, 80]),
+    dict(name='SEG rev2.1', hdr='H', src='S', rec='R', rel='X', recNum=[7, 15], srcLin=[17, 27], srcPnt=[27, 37], srcInd=[37, 38], recLin=[49, 59], recMin=[59, 69], recMax=[69, 79], recInd=[79, 80]),
 ]
 ```
 
@@ -145,6 +145,9 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 6	Changelog
 
+- 2024-04-26 (0.2.8) fixed all numba issues. Numba is now used for all stack display plots. 
+  Added KxKy stack response plot to Analysis tab
+  
 - 2024-04-22 (0.2.7) removed all numba @jit references, as exception handling with numba causes problems. Will revisit later.
   
 - 2024-04-21 (0.2.6) added 'Analysis' tab, containing:
@@ -166,9 +169,9 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 - Create wizard for Marine towed-streamer geometry
 - Improve analysis capabilities
   - Show pattern details and add KxKy pattern analysis
-  - Add KxKy stack response for a single bin (analyzing cmp-spider)
+  - Make k-scales user-adjustable in the settings dialog
   
-- Implement multiprocessing instead of worker thread for background tasks
+- Use multiprocessing instead of a worker thread to speed up background tasks
 - Consider relational database instead of numpy arrays for geometry tables
 
 

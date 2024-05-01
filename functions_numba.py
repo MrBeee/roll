@@ -123,7 +123,7 @@ def jit_ndft_1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarray
 
     radialStk = np.zeros(shape=(nP, nK), dtype=np.float32)                      # start with empty array of the right size and type
 
-    for p in range(nP):
+    for p in range(nP):                                                         # iterate over all points in the current direction
         offRadial = slice3D[p, :, 10]                                           # get all available offsets belonging to this row
         incRadial = inclu3D[p, :]                                               # not all points will be valid, in case of unique offsets
         n = np.count_nonzero(incRadial)                                         # normalize by actual  nr of available traces
@@ -144,7 +144,7 @@ def nit_ndft_1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarray
 
     radialStk = np.zeros(shape=(nP, nK), dtype=np.float32)                      # start with empty array of the right size and type
 
-    for p in range(nP):
+    for p in range(nP):                                                         # iterate over all points in the current direction
         offRadial = slice3D[p, :, 10]                                           # get all available offsets belonging to this row
         incRadial = inclu3D[p, :]                                               # not all points will be valid, in case of unique offsets
         n = np.count_nonzero(incRadial)                                         # normalize by actual  nr of available traces

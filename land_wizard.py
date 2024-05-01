@@ -112,7 +112,7 @@ class Page_0(SurveyWizardPage):
 
         # create some widgets
         self.name = QLineEdit()
-        self.typ_ = QComboBox()
+        self.type = QComboBox()
 
         self.nsl = QSpinBox()
         self.nrl = QSpinBox()
@@ -154,10 +154,10 @@ class Page_0(SurveyWizardPage):
 
         # initialize the widgets
         for item in SurveyList:
-            self.typ_.addItem(item)
+            self.type.addItem(item)
 
         self.name.setStyleSheet('QLineEdit  { background-color : lightblue} ')
-        self.typ_.setStyleSheet('QComboBox  { background-color : lightblue} ')
+        self.type.setStyleSheet('QComboBox  { background-color : lightblue} ')
 
         # set the page layout
         layout = QGridLayout()
@@ -166,7 +166,7 @@ class Page_0(SurveyWizardPage):
         layout.addWidget(QLabel('Select the correct survey <b>type</b>'), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(self.typ_, row, 0, 1, 4)
+        layout.addWidget(self.type, row, 0, 1, 4)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
@@ -299,7 +299,7 @@ class Page_0(SurveyWizardPage):
         self.registerField('rli', self.rli, 'value')                            # receiver line interval
         self.registerField('spi', self.spi, 'value')                            # source point interval
         self.registerField('rpi', self.rpi, 'value')                            # receiver point interval
-        self.registerField('type', self.typ_)                                   # Survey type
+        self.registerField('type', self.type)                                   # Survey type
         self.registerField('name', self.name)                                   # Survey name
 
         self.registerField('chkLinePntAlign', self.chkLinePntAlign)             # Match point intervals (SPI && RPI) to line intervals (SLI && RLI)
@@ -310,7 +310,7 @@ class Page_0(SurveyWizardPage):
         self.registerField('mir', self.chkMirrorOddEven)                        # mirror od/even templates
 
         # connect signals to slots
-        self.typ_.currentIndexChanged.connect(self.evt_type_indexChanged)
+        self.type.currentIndexChanged.connect(self.evt_type_indexChanged)
 
         # signals and slots for when editing is finished
         self.sli.editingFinished.connect(self.evt_sli_editingFinished)          # for source line interval
@@ -407,7 +407,7 @@ class Page_0(SurveyWizardPage):
         name = SurveyType(index).name                                           # get name from enum
         number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
         self.name.setText(f'{name}_{number}')                                   # show the new name
-        # self.typ_ = SurveyType(index)                                         # update survey type; no need for this, done automatically
+        # self.type = SurveyType(index)                                         # update survey type; no need for this, done automatically
 
         parallel = index == SurveyType.Parallel.value
         if parallel:
@@ -751,14 +751,15 @@ class Page_1(SurveyWizardPage):
         rpi = self.field('rpi')
         nsp = self.field('nsp')
         nrp = self.field('nrp')
-        typ_ = self.field('type')
+        typ = self.field('type')
+        surveyType = SurveyType(typ)                                            # turn into Enum
 
         # first RESET the survey object, so we can start with it from scratch
         self.parent.survey = RollSurvey()
 
         # fill in the survey object information we already know now
         self.parent.survey.name = self.field('name')                            # Survey name
-        self.parent.survey.typ_ = self.field('type')                            # Survey type
+        self.parent.survey.type = surveyType                                    # Survey type Enum
 
         nsla = self.field('nslant')                                             # nr templates in a slanted survey
         nzz = self.field('nzz')                                                 # nr source fleets in a zigzag survey
@@ -778,15 +779,15 @@ class Page_1(SurveyWizardPage):
         # Alas, QGIS is currently using Python v3.9.5 so we are limited by this.
         self.parent.nTemplates = 1
         nSrcSeeds = 1
-        if typ_ == SurveyType.Orthogonal.value:
+        if typ == SurveyType.Orthogonal.value:
             pass
-        elif typ_ == SurveyType.Parallel.value:
+        elif typ == SurveyType.Parallel.value:
             pass
-        elif typ_ == SurveyType.Slanted.value:
+        elif typ == SurveyType.Slanted.value:
             self.parent.nTemplates = nsla                                       # as many as needed for the slanted design
-        elif typ_ == SurveyType.Brick.value:
+        elif typ == SurveyType.Brick.value:
             self.parent.nTemplates = 2                                          # for odd/even templates
-        elif typ_ == SurveyType.Zigzag.value:
+        elif typ == SurveyType.Zigzag.value:
             self.parent.nTemplates = 2 if mir else 1                            # for mirrored templates
             nSrcSeeds = 2 * nzz                                                 # every zigzag requires 2 source seeds
         else:
@@ -824,7 +825,7 @@ class Page_1(SurveyWizardPage):
         rpi = self.field('rpi')
         nsp = self.field('nsp')
         nrp = self.field('nrp')
-        typ_ = self.field('type')
+        typ = self.field('type')
 
         nsla = self.field('nslant')                                             # nr templates in a slanted survey
         brk = self.field('brk')                                                # brick offset distance
@@ -845,7 +846,7 @@ class Page_1(SurveyWizardPage):
         srcOriX = -0.5 * (sBra - 1) * sBrI
         srcOriY = -0.5 * (sEle - 1) * sElI
 
-        if typ_ == SurveyType.Parallel.value or typ_ == SurveyType.Zigzag.value:
+        if typ == SurveyType.Parallel.value or typ == SurveyType.Zigzag.value:
             sBra = config.sEle
             sBrI = config.sElI
             sEle = config.sBra
@@ -903,7 +904,7 @@ class Page_1(SurveyWizardPage):
         self.parent.survey.patternList[1].calcPatternPicture()
 
         # offsets; from start/end of salvo to start/end of spread; both inline and x-line
-        if typ_ == SurveyType.Parallel.value:                                   # no hard values; give arbitrary inline limits
+        if typ == SurveyType.Parallel.value:                                   # no hard values; give arbitrary inline limits
             inline1 = -5975.0                                                   # negative number
             inline2 = 5975.0                                                   # positive number
         else:
@@ -927,7 +928,7 @@ class Page_1(SurveyWizardPage):
         self.parent.survey.offset.radOffsets.setY(r)                       # radial; rmax
 
         # deal with different survey types
-        if typ_ == SurveyType.Orthogonal.value:
+        if typ == SurveyType.Orthogonal.value:
             # source
             nPadding = (nsl - 1) * round(sli / rpi)                                                         # add nr recs between two source lines
             self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(0.0)                # Seed origin; source inline at 0.0
@@ -953,7 +954,7 @@ class Page_1(SurveyWizardPage):
             self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setX(rpi)   # rpi
             self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setY(0.0)   # horizontal
 
-        elif typ_ == SurveyType.Parallel.value:
+        elif typ == SurveyType.Parallel.value:
             # source
             nPadding = 0                                                                                    # no paddding required
             self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(0.0)                # Seed origin
@@ -979,7 +980,7 @@ class Page_1(SurveyWizardPage):
             self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setX(rpi)   # rpi
             self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setY(0.0)   # horizontal
 
-        elif typ_ == SurveyType.Slanted.value:
+        elif typ == SurveyType.Slanted.value:
             nPadding = round(sli / rpi)                                        # as many rec points as there are between 2 src lines
             nPadding += (nsl - 1) * round(sli / rpi)                            # add nr recs between two source lines
 
@@ -1011,7 +1012,7 @@ class Page_1(SurveyWizardPage):
                 self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(rpi)   # rpi
                 self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(0.0)   # horizontal
 
-        elif typ_ == SurveyType.Brick.value:
+        elif typ == SurveyType.Brick.value:
             nPadding = round(brk / rpi)                                          # shift in source lines
             nPadding += (nsl - 1) * round(sli / rpi)                            # add nr recs between two source lines
 
@@ -1040,7 +1041,7 @@ class Page_1(SurveyWizardPage):
                 self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(rpi)   # rpi
                 self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(0.0)   # horizontal
 
-        elif typ_ == SurveyType.Zigzag.value:
+        elif typ == SurveyType.Zigzag.value:
             nPadding = 2 * (round(rli / spi) + nzz - 1) - 1                       # zig + zag distance, accounted for nzz
             # no need to adjust for nsl; is always 1 for zigzag
 
@@ -1407,13 +1408,13 @@ class Page_2(SurveyWizardPage):
         sli = self.field('sli')
         rlr = self.field('rlr')
         slr = self.field('slr')
+        typ = self.field('type')
 
         binI = self.field('binI')
         binX = self.field('binX')
-        typ_ = self.field('type')
 
         lenI = nrp * rpi
-        if typ_ == SurveyType.Parallel.value:                                   # make exeption for parallel template, as nrp will be excessive (whole spread)
+        if typ == SurveyType.Parallel.value:                                   # make exeption for parallel template, as nrp will be excessive (whole spread)
             spread = nrp * rpi
             salvo = nsl * sli
             lenI = max(abs(spread - salvo), 6000)                             # a least 6 km inline offset
@@ -1729,7 +1730,7 @@ class Page_3(SurveyWizardPage):
         rli = self.field('rli')
         spi = self.field('spi')
         rpi = self.field('rpi')
-        typ_ = self.field('type')
+        typ = self.field('type')
 
         nsla = self.field('nslant')                                             # nr templates in a slanted survey
         brk = self.field('brk')                                                # brick offset distance
@@ -1739,14 +1740,14 @@ class Page_3(SurveyWizardPage):
         rec_00 = self.field('rec_00')                                           # if True, move receiver origin to (0, 0)
         shiftI = -offImin if rec_00 else 0.0                                    # amount of x-shift to apply to each seed
 
-        if typ_ == SurveyType.Orthogonal.value or typ_ == SurveyType.Parallel.value:
+        if typ == SurveyType.Orthogonal.value or typ == SurveyType.Parallel.value:
             # source
             nPadding = (nsl - 1) * round(sli / rpi)                                                         # add nr recs between two source lines
             self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(shiftI)                # Seed origin
             # receiver
             self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setX(offImin + shiftI)       # Seed origin
 
-        elif typ_ == SurveyType.Slanted.value:
+        elif typ == SurveyType.Slanted.value:
             nPadding = round(sli / rpi)                                        # as many rec points as there are between 2 src lines
             nPadding += (nsl - 1) * round(sli / rpi)                            # add nr recs between two source lines
 
@@ -1758,7 +1759,7 @@ class Page_3(SurveyWizardPage):
                 # receiver
                 self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(offImin + shiftI)        # Seed origin
 
-        elif typ_ == SurveyType.Brick.value:
+        elif typ == SurveyType.Brick.value:
             nPadding = round(brk / rpi)                                          # shift in source lines
             nPadding += (nsl - 1) * round(sli / rpi)                            # add nr recs between two source lines
 
@@ -1768,7 +1769,7 @@ class Page_3(SurveyWizardPage):
                 # receiver
                 self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(offImin + shiftI)       # Seed origin
 
-        elif typ_ == SurveyType.Zigzag.value:
+        elif typ == SurveyType.Zigzag.value:
             nPadding = 2 * (round(rli / spi) + nzz - 1) - 1                       # zig + zag distance, accounted for nzz
             # no need to adjust for nsl; is always 1 for zigzag
 
