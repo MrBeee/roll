@@ -78,7 +78,6 @@ class RollBlock:
         # return all 3 as a tuple
         return (self.srcBoundingRect, self.recBoundingRect, self.cmpBoundingRect)
 
-    # We are in RollBlock here
     def calcBoundingRect(self, roll=True):
         for template in self.templateList:
             srcBounds, recBounds, cmpBounds = template.calcBoundingRect(self.borders.srcBorder, self.borders.recBorder, roll)

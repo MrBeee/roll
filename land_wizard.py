@@ -752,14 +752,13 @@ class Page_1(SurveyWizardPage):
         nsp = self.field('nsp')
         nrp = self.field('nrp')
         typ = self.field('type')
-        surveyType = SurveyType(typ)                                            # turn into Enum
 
         # first RESET the survey object, so we can start with it from scratch
         self.parent.survey = RollSurvey()
 
         # fill in the survey object information we already know now
         self.parent.survey.name = self.field('name')                            # Survey name
-        self.parent.survey.type = surveyType                                    # Survey type Enum
+        self.parent.survey.type = SurveyType(typ)                               # Survey type Enum
 
         nsla = self.field('nslant')                                             # nr templates in a slanted survey
         nzz = self.field('nzz')                                                 # nr source fleets in a zigzag survey

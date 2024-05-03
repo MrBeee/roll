@@ -126,6 +126,7 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 | Library    | Minimum Version | Description (purpose)                                      |
 | :--------- | :-------------- | :--------------------------------------------------------- |
+| numba      | 0.59.1          | Speed up several processing steps                          |
 | numpy      | 1.26.24         | Array and matrix manipulation                              |
 | pyqtgraph  | 0.13.4          | Plotting of vector and raster data                         |
 | rasterio   | 1.3.9           | Export of figures as GeoTiff  files                        |
@@ -145,8 +146,8 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 6	Changelog
 
-- 2024-04-26 (0.2.8) fixed all numba issues. Numba is now used for all stack display plots. 
-  Added KxKy stack response plot to Analysis tab
+- 2024-05-02 (0.2.8) fixed all numba issues. Numba is now used to speed up all stack display plots. 
+  Added Kx-Ky stack response as well as |O| & O/A Histograms to the Analysis tab
   
 - 2024-04-22 (0.2.7) removed all numba @jit references, as exception handling with numba causes problems. Will revisit later.
   
@@ -168,13 +169,10 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 - Create wizard for Marine towed-streamer geometry
 - Improve analysis capabilities
-  - Show pattern details and add KxKy pattern analysis
+  - Show pattern details and add Kx-Ky pattern analysis
   - Make k-scales user-adjustable in the settings dialog
   
 - Use multiprocessing instead of a worker thread to speed up background tasks
 - Consider relational database instead of numpy arrays for geometry tables
-
-
-
 
 

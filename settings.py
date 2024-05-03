@@ -137,14 +137,15 @@ class SettingsDialog(QDialog):
 
         tip = 'This is an experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
 
+        useNumba = config.useNumba if haveNumba else False
+
         misParams = [
             dict(
                 name='Miscellaneous Settings',
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Use Numba', type='bool', value=config.useNumba, default=config.useNumba, enabled=haveNumba, tip=tip),
-                    # dict(name='Use Numba', type='bool', value=config.useNumba, default=config.useNumba, enabled=False, tip=tip),
+                    dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip),
                 ],
             ),
         ]
@@ -251,34 +252,36 @@ class SettingsDialog(QDialog):
 
         # miscellaneous settings
         config.useNumba = MIS.child('Use Numba').value()
+        if haveNumba:                                                           # can only do this when numba has been installed
+            numba.config.DISABLE_JIT = not config.useNumba                      # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
 
 
 def readSettings(self):
     # main window information
-    geom = self.settings.value('mainWindow/geometry', bytes('', 'utf-8'))   # , bytes('', 'utf-8') prevents receiving a 'None' object
-    self.restoreGeometry(geom)                                              # https://gist.github.com/dgovil/d83e7ddc8f3fb4a28832ccc6f9c7f07b
+    geom = self.settings.value('mainWindow/geometry', bytes('', 'utf-8'))       # , bytes('', 'utf-8') prevents receiving a 'None' object
+    self.restoreGeometry(geom)                                                  # https://gist.github.com/dgovil/d83e7ddc8f3fb4a28832ccc6f9c7f07b
 
-    state = self.settings.value('mainWindow/state', bytes('', 'utf-8'))     # , bytes('', 'utf-8') prevents receiving a 'None' object
-    self.restoreGeometry(state)                                             # No longer needed to test: if geometry != None:
+    state = self.settings.value('mainWindow/state', bytes('', 'utf-8'))         # , bytes('', 'utf-8') prevents receiving a 'None' object
+    self.restoreGeometry(state)                                                 # No longer needed to test: if geometry != None:
 
-    path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)  # 'My Documents' on windows; default if settings don't exist yet
+    path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
     self.workingDirectory = self.settings.value('settings/workingDirectory', path)   # start folder for SaveAs
     self.importDirectory = self.settings.value('settings/importDirectory', path)   # start folder for reading SPS files
     self.recentFileList = self.settings.value('settings/recentFileList', [])
 
     # See: https://forum.qt.io/topic/108622/how-to-get-a-boolean-value-from-qsettings-correctly/8
-    self.debug = self.settings.value('settings/debug', False, type=bool)    # assume no debugging messages required
-    self.actionDebug.setChecked(self.debug)                                 # all menus have already been setup, so do this here
+    self.debug = self.settings.value('settings/debug', False, type=bool)        # assume no debugging messages required
+    self.actionDebug.setChecked(self.debug)                                     # all menus have already been setup, so do this here
     if self.debug:
-        # builtins.print = self.oldPrint                                    # use/restore builtins.print
-        if console._console is None:                                        # pylint: disable=W0212 # unfortunately need access to protected member
-            console.show_console()                                          # opens the console for the first time
+        # builtins.print = self.oldPrint                                        # use/restore builtins.print
+        if console._console is None:                                            # pylint: disable=W0212 # unfortunately need access to protected member
+            console.show_console()                                              # opens the console for the first time
         else:
-            console._console.setUserVisible(True)                           # pylint: disable=W0212 # unfortunately need access to protected member
+            console._console.setUserVisible(True)                               # pylint: disable=W0212 # unfortunately need access to protected member
         print('print() to Python console has been enabled; Python console is opened')   # this message should always be printed
     else:
-        print('print() to Python console has been disabled from now on')    # this message is the last one to be printed
-        # builtins.print = silentPrint                                      # suppress print, but don't hide Python console, if it would be open
+        print('print() to Python console has been disabled from now on')        # this message is the last one to be printed
+        # builtins.print = silentPrint                                          # suppress print, but don't hide Python console, if it would be open
 
     # color & pen information
     config.binAreaColor = self.settings.value('settings/colors/binAreaColor', '#20000000')  # argb - light grey
@@ -317,17 +320,19 @@ def readSettings(self):
     config.srcSymbolSize = self.settings.value('settings/geo/srcSymbolSize', 25)
 
     # miscellaneous information
-    config.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)    # assume Numba not installed (and used) by default
+    config.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)   # assume Numba not installed (and used) by default
+    if haveNumba:                                                                       # can only do this when numba has been installed
+        numba.config.DISABLE_JIT = not config.useNumba                                  # disable/enable numba pre-compilation in @jit decorator
 
 
 def writeSettings(self):
     # main window information
-    self.settings.setValue('mainWindow/geometry', self.saveGeometry())     # save the main window geometry
-    self.settings.setValue('mainWindow/state', self.saveState())        # and the window state too
+    self.settings.setValue('mainWindow/geometry', self.saveGeometry())          # save the main window geometry
+    self.settings.setValue('mainWindow/state', self.saveState())                # and the window state too
     self.settings.setValue('settings/workingDirectory', self.workingDirectory)
     self.settings.setValue('settings/importDirectory', self.importDirectory)
     self.settings.setValue('settings/debug', self.debug)
-    self.settings.setValue('settings/recentFileList', self.recentFileList)     # store list in settings
+    self.settings.setValue('settings/recentFileList', self.recentFileList)      # store list in settings
 
     # color and pen information
     self.settings.setValue('settings/colors/binAreaColor', config.binAreaColor)

@@ -1,7 +1,6 @@
 """
 This module provides the main classes used in Roll
 """
-import importlib
 import math
 import os
 from enum import Enum
@@ -30,15 +29,6 @@ from .roll_template import RollTemplate
 from .roll_translate import RollTranslate
 from .roll_unique import RollUnique
 from .sps_io_and_qc import pntType1, relType2
-
-# to do: incorporate this in the setup... routines that prepare running the background thread.
-if config.useNumba is True:
-    try:
-        numba = importlib.import_module('numba')
-    except ImportError:
-        numba = importlib.import_module('.nonumba', package='roll')
-else:
-    numba = importlib.import_module('.nonumba', package='roll')
 
 # See: https://realpython.com/python-multiple-constructors/#instantiating-classes-in-python for multiple constructors
 # See: https://stackoverflow.com/questions/39513191/python-operator-overloading-with-multiple-operands for operator overlaoding
@@ -585,8 +575,7 @@ class RollSurvey(pg.GraphicsObject):
                                                 # apply self.output.relGeom.resize(N) when more memory is needed
                                                 arraySize = self.output.relGeom.shape[0]
                                                 if self.nRelRecord + 100 > arraySize:                               # room for less than 100 left ?
-                                                    # append 1000 more records
-                                                    self.output.relGeom.resize(arraySize + 1000, refcheck=False)
+                                                    self.output.relGeom.resize(arraySize + 10000, refcheck=False)   # append 10000 more records
 
                                                 # we have a new receiver record
                                                 self.nRecRecord += 1
@@ -601,20 +590,15 @@ class RollSurvey(pg.GraphicsObject):
                                                 self.output.recGeom[self.nRecRecord]['LocX'] = recLoc.x()          # x-component of 3D-location
                                                 self.output.recGeom[self.nRecRecord]['LocY'] = recLoc.y()          # y-component of 3D-location
                                                 self.output.recGeom[self.nRecRecord]['Elev'] = recLoc.z()          # z-component of 3D-location
-                                                # we want to remove empty records at the end
-                                                self.output.recGeom[self.nRecRecord]['Uniq'] = 1
+                                                self.output.recGeom[self.nRecRecord]['Uniq'] = 1                   # later, we want to remove empty records at the end
 
                                                 # apply self.output.recGeom.resize(N) when more memory is needed
                                                 arraySize = self.output.recGeom.shape[0]
                                                 if self.nRecRecord + 100 > arraySize:                               # room for less than 100 left ?
-                                                    # first remove all duplicates
-                                                    self.output.recGeom = np.unique(self.output.recGeom)
-                                                    # get array size (again)
-                                                    arraySize = self.output.recGeom.shape[0]
-                                                    # adjust nRecRecord to the next available spot
-                                                    self.nRecRecord = arraySize
-                                                    # append 1000 more receiver records
-                                                    self.output.recGeom.resize(arraySize + 1000, refcheck=False)
+                                                    self.output.recGeom = np.unique(self.output.recGeom)            # first remove all duplicates
+                                                    arraySize = self.output.recGeom.shape[0]                        # get array size (again)
+                                                    self.nRecRecord = arraySize                                     # adjust nRecRecord to the next available spot
+                                                    self.output.recGeom.resize(arraySize + 10000, refcheck=False)   # append 10000 more receiver records
 
     def geomTemplate2(self, nBlock, block, template, templateOffset):
         """use numpy arrays instead of iterating over the growList
@@ -715,14 +699,14 @@ class RollSurvey(pg.GraphicsObject):
                         self.output.recGeom[self.nRecRecord]['Line'] = int(recStkY)
                         self.output.recGeom[self.nRecRecord]['Point'] = int(recStkX)
                         self.output.recGeom[self.nRecRecord]['Index'] = nBlock % 10 + 1
-                        # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'                # can do this in one go at the end
-                        # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0                 # not needed; zero when initialized
+                        # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'  # can do this in one go at the end
+                        # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0   # not needed; zero when initialized
                         self.output.recGeom[self.nRecRecord]['East'] = recLocX
                         self.output.recGeom[self.nRecRecord]['North'] = recLocY
-                        self.output.recGeom[self.nRecRecord]['LocX'] = recX                # x-component of 3D-location
-                        self.output.recGeom[self.nRecRecord]['LocY'] = recY                # y-component of 3D-location
-                        self.output.recGeom[self.nRecRecord]['Elev'] = recZ                # z-value not affected by transform
-                        self.output.recGeom[self.nRecRecord]['Uniq'] = 1                   # we want to remove empty records at the end
+                        self.output.recGeom[self.nRecRecord]['LocX'] = recX     # x-component of 3D-location
+                        self.output.recGeom[self.nRecRecord]['LocY'] = recY     # y-component of 3D-location
+                        self.output.recGeom[self.nRecRecord]['Elev'] = recZ     # z-value not affected by transform
+                        self.output.recGeom[self.nRecRecord]['Uniq'] = 1        # later, we want to use Uniq == 1 to remove empty records at the end
 
                         # apply self.output.recGeom.resize(N) when more memory is needed, after cleaning duplicates
                         arraySize = self.output.recGeom.shape[0]
@@ -755,9 +739,8 @@ class RollSurvey(pg.GraphicsObject):
 
                         # apply self.output.relGeom.resize(N) when more memory is needed
                         arraySize = self.output.relGeom.shape[0]
-                        if self.nRelRecord + 100 > arraySize:                   # room for less than 100 left ?
-                            # append 1000 more records
-                            self.output.relGeom.resize(arraySize + 1000, refcheck=False)
+                        if self.nRelRecord + 100 > arraySize:                               # room for less than 100 left ?
+                            self.output.relGeom.resize(arraySize + 10000, refcheck=False)   # append 1000 more records
 
     def setupBinFromGeometry(self, fullAnalysis) -> bool:
         """this routine is used for both geometry files and SPS files"""
@@ -778,9 +761,8 @@ class RollSurvey(pg.GraphicsObject):
 
     def binFromGeometry4(self, fullAnalysis) -> bool:
         """
-        all binning methods implemented, using numpy arrays, rather than a for-loop
-
-        On 09/04/2024 the earlier implementations of binTemplate v1 to v5 have been removed.
+        all binning methods (cmp, plane, sphere) implemented, using numpy arrays, rather than a for-loop.
+        On 09/04/2024 the earlier implementations of binTemplate v1 to v3 have been removed.
         They are still available in the roll-2024-08-04 folder in classes.py
         """
         self.threadProgress = 0                                                 # always start at zero
@@ -869,8 +851,8 @@ class RollSurvey(pg.GraphicsObject):
                 minRecord = relFileIndices[index][0]                            # range of relevant relation records
                 maxRecord = relFileIndices[index][1]
 
-                if maxRecord == minRecord:                                      # no receivers found; move to next shot !
-                    continue
+                if maxRecord <= minRecord:                                      # no receivers found; move to next shot !
+                    continue                                                    # test on <= instead of == in case maxRecord = 0
 
                 relSlice = self.output.relGeom[minRecord:maxRecord]             # create a slice out of the relation file
 
@@ -898,7 +880,7 @@ class RollSurvey(pg.GraphicsObject):
                 else:
                     # there are different min/max rec points on different rec lines.
                     # we need to determine the recPoints line by line; per relation record
-                    recArray = np.zeros(shape=(0), dtype=pntType1)             # setup empty numpy array
+                    recArray = np.zeros(shape=(0), dtype=pntType1)             # setup empty numpy array, to append data to
                     for relRecord in relSlice:
                         recInd = relRecord['RecInd']
                         recLin = relRecord['RecLin']
@@ -907,9 +889,11 @@ class RollSurvey(pg.GraphicsObject):
 
                         # select appropriate receivers on a receiver line
                         I = (self.output.recGeom['Index'] == recInd) & (self.output.recGeom['Line'] == recLin) & (self.output.recGeom['Point'] >= recMin) & (self.output.recGeom['Point'] <= recMax)
+                        if np.count_nonzero(I) == 0:
+                            continue                                                # no receivers found; move to next shot !
 
                         recLine = self.output.recGeom[I]                        # select the filtered receivers
-                        recArray = np.concatenate((recPoints, recLine))         # need to supply arrays to be concatenated as a tuple !
+                        recArray = np.concatenate((recArray, recLine))          # need to supply arrays to be concatenated as a tuple !
                         # See: https://stackoverflow.com/questions/50997928/typeerror-only-integer-scalar-arrays-can-be-converted-to-a-scalar-index-with-1d
 
                 # at this stage we have recPoints defined. We can now use the same approach as used in template based binning.
@@ -1077,14 +1061,9 @@ class RollSurvey(pg.GraphicsObject):
         else:
             return self.binFromTemplates(False)
 
-    # See: https://github.com/pyqtgraph/pyqtgraph/issues/1253, how to use numba with PyQtGraph
-    # See: https://numba.readthedocs.io/en/stable/user/jit.html for preferred way of using @jit
-    # See: https://stackoverflow.com/questions/57774497/how-do-i-make-a-dummy-do-nothing-jit-decorator
-
     # can't use @jit here, as numba does not support handling exceptions (try -> except)
     # See: http://numba.pydata.org/numba-doc/dev/reference/pysupported.html
     # See: https://stackoverflow.com/questions/18176602/how-to-get-the-name-of-an-exception-that-was-caught-in-python for workaround
-    @numba.jit  # pylint: disable=used-before-assignment # undefined variable in case of using nonumba (suppressing E601 does not work !)
     def binFromTemplates(self, fullAnalysis) -> bool:
         try:
             for block in self.blockList:                                        # get all blocks
@@ -1142,145 +1121,6 @@ class RollSurvey(pg.GraphicsObject):
         self.calcFoldAndOffsetEssentials()
         return True
 
-    def calcFoldAndOffsetEssentials(self):
-        # max fold is straightforward
-        self.message.emit('Calc min/max offsets - step 1/9')
-        self.progress.emit(10)
-        self.output.maximumFold = self.output.binOutput.max()
-
-        # min fold is straightforward
-        self.message.emit('Calc min/max offsets - step 2/9')
-        self.progress.emit(20)
-        self.output.minimumFold = self.output.binOutput.min()
-
-        # calc min offset against max (inf) values
-        self.message.emit('Calc min/max offsets - step 3/9')
-        self.progress.emit(30)
-        self.output.minMinOffset = self.output.minOffset.min()
-
-        # replace (inf) by (-inf) for max values
-        self.message.emit('Calc min/max offsets - step 4/9')
-        self.progress.emit(40)
-        self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF
-
-        # calc max values against (-inf) minimum
-        self.message.emit('Calc min/max offsets - step 5/9')
-        self.progress.emit(50)
-        self.output.maxMinOffset = self.output.minOffset.max()
-
-        # calc max offset against max (-inf) values
-        self.message.emit('Calc min/max offsets - step 6/9')
-        self.progress.emit(60)
-        self.output.maxMaxOffset = self.output.maxOffset.max()
-
-        # replace (-inf) by (inf) for min values
-        self.message.emit('Calc min/max offsets - step 7/9')
-        self.progress.emit(70)
-        self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf
-
-        # calc min offset against min (inf) values
-        self.message.emit('Calc min/max offsets - step 8/9')
-        self.progress.emit(80)
-        self.output.minMaxOffset = self.output.maxOffset.min()
-
-        # replace (inf) by (-inf) for max values
-        self.message.emit('Calc min/max offsets - step 9/9')
-        self.progress.emit(90)
-        self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF
-
-        self.progress.emit(100)
-        return True
-
-    def calcUniqueFoldValues(self) -> bool:
-        """code to calculate unique offsets as a post-processing step"""
-        if self.unique.apply is False:                                          # slot offsets and azimuths and prune data
-            return False
-
-        if self.output.anaOutput is None:                                       # this array is essential to calculate unique fold
-            return False
-
-        # Now we need to find unique rows in terms of line, stake, offset and azimuth values
-        # See: https://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
-        # See: https://www.geeksforgeeks.org/find-unique-rows-in-a-numpy-array/
-        # See: https://www.sharpsightlabs.com/blog/numpy-unique/
-        # See: https://www.sharpsightlabs.com/blog/numpy-axes-explained/
-        # See: https://www.geeksforgeeks.org/python-slicing-multi-dimensional-arrays/
-
-        self.message.emit('Calculate unique fold')
-
-        offSlot = self.unique.dOffset                                       # slots and scalars for unique offset, azimuth
-        offScalar = 1.0 / offSlot
-        aziSlot = self.unique.dAzimuth
-        aziScalar = 1.0 / aziSlot
-        writeBack = self.unique.write
-
-        rows = self.output.anaOutput.shape[0]                               # get dimensions from analysis array itself
-        cols = self.output.anaOutput.shape[1]
-
-        self.nShotPoint = 0                                                 # reuse nShotPoint(s) to implement progress in statusbar
-        self.nShotPoints = rows * cols                                      # calc nr of applicable points
-        self.threadProgress = 0                                             # reset counter
-
-        for row in range(rows):
-            for col in range(cols):
-
-                # begin of thread progress code
-                if QThread.currentThread().isInterruptionRequested():       # maybe stop at each shot...
-                    raise StopIteration
-
-                self.nShotPoint += 1
-                threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
-                if threadProgress > self.threadProgress:
-                    self.threadProgress = threadProgress
-                    self.progress.emit(threadProgress + 1)
-                # end of thread progress code
-
-                fold = self.output.binOutput[row, col]                      # check available traces for this bin
-                if fold <= 0:
-                    continue                                                # nothing to see here, move to next bin
-
-                slice2D = self.output.anaOutput[row, col, 0:fold, :]        # get all available traces belonging to this bin
-
-                slottedOffset = slice2D[:, 10]                              # grab 10th element of 2nd dimension (=offset)
-                slottedOffset = slottedOffset * offScalar
-                slottedOffset = np.round(slottedOffset)
-                slottedOffset = slottedOffset * offSlot
-                if writeBack:
-                    slice2D[:, 10] = slottedOffset                          # write it back into the 2D slice
-
-                slottedAzimuth = slice2D[:, 11]                             # grab 11th element of 2nd dimension (=azimuth)
-                slottedAzimuth = slottedAzimuth * aziScalar
-                slottedAzimuth = np.round(slottedAzimuth)
-                slottedAzimuth = slottedAzimuth * aziSlot
-                if writeBack:
-                    slice2D[:, 11] = slottedAzimuth                         # write it back into the 2D slice
-
-                slottedOffAzi = np.column_stack((slottedOffset, slottedAzimuth))
-                _, indices = np.unique(slottedOffAzi, return_index=True, axis=0)
-
-                (_U, _I, _C) = np.unique(slottedOffAzi, return_index=True, return_counts=True, axis=0)
-
-                for index in indices:                                       # flag unique offset, azimuth values
-                    slice2D[index, 12] = -1.0
-
-                slice2D = slice2D[slice2D[:, -1].argsort()]                 # sort the traces on last column (unique -1 flag)
-                self.output.anaOutput[row, col, 0:fold, :] = slice2D        # put sorted traces back into analysis array
-
-                uniqueFld = np.count_nonzero(slice2D[:, -1], axis=0)        # get unique fold count from last column (nr12)
-                if uniqueFld > 0:
-                    minOffset = np.min(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
-                    maxOffset = np.max(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
-                else:
-                    minOffset = 0.0                                         # no traces available
-                    maxOffset = 0.0                                         # no traces available
-
-                self.output.binOutput[row, col] = uniqueFld                 # adjust fold value table
-                self.output.minOffset[row, col] = minOffset                 # adjust min offset table
-                self.output.maxOffset[row, col] = maxOffset                 # adjust max offset table
-
-        return True
-
-    @numba.jit  # pylint: disable=e0602 # undefined variable in case of using nonumba
     def binTemplate6(self, block, template, templateOffset, fullAnalysis):
         """
         using *pointArray* for a significant speed up,
@@ -1477,6 +1317,142 @@ class RollSurvey(pg.GraphicsObject):
                         except IndexError:
                             continue
 
+    def calcFoldAndOffsetEssentials(self):
+        # max fold is straightforward
+        self.message.emit('Calc min/max offsets - step 1/9')
+        self.progress.emit(10)
+        self.output.maximumFold = self.output.binOutput.max()
+
+        # min fold is straightforward
+        self.message.emit('Calc min/max offsets - step 2/9')
+        self.progress.emit(20)
+        self.output.minimumFold = self.output.binOutput.min()
+
+        # calc min offset against max (inf) values
+        self.message.emit('Calc min/max offsets - step 3/9')
+        self.progress.emit(30)
+        self.output.minMinOffset = self.output.minOffset.min()
+
+        # replace (inf) by (-inf) for max values
+        self.message.emit('Calc min/max offsets - step 4/9')
+        self.progress.emit(40)
+        self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF
+
+        # calc max values against (-inf) minimum
+        self.message.emit('Calc min/max offsets - step 5/9')
+        self.progress.emit(50)
+        self.output.maxMinOffset = self.output.minOffset.max()
+
+        # calc max offset against max (-inf) values
+        self.message.emit('Calc min/max offsets - step 6/9')
+        self.progress.emit(60)
+        self.output.maxMaxOffset = self.output.maxOffset.max()
+
+        # replace (-inf) by (inf) for min values
+        self.message.emit('Calc min/max offsets - step 7/9')
+        self.progress.emit(70)
+        self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf
+
+        # calc min offset against min (inf) values
+        self.message.emit('Calc min/max offsets - step 8/9')
+        self.progress.emit(80)
+        self.output.minMaxOffset = self.output.maxOffset.min()
+
+        # replace (inf) by (-inf) for max values
+        self.message.emit('Calc min/max offsets - step 9/9')
+        self.progress.emit(90)
+        self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF
+
+        self.progress.emit(100)
+        return True
+
+    def calcUniqueFoldValues(self) -> bool:
+        """code to calculate unique offsets as a post-processing step"""
+        if self.unique.apply is False:                                          # slot offsets and azimuths and prune data
+            return False
+
+        if self.output.anaOutput is None:                                       # this array is essential to calculate unique fold
+            return False
+
+        # Now we need to find unique rows in terms of line, stake, offset and azimuth values
+        # See: https://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
+        # See: https://www.geeksforgeeks.org/find-unique-rows-in-a-numpy-array/
+        # See: https://www.sharpsightlabs.com/blog/numpy-unique/
+        # See: https://www.sharpsightlabs.com/blog/numpy-axes-explained/
+        # See: https://www.geeksforgeeks.org/python-slicing-multi-dimensional-arrays/
+
+        self.message.emit('Calculate unique fold')
+
+        offSlot = self.unique.dOffset                                       # slots and scalars for unique offset, azimuth
+        offScalar = 1.0 / offSlot
+        aziSlot = self.unique.dAzimuth
+        aziScalar = 1.0 / aziSlot
+        writeBack = self.unique.write
+
+        rows = self.output.anaOutput.shape[0]                               # get dimensions from analysis array itself
+        cols = self.output.anaOutput.shape[1]
+
+        self.nShotPoint = 0                                                 # reuse nShotPoint(s) to implement progress in statusbar
+        self.nShotPoints = rows * cols                                      # calc nr of applicable points
+        self.threadProgress = 0                                             # reset counter
+
+        for row in range(rows):
+            for col in range(cols):
+
+                # begin of thread progress code
+                if QThread.currentThread().isInterruptionRequested():       # maybe stop at each shot...
+                    raise StopIteration
+
+                self.nShotPoint += 1
+                threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
+                if threadProgress > self.threadProgress:
+                    self.threadProgress = threadProgress
+                    self.progress.emit(threadProgress + 1)
+                # end of thread progress code
+
+                fold = self.output.binOutput[row, col]                      # check available traces for this bin
+                if fold <= 0:
+                    continue                                                # nothing to see here, move to next bin
+
+                slice2D = self.output.anaOutput[row, col, 0:fold, :]        # get all available traces belonging to this bin
+
+                slottedOffset = slice2D[:, 10]                              # grab 10th element of 2nd dimension (=offset)
+                slottedOffset = slottedOffset * offScalar
+                slottedOffset = np.round(slottedOffset)
+                slottedOffset = slottedOffset * offSlot
+                if writeBack:
+                    slice2D[:, 10] = slottedOffset                          # write it back into the 2D slice
+
+                slottedAzimuth = slice2D[:, 11]                             # grab 11th element of 2nd dimension (=azimuth)
+                slottedAzimuth = slottedAzimuth * aziScalar
+                slottedAzimuth = np.round(slottedAzimuth)
+                slottedAzimuth = slottedAzimuth * aziSlot
+                if writeBack:
+                    slice2D[:, 11] = slottedAzimuth                         # write it back into the 2D slice
+
+                slottedOffAzi = np.column_stack((slottedOffset, slottedAzimuth))
+                _, indices = np.unique(slottedOffAzi, return_index=True, axis=0)
+
+                for index in indices:                                       # flag unique offset, azimuth values
+                    slice2D[index, 12] = -1.0
+
+                slice2D = slice2D[slice2D[:, -1].argsort()]                 # sort the traces on last column (unique -1 flag)
+                self.output.anaOutput[row, col, 0:fold, :] = slice2D        # put sorted traces back into analysis array
+
+                uniqueFld = np.count_nonzero(slice2D[:, -1], axis=0)        # get unique fold count from last column (nr12)
+                if uniqueFld > 0:
+                    minOffset = np.min(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
+                    maxOffset = np.max(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
+                else:
+                    minOffset = 0.0                                         # no traces available
+                    maxOffset = 0.0                                         # no traces available
+
+                self.output.binOutput[row, col] = uniqueFld                 # adjust fold value table
+                self.output.minOffset[row, col] = minOffset                 # adjust min offset table
+                self.output.maxOffset[row, col] = maxOffset                 # adjust max offset table
+
+        return True
+
     def toXmlString(self, indent=4) -> str:
         # build the xml-tree by creating a QDomDocument and populating it
         doc = QDomDocument()
@@ -1669,8 +1645,6 @@ class RollSurvey(pg.GraphicsObject):
 
         pathElement = doc.createElement('type')
 
-        surveyType = self.type.name                                             # debug statement
-
         text = doc.createTextNode(self.type.name)
         pathElement.appendChild(text)
         root.appendChild(pathElement)
@@ -1734,9 +1708,6 @@ class RollSurvey(pg.GraphicsObject):
                 # print(tagName + "---->")
 
                 if tagName == 'type':
-                    elementText = e.text()
-                    surveyType = SurveyType[elementText]                        # debug statement
-
                     self.type = SurveyType[e.text()]
 
                 if tagName == 'name':
@@ -1781,24 +1752,19 @@ class RollSurvey(pg.GraphicsObject):
                         p = p.nextSiblingElement('pattern')
             n = n.nextSibling()
 
-    # RollSurvey boundaries
     def resetBoundingRect(self):
-
+        """Reset all RollSurvey boundaries"""
         for block in self.blockList:
             block.resetBoundingRect()
 
         # reset survey spatial extent
-        # source extent
-        self.srcBoundingRect = QRectF()
-        # receiver extent
-        self.recBoundingRect = QRectF()
-        # cmp extent
-        self.cmpBoundingRect = QRectF()
-        # src|rec extent
-        self.boundingBox = QRectF()
+        self.srcBoundingRect = QRectF()                                         # source extent
+        self.recBoundingRect = QRectF()                                         # receiver extent
+        self.cmpBoundingRect = QRectF()                                         # cmp extent
+        self.boundingBox = QRectF()                                             # src|rec extent
 
-    # RollSurvey boundaries
     def calcBoundingRect(self, roll=True):
+        """Calculate RollSurvey boundaries"""
         # initialise pattern figures
         for pattern in self.patternList:
             pattern.calcPatternPicture()
@@ -1836,8 +1802,8 @@ class RollSurvey(pg.GraphicsObject):
 
         return self.boundingBox
 
-    # required for painting a pg.GraphicsObject
     def boundingRect(self):
+        """required for painting a pg.GraphicsObject"""
         if self.boundingBox.isEmpty():
             return self.calcBoundingRect()
         else:

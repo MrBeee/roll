@@ -139,6 +139,7 @@ patternList = []
 surveyCrs = None
 surveyTransform = None
 
+# useNumba is used to indicate wether or not to use numba (IF it has been installed)
 useNumba = False
 
 # Example on using config.py

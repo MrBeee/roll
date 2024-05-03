@@ -32,7 +32,7 @@ To find out where libraries reside, use 'inspect':
 >>>inspect.getfile(qgis.PyQt.QtCore)
 'C:\\Program Files\\QGIS 3.28.1\\apps\\qgis\\python\\qgis\\PyQt\\QtCore.py'
 """
-# Now using PyLint to check for errors, which causes a few issues on its own.
+# Currently using PyLint to check for errors, which causes a few issues on its own.
 # See: https://stackoverflow.com/questions/52123470/how-do-i-disable-pylint-unused-import-error-messages-in-vs-code
 # See: https://gist.github.com/xen/6334976
 # See: https://pylint.pycqa.org/en/latest/user_guide/messages/index.html
@@ -66,50 +66,73 @@ import pyqtgraph as pg
 from console import console
 from numpy.compat import asstr
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
-                              QItemSelection, QItemSelectionModel, QModelIndex,
-                              QPoint, QSettings, Qt, QTextStream, QThread)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
-                             QTextCursor, QTextOption, QTransform)
-from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
-                                      QPrintPreviewDialog)
-from qgis.PyQt.QtWidgets import (QAction, QApplication, QButtonGroup,
-                                 QCheckBox, QDialogButtonBox, QDockWidget,
-                                 QFileDialog, QFrame, QGraphicsEllipseItem,
-                                 QGridLayout, QGroupBox, QHBoxLayout,
-                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
-                                 QPlainTextEdit, QProgressBar, QPushButton,
-                                 QRadioButton, QSplitter, QTabWidget,
-                                 QVBoxLayout, QWidget)
+from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
+from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
+from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QApplication,
+    QButtonGroup,
+    QCheckBox,
+    QDialogButtonBox,
+    QDockWidget,
+    QFileDialog,
+    QFrame,
+    QGraphicsEllipseItem,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QRadioButton,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
 from .event_lookup import event_lookup
 from .find import Find
-from .functions import (aboutText, exampleSurveyXmlText, jit, licenseText,
-                        rawcount)
+from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
+from .functions_numba import numbaNdft_1D, numbaNdft_2D, numbaSlice2D, numbaSlice3D
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
-                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
-                             identifyQgisPointLayer, readQgisPointLayer,
-                             updateQgisPointLayer)
+from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
 from .roll_binning import BinningType
 from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
-                            deletePntDuplicates, deletePntOrphans,
-                            deleteRelDuplicates, deleteRelOrphans,
-                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
-                            findRecOrphans, findSrcOrphans, getRecGeometry,
-                            getSrcGeometry, markUniqueRPSrecords,
-                            markUniqueSPSrecords, markUniqueXPSrecords,
-                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
-                            relType2)
-from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
-                               TableView, XpsTableModel)
-from .worker_threads import (BinFromGeometryWorker, BinningWorker,
-                             GeometryWorker)
+from .sps_io_and_qc import (
+    calcMaxXPStraces,
+    calculateLineStakeTransform,
+    deletePntDuplicates,
+    deletePntOrphans,
+    deleteRelDuplicates,
+    deleteRelOrphans,
+    fileExportAsR01,
+    fileExportAsS01,
+    fileExportAsX01,
+    findRecOrphans,
+    findSrcOrphans,
+    getRecGeometry,
+    getSrcGeometry,
+    markUniqueRPSrecords,
+    markUniqueSPSrecords,
+    markUniqueXPSrecords,
+    pntType1,
+    readRPSFiles,
+    readSPSFiles,
+    readXPSFiles,
+    relType2,
+)
+from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
+from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -1007,7 +1030,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return
         elif index == 1:                                                        # Offsets inline (common y)
             with pg.BusyCursor():
-                slice2D, I, noData = jit('slice2D', self.anaOutput[:, nY, :, :], self.survey.unique.apply)
+                slice2D, I, noData = numbaSlice2D(self.anaOutput[:, nY, :, :], self.survey.unique.apply)
                 if noData:
                     return
 
@@ -1029,7 +1052,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         elif index == 2:                                                        # offsets x-line (common x)
             with pg.BusyCursor():
-                slice2D, I, noData = jit('slice2D', self.anaOutput[nX, :, :, :], self.survey.unique.apply)
+                slice2D, I, noData = numbaSlice2D(self.anaOutput[nX, :, :, :], self.survey.unique.apply)
                 if noData:
                     return
 
@@ -1051,7 +1074,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         elif index == 3:                                                        # Azimuths inline (common y)
             with pg.BusyCursor():
-                slice2D, I, noData = jit('slice2D', self.anaOutput[:, nY, :, :], self.survey.unique.apply)
+                slice2D, I, noData = numbaSlice2D(self.anaOutput[:, nY, :, :], self.survey.unique.apply)
                 if noData:
                     return
 
@@ -1073,7 +1096,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         elif index == 4:                                                        # offsets x-line (common x)
             with pg.BusyCursor():
-                slice2D, I, noData = jit('slice2D', self.anaOutput[nX, :, :, :], self.survey.unique.apply)
+                slice2D, I, noData = numbaSlice2D(self.anaOutput[nX, :, :, :], self.survey.unique.apply)
                 if noData:
                     return
 
@@ -1100,11 +1123,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 kStart = 1000.0 * (0.0 - 0.5 * dK)                              # scale by factor 1000 as we want to show [1/km] on scale
                 kDelta = 1000.0 * dK                                            # same here
 
-                slice3D, I, noData = jit('slice3D', self.anaOutput[:, nY, :, :], self.survey.unique.apply)
+                slice3D, I, noData = numbaSlice3D(self.anaOutput[:, nY, :, :], self.survey.unique.apply)
                 if noData:
                     return
 
-                self.inlineStk = jit('ndft_1D', kMax, dK, slice3D, I)
+                self.inlineStk = numbaNdft_1D(kMax, dK, slice3D, I)
 
                 tr = QTransform()                                               # prepare ImageItem transformation:
                 tr.translate(x0, kStart)                                        # move image to correct location
@@ -1136,11 +1159,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 kStart = 1000.0 * (0.0 - 0.5 * dK)                              # scale by factor 1000 as we want to show [1/km] on scale
                 kDelta = 1000.0 * dK                                            # same here
 
-                slice3D, I, noData = jit('slice3D', self.anaOutput[nX, :, :, :], self.survey.unique.apply)
+                slice3D, I, noData = numbaSlice3D(self.anaOutput[nX, :, :, :], self.survey.unique.apply)
                 if noData:
                     return
 
-                self.x_lineStk = jit('ndft_1D', kMax, dK, slice3D, I)
+                self.x_lineStk = numbaNdft_1D(kMax, dK, slice3D, I)
 
                 tr = QTransform()  # prepare ImageItem transformation:
                 tr.translate(y0, kStart)                                        # move image to correct location
@@ -1192,8 +1215,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 kMin = -0.005
                 kMax = dK - kMin
 
-                # 'jit'prepends 'jit_' or 'nit_' to a method, and calls a function from 'functions_numba.py' trying to speed things up
-                self.xyCellStk = jit('ndft_2D', kMin, kMax, dK, offsetX, offsetY)
+                self.xyCellStk = numbaNdft_2D(kMin, kMax, dK, offsetX, offsetY)
 
                 kStart = 1000.0 * (kMin - 0.5 * dK)                             # scale by factor 1000 as we want to show [1/km] on scale
                 kDelta = 1000.0 * dK                                            # same here
@@ -3841,7 +3863,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
         self.enableProcessingMenuItems(False)                                   # enable/disable menu items
 
-        xmlString = self.survey.toXmlString()
         self.appendLogMessage(f"Thread : started 'Bin from templates', using {self.survey.nShotPoints:,} shot points", MsgType.Binning)
 
         # Step 1: Create a worker class
@@ -3851,6 +3872,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.thread = QThread()
 
         # Step 3: Create a worker object
+        xmlString = self.survey.toXmlString()
         self.worker = BinningWorker(xmlString)
 
         # and define the binning mode
@@ -3890,7 +3912,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
         self.enableProcessingMenuItems(False)                                   # enable/disable menu items
 
-        xmlString = self.survey.toXmlString()
         self.appendLogMessage(f"Thread : started 'Bin from geometry', using {self.srcGeom.shape[0]:,} shot points", MsgType.Binning)
 
         # Step 1: Create a worker class
@@ -3900,6 +3921,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.thread = QThread()
 
         # Step 3: Create a worker object
+        xmlString = self.survey.toXmlString()
         self.worker = BinFromGeometryWorker(xmlString)
 
         # and define the binning mode
@@ -3942,7 +3964,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
         self.enableProcessingMenuItems(False)                                   # enable/disable menu items
 
-        xmlString = self.survey.toXmlString()
         self.appendLogMessage(f"Thread : started 'Bin from Imported SPS', using {self.spsImport.shape[0]:,} shot points", MsgType.Binning)
 
         # Step 1: Create a worker class
@@ -3952,6 +3973,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.thread = QThread()
 
         # Step 3: Create a worker object
+        xmlString = self.survey.toXmlString()
         self.worker = BinFromGeometryWorker(xmlString)
 
         # and define the binning mode
@@ -3984,7 +4006,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
         self.enableProcessingMenuItems(False)                                   # enable/disable menu items
 
-        xmlString = self.survey.toXmlString()
         self.appendLogMessage(f"Thread : started 'Create Geometry from Templates', from {self.survey.nShotPoints:,} shot points", MsgType.Geometry)
 
         # Step 1: Create a worker class
@@ -3994,6 +4015,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.thread = QThread()
 
         # Step 3: Create a worker object
+        xmlString = self.survey.toXmlString()
         self.worker = GeometryWorker(xmlString)
 
         # Step 4: Move worker to the thread

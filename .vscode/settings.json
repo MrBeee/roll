@@ -58,6 +58,7 @@
         "--disable=E1136",
         "--enable=W0611",
         "--enable=W0614",
+        "--disable=E1137",
 //        "--reportMissingImports=false",
             ],
     "workbench.colorCustomizations": {

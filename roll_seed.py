@@ -16,6 +16,8 @@ from .roll_grid import RollGrid
 from .roll_spiral import RollSpiral
 from .roll_well import RollWell
 
+# todo: replace itegers by class SeedType for seed type indication
+
 
 class SeedType(Enum):
     rollingGrid = 0
