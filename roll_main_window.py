@@ -101,7 +101,7 @@ from . import config  # used to pass initial settings
 from .event_lookup import event_lookup
 from .find import Find
 from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
-from .functions_numba import numbaNdft_1D, numbaNdft_2D, numbaSlice2D, numbaSlice3D
+from .functions_numba import numbaAziInline, numbaAziX_line, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice2D, numbaSlice3D, numbaSliceStats, numbaSpiderBin
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
 from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
@@ -536,7 +536,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             'Offset/azimuth distribution in binning area',
         ]
 
-        # these widgets have "installEventFilter()" applied to catch the window 'Show' event in "eventFilter()"
+        # these plotting widgets have "installEventFilter()" applied to catch the window 'Show' event in "eventFilter()"
         # this makes it possile to reroute commands and status from the plotting toolbar buttons to the active plot
         self.offTrkWidget = self.createPlotWidget(self.plotTitles[1], 'inline', 'offset', 'm', 'm')                         # False -> no fixed aspect ratio
         self.offBinWidget = self.createPlotWidget(self.plotTitles[2], 'x-line', 'offset', 'm', 'm')
@@ -589,7 +589,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.analysisTabWidget.addTab(self.stkCelWidget, 'Kx-Ky Stack')
         self.analysisTabWidget.addTab(self.offsetWidget, '|O| Histogram')
         self.analysisTabWidget.addTab(self.offAziWidget, 'O/A Histogram')
-        self.analysisTabWidget.currentChanged.connect(self.onAnalysisTabChange)   # active tab changed!
+        # self.analysisTabWidget.currentChanged.connect(self.onAnalysisTabChange)   # active tab changed!
 
         self.setCurrentFileName()
 
@@ -714,11 +714,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.enableProcessingMenuItems(True)                                   # enables processing menu items except stop thread
 
         # actions related to geometry items to be displayed
-        self.cbTemplat.stateChanged.connect(self.plotSurvey)
-        self.cbRpsList.stateChanged.connect(self.plotSurvey)
-        self.cbSpsList.stateChanged.connect(self.plotSurvey)
-        self.cbRecList.stateChanged.connect(self.plotSurvey)
-        self.cbSrcList.stateChanged.connect(self.plotSurvey)
+        self.cbTemplat.stateChanged.connect(self.plotLayout)
+        self.cbRpsList.stateChanged.connect(self.plotLayout)
+        self.cbSpsList.stateChanged.connect(self.plotLayout)
+        self.cbRecList.stateChanged.connect(self.plotLayout)
+        self.cbSrcList.stateChanged.connect(self.plotLayout)
 
         # enable/disable various actions
         self.actionClose.setEnabled(False)
@@ -785,7 +785,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-        self.plotSurvey()
+        self.plotLayout()
 
         readSettings(self)
         self.updateRecentFileActions()                                          # update the MRU file menu actions, with info from readSettings()
@@ -825,6 +825,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 self.rect = viewBox.getState()['mouseMode'] == pg.ViewBox.RectMode  # update rect status
                 self.actionZoomRect.setChecked(self.rect)
+
+                self.updateVisiblePlotWidget(plotIndex)
 
         elif event.type() == QEvent.Show:
             self.actionZoomAll.setEnabled(False)                                # useful for plots only
@@ -969,7 +971,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.enableExport(False)
 
         self.appendLogMessage(f'Edited : {self.fileName} survey object updated')
-        self.plotSurvey()
+        self.plotLayout()
 
     def binAreaHasChanged(self, *_):                                               # param, changes unused; replaced by *_
         self.binAreaChanged = True
@@ -997,356 +999,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if isinstance(widget, QCodeEditor):
                 widget.setFocus()
 
-    def onAnalysisTabChange(self, index):                                       # manage focus when active tab is changed; doesn't work 100% yet !
-
-        if self.anaOutput is None:                                              # we need self.anaOutput to display meaningful information
-            return
-
-        xSize = self.anaOutput.shape[0]                                         # useful for all tabs
-        ySize = self.anaOutput.shape[1]
-        nFold = self.anaOutput.shape[2]
-        param = self.anaOutput.shape[3]
-
-        dx = self.survey.grid.binSize.x()                                       # x bin size
-        dy = self.survey.grid.binSize.y()                                       # y bin size
-        x0 = self.survey.output.rctOutput.left()
-        y0 = self.survey.output.rctOutput.top()
-
-        ox = 0.5 * dx
-        oy = 0.5 * dy
-
-        if self.spiderPoint == QPoint(-1, -1):                                  # work with the spider point
-            self.spiderPoint = QPoint(xSize / 2, ySize / 2)                     # give it a meaningful value
-
-        nX = self.spiderPoint.x()
-        nY = self.spiderPoint.y()
-
-        ori = self.survey.cmpTransform.map(0.0, 0.0)                            # see where (0, 0) ends up in local coords
-        stk = self.survey.stkTransform.map(ori[0], ori[1])                      # see where (0, 0) ends up in line & stake numbers
-        stkNo = int(stk[0]) + self.spiderPoint.x()
-        linNo = int(stk[1]) + self.spiderPoint.y()
-
-        if index == 0:                                                          # trace table needs no further updates
-            return
-        elif index == 1:                                                        # Offsets inline (common y)
-            with pg.BusyCursor():
-                slice2D, I, noData = numbaSlice2D(self.anaOutput[:, nY, :, :], self.survey.unique.apply)
-                if noData:
-                    return
-
-                x__Inline = slice2D[:, 7]                                       # get all available cmp values belonging to this row
-                offInline = slice2D[:, 10]                                      # get all available offsets belonging to this row
-
-                x = np.empty((2 * x__Inline.size), dtype=x__Inline.dtype)
-                x[0::2] = x__Inline - ox
-                x[1::2] = x__Inline + ox
-
-                y = np.empty((2 * offInline.size), dtype=offInline.dtype)
-                y[0::2] = offInline
-                y[1::2] = offInline
-
-                plotTitle = f'{self.plotTitles[1]} [line={linNo}]'
-                self.offTrkWidget.setTitle(plotTitle, color='b', size='16pt')
-                self.offTrkWidget.plotItem.clear()
-                self.offTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
-
-        elif index == 2:                                                        # offsets x-line (common x)
-            with pg.BusyCursor():
-                slice2D, I, noData = numbaSlice2D(self.anaOutput[nX, :, :, :], self.survey.unique.apply)
-                if noData:
-                    return
-
-                y__Inline = slice2D[:, 8]                                       # get all available cmp values belonging to this row
-                offInline = slice2D[:, 10]                                      # get all available offsets belonging to this row
-
-                x = np.empty((2 * y__Inline.size), dtype=y__Inline.dtype)
-                x[0::2] = y__Inline - oy
-                x[1::2] = y__Inline + oy
-
-                y = np.empty((2 * offInline.size), dtype=offInline.dtype)
-                y[0::2] = offInline
-                y[1::2] = offInline
-
-                plotTitle = f'{self.plotTitles[2]} [stake={stkNo}]'
-                self.offBinWidget.setTitle(plotTitle, color='b', size='16pt')
-                self.offBinWidget.plotItem.clear()
-                self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
-
-        elif index == 3:                                                        # Azimuths inline (common y)
-            with pg.BusyCursor():
-                slice2D, I, noData = numbaSlice2D(self.anaOutput[:, nY, :, :], self.survey.unique.apply)
-                if noData:
-                    return
-
-                x__Inline = slice2D[:, 7]                                       # get all available cmp values belonging to this row
-                aziInline = slice2D[:, 11]                                      # get all available offsets belonging to this row
-
-                x = np.empty((2 * x__Inline.size), dtype=x__Inline.dtype)
-                x[0::2] = x__Inline - ox
-                x[1::2] = x__Inline + ox
-
-                y = np.empty((2 * aziInline.size), dtype=aziInline.dtype)
-                y[0::2] = aziInline
-                y[1::2] = aziInline
-
-                plotTitle = f'{self.plotTitles[3]} [line={linNo}]'
-                self.aziTrkWidget.setTitle(plotTitle, color='b', size='16pt')
-                self.aziTrkWidget.plotItem.clear()
-                self.aziTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
-
-        elif index == 4:                                                        # offsets x-line (common x)
-            with pg.BusyCursor():
-                slice2D, I, noData = numbaSlice2D(self.anaOutput[nX, :, :, :], self.survey.unique.apply)
-                if noData:
-                    return
-
-                y__Inline = slice2D[:, 8]                                       # get all available cmp values belonging to this row
-                aziInline = slice2D[:, 11]                                      # get all available offsets belonging to this row
-
-                x = np.empty((2 * y__Inline.size), dtype=y__Inline.dtype)
-                x[0::2] = y__Inline - oy
-                x[1::2] = y__Inline + oy
-
-                y = np.empty((2 * aziInline.size), dtype=aziInline.dtype)
-                y[0::2] = aziInline
-                y[1::2] = aziInline
-
-                plotTitle = f'{self.plotTitles[4]} [stake={stkNo}]'
-                self.aziBinWidget.setTitle(plotTitle, color='b', size='16pt')
-                self.aziBinWidget.plotItem.clear()
-                self.aziBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
-
-        elif index == 5:                                                        # stack response inline (common y)
-            with pg.BusyCursor():
-                dK = 0.0001
-                kMax = 0.02 + dK
-                kStart = 1000.0 * (0.0 - 0.5 * dK)                              # scale by factor 1000 as we want to show [1/km] on scale
-                kDelta = 1000.0 * dK                                            # same here
-
-                slice3D, I, noData = numbaSlice3D(self.anaOutput[:, nY, :, :], self.survey.unique.apply)
-                if noData:
-                    return
-
-                self.inlineStk = numbaNdft_1D(kMax, dK, slice3D, I)
-
-                tr = QTransform()                                               # prepare ImageItem transformation:
-                tr.translate(x0, kStart)                                        # move image to correct location
-                tr.scale(dx, kDelta)                                            # scale horizontal and vertical axes
-
-                self.stkTrkImItem = pg.ImageItem()                              # create PyqtGraph image item
-                self.stkTrkImItem.setImage(self.inlineStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
-                self.stkTrkImItem.setTransform(tr)
-
-                if self.stkTrkColorBar is None:
-                    self.stkTrkColorBar = self.stkTrkWidget.plotItem.addColorBar(
-                        self.stkTrkImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0)
-                    )
-                    self.stkTrkColorBar.setLevels(low=-50.0, high=0.0)
-                else:
-                    self.stkTrkColorBar.setImageItem(self.stkTrkImItem)
-                    self.stkTrkColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
-
-                self.stkTrkWidget.plotItem.clear()
-                self.stkTrkWidget.plotItem.addItem(self.stkTrkImItem)
-
-                plotTitle = f'{self.plotTitles[5]} [line={linNo}]'
-                self.stkTrkWidget.setTitle(plotTitle, color='b', size='16pt')
-
-        elif index == 6:                                                        # stack response x-line (common x)
-            with pg.BusyCursor():
-                dK = 0.0001
-                kMax = 0.02 + dK
-                kStart = 1000.0 * (0.0 - 0.5 * dK)                              # scale by factor 1000 as we want to show [1/km] on scale
-                kDelta = 1000.0 * dK                                            # same here
-
-                slice3D, I, noData = numbaSlice3D(self.anaOutput[nX, :, :, :], self.survey.unique.apply)
-                if noData:
-                    return
-
-                self.x_lineStk = numbaNdft_1D(kMax, dK, slice3D, I)
-
-                tr = QTransform()  # prepare ImageItem transformation:
-                tr.translate(y0, kStart)                                        # move image to correct location
-                tr.scale(dy, kDelta)                                            # scale horizontal and vertical axes
-
-                self.stkBinImItem = pg.ImageItem()                              # create PyqtGraph image item
-                self.stkBinImItem.setImage(self.x_lineStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
-                self.stkBinImItem.setTransform(tr)
-
-                if self.stkBinColorBar is None:
-                    self.stkBinColorBar = self.stkBinWidget.plotItem.addColorBar(
-                        self.stkBinImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0)
-                    )
-                    self.stkBinColorBar.setLevels(low=-50.0, high=0.0)
-                else:
-                    self.stkBinColorBar.setImageItem(self.stkBinImItem)
-                    self.stkBinColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
-
-                self.stkBinWidget.plotItem.clear()
-                self.stkBinWidget.plotItem.addItem(self.stkBinImItem)
-
-                plotTitle = f'{self.plotTitles[6]} [stake={stkNo}]'
-                self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
-
-        elif index == 7:                                                        # stack response kXkY
-            with pg.BusyCursor():
-                slice2D = self.anaOutput[nX, nY, :, :]                          # we are left with 2 dimensions [fold, param]
-
-                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
-                    havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
-                    useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
-                else:
-                    useUnique = False                                           # unique not required or not available
-
-                if useUnique:
-                    I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
-                else:
-                    I = slice2D[:, 2] > 0                                       # fold > 0
-
-                if np.count_nonzero(I) == 0:
-                    return                                                      # nothing to show; return
-
-                slice2D = slice2D[I, :]                                         # filter the 2D slice
-
-                offsetX = slice2D[:, 5] - slice2D[:, 3]                         # x-component of available offsets
-                offsetY = slice2D[:, 6] - slice2D[:, 4]                         # y-component of available offsets
-
-                dK = 0.00005
-                kMin = -0.005
-                kMax = dK - kMin
-
-                self.xyCellStk = numbaNdft_2D(kMin, kMax, dK, offsetX, offsetY)
-
-                kStart = 1000.0 * (kMin - 0.5 * dK)                             # scale by factor 1000 as we want to show [1/km] on scale
-                kDelta = 1000.0 * dK                                            # same here
-                tr = QTransform()                                               # prepare ImageItem transformation:
-                tr.translate(kStart, kStart)                                    # move image to correct location
-                tr.scale(kDelta, kDelta)                                        # scale horizontal and vertical axes
-
-                self.stkCelImItem = pg.ImageItem()                              # create PyqtGraph image item
-                self.stkCelImItem.setImage(self.xyCellStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
-                self.stkCelImItem.setTransform(tr)
-                if self.stkCelColorBar is None:
-                    self.stkCelColorBar = self.stkCelWidget.plotItem.addColorBar(
-                        self.stkCelImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0)
-                    )
-                    self.stkCelColorBar.setLevels(low=-50.0, high=0.0)
-                else:
-                    self.stkCelColorBar.setImageItem(self.stkCelImItem)
-                    self.stkCelColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
-
-                self.stkCelWidget.plotItem.clear()
-                self.stkCelWidget.plotItem.addItem(self.stkCelImItem)
-
-                plotTitle = f'{self.plotTitles[7]} [stake={stkNo}, line={linNo}, fold={offsetX.shape[0]}]'
-                self.stkCelWidget.setTitle(plotTitle, color='b', size='16pt')
-        elif index == 8:                                                        # offset histogram
-            with pg.BusyCursor():
-
-                fold = self.anaOutput[:, :, :, 2]                           # we are left with 1 dimensions [offset]
-                offsets = self.anaOutput[:, :, :, 10]                           # we are left with 1 dimensions [offset]
-                include = self.anaOutput[:, :, :, 12]                           # we are left with 1 dimensions [offset]
-
-                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
-                    useUnique = True if include.min() == -1 else False          # are there any -1 records ?
-                else:
-                    useUnique = False                                           # unique not required or not available
-
-                if useUnique:
-                    I = (fold > 0) & (include == -1)                            # fold > 0 AND unique == -1
-                else:
-                    I = fold > 0                                                # fold value > 0
-
-                if np.count_nonzero(I) == 0:                                    # nothing to show here
-                    return
-
-                offsets = offsets[I]                                            # filter the 1D slice
-                count = offsets.shape[0]                                        # nr available traces
-
-                y, x = np.histogram(offsets, bins='auto')                       # create a histogram the easy way
-
-                ## Using stepMode="center" causes the plot to draw two lines for each sample.
-                ## notice that len(x) == len(y)+1
-                # plt1.plot(x, y, stepMode='center', fillLevel=0, fillOutline=True, brush=(0, 0, 255, 150))
-                # bgi = pg.BarGraphItem(x0=x[:-1], x1=x[1:], height=y, pen='w', brush=(0,0,255,150))
-
-                plotTitle = f'{self.plotTitles[8]} [{count:,} traces]'
-                self.offsetWidget.setTitle(plotTitle, color='b', size='16pt')
-                self.offsetWidget.plotItem.clear()
-                self.offsetWidget.plot(x, y, stepMode='center', fillLevel=0, fillOutline=True, brush=(0, 0, 255, 150), pen=pg.mkPen('k', width=1))
-        elif index == 9:                                                        # Offset/azimuth histogram
-            with pg.BusyCursor():
-                fold = self.anaOutput[:, :, :, 2]                               # we are left with 1 dimensions [offset]
-                offsets = self.anaOutput[:, :, :, 10]                           # we are left with 1 dimensions [offset]
-                azimuth = self.anaOutput[:, :, :, 11]                           # we are left with 1 dimensions [offset]
-                include = self.anaOutput[:, :, :, 12]                           # we are left with 1 dimensions [offset]
-
-                if self.survey.unique.apply is True:                            # we'd like to use unique offsets
-                    useUnique = True if include.min() == -1 else False          # are there any -1 records ?
-                else:
-                    useUnique = False                                           # unique not required or not available
-
-                if useUnique:
-                    I = (fold > 0) & (include == -1)                            # fold > 0 AND unique == -1
-                else:
-                    I = fold > 0                                                # fold value > 0
-
-                if np.count_nonzero(I) == 0:                                    # nothing to show here
-                    return
-
-                offsets = offsets[I]                                            # filter the 1D slice
-                azimuth = azimuth[I]                                            # filter the 1D slice
-                count = offsets.shape[0]                                        # nr available traces
-                if count == 0:
-                    return
-
-                dA = 5.0                                                       # azimuth increments
-                aMin = -180.0                                                    # max x-scale
-                aMax = 180.0                                                    # max x-scale
-                aMax += dA                                                      # make sure end value is included
-
-                dO = 100.0                                                      # offsets increments
-                oMax = ceil(self.maxMaxOffset / dO) * dO + dO                   # max y-scale; make sure end value is included
-
-                aR = np.arange(aMin, aMax, dA)                                  # numpy array with values [0 ... fMax]
-                oR = np.arange(0, oMax, dO)                                     # numpy array with values [0 ... oMax]
-
-                self.offAziPlt, _x, _y = np.histogram2d(x=azimuth, y=offsets, bins=[aR, oR], range=None, density=None, weights=None)
-
-                tr = QTransform()                                               # prepare ImageItem transformation:
-                tr.translate(aMin, 0)                                           # move image to correct location
-                tr.scale(dA, dO)                                                # scale horizontal and vertical axes
-
-                self.offAziImItem = pg.ImageItem()                              # create PyqtGraph image item
-                self.offAziImItem.setImage(self.offAziPlt)                      #
-                self.offAziImItem.setTransform(tr)
-                if self.offAziColorBar is None:
-                    self.offAziColorBar = self.offAziWidget.plotItem.addColorBar(self.offAziImItem, colorMap=config.analysisCmap, label='frequency', rounding=10.0)
-                    self.offAziColorBar.setLevels(low=0.0)                      # , high=0.0
-                else:
-                    self.offAziColorBar.setImageItem(self.offAziImItem)
-                    self.offAziColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
-
-                self.offAziWidget.plotItem.clear()
-                self.offAziWidget.plotItem.addItem(self.offAziImItem)
-
-                plotTitle = f'{self.plotTitles[9]} [{count:,} traces]'
-                self.offAziWidget.setTitle(plotTitle, color='b', size='16pt')
-
-            # SOFAR NOW. For Polar Coordinates, see:
-            # See: https://stackoverflow.com/questions/57174173/polar-coordinate-system-in-pyqtgraph
-            # See: https://groups.google.com/g/pyqtgraph/c/9Vv1kJdxE6U/m/FuCsSg182jUJ
-            # See: https://doc.qt.io/qtforpython-6/PySide6/QtCharts/QPolarChart.html
-            # See: https://www.youtube.com/watch?v=DyPjsj6azY4
-            # See: https://stackoverflow.com/questions/50720719/how-to-create-a-color-circle-in-pyqt
-            # See: https://stackoverflow.com/questions/70471687/pyqt-creating-color-circle
-
-            # To rewire signals and slots
-            # See: https://stackoverflow.com/questions/21586643/pyqt-widget-connect-and-disconnect
-
-    # deal with the edit menu here.
-    # the idea is that Cut, copy, paste and select_all are no longer hardwired to the xml-textEdit
-    # See: https://doc.qt.io/qt-6/qkeysequence.html  # Maybe use QApplication.activeWindow() instead
     def cut(self):
         currentWidget = QApplication.focusWidget()
         try:
@@ -1794,7 +1446,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if self.cbSpider.isChecked():
             self.navigateSpider(Direction.NA)
         else:
-            self.plotSurvey()
+            self.plotLayout()
 
     def navigateSpider(self, direction):
         if self.anaOutput is None or self.binOutput is None:
@@ -1837,76 +1489,57 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if self.spiderPoint.y() >= ySize:
             self.spiderPoint.setY(ySize - 1)
 
-        nX = self.spiderPoint.x()
-        nY = self.spiderPoint.y()
-
-        # Action required depends on active tab. Layout tab, or one of the analysis tabs require action.
-        mainTabIndex = self.mainTabWidget.currentIndex()
-        analysisIndex = self.analysisTabWidget.currentIndex()
-
-        if mainTabIndex == 4 and analysisIndex > 0:
-            self.onAnalysisTabChange(analysisIndex)
+        plotIndex = self.getVisiblePlotWidget()[1]                              # get the active plot widget nr
+        if plotIndex is None:
             return
 
-        twoFold = 2 * self.binOutput[nX, nY]                                    # max fold times two
-        twoFold = min(twoFold, self.survey.grid.fold * 2)                       # limit to available cmp records
-
-        if twoFold < 0:                                                         # occurs when closing plugin with spider displayed
-            return
-
-        self.spiderSrcX = np.zeros(shape=twoFold, dtype=np.float32)             # needed to display data points
-        self.spiderSrcY = np.zeros(shape=twoFold, dtype=np.float32)             # needed to display data points
-        self.spiderRecX = np.zeros(shape=twoFold, dtype=np.float32)             # needed to display data points
-        self.spiderRecY = np.zeros(shape=twoFold, dtype=np.float32)             # needed to display data points
-
-        fold = 0
-        for i in range(0, twoFold, 2):
-            self.spiderSrcX[i] = self.anaOutput[nX, nY, fold, 3]
-            self.spiderSrcX[i + 1] = self.anaOutput[nX, nY, fold, 7]
-
-            self.spiderSrcY[i] = self.anaOutput[nX, nY, fold, 4]
-            self.spiderSrcY[i + 1] = self.anaOutput[nX, nY, fold, 8]
-
-            self.spiderRecX[i] = self.anaOutput[nX, nY, fold, 5]
-            self.spiderRecX[i + 1] = self.anaOutput[nX, nY, fold, 7]
-
-            self.spiderRecY[i] = self.anaOutput[nX, nY, fold, 6]
-            self.spiderRecY[i + 1] = self.anaOutput[nX, nY, fold, 8]
-            fold += 1
-
-        invBinTransform, _ = self.survey.binTransform.inverted()
-        cmpX, cmpY = invBinTransform.map(nX, nY)                                # get local coordinates from line and point indices
-        stkX, stkY = self.survey.st2Transform.map(cmpX, cmpY)                   # get the corresponding bin and stake numbers
-
-        if fold > 0:
-            labelX = cmpX
-            labelY = max(self.spiderRecY.max(), self.spiderSrcY.max())
+        if plotIndex > 0:
+            self.updateVisiblePlotWidget(plotIndex)                             # update one of the analysis plots
         else:
-            labelX = cmpX
-            labelY = cmpY
+            nX = self.spiderPoint.x()
+            nY = self.spiderPoint.y()
+            fold = self.binOutput[nX, nY]                                       # max fold, accounting for unique fold
+            # fold = min(fold, self.survey.grid.fold)                           # limit to available cmp records
 
-        if self.glob:                                                           # we need to convert local to global coords
-            labelX, labelY = self.survey.glbTransform.map(labelX, labelY)       # get global position from local version
+            if fold < 0:                                                        # occurs when closing plugin with spider displayed
+                return
 
-        self.spiderText.setPos(labelX, labelY)                                  # move the label above spider's cmp position
-        self.spiderText.setText(f'S({int(stkX)},{int(stkY)}), fold = {fold}')   # update the label text accordingly
+            self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = numbaSpiderBin(self.anaOutput[nX, nY, 0:fold, :])
 
-        sizeY = self.anaOutput.shape[1]                                         # x-line size of analysis array
-        maxFld = self.anaOutput.shape[2]                                        # max fold from analysis file
-        offset = (nX * sizeY + nY) * maxFld                                     # calculate offset for self.D2_Output array
-        index = self.anaView.model().index(offset, 0)                           # turn offset into index
-        self.anaView.scrollTo(index)                                            # scroll to index
-        self.anaView.selectRow(offset)                                          # for the time being, *only* select first row of traces in a bin
+            invBinTransform, _ = self.survey.binTransform.inverted()
+            cmpX, cmpY = invBinTransform.map(nX, nY)                            # get local coordinates from line and point indices
+            stkX, stkY = self.survey.st2Transform.map(cmpX, cmpY)               # get the corresponding bin and stake numbers
 
-        fold = max(fold, 1)
-        fold = 1 if fold == 0 else fold                                         # only highlight one line when fold = 0
-        sm = self.anaView.selectionModel()                                      # select corresponding rows in self.anaView table
-        TL = QModelIndex(self.anaView.model().index(offset, 0))
-        BR = QModelIndex(self.anaView.model().index(offset + fold - 1, 0))
-        selection = QItemSelection(TL, BR)
-        sm.select(selection, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
+            if fold > 0:
+                labelX = cmpX
+                labelY = max(self.spiderRecY.max(), self.spiderSrcY.max())
+            else:
+                labelX = cmpX
+                labelY = cmpY
 
-        self.plotSurvey()
+            if self.glob:                                                       # we need to convert local to global coords
+                labelX, labelY = self.survey.glbTransform.map(labelX, labelY)   # get global position from local version
+
+            self.spiderText.setPos(labelX, labelY)                                  # move the label above spider's cmp position
+            self.spiderText.setText(f'S({int(stkX)},{int(stkY)}), fold = {fold}')   # update the label text accordingly
+
+            # now sync the trace table with the spider plot
+            sizeY = self.anaOutput.shape[1]                                     # x-line size of analysis array
+            maxFld = self.anaOutput.shape[2]                                    # max fold from analysis file
+            offset = (nX * sizeY + nY) * maxFld                                 # calculate offset for self.D2_Output array
+            index = self.anaView.model().index(offset, 0)                       # turn offset into index
+            self.anaView.scrollTo(index)                                        # scroll to index
+            self.anaView.selectRow(offset)                                      # for the time being, *only* select first row of traces in a bin
+
+            fold = max(fold, 1)                                                 # only highlight one line when fold = 0
+            # fold = 1 if fold <= 0 else fold                                     # only highlight one line when fold = 0
+            sm = self.anaView.selectionModel()                                  # select corresponding rows in self.anaView table
+            TL = QModelIndex(self.anaView.model().index(offset, 0))
+            BR = QModelIndex(self.anaView.model().index(offset + fold - 1, 0))
+            selection = QItemSelection(TL, BR)
+            sm.select(selection, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
+
+            self.plotLayout()
 
     # define sps, rps, xps button functions
     def sortXpsData(self, index):
@@ -1932,7 +1565,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if after < before:                                                      # need to update the (x, y) points as well
             self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
             self.enableExport(True)
-            self.plotSurvey()
+            self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps-duplicates')
 
     def removeSpsDuplicates(self):
@@ -1944,7 +1577,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if after < before:
             self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
             self.enableExport(True)
-            self.plotSurvey()
+            self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps-duplicates')
 
     def removeRpsOrphans(self):
@@ -1956,7 +1589,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if after < before:
             self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
             self.enableExport(True)
-            self.plotSurvey()
+            self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps/xps-orphans')
 
     def removeSpsOrphans(self):
@@ -1968,7 +1601,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if after < before:
             self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
             self.enableExport(True)
-            self.plotSurvey()
+            self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps/xps-orphans')
 
     def removeXpsDuplicates(self):
@@ -2017,7 +1650,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if after < before:                                                      # need to update the (x, y) points as well
             self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
             self.enableExport(True)
-            self.plotSurvey()
+            self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec-duplicates')
 
     def removeSrcDuplicates(self):
@@ -2029,7 +1662,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if after < before:
             self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
             self.enableExport(True)
-            self.plotSurvey()
+            self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src-duplicates')
 
     def removeRecOrphans(self):
@@ -2041,7 +1674,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if after < before:
             self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
             self.enableExport(True)
-            self.plotSurvey()
+            self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec/rel-orphans')
 
     def removeSrcOrphans(self):
@@ -2053,7 +1686,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if after < before:
             self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
             self.enableExport(True)
-            self.plotSurvey()
+            self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src/rel-orphans')
 
     def removeRelDuplicates(self):
@@ -2179,7 +1812,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.srcCoordE, self.srcCoordN, self.srcCoordI = self.srcGeom
         self.srcModel.setData(self.srcGeom)
         self.enableExport(True)
-        self.plotSurvey()
+        self.plotLayout()
 
     def importRecFromQgis(self):
 
@@ -2197,7 +1830,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
         self.recModel.setData(self.recGeom)
         self.enableExport(True)
-        self.plotSurvey()
+        self.plotLayout()
 
     def exportOutToQgis(self):
         layerName = QFileInfo(self.fileName).baseName()
@@ -2309,7 +1942,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.layoutColorBar.setColorMap(colorMap)
             self.setColorbarLabel(label)
 
-        self.plotSurvey()
+        self.plotLayout()
 
     def mouseBeingDragged(self):                                                # essential for LOD plotting whilst moving the survey object around
         self.survey.mouseGrabbed = True
@@ -2420,9 +2053,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         elif plotWidget == self.stkBinWidget:
             return 6
         elif plotWidget == self.stkCelWidget:
-            return 6
-        elif plotWidget == self.offsetWidget:
             return 7
+        elif plotWidget == self.offsetWidget:
+            return 8
+        elif plotWidget == self.offAziWidget:
+            return 9
 
         return None
 
@@ -2445,8 +2080,52 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return (self.stkCelWidget, 7)
         if self.offsetWidget.isVisible():
             return (self.offsetWidget, 8)
+        if self.offAziWidget.isVisible():
+            return (self.offAziWidget, 9)
 
         return (None, None)
+
+    def updateVisiblePlotWidget(self, index: int):
+        if index == 0:
+            self.plotLayout()                                                   # no conditions to plot main layout plot
+        elif self.anaOutput is None:                                            # we need self.anaOutput to display meaningful ANALYSIS information
+            return
+
+        ori = self.survey.cmpTransform.map(0.0, 0.0)                            # see where (0, 0) ends up in local coords
+        stk = self.survey.stkTransform.map(ori[0], ori[1])                      # see where (0, 0) ends up in line & stake numbers
+
+        nX = self.spiderPoint.x()
+        nY = self.spiderPoint.y()
+
+        stkNo = int(stk[0]) + nX
+        linNo = int(stk[1]) + nY
+
+        dx = self.survey.grid.binSize.x()                                       # x bin size
+        dy = self.survey.grid.binSize.y()                                       # y bin size
+        x0 = self.survey.output.rctOutput.left()
+        y0 = self.survey.output.rctOutput.top()
+
+        ox = 0.5 * dx
+        oy = 0.5 * dy
+
+        if index == 1:
+            self.plotOffTrk(nY, linNo, ox)
+        elif index == 2:
+            self.plotOffBin(nX, stkNo, oy)
+        elif index == 3:
+            self.plotAziTrk(nY, linNo, ox)
+        elif index == 4:
+            self.plotAziBin(nX, stkNo, oy)
+        elif index == 5:
+            self.plotStkTrk(nY, linNo, x0, dx)
+        elif index == 6:
+            self.plotStkBin(nX, stkNo, y0, dy)
+        elif index == 7:
+            self.plotStkCel(nX, nY, stkNo, linNo)
+        elif index == 8:
+            self.plotOffset()
+        elif index == 9:
+            self.plotOffAzi()
 
     def plotZoomRect(self):
         visiblePlot = self.getVisiblePlotWidget()[0]
@@ -2526,11 +2205,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.handleSpiderPlot()                                                 # spider label should move depending on local/global coords
         self.layoutWidget.autoRange()                                           # show the full range of objects when changing local vs global coordinates
-        self.plotSurvey()
+        self.plotLayout()
 
     def plotRuler(self):
         self.ruler = not self.ruler
-        self.plotSurvey()
+        self.plotLayout()
 
     def UpdateAllViews(self):
         plainText = self.textEdit.getTextViaCursor()                            # read complete file content, not affecting doc status
@@ -2541,7 +2220,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.textEdit.setTextViaCursor(plainText)                           # get text into the textEdit, NOT resetting its doc status
             self.textEdit.document().setModified(True)                          # we edited the document; so it's been modified
 
-        self.plotSurvey()
+        self.plotLayout()
         # self.layoutWidget.enableAutoRange()                                     # makes the plot 'fit' the survey outline.
 
     def plotViewRangeChanged(self):
@@ -2569,7 +2248,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 axTop.setTickSpacing()                                          # set to default values
                 axRgt.setTickSpacing()                                          # set to default values
 
-    def plotSurvey(self):
+    def plotLayout(self):
         # first we are going to see how large the survey area is, to establish a boundingbox
         # See: https://www.geeksforgeeks.org/pyqtgraph-removing-item-from-plot-window/
         # self.layoutWidget.plotItem.removeItem(self.legend)
@@ -2767,6 +2446,222 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 label.setZValue(1000)
             self.roiChanged()
 
+    def plotOffTrk(self, nY: int, linNo: int, ox: float):
+        with pg.BusyCursor():
+            slice2D, noData = numbaSlice2D(self.anaOutput[:, nY, :, :], self.survey.unique.apply)
+            if noData:
+                return
+
+            x, y = numbaOffInline(slice2D, ox)
+
+            plotTitle = f'{self.plotTitles[1]} [line={linNo}]'
+            self.offTrkWidget.setTitle(plotTitle, color='b', size='16pt')
+            self.offTrkWidget.plotItem.clear()
+            self.offTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+
+    def plotOffBin(self, nX: int, stkNo: int, oy: float):
+        with pg.BusyCursor():
+            slice2D, noData = numbaSlice2D(self.anaOutput[nX, :, :, :], self.survey.unique.apply)
+            if noData:
+                return
+
+            x, y = numbaOffX_line(slice2D, oy)
+
+            plotTitle = f'{self.plotTitles[2]} [stake={stkNo}]'
+            self.offBinWidget.setTitle(plotTitle, color='b', size='16pt')
+            self.offBinWidget.plotItem.clear()
+            self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+
+    def plotAziTrk(self, nY: int, linNo: int, ox: float):
+        with pg.BusyCursor():
+            slice2D, noData = numbaSlice2D(self.anaOutput[:, nY, :, :], self.survey.unique.apply)
+            if noData:
+                return
+
+            x, y = numbaAziInline(slice2D, ox)
+
+            plotTitle = f'{self.plotTitles[3]} [line={linNo}]'
+            self.aziTrkWidget.setTitle(plotTitle, color='b', size='16pt')
+            self.aziTrkWidget.plotItem.clear()
+            self.aziTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+
+    def plotAziBin(self, nX: int, stkNo: int, oy: float):
+        with pg.BusyCursor():
+            slice2D, noData = numbaSlice2D(self.anaOutput[nX, :, :, :], self.survey.unique.apply)
+            if noData:
+                return
+
+            x, y = numbaAziX_line(slice2D, oy)
+
+            plotTitle = f'{self.plotTitles[4]} [stake={stkNo}]'
+            self.aziBinWidget.setTitle(plotTitle, color='b', size='16pt')
+            self.aziBinWidget.plotItem.clear()
+            self.aziBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
+
+    def plotStkTrk(self, nY: int, linNo: int, x0: float, dx: float):
+        with pg.BusyCursor():
+            dK = 0.0001
+            kMax = 0.02 + dK
+            kStart = 1000.0 * (0.0 - 0.5 * dK)                              # scale by factor 1000 as we want to show [1/km] on scale
+            kDelta = 1000.0 * dK                                            # same here
+
+            slice3D, I, noData = numbaSlice3D(self.anaOutput[:, nY, :, :], self.survey.unique.apply)
+            if noData:
+                return
+
+            self.inlineStk = numbaNdft_1D(kMax, dK, slice3D, I)
+
+            tr = QTransform()                                               # prepare ImageItem transformation:
+            tr.translate(x0, kStart)                                        # move image to correct location
+            tr.scale(dx, kDelta)                                            # scale horizontal and vertical axes
+
+            self.stkTrkImItem = pg.ImageItem()                              # create PyqtGraph image item
+            self.stkTrkImItem.setImage(self.inlineStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
+            self.stkTrkImItem.setTransform(tr)
+
+            if self.stkTrkColorBar is None:
+                self.stkTrkColorBar = self.stkTrkWidget.plotItem.addColorBar(self.stkTrkImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0))
+                self.stkTrkColorBar.setLevels(low=-50.0, high=0.0)
+            else:
+                self.stkTrkColorBar.setImageItem(self.stkTrkImItem)
+                self.stkTrkColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
+
+            self.stkTrkWidget.plotItem.clear()
+            self.stkTrkWidget.plotItem.addItem(self.stkTrkImItem)
+
+            plotTitle = f'{self.plotTitles[5]} [line={linNo}]'
+            self.stkTrkWidget.setTitle(plotTitle, color='b', size='16pt')
+
+    def plotStkBin(self, nX: int, stkNo: int, y0: float, dy: float):
+        with pg.BusyCursor():
+            dK = 0.0001
+            kMax = 0.02 + dK
+            kStart = 1000.0 * (0.0 - 0.5 * dK)                              # scale by factor 1000 as we want to show [1/km] on scale
+            kDelta = 1000.0 * dK                                            # same here
+
+            slice3D, I, noData = numbaSlice3D(self.anaOutput[nX, :, :, :], self.survey.unique.apply)
+            if noData:
+                return
+
+            self.x_lineStk = numbaNdft_1D(kMax, dK, slice3D, I)
+
+            tr = QTransform()  # prepare ImageItem transformation:
+            tr.translate(y0, kStart)                                        # move image to correct location
+            tr.scale(dy, kDelta)                                            # scale horizontal and vertical axes
+
+            self.stkBinImItem = pg.ImageItem()                              # create PyqtGraph image item
+            self.stkBinImItem.setImage(self.x_lineStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
+            self.stkBinImItem.setTransform(tr)
+
+            if self.stkBinColorBar is None:
+                self.stkBinColorBar = self.stkBinWidget.plotItem.addColorBar(self.stkBinImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0))
+                self.stkBinColorBar.setLevels(low=-50.0, high=0.0)
+            else:
+                self.stkBinColorBar.setImageItem(self.stkBinImItem)
+                self.stkBinColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
+
+            self.stkBinWidget.plotItem.clear()
+            self.stkBinWidget.plotItem.addItem(self.stkBinImItem)
+
+            plotTitle = f'{self.plotTitles[6]} [stake={stkNo}]'
+            self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
+
+    def plotStkCel(self, nX: int, nY: int, stkNo: int, linNo: int):
+        with pg.BusyCursor():
+            dK = 0.00005
+            kMin = -0.005
+            kMax = dK - kMin
+            kStart = 1000.0 * (kMin - 0.5 * dK)                             # scale by factor 1000 as we want to show [1/km] on scale
+            kDelta = 1000.0 * dK                                            # same here
+
+            offsetX, offsetY, noData = numbaOffsetBin(self.anaOutput[nX, nY, :, :], self.survey.unique.apply)
+            if noData:
+                return
+
+            self.xyCellStk = numbaNdft_2D(kMin, kMax, dK, offsetX, offsetY)
+
+            tr = QTransform()                                               # prepare ImageItem transformation:
+            tr.translate(kStart, kStart)                                    # move image to correct location
+            tr.scale(kDelta, kDelta)                                        # scale horizontal and vertical axes
+
+            self.stkCelImItem = pg.ImageItem()                              # create PyqtGraph image item
+            self.stkCelImItem.setImage(self.xyCellStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
+            self.stkCelImItem.setTransform(tr)
+            if self.stkCelColorBar is None:
+                self.stkCelColorBar = self.stkCelWidget.plotItem.addColorBar(self.stkCelImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0))
+                self.stkCelColorBar.setLevels(low=-50.0, high=0.0)
+            else:
+                self.stkCelColorBar.setImageItem(self.stkCelImItem)
+                self.stkCelColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
+
+            self.stkCelWidget.plotItem.clear()
+            self.stkCelWidget.plotItem.addItem(self.stkCelImItem)
+
+            plotTitle = f'{self.plotTitles[7]} [stake={stkNo}, line={linNo}, fold={offsetX.shape[0]}]'
+            self.stkCelWidget.setTitle(plotTitle, color='b', size='16pt')
+
+    def plotOffset(self):
+        with pg.BusyCursor():
+            offsets, _, noData = numbaSliceStats(self.anaOutput, self.survey.unique.apply)
+            if noData:
+                return
+
+            y, x = np.histogram(offsets, bins='auto')                       # create a histogram the easy way
+
+            count = offsets.shape[0]                                        # nr available traces
+            plotTitle = f'{self.plotTitles[8]} [{count:,} traces]'
+            self.offsetWidget.setTitle(plotTitle, color='b', size='16pt')
+            self.offsetWidget.plotItem.clear()
+            self.offsetWidget.plot(x, y, stepMode='center', fillLevel=0, fillOutline=True, brush=(0, 0, 255, 150), pen=pg.mkPen('k', width=1))
+
+    def plotOffAzi(self):
+        with pg.BusyCursor():
+            dA = 5.0                                                        # azimuth increments
+            aMin = -180.0                                                   # max x-scale
+            aMax = 180.0                                                    # max x-scale
+            aMax += dA                                                      # make sure end value is included
+
+            dO = 100.0                                                      # offsets increments
+            oMax = ceil(self.maxMaxOffset / dO) * dO + dO                   # max y-scale; make sure end value is included
+
+            aR = np.arange(aMin, aMax, dA)                                  # numpy array with values [0 ... fMax]
+            oR = np.arange(0, oMax, dO)                                     # numpy array with values [0 ... oMax]
+
+            offsets, azimuth, noData = numbaSliceStats(self.anaOutput, self.survey.unique.apply)
+            if noData:
+                return
+
+            self.offAziPlt = np.histogram2d(x=azimuth, y=offsets, bins=[aR, oR], range=None, density=None, weights=None)[0]
+
+            tr = QTransform()                                               # prepare ImageItem transformation:
+            tr.translate(aMin, 0)                                           # move image to correct location
+            tr.scale(dA, dO)                                                # scale horizontal and vertical axes
+
+            self.offAziImItem = pg.ImageItem()                              # create PyqtGraph image item
+            self.offAziImItem.setImage(self.offAziPlt)                      #
+            self.offAziImItem.setTransform(tr)
+            if self.offAziColorBar is None:
+                self.offAziColorBar = self.offAziWidget.plotItem.addColorBar(self.offAziImItem, colorMap=config.analysisCmap, label='frequency', rounding=10.0)
+                self.offAziColorBar.setLevels(low=0.0)                      # , high=0.0
+            else:
+                self.offAziColorBar.setImageItem(self.offAziImItem)
+                self.offAziColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
+
+            self.offAziWidget.plotItem.clear()
+            self.offAziWidget.plotItem.addItem(self.offAziImItem)
+
+            count = offsets.shape[0]                                        # nr available traces
+            plotTitle = f'{self.plotTitles[9]} [{count:,} traces]'
+            self.offAziWidget.setTitle(plotTitle, color='b', size='16pt')
+
+        # For Polar Coordinates, see:
+        # See: https://stackoverflow.com/questions/57174173/polar-coordinate-system-in-pyqtgraph
+        # See: https://groups.google.com/g/pyqtgraph/c/9Vv1kJdxE6U/m/FuCsSg182jUJ
+        # See: https://doc.qt.io/qtforpython-6/PySide6/QtCharts/QPolarChart.html
+        # See: https://www.youtube.com/watch?v=DyPjsj6azY4
+        # See: https://stackoverflow.com/questions/50720719/how-to-create-a-color-circle-in-pyqt
+        # See: https://stackoverflow.com/questions/70471687/pyqt-creating-color-circle
+
     def roiChanged(self):
         pos = []
         for i, handle in enumerate(self.lineROI.getHandles()):
@@ -2824,7 +2719,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def newFile(self):                                                          # wrapper around fileNew; used to create a log message
         if self.fileNew():
             self.appendLogMessage('Created: new file')
-            self.plotSurvey()                                                   # update the survey, but not the xml-tab
+            self.plotLayout()                                                   # update the survey, but not the xml-tab
 
     def fileNew(self):                                                          # better create new file created through a wizard
         if self.maybeKillThread() and self.maybeSave():                         # make sure thread is killed AND current file  is saved (all only when needed)
@@ -2840,7 +2735,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.setCurrentFileName()                                           # update self.fileName, set textEditModified(False) and setWindowModified(False)
 
             self.actionProjected.setChecked(False)                              # set to 'local' plotting (not global)
-            self.plotProjected()                                                # enforce 'local' plotting and plotSurvey()
+            self.plotProjected()                                                # enforce 'local' plotting and plotLayout()
 
             return True                                                         # we emptied the document, and reset the survey object
         else:
@@ -3062,7 +2957,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     anaFileName = self.fileName + '.ana.npy'
                     self.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r+', shape=(nx, ny, fold, 13))
                     self.D2_Output = self.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
-                    self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.D2_Output.shape[0]:,} traces')
+                    self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.D2_Output.shape[0]:,} traces (allowed)')
                     print(self.anaOutput)
                     # for i in range(nx):
                     #     for j in range(ny):
@@ -3143,13 +3038,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.handleImageSelection()                                         # change selection and plot survey
 
         self.spiderPoint = QPoint(-1, -1)                                       # reset the spider location
-        analysisIndex = self.analysisTabWidget.currentIndex()                   # get current analysis plot index
-        self.onAnalysisTabChange(analysisIndex)                                 # repaint current analysis plot
+        # analysisIndex = self.analysisTabWidget.currentIndex()                   # get current analysis plot index
+        # self.onAnalysisTabChange(analysisIndex)                                 # repaint current analysis plot
 
         self.enableExport(True)                                                 # enable export items in File Menu
         self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable stop thread
         self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
-        self.plotSurvey()                                                       # plot the survey object
+        self.plotLayout()                                                       # plot the survey object
         self.resetSurveyProperties()                                            # update the parameter pane
         self.survey.checkIntegrity()                                            # check for survey integrity; in particular well file validity
         return success
@@ -3439,7 +3334,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def updateSettings(self):
         self.handleImageSelection()
-        self.plotSurvey()
+        self.plotLayout()
 
     def fileExportAsCsv(self, fileName, extension):
         fn, selectedFilter = QFileDialog.getSaveFileName(
@@ -4121,7 +4016,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.setColorbarLabel(label)
 
             self.enableExport()                                                 # enable menu items and button group
-            self.plotSurvey()                                                   # plot survey with colorbar
+            self.plotLayout()                                                   # plot survey with colorbar
 
             endTime = timer()
             elapsed = timedelta(seconds=endTime - self.startTime)               # get the elapsed time for binning

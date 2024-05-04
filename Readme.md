@@ -126,7 +126,7 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 | Library    | Minimum Version | Description (purpose)                                      |
 | :--------- | :-------------- | :--------------------------------------------------------- |
-| numba      | 0.59.1          | Speed up several processing steps                          |
+| numba      | 0.59.1          | Significantly speed up numpy calculations                  |
 | numpy      | 1.26.24         | Array and matrix manipulation                              |
 | pyqtgraph  | 0.13.4          | Plotting of vector and raster data                         |
 | rasterio   | 1.3.9           | Export of figures as GeoTiff  files                        |
@@ -134,19 +134,21 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 
 
-#### 5	Current status
+#### 5	Status
 
 On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
 
-Currently, there is still some functionality left to be added.
+Currently, there is still some functionality left to be added. See To Do.
 
-Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
+See changelog for already implemented functionality
+
+[Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
 
 
 
 #### 6	Changelog
 
-- 2024-05-02 (0.2.8) fixed all numba issues. Numba is now used to speed up all stack display plots. 
+- 2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added Kx-Ky stack analysis and |O| & O/A Histograms. Fixed some bugs.
   Added Kx-Ky stack response as well as |O| & O/A Histograms to the Analysis tab
   
 - 2024-04-22 (0.2.7) removed all numba @jit references, as exception handling with numba causes problems. Will revisit later.
@@ -165,14 +167,13 @@ Any [issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 
 
-#### 7	Still To Do
+#### 7	To Do
 
 - Create wizard for Marine towed-streamer geometry
 - Improve analysis capabilities
-  - Show pattern details and add Kx-Ky pattern analysis
+  - Show pattern layout and add Kx-Ky pattern analysis
   - Make k-scales user-adjustable in the settings dialog
   
 - Use multiprocessing instead of a worker thread to speed up background tasks
 - Consider relational database instead of numpy arrays for geometry tables
-
 

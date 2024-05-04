@@ -10,7 +10,7 @@ version=0.2.8
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is for creating and analyzing 3D seismic survey geometries. It is dependent on the following Python packages:
-  <li><b>numba</b> (version: >= 0.59.1) Not strictly required, but significantly speeds up some operations</li>
+  <li><b>numba</b> (version: >= 0.59.1) Not strictly required, but *significantly* speeds up calculations</li>
   <li><b>numpy</b> (version: >= 1.26.4) </li>
   <li><b>pyqtgraph</b> (version: >= 0.13.4) </li>
   <li><b>rasterio</b> (version: >= 1.3.9) </li>
@@ -26,7 +26,7 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:<p>2024-05-02 (0.2.8) implemented numba @jit, when numba is available. Added Kx-Ky stack analysis and |O| & O/A Histograms. Fixed some bugs
+changelog:<p>2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added Kx-Ky stack analysis and |O| & O/A Histograms. Fixed some bugs
   <p>2024-04-21 (0.2.7) removed all numba @jit references, as exception handling with numba causes problems. Will revisit later
   <p>2024-04-21 (0.2.6) added 'Analysis' tab, containing seven analysis plots
   <p>2024-04-13 (0.2.5) added TWT values to trace table and implemented 'Unique Fold' capability

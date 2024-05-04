@@ -3,7 +3,7 @@
 # See: https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
 # See: https://www.geeksforgeeks.org/line-clipping-set-2-cyrus-beck-algorithm/?ref=rp
 
-try:                                                                            # needed to report out on installed numba version (if any)
+try:   # needed to report out on installed numba version (if any)
     import numba
 except ImportError:
     numba = None
@@ -20,11 +20,8 @@ import numpy as np
 import pyqtgraph as pg
 import rasterio as rio
 import wellpathpy as wp
-from qgis.PyQt.QtCore import (PYQT_VERSION_STR, QT_VERSION_STR, QLineF,
-                              QPointF, QRectF, Qt)
+from qgis.PyQt.QtCore import PYQT_VERSION_STR, QT_VERSION_STR, QLineF, QPointF, QRectF, Qt
 from qgis.PyQt.QtGui import QColor, QPen, QPolygonF, QVector3D
-
-from . import config  # used to pass 'global' settings
 
 
 # See: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch14s08.html for introspective functions
