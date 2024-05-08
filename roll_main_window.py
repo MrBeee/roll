@@ -98,7 +98,8 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
-from .event_lookup import event_lookup
+
+# from .event_lookup import event_lookup
 from .find import Find
 from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
 from .functions_numba import numbaAziInline, numbaAziX_line, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice2D, numbaSlice3D, numbaSliceStats, numbaSpiderBin
@@ -797,7 +798,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if event.type() == QEvent.Show and isinstance(source, pg.PlotWidget):   # do 'cheap' test first
             plotItem = source.getPlotItem()
             viewBox = plotItem.getViewBox()
-            print(f'{plotItem} ... {event_lookup[str(event.type())]}')
 
             with contextlib.suppress(RuntimeError):                             # rewire zoomAll button
                 self.actionZoomAll.triggered.disconnect()
@@ -1490,16 +1490,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.spiderPoint.setY(ySize - 1)
 
         plotIndex = self.getVisiblePlotWidget()[1]                              # get the active plot widget nr
-        if plotIndex is None:
-            return
+        nX = self.spiderPoint.x()
+        nY = self.spiderPoint.y()
+        fold = self.binOutput[nX, nY]                                           # max fold, accounting for unique fold
+        # fold = min(fold, self.survey.grid.fold)                               # limit to available cmp records
 
-        if plotIndex > 0:
-            self.updateVisiblePlotWidget(plotIndex)                             # update one of the analysis plots
-        else:
-            nX = self.spiderPoint.x()
-            nY = self.spiderPoint.y()
-            fold = self.binOutput[nX, nY]                                       # max fold, accounting for unique fold
-            # fold = min(fold, self.survey.grid.fold)                           # limit to available cmp records
+        if plotIndex == 0:                                                      # update the layout plot
 
             if fold < 0:                                                        # occurs when closing plugin with spider displayed
                 return
@@ -1522,26 +1518,29 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             self.spiderText.setPos(labelX, labelY)                                  # move the label above spider's cmp position
             self.spiderText.setText(f'S({int(stkX)},{int(stkY)}), fold = {fold}')   # update the label text accordingly
-
-            # now sync the trace table with the spider plot
-            sizeY = self.anaOutput.shape[1]                                     # x-line size of analysis array
-            maxFld = self.anaOutput.shape[2]                                    # max fold from analysis file
-            offset = (nX * sizeY + nY) * maxFld                                 # calculate offset for self.D2_Output array
-            index = self.anaView.model().index(offset, 0)                       # turn offset into index
-            self.anaView.scrollTo(index)                                        # scroll to index
-            self.anaView.selectRow(offset)                                      # for the time being, *only* select first row of traces in a bin
-
-            fold = max(fold, 1)                                                 # only highlight one line when fold = 0
-            # fold = 1 if fold <= 0 else fold                                     # only highlight one line when fold = 0
-            sm = self.anaView.selectionModel()                                  # select corresponding rows in self.anaView table
-            TL = QModelIndex(self.anaView.model().index(offset, 0))
-            BR = QModelIndex(self.anaView.model().index(offset + fold - 1, 0))
-            selection = QItemSelection(TL, BR)
-            sm.select(selection, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
-
             self.plotLayout()
 
-    # define sps, rps, xps button functions
+        else:
+            self.updateVisiblePlotWidget(plotIndex)                             # update one of the analysis plots
+
+        # now sync the trace table with the spider position
+        sizeY = self.anaOutput.shape[1]                                         # x-line size of analysis array
+        maxFld = self.anaOutput.shape[2]                                        # max fold from analysis file
+        offset = (nX * sizeY + nY) * maxFld                                     # calculate offset for self.D2_Output array
+        index = self.anaView.model().index(offset, 0)                           # turn offset into index
+        self.anaView.scrollTo(index)                                            # scroll to index
+        self.anaView.selectRow(offset)                                          # for the time being, *only* select first row of traces in a bin
+
+        fold = max(fold, 1)                                                     # only highlight one line when fold = 0
+        # fold = 1 if fold <= 0 else fold                                       # only highlight one line when fold = 0
+        sm = self.anaView.selectionModel()                                      # select corresponding rows in self.anaView table
+        TL = QModelIndex(self.anaView.model().index(offset, 0))
+        BR = QModelIndex(self.anaView.model().index(offset + fold - 1, 0))
+        selection = QItemSelection(TL, BR)
+        sm.select(selection, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
+
+    # define several sps, rps, xps button functions
+
     def sortXpsData(self, index):
         if self.xpsImport is None:
             return
@@ -1932,7 +1931,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             else:
                 raise NotImplementedError('selected analysis type currently not implemented.')
 
-            colorMap = config.analysisCmap
+            colorMap = config.fold_OffCmap
             self.layoutImItem = pg.ImageItem()                                     # create PyqtGraph image item
             self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
             self.layoutColorBar.setImageItem(self.layoutImItem)
@@ -4008,11 +4007,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.survey.cmpTransform = self.worker.survey.cmpTransform
 
             if self.layoutColorBar is None:
-                self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.analysisCmap, label=label, limits=(0, None), rounding=10.0, values=(0.0, self.layoutMax))
+                self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.fold_OffCmap, label=label, limits=(0, None), rounding=10.0, values=(0.0, self.layoutMax))
             else:
                 self.layoutColorBar.setImageItem(self.layoutImItem)
                 self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-                self.layoutColorBar.setColorMap(config.analysisCmap)
+                self.layoutColorBar.setColorMap(config.fold_OffCmap)
                 self.setColorbarLabel(label)
 
             self.enableExport()                                                 # enable menu items and button group

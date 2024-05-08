@@ -82,7 +82,8 @@ recAreaPen = QPen(Qt.blue, 1, Qt.DashDotLine, Qt.RoundCap, Qt.RoundJoin)
 srcAreaPen = QPen(Qt.red, 1, Qt.DashDotLine, Qt.RoundCap, Qt.RoundJoin)
 
 # default colormaps, used to display images
-analysisCmap = 'CET-L4'                                                         # used for fold map and offset maps
+fold_OffCmap = 'CET-L4'                                                         # used for fold/offset map (layout tab)
+analysisCmap = 'CET-R4'                                                         # used for analysis results (analysis tab)
 inActiveCmap = 'CET-L1'                                                         # used when no imageItem is available
 
 # RPS, SPS point format

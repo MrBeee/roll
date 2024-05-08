@@ -12,13 +12,17 @@ See: https://stackoverflow.com/questions/57774497/how-do-i-make-a-dummy-do-nothi
 """
 
 import numpy as np
+from qgis.PyQt.QtCore import QRectF  # needed for pointsInRect
 
 try:   # See: https://github.com/pyqtgraph/pyqtgraph/issues/1253, how to use numba with PyQtGraph
-    from numba import jit
+    from numba import jit, njit
 except ImportError:
 
     def jit(**kwargs):  # pylint: disable=W0613 # unused argument
         return lambda fn: fn
+
+
+from .sps_io_and_qc import pntType1, relType2
 
 
 # @jit(nopython=True)
@@ -257,3 +261,47 @@ def numbaSpiderBin(slice2D: np.ndarray):                            # slicing sh
     spiderRecY[1::2] = slice2D[:, 8]                                # rec-y
 
     return (spiderSrcX, spiderSrcY, spiderRecX, spiderRecY)
+
+
+def pointsInRect(pointArray: np.ndarray, rect: QRectF):
+    l = rect.left()
+    r = rect.right()
+    t = rect.top()
+    b = rect.bottom()
+
+    return numbaPointsInRect(pointArray, l, r, t, b)
+
+
+@jit(nopython=True)
+def numbaPointsInRect(pointArray: np.ndarray, l: float, r: float, t: float, b: float):
+    I = (pointArray[:, 0] >= l) & (pointArray[:, 0] <= r) & (pointArray[:, 1] >= t) & (pointArray[:, 1] <= b)
+    noData = np.count_nonzero(I) == 0
+
+    return (I, noData)
+
+
+# See: https://stackoverflow.com/questions/49907604/setting-structured-array-field-in-numba
+# See: https://stackoverflow.com/questions/52409479/python-numba-accessing-structured-numpy-array-elements-as-fast-as-possible
+# See: https://stackoverflow.com/questions/58786392/how-to-create-a-list-of-structured-scalars-in-numba
+# See: https://stackoverflow.com/questions/60118008/accessing-structured-data-types-in-numba-vs-numpy
+# See: https://stackoverflow.com/questions/74438714/numba-signature-for-structured-arrays
+# See: https://stackoverflow.com/questions/53175601/what-the-best-way-to-get-structured-array-dataframe-like-structures-in-numba
+# See: https://stackoverflow.com/questions/72747804/how-to-return-a-1d-structured-array-mixed-types-from-a-numba-jit-compiled-func
+# See: http://numba.pydata.org/numba-doc/0.13/arrays.html#array-creation-loop-jitting
+# See: https://stackoverflow.com/questions/73892609/how-exactly-to-work-with-string-arrays-in-numba
+# Se: https://numba.pydata.org/numba-doc/dev/reference/pysupported.html#typed-dict
+
+
+# @jit  # (nopython=True)
+def numbaGetPointRecord(line: float, point: float, block: int, east: float, north: float, pnt: np.ndarray) -> np.ndarray:
+    pointRecord = np.zeros(shape=(1), dtype=pntType1)
+    pointRecord['Line'] = float(int(line))
+    pointRecord['Point'] = float(int(point))
+    pointRecord['Index'] = block % 10 + 1                                       # the single digit point index is used to indicate block nr
+    pointRecord['East'] = east
+    pointRecord['North'] = north
+    pointRecord['LocX'] = pnt[0]                                                # x-component of 3D-location
+    pointRecord['LocY'] = pnt[1]                                                # y-component of 3D-location
+    pointRecord['Elev'] = pnt[2]                                                # z-value not affected by CRS transform
+
+    return pointRecord

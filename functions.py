@@ -247,11 +247,11 @@ def clipLineF(line: QLineF, border: QRectF) -> QLineF:
     # So I decided to define the clipping function outside of a class.
 
     # Define region codes
-    INSIDE = 0  # 0000
-    LEFT = 1  # 0001
-    RIGHT = 2  # 0010
-    BOTTOM = 4  # 0100
-    TOP = 8  	# 1000
+    INSIDE = 0                                                                  # 0000
+    LEFT = 1                                                                    # 0001
+    RIGHT = 2                                                                   # 0010
+    BOTTOM = 4                                                                  # 0100
+    TOP = 8  	                                                                # 1000
 
     if border.isNull():
         return QLineF(line)                                                     # don't clip against an empty rect !
@@ -271,11 +271,11 @@ def clipLineF(line: QLineF, border: QRectF) -> QLineF:
     # Inner function to compute the region code for a point(x, y) relative to the border of the rectangle
     def computeCode(x, y):
         code = INSIDE
-        if x < x_min:                                                         # to the left of rectangle
+        if x < x_min:                                                           # to the left of rectangle
             code |= LEFT
         elif x > x_max:                                                         # to the right of rectangle
             code |= RIGHT
-        if y < y_min:                                                         # below the rectangle
+        if y < y_min:                                                           # below the rectangle
             code |= BOTTOM
         elif y > y_max:                                                         # above the rectangle
             code |= TOP
@@ -288,11 +288,11 @@ def clipLineF(line: QLineF, border: QRectF) -> QLineF:
 
     while True:                                                                 # Keep doing this, till we can escape
 
-        if code1 == 0 and code2 == 0:                                      # both endpoints lie within rectangle
+        if code1 == 0 and code2 == 0:                                           # both endpoints lie within rectangle
             accept = True
             break
 
-        if (code1 & code2) != 0:                                          # both endpoints are outside rectangle
+        if (code1 & code2) != 0:                                                # both endpoints are outside rectangle
             break
 
         # If we get here, the line needs clipping
@@ -309,19 +309,19 @@ def clipLineF(line: QLineF, border: QRectF) -> QLineF:
         # Find intersection point using formulas
         #   y = y1 + slope * (x - x1),
         #   x = x1 + (1 / slope) * (y - y1)
-        if code_out & TOP:  		                                        # point is above the clip rectangle
+        if code_out & TOP:  		                                            # point is above the clip rectangle
             x = x1 + (x2 - x1) * (y_max - y1) / (y2 - y1)
             y = y_max
 
-        elif code_out & BOTTOM:  		                                    # point is below the clip rectangle
+        elif code_out & BOTTOM:  		                                        # point is below the clip rectangle
             x = x1 + (x2 - x1) * (y_min - y1) / (y2 - y1)
             y = y_min
 
-        elif code_out & RIGHT:  		                                    # point is to the right of the clip rectangle
+        elif code_out & RIGHT:  		                                        # point is to the right of the clip rectangle
             y = y1 + (y2 - y1) * (x_max - x1) / (x2 - x1)
             x = x_max
 
-        elif code_out & LEFT:  		                                    # point is to the left of the clip rectangle
+        elif code_out & LEFT:  		                                            # point is to the left of the clip rectangle
             y = y1 + (y2 - y1) * (x_min - x1) / (x2 - x1)
             x = x_min
 
@@ -338,9 +338,9 @@ def clipLineF(line: QLineF, border: QRectF) -> QLineF:
             code2 = computeCode(x2, y2)
 
     if accept:
-        return QLineF(x1, y1, x2, y2)                                       # return the clipped line
+        return QLineF(x1, y1, x2, y2)                                           # return the clipped line
 
-    return QLineF()                                                     # return a null line
+    return QLineF()                                                             # return a null line
 
 
 # some functions to count number of lines in a text file.

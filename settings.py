@@ -89,8 +89,8 @@ class SettingsDialog(QDialog):
                     dict(name='Cmp area pen', type='myPen', flat=True, expanded=False, value=cmpAreaPenParam, default=cmpAreaPenParam),
                     dict(name='Rec area pen', type='myPen', flat=True, expanded=False, value=recAreaPenParam, default=recAreaPenParam),
                     dict(name='Src area pen', type='myPen', flat=True, expanded=False, value=srcAreaPenParam, default=srcAreaPenParam),
-                    dict(name='Analysis color map', type='myCmap', default=config.analysisCmap, value=config.analysisCmap),
-                    dict(name='Inactive color map', type='myCmap', default=config.inActiveCmap, value=config.inActiveCmap),
+                    dict(name='Fold/offset color map', type='myCmap', value=config.fold_OffCmap, default=config.fold_OffCmap),
+                    dict(name='Analysis color map', type='myCmap', value=config.analysisCmap, default=config.analysisCmap),
                 ],
             ),
         ]
@@ -212,7 +212,7 @@ class SettingsDialog(QDialog):
 
         # color (map) settings
         config.analysisCmap = COL.child('Analysis color map').value()
-        config.inActiveCmap = COL.child('Inactive color map').value()
+        config.fold_OffCmap = COL.child('Fold/offset color map').value()
 
         config.binAreaColor = COL.child('Bin area color').value().name(QColor.HexArgb)
         config.cmpAreaColor = COL.child('Cmp area color').value().name(QColor.HexArgb)
@@ -299,8 +299,8 @@ def readSettings(self):
     config.recAreaPen = makePenFromParms(literal_eval(recAreaPenParams))
     config.srcAreaPen = makePenFromParms(literal_eval(srcAreaPenParams))
 
-    config.analysisCmap = self.settings.value('settings/colors/analysisCmap', 'CET-L4')     # from pg.colormap.listMaps()
-    config.inActiveCmap = self.settings.value('settings/colors/inActiveCmap', 'CET-L1')     # from pg.colormap.listMaps()
+    config.analysisCmap = self.settings.value('settings/colors/analysisCmap', 'CET-R4')     # from pg.colormap.listMaps()
+    config.fold_OffCmap = self.settings.value('settings/colors/fold_OffCmap', 'CET-L4')     # from pg.colormap.listMaps()
 
     # sps information
     config.spsDialect = self.settings.value('settings/sps/spsDialect', 'NL')
@@ -344,7 +344,7 @@ def writeSettings(self):
     self.settings.setValue('settings/colors/recAreaPen', str(makeParmsFromPen(config.recAreaPen)))
     self.settings.setValue('settings/colors/srcAreaPen', str(makeParmsFromPen(config.srcAreaPen)))
     self.settings.setValue('settings/colors/analysisCmap', config.analysisCmap)
-    self.settings.setValue('settings/colors/inActiveCmap', config.inActiveCmap)
+    self.settings.setValue('settings/colors/fold_OffCmap', config.fold_OffCmap)
 
     # sps information
     self.settings.setValue('settings/sps/spsDialect', config.spsDialect)

@@ -4,6 +4,7 @@ This module provides the main classes used in Roll
 import math
 import os
 from enum import Enum
+from time import perf_counter
 
 import numpy as np
 import pyqtgraph as pg
@@ -15,6 +16,7 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .functions import clipLineF, containsPoint3D
+from .functions_numba import numbaGetPointRecord, pointsInRect
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -197,6 +199,12 @@ class RollSurvey(pg.GraphicsObject):
 
         # seed list; list of seeds, created seperately for quick painting of non-rolling seeds
         self.seedList: list[RollSeed] = []
+
+        # timings for time critical functions, allowing for 10 steps
+        self.tMin = [float('Inf') for _ in range(20)]
+        self.tMax = [0.0 for _ in range(20)]
+        self.tTot = [0.0 for _ in range(20)]
+        self.tFrq = [0 for _ in range(20)]
 
     def calcTransforms(self):
         x = self.grid.orig.x()
@@ -422,6 +430,8 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = str(e)
             return False
 
+        breakpoint()
+
         #  first remove all remaining receiver duplicates
         self.output.recGeom = np.unique(self.output.recGeom)
 
@@ -545,11 +555,12 @@ class RollSurvey(pg.GraphicsObject):
 
                                                 # line & stake nrs for receiver point
                                                 recStake = self.st2Transform.map(recLoc.toPointF())
+
                                                 # we need global positions for all points
                                                 recGlob = self.glbTransform.map(recLoc.toPointF())
-
                                                 self.nNextRecLine = int(recStake.y())
-                                                # we're on a 'new' receiver line and need a new rel-record
+
+                                                # check if we're on a 'new' receiver line and need a new rel-record
                                                 if self.nNextRecLine != self.nLastRecLine:
                                                     self.nLastRecLine = self.nNextRecLine
 
@@ -567,6 +578,7 @@ class RollSurvey(pg.GraphicsObject):
                                                     self.output.relGeom[self.nRelRecord]['RecInd'] = nBlock % 10 + 1
                                                     self.output.relGeom[self.nRelRecord]['Uniq'] = 1
                                                 else:
+                                                    # we are still on the same line; just update min & max rec stations
                                                     recMin = min(int(recStake.x()), self.output.relGeom[self.nRelRecord]['RecMin'])
                                                     recMax = max(int(recStake.x()), self.output.relGeom[self.nRelRecord]['RecMax'])
                                                     self.output.relGeom[self.nRelRecord]['RecMin'] = recMin
@@ -583,14 +595,14 @@ class RollSurvey(pg.GraphicsObject):
                                                 self.output.recGeom[self.nRecRecord]['Line'] = int(recStake.y())
                                                 self.output.recGeom[self.nRecRecord]['Point'] = int(recStake.x())
                                                 self.output.recGeom[self.nRecRecord]['Index'] = nBlock % 10 + 1
-                                                # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'                # can do this in one go at the end
-                                                # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0                 # not needed; zero when initialized
+                                                # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'              # can do this in one go at the end
+                                                # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0               # not needed; zero when initialized
                                                 self.output.recGeom[self.nRecRecord]['East'] = recGlob.x()
                                                 self.output.recGeom[self.nRecRecord]['North'] = recGlob.y()
-                                                self.output.recGeom[self.nRecRecord]['LocX'] = recLoc.x()          # x-component of 3D-location
-                                                self.output.recGeom[self.nRecRecord]['LocY'] = recLoc.y()          # y-component of 3D-location
-                                                self.output.recGeom[self.nRecRecord]['Elev'] = recLoc.z()          # z-component of 3D-location
-                                                self.output.recGeom[self.nRecRecord]['Uniq'] = 1                   # later, we want to remove empty records at the end
+                                                self.output.recGeom[self.nRecRecord]['LocX'] = recLoc.x()           # x-component of 3D-location
+                                                self.output.recGeom[self.nRecRecord]['LocY'] = recLoc.y()           # y-component of 3D-location
+                                                self.output.recGeom[self.nRecRecord]['Elev'] = recLoc.z()           # z-component of 3D-location
+                                                self.output.recGeom[self.nRecRecord]['Uniq'] = 1                    # later, we want to remove empty records at the end
 
                                                 # apply self.output.recGeom.resize(N) when more memory is needed
                                                 arraySize = self.output.recGeom.shape[0]
@@ -598,34 +610,46 @@ class RollSurvey(pg.GraphicsObject):
                                                     self.output.recGeom = np.unique(self.output.recGeom)            # first remove all duplicates
                                                     arraySize = self.output.recGeom.shape[0]                        # get array size (again)
                                                     self.nRecRecord = arraySize                                     # adjust nRecRecord to the next available spot
-                                                    self.output.recGeom.resize(arraySize + 10000, refcheck=False)   # append 10000 more receiver records
+                                                    self.output.recGeom.resize(arraySize + 1000, refcheck=False)    # append 1000 more receiver records
+
+    def elapsedTime(self, startTime, index: int):
+        currentTime = perf_counter()
+        deltaTime = currentTime - startTime
+        self.tMin[index] = min(deltaTime, self.tMin[index])
+        self.tMax[index] = max(deltaTime, self.tMax[index])
+        self.tTot[index] = self.tTot[index] + deltaTime
+        self.tFrq[index] = self.tFrq[index] + 1
+        return currentTime
 
     def geomTemplate2(self, nBlock, block, template, templateOffset):
         """use numpy arrays instead of iterating over the growList
-        this provides a much faster approach then using the growlist"""
+        this provides a much faster approach then using the growlist
+
+        the function is rather slow. Use time.perf_counter() to analyse bottlenecks
+        """
 
         # convert the template offset to a numpy array
         npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
 
         # iterate over all seeds in a template; make sure we start wih *source* seeds
         for srcSeed in template.seedList:
-
+            time = perf_counter()
             if not srcSeed.bSource:                                             # work with source seeds here
                 continue
 
             # we are in a source seed right now; use the numpy array functions to apply selection criteria
             srcArray = srcSeed.pointArray + npTemplateOffset
 
-            # deal with block's source  border if it isn't null()
-            if not block.borders.srcBorder.isNull():
-                l = block.borders.srcBorder.left()
-                r = block.borders.srcBorder.right()
-                t = block.borders.srcBorder.top()
-                b = block.borders.srcBorder.bottom()
-                I = (srcArray[:, 0] >= l) & (srcArray[:, 0] <= r) & (srcArray[:, 1] >= t) & (srcArray[:, 1] <= b)
-                if np.count_nonzero(I) == 0:
-                    continue                                                    # if nothing succeeds; pick next seed
+            if not block.borders.srcBorder.isNull():                            # deal with block's source  border if it isn't null()
+                I, noData = pointsInRect(srcArray, block.borders.srcBorder)
+                if noData:
+                    continue
+
+                time = self.elapsedTime(time, 0)    ###
+
                 srcArray = srcArray[I, :]                                       # filter the source array
+
+                time = self.elapsedTime(time, 1)    ###
 
             for src in srcArray:                                                # iterate over all sources
 
@@ -645,6 +669,8 @@ class RollSurvey(pg.GraphicsObject):
                 # useful source point; update the source geometry list here
                 nSrc = self.nShotPoint - 1                                      # need to step back by one to arrive at start of array
 
+                time = self.elapsedTime(time, 2)    ###
+
                 # determine line & stake nrs for source point
                 srcX = src[0]
                 srcY = src[1]
@@ -653,16 +679,20 @@ class RollSurvey(pg.GraphicsObject):
                 srcStkX, srcStkY = self.st2Transform.map(srcX, srcY)            # get line and point indices
                 srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)            # we need global positions
 
-                self.output.srcGeom[nSrc]['Line'] = int(srcStkY)
-                self.output.srcGeom[nSrc]['Point'] = int(srcStkX)
-                self.output.srcGeom[nSrc]['Index'] = nBlock % 10 + 1
-                # self.output.srcGeom[nSrc]['Code' ] = 'E1'                       # can do this in one go at the end
-                # self.output.srcGeom[nSrc]['Depth'] = 0.0                        # not needed; zero when initialized
-                self.output.srcGeom[nSrc]['East'] = srcLocX
-                self.output.srcGeom[nSrc]['North'] = srcLocY
-                self.output.srcGeom[nSrc]['LocX'] = srcX                       # x-component of 3D-location
-                self.output.srcGeom[nSrc]['LocY'] = srcY                       # y-component of 3D-location
-                self.output.srcGeom[nSrc]['Elev'] = srcZ                       # z-value not affected by transform
+                self.output.srcGeom[nSrc] = numbaGetPointRecord(srcStkX, srcStkY, nBlock, srcLocX, srcLocY, src)
+
+                # self.output.srcGeom[nSrc]['Line'] = int(srcStkY)
+                # self.output.srcGeom[nSrc]['Point'] = int(srcStkX)
+                # self.output.srcGeom[nSrc]['Index'] = nBlock % 10 + 1            # the single digit point index is used to indicate block nr
+                # # self.output.srcGeom[nSrc]['Code' ] = 'E1'                     # can do this in one go at the end
+                # # self.output.srcGeom[nSrc]['Depth'] = 0.0                      # not needed; zero when initialized
+                # self.output.srcGeom[nSrc]['East'] = srcLocX
+                # self.output.srcGeom[nSrc]['North'] = srcLocY
+                # self.output.srcGeom[nSrc]['LocX'] = srcX                        # x-component of 3D-location
+                # self.output.srcGeom[nSrc]['LocY'] = srcY                        # y-component of 3D-location
+                # self.output.srcGeom[nSrc]['Elev'] = srcZ                        # z-value not affected by transform
+
+                time = self.elapsedTime(time, 3)    ###
 
                 # now iterate over all seeds to find the receivers
                 for recSeed in template.seedList:                               # iterate over all rec seeds in a template
@@ -672,18 +702,22 @@ class RollSurvey(pg.GraphicsObject):
                     # we are in a receiver seed right now; use the numpy array functions to apply selection criteria
                     recPoints = recSeed.pointArray + npTemplateOffset
 
-                    # deal with block's receiver border if it isn't null()
-                    if not block.borders.recBorder.isNull():
-                        l = block.borders.recBorder.left()
-                        r = block.borders.recBorder.right()
-                        t = block.borders.recBorder.top()
-                        b = block.borders.recBorder.bottom()
-                        I = (recPoints[:, 0] >= l) & (recPoints[:, 0] <= r) & (recPoints[:, 1] >= t) & (recPoints[:, 1] <= b)
-                        if np.count_nonzero(I) == 0:
+                    time = self.elapsedTime(time, 4)    ###
+
+                    if not block.borders.recBorder.isNull():                    # deal with block's receiver border if it isn't null()
+                        I, noData = pointsInRect(recPoints, block.borders.recBorder)
+                        if noData:
                             continue
-                        recPoints = recPoints[I, :]
+
+                    time = self.elapsedTime(time, 5)    ###
+
+                    recPoints = recPoints[I, :]
+
+                    time = self.elapsedTime(time, 6)    ###
 
                     for rec in recPoints:                                       # iterate over all receivers
+
+                        time = perf_counter()                                   # reset at start of receiver loop
 
                         # determine line & stake nrs for source point
                         recX = rec[0]
@@ -696,25 +730,31 @@ class RollSurvey(pg.GraphicsObject):
                         # we have a new receiver record
                         self.nRecRecord += 1
 
-                        self.output.recGeom[self.nRecRecord]['Line'] = int(recStkY)
-                        self.output.recGeom[self.nRecRecord]['Point'] = int(recStkX)
-                        self.output.recGeom[self.nRecRecord]['Index'] = nBlock % 10 + 1
-                        # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'  # can do this in one go at the end
-                        # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0   # not needed; zero when initialized
-                        self.output.recGeom[self.nRecRecord]['East'] = recLocX
-                        self.output.recGeom[self.nRecRecord]['North'] = recLocY
-                        self.output.recGeom[self.nRecRecord]['LocX'] = recX     # x-component of 3D-location
-                        self.output.recGeom[self.nRecRecord]['LocY'] = recY     # y-component of 3D-location
-                        self.output.recGeom[self.nRecRecord]['Elev'] = recZ     # z-value not affected by transform
-                        self.output.recGeom[self.nRecRecord]['Uniq'] = 1        # later, we want to use Uniq == 1 to remove empty records at the end
+                        self.output.recGeom[self.nRecRecord] = numbaGetPointRecord(recStkY, recStkX, nBlock, recLocX, recLocY, rec)
+
+                        # self.output.recGeom[self.nRecRecord]['Line'] = int(recStkY)
+                        # self.output.recGeom[self.nRecRecord]['Point'] = int(recStkX)
+                        # self.output.recGeom[self.nRecRecord]['Index'] = nBlock % 10 + 1   # the single digit point index is used to indicate block nr
+                        # self.output.recGeom[self.nRecRecord]['East'] = recLocX
+                        # self.output.recGeom[self.nRecRecord]['North'] = recLocY
+                        # self.output.recGeom[self.nRecRecord]['LocX'] = recX     # x-component of 3D-location
+                        # self.output.recGeom[self.nRecRecord]['LocY'] = recY     # y-component of 3D-location
+                        # self.output.recGeom[self.nRecRecord]['Elev'] = recZ     # z-value not affected by transform
+                        # self.output.recGeom[self.nRecRecord]['Uniq'] = 1        # later, we want to use Uniq == 1 to remove empty records at the end
+
+                        time = self.elapsedTime(time, 7)    ###
 
                         # apply self.output.recGeom.resize(N) when more memory is needed, after cleaning duplicates
                         arraySize = self.output.recGeom.shape[0]
                         if self.nRecRecord + 100 > arraySize:                               # room for less than 100 left ?
+                            time = perf_counter()
                             self.output.recGeom = np.unique(self.output.recGeom)            # first remove all duplicates
                             arraySize = self.output.recGeom.shape[0]                        # get array size (again)
                             self.nRecRecord = arraySize                                     # adjust nRecRecord to the next available spot
                             self.output.recGeom.resize(arraySize + 10000, refcheck=False)   # append 10000 more records
+                            time = self.elapsedTime(time, 8)    ###
+
+                        time = perf_counter()
 
                         # time to work with the relation records, now we have both a valid src-point and rec-point;
                         self.nNextRecLine = int(recStkY)
@@ -737,10 +777,15 @@ class RollSurvey(pg.GraphicsObject):
                             self.output.relGeom[self.nRelRecord]['RecMin'] = recMin
                             self.output.relGeom[self.nRelRecord]['RecMax'] = recMax
 
+                        time = self.elapsedTime(time, 9)    ###
+
                         # apply self.output.relGeom.resize(N) when more memory is needed
                         arraySize = self.output.relGeom.shape[0]
                         if self.nRelRecord + 100 > arraySize:                               # room for less than 100 left ?
+                            time = perf_counter()
                             self.output.relGeom.resize(arraySize + 10000, refcheck=False)   # append 1000 more records
+
+                            time = self.elapsedTime(time, 10)    ###
 
     def setupBinFromGeometry(self, fullAnalysis) -> bool:
         """this routine is used for both geometry files and SPS files"""
@@ -752,7 +797,6 @@ class RollSurvey(pg.GraphicsObject):
 
         # Now do the binning
         if fullAnalysis:
-
             success = self.binFromGeometry4(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
             return success
@@ -809,7 +853,7 @@ class RollSurvey(pg.GraphicsObject):
         assert self.output.relGeom[0]['SrcPnt'] == self.output.srcGeom[0]['Point'], 'error in geometry files'
         assert self.output.relGeom[0]['SrcInd'] == self.output.srcGeom[0]['Index'], 'error in geometry files'
 
-        # to be sure; sort the three geometry arrays in order: index; line; point
+        # to be sure; sort the three geometry arrays in he proper order: index; line; point
         self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
         self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
         self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
@@ -827,7 +871,7 @@ class RollSurvey(pg.GraphicsObject):
                     break
 
         # now iterate over the shot points and select the range of applicable receivers
-        # assume the receivers have been sorted based on index/line/point
+        # assume the receivers have been sorted based on index; line; point
 
         self.nShotPoint = 0
         self.nShotPoints = self.output.srcGeom.shape[0]
@@ -859,12 +903,12 @@ class RollSurvey(pg.GraphicsObject):
                 recIndex = relSlice[0]['RecInd']
                 minLine = np.min(relSlice['RecLin'])
                 maxLine = np.max(relSlice['RecLin'])
-                minMinPoint = np.min(relSlice['RecMin'])                        # determine if it is a purely square block
+                minMinPoint = np.min(relSlice['RecMin'])
                 maxMinPoint = np.max(relSlice['RecMin'])
                 minMaxPoint = np.min(relSlice['RecMax'])
                 maxMaxPoint = np.max(relSlice['RecMax'])
 
-                if minMinPoint == maxMinPoint and minMaxPoint == maxMaxPoint:
+                if minMinPoint == maxMinPoint and minMaxPoint == maxMaxPoint:   # determine if it is a purely square block
                     # if it is a square block, make a simple single square selection in receiver array. See binTemplate4()
                     I = (
                         (self.output.recGeom['Index'] == recIndex)
@@ -890,18 +934,19 @@ class RollSurvey(pg.GraphicsObject):
                         # select appropriate receivers on a receiver line
                         I = (self.output.recGeom['Index'] == recInd) & (self.output.recGeom['Line'] == recLin) & (self.output.recGeom['Point'] >= recMin) & (self.output.recGeom['Point'] <= recMax)
                         if np.count_nonzero(I) == 0:
-                            continue                                                # no receivers found; move to next shot !
+                            continue                                            # no receivers found; move to next shot !
 
                         recLine = self.output.recGeom[I]                        # select the filtered receivers
                         recArray = np.concatenate((recArray, recLine))          # need to supply arrays to be concatenated as a tuple !
                         # See: https://stackoverflow.com/questions/50997928/typeerror-only-integer-scalar-arrays-can-be-converted-to-a-scalar-index-with-1d
 
                 # at this stage we have recPoints defined. We can now use the same approach as used in template based binning.
-                # we combine recPoints with source point to create cmp array, define offsets, etc...
+                # we combine recPoints with a source point to create cmp array, define offsets, etc...
 
-                # we are not dealing with the block's src border; should have been done while generating geometry
-                # we are not dealing with the block's rec border; should have been done while generating geometry
-                # it is essential that any orphans & duplicates in recPoints have been removed at this stage
+                # we are NOT DEALING with the block's src border; should have been done while generating geometry
+                # we are NOT DEALING with the block's rec border; should have been done while generating geometry
+
+                # it is ESSENTIAL that any orphans & duplicates in recPoints have been removed at this stage
                 # for cmp and offset calcuations, we need numpy arrays in the form of local (x, y, z) coordinates
 
                 recPoints = np.zeros(shape=(recArray.shape[0], 3), dtype=np.float32)
@@ -935,13 +980,8 @@ class RollSurvey(pg.GraphicsObject):
                     if cmpPoints is None:
                         continue
 
-                # find the cmp locations that contribute to the output area
-                l = self.output.rctOutput.left()
-                r = self.output.rctOutput.right()
-                t = self.output.rctOutput.top()
-                b = self.output.rctOutput.bottom()
-                I = (cmpPoints[:, 0] >= l) & (cmpPoints[:, 0] <= r) & (cmpPoints[:, 1] >= t) & (cmpPoints[:, 1] <= b)
-                if np.count_nonzero(I) == 0:
+                I, noData = pointsInRect(cmpPoints, self.output.rctOutput)      # find the cmp locations that contribute to the output area
+                if noData:
                     continue
 
                 cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array
@@ -951,12 +991,8 @@ class RollSurvey(pg.GraphicsObject):
                 offArray = np.zeros(shape=(size, 3), dtype=np.float32)          # allocate the offset array according to rec array
                 offArray = recPoints - src                                      # define the offset array
 
-                l = self.offset.rctOffsets.left()
-                r = self.offset.rctOffsets.right()
-                t = self.offset.rctOffsets.top()
-                b = self.offset.rctOffsets.bottom()
-                I = (offArray[:, 0] >= l) & (offArray[:, 0] <= r) & (offArray[:, 1] >= t) & (offArray[:, 1] <= b)
-                if np.count_nonzero(I) == 0:
+                I, noData = pointsInRect(offArray, self.offset.rctOffsets)
+                if noData:
                     continue
 
                 offArray = offArray[I, :]                                       # filter the offset-array
@@ -1142,15 +1178,11 @@ class RollSurvey(pg.GraphicsObject):
             # we are in a source seed right now; use the numpy array functions to apply selection criteria
             srcArray = srcSeed.pointArray + npTemplateOffset
 
-            # deal with block's source  border if it isn't null()
-            if not block.borders.srcBorder.isNull():
-                l = block.borders.srcBorder.left()
-                r = block.borders.srcBorder.right()
-                t = block.borders.srcBorder.top()
-                b = block.borders.srcBorder.bottom()
-                I = (srcArray[:, 0] >= l) & (srcArray[:, 0] <= r) & (srcArray[:, 1] >= t) & (srcArray[:, 1] <= b)
-                if np.count_nonzero(I) == 0:
-                    continue                                                    # if nothing succeeds; pick next seed
+            if not block.borders.srcBorder.isNull():                            # deal with block's source  border if it isn't null()
+                I, noData = pointsInRect(srcArray, block.borders.srcBorder)
+                if noData:
+                    continue
+
                 srcArray = srcArray[I, :]                                       # filter the source array
 
             for src in srcArray:                                                # iterate over all sources
@@ -1174,15 +1206,11 @@ class RollSurvey(pg.GraphicsObject):
                     # we are in a receiver seed right now; use the numpy array functions to apply selection criteria
                     recPoints = recSeed.pointArray + npTemplateOffset
 
-                    # deal with block's receiver border if it isn't null()
-                    if not block.borders.recBorder.isNull():
-                        l = block.borders.recBorder.left()
-                        r = block.borders.recBorder.right()
-                        t = block.borders.recBorder.top()
-                        b = block.borders.recBorder.bottom()
-                        I = (recPoints[:, 0] >= l) & (recPoints[:, 0] <= r) & (recPoints[:, 1] >= t) & (recPoints[:, 1] <= b)
-                        if np.count_nonzero(I) == 0:
+                    if not block.borders.recBorder.isNull():                    # deal with block's receiver border if it isn't null()
+                        I, noData = pointsInRect(recPoints, block.borders.recBorder)
+                        if noData:
                             continue
+
                         recPoints = recPoints[I, :]
 
                     cmpPoints = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
@@ -1210,14 +1238,8 @@ class RollSurvey(pg.GraphicsObject):
                         if cmpPoints is None:
                             continue
 
-                    # find the cmp locations that contribute to the output area
-                    l = self.output.rctOutput.left()
-                    r = self.output.rctOutput.right()
-                    t = self.output.rctOutput.top()
-                    b = self.output.rctOutput.bottom()
-
-                    I = (cmpPoints[:, 0] >= l) & (cmpPoints[:, 0] <= r) & (cmpPoints[:, 1] >= t) & (cmpPoints[:, 1] <= b)
-                    if np.count_nonzero(I) == 0:
+                    I, noData = pointsInRect(cmpPoints, self.output.rctOutput)
+                    if noData:
                         continue
 
                     cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array
@@ -1227,12 +1249,8 @@ class RollSurvey(pg.GraphicsObject):
                     offArray = np.zeros(shape=(size, 3), dtype=np.float32)      # allocate the offset array according to rec array
                     offArray = recPoints - src                                  # fill the offset array with  (x,y,z) values
 
-                    l = self.offset.rctOffsets.left()
-                    r = self.offset.rctOffsets.right()
-                    t = self.offset.rctOffsets.top()
-                    b = self.offset.rctOffsets.bottom()
-                    I = (offArray[:, 0] >= l) & (offArray[:, 0] <= r) & (offArray[:, 1] >= t) & (offArray[:, 1] <= b)
-                    if np.count_nonzero(I) == 0:
+                    I, noData = pointsInRect(offArray, self.offset.rctOffsets)
+                    if noData:
                         continue
 
                     offArray = offArray[I, :]                                   # filter the off-array
@@ -1285,7 +1303,6 @@ class RollSurvey(pg.GraphicsObject):
                                 fold = self.output.binOutput[nx, ny]
                                 if fold < self.grid.fold:                   # prevent overwriting next bin
                                     # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(), recLoc.x(), recLoc.y(), cmpLoc.x(), cmpLoc.y(), 0, 0, 0, 0)
-
                                     # line & stake nrs for reporting in extended np-array
 
                                     # from numpy documentation: note that x[0, 2] == x[0][2] though the second case is more inefficient

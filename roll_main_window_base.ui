@@ -564,7 +564,7 @@
    </property>
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionZoomRect.svg</normaloff>resources/mActionZoomRect.svg</iconset>
+     <normaloff>resources/mActionZoomToSelected.svg</normaloff>resources/mActionZoomToSelected.svg</iconset>
    </property>
    <property name="text">
     <string>ZoomRect</string>
