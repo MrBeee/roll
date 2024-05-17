@@ -12,17 +12,17 @@ See: https://stackoverflow.com/questions/57774497/how-do-i-make-a-dummy-do-nothi
 """
 
 import numpy as np
-from qgis.PyQt.QtCore import QRectF  # needed for pointsInRect
+from qgis.PyQt.QtCore import QLineF, QRectF  # needed for pointsInRect
 
 try:   # See: https://github.com/pyqtgraph/pyqtgraph/issues/1253, how to use numba with PyQtGraph
-    from numba import jit, njit
+    from numba import jit
 except ImportError:
 
     def jit(**kwargs):  # pylint: disable=W0613 # unused argument
         return lambda fn: fn
 
 
-from .sps_io_and_qc import pntType1, relType2
+from .sps_io_and_qc import pntType1
 
 
 # @jit(nopython=True)
@@ -70,6 +70,7 @@ def numbaSlice3D(slice3D: np.ndarray, unique=False):
     return (slice3D, I, noData)                                     # triplet of information (array, mask, flag)
 
 
+# @jit(nopython=True)
 def numbaSliceStats(slice4D: np.ndarray, unique=False):
     fold = slice4D[:, :, :, 2]                                                  # we are left with 1 dimension
     offsets = slice4D[:, :, :, 10]                                              # we are left with 1 dimension
@@ -292,16 +293,153 @@ def numbaPointsInRect(pointArray: np.ndarray, l: float, r: float, t: float, b: f
 # Se: https://numba.pydata.org/numba-doc/dev/reference/pysupported.html#typed-dict
 
 
-# @jit  # (nopython=True)
-def numbaGetPointRecord(line: float, point: float, block: int, east: float, north: float, pnt: np.ndarray) -> np.ndarray:
-    pointRecord = np.zeros(shape=(1), dtype=pntType1)
-    pointRecord['Line'] = float(int(line))
-    pointRecord['Point'] = float(int(point))
-    pointRecord['Index'] = block % 10 + 1                                       # the single digit point index is used to indicate block nr
-    pointRecord['East'] = east
-    pointRecord['North'] = north
-    pointRecord['LocX'] = pnt[0]                                                # x-component of 3D-location
-    pointRecord['LocY'] = pnt[1]                                                # y-component of 3D-location
-    pointRecord['Elev'] = pnt[2]                                                # z-value not affected by CRS transform
+# @jit(nopython=True)
+def numbaSetPointRecord(array: np.ndarray, index: int, line: float, point: float, block: int, east: float, north: float, pnt: np.ndarray) -> None:
 
-    return pointRecord
+    array[index]['Line'] = float(int(line))
+    array[index]['Point'] = float(int(point))
+    array[index]['Index'] = block % 10 + 1                                      # the single digit point index is used to indicate block nr
+    array[index]['East'] = east
+    array[index]['North'] = north
+    array[index]['LocX'] = pnt[0]                                               # x-component of 3D-location
+    array[index]['LocY'] = pnt[1]                                               # y-component of 3D-location
+    array[index]['Elev'] = pnt[2]                                               # z-value not affected by CRS transform
+    array[index]['Uniq'] = 1                                                    # later, we want to use Uniq == 1 to remove empty records at the end
+
+
+def clipLineF(line: QLineF, border: QRectF) -> QLineF:
+
+    if border.isNull():
+        return QLineF(line)                                                     # don't clip against an empty rect !
+    if line.isNull():
+        return QLineF()                                                         # null in ?  null out !
+
+    x1 = line.x1()                                                              # copy the line elements to individual float values
+    y1 = line.y1()
+    x2 = line.x2()
+    y2 = line.y2()
+
+    y_min = border.top()                                                        # copy the rect elements to individual float values
+    x_min = border.left()
+    y_max = border.bottom()
+    x_max = border.right()
+
+    x1, y1, x2, y2 = numbaClipLineF(x1, y1, x2, y2, x_min, x_max, y_min, y_max)
+    return QLineF(x1, y1, x2, y2)                                               # return the clipped line
+
+
+@jit(nopython=True)
+def numbaClipLineF(x1: float, y1: float, x2: float, y2: float, x_min: float, x_max: float, y_min: float, y_max: float) -> tuple:
+
+    # Python routine to implement Cohen Sutherland algorithm for line clipping.
+    # See: https://www.geeksforgeeks.org/line-clipping-set-1-cohen-sutherland-algorithm/
+    # See: https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
+    # See: https://www.geeksforgeeks.org/line-clipping-set-2-cyrus-beck-algorithm/?ref=rp
+
+    # Define region codes
+    INSIDE = 0                                                                  # 0000
+    LEFT = 1                                                                    # 0001
+    RIGHT = 2                                                                   # 0010
+    BOTTOM = 4                                                                  # 0100
+    TOP = 8  	                                                                # 1000
+
+    # Inner function to compute the region code for a point(x, y) relative to the border of the rectangle
+    def computeCode(x, y):
+        code = INSIDE
+        if x < x_min:                                                           # to the left of rectangle
+            code |= LEFT
+        elif x > x_max:                                                         # to the right of rectangle
+            code |= RIGHT
+        if y < y_min:                                                           # below the rectangle
+            code |= BOTTOM
+        elif y > y_max:                                                         # above the rectangle
+            code |= TOP
+        return code
+
+    # Compute region codes for P1, P2
+    code1 = computeCode(x1, y1)
+    code2 = computeCode(x2, y2)
+    accept = False
+
+    while True:                                                                 # Keep doing this, till we can escape
+
+        if code1 == 0 and code2 == 0:                                           # both endpoints lie within rectangle
+            accept = True
+            break
+
+        if (code1 & code2) != 0:                                                # both endpoints are outside rectangle
+            break
+
+        # If we get here, the line needs clipping
+        # At least one of the points is outside of rect, select it
+
+        x = 1.0
+        y = 1.0
+
+        if code1 != 0:
+            code_out = code1
+        else:
+            code_out = code2
+
+        # Find intersection point using formulas
+        #   y = y1 + slope * (x - x1),
+        #   x = x1 + (1 / slope) * (y - y1)
+        if code_out & TOP:  		                                            # point is above the clip rectangle
+            x = x1 + (x2 - x1) * (y_max - y1) / (y2 - y1)
+            y = y_max
+
+        elif code_out & BOTTOM:  		                                        # point is below the clip rectangle
+            x = x1 + (x2 - x1) * (y_min - y1) / (y2 - y1)
+            y = y_min
+
+        elif code_out & RIGHT:  		                                        # point is to the right of the clip rectangle
+            y = y1 + (y2 - y1) * (x_max - x1) / (x2 - x1)
+            x = x_max
+
+        elif code_out & LEFT:  		                                            # point is to the left of the clip rectangle
+            y = y1 + (y2 - y1) * (x_min - x1) / (x2 - x1)
+            x = x_min
+
+        # Now an intersection point (x, y) has been found,
+        # we replace the point outside clipping rectangle
+        # by the intersection point
+        if code_out == code1:
+            x1 = x
+            y1 = y
+            code1 = computeCode(x1, y1)
+        else:
+            x2 = x
+            y2 = y
+            code2 = computeCode(x2, y2)
+
+    if accept:
+        return (x1, y1, x2, y2)                                                 # return the clipped line
+
+    return (0.0, 0.0, 0.0, 0.0)                                                 # return a null line
+
+
+@jit(nopython=True, parallel=True)
+def pointInPolygon(xy, poly):
+    # See: https://stackoverflow.com/questions/52471590/use-multithreading-in-numba
+    D = np.empty(len(xy), dtype=bool)
+    n = len(poly)
+    for i in range(1, len(D) - 1):
+        inside = False
+        p2x = 0.0
+        p2y = 0.0
+        xints = 0.0
+        p1x, p1y = poly[0]
+        x = xy[i][0]
+        y = xy[i][1]
+        for i in range(n + 1):
+            p2x, p2y = poly[i % n]
+            if y > min(p1y, p2y):
+                if y <= max(p1y, p2y):
+                    if x <= max(p1x, p2x):
+                        if p1y != p2y:
+                            xints = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                        if p1x == p2x or x <= xints:
+                            inside = not inside
+            p1x, p1y = p2x, p2y
+        D[i] = inside
+    return D

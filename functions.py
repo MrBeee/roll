@@ -112,7 +112,7 @@ def getMethodFromModule(pmm: str):
     return method
 
 
-# See: https://github.com/bensarthou/pynufft_benchmark/blob/master/NDFT.py
+# See: https://github.com/bensarthou/pynufft_benchmark/blob/master/NDFT.py # now accelerated in funtions_numba.py
 def ndft_1Da(x, f, kMax, dK):
     """non-equispaced discrete Fourier transform on x with weights (1/0) in f"""
     # n = x.shape[0]                                            # normalize by maximum nr of available races
@@ -243,8 +243,10 @@ def clipRectF(rect: QRectF, border: QRectF) -> QRectF:
 
 def clipLineF(line: QLineF, border: QRectF) -> QLineF:
 
-    # Earlier I had a problem that the class Line(QlineF) returned a QLineF object instead of a Line object
-    # So I decided to define the clipping function outside of a class.
+    # Python routine to implement Cohen Sutherland algorithm for line clipping.
+    # See: https://www.geeksforgeeks.org/line-clipping-set-1-cohen-sutherland-algorithm/
+    # See: https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
+    # See: https://www.geeksforgeeks.org/line-clipping-set-2-cyrus-beck-algorithm/?ref=rp
 
     # Define region codes
     INSIDE = 0                                                                  # 0000

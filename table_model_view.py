@@ -10,8 +10,8 @@ from qgis.PyQt.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QM
 # TableModel requires a 2D array to work from
 # this means flattening the 4D analysis array from 4D to 2D, before it can be used:
 
-# self.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=(nx, ny, fold, 13))
-# self.D2_Output = self.anaOutput.reshape(nx * ny * fold, 13)
+# self.survey.output.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=(nx, ny, fold, 13))
+# self.D2_Output = self.survey.output.anaOutput.reshape(nx * ny * fold, 13)
 
 # When using a Treeview approach, flattening won't be required; now we will have:
 # index = model.index(row, column, parent) for each record

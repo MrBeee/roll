@@ -15,8 +15,8 @@ from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
-from .functions import clipLineF, containsPoint3D
-from .functions_numba import numbaGetPointRecord, pointsInRect
+from .functions import containsPoint3D
+from .functions_numba import clipLineF, numbaSetPointRecord, pointsInRect
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -430,7 +430,7 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = str(e)
             return False
 
-        breakpoint()
+        # breakpoint()
 
         #  first remove all remaining receiver duplicates
         self.output.recGeom = np.unique(self.output.recGeom)
@@ -612,14 +612,14 @@ class RollSurvey(pg.GraphicsObject):
                                                     self.nRecRecord = arraySize                                     # adjust nRecRecord to the next available spot
                                                     self.output.recGeom.resize(arraySize + 1000, refcheck=False)    # append 1000 more receiver records
 
-    def elapsedTime(self, startTime, index: int):
+    def elapsedTime(self, startTime, index: int) -> None:
         currentTime = perf_counter()
         deltaTime = currentTime - startTime
         self.tMin[index] = min(deltaTime, self.tMin[index])
         self.tMax[index] = max(deltaTime, self.tMax[index])
         self.tTot[index] = self.tTot[index] + deltaTime
         self.tFrq[index] = self.tFrq[index] + 1
-        return currentTime
+        return perf_counter()  # call again; do away with time spent in this funtion
 
     def geomTemplate2(self, nBlock, block, template, templateOffset):
         """use numpy arrays instead of iterating over the growList
@@ -674,18 +674,17 @@ class RollSurvey(pg.GraphicsObject):
                 # determine line & stake nrs for source point
                 srcX = src[0]
                 srcY = src[1]
-                srcZ = src[2]
+                # srcZ = src[2]
 
                 srcStkX, srcStkY = self.st2Transform.map(srcX, srcY)            # get line and point indices
                 srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)            # we need global positions
 
-                self.output.srcGeom[nSrc] = numbaGetPointRecord(srcStkX, srcStkY, nBlock, srcLocX, srcLocY, src)
-
+                numbaSetPointRecord(self.output.srcGeom, nSrc, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
                 # self.output.srcGeom[nSrc]['Line'] = int(srcStkY)
                 # self.output.srcGeom[nSrc]['Point'] = int(srcStkX)
                 # self.output.srcGeom[nSrc]['Index'] = nBlock % 10 + 1            # the single digit point index is used to indicate block nr
-                # # self.output.srcGeom[nSrc]['Code' ] = 'E1'                     # can do this in one go at the end
-                # # self.output.srcGeom[nSrc]['Depth'] = 0.0                      # not needed; zero when initialized
+                # self.output.srcGeom[nSrc]['Code' ] = 'E1'                       # can do this in one go at the end
+                # self.output.srcGeom[nSrc]['Depth'] = 0.0                        # not needed; zero when initialized
                 # self.output.srcGeom[nSrc]['East'] = srcLocX
                 # self.output.srcGeom[nSrc]['North'] = srcLocY
                 # self.output.srcGeom[nSrc]['LocX'] = srcX                        # x-component of 3D-location
@@ -722,7 +721,7 @@ class RollSurvey(pg.GraphicsObject):
                         # determine line & stake nrs for source point
                         recX = rec[0]
                         recY = rec[1]
-                        recZ = rec[2]
+                        # recZ = rec[2]
 
                         recStkX, recStkY = self.st2Transform.map(recX, recY)    # get line and point indices
                         recLocX, recLocY = self.glbTransform.map(recX, recY)    # we need global positions
@@ -730,17 +729,18 @@ class RollSurvey(pg.GraphicsObject):
                         # we have a new receiver record
                         self.nRecRecord += 1
 
-                        self.output.recGeom[self.nRecRecord] = numbaGetPointRecord(recStkY, recStkX, nBlock, recLocX, recLocY, rec)
-
+                        numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
                         # self.output.recGeom[self.nRecRecord]['Line'] = int(recStkY)
                         # self.output.recGeom[self.nRecRecord]['Point'] = int(recStkX)
                         # self.output.recGeom[self.nRecRecord]['Index'] = nBlock % 10 + 1   # the single digit point index is used to indicate block nr
+                        # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'  # can do this in one go at the end
+                        # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0   # not needed; zero when initialized
                         # self.output.recGeom[self.nRecRecord]['East'] = recLocX
                         # self.output.recGeom[self.nRecRecord]['North'] = recLocY
-                        # self.output.recGeom[self.nRecRecord]['LocX'] = recX     # x-component of 3D-location
-                        # self.output.recGeom[self.nRecRecord]['LocY'] = recY     # y-component of 3D-location
-                        # self.output.recGeom[self.nRecRecord]['Elev'] = recZ     # z-value not affected by transform
-                        # self.output.recGeom[self.nRecRecord]['Uniq'] = 1        # later, we want to use Uniq == 1 to remove empty records at the end
+                        # self.output.recGeom[self.nRecRecord]['LocX'] = recX   # x-component of 3D-location
+                        # self.output.recGeom[self.nRecRecord]['LocY'] = recY   # y-component of 3D-location
+                        # self.output.recGeom[self.nRecRecord]['Elev'] = recZ   # z-value not affected by transform
+                        # self.output.recGeom[self.nRecRecord]['Uniq'] = 1      # We want to use Uniq == 1 later, to remove empty records
 
                         time = self.elapsedTime(time, 7)    ###
 
@@ -770,7 +770,7 @@ class RollSurvey(pg.GraphicsObject):
                             self.output.relGeom[self.nRelRecord]['RecMin'] = int(recStkX)
                             self.output.relGeom[self.nRelRecord]['RecMax'] = int(recStkX)
                             self.output.relGeom[self.nRelRecord]['RecInd'] = nBlock % 10 + 1
-                            self.output.relGeom[self.nRelRecord]['Uniq'] = 1
+                            self.output.relGeom[self.nRelRecord]['Uniq'] = 1    # needed for compacting array later (remove empty records)
                         else:                                                   # existing relation record; update min/max rec stake numbers
                             recMin = min(int(recStkX), self.output.relGeom[self.nRelRecord]['RecMin'])
                             recMax = max(int(recStkX), self.output.relGeom[self.nRelRecord]['RecMax'])
@@ -783,7 +783,7 @@ class RollSurvey(pg.GraphicsObject):
                         arraySize = self.output.relGeom.shape[0]
                         if self.nRelRecord + 100 > arraySize:                               # room for less than 100 left ?
                             time = perf_counter()
-                            self.output.relGeom.resize(arraySize + 10000, refcheck=False)   # append 1000 more records
+                            self.output.relGeom.resize(arraySize + 10000, refcheck=False)   # append 10000 more records
 
                             time = self.elapsedTime(time, 10)    ###
 

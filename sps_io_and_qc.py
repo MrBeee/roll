@@ -144,18 +144,18 @@ relType3 = np.dtype([('RecLin', 'f4'), ('RecMin', 'f4'), ('RecMax', 'f4'), ('Rec
 
 anaType = np.dtype(
     [
-        ('SrcX', np.float32),
-        ('SrcY', np.float32),  # Src (x, y)
-        ('RecX', np.float32),
-        ('RecY', np.float32),  # Rec (x, y)
-        ('CmpX', np.float32),
-        ('CmpY', np.float32),  # Cmp (x, y); needed for spider plot when binning against dipping plane
-        ('SrcL', np.int32),
-        ('SrcP', np.int32),  # SrcLine, SrcPoint
-        ('RecL', np.int32),
+        ('SrcX', np.float32),  # Src (x, y)
+        ('SrcY', np.float32),
+        ('RecX', np.float32),  # Rec (x, y)
+        ('RecY', np.float32),
+        ('CmpX', np.float32),  # Cmp (x, y); needed for spider plot when binning against dipping plane
+        ('CmpY', np.float32),
+        ('SrcL', np.int32),  # SrcLine, SrcPoint
+        ('SrcP', np.int32),
+        ('RecL', np.int32),  # RecLine, RecPoint
         ('RecP', np.int32),
     ]
-)   # RecLine, RecPoint
+)
 
 
 def readRPSFiles(filenames, resultArray, fmt) -> int:
