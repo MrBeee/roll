@@ -63,11 +63,40 @@ The hierarchy in this approach is reflected in the xml-based survey-file structu
 
 *Excerpt from a .roll file*
 
-Once the geometry has been defined, binning analysis can directly be done using the template-based approach.
+Once the geometry has been defined, a binning analysis can be done directly using the template-based approach. As a result:
 
-- A **fold map** can be created to shows (offset dependent) fold
-- A **minimum offset map** can be created to show minimum offsets coverage
-- A **maximum offset map** can be created to show maximum offsets coverage
+- A **fold map** is created that shows (offset dependent) fold
+- A **minimum offset map** is created that shows minimum offsets coverage
+- A **maximum offset map** is created that show maximum offsets coverage
+
+To use 'full binning', first the project needs to be saved, as an 'analysis' file is created that contains the complete binning information. Think of: 
+
+- line & stake numbers, 
+- src (x, y), 
+- rec(x, y), 
+- cmp(x, y), 
+- TWT, 
+- offset, 
+- azimuth, and 
+- uniqueness (for unique fold)
+
+Once this has been completed, additional analysis information becomes available in the **Layout** tab:
+
+- An **rms offset map** that shows the rms offset increments in each bin (lower is better)
+- A **spider diagram**, that is overlaid on the layout map, showing start- and end-points of all races in a single (selected) bin
+
+In the Layout tab, the following information then becomes available:
+
+- A **trace table**, showing the information from the analysis file
+- **Radial offsets** shown for a line in the **inline** direction
+- **Radial offsets** shown for a line in the **x-line** direction
+- **Source -> receiver azimuths ** shown for a line in the **inline** direction
+- **Source -> receiver azimuths ** shown for a line in the **x-line** direction
+- **Kr stack response** shown for a line in the **inline** direction
+- **Kr stack response** shown for a line in the **x-line** direction
+- **Kxy stack response** shown for a **single bin**
+- **|Offset| histogram** for all traces in the selected binning area
+- **Offset/azimuth histogram** for all traces in the selected binning area, in steps of 5 degrees
 
 As the survey file always contains a (projected) coordinate reference system (CRS) these three maps can be exported to the current QGIS project as a georeferenced Tiff (GeoTiff) file. These files can also be exported as a standalone GeoTiff file from the  File -> Export menu.
 
@@ -148,8 +177,9 @@ See changelog for already implemented functionality
 
 #### 6	Changelog
 
-- 2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added Kx-Ky stack analysis and |O| & O/A Histograms. Fixed some bugs.
-  Added Kx-Ky stack response as well as |O| & O/A Histograms to the Analysis tab
+- 2024-05-23 (0.2.9) expanded numba @jit functions, added rms-offset plot on Layout tab. Fixed some bugs. Implemented function profiling.
+  
+- 2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added stack-response analysis and |O| & O/A Histograms. Fixed some bugs.
   
 - 2024-04-22 (0.2.7) removed all numba @jit references, as exception handling with numba causes problems. Will revisit later.
   

@@ -4,9 +4,9 @@
 # Mandatory items:
 [general]
 name=Roll
-qgisMinimumVersion=3.28
+qgisMinimumVersion=3.2
 description=Design and analysis of 3D seismic survey geometries
-version=0.2.8
+version=0.2.9
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is for creating and analyzing 3D seismic survey geometries. It is dependent on the following Python packages:
@@ -26,7 +26,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:<p>2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added Kx-Ky stack analysis and |O| & O/A Histograms. Fixed some bugs
+changelog:<p>2024-05-23 (0.2.9) expanded numba @jit functions, added rms-offset plot on Layout tab. Fixed some bugs. Implemented function profiling
+  <p>2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added stack response analysis and |O| & O/A Histograms. Fixed some bugs
   <p>2024-04-21 (0.2.7) removed all numba @jit references, as exception handling with numba causes problems. Will revisit later
   <p>2024-04-21 (0.2.6) added 'Analysis' tab, containing seven analysis plots
   <p>2024-04-13 (0.2.5) added TWT values to trace table and implemented 'Unique Fold' capability
