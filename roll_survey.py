@@ -16,7 +16,9 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .functions import containsPoint3D
-from .functions_numba import clipLineF, numbaSetPointRecord, pointsInRect
+from .functions_numba import (clipLineF, numbaFixRelationRecord,
+                              numbaSetPointRecord, numbaSetRelationRecord,
+                              pointsInRect)
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -200,11 +202,12 @@ class RollSurvey(pg.GraphicsObject):
         # seed list; list of seeds, created seperately for quick painting of non-rolling seeds
         self.seedList: list[RollSeed] = []
 
-        # timings for time critical functions, allowing for 10 steps
-        self.tMin = [float('Inf') for _ in range(20)]
-        self.tMax = [0.0 for _ in range(20)]
-        self.tTot = [0.0 for _ in range(20)]
-        self.tFrq = [0 for _ in range(20)]
+        # timings for time critical functions, allowing for 15 steps
+        # this needs to be cleaned up; put in separate profiler class
+        self.timerTmin = [float('Inf') for _ in range(15)]
+        self.timerTmax = [0.0 for _ in range(15)]
+        self.timerTtot = [0.0 for _ in range(15)]
+        self.timerFreq = [0 for _ in range(15)]
 
     def calcTransforms(self):
         x = self.grid.orig.x()
@@ -298,8 +301,10 @@ class RollSurvey(pg.GraphicsObject):
         self.output.binOutput = np.zeros(shape=(nx, ny), dtype=np.uint32)       # start with empty array of the right size and type
         self.output.minOffset = np.zeros(shape=(nx, ny), dtype=np.float32)      # start with empty array of the right size and type
         self.output.maxOffset = np.zeros(shape=(nx, ny), dtype=np.float32)      # start with empty array of the right size and type
+        self.output.rmsOffset = np.zeros(shape=(nx, ny), dtype=np.float32)      # start with empty array of the right size and type
         self.output.minOffset.fill(np.Inf)                                      # start min offset with +inf (use np.full instead)
         self.output.maxOffset.fill(np.NINF)                                     # start max offset with -inf (use np.full instead)
+        self.output.rmsOffset.fill(np.NINF)                                     # start max offset with -inf (use np.full instead)
 
         self.binTransform = QTransform()
         self.binTransform.translate(x0, y0)
@@ -316,7 +321,7 @@ class RollSurvey(pg.GraphicsObject):
         self.stkTransform.translate(-s0, -l0)                                   # then shift origin to the (stake, line) origin
         self.stkTransform, _ = self.stkTransform.inverted()                     # invert the transform before applying
 
-        self.st2Transform = QTransform()
+        self.st2Transform = QTransform()                                        # no minor shift (for rounding purpose) applied in this case
         self.st2Transform.scale(ds, dl)                                         # scale it according to the stake / line intervals
         self.st2Transform.translate(-s0, -l0)                                   # then shift origin to (stake, line) origin
         self.st2Transform, _ = self.st2Transform.inverted()                     # invert the transform before applying
@@ -430,10 +435,12 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = str(e)
             return False
 
-        # breakpoint()
-
         #  first remove all remaining receiver duplicates
         self.output.recGeom = np.unique(self.output.recGeom)
+
+        # note; because we keep track of 'self.nRelRecord'
+        # there's no need to shrink the array based on the 'Uniq' == 1 condition.
+        # need to change the code; just resize the relGeom array based on self.nRelRecord
 
         # trim rel & rec arrays removing any zeros, using the 'Uniq' == 1 condition.
         self.output.relGeom = self.output.relGeom[self.output.relGeom['Uniq'] == 1]
@@ -615,17 +622,18 @@ class RollSurvey(pg.GraphicsObject):
     def elapsedTime(self, startTime, index: int) -> None:
         currentTime = perf_counter()
         deltaTime = currentTime - startTime
-        self.tMin[index] = min(deltaTime, self.tMin[index])
-        self.tMax[index] = max(deltaTime, self.tMax[index])
-        self.tTot[index] = self.tTot[index] + deltaTime
-        self.tFrq[index] = self.tFrq[index] + 1
-        return perf_counter()  # call again; do away with time spent in this funtion
+        self.timerTmin[index] = min(deltaTime, self.timerTmin[index])
+        self.timerTmax[index] = max(deltaTime, self.timerTmax[index])
+        self.timerTtot[index] = self.timerTtot[index] + deltaTime
+        self.timerFreq[index] = self.timerFreq[index] + 1
+        return perf_counter()  # call again; ignore time spent in this funtion
 
     def geomTemplate2(self, nBlock, block, template, templateOffset):
-        """use numpy arrays instead of iterating over the growList
-        this provides a much faster approach then using the growlist
+        """Use numpy arrays instead of iterating over the growList.
+        This provides a much faster approach then using the growlist.
 
-        the function is rather slow. Use time.perf_counter() to analyse bottlenecks
+        The function is however still rather slow.
+        Use time.perf_counter() to analyse bottlenecks
         """
 
         # convert the template offset to a numpy array
@@ -723,8 +731,12 @@ class RollSurvey(pg.GraphicsObject):
                         recY = rec[1]
                         # recZ = rec[2]
 
+                        time = self.elapsedTime(time, 7)    ###
+
                         recStkX, recStkY = self.st2Transform.map(recX, recY)    # get line and point indices
                         recLocX, recLocY = self.glbTransform.map(recX, recY)    # we need global positions
+
+                        time = self.elapsedTime(time, 8)    ###
 
                         # we have a new receiver record
                         self.nRecRecord += 1
@@ -742,7 +754,7 @@ class RollSurvey(pg.GraphicsObject):
                         # self.output.recGeom[self.nRecRecord]['Elev'] = recZ   # z-value not affected by transform
                         # self.output.recGeom[self.nRecRecord]['Uniq'] = 1      # We want to use Uniq == 1 later, to remove empty records
 
-                        time = self.elapsedTime(time, 7)    ###
+                        time = self.elapsedTime(time, 9)    ###
 
                         # apply self.output.recGeom.resize(N) when more memory is needed, after cleaning duplicates
                         arraySize = self.output.recGeom.shape[0]
@@ -752,32 +764,36 @@ class RollSurvey(pg.GraphicsObject):
                             arraySize = self.output.recGeom.shape[0]                        # get array size (again)
                             self.nRecRecord = arraySize                                     # adjust nRecRecord to the next available spot
                             self.output.recGeom.resize(arraySize + 10000, refcheck=False)   # append 10000 more records
-                            time = self.elapsedTime(time, 8)    ###
+                            time = self.elapsedTime(time, 10)    ###
 
                         time = perf_counter()
 
                         # time to work with the relation records, now we have both a valid src-point and rec-point;
                         self.nNextRecLine = int(recStkY)
                         if self.nNextRecLine != self.nLastRecLine:              # we're on a 'new' receiver line and need a new rel-record
-                            self.nLastRecLine = self.nNextRecLine
+                            self.nLastRecLine = self.nNextRecLine               # save current line number
+                            self.nRelRecord += 1                                # increment relation record number
 
-                            self.nRelRecord += 1                                # new relation record; fill it in completely
-                            self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStkY)
-                            self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStkX)
-                            self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
-                            self.output.relGeom[self.nRelRecord]['RecNum'] = self.nShotPoint
-                            self.output.relGeom[self.nRelRecord]['RecLin'] = int(recStkY)
-                            self.output.relGeom[self.nRelRecord]['RecMin'] = int(recStkX)
-                            self.output.relGeom[self.nRelRecord]['RecMax'] = int(recStkX)
-                            self.output.relGeom[self.nRelRecord]['RecInd'] = nBlock % 10 + 1
-                            self.output.relGeom[self.nRelRecord]['Uniq'] = 1    # needed for compacting array later (remove empty records)
-                        else:                                                   # existing relation record; update min/max rec stake numbers
-                            recMin = min(int(recStkX), self.output.relGeom[self.nRelRecord]['RecMin'])
-                            recMax = max(int(recStkX), self.output.relGeom[self.nRelRecord]['RecMax'])
-                            self.output.relGeom[self.nRelRecord]['RecMin'] = recMin
-                            self.output.relGeom[self.nRelRecord]['RecMax'] = recMax
+                            # create new relation record; fill it in completely
+                            numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcStkX, srcStkY, nBlock, self.nShotPoint, recStkX, recStkY)
+                            # self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStkY)
+                            # self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStkX)
+                            # self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
+                            # self.output.relGeom[self.nRelRecord]['RecNum'] = self.nShotPoint
+                            # self.output.relGeom[self.nRelRecord]['RecLin'] = int(recStkY)
+                            # self.output.relGeom[self.nRelRecord]['RecMin'] = int(recStkX)
+                            # self.output.relGeom[self.nRelRecord]['RecMax'] = int(recStkX)
+                            # self.output.relGeom[self.nRelRecord]['RecInd'] = nBlock % 10 + 1
+                            # self.output.relGeom[self.nRelRecord]['Uniq'] = 1    # needed for compacting array later (remove empty records)
+                        else:
+                            # existing relation record; just update min/max rec stake numbers
+                            numbaFixRelationRecord(self.output.relGeom, self.nRelRecord, recStkX)
+                            # recMin = min(int(recStkX), self.output.relGeom[self.nRelRecord]['RecMin'])
+                            # recMax = max(int(recStkX), self.output.relGeom[self.nRelRecord]['RecMax'])
+                            # self.output.relGeom[self.nRelRecord]['RecMin'] = recMin
+                            # self.output.relGeom[self.nRelRecord]['RecMax'] = recMax
 
-                        time = self.elapsedTime(time, 9)    ###
+                        time = self.elapsedTime(time, 11)    ###
 
                         # apply self.output.relGeom.resize(N) when more memory is needed
                         arraySize = self.output.relGeom.shape[0]
@@ -785,7 +801,7 @@ class RollSurvey(pg.GraphicsObject):
                             time = perf_counter()
                             self.output.relGeom.resize(arraySize + 10000, refcheck=False)   # append 10000 more records
 
-                            time = self.elapsedTime(time, 10)    ###
+                            time = self.elapsedTime(time, 12)    ###
 
     def setupBinFromGeometry(self, fullAnalysis) -> bool:
         """this routine is used for both geometry files and SPS files"""
@@ -806,7 +822,7 @@ class RollSurvey(pg.GraphicsObject):
     def binFromGeometry4(self, fullAnalysis) -> bool:
         """
         all binning methods (cmp, plane, sphere) implemented, using numpy arrays, rather than a for-loop.
-        On 09/04/2024 the earlier implementations of binTemplate v1 to v3 have been removed.
+        On 09/04/2024 the earlier implementations of binFromGeometry v1 to v3 have been removed.
         They are still available in the roll-2024-08-04 folder in classes.py
         """
         self.threadProgress = 0                                                 # always start at zero
@@ -1078,6 +1094,7 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = str(e)
             return False
 
+        self.calcRmsOffsetValues()
         self.calcUniqueFoldValues()
         self.calcFoldAndOffsetEssentials()
         return True
@@ -1153,6 +1170,7 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = str(e)
             return False
 
+        self.calcRmsOffsetValues()
         self.calcUniqueFoldValues()
         self.calcFoldAndOffsetEssentials()
         return True
@@ -1433,14 +1451,14 @@ class RollSurvey(pg.GraphicsObject):
 
                 slice2D = self.output.anaOutput[row, col, 0:fold, :]        # get all available traces belonging to this bin
 
-                slottedOffset = slice2D[:, 10]                              # grab 10th element of 2nd dimension (=offset)
+                slottedOffset = slice2D[:, 10]                              # grab 10th item of 2nd dimension (=offset)
                 slottedOffset = slottedOffset * offScalar
                 slottedOffset = np.round(slottedOffset)
                 slottedOffset = slottedOffset * offSlot
                 if writeBack:
                     slice2D[:, 10] = slottedOffset                          # write it back into the 2D slice
 
-                slottedAzimuth = slice2D[:, 11]                             # grab 11th element of 2nd dimension (=azimuth)
+                slottedAzimuth = slice2D[:, 11]                             # grab 11th item of 2nd dimension (=azimuth)
                 slottedAzimuth = slottedAzimuth * aziScalar
                 slottedAzimuth = np.round(slottedAzimuth)
                 slottedAzimuth = slottedAzimuth * aziSlot
@@ -1467,6 +1485,65 @@ class RollSurvey(pg.GraphicsObject):
                 self.output.binOutput[row, col] = uniqueFld                 # adjust fold value table
                 self.output.minOffset[row, col] = minOffset                 # adjust min offset table
                 self.output.maxOffset[row, col] = maxOffset                 # adjust max offset table
+
+        return True
+
+    def calcRmsOffsetValues(self) -> bool:
+        """code to calculate RMS offset increments as a post-processing step"""
+
+        if self.output.anaOutput is None:                                       # this array is essential to calculate unique fold
+            return False
+
+        self.message.emit('Calc RMS offset increments')
+
+        rows = self.output.anaOutput.shape[0]                                   # get dimensions from analysis array itself
+        cols = self.output.anaOutput.shape[1]
+
+        self.nShotPoint = 0                                                     # reuse nShotPoint(s) to implement progress in statusbar
+        self.nShotPoints = rows * cols                                          # calc nr of applicable points
+        self.threadProgress = 0                                                 # reset counter
+
+        for row in range(rows):
+            for col in range(cols):
+
+                # begin of thread progress code
+                if QThread.currentThread().isInterruptionRequested():           # maybe stop at each shot...
+                    raise StopIteration
+
+                self.nShotPoint += 1
+                threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
+                if threadProgress > self.threadProgress:
+                    self.threadProgress = threadProgress
+                    self.progress.emit(threadProgress + 1)
+                # end of thread progress code
+
+                fold = self.output.binOutput[row, col]                          # check available traces for this bin
+                if fold <= 0:                                                   # nothing to see here, move to next bin
+                    continue                                                    # rms values prefilled with np.NINF
+
+                slice2D = self.output.anaOutput[row, col, 0:fold, :]            # get all available traces belonging to this bin
+                offset1D = slice2D[:, 10]                                       # grab 10th item of 2nd dimension (=offset)
+
+                if fold > 2:
+                    rms = 0.0
+                    offsetSorted = np.sort(offset1D)
+                    offsetRange = offsetSorted[-1] - offsetSorted[0]            # range from min to max offsets
+                    offsetStep = offsetRange / (fold - 1)
+                    offsetDiff = np.diff(offsetSorted)                          # array is one element shorter than offsetRange
+
+                    rms = 0.0
+                    for index in range(fold - 1):
+                        rms += (offsetDiff[index] - offsetStep) ** 2.0
+
+                    rms /= fold - 1
+                    rms = np.sqrt(rms)
+                else:
+                    rms = 0.0
+
+                self.output.rmsOffset[row, col] = rms                           # fill in rms offset table
+
+        self.output.minRmsOffset = self.output.rmsOffset.min()
+        self.output.maxRmsOffset = self.output.rmsOffset.max()
 
         return True
 

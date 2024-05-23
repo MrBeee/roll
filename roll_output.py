@@ -15,6 +15,7 @@ class RollOutput:
         self.binOutput = None                                                   # numpy array with foldmap
         self.minOffset = None                                                   # numpy array with minimum offset
         self.maxOffset = None                                                   # numpy array with maximum offset
+        self.rmsOffset = None                                                   # numpy array with rms offset increments
         self.anaOutput = None                                                   # memory mapped numpy trace record array
 
         self.recGeom = None                                                     # numpy array with list of receiver locations
@@ -45,6 +46,9 @@ class RollOutput:
 
         self.minMaxOffset = 0.0
         self.maxMaxOffset = 0.0
+
+        self.minRmsOffset = 0.0
+        self.maxRmsOffset = 0.0
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
 

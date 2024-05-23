@@ -7,12 +7,8 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
 from .my_preview_label import MyPreviewLabel
-from .my_slider import MySliderParameter
-from .my_symbols import MySymbolParameter
 
 registerParameterType('myGroup', MyGroupParameter, override=True)
-registerParameterType('mySlider', MySliderParameter, override=True)
-registerParameterType('mySymbols', MySymbolParameter, override=True)
 
 
 class VectorPreviewLabel(MyPreviewLabel):

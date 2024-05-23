@@ -4,7 +4,7 @@ import winsound  # make a sound when a record isn't found
 import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QAbstractTableModel, QEvent, Qt, QVariant
-from qgis.PyQt.QtGui import QBrush, QColor, QKeySequence
+from qgis.PyQt.QtGui import QBrush, QColor, QFont, QKeySequence
 from qgis.PyQt.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QMessageBox, QTableView
 
 # TableModel requires a 2D array to work from
@@ -59,6 +59,10 @@ class AnaTableModel(QAbstractTableModel):
             return value
         elif role == Qt.TextAlignmentRole:
             return Qt.AlignCenter
+        elif role == Qt.FontRole:
+            # return QFont("Courier New", 10, QFont.Bold)
+            # return QFont('Courier New', 8, QFont.Normal)
+            return QFont('Arial', 8, QFont.Normal)
 
     def setData(self, data):
         self._data = data
@@ -123,8 +127,8 @@ class AnaTableModel(QAbstractTableModel):
 class TableView(QTableView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setMinimumSize(100, 100)
         self.installEventFilter(self)
-        self.setMinimumSize(250, 250)
         self.setAlternatingRowColors(True)
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         # Can't use these lines here; header needs to exist already
@@ -508,6 +512,10 @@ class RpsTableModel(QAbstractTableModel):
                 return QBrush(QColor(155, 200, 255))                            # orphan -> blue-ish
             else:
                 return QVariant()
+        elif role == Qt.FontRole:
+            # return QFont("Courier New", 10, QFont.Bold)
+            # return QFont('Courier New', 8, QFont.Normal)
+            return QFont('Arial', 8, QFont.Normal)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role == Qt.DisplayRole:
@@ -649,6 +657,7 @@ class SpsTableModel(QAbstractTableModel):
         self._data = None
         self._format = '%.2f', '%.2f', '%d', '%s', '%.1f', '%.1f', '%.1f', '%.1f', '%d', '%d', '%.2f', '%.2f'
         self._header = ['src line', 'src point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'unique', 'inXps']
+
         self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)
         self.setData(data)
 
@@ -682,6 +691,10 @@ class SpsTableModel(QAbstractTableModel):
                 return QBrush(QColor(200, 200, 255))                            # orphan -> blue
             else:
                 return QVariant()
+        elif role == Qt.FontRole:
+            # return QFont("Courier New", 10, QFont.Bold)
+            # return QFont('Courier New', 8, QFont.Normal)
+            return QFont('Arial', 8, QFont.Normal)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role == Qt.DisplayRole:
@@ -846,6 +859,10 @@ class XpsTableModel(QAbstractTableModel):
                 return QBrush(QColor(155, 200, 255))                            # orphan -> blue-ish
             else:
                 return QVariant()
+        elif role == Qt.FontRole:
+            # return QFont("Courier New", 10, QFont.Bold)
+            # return QFont('Courier New', 8, QFont.Normal)
+            return QFont('Arial', 8, QFont.Normal)
 
     def getData(self):
         return self._data
@@ -987,6 +1004,7 @@ class XpsTableModel(QAbstractTableModel):
 class ResizeTable(QTableView):
     def __init__(self, model, parent=None):
         super().__init__(parent)
+        self.setMinimumSize(100, 100)
         rowHeight = self.fontMetrics().height()
         self.verticalHeader().setDefaultSectionSize(rowHeight)
         self.setModel(model)

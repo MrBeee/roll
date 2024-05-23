@@ -6,26 +6,30 @@ The @jit decoration can be suppressed by disabling numba in Roll's settings menu
 This will set 'DISABLE_JIT' to True in the module numba.config.
 As a result, the decorated functions are no longer precompiled.
 
-See: https://github.com/pyqtgraph/pyqtgraph/issues/1253, how to use numba with PyQtGraph
 See: https://numba.readthedocs.io/en/stable/user/jit.html for preferred way of using @jit
 See: https://stackoverflow.com/questions/57774497/how-do-i-make-a-dummy-do-nothing-jit-decorator
 """
+import importlib
 
 import numpy as np
 from qgis.PyQt.QtCore import QLineF, QRectF  # needed for pointsInRect
 
-try:   # See: https://github.com/pyqtgraph/pyqtgraph/issues/1253, how to use numba with PyQtGraph
-    from numba import jit
+# from .sps_io_and_qc import pntType1
+
+# try:   # See: https://github.com/pyqtgraph/pyqtgraph/issues/1253, how to use numba with PyQtGraph
+#     from numba import jit
+# except ImportError:
+
+#     def jit(**kwargs):  # pylint: disable=W0613 # unused argument
+#         return lambda fn: fn
+
+
+try:
+    nb = importlib.import_module('numba')
 except ImportError:
+    nb = importlib.import_module('.nonumba', package='roll')                    # relative import requires package name
 
-    def jit(**kwargs):  # pylint: disable=W0613 # unused argument
-        return lambda fn: fn
-
-
-from .sps_io_and_qc import pntType1
-
-
-# @jit(nopython=True)
+# @nb.jit((nb.types.Array(nb.float32, 3, 'C'), nb.boolean), nopython=True)      # numba needs array specs to work properly
 def numbaSlice2D(slice3D: np.ndarray, unique=False):
     size = slice3D.shape[0]
     fold = slice3D.shape[1]
@@ -53,7 +57,7 @@ def numbaSlice2D(slice3D: np.ndarray, unique=False):
     return (slice2D, noData)                                        # tuple of information (array, flag)
 
 
-# @jit(nopython=True)
+# @nb.jit((nb.types.Array(nb.float32, 3, 'C'), nb.boolean), nopython=True)      # numba needs array specs to work properly
 def numbaSlice3D(slice3D: np.ndarray, unique=False):
     if unique:                                                      # we'd like to use unique offsets; but does it make sense ?
         havUnique = slice3D[:, :, 12]                               # get all available cmp values belonging to this slice
@@ -70,7 +74,14 @@ def numbaSlice3D(slice3D: np.ndarray, unique=False):
     return (slice3D, I, noData)                                     # triplet of information (array, mask, flag)
 
 
-# @jit(nopython=True)
+# it would be nice to cache the outcome of the following routine.
+# See: https://github.com/numba/numba/issues/4062
+# See: https://stackoverflow.com/questions/74491198/how-to-set-signature-if-use-np-array-as-an-input-in-numba
+# See: https://stackoverflow.com/questions/67213411/initizalizing-a-return-list-of-tuples-in-numba
+# See: https://stackoverflow.com/questions/30363253/multiple-output-and-numba-signatures
+# See: https://stackoverflow.com/questions/55765255/how-do-i-specify-a-tuple-in-a-numba-vectorize-signature
+
+# @nb.jit(nb.types.Tuple((nb.float32[:], nb.float32[:], nb.boolean))(nb.float32[:, :, :, :], nb.boolean), nopython=True)                    # numba needs array specs to work
 def numbaSliceStats(slice4D: np.ndarray, unique=False):
     fold = slice4D[:, :, :, 2]                                                  # we are left with 1 dimension
     offsets = slice4D[:, :, :, 10]                                              # we are left with 1 dimension
@@ -95,7 +106,7 @@ def numbaSliceStats(slice4D: np.ndarray, unique=False):
     return (offsets, azimuth, False)
 
 
-# @jit(nopython=True)
+# @nb.jit(nopython=True)
 def numbaNdft_1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarray):
     kR = np.arange(0, kMax, dK)                                                 # numpy array with k-values [0 ... kMax]
     nK = kR.shape[0]                                                            # number of points along y-axis (size of kR array)
@@ -125,7 +136,7 @@ def numbaNdft_1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarra
 #    get result in an async manner http://pymotw.com/2/multiprocessing/communication.html
 # 4) save results in a cache to prevent recalculation
 #    see: https://docs.python.org/dev/library/functools.html#functools.lru_cache
-@jit(nopython=True)
+@nb.jit(nopython=True)
 def numbaNdft_2D(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offsetY: np.ndarray):
 
     kX = np.arange(kMin, kMax, dK)
@@ -150,7 +161,7 @@ def numbaNdft_2D(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offse
     return xyCellStk
 
 
-@jit(nopython=True)
+@nb.jit(nopython=True)
 def numbaOffInline(slice2D: np.ndarray, ox: float):
     x__Inline = slice2D[:, 7]                                       # get all available cmp values belonging to this row
     offInline = slice2D[:, 10]                                      # get all available offsets belonging to this row
@@ -166,7 +177,7 @@ def numbaOffInline(slice2D: np.ndarray, ox: float):
     return (x, y)
 
 
-@jit(nopython=True)
+@nb.jit(nopython=True)
 def numbaOffX_line(slice2D: np.ndarray, oy: float):
     y__Inline = slice2D[:, 8]                                       # get all available cmp values belonging to this row
     offInline = slice2D[:, 10]                                      # get all available offsets belonging to this row
@@ -182,7 +193,7 @@ def numbaOffX_line(slice2D: np.ndarray, oy: float):
     return (x, y)
 
 
-@jit(nopython=True)
+@nb.jit(nopython=True)
 def numbaAziInline(slice2D: np.ndarray, ox: float):
     x__Inline = slice2D[:, 7]                                       # get all available cmp values belonging to this row
     offInline = slice2D[:, 11]                                      # get all available azimuths belonging to this row
@@ -198,7 +209,7 @@ def numbaAziInline(slice2D: np.ndarray, ox: float):
     return (x, y)
 
 
-@jit(nopython=True)
+@nb.jit(nopython=True)
 def numbaAziX_line(slice2D: np.ndarray, oy: float):
     y__Inline = slice2D[:, 8]                                       # get all available cmp values belonging to this row
     offInline = slice2D[:, 11]                                      # get all available azimuths belonging to this row
@@ -214,7 +225,7 @@ def numbaAziX_line(slice2D: np.ndarray, oy: float):
     return (x, y)
 
 
-@jit(nopython=True)
+@nb.jit(nopython=True)
 def numbaOffsetBin(slice2D: np.ndarray, unique=False):
     if unique is True:                                              # we'd like to use unique offsets
         havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
@@ -239,7 +250,7 @@ def numbaOffsetBin(slice2D: np.ndarray, unique=False):
     return (offsetX, offsetY, noData)
 
 
-@jit(nopython=True)
+@nb.jit(nopython=True)
 def numbaSpiderBin(slice2D: np.ndarray):                            # slicing should already have reduced fold to account for unique fold, if need be
 
     foldX2 = slice2D.shape[0] * 2
@@ -273,7 +284,7 @@ def pointsInRect(pointArray: np.ndarray, rect: QRectF):
     return numbaPointsInRect(pointArray, l, r, t, b)
 
 
-@jit(nopython=True)
+@nb.jit(nopython=True)
 def numbaPointsInRect(pointArray: np.ndarray, l: float, r: float, t: float, b: float):
     I = (pointArray[:, 0] >= l) & (pointArray[:, 0] <= r) & (pointArray[:, 1] >= t) & (pointArray[:, 1] <= b)
     noData = np.count_nonzero(I) == 0
@@ -290,12 +301,30 @@ def numbaPointsInRect(pointArray: np.ndarray, l: float, r: float, t: float, b: f
 # See: https://stackoverflow.com/questions/72747804/how-to-return-a-1d-structured-array-mixed-types-from-a-numba-jit-compiled-func
 # See: http://numba.pydata.org/numba-doc/0.13/arrays.html#array-creation-loop-jitting
 # See: https://stackoverflow.com/questions/73892609/how-exactly-to-work-with-string-arrays-in-numba
-# Se: https://numba.pydata.org/numba-doc/dev/reference/pysupported.html#typed-dict
+# See: https://numba.pydata.org/numba-doc/dev/reference/pysupported.html#typed-dict
+# See: https://numba.pydata.org/numba-doc/0.15.1/tutorial_firststeps.html
 
 
-# @jit(nopython=True)
+# numType1 = nb.from_dtype(pntType1)  # create a Numba type corresponding to the Numpy dtype
+# unfortunately, this isn't recognized in time for the following jit decoration
+# @nb.jit('void(numType1[:], i8, f8, f8, i8, f8, f8, f4[3])', nopython=True)
+# likewise, the following description isn't recognized at numba compile time
+numType1 = 'Record(  Line[type=float32;offset=0],   \
+                    Point[type=float32;offset=4],   \
+                    Index[type=int32;offset=8],     \
+                    Code[type=[unichr x 2];offset=12],  \
+                    Depth[type=float32;offset=20],  \
+                    East[type=float32;offset=24],   \
+                    North[type=float32;offset=28],  \
+                    Elev[type=float32;offset=32],   \
+                    Uniq[type=int32;offset=36],     \
+                    InXps[type=int32;offset=40],    \
+                    LocX[type=float32;offset=44],   \
+                    LocY[type=float32;offset=48];52;False)'
+
+
+@nb.jit(nopython=True)
 def numbaSetPointRecord(array: np.ndarray, index: int, line: float, point: float, block: int, east: float, north: float, pnt: np.ndarray) -> None:
-
     array[index]['Line'] = float(int(line))
     array[index]['Point'] = float(int(point))
     array[index]['Index'] = block % 10 + 1                                      # the single digit point index is used to indicate block nr
@@ -305,6 +334,28 @@ def numbaSetPointRecord(array: np.ndarray, index: int, line: float, point: float
     array[index]['LocY'] = pnt[1]                                               # y-component of 3D-location
     array[index]['Elev'] = pnt[2]                                               # z-value not affected by CRS transform
     array[index]['Uniq'] = 1                                                    # later, we want to use Uniq == 1 to remove empty records at the end
+
+
+@nb.jit(nopython=True)
+def numbaSetRelationRecord(array: np.ndarray, index: int, srcStkX: float, srcStkY: float, block: int, shot: int, recStkX: float, recStkY: float):
+    array[index]['SrcLin'] = int(srcStkY)
+    array[index]['SrcPnt'] = int(srcStkX)
+    array[index]['SrcInd'] = block % 10 + 1
+    array[index]['RecNum'] = shot
+    array[index]['RecLin'] = int(recStkY)
+    array[index]['RecMin'] = int(recStkX)
+    array[index]['RecMax'] = int(recStkX)
+    array[index]['RecInd'] = block % 10 + 1
+    array[index]['Uniq'] = 1    # needed for compacting array later (remove empty records)
+
+
+@nb.jit(nopython=True)
+def numbaFixRelationRecord(array: np.ndarray, index: int, recStkX: float):
+    recMin = min(array[index]['RecMin'], int(recStkX))
+    recMax = max(array[index]['RecMax'], int(recStkX))
+
+    array[index]['RecMin'] = recMin
+    array[index]['RecMax'] = recMax
 
 
 def clipLineF(line: QLineF, border: QRectF) -> QLineF:
@@ -328,7 +379,7 @@ def clipLineF(line: QLineF, border: QRectF) -> QLineF:
     return QLineF(x1, y1, x2, y2)                                               # return the clipped line
 
 
-@jit(nopython=True)
+@nb.jit(nopython=True)
 def numbaClipLineF(x1: float, y1: float, x2: float, y2: float, x_min: float, x_max: float, y_min: float, y_max: float) -> tuple:
 
     # Python routine to implement Cohen Sutherland algorithm for line clipping.
@@ -418,7 +469,7 @@ def numbaClipLineF(x1: float, y1: float, x2: float, y2: float, x_min: float, x_m
     return (0.0, 0.0, 0.0, 0.0)                                                 # return a null line
 
 
-@jit(nopython=True, parallel=True)
+@nb.jit(nopython=True, parallel=True)
 def pointInPolygon(xy, poly):
     # See: https://stackoverflow.com/questions/52471590/use-multithreading-in-numba
     D = np.empty(len(xy), dtype=bool)

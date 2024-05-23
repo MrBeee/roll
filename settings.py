@@ -3,7 +3,7 @@ from ast import literal_eval
 import pyqtgraph as pg
 from console import console
 from qgis.PyQt.QtCore import QStandardPaths, pyqtSignal
-from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QHeaderView, QVBoxLayout
 
 try:    # need to TRY importing numba, only to see if it is available
@@ -15,6 +15,7 @@ except ImportError:
 
 from . import config  # used to pass initial settings
 from .functions import makeParmsFromPen, makePenFromParms
+from .my_range import MyRangeParameter as rng
 
 
 class SettingsDialog(QDialog):
@@ -135,10 +136,20 @@ class SettingsDialog(QDialog):
             ),
         ]
 
-        tip = 'This is an experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
+        kkkParams = [
+            dict(
+                name='K-response Settings',
+                type='myGroup',
+                brush='#add8e6',
+                children=[
+                    dict(name='Kr  stack response', type='myRange', flat=True, expanded=False, value=config.kr_Range, suffix=' [1/km]'),  # fixedMin=True,
+                    dict(name='Kxy stack response', type='myRange', flat=True, expanded=False, value=config.kxyRange, suffix=' [1/km]', twoDim=True),
+                ],
+            ),
+        ]
 
         useNumba = config.useNumba if haveNumba else False
-
+        tip = 'This is an experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
         misParams = [
             dict(
                 name='Miscellaneous Settings',
@@ -154,6 +165,7 @@ class SettingsDialog(QDialog):
         self.parameters.addChildren(lodParams)
         self.parameters.addChildren(spsParams)
         self.parameters.addChildren(geoParams)
+        self.parameters.addChildren(kkkParams)
         self.parameters.addChildren(misParams)
 
         self.parameters.sigTreeStateChanged.connect(self.updateSettings)
@@ -195,6 +207,7 @@ class SettingsDialog(QDialog):
         LOD = self.parameters.child('Level of Detail Settings')
         SPS = self.parameters.child('SPS Settings')
         GEO = self.parameters.child('Geometry Settings')
+        KKK = self.parameters.child('K-response Settings')
         MIS = self.parameters.child('Miscellaneous Settings')
 
         # sps settings
@@ -249,6 +262,10 @@ class SettingsDialog(QDialog):
         config.srcPointSymbol = srcValue.symbol()
         config.srcBrushColor = srcValue.color().name(QColor.HexArgb)
         config.srcSymbolSize = srcValue.size()
+
+        # k-plot settings
+        config.kr_Range = KKK.child('Kr  stack response').value()
+        config.kxyRange = KKK.child('Kxy stack response').value()
 
         # miscellaneous settings
         config.useNumba = MIS.child('Use Numba').value()
@@ -319,6 +336,10 @@ def readSettings(self):
     config.srcPointSymbol = self.settings.value('settings/geo/srcPointSymbol', 'o')
     config.srcSymbolSize = self.settings.value('settings/geo/srcSymbolSize', 25)
 
+    # k-plot information
+    config.kr_Range = rng.read(self.settings.value('settings/k-plots/kr_Range', '0;20;0.1'))
+    config.kxyRange = rng.read(self.settings.value('settings/k-plots/kxyRange', '-5;5;0.05'))
+
     # miscellaneous information
     config.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)   # assume Numba not installed (and used) by default
     if haveNumba:                                                                       # can only do this when numba has been installed
@@ -362,6 +383,10 @@ def writeSettings(self):
     self.settings.setValue('settings/geo/srcBrushColor', config.srcBrushColor)
     self.settings.setValue('settings/geo/srcPointSymbol', config.srcPointSymbol)
     self.settings.setValue('settings/geo/srcSymbolSize', config.srcSymbolSize)
+
+    # k-plot information
+    self.settings.setValue('settings/k-plots/kr_Range', rng.write(config.kr_Range))
+    self.settings.setValue('settings/k-plots/kxyRange', rng.write(config.kxyRange))
 
     # miscellaneous information
     self.settings.setValue('settings/misc/useNumba', config.useNumba)

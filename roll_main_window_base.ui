@@ -82,6 +82,7 @@
       <addaction name="actionExportFoldMap"/>
       <addaction name="actionExportMinOffsets"/>
       <addaction name="actionExportMaxOffsets"/>
+      <addaction name="actionExportRmsOffsets"/>
       <addaction name="separator"/>
       <addaction name="actionExportAnaAsCsv"/>
      </widget>
@@ -879,6 +880,11 @@
    </property>
    <property name="toolTip">
     <string>Show horizontal grid lines</string>
+   </property>
+  </action>
+  <action name="actionExportRmsOffsets">
+   <property name="text">
+    <string>Rms Offset - as GeoTiff</string>
    </property>
   </action>
  </widget>

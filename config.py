@@ -1,5 +1,5 @@
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QPen
+from qgis.PyQt.QtGui import QPen, QVector3D
 
 # This module provides some default settings for variables used in Roll
 
@@ -139,6 +139,10 @@ patternList = []
 # currently used as a backdoor to access survey.crs and global transform from other parameters
 surveyCrs = None
 surveyTransform = None
+
+# k-plot settings
+kr_Range = QVector3D(0.0, 20.0, 0.10)   # settings for k_r plots (min, max, step size)
+kxyRange = QVector3D(-5.0, 5.0, 0.05)   # settings for kxy plots (min, max, step size)
 
 # useNumba is used to indicate wether or not to use numba (IF it has been installed)
 useNumba = False

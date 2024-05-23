@@ -19,6 +19,7 @@ from .my_pen import MyPenParameter
 from .my_point2D import MyPoint2DParameter
 from .my_point3D import MyPoint3DParameter
 from .my_preview_label import MyPreviewLabel
+from .my_range import MyRangeParameter
 from .my_rectf import MyRectParameter
 from .my_slider import MySliderParameter
 from .my_symbols import MySymbolParameter
@@ -2498,6 +2499,7 @@ def registerAllParameterTypes():
     registerParameterType('myPen', MyPenParameter, override=True)
     registerParameterType('myPoint2D', MyPoint2DParameter, override=True)
     registerParameterType('myPoint3D', MyPoint3DParameter, override=True)
+    registerParameterType('myRange', MyRangeParameter, override=True)
     registerParameterType('myRectF', MyRectParameter, override=True)
     registerParameterType('mySlider', MySliderParameter, override=True)
     registerParameterType('mySymbols', MySymbolParameter, override=True)

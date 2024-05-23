@@ -692,7 +692,7 @@ class Page_1(SurveyWizardPage):
         self.plotWidget = pg.PlotWidget(background='w')
         self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
         self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        self.plotWidget.setMinimumSize(300, 300)                                # prevent excessive widget shrinking
+        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
         self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
         self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
 
@@ -1360,7 +1360,7 @@ class Page_2(SurveyWizardPage):
         self.plotWidget = pg.PlotWidget(background='w')
         self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
         self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        self.plotWidget.setMinimumSize(300, 300)                                # prevent excessive widget shrinking
+        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
         self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
         self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
 
@@ -1635,7 +1635,7 @@ class Page_3(SurveyWizardPage):
         self.plotWidget = pg.PlotWidget(background='w')
         self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
         self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        self.plotWidget.setMinimumSize(300, 300)                                # prevent excessive widget shrinking
+        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
         self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
         self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
 
@@ -2000,7 +2000,7 @@ class Page_4(SurveyWizardPage):
         self.plotWidget = pg.PlotWidget(background='w')
         self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
         self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        self.plotWidget.setMinimumSize(300, 300)                                # prevent excessive widget shrinking
+        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
         self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
         self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
 
@@ -2327,7 +2327,7 @@ class Page_6(SurveyWizardPage):
         self.plotWidget = pg.PlotWidget(background='w')
         self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
         self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        self.plotWidget.setMinimumSize(300, 300)                                # prevent excessive widget shrinking
+        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
         self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
         self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
 
@@ -2446,7 +2446,7 @@ class Page_7(SurveyWizardPage):
         self.xmlEdit.setWordWrapMode(QTextOption.NoWrap)
 
         self.xmlEdit.setPlainText('show xml data here...')
-        self.xmlEdit.setMinimumSize(300, 300)
+        self.xmlEdit.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
         self.xmlEdit.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
 
         layout = QVBoxLayout()
