@@ -155,7 +155,7 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 | Library    | Minimum Version | Description (purpose)                                      |
 | :--------- | :-------------- | :--------------------------------------------------------- |
-| numba      | 0.59.1          | Significantly speed up numpy calculations                  |
+| numba      | 0.59.1          | ***Significantly*** speed up numpy calculations            |
 | numpy      | 1.26.24         | Array and matrix manipulation                              |
 | pyqtgraph  | 0.13.4          | Plotting of vector and raster data                         |
 | rasterio   | 1.3.9           | Export of figures as GeoTiff  files                        |
@@ -177,18 +177,15 @@ See changelog for already implemented functionality
 
 #### 6	Changelog
 
+- 2024-05-27 (0.3.0) reduced minimal width of Geometry & SPS tables, in order to make working with a *smallish* full HD (1920x1080) screen easier.
 - 2024-05-23 (0.2.9) expanded numba @jit functions, added rms-offset plot on Layout tab. Fixed some bugs. Implemented function profiling.
-  
 - 2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added stack-response analysis and |O| & O/A Histograms. Fixed some bugs.
-  
 - 2024-04-22 (0.2.7) removed all numba @jit references, as exception handling with numba causes problems. Will revisit later.
-  
 - 2024-04-21 (0.2.6) added 'Analysis' tab, containing:
   - The Trace table (full binning results)
   - In-/ and X-line offsets
   - In-/ and X-line azimuths
   - In-/ and X-line stack response
-
 - 2024-04-13 (0.2.5) included TWT values in trace table and implemented 'Unique Fold' capability
 - 2024-04-08 (0.2.4) improved handling of well-files
 - 2024-03-30 (0.2.3) updated metadata.txt (a) about text and (b) dependencies

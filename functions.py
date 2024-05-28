@@ -517,6 +517,9 @@ def aboutText() -> str:
     metaDict = dict(metadata)                                               # See: https://stackoverflow.com/questions/2191699/find-an-element-in-a-list-of-tuples
     rollVersion = metaDict['version']
 
+    pythonVersionList = sys.version.split(' ')
+    pythonVersion = pythonVersionList[0]
+
     if numba is None:
         numbaVersion = 'not installed'
     else:
@@ -529,7 +532,8 @@ def aboutText() -> str:
         f'Roll can be used to generate seismic survey geometries. <br>'
         f'Both for Land/OBN as well as marine seismic surveys. <ul>'
         f'<li>Roll version: {rollVersion}. </li></ul>'
-        f'The following Qt-framework is used: <ul>'
+        f'The following Python & framework versions are used: <ul>'
+        f'<li>Python version: {pythonVersion} </li>'
         f'<li>Qt version: {QT_VERSION_STR} </li>'
         f'<li>PyQt version: {PYQT_VERSION_STR} </li></ul>'
         f'The following libraries are used: <ul>'

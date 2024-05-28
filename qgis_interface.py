@@ -3,12 +3,25 @@ import uuid
 # import matplotlib.pyplot as plt  # to create a png file
 import numpy as np
 import rasterio as rio
-from qgis.core import (QgsColorRampShader, QgsFeature, QgsField, QgsFillSymbol,
-                       QgsGeometry, QgsMarkerSymbol, QgsPalLayerSettings,
-                       QgsPointXY, QgsProject, QgsRasterLayer, QgsRasterShader,
-                       QgsSingleBandPseudoColorRenderer, QgsStyle,
-                       QgsTextFormat, QgsVectorDataProvider, QgsVectorLayer,
-                       QgsVectorLayerSimpleLabeling)
+from qgis.core import (
+    QgsColorRampShader,
+    QgsFeature,
+    QgsField,
+    QgsFillSymbol,
+    QgsGeometry,
+    QgsMarkerSymbol,
+    QgsPalLayerSettings,
+    QgsPointXY,
+    QgsProject,
+    QgsRasterLayer,
+    QgsRasterShader,
+    QgsSingleBandPseudoColorRenderer,
+    QgsStyle,
+    QgsTextFormat,
+    QgsVectorDataProvider,
+    QgsVectorLayer,
+    QgsVectorLayerSimpleLabeling,
+)
 from qgis.PyQt.QtCore import QFileInfo, QRectF, QVariant
 from qgis.PyQt.QtGui import QPolygonF, QTransform
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
@@ -361,11 +374,8 @@ def exportSurveyOutlineToQgis(layerName, survey) -> bool:
     settings.setFormat(textFormat)
 
     for nBlock, block in enumerate(survey.blockList):                           # iterate over all blocks
-
         strBlock = f'block-{nBlock + 1}'
-
         for index in range(3):                                                  # range is used to iterate over rec, cmp and src
-
             name = ''
             props = {}
             attrib = []
@@ -431,7 +441,6 @@ def exportSurveyOutlineToQgis(layerName, survey) -> bool:
             QgsProject.instance().addMapLayer(vl)
 
     if survey.output.rctOutput.isValid():                                       # do the bin extent last
-
         name = f'{layerName}-bin-edge-all'
         props = {'color': 'grey', 'outline_color': 'black'}
         attrib = ['Binning boundary', 'all blocks']

@@ -29,13 +29,15 @@ try:
 except ImportError:
     nb = importlib.import_module('.nonumba', package='roll')                    # relative import requires package name
 
-# @nb.jit((nb.types.Array(nb.float32, 3, 'C'), nb.boolean), nopython=True)      # numba needs array specs to work properly
-def numbaSlice2D(slice3D: np.ndarray, unique=False):
-    size = slice3D.shape[0]
-    fold = slice3D.shape[1]
-    para = slice3D.shape[2]
 
-    slice2D = slice3D.reshape(size * fold, para)                    # convert to 2D
+# @nb.jit((nb.types.Array(nb.float32, 3, 'C'), nb.boolean), nopython=True)      # numba needs array specs to work properly
+@nb.jit(nopython=True)
+def numbaFilterSlice2D(slice2D: np.ndarray, unique=False):
+    # size = slice3D.shape[0]
+    # fold = slice3D.shape[1]
+    # para = slice3D.shape[2]
+
+    # slice2D = slice3D.reshape(size * fold, para)                    # convert to 2D
 
     if unique is True:                                              # we'd like to use unique offsets
         havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
@@ -48,30 +50,24 @@ def numbaSlice2D(slice3D: np.ndarray, unique=False):
     else:
         I = slice2D[:, 2] > 0                                       # fold > 0
 
-    noData = np.count_nonzero(I) == 0
-    if noData:
-        return (None, noData)
-
     slice2D = slice2D[I, :]                                         # filter the 2D slice
+    return slice2D                                                  # return array, potentially with shape[0,13] when empty
 
-    return (slice2D, noData)                                        # tuple of information (array, flag)
 
-
-# @nb.jit((nb.types.Array(nb.float32, 3, 'C'), nb.boolean), nopython=True)      # numba needs array specs to work properly
+@nb.jit(nopython=True)
 def numbaSlice3D(slice3D: np.ndarray, unique=False):
-    if unique:                                                      # we'd like to use unique offsets; but does it make sense ?
-        havUnique = slice3D[:, :, 12]                               # get all available cmp values belonging to this slice
-        useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
+    if unique:                                                                  # we'd like to use unique offsets; but does it make sense ?
+        havUnique = slice3D[:, :, 12]                                           # get all available cmp values belonging to this slice
+        useUnique = True if havUnique.min() == -1 else False                    # are there any -1 records ?
     else:
-        useUnique = False                                           # unique not required or not available
+        useUnique = False                                                       # unique not required or not available
 
     if useUnique:
-        I = (slice3D[:, :, 2] > 0) & (slice3D[:, :, 12] == -1)      # fold > 0 AND unique == -1
+        I = (slice3D[:, :, 2] > 0) & (slice3D[:, :, 12] == -1)                  # fold > 0 AND unique == -1
     else:
-        I = slice3D[:, :, 2] > 0                                    # fold > 0
+        I = slice3D[:, :, 2] > 0                                                # fold > 0
 
-    noData = np.count_nonzero(I) == 0
-    return (slice3D, I, noData)                                     # triplet of information (array, mask, flag)
+    return (slice3D, I)                                                         # tuple of information (array, mask)
 
 
 # it would be nice to cache the outcome of the following routine.
@@ -121,7 +117,6 @@ def numbaNdft_1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarra
         a = 1 / n if n > 0 else 0                                               # response will be zero for n = zero
         response = np.dot(incRadial, np.exp(2j * np.pi * kR * offRadial[:, np.newaxis])) * a
         abs_response = np.abs(response)
-        # log_response = np.round(np.log(abs_response) * 20.0, 2)
         log_response = np.log(abs_response) * 20.0
         radialStk[p, :] = log_response
 

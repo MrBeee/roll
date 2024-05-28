@@ -66,53 +66,74 @@ import pyqtgraph as pg
 from console import console
 from numpy.compat import asstr
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
-                              QItemSelection, QItemSelectionModel, QModelIndex,
-                              QPoint, QSettings, Qt, QTextStream, QThread)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
-                             QTextCursor, QTextOption, QTransform)
-from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
-                                      QPrintPreviewDialog)
-from qgis.PyQt.QtWidgets import (QAction, QApplication, QButtonGroup,
-                                 QCheckBox, QDialogButtonBox, QDockWidget,
-                                 QFileDialog, QFrame, QGraphicsEllipseItem,
-                                 QGridLayout, QGroupBox, QHBoxLayout,
-                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
-                                 QPlainTextEdit, QProgressBar, QPushButton,
-                                 QRadioButton, QSplitter, QTabWidget,
-                                 QVBoxLayout, QWidget)
+from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
+from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
+from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QApplication,
+    QButtonGroup,
+    QCheckBox,
+    QDialogButtonBox,
+    QDockWidget,
+    QFileDialog,
+    QFrame,
+    QGraphicsEllipseItem,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QRadioButton,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
+
 # from .event_lookup import event_lookup
 from .find import Find
 from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
-from .functions_numba import (numbaAziInline, numbaAziX_line, numbaNdft_1D,
-                              numbaNdft_2D, numbaOffInline, numbaOffsetBin,
-                              numbaOffX_line, numbaSlice2D, numbaSlice3D,
-                              numbaSliceStats, numbaSpiderBin)
+from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
-                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
-                             identifyQgisPointLayer, readQgisPointLayer,
-                             updateQgisPointLayer)
+from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
 from .roll_binning import BinningType
 from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
-                            deletePntDuplicates, deletePntOrphans,
-                            deleteRelDuplicates, deleteRelOrphans,
-                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
-                            findRecOrphans, findSrcOrphans, getRecGeometry,
-                            getSrcGeometry, markUniqueRPSrecords,
-                            markUniqueSPSrecords, markUniqueXPSrecords,
-                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
-                            relType2)
-from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
-                               TableView, XpsTableModel)
-from .worker_threads import (BinFromGeometryWorker, BinningWorker,
-                             GeometryWorker)
+from .sps_io_and_qc import (
+    calcMaxXPStraces,
+    calculateLineStakeTransform,
+    deletePntDuplicates,
+    deletePntOrphans,
+    deleteRelDuplicates,
+    deleteRelOrphans,
+    fileExportAsR01,
+    fileExportAsS01,
+    fileExportAsX01,
+    findRecOrphans,
+    findSrcOrphans,
+    getRecGeometry,
+    getSrcGeometry,
+    markUniqueRPSrecords,
+    markUniqueSPSrecords,
+    markUniqueXPSrecords,
+    pntType1,
+    readRPSFiles,
+    readSPSFiles,
+    readXPSFiles,
+    relType2,
+)
+from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
+from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -416,10 +437,25 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnSpiderUp = QPushButton(QIcon(os.path.join(current_dir, 'resources/mActionArrowUp.svg')), '', self)
         self.btnSpiderDn = QPushButton(QIcon(os.path.join(current_dir, 'resources/mActionArrowDown.svg')), '', self)
 
+        self.btnSpiderLt.setStyleSheet('QPushButton { selection-background-color: blue } QPushButton:pressed { background-color: red }')
+        self.btnSpiderRt.setStyleSheet('QPushButton { selection-background-color: blue } QPushButton:pressed { background-color: red }')
+        self.btnSpiderUp.setStyleSheet('QPushButton { selection-background-color: blue } QPushButton:pressed { background-color: red }')
+        self.btnSpiderDn.setStyleSheet('QPushButton { selection-background-color: blue } QPushButton:pressed { background-color: red }')
+
+        self.btnSpiderLt.setToolTip('Prev stake')
+        self.btnSpiderRt.setToolTip('Next stake')
+        self.btnSpiderUp.setToolTip('Next line')
+        self.btnSpiderDn.setToolTip('Prev line')
+
         self.btnSpiderLt.pressed.connect(self.spiderGoLt)
         self.btnSpiderRt.pressed.connect(self.spiderGoRt)
         self.btnSpiderUp.pressed.connect(self.spiderGoUp)
         self.btnSpiderDn.pressed.connect(self.spiderGoDn)
+
+        self.btnSpiderLt.setShortcut(QKeySequence(('Alt+Left')))
+        self.btnSpiderRt.setShortcut(QKeySequence(('Alt+Right')))
+        self.btnSpiderUp.setShortcut(QKeySequence(('Alt+Up')))
+        self.btnSpiderDn.setShortcut(QKeySequence(('Alt+Down')))
 
         hbox1 = QHBoxLayout()
         hbox1.addWidget(self.btnSpiderLt)
@@ -1133,9 +1169,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnSrcRemoveDuplicates = QPushButton('Remove &Duplicates')
         self.btnSrcRemoveOrphans = QPushButton('Remove &REL-orphins')
 
-        self.btnSrcExportToQGIS = QPushButton('&Export to QGIS Layer')
-        self.btnSrcUpdateToQGIS = QPushButton('&Update QGIS Layer')
-        self.btnSrcReadFromQGIS = QPushButton('&Read from QGIS Layer')
+        self.btnSrcExportToQGIS = QPushButton('&Export to QGIS')
+        self.btnSrcUpdateToQGIS = QPushButton('&Update QGIS')
+        self.btnSrcReadFromQGIS = QPushButton('&Read from QGIS')
 
         self.btnRelRemoveSrcOrphans = QPushButton('Remove &SRC-orphins')
         self.btnRelRemoveDuplicates = QPushButton('Remove &Duplicates')
@@ -1144,9 +1180,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnRecRemoveDuplicates = QPushButton('Remove &Duplicates')
         self.btnRecRemoveOrphans = QPushButton('Remove &REL-orphins')
 
-        self.btnRecExportToQGIS = QPushButton('&Export to QGIS Layer')
-        self.btnRecUpdateToQGIS = QPushButton('&Update QGIS Layer')
-        self.btnRecReadFromQGIS = QPushButton('&Read from QGIS Layer')
+        self.btnRecExportToQGIS = QPushButton('&Export to QGIS')
+        self.btnRecUpdateToQGIS = QPushButton('&Update QGIS')
+        self.btnRecReadFromQGIS = QPushButton('&Read from QGIS')
 
         self.btnRelExportToQGIS = QPushButton('Export Src, Cmp, Rec && Binning &Boundaries to QGIS')
 
@@ -1197,11 +1233,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnMinToQGIS.pressed.connect(self.exportMinToQGIS)
         self.btnMaxToQGIS.pressed.connect(self.exportMaxToQGIS)
 
-        label1 = QLabel('«- Cleanup table -»')
+        label1 = QLabel('«-Cleanup table-»')
         label1.setStyleSheet('border: 1px solid black;background-color:lavender')
         label1.setAlignment(Qt.AlignCenter)
 
-        label2 = QLabel('«- Cleanup table -»')
+        label2 = QLabel('«-Cleanup table-»')
         label2.setStyleSheet('border: 1px solid black;background-color:lavender')
         label2.setAlignment(Qt.AlignCenter)
 
@@ -1453,7 +1489,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         ySize = self.survey.output.anaOutput.shape[1]
 
         if self.spiderPoint == QPoint(-1, -1):                                  # no valid position yet; move to center
-            self.spiderPoint = QPoint(xSize / 2, ySize / 2)
+            self.spiderPoint = QPoint(xSize // 2, ySize // 2)
         elif direction == Direction.Rt:                                         # valid position, so move spider around
             self.spiderPoint += QPoint(1, 0) * step
         elif direction == Direction.Lt:
@@ -2110,7 +2146,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         ySize = self.survey.output.anaOutput.shape[1]
 
         if self.spiderPoint == QPoint(-1, -1):                                  # no valid position yet; move to center
-            self.spiderPoint = QPoint(xSize / 2, ySize / 2)
+            self.spiderPoint = QPoint(xSize // 2, ySize // 2)
 
         nX = self.spiderPoint.x()                                               # create nx, ny from self.spiderPoint
         nY = self.spiderPoint.y()
@@ -2471,8 +2507,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def plotOffTrk(self, nY: int, stkY: int, ox: float):
         with pg.BusyCursor():
-            slice2D, noData = numbaSlice2D(self.survey.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
-            if noData:
+            slice3D = self.survey.output.anaOutput[:, nY, :, :]
+            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
+
+            slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+            if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
             x, y = numbaOffInline(slice2D, ox)
@@ -2484,8 +2523,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def plotOffBin(self, nX: int, stkX: int, oy: float):
         with pg.BusyCursor():
-            slice2D, noData = numbaSlice2D(self.survey.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
-            if noData:
+            slice3D = self.survey.output.anaOutput[nX, :, :, :]
+            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
+
+            slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+            if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
             x, y = numbaOffX_line(slice2D, oy)
@@ -2497,8 +2539,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def plotAziTrk(self, nY: int, stkY: int, ox: float):
         with pg.BusyCursor():
-            slice2D, noData = numbaSlice2D(self.survey.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
-            if noData:
+            slice3D = self.survey.output.anaOutput[:, nY, :, :]
+            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
+
+            slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+            if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
             x, y = numbaAziInline(slice2D, ox)
@@ -2510,8 +2555,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def plotAziBin(self, nX: int, stkX: int, oy: float):
         with pg.BusyCursor():
-            slice2D, noData = numbaSlice2D(self.survey.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
-            if noData:
+            slice3D = self.survey.output.anaOutput[nX, :, :, :]
+            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
+
+            slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+            if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
             x, y = numbaAziX_line(slice2D, oy)
@@ -2528,8 +2576,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
-            slice3D, I, noData = numbaSlice3D(self.survey.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
-            if noData:
+            slice3D, I = numbaSlice3D(self.survey.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
+            if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
             self.inlineStk = numbaNdft_1D(kMax, dK, slice3D, I)
@@ -2562,8 +2610,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
-            slice3D, I, noData = numbaSlice3D(self.survey.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
-            if noData:
+            slice3D, I = numbaSlice3D(self.survey.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
+            if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
             self.x_lineStk = numbaNdft_1D(kMax, dK, slice3D, I)
