@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>910</width>
-    <height>757</height>
+    <width>1084</width>
+    <height>581</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,7 +26,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>910</width>
+     <width>1084</width>
      <height>26</height>
     </rect>
    </property>
@@ -44,7 +44,7 @@
     </widget>
     <widget class="QMenu" name="menuExport">
      <property name="title">
-      <string>Export results</string>
+      <string>Export to File</string>
      </property>
      <property name="icon">
       <iconset>
@@ -53,7 +53,7 @@
      </property>
      <widget class="QMenu" name="menuExport_Geometry_Files">
       <property name="title">
-       <string>Export &amp;Geometry Files</string>
+       <string>Export &amp;Geometry</string>
       </property>
       <addaction name="actionExportRecAsCsv"/>
       <addaction name="actionExportSrcAsCsv"/>
@@ -65,7 +65,7 @@
      </widget>
      <widget class="QMenu" name="menu_Re_export_SPS_Files">
       <property name="title">
-       <string>(Re-) export &amp;SPS Files</string>
+       <string>(Re-) export &amp;SPS</string>
       </property>
       <addaction name="actionExportRpsAsCsv"/>
       <addaction name="actionExportSpsAsCsv"/>
@@ -77,7 +77,7 @@
      </widget>
      <widget class="QMenu" name="menuExport_Analysis_Files">
       <property name="title">
-       <string>Export &amp;Analysis Files</string>
+       <string>Export &amp;Analysis</string>
       </property>
       <addaction name="actionExportFoldMap"/>
       <addaction name="actionExportMinOffsets"/>
@@ -101,6 +101,26 @@
      </property>
      <addaction name="separator"/>
     </widget>
+    <widget class="QMenu" name="menuExport_to_QGIS">
+     <property name="title">
+      <string>Export to QGIS</string>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>resources/qgis-icon32.svg</normaloff>resources/qgis-icon32.svg</iconset>
+     </property>
+     <addaction name="actionExportFoldMapToQGIS"/>
+     <addaction name="actionExportMinOffsetsToQGIS"/>
+     <addaction name="actionExportMaxOffsetsToQGIS"/>
+     <addaction name="actionExportRmsOffsetsToQGIS"/>
+     <addaction name="separator"/>
+     <addaction name="actionExportSrcToQGIS"/>
+     <addaction name="actionExportRecToQGIS"/>
+     <addaction name="actionExportSpsToQGIS"/>
+     <addaction name="actionExportRpsToQGIS"/>
+     <addaction name="separator"/>
+     <addaction name="actionExportAreasToQGIS"/>
+    </widget>
     <addaction name="menuNewSurvey"/>
     <addaction name="separator"/>
     <addaction name="actionOpen"/>
@@ -110,6 +130,7 @@
     <addaction name="menuOpenRecent"/>
     <addaction name="separator"/>
     <addaction name="menuExport"/>
+    <addaction name="menuExport_to_QGIS"/>
     <addaction name="actionImportSPS"/>
     <addaction name="separator"/>
     <addaction name="actionPrint"/>
@@ -146,6 +167,7 @@
     </property>
     <addaction name="actionAbout"/>
     <addaction name="actionLicense"/>
+    <addaction name="actionHighDpi"/>
    </widget>
    <widget class="QMenu" name="menu_Processing">
     <property name="title">
@@ -164,16 +186,42 @@
     <addaction name="separator"/>
     <addaction name="actionStopThread"/>
    </widget>
+   <widget class="QMenu" name="menuDisplay">
+    <property name="title">
+     <string>&amp;Display</string>
+    </property>
+    <addaction name="actionGeometry_to_Display"/>
+    <addaction name="actionTemplates"/>
+    <addaction name="actionRecPoints"/>
+    <addaction name="actionSrcPoints"/>
+    <addaction name="actionRpsPoints"/>
+    <addaction name="actionSpsPoints"/>
+    <addaction name="separator"/>
+    <addaction name="actionAnalysis_to_display"/>
+    <addaction name="actionNone"/>
+    <addaction name="actionFold"/>
+    <addaction name="actionMinO"/>
+    <addaction name="actionMaxO"/>
+    <addaction name="actionRmsO"/>
+    <addaction name="separator"/>
+    <addaction name="actionSpider"/>
+    <addaction name="separator"/>
+    <addaction name="actionMoveRt"/>
+    <addaction name="actionMoveLt"/>
+    <addaction name="actionMoveUp"/>
+    <addaction name="actionMoveDn"/>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menuEdit"/>
    <addaction name="menu_View"/>
+   <addaction name="menuDisplay"/>
    <addaction name="menu_Processing"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="fileBar">
    <property name="windowTitle">
-    <string>toolBar</string>
+    <string>&amp;File bar</string>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
@@ -195,7 +243,7 @@
   </widget>
   <widget class="QToolBar" name="editBar">
    <property name="windowTitle">
-    <string>toolBar</string>
+    <string>&amp;Edit bar</string>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
@@ -212,7 +260,7 @@
   </widget>
   <widget class="QToolBar" name="graphBar">
    <property name="windowTitle">
-    <string>toolBar</string>
+    <string>&amp;Graph bar</string>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
@@ -228,6 +276,21 @@
    <addaction name="actionPlotGridY"/>
    <addaction name="actionProjected"/>
    <addaction name="actionRuler"/>
+  </widget>
+  <widget class="QToolBar" name="moveBar">
+   <property name="windowTitle">
+    <string>&amp;Move bar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionMoveLt"/>
+   <addaction name="actionMoveRt"/>
+   <addaction name="actionMoveUp"/>
+   <addaction name="actionMoveDn"/>
   </widget>
   <action name="actionOpen">
    <property name="icon">
@@ -675,17 +738,17 @@
   </action>
   <action name="actionExportFoldMap">
    <property name="text">
-    <string>Fold Map - as GeoTiff</string>
+    <string>Fold Map - as GeoTiff file</string>
    </property>
   </action>
   <action name="actionExportMinOffsets">
    <property name="text">
-    <string>Min Offset - as GeoTiff</string>
+    <string>Min Offset - as GeoTiff file</string>
    </property>
   </action>
   <action name="actionExportMaxOffsets">
    <property name="text">
-    <string>Max Offset - as GeoTiff</string>
+    <string>Max Offset - as GeoTiff file</string>
    </property>
   </action>
   <action name="actionFullBinFromTemplates">
@@ -726,7 +789,7 @@
      <normaloff>resources/file_import_sps.svg</normaloff>resources/file_import_sps.svg</iconset>
    </property>
    <property name="text">
-    <string>Import SPS files</string>
+    <string>Import SPS files...</string>
    </property>
   </action>
   <action name="actionExportRpsAsCsv">
@@ -884,7 +947,252 @@
   </action>
   <action name="actionExportRmsOffsets">
    <property name="text">
-    <string>Rms Offset - as GeoTiff</string>
+    <string>Rms Offset - as GeoTiff file</string>
+   </property>
+  </action>
+  <action name="actionHighDpi">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/icons8-bug-64.png</normaloff>resources/icons8-bug-64.png</iconset>
+   </property>
+   <property name="text">
+    <string>High DPI Monitors</string>
+   </property>
+  </action>
+  <action name="actionMoveRt">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionArrowRight.svg</normaloff>resources/mActionArrowRight.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Move Right</string>
+   </property>
+   <property name="toolTip">
+    <string>Move Right</string>
+   </property>
+  </action>
+  <action name="actionMoveLt">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionArrowLeft.svg</normaloff>resources/mActionArrowLeft.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Move Left</string>
+   </property>
+   <property name="toolTip">
+    <string>Move Left</string>
+   </property>
+  </action>
+  <action name="actionMoveUp">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionArrowUp.svg</normaloff>resources/mActionArrowUp.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Move Up</string>
+   </property>
+   <property name="toolTip">
+    <string>Move Up</string>
+   </property>
+  </action>
+  <action name="actionMoveDn">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionArrowDown.svg</normaloff>resources/mActionArrowDown.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Move Down</string>
+   </property>
+   <property name="toolTip">
+    <string>Move Down</string>
+   </property>
+  </action>
+  <action name="actionExportFoldMapToQGIS">
+   <property name="text">
+    <string>Export Fold Map to QGIS</string>
+   </property>
+  </action>
+  <action name="actionExportMinOffsetsToQGIS">
+   <property name="text">
+    <string>Export Min Offsets to QGIS</string>
+   </property>
+  </action>
+  <action name="actionExportMaxOffsetsToQGIS">
+   <property name="text">
+    <string>Export Max Offsets to QGIS</string>
+   </property>
+  </action>
+  <action name="actionExportRmsOffsetsToQGIS">
+   <property name="text">
+    <string>Export RMS Offsets to QGIS</string>
+   </property>
+  </action>
+  <action name="actionExportSrcToQGIS">
+   <property name="text">
+    <string>Export SRC Records to QGIS</string>
+   </property>
+  </action>
+  <action name="actionExportRecToQGIS">
+   <property name="text">
+    <string>Export REC Records to QGIS</string>
+   </property>
+  </action>
+  <action name="actionExportSpsToQGIS">
+   <property name="text">
+    <string>Export SPS Records to QGIS</string>
+   </property>
+  </action>
+  <action name="actionExportRpsToQGIS">
+   <property name="text">
+    <string>Export RPS Records to QGIS</string>
+   </property>
+  </action>
+  <action name="actionGeometry_to_Display">
+   <property name="text">
+    <string>Geometry to display</string>
+   </property>
+   <property name="font">
+    <font>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+  </action>
+  <action name="actionTemplates">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Templates</string>
+   </property>
+   <property name="toolTip">
+    <string>Show templates</string>
+   </property>
+  </action>
+  <action name="actionRecPoints">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>REC points</string>
+   </property>
+   <property name="toolTip">
+    <string>Show receiver points</string>
+   </property>
+  </action>
+  <action name="actionSrcPoints">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>SRC points</string>
+   </property>
+   <property name="toolTip">
+    <string>Show source points</string>
+   </property>
+  </action>
+  <action name="actionRpsPoints">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>RPS points</string>
+   </property>
+   <property name="toolTip">
+    <string>Show RPS receiver points</string>
+   </property>
+  </action>
+  <action name="actionSpsPoints">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>SPS points</string>
+   </property>
+   <property name="toolTip">
+    <string>Show SPS source points</string>
+   </property>
+  </action>
+  <action name="actionAnalysis_to_display">
+   <property name="text">
+    <string>Analysis to display</string>
+   </property>
+   <property name="font">
+    <font>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+  </action>
+  <action name="actionNone">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>No Analysis</string>
+   </property>
+   <property name="toolTip">
+    <string>No Analysis shown</string>
+   </property>
+  </action>
+  <action name="actionFold">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Fold Map</string>
+   </property>
+   <property name="toolTip">
+    <string>Show fold map</string>
+   </property>
+  </action>
+  <action name="actionMinO">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Min Offsets</string>
+   </property>
+   <property name="toolTip">
+    <string>Show minimum offsets</string>
+   </property>
+  </action>
+  <action name="actionMaxO">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Max Offsets</string>
+   </property>
+   <property name="toolTip">
+    <string>Show maximum offsets</string>
+   </property>
+  </action>
+  <action name="actionRmsO">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>RMS Offset inc</string>
+   </property>
+   <property name="toolTip">
+    <string>Show RMS offset incremenents</string>
+   </property>
+  </action>
+  <action name="actionSpider">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Spider plot</string>
+   </property>
+  </action>
+  <action name="actionExportAreasToQGIS">
+   <property name="text">
+    <string>Export Binning Area to QGIS</string>
+   </property>
+   <property name="toolTip">
+    <string>Export Src, Rec, CMP  &amp; Binning Area to QGIS</string>
    </property>
   </action>
  </widget>

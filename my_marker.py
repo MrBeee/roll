@@ -4,8 +4,7 @@ from pyqtgraph.parametertree import registerParameterType
 from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QBrush, QPen, QPixmap
-from qgis.PyQt.QtWidgets import (QHBoxLayout, QLabel, QSizePolicy, QSpacerItem,
-                                 QWidget)
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
 from .my_preview_label import MyPreviewLabel
@@ -87,10 +86,6 @@ class TextPreviewLabel(MyPreviewLabel):
         super().__init__()
         param.sigValueChanging.connect(self.onMarkerChanging)
 
-        self.symbolKeys = MySymbolParameterItem.getsymbolKeys()                 # get from my_symbols.py
-        self.symbolNames = MySymbolParameterItem.getsymbolNames()               # get from my_symbols.py
-        assert len(self.symbolNames) == len(self.symbolKeys), 'Error; the symbol list in pyqtgraph must have been altered'
-
         opts = param.opts
         sym = opts.get('symbol', 'o')
         col = opts.get('color', 'y')
@@ -102,10 +97,8 @@ class TextPreviewLabel(MyPreviewLabel):
         sym = val.symbol()                                                      # symbol size `val.color()` not used in the TextPreviewLabel
         siz = val.size()
 
-        index = self.symbolKeys.index(sym)
-        val = self.symbolNames[index]
-
-        self.setText(f'{val} [{siz}]')
+        symbol = MySymbolParameterItem.getsymbolName(sym)
+        self.setText(f'{symbol} [{siz}]')
         self.update()
 
 

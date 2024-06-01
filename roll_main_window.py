@@ -47,6 +47,34 @@ To find out where libraries reside, use 'inspect':
 # This file is getting TOO BIG. Need to split class into multiple documents.
 # See: https://www.reddit.com/r/Python/comments/91wbhc/how_do_i_split_a_huge_class_over_multiple_files/?rdt=44096
 
+
+# As of 3.32 scaling issues have popped up in QGIS. !
+# See: https://github.com/qgis/QGIS/issues/53898
+# Solution:
+# 1) Right click 'qgis-bin.exe' in folder 'C:\Program Files\QGIS 3.36.3\bin'
+# 2) Select the Compatibility tab
+# 3) Select 'change high DPI settings'
+# 4) Set the tickmark before 'Override high DPI ...'
+# 5) Have scaling performed by 'Application'
+# 6) In the same folder edit the file 'qgis-bin.env'
+# 7) Add one line at the end:
+# 8) QT_SCALE_FACTOR_ROUNDING_POLICY=Floor
+# 9) Save the file in a different (user) folder as C:\Program Files is protected
+# 10) Drag the edited file to the C:\Program Files\QGIS 3.36.3\bin folder
+# 11) You'll be asked to confirm you want to overwrite the *.env file
+# that solved my problems ! I use font size 9.0 and Icon size 24
+
+# Now creating extra toolbars to be able to close the Display pane, and work from a toolbar instead.
+# But I don't want to duplicate all signals and slots !
+# See: https://stackoverflow.com/questions/16703039/pyqt-can-a-qpushbutton-be-assigned-a-qaction
+# See: https://stackoverflow.com/questions/4149117/how-can-i-implement-the-button-that-holds-an-action-qaction-and-can-connect-w
+# See: https://stackoverflow.com/questions/38576380/difference-between-qpushbutton-and-qtoolbutton
+# See: https://stackoverflow.com/questions/10368947/how-to-make-qmenu-item-checkable-pyqt4-python
+# See: https://stackoverflow.com/questions/23388754/two-shortcuts-for-one-action
+# See: https://stackoverflow.com/questions/53936403/two-shortcuts-for-one-button-in-pyqt
+# See: https://doc.qt.io/qtforpython-5/PySide2/QtWidgets/QActionGroup.html#PySide2.QtWidgets.PySide2.QtWidgets.QActionGroup
+
+
 import contextlib
 import gc
 import os
@@ -71,6 +99,7 @@ from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCur
 from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
 from qgis.PyQt.QtWidgets import (
     QAction,
+    QActionGroup,
     QApplication,
     QButtonGroup,
     QCheckBox,
@@ -92,6 +121,7 @@ from qgis.PyQt.QtWidgets import (
     QRadioButton,
     QSplitter,
     QTabWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -101,7 +131,7 @@ from . import config  # used to pass initial settings
 
 # from .event_lookup import event_lookup
 from .find import Find
-from .functions import aboutText, exampleSurveyXmlText, licenseText, rawcount
+from .functions import aboutText, exampleSurveyXmlText, highDpiText, licenseText, rawcount
 from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
@@ -170,8 +200,8 @@ class QButtonGroupEx(QButtonGroup):
         for button in self.buttons():
             if self.id(button) == id_:
                 button.setChecked(True)
-                break
-        return id_
+                return id_
+        return None
 
 
 # See: https://groups.google.com/g/pyqtgraph/c/V01QJKvrUio/m/iUBp5NePCQAJ
@@ -372,9 +402,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # display pane
         self.displayWidget = QWidget()                                          # placeholder widget to generate a layout
         self.displayLayout = QVBoxLayout()                                      # required layout
-        self.geometryChoice = QGroupBox('Select geometry to display')           # create display widget(s)
-        self.analysisChoice = QGroupBox('Select analysis to display')           # create display widget(s)
-        self.analysisToQgis = QGroupBox('write analysis to QGIS layer')         # create display widget(s)
+        # self.displayLayout.setAlignment(Qt.AlignCenter)                         # center the elements in this layout
+
+        self.geometryChoice = QGroupBox('Geometry to display')                  # create display widget(s)
+        self.analysisChoice = QGroupBox('Analysis to display')                  # create display widget(s)
+        self.analysisToQgis = QGroupBox('Export to QGIS')                       # create display widget(s)
+
+        self.geometryChoice.setMinimumWidth(140)
+        self.analysisChoice.setMinimumWidth(140)
+        self.analysisToQgis.setMinimumWidth(140)
+
+        self.geometryChoice.setAlignment(Qt.AlignHCenter)
+        self.analysisChoice.setAlignment(Qt.AlignHCenter)
+        self.analysisToQgis.setAlignment(Qt.AlignHCenter)
 
         self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
         self.displayLayout.addWidget(self.geometryChoice)                       # add main widget(s)
@@ -384,78 +424,114 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.displayLayout.addWidget(self.analysisToQgis)                       # add main widget(s)
         self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
 
-        self.cbTemplat = QCheckBox('Templates')
-        self.cbRecList = QCheckBox('Rec-list')
-        self.cbSrcList = QCheckBox('Src-list')
-        self.cbRpsList = QCheckBox('RPS-list')
-        self.cbSpsList = QCheckBox('SPS-list')
-        self.cbTemplat.setChecked(True)
-        self.cbRecList.setEnabled(False)
-        self.cbSrcList.setEnabled(False)
-        self.cbRpsList.setEnabled(False)
-        self.cbSpsList.setEnabled(False)
+        self.tbTemplat = QToolButton()
+        self.tbRecList = QToolButton()
+        self.tbSrcList = QToolButton()
+        self.tbRpsList = QToolButton()
+        self.tbSpsList = QToolButton()
+
+        self.tbTemplat.setMinimumWidth(100)
+        self.tbRecList.setMinimumWidth(100)
+        self.tbSrcList.setMinimumWidth(100)
+        self.tbRpsList.setMinimumWidth(100)
+        self.tbSpsList.setMinimumWidth(100)
+
+        self.tbTemplat.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbRecList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbSrcList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbTemplat.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbRpsList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbSpsList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+
+        self.tbTemplat.setDefaultAction(self.actionTemplates)
+        self.tbRecList.setDefaultAction(self.actionRecPoints)
+        self.tbSrcList.setDefaultAction(self.actionSrcPoints)
+        self.tbRpsList.setDefaultAction(self.actionRpsPoints)
+        self.tbSpsList.setDefaultAction(self.actionSpsPoints)
+
+        self.actionTemplates.setChecked(True)
+        self.actionRecPoints.setEnabled(False)
+        self.actionSrcPoints.setEnabled(False)
+        self.actionRpsPoints.setEnabled(False)
+        self.actionSpsPoints.setEnabled(False)
 
         vbox1 = QVBoxLayout()
-        vbox1.addWidget(self.cbTemplat)
-        vbox1.addWidget(self.cbRecList)
-        vbox1.addWidget(self.cbSrcList)
-        vbox1.addWidget(self.cbRpsList)
-        vbox1.addWidget(self.cbSpsList)
+        vbox1.addWidget(self.tbTemplat)
+        vbox1.addWidget(self.tbRecList)
+        vbox1.addWidget(self.tbSrcList)
+        vbox1.addWidget(self.tbRpsList)
+        vbox1.addWidget(self.tbSpsList)
         self.geometryChoice.setLayout(vbox1)
 
         vbox2 = QVBoxLayout()
 
-        self.rbNone = QRadioButton('No Analysis', self)
-        self.rbNone.setChecked(True)
-        vbox2.addWidget(self.rbNone)
+        self.tbNone = QToolButton()
+        self.tbFold = QToolButton()
+        self.tbMinO = QToolButton()
+        self.tbMaxO = QToolButton()
+        self.tbRmsO = QToolButton()
+
+        self.tbNone.setMinimumWidth(100)
+        self.tbFold.setMinimumWidth(100)
+        self.tbMinO.setMinimumWidth(100)
+        self.tbMaxO.setMinimumWidth(100)
+        self.tbRmsO.setMinimumWidth(100)
+
+        self.tbNone.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbFold.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbMinO.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbMaxO.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbRmsO.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+
+        self.actionNone.setChecked(True)                                        # action coupled to tbNone
+        self.tbNone.setDefaultAction(self.actionNone)                           # coupling done here
+        self.tbFold.setDefaultAction(self.actionFold)
+        self.tbMinO.setDefaultAction(self.actionMinO)
+        self.tbMaxO.setDefaultAction(self.actionMaxO)
+        self.tbRmsO.setDefaultAction(self.actionRmsO)
+
+        vbox2.addWidget(self.tbNone)
+        vbox2.addWidget(self.tbFold)
+        vbox2.addWidget(self.tbMinO)
+        vbox2.addWidget(self.tbMaxO)
+        vbox2.addWidget(self.tbRmsO)
 
         vbox2.addWidget(QHLine())
+        self.actionSpider.triggered.connect(self.handleSpiderPlot)
+        self.actionSpider.setEnabled(False)
 
-        self.rbFold = QRadioButton('Fold Map', self)
-        vbox2.addWidget(self.rbFold)
+        self.tbSpider = QToolButton()
+        self.tbSpider.setMinimumWidth(100)
+        self.tbSpider.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbSpider.setDefaultAction(self.actionSpider)
+        vbox2.addWidget(self.tbSpider)
 
-        self.rbMinO = QRadioButton('Min Offset', self)
-        vbox2.addWidget(self.rbMinO)
+        self.btnSpiderLt = QToolButton()
+        self.btnSpiderRt = QToolButton()
+        self.btnSpiderUp = QToolButton()
+        self.btnSpiderDn = QToolButton()
 
-        self.rbMaxO = QRadioButton('Max Offset', self)
-        vbox2.addWidget(self.rbMaxO)
+        self.btnSpiderLt.setDefaultAction(self.actionMoveLt)
+        self.btnSpiderRt.setDefaultAction(self.actionMoveRt)
+        self.btnSpiderUp.setDefaultAction(self.actionMoveUp)
+        self.btnSpiderDn.setDefaultAction(self.actionMoveDn)
 
-        vbox2.addWidget(QHLine())
+        # Note: to use a stylesheet on buttons (=actions) in a toolbar, you needt to use the toolbar's stylesheet and select individual actions to 'style'
+        # See: https://stackoverflow.com/questions/32460193/how-to-change-qaction-background-color-using-stylesheets-css
+        self.btnSpiderLt.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.btnSpiderRt.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.btnSpiderUp.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.btnSpiderDn.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
 
-        self.rbRmsO = QRadioButton('Rms Offset inc', self)
-        vbox2.addWidget(self.rbRmsO)
+        self.actionMoveLt.triggered.connect(self.spiderGoLt)
+        self.actionMoveRt.triggered.connect(self.spiderGoRt)
+        self.actionMoveUp.triggered.connect(self.spiderGoUp)
+        self.actionMoveDn.triggered.connect(self.spiderGoDn)
 
-        self.cbSpider = QCheckBox('Spider plot', self)
-        self.cbSpider.setEnabled(False)
-        self.cbSpider.stateChanged.connect(self.handleSpiderPlot)
-
-        vbox2.addWidget(self.cbSpider)
-
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.btnSpiderLt = QPushButton(QIcon(os.path.join(current_dir, 'resources/mActionArrowLeft.svg')), '', self)
-        self.btnSpiderRt = QPushButton(QIcon(os.path.join(current_dir, 'resources/mActionArrowRight.svg')), '', self)
-        self.btnSpiderUp = QPushButton(QIcon(os.path.join(current_dir, 'resources/mActionArrowUp.svg')), '', self)
-        self.btnSpiderDn = QPushButton(QIcon(os.path.join(current_dir, 'resources/mActionArrowDown.svg')), '', self)
-
-        self.btnSpiderLt.setStyleSheet('QPushButton { selection-background-color: blue } QPushButton:pressed { background-color: red }')
-        self.btnSpiderRt.setStyleSheet('QPushButton { selection-background-color: blue } QPushButton:pressed { background-color: red }')
-        self.btnSpiderUp.setStyleSheet('QPushButton { selection-background-color: blue } QPushButton:pressed { background-color: red }')
-        self.btnSpiderDn.setStyleSheet('QPushButton { selection-background-color: blue } QPushButton:pressed { background-color: red }')
-
-        self.btnSpiderLt.setToolTip('Prev stake')
-        self.btnSpiderRt.setToolTip('Next stake')
-        self.btnSpiderUp.setToolTip('Next line')
-        self.btnSpiderDn.setToolTip('Prev line')
-
-        self.btnSpiderLt.pressed.connect(self.spiderGoLt)
-        self.btnSpiderRt.pressed.connect(self.spiderGoRt)
-        self.btnSpiderUp.pressed.connect(self.spiderGoUp)
-        self.btnSpiderDn.pressed.connect(self.spiderGoDn)
-
-        self.btnSpiderLt.setShortcut(QKeySequence(('Alt+Left')))
-        self.btnSpiderRt.setShortcut(QKeySequence(('Alt+Right')))
-        self.btnSpiderUp.setShortcut(QKeySequence(('Alt+Up')))
-        self.btnSpiderDn.setShortcut(QKeySequence(('Alt+Down')))
+        self.actionMoveLt.setShortcuts(['Alt+Left', 'Alt+Shift+Left', 'Alt+Ctrl+Left', 'Alt+Shift+Ctrl+Left'])
+        self.actionMoveRt.setShortcuts(['Alt+Right', 'Alt+Shift+Right', 'Alt+Ctrl+Right', 'Alt+Shift+Ctrl+Right'])
+        self.actionMoveUp.setShortcuts(['Alt+Up', 'Alt+Shift+Up', 'Alt+Ctrl+Up', 'Alt+Shift+Ctrl+Up'])
+        self.actionMoveDn.setShortcuts(['Alt+Down', 'Alt+Shift+Down', 'Alt+Ctrl+Down', 'Alt+Shift+Ctrl+Down'])
 
         hbox1 = QHBoxLayout()
         hbox1.addWidget(self.btnSpiderLt)
@@ -464,21 +540,44 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         hbox1.addWidget(self.btnSpiderDn)
         vbox2.addLayout(hbox1)
 
+        # grid1 = QGridLayout()
+        # grid1.addWidget(self.btnSpiderLt, 0, 0)
+        # grid1.addWidget(self.btnSpiderRt, 0, 1)
+        # grid1.addWidget(self.btnSpiderUp, 1, 0)
+        # grid1.addWidget(self.btnSpiderDn, 1, 1)
+        # vbox2.addLayout(grid1)
+
         self.analysisChoice.setLayout(vbox2)
 
-        self.analysisGroup = QButtonGroupEx()                                   # buttongroup around self.analysisChoice
-        self.analysisGroup.addButton(self.rbNone, 0)                            # makes it easier to handle all buttons
-        self.analysisGroup.addButton(self.rbFold, 1)
-        self.analysisGroup.addButton(self.rbMinO, 2)
-        self.analysisGroup.addButton(self.rbMaxO, 3)
-        self.analysisGroup.addButton(self.rbRmsO, 4)
+        self.anActionGroup = QActionGroup(self)
+        self.anActionGroup.addAction(self.actionNone)
+        self.anActionGroup.addAction(self.actionFold)
+        self.anActionGroup.addAction(self.actionMinO)
+        self.anActionGroup.addAction(self.actionMaxO)
+        self.anActionGroup.addAction(self.actionRmsO)
+        self.actionNone.setChecked(True)
 
-        self.analysisGroup.buttonClicked.connect(self.handleImageSelection)
+        self.actionNone.triggered.connect(self.onActionNoneTriggered)
+        self.actionFold.triggered.connect(self.onActionFoldTriggered)
+        self.actionMinO.triggered.connect(self.onActionMinOTriggered)
+        self.actionMaxO.triggered.connect(self.onActionMaxOTriggered)
+        self.actionRmsO.triggered.connect(self.onActionRmsOTriggered)
 
-        self.btnBinToQGIS = QPushButton('&Fold Map')
-        self.btnMinToQGIS = QPushButton('M&in Offset')
-        self.btnMaxToQGIS = QPushButton('M&ax Offset')
-        self.btnRmsToQGIS = QPushButton('Rm&s Offset')
+        self.btnBinToQGIS = QPushButton('Fold Map')
+        self.btnMinToQGIS = QPushButton('Min Offset')
+        self.btnMaxToQGIS = QPushButton('Max Offset')
+        self.btnRmsToQGIS = QPushButton('Rms Offset')
+
+        self.btnBinToQGIS.setMinimumWidth(100)
+        self.btnMinToQGIS.setMinimumWidth(100)
+        self.btnMaxToQGIS.setMinimumWidth(100)
+        self.btnRmsToQGIS.setMinimumWidth(100)
+
+        self.btnBinToQGIS.setMaximumWidth(5)
+        self.btnMinToQGIS.setMaximumWidth(5)
+        self.btnMaxToQGIS.setMaximumWidth(5)
+        self.btnRmsToQGIS.setMaximumWidth(5)
+
         self.btnBinToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
         self.btnMinToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
         self.btnMaxToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
@@ -697,6 +796,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionExportSpsAsS01.triggered.connect(self.fileExportSpsAsS01)
         self.actionExportXpsAsX01.triggered.connect(self.fileExportXpsAsX01)
 
+        self.actionExportFoldMapToQGIS.triggered.connect(self.exportBinToQGIS)
+        self.actionExportMinOffsetsToQGIS.triggered.connect(self.exportMinToQGIS)
+        self.actionExportMaxOffsetsToQGIS.triggered.connect(self.exportMaxToQGIS)
+        self.actionExportRmsOffsetsToQGIS.triggered.connect(self.exportRmsToQGIS)
+
         self.actionQuit.triggered.connect(self.close)                           # closes the window and arrives at CloseEvent()
 
         # actions related to the edit menu
@@ -722,6 +826,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionRefresh.triggered.connect(self.UpdateAllViews)
         self.actionAbout.triggered.connect(self.OnAbout)
         self.actionLicense.triggered.connect(self.OnLicense)
+        self.actionHighDpi.triggered.connect(self.OnHighDpi)
 
         # actions related to the processing menu
         self.actionBasicBinFromTemplates.triggered.connect(self.basicBinFromTemplates)
@@ -736,11 +841,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.enableProcessingMenuItems(True)                                   # enables processing menu items except stop thread
 
         # actions related to geometry items to be displayed
-        self.cbTemplat.stateChanged.connect(self.plotLayout)
-        self.cbRpsList.stateChanged.connect(self.plotLayout)
-        self.cbSpsList.stateChanged.connect(self.plotLayout)
-        self.cbRecList.stateChanged.connect(self.plotLayout)
-        self.cbSrcList.stateChanged.connect(self.plotLayout)
+        self.actionTemplates.triggered.connect(self.plotLayout)
+        self.actionRecPoints.triggered.connect(self.plotLayout)
+        self.actionSrcPoints.triggered.connect(self.plotLayout)
+        self.actionRpsPoints.triggered.connect(self.plotLayout)
+        self.actionSpsPoints.triggered.connect(self.plotLayout)
 
         # enable/disable various actions
         self.actionClose.setEnabled(False)
@@ -755,7 +860,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionPaste.setEnabled(self.clipboardHasText())
 
         # for the export items
-        self.enableExport(False)
+        self.updateMenuStatus(False)
 
         # make the main tab widget the central widget
         self.setCentralWidget(self.mainTabWidget)
@@ -805,6 +910,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.dockProperty.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+p'))
         self.menu_View.addAction(self.dockProperty.toggleViewAction())          # show/hide as requested
 
+        self.menu_View.addSeparator()
+        self.menu_View.addAction(self.fileBar.toggleViewAction())
+        self.menu_View.addAction(self.editBar.toggleViewAction())
+        self.menu_View.addAction(self.graphBar.toggleViewAction())
+        self.menu_View.addAction(self.moveBar.toggleViewAction())
+
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
         self.plotLayout()
@@ -816,46 +927,47 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.statusbar.showMessage('Ready', 3000)
 
     def eventFilter(self, source, event):
-        if event.type() == QEvent.Show and isinstance(source, pg.PlotWidget):   # do 'cheap' test first
-            plotItem = source.getPlotItem()
-            viewBox = plotItem.getViewBox()
+        if event.type() == QEvent.Show:                                             # do 'cheap' test first
+            if isinstance(source, pg.PlotWidget):                                   # do 'expensive' test next
 
-            with contextlib.suppress(RuntimeError):                             # rewire zoomAll button
-                self.actionZoomAll.triggered.disconnect()
-            self.actionZoomAll.triggered.connect(source.autoRange)
+                with contextlib.suppress(RuntimeError):                             # rewire zoomAll button
+                    self.actionZoomAll.triggered.disconnect()
+                self.actionZoomAll.triggered.connect(source.autoRange)
 
-            plotIndex = self.getVisiblePlotIndex(source)                        # update toolbar status
-            if plotIndex is not None:
-                self.actionZoomAll.setEnabled(True)                             # useful for all plots
-                self.actionZoomRect.setEnabled(True)                            # useful for all plots
-                self.actionAspectRatio.setEnabled(True)                         # useful for all plots
-                self.actionAntiAlias.setEnabled(True)                           # useful for plots only
-                self.actionRuler.setEnabled(plotIndex == 0)                     # useful for 1st plot only
-                self.actionProjected.setEnabled(plotIndex == 0)                 # useful for 1st plot only
+                plotIndex = self.getVisiblePlotIndex(source)                        # update toolbar status
+                if plotIndex is not None:
+                    self.actionZoomAll.setEnabled(True)                             # useful for all plots
+                    self.actionZoomRect.setEnabled(True)                            # useful for all plots
+                    self.actionAspectRatio.setEnabled(True)                         # useful for all plots
+                    self.actionAntiAlias.setEnabled(True)                           # useful for plots only
+                    self.actionRuler.setEnabled(plotIndex == 0)                     # useful for 1st plot only
+                    self.actionProjected.setEnabled(plotIndex == 0)                 # useful for 1st plot only
 
-                self.actionAntiAlias.setChecked(self.antiA[plotIndex])          # useful for all plots
+                    self.actionAntiAlias.setChecked(self.antiA[plotIndex])          # useful for all plots
 
-                self.gridX = plotItem.saveState()['xGridCheck']                 # update x-gridline status
-                self.actionPlotGridX.setChecked(self.gridX)
+                    plotItem = source.getPlotItem()
+                    self.gridX = plotItem.saveState()['xGridCheck']                 # update x-gridline status
+                    self.actionPlotGridX.setChecked(self.gridX)
 
-                self.gridY = plotItem.saveState()['yGridCheck']                 # update y-gridline status
-                self.actionPlotGridY.setChecked(self.gridY)
+                    self.gridY = plotItem.saveState()['yGridCheck']                 # update y-gridline status
+                    self.actionPlotGridY.setChecked(self.gridY)
 
-                self.XisY = plotItem.saveState()['view']['aspectLocked']        # update XisY status
-                self.actionAspectRatio.setChecked(self.XisY)
+                    self.XisY = plotItem.saveState()['view']['aspectLocked']        # update XisY status
+                    self.actionAspectRatio.setChecked(self.XisY)
 
-                self.rect = viewBox.getState()['mouseMode'] == pg.ViewBox.RectMode  # update rect status
-                self.actionZoomRect.setChecked(self.rect)
-
-                self.updateVisiblePlotWidget(plotIndex)
-
-        elif event.type() == QEvent.Show:
-            self.actionZoomAll.setEnabled(False)                                # useful for plots only
-            self.actionZoomRect.setEnabled(False)                               # useful for plots only
-            self.actionAspectRatio.setEnabled(False)                            # useful for plots only
-            self.actionAntiAlias.setEnabled(False)                              # useful for plots only
-            self.actionRuler.setEnabled(False)                                  # useful for 1st plot only
-            self.actionProjected.setEnabled(False)                              # useful for 1st plot only
+                    viewBox = plotItem.getViewBox()
+                    self.rect = viewBox.getState()['mouseMode'] == pg.ViewBox.RectMode  # update rect status
+                    self.actionZoomRect.setChecked(self.rect)
+                    self.updateVisiblePlotWidget(plotIndex)
+                    return True
+            else:                                                                   # QEvent.Show; but for different widgets
+                self.actionZoomAll.setEnabled(False)                                # useful for plots only
+                self.actionZoomRect.setEnabled(False)                               # useful for plots only
+                self.actionAspectRatio.setEnabled(False)                            # useful for plots only
+                self.actionAntiAlias.setEnabled(False)                              # useful for plots only
+                self.actionRuler.setEnabled(False)                                  # useful for 1st plot only
+                self.actionProjected.setEnabled(False)                              # useful for 1st plot only
+                return True
 
         return super().eventFilter(source, event)
 
@@ -990,7 +1102,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.survey.output.anaOutput = None                             # then remove self.survey.output.anaOutput itself
                 gc.collect()                                                    # get the garbage collector going
 
-            self.enableExport(False)
+            self.updateMenuStatus(False)
 
         self.appendLogMessage(f'Edited : {self.fileName} survey object updated')
         self.plotLayout()
@@ -1169,9 +1281,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnSrcRemoveDuplicates = QPushButton('Remove &Duplicates')
         self.btnSrcRemoveOrphans = QPushButton('Remove &REL-orphins')
 
-        self.btnSrcExportToQGIS = QPushButton('&Export to QGIS')
-        self.btnSrcUpdateToQGIS = QPushButton('&Update QGIS')
-        self.btnSrcReadFromQGIS = QPushButton('&Read from QGIS')
+        self.btnSrcExportToQGIS = QPushButton('Export to QGIS')
+        self.btnSrcUpdateToQGIS = QPushButton('Update QGIS')
+        self.btnSrcReadFromQGIS = QPushButton('Read from QGIS')
 
         self.btnRelRemoveSrcOrphans = QPushButton('Remove &SRC-orphins')
         self.btnRelRemoveDuplicates = QPushButton('Remove &Duplicates')
@@ -1180,9 +1292,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnRecRemoveDuplicates = QPushButton('Remove &Duplicates')
         self.btnRecRemoveOrphans = QPushButton('Remove &REL-orphins')
 
-        self.btnRecExportToQGIS = QPushButton('&Export to QGIS')
-        self.btnRecUpdateToQGIS = QPushButton('&Update QGIS')
-        self.btnRecReadFromQGIS = QPushButton('&Read from QGIS')
+        self.btnRecExportToQGIS = QPushButton('Export to QGIS')
+        self.btnRecUpdateToQGIS = QPushButton('Update QGIS')
+        self.btnRecReadFromQGIS = QPushButton('Read from QGIS')
 
         self.btnRelExportToQGIS = QPushButton('Export Src, Cmp, Rec && Binning &Boundaries to QGIS')
 
@@ -1209,29 +1321,30 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnRelExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
 
         # these buttons have signals
-        self.btnSrcRemoveDuplicates.pressed.connect(self.removeSrcDuplicates)   # src QC
+        self.btnSrcRemoveDuplicates.pressed.connect(self.removeSrcDuplicates)   # src buttons & actions
         self.btnSrcRemoveOrphans.pressed.connect(self.removeSrcOrphans)
-
-        self.btnSrcExportToQGIS.pressed.connect(self.exportSrcToQgis)       # src data
+        self.actionExportSrcToQGIS.triggered.connect(self.exportSrcToQgis)      # export src records to QGIS
+        self.btnSrcExportToQGIS.pressed.connect(self.exportSrcToQgis)           # export src records to QGIS
         self.btnSrcUpdateToQGIS.pressed.connect(self.updateSrcToQGIS)
         self.btnSrcReadFromQGIS.pressed.connect(self.importSrcFromQgis)
 
-        self.btnRelRemoveSrcOrphans.pressed.connect(self.removeRelSrcOrphans)   # rel
-        self.btnRelRemoveDuplicates.pressed.connect(self.removeRelDuplicates)
+        self.btnRelRemoveDuplicates.pressed.connect(self.removeRelDuplicates)   # rel buttons & actions
+        self.btnRelRemoveSrcOrphans.pressed.connect(self.removeRelSrcOrphans)
         self.btnRelRemoveRecOrphans.pressed.connect(self.removeRelRecOrphans)
+        self.actionExportAreasToQGIS.triggered.connect(self.exportOutToQgis)    # export survey outline to QGIS
+        self.btnRelExportToQGIS.pressed.connect(self.exportOutToQgis)           # export survey outline to QGIS
 
-        self.btnRelExportToQGIS.pressed.connect(self.exportOutToQgis)
-
-        self.btnRecRemoveDuplicates.pressed.connect(self.removeRecDuplicates)   # rec QC
+        self.btnRecRemoveDuplicates.pressed.connect(self.removeRecDuplicates)   # rec buttons & actions
         self.btnRecRemoveOrphans.pressed.connect(self.removeRecOrphans)
-
-        self.btnRecExportToQGIS.pressed.connect(self.exportRecToQgis)       # rec data
+        self.actionExportRecToQGIS.triggered.connect(self.exportRecToQgis)      # export rec records to QGIS
+        self.btnRecExportToQGIS.pressed.connect(self.exportRecToQgis)           # export rec records to QGIS
         self.btnRecUpdateToQGIS.pressed.connect(self.updateRecToQGIS)
         self.btnRecReadFromQGIS.pressed.connect(self.importRecFromQgis)
 
-        self.btnBinToQGIS.pressed.connect(self.exportBinToQGIS)       # figures
+        self.btnBinToQGIS.pressed.connect(self.exportBinToQGIS)                 # figures
         self.btnMinToQGIS.pressed.connect(self.exportMinToQGIS)
         self.btnMaxToQGIS.pressed.connect(self.exportMaxToQGIS)
+        self.btnRmsToQGIS.pressed.connect(self.exportRmsToQGIS)
 
         label1 = QLabel('«-Cleanup table-»')
         label1.setStyleSheet('border: 1px solid black;background-color:lavender')
@@ -1356,16 +1469,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsPane = QWidget()
 
         # then create button layout
-        self.btnSpsRemoveDuplicates = QPushButton('Remove &Duplicates')
-        self.btnSpsExportToQGIS = QPushButton('Export to &QGIS')
+        self.btnSpsRemoveDuplicates = QPushButton('Remove Duplicates')
+        self.btnSpsExportToQGIS = QPushButton('Export to QGIS')
         self.btnSpsRemoveOrphans = QPushButton('Remove &XPS-orphins')
 
-        self.btnXpsRemoveSpsOrphans = QPushButton('Remove &SPS-orphins')
-        self.btnXpsRemoveDuplicates = QPushButton('Remove &Duplicates')
-        self.btnXpsRemoveRpsOrphans = QPushButton('Remove &RPS-orphins')
+        self.btnXpsRemoveSpsOrphans = QPushButton('Remove SPS-orphins')
+        self.btnXpsRemoveDuplicates = QPushButton('Remove Duplicates')
+        self.btnXpsRemoveRpsOrphans = QPushButton('Remove RPS-orphins')
 
         self.btnRpsRemoveDuplicates = QPushButton('Remove &Duplicates')
-        self.btnRpsExportToQGIS = QPushButton('Export to &QGIS')
+        self.btnRpsExportToQGIS = QPushButton('Export to QGIS')
         self.btnRpsRemoveOrphans = QPushButton('Remove &XPS-orphins')
 
         # make the export buttons stand out a bit
@@ -1374,7 +1487,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # these buttons have signals
         self.btnSpsRemoveDuplicates.pressed.connect(self.removeSpsDuplicates)
-        self.btnSpsExportToQGIS.pressed.connect(self.exportSpsToQgis)
+
+        self.actionExportSpsToQGIS.triggered.connect(self.exportSpsToQgis)      # export sps records to QGIS
+        self.btnSpsExportToQGIS.pressed.connect(self.exportSpsToQgis)           # export sps records to QGIS
         self.btnSpsRemoveOrphans.pressed.connect(self.removeSpsOrphans)
 
         self.btnXpsRemoveSpsOrphans.pressed.connect(self.removeXpsSpsOrphans)
@@ -1382,10 +1497,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnXpsRemoveRpsOrphans.pressed.connect(self.removeXpsRpsOrphans)
 
         self.btnRpsRemoveDuplicates.pressed.connect(self.removeRpsDuplicates)
-        self.btnRpsExportToQGIS.pressed.connect(self.exportRpsToQgis)
+        self.actionExportRpsToQGIS.triggered.connect(self.exportRpsToQgis)      # export rps records to QGIS
+        self.btnRpsExportToQGIS.pressed.connect(self.exportRpsToQgis)           # export rps records to QGIS
         self.btnRpsRemoveOrphans.pressed.connect(self.removeRpsOrphans)
-
-        # extracted = sampleArr[sampleArr > 0.5]
 
         grid1 = QGridLayout()
         grid1.addWidget(self.btnSpsRemoveDuplicates, 0, 0)
@@ -1469,7 +1583,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     # See: https://groups.google.com/g/pyqtgraph/c/kewFL4LkoYE?pli=1 to add pg.TextItem to indicate fold & location
     def handleSpiderPlot(self):
-        if self.cbSpider.isChecked():
+        if self.tbSpider.isChecked():
             self.navigateSpider(Direction.NA)
         else:
             self.plotLayout()
@@ -1479,6 +1593,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return
 
         step = 1
+        # See: https://doc.qt.io/archives/qt-4.8/qapplication.html#queryKeyboardModifiers
         modifierPressed = QApplication.keyboardModifiers()
         if (modifierPressed & Qt.ControlModifier) == Qt.ControlModifier:
             step = 10
@@ -1590,7 +1705,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsModel.setData(self.rpsImport)                                   # update the model's data
         if after < before:                                                      # need to update the (x, y) points as well
             self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
-            self.enableExport(True)
+            self.updateMenuStatus(True)
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps-duplicates')
 
@@ -1602,7 +1717,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsModel.setData(self.spsImport)
         if after < before:
             self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
-            self.enableExport(True)
+            self.updateMenuStatus(True)
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps-duplicates')
 
@@ -1614,7 +1729,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsModel.setData(self.rpsImport)
         if after < before:
             self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
-            self.enableExport(True)
+            self.updateMenuStatus(True)
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps/xps-orphans')
 
@@ -1626,7 +1741,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsModel.setData(self.spsImport)
         if after < before:
             self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
-            self.enableExport(True)
+            self.updateMenuStatus(True)
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps/xps-orphans')
 
@@ -1675,7 +1790,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.recModel.setData(self.recGeom)                                     # update the model's data
         if after < before:                                                      # need to update the (x, y) points as well
             self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
-            self.enableExport(True)
+            self.updateMenuStatus(True)
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec-duplicates')
 
@@ -1687,7 +1802,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.srcModel.setData(self.srcGeom)
         if after < before:
             self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
-            self.enableExport(True)
+            self.updateMenuStatus(True)
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src-duplicates')
 
@@ -1699,7 +1814,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.recModel.setData(self.recGeom)
         if after < before:
             self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
-            self.enableExport(True)
+            self.updateMenuStatus(True)
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec/rel-orphans')
 
@@ -1711,7 +1826,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.srcModel.setData(self.srcGeom)
         if after < before:
             self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
-            self.enableExport(True)
+            self.updateMenuStatus(True)
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src/rel-orphans')
 
@@ -1851,7 +1966,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.srcCoordE, self.srcCoordN, self.srcCoordI = self.srcGeom
         self.srcModel.setData(self.srcGeom)
-        self.enableExport(True)
+        self.updateMenuStatus(True)
         self.plotLayout()
 
     def importRecFromQgis(self):
@@ -1869,26 +1984,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
         self.recModel.setData(self.recGeom)
-        self.enableExport(True)
+        self.updateMenuStatus(True)
         self.plotLayout()
 
     def exportOutToQgis(self):
         layerName = QFileInfo(self.fileName).baseName()
         exportSurveyOutlineToQgis(layerName, self.survey)
 
-    def enableExport(self, enable=True):
+    def updateMenuStatus(self, enable=True):
         self.actionExportFoldMap.setEnabled(self.survey.output.binOutput is not None)
         self.actionExportMinOffsets.setEnabled(self.survey.output.minOffset is not None)
         self.actionExportMaxOffsets.setEnabled(self.survey.output.maxOffset is not None)
         self.actionExportRmsOffsets.setEnabled(self.survey.output.rmsOffset is not None)
         self.actionExportAnaAsCsv.setEnabled(self.survey.output.anaOutput is not None)
-
-        self.actionExportRpsAsCsv.setEnabled(self.rpsImport is not None)
-        self.actionExportSpsAsCsv.setEnabled(self.spsImport is not None)
-        self.actionExportXpsAsCsv.setEnabled(self.xpsImport is not None)
-        self.actionExportRpsAsR01.setEnabled(self.rpsImport is not None)
-        self.actionExportSpsAsS01.setEnabled(self.spsImport is not None)
-        self.actionExportXpsAsX01.setEnabled(self.xpsImport is not None)
 
         self.actionExportRecAsCsv.setEnabled(self.recGeom is not None)
         self.actionExportSrcAsCsv.setEnabled(self.srcGeom is not None)
@@ -1896,6 +2004,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionExportRecAsR01.setEnabled(self.recGeom is not None)
         self.actionExportSrcAsS01.setEnabled(self.srcGeom is not None)
         self.actionExportRelAsX01.setEnabled(self.relGeom is not None)
+        self.actionExportSrcToQGIS.setEnabled(self.srcGeom is not None)
+        self.actionExportRecToQGIS.setEnabled(self.recGeom is not None)
+
+        self.actionExportRpsAsCsv.setEnabled(self.rpsImport is not None)
+        self.actionExportSpsAsCsv.setEnabled(self.spsImport is not None)
+        self.actionExportXpsAsCsv.setEnabled(self.xpsImport is not None)
+        self.actionExportRpsAsR01.setEnabled(self.rpsImport is not None)
+        self.actionExportSpsAsS01.setEnabled(self.spsImport is not None)
+        self.actionExportXpsAsX01.setEnabled(self.xpsImport is not None)
+        self.actionExportSpsToQGIS.setEnabled(self.spsImport is not None)
+        self.actionExportRpsToQGIS.setEnabled(self.rpsImport is not None)
 
         self.btnSrcRemoveDuplicates.setEnabled(self.srcGeom is not None)
         self.btnSrcRemoveOrphans.setEnabled(self.srcGeom is not None)
@@ -1911,33 +2030,46 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnRelRemoveDuplicates.setEnabled(self.relGeom is not None)
         self.btnRelRemoveRecOrphans.setEnabled(self.relGeom is not None)
 
-        self.rbFold.setEnabled(self.survey.output.binOutput is not None)
-        self.rbMinO.setEnabled(self.survey.output.minOffset is not None)
-        self.rbMaxO.setEnabled(self.survey.output.maxOffset is not None)
-        self.rbRmsO.setEnabled(self.survey.output.rmsOffset is not None)
+        self.actionExportAreasToQGIS.setEnabled(len(self.fileName) > 0)         # test if file name isn't empty
+        self.btnRelExportToQGIS.setEnabled(len(self.fileName) > 0)              # test if file name isn't empty
 
-        self.cbSpider.setEnabled(self.survey.output.anaOutput is not None)
-        self.btnSpiderRt.setVisible(self.survey.output.anaOutput is not None)
-        self.btnSpiderLt.setVisible(self.survey.output.anaOutput is not None)
-        self.btnSpiderUp.setVisible(self.survey.output.anaOutput is not None)
-        self.btnSpiderDn.setVisible(self.survey.output.anaOutput is not None)
+        self.btnSpsExportToQGIS.setEnabled(self.spsImport is not None)
+        self.btnRpsExportToQGIS.setEnabled(self.rpsImport is not None)
+
+        self.actionFold.setEnabled(self.survey.output.binOutput is not None)
+        self.actionMinO.setEnabled(self.survey.output.minOffset is not None)
+        self.actionMaxO.setEnabled(self.survey.output.maxOffset is not None)
+        self.actionRmsO.setEnabled(self.survey.output.rmsOffset is not None)
+
+        # self.rbFold.setEnabled(self.survey.output.binOutput is not None)
+        # self.rbMinO.setEnabled(self.survey.output.minOffset is not None)
+        # self.rbMaxO.setEnabled(self.survey.output.maxOffset is not None)
+        # self.rbRmsO.setEnabled(self.survey.output.rmsOffset is not None)
+
+        self.actionSpider.setEnabled(self.survey.output.anaOutput is not None)  # the spider button in the display pane
+        self.actionMoveLt.setEnabled(self.survey.output.anaOutput is not None)  # the navigation buttons in the Display pane AND on toolbar (moveBar)
+        self.actionMoveRt.setEnabled(self.survey.output.anaOutput is not None)
+        self.actionMoveUp.setEnabled(self.survey.output.anaOutput is not None)
+        self.actionMoveDn.setEnabled(self.survey.output.anaOutput is not None)
 
         self.btnBinToQGIS.setEnabled(self.survey.output.binOutput is not None)
         self.btnMinToQGIS.setEnabled(self.survey.output.minOffset is not None)
         self.btnMaxToQGIS.setEnabled(self.survey.output.maxOffset is not None)
         self.btnRmsToQGIS.setEnabled(self.survey.output.rmsOffset is not None)
 
-        self.cbRpsList.setEnabled(self.rpsImport is not None)
-        self.cbSpsList.setEnabled(self.spsImport is not None)
+        self.actionExportFoldMapToQGIS.setEnabled(self.survey.output.binOutput is not None)
+        self.actionExportMinOffsetsToQGIS.setEnabled(self.survey.output.minOffset is not None)
+        self.actionExportMaxOffsetsToQGIS.setEnabled(self.survey.output.maxOffset is not None)
+        self.actionExportRmsOffsetsToQGIS.setEnabled(self.survey.output.rmsOffset is not None)
 
-        self.cbRpsList.setChecked(self.rpsImport is not None)
-        self.cbSpsList.setChecked(self.spsImport is not None)
-
-        self.cbRecList.setEnabled(self.recGeom is not None)
-        self.cbSrcList.setEnabled(self.srcGeom is not None)
+        self.actionRecPoints.setEnabled(self.recGeom is not None)
+        self.actionSrcPoints.setEnabled(self.srcGeom is not None)
+        self.actionRpsPoints.setEnabled(self.rpsImport is not None)
+        self.actionSpsPoints.setEnabled(self.spsImport is not None)
 
         if not enable:
-            self.imageType = self.analysisGroup.setCheckedId(0)                 # reset analysis type
+            self.actionNone.setChecked(True)                                    # coupled with tbNone
+            self.imageType = 0                                                  # reset analysis type to zero
 
     def setColorbarLabel(self, label):                                          # I should really subclass colorbarItem to properly set the text label
         if label is not None:
@@ -1946,9 +2078,27 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             else:
                 self.layoutColorBar.getAxis('left').setLabel(label)
 
+    def onActionNoneTriggered(self):
+        self.imageType = 0
+        self.handleImageSelection()
+
+    def onActionFoldTriggered(self):
+        self.imageType = 1
+        self.handleImageSelection()
+
+    def onActionMinOTriggered(self):
+        self.imageType = 2
+        self.handleImageSelection()
+
+    def onActionMaxOTriggered(self):
+        self.imageType = 3
+        self.handleImageSelection()
+
+    def onActionRmsOTriggered(self):
+        self.imageType = 4
+        self.handleImageSelection()
+
     def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
-        self.imageType = self.analysisGroup.checkedId()
-        # self.mainTabWidget.setCurrentIndex(0)                                 # make sure we display the 'Layout' tab
 
         if self.layoutImItem is not None and self.layoutColorBar is None:
             self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.inActiveCmap, label='N/A', limits=(0, None), rounding=10.0, values=(0, 10))
@@ -2341,7 +2491,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.layoutWidget.plotItem.addItem(self.layoutImItem)
 
         # add survey geometry if templates are to be displayed (controlled by checkbox)
-        if self.cbTemplat.isChecked():
+        if self.tbTemplat.isChecked():
             surveyItem = self.survey
             surveyItem.setTransform(transform)                                  # always do this; will reset transform for 'local' plot
             self.layoutWidget.plotItem.addItem(surveyItem)                      # this plots the survey geometry
@@ -2352,7 +2502,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # https://pyqtgraph.readthedocs.io/en/latest/api_reference/graphicsItems/scatterplotitem.html#pyqtgraph.ScatterPlotItem.setSymbol
         # https://pyqtgraph.readthedocs.io/en/latest/api_reference/graphicsItems/plotdataitem.html
 
-        if self.cbSpsList.isChecked() and self.spsCoordE is not None and self.spsCoordN is not None:
+        if self.tbSpsList.isChecked() and self.spsCoordE is not None and self.spsCoordN is not None:
             spsTransform = QTransform()                                         # empty (unit) transform
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 spsTransform, _ = self.survey.glbTransform.inverted()
@@ -2376,7 +2526,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
             sps.setTransform(spsTransform)
 
-        if self.cbRpsList.isChecked() and self.rpsCoordE is not None and self.rpsCoordN is not None:
+        if self.tbRpsList.isChecked() and self.rpsCoordE is not None and self.rpsCoordN is not None:
             rpsTransform = QTransform()                                         # empty (unit) transform
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 rpsTransform, _ = self.survey.glbTransform.inverted()
@@ -2400,7 +2550,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
             rps.setTransform(rpsTransform)
 
-        if self.cbSrcList.isChecked() and self.srcCoordE is not None and self.srcCoordN is not None:
+        if self.tbSrcList.isChecked() and self.srcCoordE is not None and self.srcCoordN is not None:
             srcTransform = QTransform()                                         # empty (unit) transform
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 srcTransform, _ = self.survey.glbTransform.inverted()
@@ -2417,7 +2567,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
             src.setTransform(srcTransform)
 
-        if self.cbRecList.isChecked() and self.recCoordE is not None and self.recCoordN is not None:
+        if self.tbRecList.isChecked() and self.recCoordE is not None and self.recCoordN is not None:
             recTransform = QTransform()                                         # empty (unit) transform
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 recTransform, _ = self.survey.glbTransform.inverted()
@@ -2441,7 +2591,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
             rec.setTransform(recTransform)
 
-        if self.cbSpider.isChecked() and self.survey.output.anaOutput is not None and self.survey.output.binOutput is not None and self.spiderSrcX is not None:
+        if self.tbSpider.isChecked() and self.survey.output.anaOutput is not None and self.survey.output.binOutput is not None and self.spiderSrcX is not None:
 
             src = self.layoutWidget.plot(
                 x=self.spiderSrcX, y=self.spiderSrcY, connect='pairs', symbol='o', pen=pg.mkPen('r', width=2), symbolSize=5, pxMode=False, symbolPen=pg.mkPen('r'), symbolBrush=QColor('#77FF2929')
@@ -2455,7 +2605,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             self.layoutWidget.plotItem.addItem(self.spiderText)
 
-        if self.cbTemplat.isChecked():
+        if self.tbTemplat.isChecked():
             # Add a marker for the origin
             oriX = [0.0]
             oriY = [0.0]
@@ -2854,7 +3004,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spiderRecX = None                                                  # numpy array with list of REC part of spider plot
         self.spiderRecY = None                                                  # numpy array with list of REC part of spider plot
         self.spiderText = None                                                  # text label describing spider bin, stake, fold
-        self.cbSpider.setChecked(False)                                         # reset spider plot to 'off'
+        self.actionSpider.setChecked(False)                                     # reset spider plot to 'off'
 
         # export layers to QGIS
         self.rpsLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
@@ -2899,7 +3049,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.resetPlotWidget(self.offsetWidget, self.plotTitles[8])
         self.resetPlotWidget(self.offAziWidget, self.plotTitles[9])
 
-        self.enableExport(False)
+        self.updateMenuStatus(False)
 
     def fileNew(self):                                                          # better create new file created through a wizard
         if self.maybeKillThread() and self.maybeSave():                         # make sure thread is killed AND current file  is saved (all only when needed)
@@ -2981,7 +3131,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.layoutImg = None                                                   # numpy array to be displayed
         self.layoutImItem = None                                                # pg ImageItem showing analysis result
 
-        self.enableExport(False)                                                # nothing to export, and reset self.imageType to 0
+        self.updateMenuStatus(False)                                            # nothing to export, and reset self.imageType to 0
         self.handleImageSelection()                                             # update the colorbar accordingly
 
         return True
@@ -3069,7 +3219,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.resetPlotWidget(self.offAziWidget, self.plotTitles[9])
 
             # reset all spider settings
-            self.cbSpider.setChecked(False)                                     # reset spider plot to 'off'
+            self.actionSpider.setChecked(False)                                 # reset spider plot to 'off'
             self.spiderPoint = QPoint(-1, -1)                                   # reset spider point to be 'out of scope'
             self.spiderSrcX = None                                              # numpy array with list of SRC part of spider plot
             self.spiderSrcY = None                                              # numpy array with list of SRC part of spider plot
@@ -3081,13 +3231,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.maximumFold = self.survey.output.binOutput.max()           # calc min/max fold is straightforward
                 self.minimumFold = self.survey.output.binOutput.min()
 
-                self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.minimumFold} - Max:{self.maximumFold} ')
-                self.imageType = self.analysisGroup.setCheckedId(1)             # select fold map as plot type (1 = fold)
-                self.layoutImg = self.survey.output.binOutput                   # use fold map for image data np-array
+                self.actionFold.setChecked(True)
+                self.imageType = 1                                              # set analysis type to one (fold)
 
+                self.layoutImg = self.survey.output.binOutput                   # use fold map for image data np-array
                 self.layoutMax = self.maximumFold                               # use appropriate maximum
                 self.layoutImItem = pg.ImageItem()                              # create PyqtGraph image item
                 self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
+
+                self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.minimumFold} - Max:{self.maximumFold} ')
             else:
                 self.survey.output.binOutput = None
 
@@ -3156,7 +3308,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                     self.D2_Output = self.survey.output.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
                     self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.D2_Output.shape[0]:,} traces (reserved space)')
-                    print(self.survey.output.anaOutput)
+                    # print(self.survey.output.anaOutput)
                     # for i in range(nx):
                     #     for j in range(ny):
                     #         for k in range(fold):
@@ -3239,7 +3391,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         index = self.anaView.model().index(0, 0)                                # turn offset into index
         self.anaView.scrollTo(index)                                            # scroll to the first trace in the trace table
         self.anaView.selectRow(0)                                               # for the time being, *only* select first row of traces in a bin
-        self.enableExport(True)                                                 # enable export items in File Menu
+        self.updateMenuStatus(True)                                                 # enable export items in File Menu
         self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable stop thread
         self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
         self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the 'xml' tab
@@ -3389,7 +3541,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Import : . . . from rps info: Y = {X[1]:.2f} + {X[3]:.2f} x Nx + {X[5]:.2f} x Ny')
 
                 self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
-                self.cbRpsList.setChecked(True)
+                self.tbRpsList.setChecked(True)
 
             if self.spsImport is not None:
                 nImport = self.spsImport.shape[0]
@@ -3403,7 +3555,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Import : . . . from sps info: Y = {X[1]:.2f} + {X[3]:.2f} x Nx + {X[5]:.2f} x Ny')
 
                 self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
-                self.cbSpsList.setChecked(True)
+                self.tbSpsList.setChecked(True)
 
             if self.xpsImport is not None:
                 nImport = self.xpsImport.shape[0]
@@ -3429,8 +3581,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsModel.setData(self.rpsImport)
 
         self.mainTabWidget.setCurrentIndex(3)                                   # make sure we display the 'SPS import' tab
-        self.cbRpsList.setEnabled(nRps > 0)                                     # update the GUI
-        self.cbSpsList.setEnabled(nSps > 0)
+
+        self.actionRpsPoints.setEnabled(nRps > 0)
+        self.actionSpsPoints.setEnabled(nSps > 0)
+
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save sps data as numpy arrays upon saving the file
 
         return True
@@ -3833,6 +3987,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def OnLicense(self):
         QMessageBox.about(self, 'License conditions', licenseText())
 
+    def OnHighDpi(self):
+        QMessageBox.about(self, 'High DPI UI scaling issues', highDpiText())
+
     def clipboardHasText(self):
         return len(QApplication.clipboard().text()) != 0
 
@@ -4150,7 +4307,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.layoutImItem = None                                            # pg ImageItem showing analysis result
             self.handleImageSelection()                                         # change selection and plot survey
 
-            self.enableExport(False)                                            # no plots to export
+            self.updateMenuStatus(False)                                            # no plots to export
 
             self.appendLogMessage('Thread : . . . aborted binning operation', MsgType.Error)
             self.appendLogMessage(f'Thread : . . . {self.worker.survey.errorText}', MsgType.Error)
@@ -4190,7 +4347,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.textEdit.document().setModified(True)                      # we edited the document; so it's been modified
 
             if self.imageType == 0:                                             # if no image was selected before
-                self.imageType = self.analysisGroup.setCheckedId(1)             # select fold map as a default
+                self.actionFold.setChecked(True)
+                self.imageType = 1                                              # set analysis type to one (fold)
 
             if self.imageType == 1:
                 self.layoutImg = self.survey.output.binOutput
@@ -4225,7 +4383,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.layoutColorBar.setColorMap(config.fold_OffCmap)
                 self.setColorbarLabel(label)
 
-            self.enableExport()                                                 # enable menu items and button group
+            self.updateMenuStatus()                                                 # enable menu items and button group
             self.plotLayout()                                                   # plot survey with colorbar
 
             endTime = timer()
@@ -4297,7 +4455,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
             self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
 
-            self.enableExport()                                                 # enables menu item and button group
+            self.updateMenuStatus()                                                 # enables menu item and button group
 
             endTime = timer()
             elapsed = timedelta(seconds=endTime - self.startTime)               # get the elapsed time for geometry creation

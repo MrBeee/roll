@@ -550,6 +550,33 @@ def aboutText() -> str:
     return text
 
 
+def highDpiText() -> str:
+
+    dpiUrl = "<a href='https://github.com/qgis/QGIS/issues/53898'>here</a>"
+
+    dpiText = (
+        f'As of V3.32 High DPI UI scaling issues have arisen in QGIS. <br>'
+        f'See the following discussion on GitHub {dpiUrl} <br> '
+        f'The work around that has been proposed is as follows: <ol>'
+        f"<li>Right click 'qgis-bin.exe' in folder 'C:\\Program Files\\QGIS 3.36.3\\bin' </li>"
+        f"<li>Select 'Properties' </li>"
+        f'<li>Select the Compatibility tab </li>'
+        f"<li>Select 'change high DPI settings' </li>"
+        f"<li>Set the tickmark before 'Override high DPI ...' </li>"
+        f"<li>Have scaling performed by 'Application' </li>"
+        f"<li>In the same folder edit the file 'qgis-bin.env' </li>"
+        f'<li>Add one line at the very end: </li>'
+        f'<li>QT_SCALE_FACTOR_ROUNDING_POLICY=Floor </li>'
+        f"<li>Save the file in a different folder as 'C:\\Program Files' is write-protected </li>"
+        f"<li>Copy the edited file back to the 'C:\\Program Files\\QGIS 3.36.3\\bin' folder </li>"
+        f"<li>You'll be asked to confirm you want to overwrite the existing file. Go ahead. </li></ol>"
+        f'This addresses the font and button scaling problems ! Finally: <br>'
+        f'It is recommended to use font size 9.0 and Icon size 24, in Settings -> Options... -> General'
+    )
+
+    return dpiText
+
+
 def licenseText() -> str:
     licenseTxt = """
     Copyright  © 2022-2024 by Duijndam.Dev. All rights reserved.

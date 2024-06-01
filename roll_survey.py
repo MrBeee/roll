@@ -3,6 +3,7 @@ This module provides the main classes used in Roll
 """
 import math
 import os
+import sys
 from enum import Enum
 from time import perf_counter
 
@@ -381,7 +382,8 @@ class RollSurvey(pg.GraphicsObject):
             self.output.recGeom = np.zeros(shape=(self.nShotPoints * 100), dtype=pntType1)
             success = self.geometryFromTemplates()
         except BaseException as e:
-            self.errorText = str(e)
+            # self.errorText = str(e)
+            self.errorText = sys.exc_info()[2].tb_lineno + ' ' + str(e)
             success = False
 
         return success

@@ -134,7 +134,7 @@ class TableView(QTableView):
         # Can't use these lines here; header needs to exist already
         # self.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
         # self.horizontalHeader().setSectionResizeMode(3, QHeaderView.Fixed)
-        self.horizontalHeader().setMinimumSectionSize(30)
+        self.horizontalHeader().setMinimumSectionSize(20)
         self.horizontalHeader().setDefaultSectionSize(40)
 
         # don't allow selecting columns in a large virtual table; instead, always select a complete row
