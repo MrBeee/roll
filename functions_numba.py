@@ -282,9 +282,7 @@ def pointsInRect(pointArray: np.ndarray, rect: QRectF):
 @nb.jit(nopython=True)
 def numbaPointsInRect(pointArray: np.ndarray, l: float, r: float, t: float, b: float):
     I = (pointArray[:, 0] >= l) & (pointArray[:, 0] <= r) & (pointArray[:, 1] >= t) & (pointArray[:, 1] <= b)
-    noData = np.count_nonzero(I) == 0
-
-    return (I, noData)
+    return I
 
 
 # See: https://stackoverflow.com/questions/49907604/setting-structured-array-field-in-numba

@@ -118,7 +118,6 @@ from qgis.PyQt.QtWidgets import (
     QPlainTextEdit,
     QProgressBar,
     QPushButton,
-    QRadioButton,
     QSplitter,
     QTabWidget,
     QToolButton,
@@ -399,11 +398,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # See: https://www.geeksforgeeks.org/pyqt5-qdockwidget-setting-style-sheet/ for styling
         self.dockDisplay.setStyleSheet('QDockWidget::title {background : lightblue;}')
 
-        # display pane
-        self.displayWidget = QWidget()                                          # placeholder widget to generate a layout
-        self.displayLayout = QVBoxLayout()                                      # required layout
-        # self.displayLayout.setAlignment(Qt.AlignCenter)                         # center the elements in this layout
-
         self.geometryChoice = QGroupBox('Geometry to display')                  # create display widget(s)
         self.analysisChoice = QGroupBox('Analysis to display')                  # create display widget(s)
         self.analysisToQgis = QGroupBox('Export to QGIS')                       # create display widget(s)
@@ -416,13 +410,30 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.analysisChoice.setAlignment(Qt.AlignHCenter)
         self.analysisToQgis.setAlignment(Qt.AlignHCenter)
 
+        # display pane
+        vbox0 = QVBoxLayout()
+        # self.displayLayout = QVBoxLayout()                                      # required layout
+        self.displayLayout = QHBoxLayout()                                      # required layout
+
         self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
-        self.displayLayout.addWidget(self.geometryChoice)                       # add main widget(s)
+        self.displayLayout.addLayout(vbox0)
         self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
-        self.displayLayout.addWidget(self.analysisChoice)                       # add main widget(s)
-        self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
-        self.displayLayout.addWidget(self.analysisToQgis)                       # add main widget(s)
-        self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
+
+        vbox0.addStretch()                                                      # add some stretch to main center widget(s)
+        vbox0.addWidget(self.geometryChoice)                                    # add main widget(s)
+        vbox0.addStretch()                                                      # add some stretch to main center widget(s)
+        vbox0.addWidget(self.analysisChoice)                                    # add main widget(s)
+        vbox0.addStretch()                                                      # add some stretch to main center widget(s)
+        vbox0.addWidget(self.analysisToQgis)                                    # add main widget(s)
+        vbox0.addStretch()                                                      # add some stretch to main center widget(s)
+
+        # self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
+        # self.displayLayout.addWidget(self.geometryChoice)                       # add main widget(s)
+        # self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
+        # self.displayLayout.addWidget(self.analysisChoice)                       # add main widget(s)
+        # self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
+        # self.displayLayout.addWidget(self.analysisToQgis)                       # add main widget(s)
+        # self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
 
         self.tbTemplat = QToolButton()
         self.tbRecList = QToolButton()
@@ -430,11 +441,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbRpsList = QToolButton()
         self.tbSpsList = QToolButton()
 
-        self.tbTemplat.setMinimumWidth(100)
-        self.tbRecList.setMinimumWidth(100)
-        self.tbSrcList.setMinimumWidth(100)
-        self.tbRpsList.setMinimumWidth(100)
-        self.tbSpsList.setMinimumWidth(100)
+        self.tbTemplat.setMinimumWidth(110)
+        self.tbRecList.setMinimumWidth(110)
+        self.tbSrcList.setMinimumWidth(110)
+        self.tbRpsList.setMinimumWidth(110)
+        self.tbSpsList.setMinimumWidth(110)
 
         self.tbTemplat.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbRecList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
@@ -471,11 +482,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbMaxO = QToolButton()
         self.tbRmsO = QToolButton()
 
-        self.tbNone.setMinimumWidth(100)
-        self.tbFold.setMinimumWidth(100)
-        self.tbMinO.setMinimumWidth(100)
-        self.tbMaxO.setMinimumWidth(100)
-        self.tbRmsO.setMinimumWidth(100)
+        self.tbNone.setMinimumWidth(110)
+        self.tbFold.setMinimumWidth(110)
+        self.tbMinO.setMinimumWidth(110)
+        self.tbMaxO.setMinimumWidth(110)
+        self.tbRmsO.setMinimumWidth(110)
 
         self.tbNone.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbFold.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
@@ -501,7 +512,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionSpider.setEnabled(False)
 
         self.tbSpider = QToolButton()
-        self.tbSpider.setMinimumWidth(100)
+        self.tbSpider.setMinimumWidth(110)
         self.tbSpider.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbSpider.setDefaultAction(self.actionSpider)
         vbox2.addWidget(self.tbSpider)
@@ -534,10 +545,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionMoveDn.setShortcuts(['Alt+Down', 'Alt+Shift+Down', 'Alt+Ctrl+Down', 'Alt+Shift+Ctrl+Down'])
 
         hbox1 = QHBoxLayout()
+        hbox1.addStretch()
         hbox1.addWidget(self.btnSpiderLt)
         hbox1.addWidget(self.btnSpiderRt)
         hbox1.addWidget(self.btnSpiderUp)
         hbox1.addWidget(self.btnSpiderDn)
+        hbox1.addStretch()
         vbox2.addLayout(hbox1)
 
         # grid1 = QGridLayout()
@@ -568,10 +581,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnMaxToQGIS = QPushButton('Max Offset')
         self.btnRmsToQGIS = QPushButton('Rms Offset')
 
-        self.btnBinToQGIS.setMinimumWidth(100)
-        self.btnMinToQGIS.setMinimumWidth(100)
-        self.btnMaxToQGIS.setMinimumWidth(100)
-        self.btnRmsToQGIS.setMinimumWidth(100)
+        self.btnBinToQGIS.setMinimumWidth(110)
+        self.btnMinToQGIS.setMinimumWidth(110)
+        self.btnMaxToQGIS.setMinimumWidth(110)
+        self.btnRmsToQGIS.setMinimumWidth(110)
 
         self.btnBinToQGIS.setMaximumWidth(5)
         self.btnMinToQGIS.setMaximumWidth(5)
@@ -590,6 +603,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         vbox3.addWidget(self.btnRmsToQGIS)
         self.analysisToQgis.setLayout(vbox3)
 
+        self.displayWidget = QWidget()                                          # placeholder widget to generate a layout
         self.displayWidget.setLayout(self.displayLayout)                        # add layout to widget
         self.dockDisplay.setWidget(self.displayWidget)                          # set widget as main widget in docking panel
 
@@ -838,7 +852,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionGeometryFromTemplates.triggered.connect(self.createGeometryFromTemplates)
 
         self.actionStopThread.triggered.connect(self.stopWorkerThread)
-        self.enableProcessingMenuItems(True)                                   # enables processing menu items except stop thread
+        self.enableProcessingMenuItems()                                        # enables processing menu items except 'stop processing thread'
 
         # actions related to geometry items to be displayed
         self.actionTemplates.triggered.connect(self.plotLayout)
@@ -1992,6 +2006,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         exportSurveyOutlineToQgis(layerName, self.survey)
 
     def updateMenuStatus(self, enable=True):
+        if not enable:
+            self.actionNone.setChecked(True)                                    # coupled with tbNone
+            self.imageType = 0                                                  # reset analysis type to zero
+
         self.actionExportFoldMap.setEnabled(self.survey.output.binOutput is not None)
         self.actionExportMinOffsets.setEnabled(self.survey.output.minOffset is not None)
         self.actionExportMaxOffsets.setEnabled(self.survey.output.maxOffset is not None)
@@ -2041,11 +2059,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionMaxO.setEnabled(self.survey.output.maxOffset is not None)
         self.actionRmsO.setEnabled(self.survey.output.rmsOffset is not None)
 
-        # self.rbFold.setEnabled(self.survey.output.binOutput is not None)
-        # self.rbMinO.setEnabled(self.survey.output.minOffset is not None)
-        # self.rbMaxO.setEnabled(self.survey.output.maxOffset is not None)
-        # self.rbRmsO.setEnabled(self.survey.output.rmsOffset is not None)
-
         self.actionSpider.setEnabled(self.survey.output.anaOutput is not None)  # the spider button in the display pane
         self.actionMoveLt.setEnabled(self.survey.output.anaOutput is not None)  # the navigation buttons in the Display pane AND on toolbar (moveBar)
         self.actionMoveRt.setEnabled(self.survey.output.anaOutput is not None)
@@ -2066,10 +2079,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionSrcPoints.setEnabled(self.srcGeom is not None)
         self.actionRpsPoints.setEnabled(self.rpsImport is not None)
         self.actionSpsPoints.setEnabled(self.spsImport is not None)
-
-        if not enable:
-            self.actionNone.setChecked(True)                                    # coupled with tbNone
-            self.imageType = 0                                                  # reset analysis type to zero
 
     def setColorbarLabel(self, label):                                          # I should really subclass colorbarItem to properly set the text label
         if label is not None:
@@ -3391,8 +3400,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         index = self.anaView.model().index(0, 0)                                # turn offset into index
         self.anaView.scrollTo(index)                                            # scroll to the first trace in the trace table
         self.anaView.selectRow(0)                                               # for the time being, *only* select first row of traces in a bin
-        self.updateMenuStatus(True)                                                 # enable export items in File Menu
-        self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable stop thread
+        self.updateMenuStatus(True)                                             # enable export items in File Menu
+        self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
         self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
         self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the 'xml' tab
 
@@ -4116,7 +4125,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.progressLabel.setText('Bin from Templates - basic analysis')
 
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
-        self.enableProcessingMenuItems(False)                                   # enable/disable menu items
+        self.enableProcessingMenuItems(False)                                   # disable processing menu items
 
         self.appendLogMessage(f"Thread : started 'Bin from templates', using {self.survey.nShotPoints:,} shot points", MsgType.Binning)
 
@@ -4165,7 +4174,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.progressLabel.setText('Bin from Geometry - basic analysis')
 
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
-        self.enableProcessingMenuItems(False)                                   # enable/disable menu items
+        self.enableProcessingMenuItems(False)                                   # disable processing menu items
 
         self.appendLogMessage(f"Thread : started 'Bin from geometry', using {self.srcGeom.shape[0]:,} shot points", MsgType.Binning)
 
@@ -4217,7 +4226,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.progressLabel.setText('Bin from imported SPS - basic analysis')
 
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
-        self.enableProcessingMenuItems(False)                                   # enable/disable menu items
+        self.enableProcessingMenuItems(False)                                   # disable processing menu items
 
         self.appendLogMessage(f"Thread : started 'Bin from Imported SPS', using {self.spsImport.shape[0]:,} shot points", MsgType.Binning)
 
@@ -4259,7 +4268,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.progressLabel.setText('Create Geometry from Templates')
 
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
-        self.enableProcessingMenuItems(False)                                   # enable/disable menu items
+        self.enableProcessingMenuItems(False)                                   # disable processing menu items
 
         self.appendLogMessage(f"Thread : started 'Create Geometry from Templates', from {self.survey.nShotPoints:,} shot points", MsgType.Geometry)
 
@@ -4307,22 +4316,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.layoutImItem = None                                            # pg ImageItem showing analysis result
             self.handleImageSelection()                                         # change selection and plot survey
 
-            self.updateMenuStatus(False)                                            # no plots to export
-
             self.appendLogMessage('Thread : . . . aborted binning operation', MsgType.Error)
             self.appendLogMessage(f'Thread : . . . {self.worker.survey.errorText}', MsgType.Error)
             QMessageBox.information(self, 'Interrupted', 'Worker thread aborted')
         else:
             # copy analysis arrays from worker
-            self.survey.output.binOutput = self.worker.survey.output.binOutput.copy()         # create a copy; not a view of the array(s)
+            self.survey.output.binOutput = self.worker.survey.output.binOutput.copy()       # create a copy; not a view of the array(s)
             self.survey.output.minOffset = self.worker.survey.output.minOffset.copy()
             self.survey.output.maxOffset = self.worker.survey.output.maxOffset.copy()
-            self.survey.output.rmsOffset = self.worker.survey.output.rmsOffset.copy()
 
-            # self.survey.output.anaOutput = self.worker.survey.output.anaOutput                # create reference of memory mapped file
-
-            if self.worker.survey.output.anaOutput is not None:
-                self.survey.output.anaOutput = self.worker.survey.output.anaOutput.copy()     # from full binning analysis
+            if self.worker.survey.output.anaOutput is not None:                             # extended binning
+                self.survey.output.rmsOffset = self.worker.survey.output.rmsOffset.copy()   # only defined in extended binning
+                self.survey.output.anaOutput = self.worker.survey.output.anaOutput.copy()   # results from full binning analysis
                 shape = self.survey.output.anaOutput.shape
                 self.D2_Output = self.survey.output.anaOutput.reshape(shape[0] * shape[1] * shape[2], shape[3])
                 self.anaModel.setData(self.D2_Output)
@@ -4383,7 +4388,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.layoutColorBar.setColorMap(config.fold_OffCmap)
                 self.setColorbarLabel(label)
 
-            self.updateMenuStatus()                                                 # enable menu items and button group
+            self.updateMenuStatus()                                             # enable menu items and button group
             self.plotLayout()                                                   # plot survey with colorbar
 
             endTime = timer()
@@ -4417,8 +4422,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             QMessageBox.information(self, 'Done', f'Worker thread completed. {info} ')
 
-        # enable/disable menu items
-        self.enableProcessingMenuItems(True)
+        self.updateMenuStatus(True)
+        self.enableProcessingMenuItems()                                        # enable processing menu items (again)
 
         self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
 
@@ -4427,7 +4432,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if self.debug:
             self.appendLogMessage('geometryFromTemplates() profiling information', MsgType.Debug)
             i = 0
-            while i < len(self.worker.survey.timerTmin):
+            while i < len(self.worker.survey.timerTmin):                        # log some debug messages
                 tMin = self.worker.survey.timerTmin[i] * 1000.0 if self.worker.survey.timerTmin[i] != float('Inf') else 0.0
                 tMax = self.worker.survey.timerTmax[i] * 1000.0
                 tTot = self.worker.survey.timerTtot[i] * 1000.0
@@ -4455,8 +4460,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
             self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
 
-            self.updateMenuStatus()                                                 # enables menu item and button group
-
             endTime = timer()
             elapsed = timedelta(seconds=endTime - self.startTime)               # get the elapsed time for geometry creation
             elapsed = timedelta(seconds=ceil(elapsed.total_seconds()))          # round up to nearest second
@@ -4476,8 +4479,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 info = 'Analysis results have been saved.'
             QMessageBox.information(self, 'Done', f'Worker thread completed. {info} ')
 
-        # enable/disable menu items
-        self.enableProcessingMenuItems(True)
+        self.updateMenuStatus(True)
+        self.enableProcessingMenuItems()                                        # enable processing menu items (again)
         self.mainTabWidget.setCurrentIndex(2)                                   # make sure we display the 'Geometry' tab
         self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
 

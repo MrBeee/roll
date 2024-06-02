@@ -571,7 +571,7 @@ def highDpiText() -> str:
         f"<li>Copy the edited file back to the 'C:\\Program Files\\QGIS 3.36.3\\bin' folder </li>"
         f"<li>You'll be asked to confirm you want to overwrite the existing file. Go ahead. </li></ol>"
         f'This addresses the font and button scaling problems ! Finally: <br>'
-        f'It is recommended to use font size 9.0 and Icon size 24, in Settings -> Options... -> General'
+        f'It is recommended to use font size 8.0 and Icon size 24, in Settings -> Options... -> General'
     )
 
     return dpiText

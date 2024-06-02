@@ -17,9 +17,7 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .functions import containsPoint3D
-from .functions_numba import (clipLineF, numbaFixRelationRecord,
-                              numbaSetPointRecord, numbaSetRelationRecord,
-                              pointsInRect)
+from .functions_numba import clipLineF, numbaFixRelationRecord, numbaSetPointRecord, numbaSetRelationRecord, pointsInRect
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -210,7 +208,7 @@ class RollSurvey(pg.GraphicsObject):
         self.timerTtot = [0.0 for _ in range(15)]
         self.timerFreq = [0 for _ in range(15)]
 
-    def calcTransforms(self):
+    def calcTransforms(self, createArrays=False):
         x = self.grid.orig.x()
         y = self.grid.orig.y()
         p = self.grid.angle
@@ -299,13 +297,14 @@ class RollSurvey(pg.GraphicsObject):
         sx = w / nx
         sy = h / ny
 
-        self.output.binOutput = np.zeros(shape=(nx, ny), dtype=np.uint32)       # start with empty array of the right size and type
-        self.output.minOffset = np.zeros(shape=(nx, ny), dtype=np.float32)      # start with empty array of the right size and type
-        self.output.maxOffset = np.zeros(shape=(nx, ny), dtype=np.float32)      # start with empty array of the right size and type
-        self.output.rmsOffset = np.zeros(shape=(nx, ny), dtype=np.float32)      # start with empty array of the right size and type
-        self.output.minOffset.fill(np.Inf)                                      # start min offset with +inf (use np.full instead)
-        self.output.maxOffset.fill(np.NINF)                                     # start max offset with -inf (use np.full instead)
-        self.output.rmsOffset.fill(np.NINF)                                     # start max offset with -inf (use np.full instead)
+        if createArrays:
+            self.output.binOutput = np.zeros(shape=(nx, ny), dtype=np.uint32)   # start with empty array of the right size and type
+            self.output.minOffset = np.zeros(shape=(nx, ny), dtype=np.float32)  # start with empty array of the right size and type
+            self.output.maxOffset = np.zeros(shape=(nx, ny), dtype=np.float32)  # start with empty array of the right size and type
+            # self.output.rmsOffset = np.zeros(shape=(nx, ny), dtype=np.float32)  # start with empty array of the right size and type
+            self.output.minOffset.fill(np.Inf)                                  # start min offset with +inf (use np.full instead)
+            self.output.maxOffset.fill(np.NINF)                                 # start max offset with -inf (use np.full instead)
+            # self.output.rmsOffset.fill(np.NINF)                                 # start max offset with -inf (use np.full instead)
 
         self.binTransform = QTransform()
         self.binTransform.translate(x0, y0)
@@ -383,7 +382,12 @@ class RollSurvey(pg.GraphicsObject):
             success = self.geometryFromTemplates()
         except BaseException as e:
             # self.errorText = str(e)
-            self.errorText = sys.exc_info()[2].tb_lineno + ' ' + str(e)
+            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            del (fileName, funcName, lineNo)
             success = False
 
         return success
@@ -434,7 +438,13 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = 'geometry creation cancelled by user'
             return False
         except BaseException as e:
-            self.errorText = str(e)
+            # self.errorText = str(e)
+            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            del (fileName, funcName, lineNo)
             return False
 
         #  first remove all remaining receiver duplicates
@@ -651,14 +661,11 @@ class RollSurvey(pg.GraphicsObject):
             srcArray = srcSeed.pointArray + npTemplateOffset
 
             if not block.borders.srcBorder.isNull():                            # deal with block's source  border if it isn't null()
-                I, noData = pointsInRect(srcArray, block.borders.srcBorder)
-                if noData:
+                I = pointsInRect(srcArray, block.borders.srcBorder)
+                if I.shape[0] == 0:
                     continue
-
                 time = self.elapsedTime(time, 0)    ###
-
                 srcArray = srcArray[I, :]                                       # filter the source array
-
                 time = self.elapsedTime(time, 1)    ###
 
             for src in srcArray:                                                # iterate over all sources
@@ -714,15 +721,13 @@ class RollSurvey(pg.GraphicsObject):
                     time = self.elapsedTime(time, 4)    ###
 
                     if not block.borders.recBorder.isNull():                    # deal with block's receiver border if it isn't null()
-                        I, noData = pointsInRect(recPoints, block.borders.recBorder)
-                        if noData:
+                        I = pointsInRect(recPoints, block.borders.recBorder)
+                        if I.shape[0] == 0:
                             continue
-
-                    time = self.elapsedTime(time, 5)    ###
-
-                    recPoints = recPoints[I, :]
-
-                    time = self.elapsedTime(time, 6)    ###
+                        else:
+                            time = self.elapsedTime(time, 5)    ###
+                            recPoints = recPoints[I, :]
+                            time = self.elapsedTime(time, 6)    ###
 
                     for rec in recPoints:                                       # iterate over all receivers
 
@@ -871,7 +876,7 @@ class RollSurvey(pg.GraphicsObject):
         assert self.output.relGeom[0]['SrcPnt'] == self.output.srcGeom[0]['Point'], 'error in geometry files'
         assert self.output.relGeom[0]['SrcInd'] == self.output.srcGeom[0]['Index'], 'error in geometry files'
 
-        # to be sure; sort the three geometry arrays in he proper order: index; line; point
+        # to be sure; sort the three geometry arrays in the proper order: index; line; point
         self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
         self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
         self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
@@ -998,8 +1003,8 @@ class RollSurvey(pg.GraphicsObject):
                     if cmpPoints is None:
                         continue
 
-                I, noData = pointsInRect(cmpPoints, self.output.rctOutput)      # find the cmp locations that contribute to the output area
-                if noData:
+                I = pointsInRect(cmpPoints, self.output.rctOutput)              # find the cmp locations that contribute to the output area
+                if I.shape[0] == 0:
                     continue
 
                 cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array
@@ -1009,8 +1014,8 @@ class RollSurvey(pg.GraphicsObject):
                 offArray = np.zeros(shape=(size, 3), dtype=np.float32)          # allocate the offset array according to rec array
                 offArray = recPoints - src                                      # define the offset array
 
-                I, noData = pointsInRect(offArray, self.offset.rctOffsets)
-                if noData:
+                I = pointsInRect(offArray, self.offset.rctOffsets)
+                if I.shape[0] == 0:
                     continue
 
                 offArray = offArray[I, :]                                       # filter the offset-array
@@ -1093,7 +1098,13 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = 'binning from geometry cancelled by user'
             return False
         except BaseException as e:
-            self.errorText = str(e)
+            # self.errorText = str(e)
+            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            del (fileName, funcName, lineNo)
             return False
 
         self.calcRmsOffsetValues()
@@ -1169,7 +1180,13 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = 'binning from templates cancelled by user'
             return False
         except BaseException as e:
-            self.errorText = str(e)
+            # self.errorText = str(e)
+            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            del (fileName, funcName, lineNo)
             return False
 
         self.calcRmsOffsetValues()
@@ -1199,10 +1216,9 @@ class RollSurvey(pg.GraphicsObject):
             srcArray = srcSeed.pointArray + npTemplateOffset
 
             if not block.borders.srcBorder.isNull():                            # deal with block's source  border if it isn't null()
-                I, noData = pointsInRect(srcArray, block.borders.srcBorder)
-                if noData:
+                I = pointsInRect(srcArray, block.borders.srcBorder)
+                if I.shape[0] == 0:
                     continue
-
                 srcArray = srcArray[I, :]                                       # filter the source array
 
             for src in srcArray:                                                # iterate over all sources
@@ -1227,10 +1243,9 @@ class RollSurvey(pg.GraphicsObject):
                     recPoints = recSeed.pointArray + npTemplateOffset
 
                     if not block.borders.recBorder.isNull():                    # deal with block's receiver border if it isn't null()
-                        I, noData = pointsInRect(recPoints, block.borders.recBorder)
-                        if noData:
+                        I = pointsInRect(recPoints, block.borders.recBorder)
+                        if I.shape[0] == 0:
                             continue
-
                         recPoints = recPoints[I, :]
 
                     cmpPoints = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
@@ -1258,8 +1273,8 @@ class RollSurvey(pg.GraphicsObject):
                         if cmpPoints is None:
                             continue
 
-                    I, noData = pointsInRect(cmpPoints, self.output.rctOutput)
-                    if noData:
+                    I = pointsInRect(cmpPoints, self.output.rctOutput)
+                    if I.shape[0] == 0:
                         continue
 
                     cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array
@@ -1269,8 +1284,8 @@ class RollSurvey(pg.GraphicsObject):
                     offArray = np.zeros(shape=(size, 3), dtype=np.float32)      # allocate the offset array according to rec array
                     offArray = recPoints - src                                  # fill the offset array with  (x,y,z) values
 
-                    I, noData = pointsInRect(offArray, self.offset.rctOffsets)
-                    if noData:
+                    I = pointsInRect(offArray, self.offset.rctOffsets)
+                    if I.shape[0] == 0:
                         continue
 
                     offArray = offArray[I, :]                                   # filter the off-array
@@ -1501,6 +1516,10 @@ class RollSurvey(pg.GraphicsObject):
         rows = self.output.anaOutput.shape[0]                                   # get dimensions from analysis array itself
         cols = self.output.anaOutput.shape[1]
 
+        # by defining the array only here, we prevent having a 'null' array that would result in a plot with 'empty' rms values
+        self.output.rmsOffset = np.zeros(shape=(rows, cols), dtype=np.float32)  # start with empty array of the right size and type
+        self.output.rmsOffset.fill(np.NINF)                                     # start max offset with -inf (use np.full instead)
+
         self.nShotPoint = 0                                                     # reuse nShotPoint(s) to implement progress in statusbar
         self.nShotPoints = rows * cols                                          # calc nr of applicable points
         self.threadProgress = 0                                                 # reset counter
@@ -1557,7 +1576,7 @@ class RollSurvey(pg.GraphicsObject):
         plainText = doc.toString(indent)
         return plainText
 
-    def fromXmlString(self, xmlString) -> bool:
+    def fromXmlString(self, xmlString, createArrays=False) -> bool:
         # first get a QDomDocument to work with
         doc = QDomDocument()
         # errorMsg, errorLine, errorColumn not being used
@@ -1568,7 +1587,7 @@ class RollSurvey(pg.GraphicsObject):
             # build the RollSurvey object tree
             self.readXml(doc)
             # calculate transforms to plot items at the right location
-            self.calcTransforms()
+            self.calcTransforms(createArrays)
             # needed for circles, spirals & well-seeds; may affect bounding box
             self.calcSeedData()
             # (re)calculate the boundingBox as part of parsing the data
