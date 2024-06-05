@@ -155,11 +155,11 @@ class RollSpiral:
         Y = m1 * X + b1
         return (True, X, Y)
 
-    def createSpiralNew2(self, center, startRadius, spacePerLoop, startTheta, endTheta, thetaStep, clockWise=False):
+    def createSpiral2(self, center, startRadius, spacePerLoop, startTheta, endTheta, thetaStep, clockWise=False):
         # See: https://github.com/ZevEisenberg/ZESpiral and:
         # See: https://github.com/ZevEisenberg/ZESpiral/issues/1
 
-        # change relative to createSpiralNew: use QTransform to do the required translation and rotation
+        # change relative to createSpiral1: use QTransform to do the required translation and rotation
 
         # define sign for y-axis; needed for clockwise spirals
         s = -1 if clockWise is True else 1
@@ -232,7 +232,7 @@ class RollSpiral:
             else:
                 raise ValueError('These lines should never be parallel.')
 
-    def createSpiralNew(self, center, startRadius, spacePerLoop, startTheta, endTheta, thetaStep, clockWise=False):
+    def createSpiral1(self, center, startRadius, spacePerLoop, startTheta, endTheta, thetaStep, clockWise=False):
         # See: https://github.com/ZevEisenberg/ZESpiral and:
         # See: https://github.com/ZevEisenberg/ZESpiral/issues/1
 
@@ -382,7 +382,7 @@ class RollSpiral:
 
         # not completely clear why dr needs to be divided by 2Pi (dr --> c)
         #    createSpiral(QPointF center, qreal startRadius, qreal spacePerLoop, qreal startTheta, qreal endTheta, qreal thetaStep)
-        self.createSpiralNew2(origin, r1, c, p, thetaMax - thetaMin, thetaStep, clockWise)
+        self.createSpiral2(origin, r1, c, p, thetaMax - thetaMin, thetaStep, clockWise)
         # self.createSpiral(origin, 0, c, thetaMin, thetaMax, thetaStep)
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):

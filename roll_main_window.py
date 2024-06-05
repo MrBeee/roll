@@ -889,7 +889,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
         # third docking pane, used to display survey properties
-        # defined late, as it needs access to loaded survey object
+        # defined late, as it needs access the loaded survey object
         self.dockProperty = QDockWidget('Property pane')
         self.dockProperty.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.dockProperty.setStyleSheet('QDockWidget::title {background : lightblue;}')
@@ -2974,11 +2974,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.offAziImItem = None
 
         # corresponding color bars
-        self.layoutColorBar = None                                              # colorBars, added to imageItem
-        self.stkTrkColorBar = None
-        self.stkBinColorBar = None
-        self.stkCelColorBar = None
-        self.offAziColorBar = None
+        # self.layoutColorBar = None                                              # DON'T reset these; adjust the existing ones
+        # self.stkTrkColorBar = None
+        # self.stkBinColorBar = None
+        # self.stkCelColorBar = None
+        # self.offAziColorBar = None
 
         # rps, sps, xps input arrays
         self.rpsImport = None                                                   # numpy array with list of RPS records
@@ -3062,12 +3062,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def fileNew(self):                                                          # better create new file created through a wizard
         if self.maybeKillThread() and self.maybeSave():                         # make sure thread is killed AND current file  is saved (all only when needed)
-            self.resetNumpyArraysAndModels()
+            self.resetNumpyArraysAndModels()                                    # empty all arrays and reset plot titles
 
             # start defining new survey
-            self.parseText(exampleSurveyXmlText())
-            self.textEdit.setPlainText(exampleSurveyXmlText())
-            self.textEdit.moveCursor(QTextCursor.Start)
+            self.parseText(exampleSurveyXmlText())                              # read & parse xml string and create new survey object
+            self.textEdit.setPlainText(exampleSurveyXmlText())                  # copy xml content to text edit control
+            self.resetSurveyProperties()                                        # get the new parameters into the parameter tree
+            self.textEdit.moveCursor(QTextCursor.Start)                         # move cursor to front
             self.survey.calcTransforms()                                        # (re)calculate the transforms being used
             self.survey.calcSeedData()                                          # needed for circles, spirals & well-seeds; may affect bounding box
             self.survey.calcBoundingRect()                                      # (re)calculate the boundingBox as part of parsing the data
@@ -3193,8 +3194,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Cannot open file:{fileName}. Error:{file.errorString()}', MsgType.Error)
             return False
-
-        self.survey = RollSurvey()                                              # first reset the survey object; get rid of all blocks in the list !
+        self.survey = RollSurvey()                                              # reset the survey object; get rid of all blocks in the list !
         self.appendLogMessage(f'Opened : {fileName}')                           # send status message
         self.setCurrentFileName(fileName)                                       # update self.fileName, set textEditModified(False) and setWindowModified(False)
 
@@ -3206,34 +3206,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         success = self.parseText(plainText)                                     # parse the string; load the textEdit even if parsing fails !
         self.textEdit.setPlainText(plainText)                                   # update plainText widget, and reset undo/redo & modified status
 
-        if success:                                                             # reset arrays and read the corresponding analysis files
-            self.inlineStk = None                                               # numpy array with inline Kr stack reponse
-            self.x_lineStk = None                                               # numpy array with x_line Kr stack reponse
-            self.xyCellStk = None                                               # numpy array with cell's KxKy stack response
-            self.xyPatResp = None                                               # numpy array with pattern's KxKy response
-
-            self.rpsLayerId = None                                              # QGIS layerId used when updating an existing vector layer
-            self.spsLayerId = None
-            self.recLayerId = None
-            self.srcLayerId = None
-
-            self.resetPlotWidget(self.offTrkWidget, self.plotTitles[1])         # clear all analysis plots
-            self.resetPlotWidget(self.offBinWidget, self.plotTitles[2])
-            self.resetPlotWidget(self.aziTrkWidget, self.plotTitles[3])
-            self.resetPlotWidget(self.aziBinWidget, self.plotTitles[4])
-            self.resetPlotWidget(self.stkTrkWidget, self.plotTitles[5])
-            self.resetPlotWidget(self.stkBinWidget, self.plotTitles[6])
-            self.resetPlotWidget(self.stkCelWidget, self.plotTitles[7])
-            self.resetPlotWidget(self.offsetWidget, self.plotTitles[8])
-            self.resetPlotWidget(self.offAziWidget, self.plotTitles[9])
-
-            # reset all spider settings
-            self.actionSpider.setChecked(False)                                 # reset spider plot to 'off'
-            self.spiderPoint = QPoint(-1, -1)                                   # reset spider point to be 'out of scope'
-            self.spiderSrcX = None                                              # numpy array with list of SRC part of spider plot
-            self.spiderSrcY = None                                              # numpy array with list of SRC part of spider plot
-            self.spiderRecX = None                                              # numpy array with list of REC part of spider plot
-            self.spiderRecY = None                                              # numpy array with list of REC part of spider plot
+        if success:                                                             # read the corresponding analysis files
+            self.resetNumpyArraysAndModels()                                    # empty all arrays and reset plot titles
 
             if os.path.exists(self.fileName + '.bin.npy'):                      # open the existing foldmap file
                 self.survey.output.binOutput = np.load(self.fileName + '.bin.npy')
@@ -3251,6 +3225,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.minimumFold} - Max:{self.maximumFold} ')
             else:
                 self.survey.output.binOutput = None
+                self.actionFold.setChecked(False)
+                self.imageType = 0                                              # set analysis type to zero (no analysis)
 
             if os.path.exists(self.fileName + '.min.npy'):                      # load the existing min-offsets file
                 self.survey.output.minOffset = np.load(self.fileName + '.min.npy')
@@ -3342,6 +3318,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} rps-records')
             else:
                 self.rpsImport = None
+                self.actionRpsPoints.setChecked(False)
+                self.actionRpsPoints.setEnabled(False)
 
             if os.path.exists(self.fileName + '.sps.npy'):                      # open the existing sps-file
                 self.spsImport = np.load(self.fileName + '.sps.npy')
@@ -3351,6 +3329,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} sps-records')
             else:
                 self.spsImport = None
+                self.actionSpsPoints.setChecked(False)
+                self.actionSpsPoints.setEnabled(False)
 
             if os.path.exists(self.fileName + '.xps.npy'):                      # open the existing xps-file
                 self.xpsImport = np.load(self.fileName + '.xps.npy')
@@ -3368,6 +3348,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} rec-records')
             else:
                 self.recGeom = None
+                self.actionRecPoints.setChecked(False)
+                self.actionRecPoints.setEnabled(False)
 
             if os.path.exists(self.fileName + '.src.npy'):                      # open the existing rps-file
                 self.srcGeom = np.load(self.fileName + '.src.npy')
@@ -3377,6 +3359,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} src-records')
             else:
                 self.srcGeom = None
+                self.actionSrcPoints.setChecked(False)
+                self.actionSrcPoints.setEnabled(False)
 
             if os.path.exists(self.fileName + '.rel.npy'):                      # open the existing xps-file
                 self.relGeom = np.load(self.fileName + '.rel.npy')
@@ -3406,7 +3390,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the 'xml' tab
 
         # self.plotLayout()                                                     # plot the survey object
-        self.resetSurveyProperties()                                            # update the parameter pane
+        self.resetSurveyProperties()                                            # get the new parameters into the parameter tree
         self.survey.checkIntegrity()                                            # check for survey integrity; in particular well file validity
         return success
 

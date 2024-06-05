@@ -6,7 +6,7 @@
 name=Roll
 qgisMinimumVersion=3.28
 description=Design and analysis of 3D seismic survey geometries
-version=0.3.0
+version=0.3.1
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is for creating and analyzing 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -21,6 +21,7 @@ about:<p>This plugin is for creating and analyzing 3D seismic survey geometries.
   <p>Please take note:<ul>
   <li>The plugin has not (yet) been tested on Linux or macOS </li>
   <li>The plugin works best on a QHD Screen (2560 x 1440 pixels) or larger </li>
+  <li>As of V3.32 High DPI UI scaling issues have arisen in QGIS. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a> </li> 
   <li>As of version 3.34.6, QGIS upgraded Python from v 3.9 to to 3.12 This speeds up calculations and solves some security issues. <br>
   But when <i>upgrading</i> from an earlier QGIS version, it requires installing the above listed packages <b><i>again.</b></i> </li></ul>
 
@@ -32,7 +33,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog: <p>2024-05-27 (0.3.0) reduced minimal width of Geometry & SPS tables, in order to make working with a <i>smallish</i> full HD (1920x1080) screen easier 
+changelog: <p>2024-06-02 (0.3.1) Created a 'display' menu. This allows for closing the display pane, when using full HD displays. Fixed some bugs
+  <p>2024-05-27 (0.3.0) reduced minimal width of Geometry & SPS tables, in order to make working with a <i>smallish</i> full HD (1920x1080) screen easier 
   <p>2024-05-23 (0.2.9) expanded numba @jit functions, added rms-offset plot on Layout tab. Fixed some bugs. Implemented function profiling
   <p>2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added stack response analysis and |O| & O/A Histograms. Fixed some bugs
   <p>2024-04-21 (0.2.7) removed all numba @jit references, as exception handling with numba causes problems. Will revisit later

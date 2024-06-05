@@ -17,7 +17,9 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .functions import containsPoint3D
-from .functions_numba import clipLineF, numbaFixRelationRecord, numbaSetPointRecord, numbaSetRelationRecord, pointsInRect
+from .functions_numba import (clipLineF, numbaFixRelationRecord,
+                              numbaSetPointRecord, numbaSetRelationRecord,
+                              pointsInRect)
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -2208,14 +2210,14 @@ class RollSurvey(pg.GraphicsObject):
 
             if seed.type == 3 and seed.rendered is False:                       # spiral seed
                 seed.rendered = True
-                if lod < config.lod2 or self.mouseGrabbed:                      # just draw two circles
+                if lod < config.lod2 or self.mouseGrabbed:
 
                     # empty brush
                     painter.setBrush(QBrush())
                     # r1 = seed.spiral.radMin
                     # r2 = seed.spiral.radMax
                     # o = seed.origin.toPointF()
-                    # painter.drawEllipse(o, r1, r1)
+                    # painter.drawEllipse(o, r1, r1)                              # just draw two circles
                     # painter.drawEllipse(o, r2, r2)
                     # draw spiral shape
                     painter.drawPath(seed.spiral.path)

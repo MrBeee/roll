@@ -167,16 +167,21 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
 
-Currently, there is still some functionality left to be added. See To Do.
+Currently, there is still some functionality left to be added. See 'To Do' section.
 
-See changelog for already implemented functionality
+See the 'Changelog' for already implemented functionality
 
-[Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
+Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
+
+As of QGIS V3.32 High DPI UI scaling issues have arisen. See the following discussion on GitHub [here](https://github.com/qgis/QGIS/issues/53898).
+
+A solution for High DPI monitors has been proposed, that is also shown under the help menu in Roll
 
 
 
 #### 6	Changelog
 
+- 2024-06-02 (0.3.1) Created a 'display' menu. This allows for closing the display pane, when using *smallish* full HD displays. Fixed some bugs
 - 2024-05-27 (0.3.0) reduced minimal width of Geometry & SPS tables, in order to make working with a *smallish* full HD (1920x1080) screen easier.
 - 2024-05-23 (0.2.9) expanded numba @jit functions, added rms-offset plot on Layout tab. Fixed some bugs. Implemented function profiling.
 - 2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added stack-response analysis and |O| & O/A Histograms. Fixed some bugs.
@@ -198,9 +203,8 @@ See changelog for already implemented functionality
 
 - Create wizard for Marine towed-streamer geometry
 - Improve analysis capabilities
-  - Show pattern layout and add Kx-Ky pattern analysis
-  - Make k-scales user-adjustable in the settings dialog
-  
+
+- Show pattern layout and add Kx-Ky pattern analysis
 - Use multiprocessing instead of a worker thread to speed up background tasks
-- Consider relational database instead of numpy arrays for geometry tables
+- Consider using a relational database instead of numpy arrays for geometry tables
 
