@@ -873,8 +873,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionCopy.setEnabled(False)
         self.actionPaste.setEnabled(self.clipboardHasText())
 
-        # for the export items
-        self.updateMenuStatus(False)
+        self.updateMenuStatus(True)                                             # keep menu status in sync with program's state
 
         # make the main tab widget the central widget
         self.setCentralWidget(self.mainTabWidget)
@@ -1116,7 +1115,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.survey.output.anaOutput = None                             # then remove self.survey.output.anaOutput itself
                 gc.collect()                                                    # get the garbage collector going
 
-            self.updateMenuStatus(False)
+            self.updateMenuStatus(True)                                         # keep menu status in sync with program's state
 
         self.appendLogMessage(f'Edited : {self.fileName} survey object updated')
         self.plotLayout()
@@ -1719,7 +1718,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsModel.setData(self.rpsImport)                                   # update the model's data
         if after < before:                                                      # need to update the (x, y) points as well
             self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
-            self.updateMenuStatus(True)
+            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps-duplicates')
 
@@ -1731,7 +1730,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsModel.setData(self.spsImport)
         if after < before:
             self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
-            self.updateMenuStatus(True)
+            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps-duplicates')
 
@@ -1743,7 +1742,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsModel.setData(self.rpsImport)
         if after < before:
             self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
-            self.updateMenuStatus(True)
+            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps/xps-orphans')
 
@@ -1755,7 +1754,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsModel.setData(self.spsImport)
         if after < before:
             self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
-            self.updateMenuStatus(True)
+            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps/xps-orphans')
 
@@ -1804,7 +1803,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.recModel.setData(self.recGeom)                                     # update the model's data
         if after < before:                                                      # need to update the (x, y) points as well
             self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
-            self.updateMenuStatus(True)
+            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec-duplicates')
 
@@ -1816,7 +1815,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.srcModel.setData(self.srcGeom)
         if after < before:
             self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
-            self.updateMenuStatus(True)
+            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src-duplicates')
 
@@ -1828,7 +1827,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.recModel.setData(self.recGeom)
         if after < before:
             self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
-            self.updateMenuStatus(True)
+            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec/rel-orphans')
 
@@ -1840,7 +1839,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.srcModel.setData(self.srcGeom)
         if after < before:
             self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
-            self.updateMenuStatus(True)
+            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src/rel-orphans')
 
@@ -1980,7 +1979,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.srcCoordE, self.srcCoordN, self.srcCoordI = self.srcGeom
         self.srcModel.setData(self.srcGeom)
-        self.updateMenuStatus(True)
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
         self.plotLayout()
 
     def importRecFromQgis(self):
@@ -1998,15 +1997,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
         self.recModel.setData(self.recGeom)
-        self.updateMenuStatus(True)
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
         self.plotLayout()
 
     def exportOutToQgis(self):
         layerName = QFileInfo(self.fileName).baseName()
         exportSurveyOutlineToQgis(layerName, self.survey)
 
-    def updateMenuStatus(self, enable=True):
-        if not enable:
+    def updateMenuStatus(self, resetAnalysis=True):
+        if resetAnalysis:
             self.actionNone.setChecked(True)                                    # coupled with tbNone
             self.imageType = 0                                                  # reset analysis type to zero
 
@@ -3058,7 +3057,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.resetPlotWidget(self.offsetWidget, self.plotTitles[8])
         self.resetPlotWidget(self.offAziWidget, self.plotTitles[9])
 
-        self.updateMenuStatus(False)
+        self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
 
     def fileNew(self):                                                          # better create new file created through a wizard
         if self.maybeKillThread() and self.maybeSave():                         # make sure thread is killed AND current file  is saved (all only when needed)
@@ -3141,7 +3140,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.layoutImg = None                                                   # numpy array to be displayed
         self.layoutImItem = None                                                # pg ImageItem showing analysis result
 
-        self.updateMenuStatus(False)                                            # nothing to export, and reset self.imageType to 0
+        self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
         self.handleImageSelection()                                             # update the colorbar accordingly
 
         return True
@@ -3384,7 +3383,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         index = self.anaView.model().index(0, 0)                                # turn offset into index
         self.anaView.scrollTo(index)                                            # scroll to the first trace in the trace table
         self.anaView.selectRow(0)                                               # for the time being, *only* select first row of traces in a bin
-        self.updateMenuStatus(True)                                             # enable export items in File Menu
+        self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
         self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
         self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
         self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the 'xml' tab
@@ -3654,6 +3653,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         else:
             self.appendLogMessage(f'saving : Cannot save file: {self.fileName}', MsgType.Error)
             QMessageBox.information(self, 'Write error', f'Cannot save file:\n{self.fileName}')
+
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
 
         return success
 
@@ -4372,7 +4373,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.layoutColorBar.setColorMap(config.fold_OffCmap)
                 self.setColorbarLabel(label)
 
-            self.updateMenuStatus()                                             # enable menu items and button group
             self.plotLayout()                                                   # plot survey with colorbar
 
             endTime = timer()
@@ -4406,9 +4406,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             QMessageBox.information(self, 'Done', f'Worker thread completed. {info} ')
 
-        self.updateMenuStatus(True)
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
         self.enableProcessingMenuItems()                                        # enable processing menu items (again)
-
         self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
 
     def geometryThreadFinished(self, success):
@@ -4463,7 +4462,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 info = 'Analysis results have been saved.'
             QMessageBox.information(self, 'Done', f'Worker thread completed. {info} ')
 
-        self.updateMenuStatus(True)
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
         self.enableProcessingMenuItems()                                        # enable processing menu items (again)
         self.mainTabWidget.setCurrentIndex(2)                                   # make sure we display the 'Geometry' tab
         self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)

@@ -75,23 +75,23 @@ class PgToolBar(QToolBar):
         self.plotWidget = plotWidget
         self.plotWidget.scene().sigMouseMoved.connect(self.MouseMovedInPlot)
 
-    def plotZoomRect(self):
+    def plotZoomRect(self, checked):
         if not self.plotWidget is None:
-            self.rect = not self.rect
+            self.rect = checked
             if self.rect:
                 self.plotWidget.getViewBox().setMouseMode(pg.ViewBox.RectMode)
             else:
                 self.plotWidget.getViewBox().setMouseMode(pg.ViewBox.PanMode)
 
-    def plotAspectRatio(self):
+    def plotAspectRatio(self, checked):
         if not self.plotWidget is None:
-            self.XisY = not self.XisY
+            self.XisY = checked
             self.plotWidget.setAspectLocked(self.XisY)
 
-    def plotAntiAlias(self):
+    def plotAntiAlias(self, checked):
         if not self.plotWidget is None:
-            self.antA = not self.antA
-            self.plotWidget.setAntialiasing(self.antA)                          # enabl/disable aa plotting
+            self.antA = checked
+            self.plotWidget.setAntialiasing(self.antA)                          # enable/disable aa plotting
 
     def plotGridLines(self):
         if not self.plotWidget is None:

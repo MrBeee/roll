@@ -63,7 +63,7 @@ class SurveyWizardPage(QWizardPage):
         # self.survey = parent.survey
 
     def cleanupPage(self):                                                      # To prevent initializePage() being called on browsing backwards
-        pass                                                                    # Default to do absolutely nothing !
+        pass                                                                    # Default is to do absolutely nothing !
 
 
 class LandSurveyWizard(SurveyWizard):
@@ -73,7 +73,6 @@ class LandSurveyWizard(SurveyWizard):
         self.nTemplates = 1                                                     # nr of templates in a design. Will be affected by brick, slant & zigzag geometries
         self.surveySize = QSizeF(config.deployInline, config.deployX_line)      # initial survey size; determined by src area for orthogonal surveys and rec area for parallel
 
-        self.addPage(Page_0(self))
         self.addPage(Page_1(self))
         self.addPage(Page_2(self))
         self.addPage(Page_3(self))
@@ -81,8 +80,9 @@ class LandSurveyWizard(SurveyWizard):
         self.addPage(Page_5(self))
         self.addPage(Page_6(self))
         self.addPage(Page_7(self))
+        self.addPage(Page_8(self))
 
-        self.setWindowTitle('Seismic Survey Wizard')
+        self.setWindowTitle('Land & OBN Seismic Survey Wizard')
         self.setWizardStyle(QWizard.ClassicStyle)
 
         # self.setOption(QWizard.IndependentPages , True) # Don't use this option as fields are no longer updated !!! Make dummy cleanupPage(self) instead
@@ -93,15 +93,16 @@ class LandSurveyWizard(SurveyWizard):
 #        self.setOption(QWizard.NoCancelButton, True)
 #        self.setWindowFlags(self.windowFlags() | QtCore.Qt.CustomizeWindowHint)
 #        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowCloseButtonHint)
+
 # def reject(self):
 #        pass
 
 
-# Page_0 =======================================================================
+# Page_1 =======================================================================
 # 1. Survey type, Nr lines, and line & point intervals
 
 
-class Page_0(SurveyWizardPage):
+class Page_1(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -360,8 +361,12 @@ class Page_0(SurveyWizardPage):
         self.chkMirrorOddEven.setVisible(Zigzag)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
+        print('initialize page 1')
         self.chkLinePntAlign.setChecked(True)
         self.chkBrickMatchRpi.setChecked(True)
+
+    def cleanupPage(self):                                                      # needed to update previous page
+        print('cleanup of page 1')
 
     def adjustBingrid(self):
         rpi = self.rpi.value()                                                  # horizontal
@@ -372,13 +377,14 @@ class Page_0(SurveyWizardPage):
         rli = self.rli.value()
         spi = min(spi, rli)
 
-        self.setField('binI', 0.5 * rpi)                                         # need to adjust bingrid too
+        self.setField('binI', 0.5 * rpi)                                        # need to adjust bingrid too
         self.setField('binX', 0.5 * spi)
 
-        self.parent.page(3).evt_binImin_editingFinished()                       # need to update binning area too
-        self.parent.page(3).evt_binIsiz_editingFinished()
-        self.parent.page(3).evt_binXmin_editingFinished()
-        self.parent.page(3).evt_binXsiz_editingFinished()
+        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
+        self.parent.page(3).evt_binImin_editingFinished(plot=False)             # need to update binning area too
+        self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
+        self.parent.page(3).evt_binXmin_editingFinished(plot=False)
+        self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
 
     def evt_align_stateChanged(self):                                           # alignment state changed
         self.evt_sli_editingFinished()                                          # update dependent controls
@@ -390,7 +396,7 @@ class Page_0(SurveyWizardPage):
         self.evt_brickS_editingFinished()                                       # update dependent control
 
     def evt_type_indexChanged(self, index):
-        self.nsl.setValue(1)                                                    # in case we came from zigzag or parallel
+        self.nsl.setValue(1)                                                    # reset nr source lines in case we came from zigzag or parallel
 
         self.sli.setEnabled(True)                                               # in case we disabled this earlier
         self.nsl.setEnabled(True)                                               # for instance with zigzag or parallel
@@ -577,18 +583,18 @@ class Page_0(SurveyWizardPage):
         self.brickS.setValue(brick)
 
 
-# Page_1 =======================================================================
-# 2. spread and salvo details
+# Page_2 =======================================================================
+# 2. Template Properties - Enter Spread and Salvo details
 
 
-class Page_1(SurveyWizardPage):
+class Page_2(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self.setTitle('2. Template Properties')
         self.setSubTitle('Enter Spread and Salvo details')
 
-        print('page 4 init')
+        print('page 2 init')
 
         # to support plotting
         self.rect = False
@@ -700,6 +706,7 @@ class Page_1(SurveyWizardPage):
         #     self.mouseBeingDragged)                                             # essential to find plotting state for LOD plotting
 
         self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
+        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
 
         # add toolbar and plotwidget to the vertical box layout
         vbl.addWidget(self.zoomBar)
@@ -733,6 +740,7 @@ class Page_1(SurveyWizardPage):
         self.offXmax.editingFinished.connect(self.evt_offXmax_editingFinished)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
+        print('initialize page 2')
         # disable required edit controls
         chkd = self.chkNrecKnown.isChecked()
         self.nrp.setEnabled(chkd)
@@ -775,7 +783,7 @@ class Page_1(SurveyWizardPage):
         self.offXmax.setValue(0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
 
         # as of Python version 3.10, there is an official switch-case statement.
-        # Alas, QGIS is currently using Python v3.9.5 so we are limited by this.
+        # Alas, QGIS 3.28 is using Python v3.9.5 so we have to use if ... elif ... elif etc.
         self.parent.nTemplates = 1
         nSrcSeeds = 1
         if typ == SurveyType.Orthogonal.value:
@@ -794,18 +802,12 @@ class Page_1(SurveyWizardPage):
 
         # Create a survey skeleton , so we can simply update properties, without having to instantiate classes
         self.parent.survey.createBasicSkeleton(nTemplates=self.parent.nTemplates, nSrcSeeds=nSrcSeeds, nRecSeeds=1)    # add Block, template(s)
+
         self.updateParentSurvey()                                               # update the survey object
-
-        print('initialize page 4')
-
-        # textQC = self.parent.survey.toXmlString()                               # check what's in there
-        # print(textQC)                                                           # show it
-
-        # refresh the plot
-        self.plot()
+        self.plot()                                                             # refresh the plot
 
     def cleanupPage(self):                                                      # needed to update previous page
-        print('cleanup Page_1')
+        print('cleanup of page 2')
 
     def updateParentSurvey(self):
         # populate / update the survey skeleton
@@ -827,17 +829,18 @@ class Page_1(SurveyWizardPage):
         typ = self.field('type')
 
         nsla = self.field('nslant')                                             # nr templates in a slanted survey
-        brk = self.field('brk')                                                # brick offset distance
-        nzz = self.field('nzz')                                                # nr source fleets in a zigzag survey
-        mir = self.field('mir')                                                # mirrored zigzag survey
+        brk = self.field('brk')                                                 # brick offset distance
+        nzz = self.field('nzz')                                                 # nr source fleets in a zigzag survey
+        mir = self.field('mir')                                                 # mirrored zigzag survey
 
+        # populate / update the survey skeleton
+
+        # do the patterns here (instead of page 5) as pattern orientation may depend on template type (e.g. zigzag)
         # source & receiver patterns
         rNam = self.field('rNam')
         sNam = self.field('sNam')
 
-        # populate / update the survey skeleton
-
-        # orthogonal / slanted / brick source pattern
+        # orthogonal / slanted / brick source patterns
         sBra = config.sBra
         sBrI = config.sBrI
         sEle = config.sEle
@@ -866,10 +869,10 @@ class Page_1(SurveyWizardPage):
 
         self.parent.survey.patternList[0].growList[0].steps = sBra              # nr branches
         self.parent.survey.patternList[0].growList[0].increment.setX(sBrI)      # branch interval
-        self.parent.survey.patternList[0].growList[0].increment.setY(0.0)      # horizontal
+        self.parent.survey.patternList[0].growList[0].increment.setY(0.0)       # horizontal
 
         self.parent.survey.patternList[0].growList[1].steps = sEle              # nr elements
-        self.parent.survey.patternList[0].growList[1].increment.setX(0.0)      # vertical
+        self.parent.survey.patternList[0].growList[1].increment.setX(0.0)       # vertical
         self.parent.survey.patternList[0].growList[1].increment.setY(sElI)      # element interval
 
         # receiver pattern
@@ -888,10 +891,10 @@ class Page_1(SurveyWizardPage):
 
         self.parent.survey.patternList[1].growList[0].steps = rBra              # nr branches
         self.parent.survey.patternList[1].growList[0].increment.setX(rBrI)      # branch interval
-        self.parent.survey.patternList[1].growList[0].increment.setY(0.0)      # horizontal
+        self.parent.survey.patternList[1].growList[0].increment.setY(0.0)       # horizontal
 
         self.parent.survey.patternList[1].growList[1].steps = rEle              # nr elements
-        self.parent.survey.patternList[1].growList[1].increment.setX(0.0)      # vertical
+        self.parent.survey.patternList[1].growList[1].increment.setX(0.0)       # vertical
         self.parent.survey.patternList[1].growList[1].increment.setY(rElI)      # element interval
 
         # calculate the boundingBpx, now the patterns have been populated
@@ -903,9 +906,9 @@ class Page_1(SurveyWizardPage):
         self.parent.survey.patternList[1].calcPatternPicture()
 
         # offsets; from start/end of salvo to start/end of spread; both inline and x-line
-        if typ == SurveyType.Parallel.value:                                   # no hard values; give arbitrary inline limits
+        if typ == SurveyType.Parallel.value:                                    # no hard values; give arbitrary inline limits
             inline1 = -5975.0                                                   # negative number
-            inline2 = 5975.0                                                   # positive number
+            inline2 = 5975.0                                                    # positive number
         else:
             inline1 = offImin                                                   # offImin is a negative number
             inline2 = (nrp - 1) * rpi + inline1                                 # positive number
@@ -913,77 +916,77 @@ class Page_1(SurveyWizardPage):
         x_line1 = -(offXmin + (nsp - 1) * spi)                                  # offXmin is a positive number
         x_line2 = (nrl - 1) * rli - offXmin
 
-        self.parent.survey.offset.rctOffsets.setLeft(inline1 - 1.0)           # inline
+        self.parent.survey.offset.rctOffsets.setLeft(inline1 - 1.0)             # inline
         self.parent.survey.offset.rctOffsets.setRight(inline2 + 1.0)
 
-        self.parent.survey.offset.rctOffsets.setTop(x_line1 - 1.0)           # x_line
+        self.parent.survey.offset.rctOffsets.setTop(x_line1 - 1.0)              # x_line
         self.parent.survey.offset.rctOffsets.setBottom(x_line2 + 1.0)
 
         w = max(abs(inline1), abs(inline2))                                     # prepare radial limit
         h = max(abs(x_line1), abs(x_line2))
         r = round(math.sqrt(w * w + h * h)) + 1.0
 
-        self.parent.survey.offset.radOffsets.setX(0.0)                     # radial; rmin
-        self.parent.survey.offset.radOffsets.setY(r)                       # radial; rmax
+        self.parent.survey.offset.radOffsets.setX(0.0)                          # radial; rmin
+        self.parent.survey.offset.radOffsets.setY(r)                            # radial; rmax
 
         # deal with different survey types
         if typ == SurveyType.Orthogonal.value:
             # source
-            nPadding = (nsl - 1) * round(sli / rpi)                                                         # add nr recs between two source lines
-            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(0.0)                # Seed origin; source inline at 0.0
-            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setY(offXmin)                # Seed origin; positive number
+            nPadding = (nsl - 1) * round(sli / rpi)                                                             # add nr recs between two source lines
+            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(0.0)                        # Seed origin; source inline at 0.0
+            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setY(offXmin)                    # Seed origin; positive number
 
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].steps = nsl             # nsl
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setX(sli)     # sli
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setY(0.0)     # horizontal
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].steps = nsl            # nsl
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setX(sli)    # sli
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setY(0.0)    # horizontal
 
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].steps = nsp             # nsp
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setX(0.0)     # vertical
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setY(spi)     # spi
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].steps = nsp            # nsp
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setX(0.0)    # vertical
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setY(spi)    # spi
 
             # receiver
-            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setX(offImin)                # Seed origin; negative number
-            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setY(0.0)                # Seed origin; receiver x-line at 0.0
+            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setX(offImin)                    # Seed origin; negative number
+            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setY(0.0)                        # Seed origin; receiver x-line at 0.0
 
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].steps = nrl             # nrl
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setX(0.0)   # vertical
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setY(rli)   # rli
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].steps = nrl            # nrl
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setX(0.0)    # vertical
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setY(rli)    # rli
 
             self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].steps = nrp + nPadding  # nrp
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setX(rpi)   # rpi
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setY(0.0)   # horizontal
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setX(rpi)    # rpi
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setY(0.0)    # horizontal
 
         elif typ == SurveyType.Parallel.value:
             # source
-            nPadding = 0                                                                                    # no paddding required
-            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(0.0)                # Seed origin
-            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setY(offXmin)                # Seed origin
+            nPadding = 0                                                                                        # no paddding required
+            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(0.0)                        # Seed origin
+            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setY(offXmin)                    # Seed origin
 
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].steps = nsp             # nsp
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setX(0.0)     # vertical
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setY(spi)     # spi
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].steps = nsp            # nsp
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setX(0.0)    # vertical
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setY(spi)    # spi
 
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].steps = nsl             # nsl
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setX(sli)     # sli
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setY(0.0)     # horizontal
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].steps = nsl            # nsl
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setX(sli)    # sli
+            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setY(0.0)    # horizontal
 
             # receiver
-            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setX(offImin)                # Seed origin
-            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setY(0.0)                # Seed origin
+            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setX(offImin)                    # Seed origin
+            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setY(0.0)                        # Seed origin
 
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].steps = nrl             # nrl
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setX(0.0)   # vertical
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setY(rli)   # rli
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].steps = nrl            # nrl
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setX(0.0)    # vertical
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setY(rli)    # rli
 
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].steps = nrp + nPadding  # nrp
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setX(rpi)   # rpi
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setY(0.0)   # horizontal
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].steps = nrp + nPadding   # nrp
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setX(rpi)    # rpi
+            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setY(0.0)    # horizontal
 
         elif typ == SurveyType.Slanted.value:
-            nPadding = round(sli / rpi)                                        # as many rec points as there are between 2 src lines
-            nPadding += (nsl - 1) * round(sli / rpi)                            # add nr recs between two source lines
+            nPadding = round(sli / rpi)                                                                         # as many rec points as there are between 2 src lines
+            nPadding += (nsl - 1) * round(sli / rpi)                                                            # add nr recs between two source lines
 
-            ratio = sli / (nsla * rli)                                          # get the ratio from the slant angle
+            ratio = sli / (nsla * rli)                                                                          # get the ratio from the slant angle
 
             for i in range(nsla):
                 # source
@@ -991,54 +994,54 @@ class Page_1(SurveyWizardPage):
                 self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(offXmin + i * rli)      # Seed origin
                 self.parent.survey.blockList[0].templateList[i].seedList[0].bAzimuth = True                     # Pattern in deviated direction
 
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = nsl             # nsl
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(sli)     # sli
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)     # horizontal
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = nsl            # nsl
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(sli)    # sli
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)    # horizontal
 
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = nsp             # nsp
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = nsp            # nsp
                 self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(spi * ratio)   # slanted
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(spi)     # spi
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(spi)    # spi
 
                 # receiver
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(offImin)                # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setY(i * rli)                # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(offImin)                    # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setY(i * rli)                    # Seed origin
 
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].steps = nrl             # nrl
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setX(0.0)   # vertical
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setY(rli)   # rli
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].steps = nrl            # nrl
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setX(0.0)    # vertical
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setY(rli)    # rli
 
                 self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].steps = nrp + nPadding  # nrp
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(rpi)   # rpi
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(0.0)   # horizontal
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(rpi)    # rpi
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(0.0)    # horizontal
 
         elif typ == SurveyType.Brick.value:
-            nPadding = round(brk / rpi)                                          # shift in source lines
-            nPadding += (nsl - 1) * round(sli / rpi)                            # add nr recs between two source lines
+            nPadding = round(brk / rpi)                                                                             # shift in source lines
+            nPadding += (nsl - 1) * round(sli / rpi)                                                                # add nr recs between two source lines
 
             for i in range(self.parent.nTemplates):
                 # source
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(i * brk)                # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(offXmin + i * rli)      # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(i * brk)                    # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(offXmin + i * rli)          # Seed origin
 
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = nsl             # nsl
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(sli)     # sli
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)     # horizontal
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = nsl            # nsl
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(sli)    # sli
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)    # horizontal
 
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = nsp             # nsp
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(0.0)     # vertical
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(spi)     # spi
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = nsp            # nsp
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(0.0)    # vertical
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(spi)    # spi
 
                 # receiver
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(offImin)                # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setY(i * rli)                # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(offImin)                    # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setY(i * rli)                    # Seed origin
 
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].steps = nrl             # nrl
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setX(0.0)   # vertical
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setY(rli)   # rli
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].steps = nrl            # nrl
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setX(0.0)    # vertical
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setY(rli)    # rli
 
                 self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].steps = nrp + nPadding  # nrp
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(rpi)   # rpi
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(0.0)   # horizontal
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(rpi)    # rpi
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(0.0)    # horizontal
 
         elif typ == SurveyType.Zigzag.value:
             nPadding = 2 * (round(rli / spi) + nzz - 1) - 1                       # zig + zag distance, accounted for nzz
@@ -1120,6 +1123,7 @@ class Page_1(SurveyWizardPage):
             raise NotImplementedError('unsupported survey type.')
 
         self.parent.survey.resetBoundingRect()                                  # reset extent of survey
+        self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect(False)                              # (re)calculate extent of survey, ignoring roll-along
 
     def evt_chkNrecKnown_toggled(self, chkd):                                   # toggle enabled status for 2 controls
@@ -1262,10 +1266,11 @@ class Page_1(SurveyWizardPage):
         self.plot()                                                             # refresh the plot
 
     def plot(self):
-        """plot the template"""
+        """plot spread and salvo detail"""
 
         self.plotWidget.plotItem.clear()
         self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
+        self.plotWidget.setAntialiasing(True)
 
         styles = {'color': '#646464', 'font-size': '10pt'}
         self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
@@ -1273,8 +1278,11 @@ class Page_1(SurveyWizardPage):
         self.plotWidget.setLabel('top', 'inline', units='m', **styles)      # shows axis at the top, and shows the survey name
         self.plotWidget.setLabel('right', 'crossline', units='m', **styles)   # shows axis at the top, and shows the survey name
 
-        self.parent.survey.PaintMode = PaintMode.oneTemplate
+        self.parent.survey.paintMode = PaintMode.allDetails
+        self.parent.survey.lodScale = 6.0
         item = self.parent.survey
+
+        # 2. Template Properties - Enter Spread and Salvo details
         self.plotWidget.plotItem.addItem(item)
 
         # Add a marker for the origin
@@ -1283,11 +1291,11 @@ class Page_1(SurveyWizardPage):
         # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
 
-# Page_2 =======================================================================
-# 3. bingrid properties
+# Page_3 =======================================================================
+# 3. Template Properties - Enter the bin grid properties
 
 
-class Page_2(SurveyWizardPage):
+class Page_3(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -1371,6 +1379,7 @@ class Page_2(SurveyWizardPage):
         #     self.mouseBeingDragged)                                             # essential to find plotting state for LOD plotting
 
         self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
+        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
 
         # add toolbar and plotwidget to the vertical box layout
         vbl.addWidget(self.zoomBar)
@@ -1413,10 +1422,10 @@ class Page_2(SurveyWizardPage):
         binX = self.field('binX')
 
         lenI = nrp * rpi
-        if typ == SurveyType.Parallel.value:                                   # make exeption for parallel template, as nrp will be excessive (whole spread)
+        if typ == SurveyType.Parallel.value:                                    # make exeption for parallel template, as nrp will be excessive (whole spread)
             spread = nrp * rpi
             salvo = nsl * sli
-            lenI = max(abs(spread - salvo), 6000)                             # a least 6 km inline offset
+            lenI = max(abs(spread - salvo), 6000)                               # a least 6 km inline offset
 
         foldI = 0.5 * lenI / (slr * sli)
         foldX = 0.5 * nrl / rlr
@@ -1429,8 +1438,9 @@ class Page_2(SurveyWizardPage):
         self.plot()                                                             # refresh the plot
 
     def cleanupPage(self):                                                      # needed to update previous page
+        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
         self.parent.page(1).plot()                                              # needed to update the plot
-        print('cleanup Page_2')
+        print('cleanup of page 3')
 
     def plot(self):
         """plot a template"""
@@ -1439,13 +1449,16 @@ class Page_2(SurveyWizardPage):
         self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
 
         styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)  # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)      # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)   # shows axis at the top, and shows the survey name
+        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
+        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
+        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
+        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
 
-        self.parent.survey.PaintMode = PaintMode.oneTemplate
+        self.parent.survey.paintMode = PaintMode.noPatterns
+        self.parent.survey.lodScale = 6.0
         item = self.parent.survey
+
+        # 3. Template Properties - Enter the bin grid properties
         self.plotWidget.plotItem.addItem(item)
 
         # Add a marker for the origin
@@ -1514,10 +1527,11 @@ class Page_2(SurveyWizardPage):
             self.binI.setValue(0.5 * rpi)
             self.binX.setValue(0.5 * spi)
 
-        self.parent.page(3).evt_binImin_editingFinished()                       # adjust binning area
-        self.parent.page(3).evt_binIsiz_editingFinished()
-        self.parent.page(3).evt_binXmin_editingFinished()
-        self.parent.page(3).evt_binXsiz_editingFinished()
+        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
+        self.parent.page(3).evt_binImin_editingFinished(plot=False)             # adjust binning area
+        self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
+        self.parent.page(3).evt_binXmin_editingFinished(plot=False)
+        self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
 
         self.updateParentSurvey()
         self.plot()
@@ -1530,17 +1544,17 @@ class Page_2(SurveyWizardPage):
         self.alignBingrid()
 
 
-# Page_3 =======================================================================
-# 4. roll along and binning area
+# Page_4 =======================================================================
+# 4. Template Properties - Enter Roll Along and Binning Area details
 
 
-class Page_3(SurveyWizardPage):
+class Page_4(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('4. Template Properties')
         self.setSubTitle('Enter Roll Along and Binning Area details')
 
-        print('page 5 init')
+        print('page 4 init')
 
         self.recRect = QRectF()                                                 # receiver rect
         self.srcRect = QRectF()                                                 # source rect
@@ -1643,6 +1657,7 @@ class Page_3(SurveyWizardPage):
         #     self.mouseBeingDragged)                                             # essential to find plotting state for LOD plotting
 
         self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
+        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
 
         # add toolbar and plotwidget to the vertical box layout
         vbl.addWidget(self.zoomBar)
@@ -1694,6 +1709,7 @@ class Page_3(SurveyWizardPage):
         self.binXsiz.setValue(config.binXsiz)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
+        print('initialize page 4')
 
         sli = self.field('sli')
         rli = self.field('rli')
@@ -1708,15 +1724,24 @@ class Page_3(SurveyWizardPage):
         self.setField('rld', max(round(config.deployX_line / (rlr * rli)), 1))
 
         self.updateParentSurvey()                                               # update the survey object
-        print('initialize page 5')
-
         self.plot()                                                             # show the plot, center the bin analysis area
 
     def cleanupPage(self):                                                      # needed to update previous page
+        print('cleanup of page 4')
+
+        # added 19/06/2024
+        self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in 'earlier' wizard pages; ceate empty rect
+        for i in range(self.parent.nTemplates):
+            self.parent.survey.blockList[0].templateList[i].rollList[0].steps = 1  # nr deployments in y-direction
+            self.parent.survey.blockList[0].templateList[i].rollList[1].steps = 1  # nr deployments in x-direction
+
         self.parent.survey.resetBoundingRect()                                  # reset extent of survey
+        self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect(False)                              # (re)calculate extent of survey ignoring rolling along
-        self.parent.page(2).plot()                                              # needed to udate the plot
-        print('cleanup Page_3')
+
+        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
+        self.parent.page(2).updateParentSurvey()                                # (re)center single spread, may be shifted inline due to origin shift
+        self.parent.page(2).plot()                                              # needed to update the plot
 
     def updateParentSurvey(self):                                               # update the survey object
         # populate / update the survey skeleton; growList is not being affected
@@ -1824,6 +1849,7 @@ class Page_3(SurveyWizardPage):
         self.parent.survey.output.rctOutput.setHeight(self.field('binXsiz'))
 
         # now update the survey boundingbox
+        self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.resetBoundingRect()                                  # reset extent of survey
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
 
@@ -1839,8 +1865,11 @@ class Page_3(SurveyWizardPage):
         self.plotWidget.setLabel('top', 'inline', units='m', **styles)      # shows axis at the top, and shows the survey name
         self.plotWidget.setLabel('right', 'crossline', units='m', **styles)   # shows axis at the top, and shows the survey name
 
-        self.parent.survey.PaintMode = PaintMode.noTemplates
+        self.parent.survey.paintMode = PaintMode.noPoints
+        self.parent.survey.lodScale = 6.0
         item = self.parent.survey
+
+        # 4. roll along and binning area
         self.plotWidget.plotItem.addItem(item)
 
         # Add a marker for the origin
@@ -1863,56 +1892,58 @@ class Page_3(SurveyWizardPage):
         self.plot()
 
     def evt_roll_editingFinished(self):
-        self.updateParentSurvey()
+        # self.updateParentSurvey()
         self.plot()
 
-    def evt_binImin_editingFinished(self):
+    def evt_binImin_editingFinished(self, plot=True):
         binI = self.field('binI')
         nrIntervals = max(round(self.binImin.value() / binI), 1)
         binImin = nrIntervals * binI
         self.binImin.setValue(binImin)
-        self.evt_binning_editingFinished()
+        self.updateBinningArea(plot)
 
-    def evt_binIsiz_editingFinished(self):
+    def evt_binIsiz_editingFinished(self, plot=True):
         binI = self.field('binI')
         nrIntervals = max(round(self.binIsiz.value() / binI), 1)
         binIsiz = nrIntervals * binI
         self.binIsiz.setValue(binIsiz)
-        self.evt_binning_editingFinished()
+        self.updateBinningArea(plot)
 
-    def evt_binXmin_editingFinished(self):
+    def evt_binXmin_editingFinished(self, plot=True):
         binX = self.field('binX')
         nrIntervals = max(round(self.binXmin.value() / binX), 1)
         binXmin = nrIntervals * binX
         self.binXmin.setValue(binXmin)
-        self.evt_binning_editingFinished()
+        self.updateBinningArea(plot)
 
-    def evt_binXsiz_editingFinished(self):
+    def evt_binXsiz_editingFinished(self, plot=True):
         binX = self.field('binX')
         nrIntervals = max(round(self.binXsiz.value() / binX), 1)
         binXsiz = nrIntervals * binX
         self.binXsiz.setValue(binXsiz)
-        self.evt_binning_editingFinished()
+        self.updateBinningArea(plot)
 
-    def evt_binning_editingFinished(self):
+    def updateBinningArea(self, plot):
         self.parent.survey.output.rctOutput.setLeft(self.field('binImin'))
         self.parent.survey.output.rctOutput.setWidth(self.field('binIsiz'))
         self.parent.survey.output.rctOutput.setTop(self.field('binXmin'))
         self.parent.survey.output.rctOutput.setHeight(self.field('binXsiz'))
-        self.plot()
+
+        if plot:
+            self.plot()
 
 
-# Page_4 =======================================================================
-# 5. pattersn/array details
+# Page_5 =======================================================================
+# 5. Template Properties - Pattern/array details
 
 
-class Page_4(SurveyWizardPage):
+class Page_5(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('5. Template Properties')
         self.setSubTitle('Pattern/array details')
 
-        print('page 6 init')
+        print('page 5 init')
 
         # Add some widgets
         self.chkExtendOffsets = QCheckBox('Extend offsets with 0.5 bingrid - to prevent roundoff errors')
@@ -2008,6 +2039,7 @@ class Page_4(SurveyWizardPage):
         #     self.mouseBeingDragged)                                             # essential to find plotting state for LOD plotting
 
         self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
+        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
 
         # add toolbar and plotwidget to the vertical box layout
         vbl.addWidget(self.zoomBar)
@@ -2054,8 +2086,12 @@ class Page_4(SurveyWizardPage):
         self.srcElemeInt.editingFinished.connect(self.initializePage)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
+        print('initialize page 5')
         self.updateParentSurvey()
         self.plot()
+
+    def cleanupPage(self):                                                      # needed to update previous page
+        print('cleanup of page 5')
 
     def updateParentSurvey(self):
         # populate / update the survey skeleton
@@ -2167,6 +2203,8 @@ class Page_4(SurveyWizardPage):
         recPattern = RollPattern()
         recPattern = self.parent.survey.patternList[1]
 
+        # 5. Template Properties
+
         if sUse:
             item1 = srcPattern
             self.plotWidget.plotItem.addItem(item1)
@@ -2181,18 +2219,19 @@ class Page_4(SurveyWizardPage):
         # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
 
-# Page_5 =======================================================================
-# project crs
+# Page_6 =======================================================================
+# 6. Project Coordinate Reference System (CRS)
 
 
-class Page_5(SurveyWizardPage):
+class Page_6(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('6. Project Coordinate Reference System (CRS)')
         self.setSubTitle('Select a Projected CRS to ensure valid distance and areal measurements')
 
-        print('page 1 init')
+        print('page 6 init')
 
+        # See: https://api.qgis.org/api/3.16/qgscoordinatereferencesystem_8h_source.html#l00668
         # See https://api.qgis.org/api/classQgsProjectionSelectionTreeWidget.html
         self.proj_selector = QgsProjectionSelectionTreeWidget()
 
@@ -2209,9 +2248,12 @@ class Page_5(SurveyWizardPage):
         self.registerField('crs', self.proj_selector)
         self.proj_selector.crsSelected.connect(self.crs_selected)
 
+    def initializePage(self):                                                   # This routine is done each time before the page is activated
+        print('initialize page 6')
+
     def cleanupPage(self):                                                      # needed to update previous page
         self.parent.page(4).plot()                                              # needed to update the plot
-        print('cleanup Page_5')
+        print('cleanup of page 6')
 
     def crs_selected(self):
         # See: https://api.qgis.org/api/classQgsCoordinateReferenceSystem.html
@@ -2229,18 +2271,18 @@ class Page_5(SurveyWizardPage):
         return False
 
 
-# Page_6 =======================================================================
-# crs global transformation
+# Page_7 =======================================================================
+# 6. Project Coordinate Reference System (CRS)
 
 
-class Page_6(SurveyWizardPage):
+class Page_7(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setTitle('6. Project Coordinate Reference System (CRS)')
+        self.setTitle('7. Project Coordinate Reference System (CRS)')
         self.setSubTitle("Enter the survey's coordinate transformation details")
 
-        print('page 6 init')
+        print('page 7 init')
 
         # create some widgets
         self.Xt_0 = QDoubleSpinBox()
@@ -2335,6 +2377,7 @@ class Page_6(SurveyWizardPage):
         #     self.mouseBeingDragged)                                             # essential to find plotting state for LOD plotting
 
         self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
+        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
 
         # add toolbar and plotwidget to the vertical box layout
         vbl.addWidget(self.zoomBar)
@@ -2359,8 +2402,16 @@ class Page_6(SurveyWizardPage):
         self.scaY.editingFinished.connect(self.evt_global_editingFinished)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 8')
+        print('initialize page 7')
         self.evt_global_editingFinished()
+
+    def cleanupPage(self):                                                      # needed to return to previous pages
+        print('cleanup of page 7')
+        transform = QTransform()                                                # reset transform
+        self.parent.survey.setTransform(transform)                              # back to local survey grid
+
+        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
+        self.parent.page(3).plot()                                              # needed to update the plot
 
     def evt_global_editingFinished(self):
         azim = self.field('azim')
@@ -2382,15 +2433,15 @@ class Page_6(SurveyWizardPage):
 
         # mainWindow = self.parent.parent
         # if mainWindow and mainWindow.debug:
-        print(f'm11 ={transform.m11():12.6f},   m12 ={transform.m12():12.6f},   m13 ={transform.m13():12.6f} » [A1, B1, ...]')
-        print(f'm21 ={transform.m21():12.6f},   m22 ={transform.m22():12.6f},   m23 ={transform.m23():12.6f} » [A2, B2, ...]')
-        print(f'm31 ={transform.m31():12.2f},   m32 ={transform.m32():12.2f},   m33 ={transform.m33():12.6f} » [A0, B0, ...]')
+        # print(f'm11 ={transform.m11():12.6f},   m12 ={transform.m12():12.6f},   m13 ={transform.m13():12.6f} » [A1, B1, ...]')
+        # print(f'm21 ={transform.m21():12.6f},   m22 ={transform.m22():12.6f},   m23 ={transform.m23():12.6f} » [A2, B2, ...]')
+        # print(f'm31 ={transform.m31():12.2f},   m32 ={transform.m32():12.2f},   m33 ={transform.m33():12.6f} » [A0, B0, ...]')
 
         self.parent.survey.setTransform(transform)
         self.plot()
 
     def plot(self):
-        """plot the survey area"""
+        """6. Project Coordinate Reference System (CRS)"""
 
         self.plotWidget.plotItem.clear()
         self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
@@ -2401,9 +2452,11 @@ class Page_6(SurveyWizardPage):
         self.plotWidget.setLabel('top', 'Easting', units='m', **styles)     # shows axis at the top, and shows the survey name
         self.plotWidget.setLabel('right', 'Northing', units='m', **styles)  # shows axis at the top, and shows the survey name
 
-        self.parent.survey.PaintMode = PaintMode.noTemplates
+        self.parent.survey.paintMode = PaintMode.noTemplates
+        self.parent.survey.lodScale = 6.0
         item = self.parent.survey
 
+        # 6. Project Coordinate Reference System (CRS)
         self.plotWidget.plotItem.addItem(item)
         # Add a marker for the origin
         oriX = [0.0]
@@ -2412,12 +2465,6 @@ class Page_6(SurveyWizardPage):
 
         transform = item.transform()
         orig.setTransform(transform)
-
-    def cleanupPage(self):                                                      # needed to return to previous pages
-        transform = QTransform()                                                # reset transform
-        self.parent.survey.setTransform(transform)                              # back to local survey grid
-        self.parent.page(3).plot()                                              # needed to udate the plot
-        print('cleanup Page_6')
 
     # The global bin grid is realized through an affine transformation. See:<br>
     # » <a href = "https://epsg.io/9623-method"> EPSG 9623</a> for an affine geometric transformation<br>
@@ -2428,17 +2475,17 @@ class Page_6(SurveyWizardPage):
     # » Yt = Yt0  –  Xs * k * mX * Ishift(phiX)  +  Ys * k * mY * cos(phiY)<br>
 
 
-# Page_7 =======================================================================
+# Page_8 =======================================================================
 # xml summary
 
 
-class Page_7(SurveyWizardPage):
+class Page_8(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('8. Summary information')
         self.setSubTitle('Survey representation in xml-format')
 
-        print('page 7 init')
+        print('page 8 init')
 
         # Add some widgets
         self.xmlEdit = QPlainTextEdit('Element tree')
@@ -2454,38 +2501,10 @@ class Page_7(SurveyWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        # See:https://api.qgis.org/api/modules.html
-        # See: https://api.qgis.org/api/3.16/qgscoordinatereferencesystem_8h_source.html#l00668
+        print('initialize page 8')
 
-        # survey.grid.fold = ???
-        # need to add fold
+        xml = self.parent.survey.toXmlString()                                  # check what's in there
+        self.xmlEdit.setPlainText(xml)                                          # now show the xml information in the widget
 
-        # survey.offset.rctOffsets.setLeft  (self.field("of_Imin"))
-        # survey.offset.rctOffsets.setRight (self.field("of_Imax"))
-        # survey.offset.rctOffsets.setTop   (self.field("of_Xmin"))
-        # survey.offset.rctOffsets.setBottom(self.field("of_Xmax"))
-        # survey.offset.radOffsets.setX     (self.field("of_Rmin"))
-        # survey.offset.radOffsets.setY     (self.field("of_Rmax"))
-
-        # # survey.angles defaults to initial Values
-        # # survey.unique defaults to initial values
-
-        # offImin = self.field("offImin")
-        # offImax = self.field("offImax")
-        # offXmin = self.field("offXmin")
-        # offXmax = self.field("offXmax")
-
-        # # fields from page 6
-        # of_Imin = self.field("of_Imin")
-        # of_Imax = self.field("of_Imax")
-        # of_Xmin = self.field("of_Xmin")
-        # of_Xmax = self.field("of_Xmax")
-        # of_Rmin = self.field("of_Rmin")
-        # of_Rmax = self.field("of_Rmax")
-
-        print('initialize page 7')
-
-        xml = self.parent.survey.toXmlString()                           # check what's in there
-
-        # now show the xml information in the widget
-        self.xmlEdit.setPlainText(xml)
+    def cleanupPage(self):                                                      # needed to return to previous pages
+        print('cleanup of page 8')

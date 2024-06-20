@@ -49,9 +49,11 @@ binXsiz = 2000                                                                  
 # Level of Detail (LOD) settings
 lod0 = 0.005                                                                    # Lowest level;  < lod0: paint survey as rect outline
 lod1 = 0.050                                                                    # Next level up; < lod1: paint the templates as rects
-lod2 = 0.500                                                                    # Next level up; < lod2: paint the templates as set of lines; > paint individual points
-lod3 = 1.250                                                                    # Next level up; > lod3: paint the individual points with their patterns
+lod2 = 0.500                                                                    # Next level up; < lod2: paint the templates as set of lines
+lod3 = 1.250                                                                    # Next level up; < lod3: paint individual points
+#                                                                               # Last level up; > lod3: paint the individual points with their patterns
 
+# acceptable ranges for the four LOD settings
 lod0Range = [0.001, 0.025]
 lod1Range = [0.010, 0.250]
 lod2Range = [0.100, 2.500]
@@ -66,7 +68,7 @@ rEle = 6                                                                        
 sEle = 3                                                                        # nr elem in branch
 rBrI = 12.5                                                                     # branch interval
 sBrI = 0.0                                                                      # branch interval
-rElI = 25.0 / 3.0                                                                 # element interval
+rElI = 25.0 / 3.0                                                               # element interval
 sElI = 12.5                                                                     # element interval
 
 # default color and pen parameters to display analysis areas, they can be altered in the settings dialog

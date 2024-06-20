@@ -203,7 +203,7 @@ A solution for High DPI monitors has been proposed, that is also shown under the
 
 - Create wizard for Marine towed-streamer geometry
 - Improve analysis capabilities
-
+- Include Level Of Detail (LOD) settings in Read/Save settings to make them permanent
 - Show pattern layout and add Kx-Ky pattern analysis
 - Use multiprocessing instead of a worker thread to speed up background tasks
 - Consider using a relational database instead of numpy arrays for geometry tables
