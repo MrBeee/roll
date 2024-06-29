@@ -2016,7 +2016,7 @@ class RollSurvey(pg.GraphicsObject):
                                 continue                                        # outside viewbox; skip it
 
                             if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:  # so small; just paint the template outline
-                                # templt &= self.boundingBox                      # we need to restrict it
+                                templt &= self.boundingBox                      # we need to restrict it
                                 painter.drawRect(templt)                        # draw template rectangle
                             else:
                                 self.paintTemplate(painter, vb, lod, template, offset)
@@ -2031,7 +2031,7 @@ class RollSurvey(pg.GraphicsObject):
                                     continue                                    # outside viewbox; skip it
 
                                 if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:  # so small; just paint the template outline
-                                    # templt &= self.boundingBox                  # we need to restrict it
+                                    templt &= self.boundingBox                  # we need to restrict it
                                     painter.drawRect(templt)                    # draw template rectangle
                                 else:
                                     self.paintTemplate(painter, vb, lod, template, offset)
@@ -2047,7 +2047,7 @@ class RollSurvey(pg.GraphicsObject):
                                         continue                                # outside viewbox; skip it
 
                                     if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:  # so small; just paint the template outline
-                                        # templt &= self.boundingBox              # we need to restrict it
+                                        templt &= self.boundingBox              # we need to restrict it
                                         painter.drawRect(templt)                # draw template rectangle
                                     else:
                                         self.paintTemplate(painter, vb, lod, template, offset)
@@ -2065,7 +2065,7 @@ class RollSurvey(pg.GraphicsObject):
                                             continue                            # outside viewbox; skip it
 
                                         if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:  # so small; just paint the template outline
-                                            # templt &= self.boundingBox          # we need to restrict it
+                                            templt &= self.boundingBox          # we need to restrict it
                                             painter.drawRect(templt)            # draw template rectangle
                                         else:
                                             self.paintTemplate(painter, vb, lod, template, offset)

@@ -14,20 +14,16 @@ class RollGrid:
     # by default no name
     def __init__(self, name: str = '') -> None:
         # input variables
-        # Seed name
-        self.name = name
-        self.bRoll = True
-        # list of (max 3) grow steps
-        self.growList: list[RollTranslate] = []
+        self.name = name                                                        # Seed name
+        self.bRoll = True                                                       # default is a rolling seed (type= 0)
+        self.growList: list[RollTranslate] = []                                 # list of (max 3) grow steps
+
         # calculated variables
-        # draws line From FIRST to LAST point of FIRST grow step (quick draw)
-        self.salvo = QLineF()
-        # nr of points on grid
-        self.points = 0
+        self.salvo = QLineF()                                                   # draws line From FIRST to LAST point of FIRST grow step (quick draw)
+        self.points = 0                                                         # nr of points on grid
 
     def calcPointList(self, origin):
-        while len(self.growList) < 3:
-            # First, make sure there are three grow steps for every seed
+        while len(self.growList) < 3:                                           # First, make sure there are three grow steps for every seed
             self.growList.insert(0, RollTranslate())
 
         pointList = []
@@ -77,15 +73,15 @@ class RollGrid:
         if self.growList:                                                       # the list is not empty
             nPoints = self.growList[-1].steps - 1                               # use the last grow step; length is 1 shorter than nr of points
 
-        if nPoints == 0:
-            lineLength = QVector3D(1.0e-6, 1.0e-6, 0.0)                         # avoid a null line; give it a minimum size
+        if self.growList[-1].increment == 0 or nPoints == 0:
+            lineLength = QVector3D(1.0e-3, 1.0e-3, 0.0)                         # avoid a null line; give it a minimum size
         else:
             lineLength = self.growList[-1].increment * nPoints                  # calculate the line length
 
-        assert lineLength.length() > 0.0, "avoid salvo's of zero length"
-
         endPoint = origin + lineLength                                          # set the endPoint
         self.salvo = QLineF(origin.toPointF(), endPoint.toPointF())             # this is the unshifted line
+
+        assert self.salvo.length() > 0.0, "avoid salvo's of zero length"
 
         # print(f"SALV= x1:{self.salvo.x1():11.2f} y1:{self.salvo.y1():11.2f}, x2:{self.salvo.x2():11.2f} y2:{self.salvo.y2():11.2f}")
 

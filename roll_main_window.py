@@ -2432,6 +2432,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             plainText = self.survey.toXmlString()                               # convert the survey object itself to an xml string
             self.textEdit.setTextViaCursor(plainText)                           # get text into the textEdit, NOT resetting its doc status
             self.textEdit.document().setModified(True)                          # we edited the document; so it's been modified
+            self.resetSurveyProperties()                                        # update property pane accordingly
 
         self.plotLayout()
         # self.layoutWidget.enableAutoRange()                                     # makes the plot 'fit' the survey outline.
