@@ -20,16 +20,15 @@ class RollTemplate:
         self.seedList: list[RollSeed] = []
 
         # spatial extent of this template formed by the contributing seeds
-        self.srcTemplateRect = QRectF()
-        self.recTemplateRect = QRectF()
-        self.cmpTemplateRect = QRectF()
-        self.templateBox = QRectF()
+        self.srcTemplateRect = QRectF()                                         # src area in one template
+        self.recTemplateRect = QRectF()                                         # rec area in one template
+        self.totTemplateRect = QRectF()                                         # src|rec area in one template
 
         # spatial extent of this template  after roll along steps
-        self.srcBoundingRect = QRectF()
-        self.recBoundingRect = QRectF()
-        self.cmpBoundingRect = QRectF()
-        self.boundingBox = QRectF()
+        self.srcBoundingRect = QRectF()                                         # src area of all templates
+        self.recBoundingRect = QRectF()                                         # rec area of all templates
+        self.cmpBoundingRect = QRectF()                                         # cmp area of all templates
+        self.boundingBox = QRectF()                                             # src|rec area of all templates
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
 
@@ -90,22 +89,6 @@ class RollTemplate:
 
         return True
 
-    def resetBoundingRect(self):
-        for seed in self.seedList:
-            seed.resetBoundingRect()
-
-        # reset spatial extent of this template formed by the contributing seeds
-        self.srcTemplateRect = QRectF()
-        self.recTemplateRect = QRectF()
-        self.cmpTemplateRect = QRectF()
-        self.templateBox = QRectF()
-
-        # reset spatial extent of this template  after roll along steps
-        self.srcBoundingRect = QRectF()
-        self.recBoundingRect = QRectF()
-        self.cmpBoundingRect = QRectF()
-        self.boundingBox = QRectF()
-
     def rollSeed(self, seed):
         # get the pre-calculated seed's boundingbox
         seedBoundingBox = seed.boundingBox
@@ -126,94 +109,79 @@ class RollTemplate:
         return rolledBoundingRect
 
     # we're in RollTemplate here
-    def calcBoundingRect(self, srcBorder=QRectF(), recBorder=QRectF(), roll=True):
+    def calcBoundingRect(self, srcBorder=QRectF(), recBorder=QRectF()):
+        for seed in self.seedList:                                              # reset all seeds
+            seed.boundingBox = QRectF()
+
+        # reset spatial extent of this template formed by the contributing seeds
+        self.srcTemplateRect = QRectF()                                         # src area in one template
+        self.recTemplateRect = QRectF()                                         # rec area in one template
+        self.totTemplateRect = QRectF()                                         # src|rec area in one template
+
+        # reset spatial extent of this template  after roll along steps
+        self.srcBoundingRect = QRectF()                                         # src area of all templates
+        self.recBoundingRect = QRectF()                                         # rec area of all templates
+        self.cmpBoundingRect = QRectF()                                         # cmp area of all templates
+        self.boundingBox = QRectF()                                             # src|rec area of all templates
+
         for seed in self.seedList:
             # get the seed's boundingbox
             seedBounds = seed.calcBoundingRect()
 
-            if seed.type == 0 and roll is True:                                 # rolling grid of seeds
+            if seed.bSource:                                                    # it's a source seed
+                self.nSrcSeeds += 1                                             # take note of it; handy for QC
+                self.srcTemplateRect |= seedBounds                              # add it; no roll along
+                seed.blockBorder = srcBorder                                    # seed's extent limited by Block's src border; needed when painting
+            else:
+                self.nRecSeeds += 1                                             # take note of it; handy for QC
+                self.recTemplateRect |= seedBounds                              # add it; no roll along
+                seed.blockBorder = recBorder                                    # seed's extent limited by Block's rec border; needed when painting
+
+            if seed.type == 0:                                                  # in case of rolling grid of seeds
                 if seed.bSource:                                                # it's a source seed
-                    # take note of it; handy for QC
-                    self.nSrcSeeds += 1
-                    # add it taking roll along into account
-                    self.srcTemplateRect |= self.rollSeed(seed)
-                    # seed's extent limited by Block's src border; needed when painting
-                    seed.blockBorder = srcBorder
-                else:
-                    # take note of it; handy for QC
-                    self.nRecSeeds += 1
-                    # add it taking roll along into account
-                    self.recTemplateRect |= self.rollSeed(seed)
-                    # seed's extent limited by Block's rec border; needed when painting
-                    seed.blockBorder = recBorder
+                    self.srcBoundingRect |= self.rollSeed(seed)                 # add it taking roll along into account
+                else:                                                           # it's a receiver seed
+                    self.recBoundingRect |= self.rollSeed(seed)                 # add it taking roll along into account
             else:
                 if seed.bSource:                                                # it's a source seed
-                    # take note of it; handy for QC
-                    self.nSrcSeeds += 1
-                    # add it; no roll along
-                    self.srcTemplateRect |= seedBounds
-                    # seed's extent limited by Block's src border; needed when painting
-                    seed.blockBorder = srcBorder
-                else:
-                    # take note of it; handy for QC
-                    self.nRecSeeds += 1
-                    # add it; no roll along
-                    self.recTemplateRect |= seedBounds
-                    # seed's extent limited by Block's rec border; needed when painting
-                    seed.blockBorder = recBorder
+                    self.srcBoundingRect |= self.srcTemplateRect                # add it; no roll along
+                else:                                                           # it's a receiver seed
+                    self.recBoundingRect |= self.recTemplateRect                # add it; no roll along
 
-        # get the normalized position of all 'grown' seeds in a template
-        self.srcTemplateRect = self.srcTemplateRect.normalized()
-        # the next step is to 'roll' these templates in the 'roll steps'
-        self.recTemplateRect = self.recTemplateRect.normalized()
+        self.totTemplateRect = self.srcTemplateRect | self.recTemplateRect      # overall size of a template
 
-        # traces are generated WITHIN a template, and a cmp area results between the sources and the receives
-        TL = (self.srcTemplateRect.topLeft() + self.recTemplateRect.topLeft()) / 2.0
-        BR = (self.srcTemplateRect.bottomRight() + self.recTemplateRect.bottomRight()) / 2.0
-        # the cmp area sits in the middle between source and receiver area
-        self.cmpTemplateRect = QRectF(TL, BR)
+        self.srcBoundingRect = self.srcBoundingRect.normalized()                # normalize src bounding area to work with TL, BR
+        self.recBoundingRect = self.recBoundingRect.normalized()                # normalize rec bounding area to work with TL, BR
 
-        # overall size of a template
-        self.templateBox = self.srcTemplateRect | self.recTemplateRect
+        TL = (self.srcBoundingRect.topLeft() + self.recBoundingRect.topLeft()) / 2.0
+        BR = (self.srcBoundingRect.bottomRight() + self.recBoundingRect.bottomRight()) / 2.0
+        self.cmpBoundingRect = QRectF(TL, BR)                                   # the cmp area sits in the middle between source and receiver area
 
         # deal with the block border(s) that has been handed down from block to template
-        # create copy that may be truncated
-        srcAdd = QRectF(self.srcTemplateRect)
-        # check rect against block's src/rec border, if the border is valid
-        srcAdd = clipRectF(srcAdd, srcBorder)
+        srcAdd = QRectF(self.srcBoundingRect)                                   # create copy that may be truncated
+        srcAdd = clipRectF(srcAdd, srcBorder)                                   # check rect against block's src/rec border, if the border is valid
 
-        # create copy that may be truncated
-        recAdd = QRectF(self.recTemplateRect)
-        # check rect against block's src/rec border, if the border is valid
-        recAdd = clipRectF(recAdd, recBorder)
+        recAdd = QRectF(self.recBoundingRect)                                   # create copy that may be truncated
+        recAdd = clipRectF(recAdd, recBorder)                                   # check rect against block's src/rec border, if the border is valid
 
-        # Recalc the cmp area as it is affected too
-        if srcBorder.isValid() or recBorder.isValid():
-            # if src or rec fall outside borders; no cmps will be valid
-            if srcAdd.isValid() and recAdd.isValid():
+        if srcBorder.isValid() or recBorder.isValid():                          # Recalc the cmp area as it is affected too
+            if srcAdd.isValid() and recAdd.isValid():                           # if src or rec fall outside borders; no cmps will be valid
                 TL = (srcAdd.topLeft() + recAdd.topLeft()) / 2.0
                 BR = (srcAdd.bottomRight() + recAdd.bottomRight()) / 2.0
-                # the cmp area sits in the middle between source and receiver area
-                cmpAdd = QRectF(TL, BR)
+                cmpAdd = QRectF(TL, BR)                                         # the cmp area sits in the middle between source and receiver area
             else:
-                # nothing to add, really; so use an empty rect
-                cmpAdd = QRectF()
+                cmpAdd = QRectF()                                               # nothing to add, really; so use an empty rect
         else:
-            # use the original value
-            cmpAdd = QRectF(self.cmpTemplateRect)
+            cmpAdd = QRectF(self.cmpBoundingRect)                               # use the original value
 
-        # Increase the src area with new template position
-        self.srcBoundingRect = srcAdd
-        # Increase the rec area with new template position
-        self.recBoundingRect = recAdd
-        # Increase the rec area with new template position
-        self.cmpBoundingRect = cmpAdd
-        # define 'own' boundingBox
-        self.boundingBox = self.srcBoundingRect | self.recBoundingRect
+        self.srcBoundingRect = srcAdd                                           # Increase the src area with new template position
+        self.recBoundingRect = recAdd                                           # Increase the rec area with new template position
+        self.cmpBoundingRect = cmpAdd                                           # Increase the rec area with new template position
+        self.boundingBox = self.srcBoundingRect | self.recBoundingRect          # define 'own' boundingBox
 
         # print(f"SRC = x1:{self.srcBoundingRect.left():11.2f} y1:{self.srcBoundingRect.top():11.2f}, x2:{self.srcBoundingRect.right():11.2f} y2:{self.srcBoundingRect.bottom():11.2f}")
         # print(f"REC = x1:{self.recBoundingRect.left():11.2f} y1:{self.recBoundingRect.top():11.2f}, x2:{self.recBoundingRect.right():11.2f} y2:{self.recBoundingRect.bottom():11.2f}")
         # print(f"CMP = x1:{self.cmpBoundingRect.left():11.2f} y1:{self.cmpBoundingRect.top():11.2f}, x2:{self.cmpBoundingRect.right():11.2f} y2:{self.cmpBoundingRect.bottom():11.2f}")
 
-        # return all 3 as a tuple
+        # return all 3 bounding areas as a tuple
         return (self.srcBoundingRect, self.recBoundingRect, self.cmpBoundingRect)

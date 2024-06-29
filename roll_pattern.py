@@ -28,11 +28,9 @@ class RollPattern(pg.GraphicsObject):
         # pre-computing a QPicture object allows paint() to run much more quickly
         self.patternPicture = QPicture()
 
-    def resetBoundingRect(self):
-        # Constructs a null rectangle.size of the seed
+    def calcBoundingRect(self):
         self.boundingBox = QRectF()
 
-    def calcBoundingRect(self):
         # declare new object to start iterating from
         pointIter = QVector3D(self.origin)
         for growStep in self.growList:                                          # iterate through all grow steps

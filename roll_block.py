@@ -65,22 +65,14 @@ class RollBlock:
         if not self.borders.readXml(parent):
             return False
 
-    def resetBoundingRect(self):
-
-        for template in self.templateList:
-            template.resetBoundingRect()
-
+    def calcBoundingRect(self):
         self.srcBoundingRect = QRectF()  # reset it
         self.recBoundingRect = QRectF()  # reset it
         self.cmpBoundingRect = QRectF()  # reset it
         self.boundingBox = QRectF()  # reset it
 
-        # return all 3 as a tuple
-        return (self.srcBoundingRect, self.recBoundingRect, self.cmpBoundingRect)
-
-    def calcBoundingRect(self, roll=True):
         for template in self.templateList:
-            srcBounds, recBounds, cmpBounds = template.calcBoundingRect(self.borders.srcBorder, self.borders.recBorder, roll)
+            srcBounds, recBounds, cmpBounds = template.calcBoundingRect(self.borders.srcBorder, self.borders.recBorder)
             self.srcBoundingRect |= srcBounds  # add it
             self.recBoundingRect |= recBounds  # add it
             self.cmpBoundingRect |= cmpBounds  # add it

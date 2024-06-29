@@ -3102,6 +3102,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.appendLogMessage(f'Wizard : created land survey: {self.survey.name}')
             config.surveyNumber += 1                                            # update global counter
 
+            if self.debug:
+                self.appendLogMessage('Land Survey Wizard profiling information', MsgType.Debug)
+                i = 0
+                while i < len(self.dlg.survey.timerTmin):                       # log some debug messages
+                    tMin = self.dlg.survey.timerTmin[i] * 1000.0 if self.worker.survey.timerTmin[i] != float('Inf') else 0.0
+                    tMax = self.dlg.survey.timerTmax[i] * 1000.0
+                    tTot = self.dlg.survey.timerTtot[i] * 1000.0
+                    freq = self.dlg.survey.timerFreq[i]
+                    tAvr = tTot / freq if freq > 0 else 0.0
+                    message = f'{i:02d}: min:{tMin:011.3f}, max:{tMax:011.3f}, tot:{tTot:011.3f}, avr:{tAvr:011.3f}, freq:{freq:07d}'
+                    self.appendLogMessage(message, MsgType.Debug)
+                    i += 1
+
     def fileNewMarineSurvey(self):
         QMessageBox.information(self, 'Not implemented', 'The marine wizard has not yet been implemented', QMessageBox.Cancel)
         return

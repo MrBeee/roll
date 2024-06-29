@@ -61,41 +61,32 @@ class RollGrid:
         self.points = len(pointList)
         return pointList
 
-    # we're in RollGrid here
+    # we're in a RollGrid here
     def calcBoundingRect(self, origin):
         # create QRectF by applying grow steps
-        # declare new object to start iterating from
-        pointIter = QVector3D(origin)
+        pointIter = QVector3D(origin)                                           # declare new object to start iterating from
         for growStep in self.growList:                                          # iterate through all grow steps
-            # we have to subtract 1 here' to get from deployments to roll steps
-            for _ in range(growStep.steps - 1):
-                # shift the iteration point with the appropriate amount
-                pointIter += growStep.increment
+            for _ in range(growStep.steps - 1):                                 # we have to subtract 1 here' to get from deployments to roll steps
+                pointIter += growStep.increment                                 # shift the iteration point with the appropriate amount
 
-        # create a rect from origin + shifted point
-        boundingBox = QRectF(origin.toPointF(), pointIter.toPointF())
+        boundingBox = QRectF(origin.toPointF(), pointIter.toPointF())           # create a rect from origin + shifted point
         return boundingBox
 
     def calcSalvoLine(self, origin):
-        # The salvo is a line from first to last point in the last (lowest) growstep
-
-        nPoints = 0
+        nPoints = 0                                                             # The salvo is a line from first to last point in the last (lowest) growstep
         if self.growList:                                                       # the list is not empty
-            # use the last grow step; length is 1 shorter than nr of points
-            nPoints = self.growList[-1].steps - 1
+            nPoints = self.growList[-1].steps - 1                               # use the last grow step; length is 1 shorter than nr of points
 
         if nPoints == 0:
-            # avoid a null line; give it a minimum size
-            lineLength = QVector3D(1.0e-6, 1.0e-6, 0.0)
+            lineLength = QVector3D(1.0e-6, 1.0e-6, 0.0)                         # avoid a null line; give it a minimum size
         else:
-            # calculate the line length
-            lineLength = self.growList[-1].increment * nPoints
+            lineLength = self.growList[-1].increment * nPoints                  # calculate the line length
 
-        # set the endPoint
-        endPoint = origin + lineLength
+        assert lineLength.length() > 0.0, "avoid salvo's of zero length"
 
-        # this is the unshifted line
-        self.salvo = QLineF(origin.toPointF(), endPoint.toPointF())
+        endPoint = origin + lineLength                                          # set the endPoint
+        self.salvo = QLineF(origin.toPointF(), endPoint.toPointF())             # this is the unshifted line
+
         # print(f"SALV= x1:{self.salvo.x1():11.2f} y1:{self.salvo.y1():11.2f}, x2:{self.salvo.x2():11.2f} y2:{self.salvo.y2():11.2f}")
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):

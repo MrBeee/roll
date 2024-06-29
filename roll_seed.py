@@ -16,7 +16,7 @@ from .roll_grid import RollGrid
 from .roll_spiral import RollSpiral
 from .roll_well import RollWell
 
-# todo: replace itegers by class SeedType for seed type indication
+# todo: replace integers by class SeedType for seed type indication
 
 
 class SeedType(Enum):
@@ -122,14 +122,12 @@ class RollSeed:
         elif self.type == 4:
             self.well.readXml(parent)
 
-    def resetBoundingRect(self):
-        # Constructs a null rectangle.size of the seed
-        self.boundingBox = QRectF()
-
     # we're in a RollSeed here
     def calcBoundingRect(self):
+        self.boundingBox = QRectF()                                             # Start with a null rectangle.size of the seed
+
         if self.type < 2:
-            self.boundingBox = self.grid.calcBoundingRect(self.origin)          # grid
+            self.boundingBox = self.grid.calcBoundingRect(self.origin)          # grid (rolling = 0, stationary = 1)
 
         elif self.type == 2:                                                    # circle
             self.boundingBox = self.circle.calcBoundingRect(self.origin)

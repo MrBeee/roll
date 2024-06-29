@@ -243,11 +243,10 @@ class Page_1(SurveyWizardPage):
         layout.addWidget(self.pointLabel, row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(self.rpi, row, 0)
-        layout.addWidget(QLabel('<b>RPI</b> Rec Point Int [m&#8594;]'), row, 1)
-        layout.addWidget(self.spi, row, 2)
-        self.spiLabel = QLabel('<b>SPI</b> Src Point Int [m&#8593;]')
-        layout.addWidget(self.spiLabel, row, 3)
+        layout.addWidget(self.spi, row, 0)
+        layout.addWidget(QLabel('<b>SPI</b> Src Point Int [m&#8593;]'), row, 1)
+        layout.addWidget(self.rpi, row, 2)
+        layout.addWidget(QLabel('<b>RPI</b> Rec Point Int [m&#8594;]'), row, 3)
 
         row += 1
         layout.addWidget(self.chkLinePntAlign, row, 0, 1, 4)
@@ -479,11 +478,11 @@ class Page_1(SurveyWizardPage):
             if self.field('type') != SurveyType.Zigzag.value:                   # don't update rpi in case of zigzag
                 self.rpi.setValue(rpiValue)                                     # for zigzag sli is 'fixed' by other variables
 
-        nslant = self.field('nslant')                                          # get variable from field name
+        nslant = self.field('nslant')                                           # get variable from field name
         self.evt_slantS_valueChanged(nslant)                                    # update the slant angle for slanted surveys
 
-        sld = self.field('sld')                                                # get variables from field names
-        slr = self.field('slr')                                                # get variables from field names
+        sld = self.field('sld')                                                 # get variables from field names
+        slr = self.field('slr')                                                 # get variables from field names
         sizI = sld * slr * self.old_sli
         sld = max(round(sizI / self.sli.value()), 1)
         self.setField('sld', sld)                                               # adjust nr source line deployments
@@ -507,11 +506,11 @@ class Page_1(SurveyWizardPage):
         #     sliValue = self.rli.value() / self.nsl.value()
         #     self.sli.setValue(sliValue)
 
-        nslant = self.field('nslant')                                          # get variable from field name
+        nslant = self.field('nslant')                                           # get variable from field name
         self.evt_slantS_valueChanged(nslant)                                    # update the slant angle for slanted surveys
 
-        rld = self.field('rld')                                                # get variables from field names
-        rlr = self.field('rlr')                                                # get variables from field names
+        rld = self.field('rld')                                                 # get variables from field names
+        rlr = self.field('rlr')                                                 # get variables from field names
         sizX = rld * rlr * self.old_rli
         rld = max(round(sizX / self.rli.value()), 1)
         self.setField('rld', rld)                                               # adjust nr receiver line deployments
@@ -520,7 +519,7 @@ class Page_1(SurveyWizardPage):
         self.adjustBingrid()
 
     def evt_spi_editingFinished(self):
-        nsp = self.field('nsp')                                                # get variables from field names
+        nsp = self.field('nsp')                                                 # get variables from field names
         rli = self.rli.value()
         rpi = self.rpi.value()
         spi = self.spi.value()
@@ -553,29 +552,29 @@ class Page_1(SurveyWizardPage):
             self.rpi.setValue(rpiValue)
 
         if self.field('type') == SurveyType.Zigzag.value:
-            nsp = self.field('nsp')                                            # get variables from field names
+            nsp = self.field('nsp')                                             # get variables from field names
             self.sli.setValue(nsp * self.rpi.value())
 
-        nrp = self.field('nrp')                                                # get variables from field names
+        nrp = self.field('nrp')                                                 # get variables from field names
         spreadlength = nrp * self.old_rpi                                       # current receiver line length
         nrp = max(round(spreadlength / self.rpi.value()), 1)                    # RPI has been altered; adjust nrp
-        self.setField('nrp', nrp)                                                # save its value
+        self.setField('nrp', nrp)                                               # save its value
 
         self.old_rpi = self.rpi.value()
         self.adjustBingrid()
 
     def evt_slantS_valueChanged(self, i):
-        sli = self.field('sli')                                                # get variables from field names
+        sli = self.field('sli')                                                 # get variables from field names
         rli = self.field('rli')
-        angle = 90.0 - math.degrees(math.atan2(i * rli, sli))                     # get the slant angle (deviation from orthogonal
+        angle = 90.0 - math.degrees(math.atan2(i * rli, sli))                   # get the slant angle (deviation from orthogonal
         self.slantA.setText(f'{angle:.3f}')                                     # put it back in the edit window
 
     def evt_brickS_editingFinished(self):
-        sli = self.field('sli')                                                # get variable from field names
+        sli = self.field('sli')                                                 # get variable from field names
         brick = self.brickS.value()
         brick = min(sli - 1.0, brick)
         if self.chkBrickMatchRpi.isChecked():
-            rpi = self.field('rpi')                                            # get variable from field names
+            rpi = self.field('rpi')                                             # get variable from field names
             nrIntervals = max(round(brick / rpi), 1)
             if nrIntervals * rpi == sli:
                 nrIntervals -= 1
@@ -741,6 +740,7 @@ class Page_2(SurveyWizardPage):
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         print('initialize page 2')
+
         # disable required edit controls
         chkd = self.chkNrecKnown.isChecked()
         self.nrp.setEnabled(chkd)
@@ -800,7 +800,7 @@ class Page_2(SurveyWizardPage):
         else:
             raise NotImplementedError('unsupported survey type.')
 
-        # Create a survey skeleton , so we can simply update properties, without having to instantiate classes
+        # Create a survey skeleton, so we can simply update survey properties, without having to instantiate underlying classes
         self.parent.survey.createBasicSkeleton(nTemplates=self.parent.nTemplates, nSrcSeeds=nSrcSeeds, nRecSeeds=1)    # add Block, template(s)
 
         self.updateParentSurvey()                                               # update the survey object
@@ -811,8 +811,6 @@ class Page_2(SurveyWizardPage):
 
     def updateParentSurvey(self):
         # populate / update the survey skeleton
-        # Bart: growList in each seed needs to move to seed.grid
-        # this needs to be prepared in survey.createBasicSkeleton()
 
         # source(s) first
         offImin = self.field('offImin')
@@ -898,12 +896,12 @@ class Page_2(SurveyWizardPage):
         self.parent.survey.patternList[1].growList[1].increment.setY(rElI)      # element interval
 
         # calculate the boundingBpx, now the patterns have been populated
-        self.parent.survey.patternList[0].calcBoundingRect()
-        self.parent.survey.patternList[1].calcBoundingRect()
+        self.parent.survey.patternList[0].calcBoundingRect()                    # also creates the pattern figure
+        self.parent.survey.patternList[1].calcBoundingRect()                    # also creates the pattern figure
 
         # now the patterns have been initialized, initialise the figures with the right color
-        self.parent.survey.patternList[0].calcPatternPicture()
-        self.parent.survey.patternList[1].calcPatternPicture()
+        # self.parent.survey.patternList[0].calcPatternPicture()                  # not needed; done in calcBoundingRect()
+        # self.parent.survey.patternList[1].calcPatternPicture()                  # not needed; done in calcBoundingRect()
 
         # offsets; from start/end of salvo to start/end of spread; both inline and x-line
         if typ == SurveyType.Parallel.value:                                    # no hard values; give arbitrary inline limits
@@ -916,13 +914,13 @@ class Page_2(SurveyWizardPage):
         x_line1 = -(offXmin + (nsp - 1) * spi)                                  # offXmin is a positive number
         x_line2 = (nrl - 1) * rli - offXmin
 
-        self.parent.survey.offset.rctOffsets.setLeft(inline1 - 1.0)             # inline
+        self.parent.survey.offset.rctOffsets.setLeft(inline1 - 1.0)             # inline offset limits
         self.parent.survey.offset.rctOffsets.setRight(inline2 + 1.0)
 
-        self.parent.survey.offset.rctOffsets.setTop(x_line1 - 1.0)              # x_line
+        self.parent.survey.offset.rctOffsets.setTop(x_line1 - 1.0)              # x_line offset limits
         self.parent.survey.offset.rctOffsets.setBottom(x_line2 + 1.0)
 
-        w = max(abs(inline1), abs(inline2))                                     # prepare radial limit
+        w = max(abs(inline1), abs(inline2))                                     # calc radial limit r from w & h
         h = max(abs(x_line1), abs(x_line2))
         r = round(math.sqrt(w * w + h * h)) + 1.0
 
@@ -1122,9 +1120,8 @@ class Page_2(SurveyWizardPage):
         else:
             raise NotImplementedError('unsupported survey type.')
 
-        self.parent.survey.resetBoundingRect()                                  # reset extent of survey
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
-        self.parent.survey.calcBoundingRect(False)                              # (re)calculate extent of survey, ignoring roll-along
+        self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
 
     def evt_chkNrecKnown_toggled(self, chkd):                                   # toggle enabled status for 2 controls
         self.nrp.setEnabled(chkd)
@@ -1278,7 +1275,7 @@ class Page_2(SurveyWizardPage):
         self.plotWidget.setLabel('top', 'inline', units='m', **styles)      # shows axis at the top, and shows the survey name
         self.plotWidget.setLabel('right', 'crossline', units='m', **styles)   # shows axis at the top, and shows the survey name
 
-        self.parent.survey.paintMode = PaintMode.allDetails
+        self.parent.survey.paintMode = PaintMode.justPoints                 # justLines
         self.parent.survey.lodScale = 6.0
         item = self.parent.survey
 
@@ -1309,8 +1306,8 @@ class Page_3(SurveyWizardPage):
         self.binX = QDoubleSpinBox()
 
         # set ranges
-        self.binI.setRange(0.01, 10000)
-        self.binX.setRange(0.01, 10000)
+        self.binI.setRange(0.01, 10000.0)
+        self.binX.setRange(0.01, 10000.0)
 
         # set accuracy
         self.binI.setDecimals(3)
@@ -1454,7 +1451,7 @@ class Page_3(SurveyWizardPage):
         self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
         self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
 
-        self.parent.survey.paintMode = PaintMode.noPatterns
+        self.parent.survey.paintMode = PaintMode.justPoints                     # justLines
         self.parent.survey.lodScale = 6.0
         item = self.parent.survey
 
@@ -1474,8 +1471,8 @@ class Page_3(SurveyWizardPage):
         binI = self.field('binI')
         binX = self.field('binX')
 
-        xTicks = [sli, binI]
-        yTicks = [rli, binX]
+        xTicks = [sli, binI]                                                    # tick interval, depending on zoom level
+        yTicks = [rli, binX]                                                    # tick interval, depending on zoom level
 
         axBottom = self.plotWidget.plotItem.getAxis('bottom')                   # get x axis
         axBottom.setTickSpacing(xTicks[0], xTicks[1])                           # set x ticks (major and minor)
@@ -1489,8 +1486,15 @@ class Page_3(SurveyWizardPage):
         axRight = self.plotWidget.plotItem.getAxis('right')                     # get y axis
         axRight.setTickSpacing(yTicks[0], yTicks[1])                            # set y ticks (major and minor)
 
-        self.parent.survey.resetBoundingRect()                                  # reset extent of survey
-        self.parent.survey.calcBoundingRect(False)                              # (re-) calculate the survey outline without rollalong
+        self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in this wizard page; instead, create empty rect
+
+        for i in range(self.parent.nTemplates):                                 # make sure nothing 'rolls'
+            self.parent.survey.blockList[0].templateList[i].rollList[0].steps = 1   # nr deployments in y-direction
+            self.parent.survey.blockList[0].templateList[i].rollList[1].steps = 1   # nr deployments in x-direction
+
+        self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
+        self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
+
         surveyCenter = self.parent.survey.cmpBoundingRect.center()              # get its cmp-center
 
         xC = surveyCenter.x()
@@ -1510,15 +1514,11 @@ class Page_3(SurveyWizardPage):
         self.parent.survey.grid.stakeSize.setX(self.field('binI'))              # inline stake interval
         self.parent.survey.grid.stakeSize.setY(self.field('binX'))              # x-line line interval
 
-        for i in range(self.parent.nTemplates):
-            self.parent.survey.blockList[0].templateList[i].rollList[0].steps = 1           # nr deployments in y-direction
-            self.parent.survey.blockList[0].templateList[i].rollList[1].steps = 1           # nr deployments in x-direction
-
     def alignBingrid(self):
-        rpi = self.field('rpi')                                                # inline
-        sli = self.field('sli')                                                # inline
-        spi = self.field('spi')                                                # x-line
-        rli = self.field('rli')                                                # x-line
+        rpi = self.field('rpi')                                                 # inline
+        sli = self.field('sli')                                                 # inline
+        spi = self.field('spi')                                                 # x-line
+        rli = self.field('rli')                                                 # x-line
 
         rpi = min(rpi, sli)                                                     # inline
         spi = min(spi, rli)                                                     # x-line
@@ -1527,8 +1527,8 @@ class Page_3(SurveyWizardPage):
             self.binI.setValue(0.5 * rpi)
             self.binX.setValue(0.5 * spi)
 
-        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
-        self.parent.page(3).evt_binImin_editingFinished(plot=False)             # adjust binning area
+        # note page(x) starts with a ZERO index; therefore page(0) == Page_1
+        self.parent.page(3).evt_binImin_editingFinished(plot=False)             # adjust binning parameters in next page (Page_4)
         self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
         self.parent.page(3).evt_binXmin_editingFinished(plot=False)
         self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
@@ -1670,20 +1670,20 @@ class Page_4(SurveyWizardPage):
         self.setLayout(vbl)
 
         # register fields
-        self.registerField('rlr', self.rlr, 'value')
-        self.registerField('slr', self.slr, 'value')
-        self.registerField('rld', self.rld, 'value')
-        self.registerField('sld', self.sld, 'value')
+        self.registerField('rlr', self.rlr, 'value')                            # rec line roll steps
+        self.registerField('slr', self.slr, 'value')                            # src line roll steps
+        self.registerField('rld', self.rld, 'value')                            # rec line deployments
+        self.registerField('sld', self.sld, 'value')                            # src line deployments
 
         self.registerField('rec_00', self.chkShiftSpread)                       # put 1st receiver at (0,0)
 
-        self.registerField('binImin', self.binImin, 'value')
-        self.registerField('binIsiz', self.binIsiz, 'value')
-        self.registerField('binXmin', self.binXmin, 'value')
-        self.registerField('binXsiz', self.binXsiz, 'value')
+        self.registerField('binImin', self.binImin, 'value')                    # bin area x-origin
+        self.registerField('binIsiz', self.binIsiz, 'value')                    # bin area x-size
+        self.registerField('binXmin', self.binXmin, 'value')                    # bin area y-origin
+        self.registerField('binXsiz', self.binXsiz, 'value')                    # bin area y-size
 
         # connect signals to slots
-        self.rlr.editingFinished.connect(self.evt_roll_editingFinished)
+        self.rlr.editingFinished.connect(self.evt_roll_editingFinished)         # connect all signals to the same slot
         self.slr.editingFinished.connect(self.evt_roll_editingFinished)
         self.rld.editingFinished.connect(self.evt_roll_editingFinished)
         self.sld.editingFinished.connect(self.evt_roll_editingFinished)
@@ -1720,8 +1720,10 @@ class Page_4(SurveyWizardPage):
         self.setField('slr', slr)
         self.setField('rlr', rlr)
 
-        self.setField('sld', max(round(config.deployInline / (slr * sli)), 1))
-        self.setField('rld', max(round(config.deployX_line / (rlr * rli)), 1))
+        sld = max(round(config.deployInline / (slr * sli)), 1)
+        rld = max(round(config.deployX_line / (rlr * rli)), 1)
+        self.setField('sld', sld)
+        self.setField('rld', rld)
 
         self.updateParentSurvey()                                               # update the survey object
         self.plot()                                                             # show the plot, center the bin analysis area
@@ -1730,16 +1732,15 @@ class Page_4(SurveyWizardPage):
         print('cleanup of page 4')
 
         # added 19/06/2024
-        self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in 'earlier' wizard pages; ceate empty rect
+        self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in 'earlier' wizard pages; instead, create empty rect
         for i in range(self.parent.nTemplates):
             self.parent.survey.blockList[0].templateList[i].rollList[0].steps = 1  # nr deployments in y-direction
             self.parent.survey.blockList[0].templateList[i].rollList[1].steps = 1  # nr deployments in x-direction
 
-        self.parent.survey.resetBoundingRect()                                  # reset extent of survey
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
-        self.parent.survey.calcBoundingRect(False)                              # (re)calculate extent of survey ignoring rolling along
+        self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey ignoring rolling along
 
-        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
+        # note page(x) starts with a ZERO index; therefore page(0) == Page_1 and page(2) == Page_3
         self.parent.page(2).updateParentSurvey()                                # (re)center single spread, may be shifted inline due to origin shift
         self.parent.page(2).plot()                                              # needed to update the plot
 
@@ -1749,17 +1750,17 @@ class Page_4(SurveyWizardPage):
 
         offImin = self.field('offImin')
 
-        nsl = self.field('nsl')
-        sli = self.field('sli')
-        rli = self.field('rli')
-        spi = self.field('spi')
-        rpi = self.field('rpi')
-        typ = self.field('type')
+        nsl = self.field('nsl')                                                 # number source lines
+        sli = self.field('sli')                                                 # source line interval
+        rli = self.field('rli')                                                 # receiver line interval
+        spi = self.field('spi')                                                 # source point interval
+        rpi = self.field('rpi')                                                 # receiver point interval
+        typ = self.field('type')                                                # template type
 
         nsla = self.field('nslant')                                             # nr templates in a slanted survey
-        brk = self.field('brk')                                                # brick offset distance
-        nzz = self.field('nzz')                                                # nr source fleets in a zigzag survey
-        mir = self.field('mir')                                                # mirrored zigzag survey
+        brk = self.field('brk')                                                 # brick offset distance
+        nzz = self.field('nzz')                                                 # nr source fleets in a zigzag survey
+        mir = self.field('mir')                                                 # mirrored zigzag survey
 
         rec_00 = self.field('rec_00')                                           # if True, move receiver origin to (0, 0)
         shiftI = -offImin if rec_00 else 0.0                                    # amount of x-shift to apply to each seed
@@ -1823,15 +1824,15 @@ class Page_4(SurveyWizardPage):
 
         # the following parameters are at the core of this wizard page
         # parameters for X-line roll, hence the rec lines increment
-        rld = self.field('rld')   # rec line deployments
-        rlr = self.field('rlr')   # move-up along src line
-        rli = self.field('rli')   # rec line interval
+        rld = self.field('rld')                                                 # rec line deployments
+        rlr = self.field('rlr')                                                 # move-up along src line
+        rli = self.field('rli')                                                 # rec line interval
         rlr *= rli
 
         # parameters for inline roll, hence the source lines increment
-        sld = self.field('sld')   # src line deployments
-        slr = self.field('slr')   # rec line roll along
-        sli = self.field('sli')   # source line interval
+        sld = self.field('sld')                                                 # src line deployments
+        slr = self.field('slr')                                                 # rec line roll along
+        sli = self.field('sli')                                                 # source line interval
         slr *= sli
 
         for i in range(self.parent.nTemplates):
@@ -1848,9 +1849,7 @@ class Page_4(SurveyWizardPage):
         self.parent.survey.output.rctOutput.setTop(self.field('binXmin'))
         self.parent.survey.output.rctOutput.setHeight(self.field('binXsiz'))
 
-        # now update the survey boundingbox
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
-        self.parent.survey.resetBoundingRect()                                  # reset extent of survey
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
 
     def plot(self):
@@ -1860,12 +1859,12 @@ class Page_4(SurveyWizardPage):
         self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
 
         styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)  # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)      # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)   # shows axis at the top, and shows the survey name
+        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
+        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
+        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
+        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
 
-        self.parent.survey.paintMode = PaintMode.noPoints
+        self.parent.survey.paintMode = PaintMode.justTemplates                      # .justLines
         self.parent.survey.lodScale = 6.0
         item = self.parent.survey
 
@@ -1873,9 +1872,9 @@ class Page_4(SurveyWizardPage):
         self.plotWidget.plotItem.addItem(item)
 
         # Add a marker for the origin
-        # oriX = [0.0]
-        # oriY = [0.0]
-        # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+        oriX = [0.0]
+        oriY = [0.0]
+        orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
     def evt_chkShiftSpread_toggled(self, chkd):
         offImin = self.field('offImin')
@@ -1892,7 +1891,7 @@ class Page_4(SurveyWizardPage):
         self.plot()
 
     def evt_roll_editingFinished(self):
-        # self.updateParentSurvey()
+        self.updateParentSurvey()
         self.plot()
 
     def evt_binImin_editingFinished(self, plot=True):
@@ -2126,10 +2125,10 @@ class Page_5(SurveyWizardPage):
 
         self.parent.survey.patternList[0].growList[0].steps = sBra              # nr branches
         self.parent.survey.patternList[0].growList[0].increment.setX(sBrI)      # branch interval
-        self.parent.survey.patternList[0].growList[0].increment.setY(0.0)      # horizontal
+        self.parent.survey.patternList[0].growList[0].increment.setY(0.0)       # horizontal
 
         self.parent.survey.patternList[0].growList[1].steps = sEle              # nr elements
-        self.parent.survey.patternList[0].growList[1].increment.setX(0.0)      # vertical
+        self.parent.survey.patternList[0].growList[1].increment.setX(0.0)       # vertical
         self.parent.survey.patternList[0].growList[1].increment.setY(sElI)      # element interval
 
         self.parent.survey.patternList[0].calcPatternPicture()                  # update pattern picture
@@ -2143,10 +2142,10 @@ class Page_5(SurveyWizardPage):
 
         self.parent.survey.patternList[1].growList[0].steps = rBra              # nr branches
         self.parent.survey.patternList[1].growList[0].increment.setX(rBrI)      # branch interval
-        self.parent.survey.patternList[1].growList[0].increment.setY(0.0)      # horizontal
+        self.parent.survey.patternList[1].growList[0].increment.setY(0.0)       # horizontal
 
         self.parent.survey.patternList[1].growList[1].steps = rEle              # nr elements
-        self.parent.survey.patternList[1].growList[1].increment.setX(0.0)      # vertical
+        self.parent.survey.patternList[1].growList[1].increment.setX(0.0)       # vertical
         self.parent.survey.patternList[1].growList[1].increment.setY(rElI)      # element interval
 
         self.parent.survey.patternList[1].calcPatternPicture()                  # update pattern picture
@@ -2192,10 +2191,10 @@ class Page_5(SurveyWizardPage):
         self.plotWidget.setTitle(f'{rNam}{connect}{sNam}', color='b', size='12pt')
 
         styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)  # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)      # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)   # shows axis at the top, and shows the survey name
+        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
+        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
+        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
+        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
 
         srcPattern = RollPattern()
         srcPattern = self.parent.survey.patternList[0]
@@ -2272,7 +2271,7 @@ class Page_6(SurveyWizardPage):
 
 
 # Page_7 =======================================================================
-# 6. Project Coordinate Reference System (CRS)
+# 7. Project Coordinate Reference System (CRS) - Enter the survey's coordinate transformation details
 
 
 class Page_7(SurveyWizardPage):
@@ -2452,7 +2451,7 @@ class Page_7(SurveyWizardPage):
         self.plotWidget.setLabel('top', 'Easting', units='m', **styles)     # shows axis at the top, and shows the survey name
         self.plotWidget.setLabel('right', 'Northing', units='m', **styles)  # shows axis at the top, and shows the survey name
 
-        self.parent.survey.paintMode = PaintMode.noTemplates
+        self.parent.survey.paintMode = PaintMode.justTemplates                  # .justTemplates justLines
         self.parent.survey.lodScale = 6.0
         item = self.parent.survey
 
@@ -2476,7 +2475,7 @@ class Page_7(SurveyWizardPage):
 
 
 # Page_8 =======================================================================
-# xml summary
+# 8. Summary information - Survey representation in xml-format
 
 
 class Page_8(SurveyWizardPage):
