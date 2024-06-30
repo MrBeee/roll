@@ -931,8 +931,11 @@ class Page_2(SurveyWizardPage):
         if typ == SurveyType.Orthogonal.value:
 
             # source
-            nPadding = (nsl - 1) * round(sli / rpi)                                                             # add nr recs between two source lines
-            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(0.0)                        # Seed origin; source inline at 0.0
+            if nsl > 6:                                                                                         # it is assumed only crossline roll is being used
+                nPadding = 0                                                                                    # don't add extra nr recs to the rec lines
+            else:
+                nPadding = (nsl - 1) * round(sli / rpi)                                                         # lengthen rec lines with nr recs between the source lines
+            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(0.0)                        # Seed origin; source inline at x = 0.0
             self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setY(offXmin)                    # Seed origin; positive number
 
             self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].steps = 1              # nr planes

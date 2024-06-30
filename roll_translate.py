@@ -11,10 +11,9 @@ class RollTranslate:
     # assign default name value
     def __init__(self, name: str = '') -> None:
         self.name = name
-        # Minimum (default) value
-        self.steps = 1
-        self.increment = QVector3D()
-        self.azimuth = 0.0
+        self.steps = 1                                                          # Minimum (default) value
+        self.increment = QVector3D()                                            # zero x, y, z values
+        self.azimuth = 0.0                                                      # direction undetermined
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
 
@@ -40,6 +39,10 @@ class RollTranslate:
         # The parent node has translate as tagname, so no need to find it first
         if parent.isNull():
             return False
+
+        nameElem = parent.namedItem('name').toElement()
+        if not nameElem.isNull():
+            self.name = nameElem.text()
 
         self.steps = int(parent.attribute('n'))
         self.increment.setX(toFloat(parent.attribute('dx')))

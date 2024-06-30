@@ -44,7 +44,6 @@ class RollBlock:
         return blockElem
 
     def readXml(self, parent: QDomNode):
-
         nameElem = parent.namedItem('name').toElement()
         if not nameElem.isNull():
             self.name = nameElem.text()

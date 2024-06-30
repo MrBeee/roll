@@ -58,7 +58,6 @@ class RollTemplate:
         return templateElem
 
     def readXml(self, parent: QDomNode):
-
         nameElem = parent.namedItem('name').toElement()                         # get the name first
         if not nameElem.isNull():
             self.name = nameElem.text()
