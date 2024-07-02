@@ -4,6 +4,7 @@ This module provides the main classes used in Roll
 import math
 import os
 import sys
+from collections import defaultdict
 from enum import Enum
 from time import perf_counter
 
@@ -404,6 +405,9 @@ class RollSurvey(pg.GraphicsObject):
 
             # for starters; assume there are 100 x as many receivers as shots in the survey
             self.output.recGeom = np.zeros(shape=(self.nShotPoints * 100), dtype=pntType1)
+            # self.output.recDict = defaultdict(int)
+            self.output.recDict = dict()
+
             success = self.geometryFromTemplates()
         except BaseException as e:
             # self.errorText = str(e)
@@ -424,6 +428,10 @@ class RollSurvey(pg.GraphicsObject):
                 for template in block.templateList:                             # get all templates
                     # how deep is the list ?
                     length = len(template.rollList)
+
+                    assert length == 3, 'there must always be 3 roll steps / grow steps'
+                    # todo: search everywhere for "< 3" and insert assertions for length of list
+
                     if length == 0:
                         off0 = QVector3D()                                      # always start at (0, 0, 0)
                         self.geomTemplate2(nBlock, block, template, off0)
@@ -633,20 +641,31 @@ class RollSurvey(pg.GraphicsObject):
                                                 if self.nRelRecord + 100 > arraySize:                               # room for less than 100 left ?
                                                     self.output.relGeom.resize(arraySize + 10000, refcheck=False)   # append 10000 more records
 
-                                                # we have a new receiver record
-                                                self.nRecRecord += 1
+                                                # at this stage we need to check if the receiver location has been used before (most likely)
+                                                # we do this by checking the nested dictionary that uses recStake to keep track of location usage
+                                                # sofar, (blocK) index has been neglected, but this could be added as a third nesting level
 
-                                                self.output.recGeom[self.nRecRecord]['Line'] = int(recStake.y())
-                                                self.output.recGeom[self.nRecRecord]['Point'] = int(recStake.x())
-                                                self.output.recGeom[self.nRecRecord]['Index'] = nBlock % 10 + 1
-                                                # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'              # can do this in one go at the end
-                                                # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0               # not needed; zero when initialized
-                                                self.output.recGeom[self.nRecRecord]['East'] = recGlob.x()
-                                                self.output.recGeom[self.nRecRecord]['North'] = recGlob.y()
-                                                self.output.recGeom[self.nRecRecord]['LocX'] = recLoc.x()           # x-component of 3D-location
-                                                self.output.recGeom[self.nRecRecord]['LocY'] = recLoc.y()           # y-component of 3D-location
-                                                self.output.recGeom[self.nRecRecord]['Elev'] = recLoc.z()           # z-component of 3D-location
-                                                self.output.recGeom[self.nRecRecord]['Uniq'] = 1                    # later, we want to remove empty records at the end
+                                                line = int(recStake.y())
+                                                point = int(recStake.x())
+
+                                                try:                                                                # has it been used before ?
+                                                    use = self.output.recDict[line][point]
+                                                    self.output.recDict[line][point] = use + 1                      # increment by one
+                                                except KeyError:
+                                                    self.output.recDict[line][point] = 1                            # set to one (first time use)
+
+                                                    self.nRecRecord += 1                                            # we have a new receiver record, so increment and fill in details
+                                                    self.output.recGeom[self.nRecRecord]['Line'] = line
+                                                    self.output.recGeom[self.nRecRecord]['Point'] = point
+                                                    self.output.recGeom[self.nRecRecord]['Index'] = nBlock % 10 + 1
+                                                    # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'          # can do this in one go at the end
+                                                    # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0           # not needed; zero when initialized
+                                                    self.output.recGeom[self.nRecRecord]['East'] = recGlob.x()
+                                                    self.output.recGeom[self.nRecRecord]['North'] = recGlob.y()
+                                                    self.output.recGeom[self.nRecRecord]['LocX'] = recLoc.x()       # x-component of 3D-location
+                                                    self.output.recGeom[self.nRecRecord]['LocY'] = recLoc.y()       # y-component of 3D-location
+                                                    self.output.recGeom[self.nRecRecord]['Elev'] = recLoc.z()       # z-component of 3D-location
+                                                    self.output.recGeom[self.nRecRecord]['Uniq'] = 1                # later, we want to remove any empty records at the end
 
                                                 # apply self.output.recGeom.resize(N) when more memory is needed
                                                 arraySize = self.output.recGeom.shape[0]
@@ -1161,6 +1180,9 @@ class RollSurvey(pg.GraphicsObject):
                 for template in block.templateList:                             # get all templates
                     # how deep is the list ?
                     length = len(template.rollList)
+
+                    assert length == 3, 'there must always be 3 roll steps / grow steps'
+
                     if length == 0:
                         off0 = QVector3D()                                      # always start at (0, 0, 0)
                         self.binTemplate6(block, template, off0, fullAnalysis)
@@ -2009,6 +2031,8 @@ class RollSurvey(pg.GraphicsObject):
                     for template in block.templateList:                         # get all templates
                         length = len(template.rollList)                         # how deep is the list ?
 
+                        assert length == 3, 'there must always be 3 roll steps / grow steps'
+
                         if length == 0:
                             offset = QVector3D()                                # always start at (0, 0, 0)
                             templt = template.totTemplateRect                       # no translation required
@@ -2089,6 +2113,8 @@ class RollSurvey(pg.GraphicsObject):
                     seed.rendered = True                                        # paint fixed grid only once
 
                 length = len(seed.grid.growList)                                # how deep is the grow list ?
+
+                assert length == 3, 'there must always be 3 roll steps / grow steps'
 
                 if length == 0:
                     offset = QVector3D()                                        # always start at (0, 0, 0)

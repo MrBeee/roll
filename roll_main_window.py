@@ -1310,6 +1310,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnRecReadFromQGIS = QPushButton('Read from QGIS')
 
         self.btnRelExportToQGIS = QPushButton('Export Src, Cmp, Rec && Binning &Boundaries to QGIS')
+        self.btnRelExportToQGIS.setToolTip('This button is enabled once you have saved the project')
 
         # make the buttons stand out a bit
         # See: https://www.webucator.com/article/python-color-constants-module/

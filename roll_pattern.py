@@ -131,6 +131,8 @@ class RollPattern(pg.GraphicsObject):
         # how deep is the grow list ?
         length = len(self.growList)
 
+        assert length == 3, 'there always need to be 3 roll steps / grow steps'
+
         if length == 0:
             painter.drawLine(0, -7.5, 0, 7.5)
             painter.drawLine(-7.5, 0, 7.5, 0)

@@ -1,5 +1,6 @@
 import uuid
 
+# See: https://www.qgistutorials.com/en/docs/points_in_polygon.html to restict points to polygons
 # import matplotlib.pyplot as plt  # to create a png file
 import numpy as np
 import rasterio as rio

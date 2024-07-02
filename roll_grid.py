@@ -123,6 +123,8 @@ class RollGrid:
                 self.growList.append(translate)
                 g = g.nextSiblingElement('translate')
 
+            # todo: handle empty grow list or len(growList) < 3
+
             return True
 
         growListElem = parent.namedItem('grow_list').toElement()

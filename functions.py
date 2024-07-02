@@ -672,6 +672,7 @@ def exampleSurveyXmlText() -> str:
                 <name>src-array</name>
                 <grow_list>
                     <translate n="1" dx="0.0" dy="0.0"/>
+                    <translate n="1" dx="0.0" dy="0.0"/>
                     <translate n="3" dx="0.0" dy="12.5"/>
                 </grow_list>
             </pattern>
