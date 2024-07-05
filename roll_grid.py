@@ -115,15 +115,15 @@ class RollGrid:
             self.points = toInt(gridElem.attribute('points'))
 
             g = gridElem.firstChildElement('translate')
-            if g.isNull():
-                return False  # We need at least one grow step
+
             while not g.isNull():
                 translate = RollTranslate()
                 translate.readXml(g)
                 self.growList.append(translate)
                 g = g.nextSiblingElement('translate')
 
-            # todo: handle empty grow list or len(growList) < 3
+            while len(self.growList) < 3:                                       # Make sure there are always three grow steps in every grid
+                self.growList.insert(0, RollTranslate())
 
             return True
 

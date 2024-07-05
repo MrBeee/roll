@@ -67,7 +67,7 @@ class RollTemplate:
 
         while not r.isNull():
             translate = RollTranslate()
-            translate.readXml(r)  # the REAL parent is actually the roll_list
+            translate.readXml(r)                                                # the REAL parent is actually the roll_list
             self.rollList.append(translate)
             r = r.nextSiblingElement('translate')
 

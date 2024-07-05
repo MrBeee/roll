@@ -94,75 +94,54 @@ import pyqtgraph as pg
 from console import console
 from numpy.compat import asstr
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
-from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
-from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
-from qgis.PyQt.QtWidgets import (
-    QAction,
-    QActionGroup,
-    QApplication,
-    QButtonGroup,
-    QCheckBox,
-    QDialogButtonBox,
-    QDockWidget,
-    QFileDialog,
-    QFrame,
-    QGraphicsEllipseItem,
-    QGridLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QHeaderView,
-    QLabel,
-    QMainWindow,
-    QMessageBox,
-    QPlainTextEdit,
-    QProgressBar,
-    QPushButton,
-    QSplitter,
-    QTabWidget,
-    QToolButton,
-    QVBoxLayout,
-    QWidget,
-)
+from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
+                              QItemSelection, QItemSelectionModel, QModelIndex,
+                              QPoint, QSettings, Qt, QTextStream, QThread)
+from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
+                             QTextCursor, QTextOption, QTransform)
+from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
+                                      QPrintPreviewDialog)
+from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QApplication,
+                                 QButtonGroup, QCheckBox, QDialogButtonBox,
+                                 QDockWidget, QFileDialog, QFrame,
+                                 QGraphicsEllipseItem, QGridLayout, QGroupBox,
+                                 QHBoxLayout, QHeaderView, QLabel, QMainWindow,
+                                 QMessageBox, QPlainTextEdit, QProgressBar,
+                                 QPushButton, QSplitter, QTabWidget,
+                                 QToolButton, QVBoxLayout, QWidget)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
-
 # from .event_lookup import event_lookup
 from .find import Find
-from .functions import aboutText, exampleSurveyXmlText, highDpiText, licenseText, rawcount
-from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
+from .functions import (aboutText, exampleSurveyXmlText, highDpiText,
+                        licenseText, rawcount)
+from .functions_numba import (numbaAziInline, numbaAziX_line,
+                              numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D,
+                              numbaOffInline, numbaOffsetBin, numbaOffX_line,
+                              numbaSlice3D, numbaSliceStats, numbaSpiderBin)
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
+from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
+                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
+                             identifyQgisPointLayer, readQgisPointLayer,
+                             updateQgisPointLayer)
 from .roll_binning import BinningType
 from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (
-    calcMaxXPStraces,
-    calculateLineStakeTransform,
-    deletePntDuplicates,
-    deletePntOrphans,
-    deleteRelDuplicates,
-    deleteRelOrphans,
-    fileExportAsR01,
-    fileExportAsS01,
-    fileExportAsX01,
-    findRecOrphans,
-    findSrcOrphans,
-    getRecGeometry,
-    getSrcGeometry,
-    markUniqueRPSrecords,
-    markUniqueSPSrecords,
-    markUniqueXPSrecords,
-    pntType1,
-    readRPSFiles,
-    readSPSFiles,
-    readXPSFiles,
-    relType2,
-)
-from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
-from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
+from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
+                            deletePntDuplicates, deletePntOrphans,
+                            deleteRelDuplicates, deleteRelOrphans,
+                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
+                            findRecOrphans, findSrcOrphans, getRecGeometry,
+                            getSrcGeometry, markUniqueRPSrecords,
+                            markUniqueSPSrecords, markUniqueXPSrecords,
+                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
+                            relType2)
+from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
+                               TableView, XpsTableModel)
+from .worker_threads import (BinFromGeometryWorker, BinningWorker,
+                             GeometryWorker)
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -2920,6 +2899,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.dockProperty.setFloating(False)                                # don't keep floating docking widgets hanging araound once closed
             # self.writeSettings()                                              # save geometry and state of window(s)
             writeSettings(self)                                                 # save geometry and state of window(s)
+
+            if self.workingDirectory:                                           # append information to log file in working directory
+                logFile = os.path.join(self.workingDirectory, '.roll.log')      # join directory & log file name
+                with open(logFile, 'a', encoding='utf-8') as file:              # append information to logfile
+                    file.write(self.logEdit.toPlainText())                      # get text from logEdit
+                    file.write('+++\n\n')                                       # closing remarks
+
             # builtins.print = self.oldPrint                                    # restore builtins.print
             # sys.excepthook = self.oldExceptHook                               # restore sys.excepthook back to the original
             e.accept()                                                          # finally accep the event
@@ -3608,7 +3594,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if fn:
                 self.workingDirectory = os.path.dirname(fn)                     # retrieve the directory name
 
-                # sync workingDirectory to settings, so it available outside of RollMainWindow
+                # sync workingDirectory to settings, so it is available outside of RollMainWindow
                 self.settings.setValue('settings/workingDirectory', self.workingDirectory)
 
                 self.fileLoad(fn)                                               # load() does all the hard work
@@ -3664,7 +3650,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if self.srcGeom is not None:
                 np.save(self.fileName + '.src.npy', self.srcGeom)               # numpy array with list of SRC records
-
         else:
             self.appendLogMessage(f'saving : Cannot save file: {self.fileName}', MsgType.Error)
             QMessageBox.information(self, 'Write error', f'Cannot save file:\n{self.fileName}')
