@@ -21,6 +21,7 @@ class RollOutput:
         self.recGeom = None                                                     # numpy array with list of receiver locations
         self.srcGeom = None                                                     # numpy array with list of source locations
         self.relGeom = None                                                     # numpy array with list of relation records
+        self.relTemp = None                                                     # numpy array with temp list of rel records
 
         # See: https://stackoverflow.com/questions/17915117/nested-dictionary-comprehension-python
         # See: https://stackoverflow.com/questions/20446526/how-to-construct-nested-dictionary-comprehension-in-python-with-correct-ordering

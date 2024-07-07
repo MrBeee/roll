@@ -831,8 +831,7 @@ class XpsTableModel(QAbstractTableModel):
         if role == Qt.DisplayRole:
             if self._data is not None:
                 record = self._data[index.row()]
-
-                if index.column() in [0, 2, 3, 7]:                              # format depends on column number
+                if index.column() in [2, 3, 7]:                                 # format depends on column number
                     value = str(int(record[index.column()]))
                 else:                                                           # show float for remaining columns
                     value = str(float(record[index.column()]))

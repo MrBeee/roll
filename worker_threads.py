@@ -143,7 +143,7 @@ class GeometryWorker(QObject):
         self.fileName = None
 
         # the following function also calculates the required transforms
-        self.survey.fromXmlString(xmlString)
+        self.survey.fromXmlString(xmlString, False)                             # populate the object; but don't need binning arrays
 
     def run(self):
         """Long-running task."""

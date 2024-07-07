@@ -94,54 +94,75 @@ import pyqtgraph as pg
 from console import console
 from numpy.compat import asstr
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
-                              QItemSelection, QItemSelectionModel, QModelIndex,
-                              QPoint, QSettings, Qt, QTextStream, QThread)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
-                             QTextCursor, QTextOption, QTransform)
-from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
-                                      QPrintPreviewDialog)
-from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QApplication,
-                                 QButtonGroup, QCheckBox, QDialogButtonBox,
-                                 QDockWidget, QFileDialog, QFrame,
-                                 QGraphicsEllipseItem, QGridLayout, QGroupBox,
-                                 QHBoxLayout, QHeaderView, QLabel, QMainWindow,
-                                 QMessageBox, QPlainTextEdit, QProgressBar,
-                                 QPushButton, QSplitter, QTabWidget,
-                                 QToolButton, QVBoxLayout, QWidget)
+from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
+from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
+from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QActionGroup,
+    QApplication,
+    QButtonGroup,
+    QCheckBox,
+    QDialogButtonBox,
+    QDockWidget,
+    QFileDialog,
+    QFrame,
+    QGraphicsEllipseItem,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QSplitter,
+    QTabWidget,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
+
 # from .event_lookup import event_lookup
 from .find import Find
-from .functions import (aboutText, exampleSurveyXmlText, highDpiText,
-                        licenseText, rawcount)
-from .functions_numba import (numbaAziInline, numbaAziX_line,
-                              numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D,
-                              numbaOffInline, numbaOffsetBin, numbaOffX_line,
-                              numbaSlice3D, numbaSliceStats, numbaSpiderBin)
+from .functions import aboutText, exampleSurveyXmlText, highDpiText, licenseText, rawcount
+from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
-                             exportPointLayerToQgis, exportSurveyOutlineToQgis,
-                             identifyQgisPointLayer, readQgisPointLayer,
-                             updateQgisPointLayer)
+from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
 from .roll_binning import BinningType
 from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
-from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
-                            deletePntDuplicates, deletePntOrphans,
-                            deleteRelDuplicates, deleteRelOrphans,
-                            fileExportAsR01, fileExportAsS01, fileExportAsX01,
-                            findRecOrphans, findSrcOrphans, getRecGeometry,
-                            getSrcGeometry, markUniqueRPSrecords,
-                            markUniqueSPSrecords, markUniqueXPSrecords,
-                            pntType1, readRPSFiles, readSPSFiles, readXPSFiles,
-                            relType2)
-from .table_model_view import (AnaTableModel, RpsTableModel, SpsTableModel,
-                               TableView, XpsTableModel)
-from .worker_threads import (BinFromGeometryWorker, BinningWorker,
-                             GeometryWorker)
+from .sps_io_and_qc import (
+    calcMaxXPStraces,
+    calculateLineStakeTransform,
+    deletePntDuplicates,
+    deletePntOrphans,
+    deleteRelDuplicates,
+    deleteRelOrphans,
+    fileExportAsR01,
+    fileExportAsS01,
+    fileExportAsX01,
+    findRecOrphans,
+    findSrcOrphans,
+    getRecGeometry,
+    getSrcGeometry,
+    markUniqueRPSrecords,
+    markUniqueSPSrecords,
+    markUniqueXPSrecords,
+    pntType1,
+    readRPSFiles,
+    readSPSFiles,
+    readXPSFiles,
+    relType2,
+)
+from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
+from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -4432,9 +4453,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         else:
 
             # copy analysis arrays from worker
-            self.recGeom = self.worker.survey.output.recGeom.copy()             # create a copy; not a view of the array(s)
+            self.recGeom = self.worker.survey.output.recGeom.copy()             # create a copy; not a view of the arrays
             self.relGeom = self.worker.survey.output.relGeom.copy()
             self.srcGeom = self.worker.survey.output.srcGeom.copy()
+
+            # QMessageBox.information(self, 'Done', f'Worker thread completed. No crash!!!')
+            # self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
+            # self.enableProcessingMenuItems()                                        # enable processing menu items (again)
+            # self.mainTabWidget.setCurrentIndex(2)                                   # make sure we display the 'Geometry' tab
+            # self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
+            # return
 
             self.recModel.setData(self.recGeom)                                 # update the three rec/rel/src models
             self.relModel.setData(self.relGeom)

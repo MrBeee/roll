@@ -330,15 +330,15 @@ def numbaSetPointRecord(array: np.ndarray, index: int, line: float, point: float
 
 
 @nb.jit(nopython=True)
-def numbaSetRelationRecord(array: np.ndarray, index: int, srcStkX: float, srcStkY: float, block: int, shot: int, recStkX: float, recStkY: float):
-    array[index]['SrcLin'] = int(srcStkY)
-    array[index]['SrcPnt'] = int(srcStkX)
-    array[index]['SrcInd'] = block % 10 + 1
-    array[index]['RecNum'] = shot
-    array[index]['RecLin'] = int(recStkY)
-    array[index]['RecMin'] = int(recStkX)
-    array[index]['RecMax'] = int(recStkX)
-    array[index]['RecInd'] = block % 10 + 1
+def numbaSetRelationRecord(array: np.ndarray, index: int, srcLin: float, srcPnt: float, srcInd: int, shtRec: int, recLin: float, recMin: float, recMax: float):
+    array[index]['SrcLin'] = float(int(srcLin))
+    array[index]['SrcPnt'] = float(int(srcPnt))
+    array[index]['SrcInd'] = srcInd
+    array[index]['RecNum'] = shtRec
+    array[index]['RecLin'] = int(recLin)
+    array[index]['RecMin'] = float(int(recMin))
+    array[index]['RecMax'] = float(int(recMax))
+    array[index]['RecInd'] = srcInd
     array[index]['Uniq'] = 1    # needed for compacting array later (remove empty records)
 
 

@@ -1,6 +1,7 @@
 """
 This module provides the main classes used in Roll
 """
+import gc
 import math
 import os
 import sys
@@ -18,7 +19,9 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .functions import containsPoint3D
-from .functions_numba import clipLineF, numbaFixRelationRecord, numbaSetPointRecord, numbaSetRelationRecord, pointsInRect
+from .functions_numba import (clipLineF, numbaFixRelationRecord,
+                              numbaSetPointRecord, numbaSetRelationRecord,
+                              pointsInRect)
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -162,8 +165,8 @@ class RollSurvey(pg.GraphicsObject):
         self.nShotPoints = -1                                                   # set at -1 to initialize calculations
         self.nTemplate = 0                                                      # managed in worker thread
         self.nTemplates = -1                                                    # set at -1 to initialize calculations
-        self.nRelRecord = -1                                                    # set at -1 to initialize calculations
         self.nRecRecord = -1                                                    # set at -1 to initialize calculations
+        self.nRelRecord = -1                                                    # set at -1 to initialize calculations
         self.nOldRecLine = -999999                                              # to set up the first rec-point in a rel-record
         self.nNewRecLine = -1                                                   # to control moving along with rel-records
         self.recMin = 0                                                         # to set up the highest rec number on a line
@@ -397,9 +400,6 @@ class RollSurvey(pg.GraphicsObject):
 
     def setupGeometryFromTemplates(self) -> bool:
 
-        if self.nShotPoints == -1:                                              # calcNoShotPoints has been skipped ?!?
-            raise ValueError('nr shot points must be known at this point')
-
         try:
             # The array with the list of receiver locations is the most difficult to determine.
             # It can be calculated using one of several approaches :
@@ -413,19 +413,27 @@ class RollSurvey(pg.GraphicsObject):
             #   c) lastly; use a nested dictionary to check rec positions before adding them to the numpy array
             # if a receiver is found at recDict[line][point], there is no need to add it to the numpy array
 
+            # gc.collect()                                                        # get the garbage collector going
+            self.calcNoTemplates()                                              # need to know nr templates, to track progress
+            self.nTemplate = 0                                                  # zero based counter
+            self.output.recDict = defaultdict(dict)                             # nested dictionary to access rec positions
+
+            self.nRecRecord = 0                                                 # zero based array index
+            self.nShotPoint = 0                                                 # zero based array index
+            if self.nShotPoints == -1:                                          # calcNoShotPoints has been skipped ?!?
+                self.calcNoShotPoints()
+
             # the numpy array with the list of source locations simply follows from self.nShotPoints
             self.output.srcGeom = np.zeros(shape=(self.nShotPoints), dtype=pntType1)
 
-            # the numpy array with the list of relation records follows from the nr of shot points x number of rec lines (assume 10)
-            self.output.relGeom = np.zeros(shape=(self.nShotPoints * 10), dtype=relType2)
+            # the numpy array with the list of relation records follows from the nr of shot points x number of rec lines (assume 20)
+            self.output.relGeom = np.zeros(shape=(self.nShotPoints * 20), dtype=relType2)
+            self.output.relTemp = np.zeros(shape=(100), dtype=relType2)         # holds 100 rec lines/template will be increased if needed
 
-            # for starters; assume there are 5 x as many receivers as shots in the survey
-            self.output.recGeom = np.zeros(shape=(self.nShotPoints * 5), dtype=pntType1)
+            # for starters; assume there are 40,000 receivers in a survey, will be extended in steps of 10,000
+            self.output.recGeom = np.zeros(shape=(40000), dtype=pntType1)
 
-            self.calcNoTemplates()                                              # need to know nr templates, to track progress
-            self.output.recDict = defaultdict(dict)                             # nested dictionary to access rec positions
-
-            success = self.geometryFromTemplates()
+            success = self.geometryFromTemplates()                              # here the work is being done
         except BaseException as e:
             # self.errorText = str(e)
             # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
@@ -497,15 +505,17 @@ class RollSurvey(pg.GraphicsObject):
             del (fileName, funcName, lineNo)
             return False
 
+        self.progress.emit(100)                                                 # make sure we stop at 100
+
         #  first remove all remaining receiver duplicates
         self.output.recGeom = np.unique(self.output.recGeom)
 
-        # note; because we keep track of 'self.nRelRecord'
+        # todo; because we keep track of 'self.nRelRecord'
         # there's no need to shrink the array based on the 'Uniq' == 1 condition.
-        # need to change the code; just resize the relGeom array based on self.nRelRecord
+        # need to change the code; resize the relGeom array based on self.nRelRecord
 
         # trim rel & rec arrays removing any zeros, using the 'Uniq' == 1 condition.
-        # self.output.relGeom = self.output.relGeom[self.output.relGeom['Uniq'] == 1]
+        self.output.relGeom = self.output.relGeom[self.output.relGeom['Uniq'] == 1]
         self.output.recGeom = self.output.recGeom[self.output.recGeom['Uniq'] == 1]
 
         # set all values in one go at the end
@@ -517,13 +527,13 @@ class RollSurvey(pg.GraphicsObject):
         self.output.recGeom['InXps'] = 1
         self.output.recGeom['Code'] = 'G1'
 
-        # self.output.relGeom['InSps'] = 1
-        # self.output.relGeom['InRps'] = 1
+        self.output.relGeom['InSps'] = 1
+        self.output.relGeom['InRps'] = 1
 
         # sort the three geometry arrays
         self.output.srcGeom.sort(order=['Index', 'Point', 'Line'])
         self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
-        # self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
 
         return True
 
@@ -853,12 +863,13 @@ class RollSurvey(pg.GraphicsObject):
 
                         # time to work with the relation records, now we have both a valid src-point and rec-point;
                         self.nNewRecLine = int(recStkY)
-                        if self.nNewRecLine != self.nOldRecLine:              # we're on a 'new' receiver line and need a new rel-record
-                            self.nOldRecLine = self.nNewRecLine               # save current line number
+                        if self.nNewRecLine != self.nOldRecLine:                # we're on a 'new' receiver line and need a new rel-record
+                            self.nOldRecLine = self.nNewRecLine                 # save current line number
                             self.nRelRecord += 1                                # increment relation record number
 
                             # create new relation record; fill it in completely
-                            numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcStkX, srcStkY, nBlock, self.nShotPoint, recStkX, recStkY)
+                            numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcStkX, srcStkY, nBlock, self.nShotPoint, recStkY, recStkX, recStkX)
+                            numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
                             # self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStkY)
                             # self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStkX)
                             # self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
@@ -913,10 +924,12 @@ class RollSurvey(pg.GraphicsObject):
         threadProgress = (100 * self.nTemplate) // self.nTemplates              # apply integer divide
         if threadProgress > self.threadProgress:
             self.threadProgress = threadProgress
-            self.progress.emit(threadProgress + 2)
+            self.progress.emit(threadProgress + 1)
         # end thread progress code
 
-        # iterate over all seeds in a template; make sure we start wih *source* seeds
+        nShotPoint = self.nShotPoint                                            # create a copy for relation records creation later on
+
+        # iterate over all seeds in a template; make sure we deal wih *source* seeds
         for srcSeed in template.seedList:
             if not srcSeed.bSource:                                             # work with source seeds here
                 continue
@@ -924,180 +937,119 @@ class RollSurvey(pg.GraphicsObject):
             # we are in a source seed right now; use the numpy array functions to apply selection criteria
             srcArray = srcSeed.pointArray + npTemplateOffset
 
-            if not block.borders.srcBorder.isNull():                            # deal with block's source  border if it isn't null()
+            if not block.borders.srcBorder.isNull():                            # deal with block's source border if it isn't null()
                 I = pointsInRect(srcArray, block.borders.srcBorder)
                 if I.shape[0] == 0:
                     continue
                 srcArray = srcArray[I, :]                                       # filter the source array
 
             for src in srcArray:                                                # iterate over all sources
-                self.nShotPoint += 1
-
-                # useful source point; update the source geometry list here
-                nSrc = self.nShotPoint - 1                                      # need to step back by one to arrive at start of array
+                # useful source point; pointsInRect passed it through
 
                 # determine line & stake nrs for source point
                 srcX = src[0]
                 srcY = src[1]
-                # srcZ = src[2]
 
                 srcStkX, srcStkY = self.st2Transform.map(srcX, srcY)            # get line and point indices
                 srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)            # we need global positions
 
-                numbaSetPointRecord(self.output.srcGeom, nSrc, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
+                numbaSetPointRecord(self.output.srcGeom, self.nShotPoint, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
+                self.nShotPoint += 1                                            # increment for the next shot
+
+        nRelRecord = -1                                                         # start with invalid value (will be 0 for 1st record)
+        nOldRecLine = -999999                                                   # start with 'funny' value
 
         # now iterate over all seeds to find the receivers
-        for recSeed in template.seedList:                               # iterate over all rec seeds in a template
-            if recSeed.bSource:                                         # work with receiver seeds here
+        for recSeed in template.seedList:                                       # iterate over all rec seeds in a template
+            if recSeed.bSource:                                                 # work with receiver seeds here
                 continue
 
             # we are in a receiver seed right now; use the numpy array functions to apply selection criteria
             recPoints = recSeed.pointArray + npTemplateOffset
 
-            if not block.borders.recBorder.isNull():                    # deal with block's receiver border if it isn't null()
+            if not block.borders.recBorder.isNull():                            # deal with block's receiver border if it isn't null()
                 I = pointsInRect(recPoints, block.borders.recBorder)
                 if I.shape[0] == 0:
                     continue
                 else:
                     recPoints = recPoints[I, :]
 
-            for rec in recPoints:                                       # iterate over all receivers
+            for rec in recPoints:                                               # iterate over all receivers
                 # determine line & stake nrs for receiver point
                 recX = rec[0]
                 recY = rec[1]
-                # recZ = rec[2]
 
-                recStkX, recStkY = self.st2Transform.map(recX, recY)    # get line and point indices
-                recLocX, recLocY = self.glbTransform.map(recX, recY)    # we need global positions
+                recStkX, recStkY = self.st2Transform.map(recX, recY)            # get line and point indices
+                recLocX, recLocY = self.glbTransform.map(recX, recY)            # we need global positions
+
+                recPoint = int(recStkX)
+                recLine = int(recStkY)
 
                 # the problem with receiver records is that they overlap by some 90% from shot to shot.
-                # rather than adding all receivers first, and removing all  receiver duplicates later,
-                # we use a nested dictionary to find out if a rec station already exists
-                # sofar, (blocK) index has been neglected, but this could be added as a third nesting level
-                try:                                                                # has it been used before ?
-                    use = self.output.recDict[recStkY][recStkX]
-                    self.output.recDict[recStkY][recStkX] = use + 1                 # increment by one
+                # rather than adding all receivers first, followed by removing all duplicates later,
+                # we use a nested dictionary to find out if a rec station already exists in our 'list'
+                # sofar,block nr (=index) has been neglected, but this could be added as a third nesting level
+
+                try:                                                            # has it been used before ?
+                    use = self.output.recDict[recLine][recPoint]
+                    self.output.recDict[recLine][recPoint] = use + 1            # increment by one
                 except KeyError:
-                    self.output.recDict[recStkY][recStkX] = 1                       # set to one (first time use)
+                    self.output.recDict[recLine][recPoint] = 1                  # set to one (first time use)
 
-                    self.nRecRecord += 1                                            # we have a new receiver record
                     numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
+                    self.nRecRecord += 1                                        # increment for the next receiver
 
-    #         for src in srcArray:                                                # iterate over all sources
+                    arraySize = self.output.recGeom.shape[0]
+                    if self.nRecRecord + 1000 > arraySize:                      # room for less than 1000 left ?
+                        self.output.recGeom.resize(arraySize + 10000, refcheck=False)    # append 10000 more receiver records
 
-    #             self.nShotPoint += 1
-    #             self.nOldRecLine = -999999                                      # a new shotpoint always starts with new relation records
+                # now create the framework for relation records for all shots in the template
+                # adapt these records with slight modifications for all  shots in the template
 
-    #             # useful source point; update the source geometry list here
-    #             nSrc = self.nShotPoint - 1                                      # need to step back by one to arrive at start of array
+                if recLine != nOldRecLine:                                      # we're on a 'new' receiver line and need a new rel-record
+                    nOldRecLine = recLine                                       # save current line number
+                    nRelRecord += 1                                             # increment relation record number (that started at -1)
 
-    #             time = self.elapsedTime(time, 2)    ###
+                    self.output.relTemp[nRelRecord]['RecLin'] = recStkY         # create new relation record; fill it in with all rec info
+                    self.output.relTemp[nRelRecord]['RecMin'] = recStkX
+                    self.output.relTemp[nRelRecord]['RecMax'] = recStkX
+                    self.output.relTemp[nRelRecord]['RecInd'] = nBlock % 10 + 1
 
-    #             # determine line & stake nrs for source point
-    #             srcX = src[0]
-    #             srcY = src[1]
-    #             # srcZ = src[2]
+                    arraySize = self.output.relTemp.shape[0]                    # do we have enough space for more relation records ?
+                    if nRelRecord + 10 > arraySize:                             # room for less than 50 left ?
+                        self.output.relTemp.resize(arraySize + 100, refcheck=False)    # append 100 more records
 
-    #             srcStkX, srcStkY = self.st2Transform.map(srcX, srcY)            # get line and point indices
-    #             srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)            # we need global positions
+                else:
+                    # existing relation record; just update min/max rec stake numbers
+                    self.output.relTemp[nRelRecord]['RecMin'] = min(recStkX, self.output.relTemp[nRelRecord]['RecMin'])
+                    self.output.relTemp[nRelRecord]['RecMax'] = max(recStkX, self.output.relTemp[nRelRecord]['RecMax'])
 
-    #             numbaSetPointRecord(self.output.srcGeom, nSrc, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
+        # at this moment:
+        # nRelRecord holds the nr of relation records for each shot in this template
+        # self.output.relTemp holds the receiver info for these records
+        # self.output.srcGeom holds the source records that made it through the selection
+        # nShotPoint holds the first shot point for which relation records need to be created
 
-    #             # now iterate over all seeds to find the receivers
-    #             for recSeed in template.seedList:                               # iterate over all rec seeds in a template
-    #                 if recSeed.bSource:                                         # work with receiver seeds here
-    #                     continue
+        for i in range(nShotPoint, self.nShotPoint):                            # these are the shots from this template, we have added
 
-    #                 # we are in a receiver seed right now; use the numpy array functions to apply selection criteria
-    #                 recPoints = recSeed.pointArray + npTemplateOffset
+            # apply self.output.relGeom.resize(N) when more memory is needed
+            arraySize = self.output.relGeom.shape[0]
+            if self.nRelRecord + 1000 > arraySize:                              # room for less than 1,000 left ?
+                self.output.relGeom.resize(arraySize + 10000, refcheck=False)   # append 10,000 more records
 
-    #                 time = self.elapsedTime(time, 4)    ###
+            srcLin = self.output.srcGeom[i]['Line']
+            srcPnt = self.output.srcGeom[i]['Point']
+            srcInd = self.output.srcGeom[i]['Index']                            # the single digit point index is used to indicate block nr
 
-    #                 if not block.borders.recBorder.isNull():                    # deal with block's receiver border if it isn't null()
-    #                     I = pointsInRect(recPoints, block.borders.recBorder)
-    #                     if I.shape[0] == 0:
-    #                         continue
-    #                     else:
-    #                         time = self.elapsedTime(time, 5)    ###
-    #                         recPoints = recPoints[I, :]
-    #                         time = self.elapsedTime(time, 6)    ###
+            for j in range(nRelRecord + 1):                                     # every shot needs this many relation records; read the back and complete them
 
-    #                 for rec in recPoints:                                       # iterate over all receivers
+                recLin = self.output.relTemp[j]['RecLin']
+                recMin = self.output.relTemp[j]['RecMin']
+                recMax = self.output.relTemp[j]['RecMax']
 
-    #                     time = perf_counter()                                   # reset at start of receiver loop
-
-    #                     # determine line & stake nrs for receiver point
-    #                     recX = rec[0]
-    #                     recY = rec[1]
-    #                     # recZ = rec[2]
-
-    #                     time = self.elapsedTime(time, 7)    ###
-
-    #                     recStkX, recStkY = self.st2Transform.map(recX, recY)    # get line and point indices
-    #                     recLocX, recLocY = self.glbTransform.map(recX, recY)    # we need global positions
-
-    #                     time = self.elapsedTime(time, 8)    ###
-
-    #                     # the problem with receiver records is that they overlap by some 90% from shot to shot.
-    #                     # rather than adding all receivers first, and removing all  receiver duplicates later,
-    #                     # we use a nested dictionary to find out if a rec station already exists
-    #                     # sofar, (blocK) index has been neglected, but this could be added as a third nesting level
-    #                     try:                                                                # has it been used before ?
-    #                         use = self.output.recDict[recStkY][recStkX]
-    #                         self.output.recDict[recStkY][recStkX] = use + 1                 # increment by one
-    #                     except KeyError:
-    #                         self.output.recDict[recStkY][recStkX] = 1                       # set to one (first time use)
-
-    #                         self.nRecRecord += 1                                            # we have a new receiver record
-    #                     ##                            # numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
-
-    #                     time = self.elapsedTime(time, 9)    ###
-
-    #                     # apply self.output.recGeom.resize(N) when more memory is needed, after cleaning duplicates
-    #                     arraySize = self.output.recGeom.shape[0]
-    #                     if self.nRecRecord + 100 > arraySize:                               # room for less than 100 left ?
-    #                         time = perf_counter()
-    #                         self.output.recGeom = np.unique(self.output.recGeom)            # first remove all duplicates
-    #                         arraySize = self.output.recGeom.shape[0]                        # get array size (again)
-    #                         self.nRecRecord = arraySize                                     # adjust nRecRecord to the next available spot
-    #                         self.output.recGeom.resize(arraySize + 10000, refcheck=False)   # append 10000 more records
-    #                         time = self.elapsedTime(time, 10)    ###
-
-    #                     time = perf_counter()
-
-    #                     # time to work with the relation records, now we have both a valid src-point and rec-point;
-    #                     self.nNewRecLine = int(recStkY)
-    #                     if self.nNewRecLine != self.nOldRecLine:                # we're on a 'new' receiver line and need a new rel-record
-
-    #                         # first complete the previous record
-    #                         ##                            # if self.nRelRecord >= 0:                            # we need at least one earlier record
-    #                         ##                                # self.output.relGeom[self.nRelRecord]['RecMin'] = self.recMin
-    #                         ##                                # self.output.relGeom[self.nRelRecord]['RecMax'] = self.recMax
-
-    #                         self.nOldRecLine = self.nNewRecLine                 # save current line number
-    #                         self.nRelRecord += 1                                # increment relation record number
-
-    #                         # create new relation record; fill it in completely
-    #                     ##                            # numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcStkX, srcStkY, nBlock, self.nShotPoint, recStkX, recStkY)
-    #                     else:
-    #                         # existing relation record; just update min/max rec stake numbers
-
-    #                         self.recMin = min(recStkX, self.recMin)
-    #                         self.recMax = max(recStkX, self.recMax)
-
-    #                     time = self.elapsedTime(time, 11)    ###
-
-    #                     # apply self.output.relGeom.resize(N) when more memory is needed
-    #                     arraySize = self.output.relGeom.shape[0]
-    #                     if self.nRelRecord + 100 > arraySize:                               # room for less than 100 left ?
-    #                         time = perf_counter()
-    #                         self.output.relGeom.resize(arraySize + 10000, refcheck=False)   # append 10000 more records
-
-    #                         time = self.elapsedTime(time, 12)    ###
-
-    # ##        # if self.nRelRecord >= 0:                                                # finally complete the very last relation record
-    # ##            # self.output.relGeom[self.nRelRecord]['RecMin'] = self.recMin
-    # ##            # self.output.relGeom[self.nRelRecord]['RecMax'] = self.recMax
+                # recInd equals srcInd (both are linked to the block number) so it is not entered separately
+                numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
+                self.nRelRecord += 1
 
     def setupBinFromGeometry(self, fullAnalysis) -> bool:
         """this routine is used for both geometry files and SPS files"""
@@ -1901,7 +1853,7 @@ class RollSurvey(pg.GraphicsObject):
 
     def checkIntegrity(self):
         """this routine checks survey integrity, after edits have been made"""
-        # todo: cheeck that rollList and growList have a length of 3
+        # todo: check that rollList and growList have a length of 3
 
         e = 'Survey format error'
         if len(self.blockList) == 0:
