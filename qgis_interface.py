@@ -28,34 +28,37 @@ from qgis.PyQt.QtGui import QPolygonF, QTransform
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
 
 from .functions import isFileInUse
+from .qgis_layer_dialog import LayerDialog
 from .sps_io_and_qc import pntType1
 
 # See: https://anitagraser.com/pyqgis-101-introduction-to-qgis-python-programming-for-non-programmers/pyqgis101-creating-editing-a-new-vector-layer/
 # See: https://docs.qgis.org/3.28/en/docs/pyqgis_developer_cookbook/vector.html
 # See: https://docs.qgis.org/3.28/en/docs/pyqgis_developer_cookbook/vector.html#modifying-vector-layers
 # See: https://docs.qgis.org/3.28/en/docs/pyqgis_developer_cookbook/vector.html#modifying-vector-layers-with-an-editing-buffer
+# See: https://webgeodatavore.github.io/pyqgis-samples/gui-group/QgsMapLayerComboBox.html
 
 
 def identifyQgisPointLayer(iface, kind):
-    reply = QMessageBox.question(None, f'{kind} layer-ID not yet known', f'Please confirm the active layer in QGIS is a vector layer,\nintended to handle the {kind}-points', QMessageBox.Yes, QMessageBox.Cancel)
 
-    if reply == QMessageBox.Cancel:
+    dlg = LayerDialog(kind)
+    dlg.show()
+    dlg.exec_()
+
+    # See: https://gis.stackexchange.com/questions/412684/retrieving-qgsmaplayercomboboxs-currently-selected-layer-to-get-its-name-for-ed
+    layer = dlg.lcb.currentLayer()
+
+    if layer is None:
+        QMessageBox.information(None, 'No layer selected', 'No active layer has been selected in QGIS', QMessageBox.Cancel)
         return None
+
+    vlMeta = layer.metadata()                                               # get meta data
+    parentId = vlMeta.parentIdentifier()                                    # for easy layer verification from plugin
+
+    if isinstance(layer, QgsVectorLayer) and parentId == f'Roll {kind}':    # we have the right one
+        return layer.id()
     else:
-        layer = iface.activeLayer()
-
-        if layer is None:
-            QMessageBox.information(None, 'No layer selected', 'No active layer has been selected in QGIS', QMessageBox.Cancel)
-            return None
-
-        vlMeta = layer.metadata()                                               # get meta data
-        parentId = vlMeta.parentIdentifier()                                    # for easy layer verification from plugin
-
-        if isinstance(layer, QgsVectorLayer) and parentId == f'Roll {kind}':    # we have the right one
-            return layer.id()
-        else:
-            QMessageBox.information(None, 'Incorrect layer selected', f"The active layer is a raster layer,\nor it does not have 'Roll {kind}' as parent ID", QMessageBox.Cancel)
-            return None
+        QMessageBox.information(None, 'Incorrect layer selected', f"The active layer is a raster layer,\nor it does not have 'Roll {kind}' as parent ID", QMessageBox.Cancel)
+        return None
 
 
 def updateQgisPointLayer(layerId, spsRecords, crs=None, source=True) -> bool:
@@ -507,8 +510,12 @@ def CreateQgisRasterLayer(fileName, data, survey) -> str:
     # See: https://docs.qgis.org/3.28/en/docs/pyqgis_developer_cookbook/raster.html?highlight=qgssinglebandpseudocolorrenderer
 
     fn, _ = QFileDialog.getSaveFileName(
-        None, 'Save georeferenced-TIFF file as...', fileName, 'GeoTIFF file format (*.tif);;All files (*.*)'  # the main window  # caption  # start directory + filename + extension
-    )                                                      # file extensions (options -> not used)
+        # the main window  # caption  # start directory + filename + extension  # file extensions  # (options -> not used)
+        None,
+        'Save georeferenced-TIFF file as...',
+        fileName,
+        'GeoTIFF file format (*.tif);;All files (*.*)',
+    )
 
     if not fn:
         return None
@@ -521,29 +528,35 @@ def CreateQgisRasterLayer(fileName, data, survey) -> str:
         QMessageBox.warning(None, 'Cannot create file', f"File '{fn}' is in use by another process")
         return None
 
-    transform = survey.glbTransform
-    binArea = survey.output.rctOutput
+    tl = survey.glbTransform.map(survey.output.rctOutput.topLeft())             # we need global positions
 
-    tl = transform.map(binArea.topLeft())            # we need global positions
-    dx = survey.grid.binSize.x()
-    dy = survey.grid.binSize.y()
+    dx = survey.grid.binSize.x() * survey.grid.scale.x()                        # allow for scaling in global coords
+    dy = survey.grid.binSize.y() * survey.grid.scale.y()                        # allow also for non-square bin sizes
     azi = survey.grid.angle
     crs = survey.crs.toWkt()
+    # crs = survey.crs.toProj()                                                 # tested during debugging; has no impact !
+    # crs = survey.crs.authid()
 
-    transform = rio.Affine.translation(tl.x(), tl.y()) * rio.Affine.scale(dx, -dy) * rio.Affine.rotation(-90.0 - azi)
+    data = np.transpose(data)                                                   # put data in right order for rasterio
+    height = data.shape[0]                                                      # shape[0] contains width of array
+    width = data.shape[1]                                                       # shape[1] contains height of array
+
+    # See: https://github.com/rasterio/affine for affine matrix operations
+
+    rioTransform = rio.Affine.translation(tl.x(), tl.y()) * rio.Affine.rotation(azi) * rio.Affine.scale(dx, dy)
 
     with rio.open(
         fn,
         mode='w',
         driver='GTiff',
-        height=data.shape[0],
-        width=data.shape[1],
+        height=height,
+        width=width,
         count=1,
         # nodata=-9999,
         nodata=0,
         dtype=data.dtype,
         crs=crs,
-        transform=transform,
+        transform=rioTransform,
     ) as new_dataset:
         new_dataset.write(data, 1)
 
@@ -583,10 +596,14 @@ def ExportRasterLayerToQgis(fileName, data, survey) -> str:
 
         renderer = QgsSingleBandPseudoColorRenderer(rl.dataProvider(), 1, shader)
         minData = max(data.min(), 0)                                                # protect against min == -inf
+        maxData = data.max()
         if minData == data.max():                                                   # protect against min == max
             minData = 0
+            data.fill(5)
+            maxData = 10.0
+
         renderer.setClassificationMin(minData)                                      # minimum from numpy array
-        renderer.setClassificationMax(data.max())                                   # maximum from numpy array
+        renderer.setClassificationMax(maxData)                                      # maximum from numpy array
         renderer.setOpacity(0.6)                                                    # apply transparency to renderer
 
         # Create the shader with the parameters
@@ -635,7 +652,19 @@ def readQgisPointLayer(layerId):
             north = point.y()
             elev = feature['elev']
 
-            record = (line, stake, index, code, depth, east, north, elev, 1, 0)
+            # self.output.recGeom[self.nRecRecord]['Line'] = int(recStkY)
+            # self.output.recGeom[self.nRecRecord]['Point'] = int(recStkX)
+            # self.output.recGeom[self.nRecRecord]['Index'] = nBlock % 10 + 1   # the single digit point index is used to indicate block nr
+            # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'  # can do this in one go at the end
+            # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0   # not needed; zero when initialized
+            # self.output.recGeom[self.nRecRecord]['East'] = recLocX
+            # self.output.recGeom[self.nRecRecord]['North'] = recLocY
+            # self.output.recGeom[self.nRecRecord]['LocX'] = recX   # x-component of 3D-location
+            # self.output.recGeom[self.nRecRecord]['LocY'] = recY   # y-component of 3D-location
+            # self.output.recGeom[self.nRecRecord]['Elev'] = recZ   # z-value not affected by transform
+            # self.output.recGeom[self.nRecRecord]['Uniq'] = 1      # We want to use Uniq == 1 later, to remove empty records
+
+            record = (line, stake, index, code, depth, east, north, 0.0, 0.0, elev, 1, 0)
             pointArray[nRecord] = record
             nRecord += 1
 

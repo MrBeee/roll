@@ -181,6 +181,7 @@ A solution for High DPI monitors has been proposed, that is also shown under the
 
 #### 6	Changelog
 
+- 2024-07/08 (0.3.2) Geometry creation from templates now runs significantly faster. Fixed some bugs in Land Survey Wizard
 - 2024-06-02 (0.3.1) Created a 'display' menu. This allows for closing the display pane, when using *smallish* full HD displays. Fixed some bugs
 - 2024-05-27 (0.3.0) reduced minimal width of Geometry & SPS tables, in order to make working with a *smallish* full HD (1920x1080) screen easier.
 - 2024-05-23 (0.2.9) expanded numba @jit functions, added rms-offset plot on Layout tab. Fixed some bugs. Implemented function profiling.
@@ -201,6 +202,8 @@ A solution for High DPI monitors has been proposed, that is also shown under the
 
 #### 7	To Do
 
+- **Fix new CRS bug, exporting fold map to QGIS as GeoTiff file**
+- **Fix issues reading back (edited) SPS data from QGIS into Roll**
 - Create wizard for Marine towed-streamer geometry
 - Improve analysis capabilities
 - Include Level Of Detail (LOD) settings in Read/Save settings to make them permanent

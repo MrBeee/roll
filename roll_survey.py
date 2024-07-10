@@ -19,9 +19,7 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .functions import containsPoint3D
-from .functions_numba import (clipLineF, numbaFixRelationRecord,
-                              numbaSetPointRecord, numbaSetRelationRecord,
-                              pointsInRect)
+from .functions_numba import clipLineF, numbaFixRelationRecord, numbaSetPointRecord, numbaSetRelationRecord, pointsInRect
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -991,10 +989,9 @@ class RollSurvey(pg.GraphicsObject):
                 # sofar,block nr (=index) has been neglected, but this could be added as a third nesting level
 
                 try:                                                            # has it been used before ?
-                    use = self.output.recDict[recLine][recPoint]
-                    self.output.recDict[recLine][recPoint] = use + 1            # increment by one
+                    _ = self.output.recDict[recLine][recPoint]                  # test with dummy variable
                 except KeyError:
-                    self.output.recDict[recLine][recPoint] = 1                  # set to one (first time use)
+                    self.output.recDict[recLine][recPoint] = self.nRecRecord    # use self.nRecRecord to create an entry in the self.output.recGeom table
 
                     numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
                     self.nRecRecord += 1                                        # increment for the next receiver
@@ -1765,43 +1762,48 @@ class RollSurvey(pg.GraphicsObject):
         self.threadProgress = 0                                                 # reset counter
 
         for row in range(rows):
-            for col in range(cols):
+            try:
+                for col in range(cols):
+                    try:
+                        # begin of thread progress code
+                        if QThread.currentThread().isInterruptionRequested():           # maybe stop at each shot...
+                            raise StopIteration
 
-                # begin of thread progress code
-                if QThread.currentThread().isInterruptionRequested():           # maybe stop at each shot...
-                    raise StopIteration
+                        self.nShotPoint += 1
+                        threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
+                        if threadProgress > self.threadProgress:
+                            self.threadProgress = threadProgress
+                            self.progress.emit(threadProgress + 1)
+                        # end of thread progress code
 
-                self.nShotPoint += 1
-                threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
-                if threadProgress > self.threadProgress:
-                    self.threadProgress = threadProgress
-                    self.progress.emit(threadProgress + 1)
-                # end of thread progress code
+                        fold = self.output.binOutput[row, col]                          # check available traces for this bin
+                        if fold <= 0:                                                   # nothing to see here, move to next bin
+                            continue                                                    # rms values prefilled with np.NINF
 
-                fold = self.output.binOutput[row, col]                          # check available traces for this bin
-                if fold <= 0:                                                   # nothing to see here, move to next bin
-                    continue                                                    # rms values prefilled with np.NINF
+                        slice2D = self.output.anaOutput[row, col, 0:fold, :]            # get all available traces belonging to this bin
+                        offset1D = slice2D[:, 10]                                       # grab 10th item of 2nd dimension (=offset)
 
-                slice2D = self.output.anaOutput[row, col, 0:fold, :]            # get all available traces belonging to this bin
-                offset1D = slice2D[:, 10]                                       # grab 10th item of 2nd dimension (=offset)
+                        if fold > 2:
+                            rms = 0.0
+                            offsetSorted = np.sort(offset1D)
+                            offsetRange = offsetSorted[-1] - offsetSorted[0]            # range from min to max offsets
+                            offsetStep = offsetRange / (fold - 1)
+                            offsetDiff = np.diff(offsetSorted)                          # array is one element shorter than offsetRange
 
-                if fold > 2:
-                    rms = 0.0
-                    offsetSorted = np.sort(offset1D)
-                    offsetRange = offsetSorted[-1] - offsetSorted[0]            # range from min to max offsets
-                    offsetStep = offsetRange / (fold - 1)
-                    offsetDiff = np.diff(offsetSorted)                          # array is one element shorter than offsetRange
+                            rms = 0.0
+                            for index in range(fold - 1):
+                                rms += (offsetDiff[index] - offsetStep) ** 2.0
 
-                    rms = 0.0
-                    for index in range(fold - 1):
-                        rms += (offsetDiff[index] - offsetStep) ** 2.0
+                            rms /= fold - 1
+                            rms = np.sqrt(rms)
+                        else:
+                            rms = 0.0
 
-                    rms /= fold - 1
-                    rms = np.sqrt(rms)
-                else:
-                    rms = 0.0
-
-                self.output.rmsOffset[row, col] = rms                           # fill in rms offset table
+                        self.output.rmsOffset[row, col] = rms                           # fill in rms offset table
+                    except IndexError:
+                        continue
+            except IndexError:
+                continue
 
         self.output.minRmsOffset = self.output.rmsOffset.min()
         self.output.maxRmsOffset = self.output.rmsOffset.max()

@@ -586,11 +586,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnMaxToQGIS.setMinimumWidth(110)
         self.btnRmsToQGIS.setMinimumWidth(110)
 
-        self.btnBinToQGIS.setMaximumWidth(5)
-        self.btnMinToQGIS.setMaximumWidth(5)
-        self.btnMaxToQGIS.setMaximumWidth(5)
-        self.btnRmsToQGIS.setMaximumWidth(5)
-
         self.btnBinToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
         self.btnMinToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
         self.btnMaxToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
@@ -1978,7 +1973,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.appendLogMessage(f'Import : . . . src-records contain {nRelOrphans:,} xps-orphans')
         self.appendLogMessage(f'Import : . . . rel-records contain {nSrcOrphans:,} sps-orphans')
 
-        self.srcCoordE, self.srcCoordN, self.srcCoordI = self.srcGeom
+        self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
         self.srcModel.setData(self.srcGeom)
         self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
         self.plotLayout()
