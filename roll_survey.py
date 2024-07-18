@@ -80,6 +80,7 @@ from .sps_io_and_qc import pntType1, relType2
 # class TextItem(GraphicsObject)
 # class UIGraphicsItem(GraphicsObject)
 # class CandlestickItem(GraphicsObject) -> in the examples folder
+
 # So where Roll end up painting something, the relevant class(es) need to be derived from PyQtGraph.GraphicsObject as well !!!
 # As all classes here are a leaf in the tree derived from RollSurvey, it is this class that needs to be derived from GraphicsObject.
 # That implies that the following two functions need to be implemented in RollSurvey:
@@ -87,6 +88,11 @@ from .sps_io_and_qc import pntType1, relType2
 #       the paint operation should paint all survey aspects (patterns, points, lines, blocks) dependent on the actual LOD
 #   >>def boundingRect(self)<<
 #       boundingRect _must_ indicate the entire area that will be drawn on or else we will get artifacts and possibly crashing.
+
+# to use different symbol size / color iun a graph; use scatterplot :
+# See: https://www.geeksforgeeks.org/pyqtgraph-different-colored-spots-on-scatter-plot-graph/
+# See: https://www.geeksforgeeks.org/pyqtgraph-getting-rotation-of-spots-in-scatter-plot-graph/
+
 
 # To give an xml-object a name, create a seperate <name> element as first xml entry (preferred over name attribute)
 # the advantage of using element.text is that characters like ' and " don't cause issues in terminating a ""-string
@@ -664,7 +670,7 @@ class RollSurvey(pg.GraphicsObject):
                                                     self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStake.y())
                                                     self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStake.x())
                                                     self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
-                                                    self.output.relGeom[self.nRelRecord]['RecNum'] = self.nShotPoint
+                                                    self.output.relGeom[self.nRelRecord]['Record'] = self.nShotPoint
                                                     self.output.relGeom[self.nRelRecord]['RecLin'] = int(recStake.y())
                                                     self.output.relGeom[self.nRelRecord]['RecMin'] = self.recMin
                                                     self.output.relGeom[self.nRelRecord]['RecMax'] = self.recMax
@@ -871,7 +877,7 @@ class RollSurvey(pg.GraphicsObject):
                             # self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStkY)
                             # self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStkX)
                             # self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
-                            # self.output.relGeom[self.nRelRecord]['RecNum'] = self.nShotPoint
+                            # self.output.relGeom[self.nRelRecord]['Record'] = self.nShotPoint
                             # self.output.relGeom[self.nRelRecord]['RecLin'] = int(recStkY)
                             # self.output.relGeom[self.nRelRecord]['RecMin'] = int(recStkX)
                             # self.output.relGeom[self.nRelRecord]['RecMax'] = int(recStkX)
@@ -1110,14 +1116,14 @@ class RollSurvey(pg.GraphicsObject):
         # 2. source records are ordered (sorted) on shotindex / shotline / shotpoint
         # 3. relation records are sorted on shotindex / shotline / shotpoint followed by recindex / recline / recpoint
 
-        assert self.output.relGeom[0]['SrcLin'] == self.output.srcGeom[0]['Line'], 'error in geometry files'
-        assert self.output.relGeom[0]['SrcPnt'] == self.output.srcGeom[0]['Point'], 'error in geometry files'
-        assert self.output.relGeom[0]['SrcInd'] == self.output.srcGeom[0]['Index'], 'error in geometry files'
-
         # to be sure; sort the three geometry arrays in the proper order: index; line; point
         self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
         self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
         self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+
+        assert self.output.relGeom[0]['SrcLin'] == self.output.srcGeom[0]['Line'], 'Line error in geometry files'
+        assert self.output.relGeom[0]['SrcPnt'] == self.output.srcGeom[0]['Point'], 'Point error in geometry files'
+        assert self.output.relGeom[0]['SrcInd'] == self.output.srcGeom[0]['Index'], 'Index error in geometry files'
 
         marker = 0
         for index, srcRecord in enumerate(self.output.srcGeom):                 # find the relevant relation records for each shot point
@@ -1139,6 +1145,10 @@ class RollSurvey(pg.GraphicsObject):
 
         try:
             for index, srcRecord in enumerate(self.output.srcGeom):
+
+                if srcRecord['InUse'] == 0:                                     # this record has been disabled
+                    continue
+
                 # convert the source record to a single [x, y, z] value
                 src = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32)
 
@@ -1204,8 +1214,15 @@ class RollSurvey(pg.GraphicsObject):
                 # at this stage we have recPoints defined. We can now use the same approach as used in template based binning.
                 # we combine recPoints with a source point to create cmp array, define offsets, etc...
 
-                # we are NOT DEALING with the block's src border; should have been done while generating geometry
-                # we are NOT DEALING with the block's rec border; should have been done while generating geometry
+                # we are NOT DEALING with the block's src border; this should have been done while generating geometry
+                # we are NOT DEALING with the block's rec border; this should have been done while generating geometry
+
+                # but we are dealing with the "InUse" attribute, that allows for killing a point in QGIS
+
+                I = recArray['InUse'] > 0
+                if np.count_nonzero(I) == 0:
+                    continue                                                    # no receivers found; move to next shot !
+                recArray = recArray[I]                                          # select the filtered receivers
 
                 # it is ESSENTIAL that any orphans & duplicates in recPoints have been removed at this stage
                 # for cmp and offset calcuations, we need numpy arrays in the form of local (x, y, z) coordinates

@@ -49,25 +49,26 @@ pntType1 = np.dtype(
         ('Elev', 'f4'),  # F6.1
         ('Uniq', 'i4'),  # check if record is unique
         ('InXps', 'i4'),  # check if record is orphan
+        ('InUse', 'i4'),  # check if record is in use
         ('LocX', 'f4'),  # F9.1
         ('LocY', 'f4'),  # F10.1
     ]
 )
 
-pntType2 = np.dtype(
-    [
-        ('Line', 'f4'),  # F10.2
-        ('Point', 'f4'),  # F10.2
-        ('Index', 'i4'),  # I1
-        ('Code', 'U2'),  # A2
-        ('Depth', 'f4'),  # I4
-        ('East', 'f4'),  # F9.1
-        ('North', 'f4'),  # F10.1
-        ('Elev', 'f4'),  # F6.1
-        ('Uniq', 'i4'),  # check if record is unique
-        ('InXps', 'i4'),  # check if record is orphan
-    ]
-)
+# pntType2 = np.dtype(
+#     [
+#         ('Line', 'f4'),  # F10.2
+#         ('Point', 'f4'),  # F10.2
+#         ('Index', 'i4'),  # I1
+#         ('Code', 'U2'),  # A2
+#         ('Depth', 'f4'),  # I4
+#         ('East', 'f4'),  # F9.1
+#         ('North', 'f4'),  # F10.1
+#         ('Elev', 'f4'),  # F6.1
+#         ('Uniq', 'i4'),  # check if record is unique
+#         ('InXps', 'i4'),  # check if record is orphan
+#     ]
+# )
 
 # pntType3 is used to shorten the SPS/RPS records to Line-Point-Index records
 pntType3 = np.dtype(
@@ -108,7 +109,7 @@ relType = np.dtype(
     [
         ('RecID', 'U2'),  # A1 ('X')
         ('TapeNo', 'U8'),  # 3A2
-        ('RecNum', 'i4'),  # I8
+        ('Record', 'i4'),  # I8
         ('RecInc', 'i4'),  # I1
         ('Instru', 'U2'),  # A1
         ('SrcLin', 'f4'),  # F10.2
@@ -129,7 +130,7 @@ relType2 = np.dtype(
         ('SrcLin', 'f4'),  # F10.2
         ('SrcPnt', 'f4'),  # F10.2
         ('SrcInd', 'i4'),  # I1
-        ('RecNum', 'i4'),  # I8
+        ('Record', 'i4'),  # I8
         ('RecLin', 'f4'),  # F10.2
         ('RecMin', 'f4'),  # F10.2
         ('RecMax', 'f4'),  # F10.2
@@ -191,7 +192,7 @@ def readRPSFiles(filenames, resultArray, fmt) -> int:
             nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
             ele = toFloat(line[fmt['elev'][0] : fmt['elev'][1]].strip())
 
-            record = (lin, pnt, idx, cod, dep, eas, nor, ele, 0, 0, 0.0, 0.0)
+            record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
             resultArray[index] = record
             index += 1
         f.close()
@@ -235,7 +236,7 @@ def readSPSFiles(filenames, resultArray, fmt) -> int:
             nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
             ele = toFloat(line[fmt['elev'][0] : fmt['elev'][1]].strip())
 
-            record = (lin, pnt, idx, cod, dep, eas, nor, ele, 0, 0, 0.0, 0.0)
+            record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
             resultArray[index] = record
             index += 1
         f.close()
@@ -267,7 +268,7 @@ def readXPSFiles(filenames, resultArray, fmt) -> int:
 
             # This is the order that parameters appear on in an xps file
             # However, we move RecNo to the fourth place in the xps record
-            recNum = toInt(line[fmt['recNum'][0] : fmt['recNum'][1]].strip())
+            record = toInt(line[fmt['record'][0] : fmt['record'][1]].strip())
             srcLin = toFloat(line[fmt['srcLin'][0] : fmt['srcLin'][1]].strip())
             srcPnt = toFloat(line[fmt['srcPnt'][0] : fmt['srcPnt'][1]].strip())
             srcInd = toInt(line[fmt['srcInd'][0] : fmt['srcInd'][1]].strip())
@@ -276,7 +277,7 @@ def readXPSFiles(filenames, resultArray, fmt) -> int:
             recMax = toFloat(line[fmt['recMax'][0] : fmt['recMax'][1]].strip())
             recInd = toInt(line[fmt['recInd'][0] : fmt['recInd'][1]].strip())
 
-            record = (srcLin, srcPnt, srcInd, recNum, recLin, recMin, recMax, recInd, 0, 0, 0)
+            record = (srcLin, srcPnt, srcInd, record, recLin, recMin, recMax, recInd, 1, 1, 1)
             resultArray[index] = record
             index += 1
         f.close()
@@ -690,13 +691,13 @@ def fileExportAsX01(parent, fileName, data, crs):
         fn += extension                                                         # just add the file extension
 
     fmt = '%1s', '%6s', '%8d', '%1d', '%1s', '%10.2f', '%10.2f', '%1d', '%5d', '%5d', '%1d', '%10.2f', '%10.2f', '%10.2f', '%1d'
-    # 'RecID', 'TapeNo', 'RecNum', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'
+    # 'RecID', 'TapeNo', 'Record', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'
 
     # relType2 used in the rel/rps model:
     # ('SrcLin', 'f4'),   # F10.2
     # ('SrcPnt', 'f4'),   # F10.2
     # ('SrcInd', 'i4'),   # I1
-    # ('RecNum',  'i4'),  # I8
+    # ('Record',  'i4'),  # I8
     # ('RecLin', 'f4'),   # F10.2
     # ('RecMin', 'f4'),   # F10.2
     # ('RecMax', 'f4'),   # F10.2
@@ -708,7 +709,7 @@ def fileExportAsX01(parent, fileName, data, crs):
     # need relType for export to xps
     # ('RecID',  'U2'),   # A1 ('X')
     # ('TapeNo', 'U8'),   # 3A2
-    # ('RecNum',  'i4'),  # I8
+    # ('Record',  'i4'),  # I8
     # ('RecInc', 'i4'),   # I1
     # ('Instru', 'U2'),   # A1
     # ('SrcLin', 'f4'),   # F10.2
@@ -726,7 +727,7 @@ def fileExportAsX01(parent, fileName, data, crs):
     xpsData = np.zeros(shape=size, dtype=relType)
     xpsData['RecID'] = 'X'
     xpsData['TapeNo'] = ' tape1'
-    xpsData['RecNum'] = data['RecNum']
+    xpsData['Record'] = data['Record']
     xpsData['RecInc'] = 1
     xpsData['Instru'] = '1'
     xpsData['SrcLin'] = data['SrcLin']

@@ -14,16 +14,6 @@ import importlib
 import numpy as np
 from qgis.PyQt.QtCore import QLineF, QRectF  # needed for pointsInRect
 
-# from .sps_io_and_qc import pntType1
-
-# try:   # See: https://github.com/pyqtgraph/pyqtgraph/issues/1253, how to use numba with PyQtGraph
-#     from numba import jit
-# except ImportError:
-
-#     def jit(**kwargs):  # pylint: disable=W0613 # unused argument
-#         return lambda fn: fn
-
-
 try:
     nb = importlib.import_module('numba')
 except ImportError:
@@ -297,27 +287,43 @@ def numbaPointsInRect(pointArray: np.ndarray, l: float, r: float, t: float, b: f
 # See: https://numba.pydata.org/numba-doc/dev/reference/pysupported.html#typed-dict
 # See: https://numba.pydata.org/numba-doc/0.15.1/tutorial_firststeps.html
 
-
 # numType1 = nb.from_dtype(pntType1)  # create a Numba type corresponding to the Numpy dtype
 # unfortunately, this isn't recognized in time for the following jit decoration
 # @nb.jit('void(numType1[:], i8, f8, f8, i8, f8, f8, f4[3])', nopython=True)
 # likewise, the following description isn't recognized at numba compile time
-numType1 = 'Record(  Line[type=float32;offset=0],   \
-                    Point[type=float32;offset=4],   \
-                    Index[type=int32;offset=8],     \
-                    Code[type=[unichr x 2];offset=12],  \
-                    Depth[type=float32;offset=20],  \
-                    East[type=float32;offset=24],   \
-                    North[type=float32;offset=28],  \
-                    Elev[type=float32;offset=32],   \
-                    Uniq[type=int32;offset=36],     \
-                    InXps[type=int32;offset=40],    \
-                    LocX[type=float32;offset=44],   \
-                    LocY[type=float32;offset=48];52;False)'
+# numType1 = 'Record(  Line[type=float32;offset=0],   \
+#                     Point[type=float32;offset=4],   \
+#                     Index[type=int32;offset=8],     \
+#                     Code[type=[unichr x 2];offset=12],  \
+#                     Depth[type=float32;offset=20],  \
+#                     East[type=float32;offset=24],   \
+#                     North[type=float32;offset=28],  \
+#                     Elev[type=float32;offset=32],   \
+#                     Uniq[type=int32;offset=36],     \
+#                     InXps[type=int32;offset=40],    \
+#                     LocX[type=float32;offset=44],   \
+#                     LocY[type=float32;offset=48];52;False)'
 
 
 @nb.jit(nopython=True)
 def numbaSetPointRecord(array: np.ndarray, index: int, line: float, point: float, block: int, east: float, north: float, pnt: np.ndarray) -> None:
+    # pntType1 = np.dtype(
+    #     [
+    #         ('Line', 'f4'),  # F10.2
+    #         ('Point', 'f4'),  # F10.2
+    #         ('Index', 'i4'),  # I1
+    #         ('Code', 'U2'),  # A2
+    #         ('Depth', 'f4'),  # I4
+    #         ('East', 'f4'),  # F9.1
+    #         ('North', 'f4'),  # F10.1
+    #         ('Elev', 'f4'),  # F6.1
+    #         ('Uniq', 'i4'),  # check if record is unique
+    #         ('InXps', 'i4'),  # check if record is orphan
+    #         ('InUse', 'i4'),  # check if record is in use
+    #         ('LocX', 'f4'),  # F9.1
+    #         ('LocY', 'f4'),  # F10.1
+    #     ]
+    # )
     array[index]['Line'] = float(int(line))
     array[index]['Point'] = float(int(point))
     array[index]['Index'] = block % 10 + 1                                      # the single digit point index is used to indicate block nr
@@ -327,6 +333,8 @@ def numbaSetPointRecord(array: np.ndarray, index: int, line: float, point: float
     array[index]['LocY'] = pnt[1]                                               # y-component of 3D-location
     array[index]['Elev'] = pnt[2]                                               # z-value not affected by CRS transform
     array[index]['Uniq'] = 1                                                    # later, we want to use Uniq == 1 to remove empty records at the end
+    array[index]['InUse'] = 1                                                   # later, we want to use InUse == 1 to check if the point is active
+    array[index]['InXps'] = 1                                                   # later, we want to use InXps == 1 to check for any xps orphns
 
 
 @nb.jit(nopython=True)
@@ -334,7 +342,7 @@ def numbaSetRelationRecord(array: np.ndarray, index: int, srcLin: float, srcPnt:
     array[index]['SrcLin'] = float(int(srcLin))
     array[index]['SrcPnt'] = float(int(srcPnt))
     array[index]['SrcInd'] = srcInd
-    array[index]['RecNum'] = shtRec
+    array[index]['Record'] = shtRec
     array[index]['RecLin'] = int(recLin)
     array[index]['RecMin'] = float(int(recMin))
     array[index]['RecMax'] = float(int(recMax))

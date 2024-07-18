@@ -38,161 +38,164 @@ from .sps_io_and_qc import pntType1
 # See: https://webgeodatavore.github.io/pyqgis-samples/gui-group/QgsMapLayerComboBox.html
 
 
-def identifyQgisPointLayer(iface, kind):
-
-    dlg = LayerDialog(kind)
-    dlg.show()
-    dlg.exec_()
-
+def identifyQgisPointLayer(iface, layer, field, kind):
     # See: https://gis.stackexchange.com/questions/412684/retrieving-qgsmaplayercomboboxs-currently-selected-layer-to-get-its-name-for-ed
-    layer = dlg.lcb.currentLayer()
 
-    if layer is None:
-        QMessageBox.information(None, 'No layer selected', 'No active layer has been selected in QGIS', QMessageBox.Cancel)
-        return None
+    # to create a modal dialog, see here:
+    # See: https://stackoverflow.com/questions/18196799/how-can-i-show-a-pyqt-modal-dialog-and-get-data-out-of-its-controls-once-its-clo
+    success, layer, field = LayerDialog.getPointLayer(layer, field, kind)
 
-    vlMeta = layer.metadata()                                               # get meta data
-    parentId = vlMeta.parentIdentifier()                                    # for easy layer verification from plugin
+    if not success or layer is None:
+        QMessageBox.information(None, 'No layer selected', 'No point layer has been selected in QGIS', QMessageBox.Cancel)
+        return (None, None)
 
-    if isinstance(layer, QgsVectorLayer) and parentId == f'Roll {kind}':    # we have the right one
-        return layer.id()
+    vlMeta = layer.metadata()                                                   # get meta data
+    parentId = vlMeta.parentIdentifier()                                        # for easy layer verification from plugin
+
+    if isinstance(layer, QgsVectorLayer) and parentId.startswith('Roll'):       # we have the right one
+        return (layer, field)
     else:
-        QMessageBox.information(None, 'Incorrect layer selected', f"The active layer is a raster layer,\nor it does not have 'Roll {kind}' as parent ID", QMessageBox.Cancel)
-        return None
+        QMessageBox.information(None, 'Please update metadata', "Please ensure the Parent Identifier in the metadata of the selected layer starts with 'Roll'", QMessageBox.Cancel)
+        return (None, None)
 
 
-def updateQgisPointLayer(layerId, spsRecords, crs=None, source=True) -> bool:
+# def updateQgisPointLayer(layerId, spsRecords, crs=None, source=True) -> bool:
+
+#     if crs is None:
+#         return False
+
+#     vl = QgsProject.instance().mapLayer(layerId)
+
+#     caps = vl.dataProvider().capabilities()                                     # get layer capabilities
+#     if caps & QgsVectorDataProvider.FastTruncate or caps & QgsVectorDataProvider.DeleteFeatures:
+#         success = vl.dataProvider().truncate()
+#         if success is False:                                                    # something went wrong
+#             return False
+#     else:
+#         return False                                                            # can't delete stuff
+
+#     pr = vl.dataProvider()
+#     pr.addAttributes(
+#         [
+#             # length and precision of fields have been tuned towards shapefile properties
+#             QgsField('line', QVariant.Double, len=23, prec=1),
+#             QgsField('stake', QVariant.Double, len=23, prec=1),
+#             QgsField('index', QVariant.Int, len=10),
+#             QgsField('code', QVariant.String, len=4),
+#             QgsField('depth', QVariant.Double, len=10, prec=1),
+#             QgsField('elev', QVariant.Double, len=23, prec=1),
+#         ]
+#     )
+#     vl.updateFields()
+#     vl.setCrs(crs)
+
+#     featureList = []
+
+#     for record in spsRecords:
+#         # account for numpy float32 format, and the unicode string format
+#         l = float(record['Line'])
+#         p = float(record['Point'])
+#         i = int(record['Index'])
+#         c = str(record['Code'])
+#         x = float(record['East'])
+#         y = float(record['North'])
+#         d = float(record['Depth'])
+#         z = float(record['Elev'])
+
+#         f = QgsFeature()
+#         f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
+#         f.setAttributes([l, p, i, c, d, z])
+#         featureList.append(f)
+
+#     pr.addFeatures(featureList)
+#     vl.updateExtents()
+
+#     # select src/rec symbol
+#     if source:
+#         symbol = QgsMarkerSymbol.createSimple(
+#             {
+#                 'name': 'circle',
+#                 'color': '255,0,0,255',
+#                 'outline_color': '35,35,35,255',
+#                 'outline_width': '0.5',
+#                 'outline_width_unit': 'RenderMetersInMapUnits',
+#                 'size': '20',
+#                 'size_unit': 'RenderMetersInMapUnits',
+#             }
+#         )
+#     else:
+#         symbol = QgsMarkerSymbol.createSimple(
+#             {
+#                 'name': 'circle',
+#                 'color': '0,0,255,255',
+#                 'outline_color': '35,35,35,255',
+#                 'outline_width': '0.5',
+#                 'outline_width_unit': 'RenderMetersInMapUnits',
+#                 'size': '20',
+#                 'size_unit': 'RenderMetersInMapUnits',
+#             }
+#         )
+
+#     symbol.setOpacity(0.45)                                                     # opacity not allowed in constructor properties ?!
+#     vl.renderer().setSymbol(symbol)
+
+#     # update meta data through metadata() object
+#     metaId = uuid.uuid4()                                                       # create a UUID object
+#     vlMeta = vl.metadata()                                                      # derive object from layer
+#     vlMeta.setIdentifier(str(metaId))                                           # turn UUID into string, to make it our ID string
+#     if source:
+#         vlMeta.setParentIdentifier('Roll Src')                                  # for easy layer verification from plugin
+#     else:
+#         vlMeta.setParentIdentifier('Roll Rec')                                  # for easy layer verification from plugin
+#     vlMeta.setTitle(vl.name())                                                  # in case layer is renamed
+#     vlMeta.setType('dataset')                                                   # this is the default value, if you don't update the metadata
+#     vlMeta.setLanguage('Python')                                                # not very relevant
+#     vlMeta.setAbstract("Point vector-layer created by the 'Roll' plugin in QGIS")
+#     vl.setMetadata(vlMeta)                                                      # insert object into layer
+
+#     # Configure label settings; start with the label expression
+#     settings = QgsPalLayerSettings()                                            # See: https://qgis.org/pyqgis/3.22/core/QgsPalLayerSettings.html#qgis.core.QgsPalLayerSettings.minimumScale
+#     settings.fieldName = """("line" || '\n' || "stake")"""
+#     settings.isExpression = True
+
+#     # define minimum/maximum scale for labels
+#     settings.minimumScale = 5000
+#     settings.maximumScale = 50
+#     settings.scaleVisibility = True
+
+#     # configure label placement
+#     # See:https://api.qgis.org/api/3.14/classQgsPalLayerSettings.html#a893793dc9760fd026d22e9d83f96c109a676921ebac6f80a2d7805e7c04876993
+#     settings.placement = QgsPalLayerSettings.Placement.OrderedPositionsAroundPoint
+#     settings.offsetType = QgsPalLayerSettings.FromSymbolBounds
+#     settings.dist = -1
+#     # settings.quadOffset = QgsPalLayerSettings.QuadrantPosition.QuadrantAboveRight             # Quadrant position: QuadrantAboveLeft = 0; QuadrantAbove = 1,...
+#     # settings.xOffset = 1.0                                                                    # Offset X
+#     # settings.yOffset = 0.0                                                                    # Offset Y
+
+#     # create a new text format
+#     textFormat = QgsTextFormat()
+#     textFormat.setSize(10)
+#     settings.setFormat(textFormat)
+
+#     # create a SimpleLabeling layer, and add labels to vector layer
+#     labels = QgsVectorLayerSimpleLabeling(settings)
+#     vl.setLabelsEnabled(True)
+#     vl.setLabeling(labels)
+
+#     vl.triggerRepaint()
+
+#     return True
+
+
+# For categorized QgsMarkerSymbols, please see:
+# See: https://gis.stackexchange.com/questions/388010/assigning-qgscategorizedsymbolrenderer-spectral-ramp-to-multipolygon
+# See: https://stackoverflow.com/questions/59314446/how-do-i-create-a-categorized-symbology-in-qgis-with-pyqt-programmatically
+
+
+def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> QgsVectorLayer:
 
     if crs is None:
-        return False
-
-    vl = QgsProject.instance().mapLayer(layerId)
-
-    caps = vl.dataProvider().capabilities()                                     # get layer capabilities
-    if caps & QgsVectorDataProvider.FastTruncate or caps & QgsVectorDataProvider.DeleteFeatures:
-        success = vl.dataProvider().truncate()
-        if success is False:                                                    # something went wrong
-            return False
-    else:
-        return False                                                            # can't delete stuff
-
-    pr = vl.dataProvider()
-    pr.addAttributes(
-        [
-            # length and precision of fields have been tuned towards shapefile properties
-            QgsField('line', QVariant.Double, len=23, prec=1),
-            QgsField('stake', QVariant.Double, len=23, prec=1),
-            QgsField('index', QVariant.Int, len=10),
-            QgsField('code', QVariant.String, len=4),
-            QgsField('depth', QVariant.Double, len=10, prec=1),
-            QgsField('elev', QVariant.Double, len=23, prec=1),
-        ]
-    )
-    vl.updateFields()
-    vl.setCrs(crs)
-
-    featureList = []
-
-    for record in spsRecords:
-        # account for numpy float32 format, and the unicode string format
-        l = float(record['Line'])
-        p = float(record['Point'])
-        i = int(record['Index'])
-        c = str(record['Code'])
-        x = float(record['East'])
-        y = float(record['North'])
-        d = float(record['Depth'])
-        z = float(record['Elev'])
-
-        f = QgsFeature()
-        f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
-        f.setAttributes([l, p, i, c, d, z])
-        featureList.append(f)
-
-    pr.addFeatures(featureList)
-    vl.updateExtents()
-
-    # select src/rec symbol
-    if source:
-        symbol = QgsMarkerSymbol.createSimple(
-            {
-                'name': 'circle',
-                'color': '255,0,0,255',
-                'outline_color': '35,35,35,255',
-                'outline_width': '0.5',
-                'outline_width_unit': 'RenderMetersInMapUnits',
-                'size': '20',
-                'size_unit': 'RenderMetersInMapUnits',
-            }
-        )
-    else:
-        symbol = QgsMarkerSymbol.createSimple(
-            {
-                'name': 'circle',
-                'color': '0,0,255,255',
-                'outline_color': '35,35,35,255',
-                'outline_width': '0.5',
-                'outline_width_unit': 'RenderMetersInMapUnits',
-                'size': '20',
-                'size_unit': 'RenderMetersInMapUnits',
-            }
-        )
-
-    symbol.setOpacity(0.45)                                                     # opacity not allowed in constructor properties ?!
-    vl.renderer().setSymbol(symbol)
-
-    # update meta data through metadata() object
-    metaId = uuid.uuid4()                                                       # create a UUID object
-    vlMeta = vl.metadata()                                                      # derive object from layer
-    vlMeta.setIdentifier(str(metaId))                                           # turn UUID into string, to make it our ID string
-    if source:
-        vlMeta.setParentIdentifier('Roll Src')                                  # for easy layer verification from plugin
-    else:
-        vlMeta.setParentIdentifier('Roll Rec')                                  # for easy layer verification from plugin
-    vlMeta.setTitle(vl.name())                                                  # in case layer is renamed
-    vlMeta.setType('dataset')                                                   # this is the default value, if you don't update the metadata
-    vlMeta.setLanguage('Python')                                                # not very relevant
-    vlMeta.setAbstract("Point vector-layer created by the 'Roll' plugin in QGIS")
-    vl.setMetadata(vlMeta)                                                      # insert object into layer
-
-    # Configure label settings; start with the label expression
-    settings = QgsPalLayerSettings()                                            # See: https://qgis.org/pyqgis/3.22/core/QgsPalLayerSettings.html#qgis.core.QgsPalLayerSettings.minimumScale
-    settings.fieldName = """("line" || '\n' || "stake")"""
-    settings.isExpression = True
-
-    # define minimum/maximum scale for labels
-    settings.minimumScale = 5000
-    settings.maximumScale = 50
-    settings.scaleVisibility = True
-
-    # configure label placement
-    # See:https://api.qgis.org/api/3.14/classQgsPalLayerSettings.html#a893793dc9760fd026d22e9d83f96c109a676921ebac6f80a2d7805e7c04876993
-    settings.placement = QgsPalLayerSettings.Placement.OrderedPositionsAroundPoint
-    settings.offsetType = QgsPalLayerSettings.FromSymbolBounds
-    settings.dist = -1
-    # settings.quadOffset = QgsPalLayerSettings.QuadrantPosition.QuadrantAboveRight             # Quadrant position: QuadrantAboveLeft = 0; QuadrantAbove = 1,...
-    # settings.xOffset = 1.0                                                                    # Offset X
-    # settings.yOffset = 0.0                                                                    # Offset Y
-
-    # create a new text format
-    textFormat = QgsTextFormat()
-    textFormat.setSize(10)
-    settings.setFormat(textFormat)
-
-    # create a SimpleLabeling layer, and add labels to vector layer
-    labels = QgsVectorLayerSimpleLabeling(settings)
-    vl.setLabelsEnabled(True)
-    vl.setLabeling(labels)
-
-    vl.triggerRepaint()
-
-    return True
-
-
-def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> str:
-
-    if crs is None:
-        return ''
+        return None
 
     vl = QgsVectorLayer('Point', layerName, 'memory')
     pr = vl.dataProvider()
@@ -306,7 +309,7 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> str:
     vl.triggerRepaint()
     QgsProject.instance().addMapLayer(vl)
 
-    return vl.id()
+    return vl
 
     ################################### using rules to display labels
 
@@ -617,7 +620,7 @@ def ExportRasterLayerToQgis(fileName, data, survey) -> str:
     return fileName
 
 
-def readQgisPointLayer(layerId):
+def readQgisPointLayer(layerId, field=''):
 
     layer = QgsProject.instance().mapLayer(layerId)
 
@@ -652,19 +655,28 @@ def readQgisPointLayer(layerId):
             north = point.y()
             elev = feature['elev']
 
-            # self.output.recGeom[self.nRecRecord]['Line'] = int(recStkY)
-            # self.output.recGeom[self.nRecRecord]['Point'] = int(recStkX)
-            # self.output.recGeom[self.nRecRecord]['Index'] = nBlock % 10 + 1   # the single digit point index is used to indicate block nr
-            # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'  # can do this in one go at the end
-            # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0   # not needed; zero when initialized
-            # self.output.recGeom[self.nRecRecord]['East'] = recLocX
-            # self.output.recGeom[self.nRecRecord]['North'] = recLocY
-            # self.output.recGeom[self.nRecRecord]['LocX'] = recX   # x-component of 3D-location
-            # self.output.recGeom[self.nRecRecord]['LocY'] = recY   # y-component of 3D-location
-            # self.output.recGeom[self.nRecRecord]['Elev'] = recZ   # z-value not affected by transform
-            # self.output.recGeom[self.nRecRecord]['Uniq'] = 1      # We want to use Uniq == 1 later, to remove empty records
+            # dtype=pntType1
+            # ('Line', 'f4'),  # F10.2
+            # ('Point', 'f4'),  # F10.2
+            # ('Index', 'i4'),  # I1
+            # ('Code', 'U2'),  # A2
+            # ('Depth', 'f4'),  # I4
+            # ('East', 'f4'),  # F9.1
+            # ('North', 'f4'),  # F10.1
+            # ('Elev', 'f4'),  # F6.1
+            # ('Uniq', 'i4'),  # check if record is unique
+            # ('InXps', 'i4'),  # check if record is orphan
+            # ('InUse', 'i4'),  # check if record is in use
+            # ('LocX', 'f4'),  # F9.1
+            # ('LocY', 'f4'),  # F10.1
 
-            record = (line, stake, index, code, depth, east, north, 0.0, 0.0, elev, 1, 0)
+            if field == '':
+                inuse = True
+                record = (line, stake, index, code, depth, east, north, elev, 1, 1, inuse, 0.0, 0.0)
+            else:
+                inuse = feature[field]
+                record = (line, stake, index, code, depth, east, north, elev, 1, 1, inuse, 0.0, 0.0)
+
             pointArray[nRecord] = record
             nRecord += 1
 
@@ -672,10 +684,39 @@ def readQgisPointLayer(layerId):
             print('Bad Feature ID: ', feature.id())
             nErrors += 1
 
+        except KeyError:
+            print('Required fields are missing from layer')
+            return None
+
     if nErrors > 0:
         pointArray.resize(nFeatures - nErrors, refcheck=False)
 
     return pointArray
+
+
+# One way to create a spatial index for a layer is to use the "Create spatial index" tool in the "Vector general" section of the processing toolbox.
+# vector --> general --> Create spatial index
+# processing.run
+#     (
+#         "native:createspatialindex",
+#         {
+#             'INPUT':'D:/Roll/Orthogonal_002-rec-data.shp|layername=Orthogonal_002-rec-data'
+#         }
+#     )
+
+# once the spatial index is made; the following routine is supposed to run faster.
+
+# Vector --> Research Tools --> Select by Location
+# processing.run
+# 	(
+# 		"native:selectbylocation",
+# 		{
+# 			'INPUT':'D:/Roll/EBN/Orthogonal_002-rec-data.shp|layername=Orthogonal_002-rec-data',
+# 			'PREDICATE':[0],
+# 			'INTERSECT':'D:/Roll/EBN/Core_area_with_1500m_rim_outline.shp|layername=Core_area_with_1500m_rim_outline',
+# 			'METHOD':0
+# 		}
+# 	)
 
 
 # From: https://gdal.org/tutorials/geotransforms_tut.html

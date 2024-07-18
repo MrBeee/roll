@@ -447,31 +447,24 @@ class TableView(QTableView):
 
 
 class RpsTableModel(QAbstractTableModel):
-    # pntType1= np.dtype([('Line',   'f4'),   # F10.2
-    #                     ('Point',  'f4'),   # F10.2
-    #                     ('Index',  'i4'),   # I1
-    #                     ('Code',   'U2'),   # A2
-    #                     ('Depth',  'f4'),   # I4
-    #                     ('East',   'f4'),   # F9.1
-    #                     ('North',  'f4'),   # F10.1
-    #                     ('LocX',   'f4'),   # F9.1
-    #                     ('LocY',   'f4'),   # F10.1
-    #                     ('Elev',   'f4'),   # F6.1
-    #                     ('Uniq',  'i4'),    # check if record is unique
-    #                     ('InXps', 'i4'),    # check if record is orphan
-    #                     ('LocX',  'f4'),    # F9.1
-    #                     ('LocY',  'f4') ])  # F10.1
 
-    # pntType2= np.dtype([('Line',   'f4'),   # F10.2
-    #                     ('Point',  'f4'),   # F10.2
-    #                     ('Index',  'i4'),   # I1
-    #                     ('Code',   'S4'),   # A2
-    #                     ('Depth',  'f4'),   # I4
-    #                     ('East',   'f4'),   # F9.1
-    #                     ('North',  'f4'),   # F10.1
-    #                     ('Elev',   'f4'),   # F6.1
-    #                     ('Uniq',   'i4'),   # check if record is unique
-    #                     ('InXps',  'i4') ]) # check if record is orphan
+    # pntType1 = np.dtype(
+    #     [
+    #         ('Line', 'f4'),  # F10.2
+    #         ('Point', 'f4'),  # F10.2
+    #         ('Index', 'i4'),  # I1
+    #         ('Code', 'U2'),  # A2
+    #         ('Depth', 'f4'),  # I4
+    #         ('East', 'f4'),  # F9.1
+    #         ('North', 'f4'),  # F10.1
+    #         ('Elev', 'f4'),  # F6.1
+    #         ('Uniq', 'i4'),  # check if record is unique
+    #         ('InXps', 'i4'),  # check if record is orphan
+    #         ('InUse', 'i4'),  # check if record is in use
+    #         ('LocX', 'f4'),  # F9.1
+    #         ('LocY', 'f4'),  # F10.1
+    #     ]
+    # )
 
     def __init__(self, data):
         super().__init__()
@@ -516,6 +509,14 @@ class RpsTableModel(QAbstractTableModel):
             # return QFont("Courier New", 10, QFont.Bold)
             # return QFont('Courier New', 8, QFont.Normal)
             return QFont('Arial', 8, QFont.Normal)
+        elif role == Qt.ForegroundRole:
+            if self._data is None:
+                return QVariant()
+            record = self._data[index.row()]
+            inXps = record[10]
+            if not inXps:
+                return QBrush(QColor(200, 200, 200))                            # inactive -> grey
+            return QVariant()
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role == Qt.DisplayRole:
@@ -626,31 +627,24 @@ class RpsTableModel(QAbstractTableModel):
 
 
 class SpsTableModel(QAbstractTableModel):
-    # pntType1= np.dtype([('Line',   'f4'),   # F10.2
-    #                     ('Point',  'f4'),   # F10.2
-    #                     ('Index',  'i4'),   # I1
-    #                     ('Code',   'U2'),   # A2
-    #                     ('Depth',  'f4'),   # I4
-    #                     ('East',   'f4'),   # F9.1
-    #                     ('North',  'f4'),   # F10.1
-    #                     ('LocX',   'f4'),   # F9.1
-    #                     ('LocY',   'f4'),   # F10.1
-    #                     ('Elev',   'f4'),   # F6.1
-    #                     ('Uniq',  'i4'),    # check if record is unique
-    #                     ('InXps', 'i4'),    # check if record is orphan
-    #                     ('LocX',  'f4'),    # F9.1
-    #                     ('LocY',  'f4') ])  # F10.1
 
-    # pntType2= np.dtype([('Line',   'f4'),   # F10.2
-    #                     ('Point',  'f4'),   # F10.2
-    #                     ('Index',  'i4'),   # I1
-    #                     ('Code',   'S4'),   # A2
-    #                     ('Depth',  'f4'),   # I4
-    #                     ('East',   'f4'),   # F9.1
-    #                     ('North',  'f4'),   # F10.1
-    #                     ('Elev',   'f4'),   # F6.1
-    #                     ('Uniq',   'i4'),   # check if record is unique
-    #                     ('InXps',  'i4') ]) # check if record is orphan
+    # pntType1 = np.dtype(
+    #     [
+    #         ('Line', 'f4'),  # F10.2
+    #         ('Point', 'f4'),  # F10.2
+    #         ('Index', 'i4'),  # I1
+    #         ('Code', 'U2'),  # A2
+    #         ('Depth', 'f4'),  # I4
+    #         ('East', 'f4'),  # F9.1
+    #         ('North', 'f4'),  # F10.1
+    #         ('Elev', 'f4'),  # F6.1
+    #         ('Uniq', 'i4'),  # check if record is unique
+    #         ('InXps', 'i4'),  # check if record is orphan
+    #         ('InUse', 'i4'),  # check if record is in use
+    #         ('LocX', 'f4'),  # F9.1
+    #         ('LocY', 'f4'),  # F10.1
+    #     ]
+    # )
 
     def __init__(self, data):
         super().__init__()
@@ -695,6 +689,14 @@ class SpsTableModel(QAbstractTableModel):
             # return QFont("Courier New", 10, QFont.Bold)
             # return QFont('Courier New', 8, QFont.Normal)
             return QFont('Arial', 8, QFont.Normal)
+        elif role == Qt.ForegroundRole:
+            if self._data is None:
+                return QVariant()
+            record = self._data[index.row()]
+            inXps = record[10]
+            if not inXps:
+                return QBrush(QColor(200, 200, 200))                            # inactive -> grey
+            return QVariant()
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role == Qt.DisplayRole:
@@ -809,7 +811,7 @@ class XpsTableModel(QAbstractTableModel):
         # relType2= np.dtype([('SrcLin', 'f4'),   # F10.2
         #                     ('SrcPnt', 'f4'),   # F10.2
         #                     ('SrcInd', 'i4'),   # I1
-        #                     ('RecNum', 'i4'),   # I8
+        #                     ('Record', 'i4'),   # I8
         #                     ('RecLin', 'f4'),   # F10.2
         #                     ('RecMin', 'f4'),   # F10.2
         #                     ('RecMax', 'f4'),   # F10.2
@@ -880,21 +882,34 @@ class XpsTableModel(QAbstractTableModel):
             self._minMax = np.zeros(shape=(2, 8), dtype=np.float32)
 
             self._minMax[0, 0] = data['SrcLin'].min()
-            self._minMax[0, 1] = data['SrcPnt'].min()
-            self._minMax[0, 2] = data['SrcInd'].min()
-            self._minMax[0, 3] = data['RecNum'].min()                           # replaced 'RecNo' by 'RecNum'. Please regenerate geometry data
-            self._minMax[0, 4] = data['RecLin'].min()
-            self._minMax[0, 5] = data['RecMin'].min()
-            self._minMax[0, 6] = data['RecMax'].min()
-            self._minMax[0, 7] = data['RecInd'].min()
-
             self._minMax[1, 0] = data['SrcLin'].max()
+
+            self._minMax[0, 1] = data['SrcPnt'].min()
             self._minMax[1, 1] = data['SrcPnt'].max()
+
+            self._minMax[0, 2] = data['SrcInd'].min()
             self._minMax[1, 2] = data['SrcInd'].max()
-            self._minMax[1, 3] = data['RecNum'].max()                           # replaced 'RecNo' by 'RecNum'. Please regenerate geometry data
+
+            try:
+                self._minMax[0, 3] = data['Record'].min()                       # replaced 'RecNo' by 'Record'.
+                self._minMax[1, 3] = data['Record'].max()                       # replaced 'RecNo' by 'Record'.
+            except ValueError:
+                try:
+                    self._minMax[0, 3] = data['RecNo'].min()                    # replaced 'RecNo' by 'Record'.
+                    self._minMax[1, 3] = data['RecNo'].max()                    # replaced 'RecNo' by 'Record'.
+                except ValueError:
+                    return
+
+            self._minMax[0, 4] = data['RecLin'].min()
             self._minMax[1, 4] = data['RecLin'].max()
+
+            self._minMax[0, 5] = data['RecMin'].min()
             self._minMax[1, 5] = data['RecMin'].max()
+
+            self._minMax[0, 6] = data['RecMax'].min()
             self._minMax[1, 6] = data['RecMax'].max()
+
+            self._minMax[0, 7] = data['RecInd'].min()
             self._minMax[1, 7] = data['RecInd'].max()
 
         self._data = data

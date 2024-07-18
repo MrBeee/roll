@@ -134,7 +134,7 @@ from .functions import aboutText, exampleSurveyXmlText, highDpiText, licenseText
 from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
 from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer, updateQgisPointLayer
+from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer
 from .roll_binning import BinningType
 from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
@@ -363,10 +363,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spiderText = None                                                  # text label describing spider bin, stake, fold
 
         # export layers to QGIS
-        self.rpsLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
-        self.spsLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
-        self.recLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
-        self.srcLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
+        self.spsLayer = None                                                    # QGIS layer for sps point I/O
+        self.rpsLayer = None                                                    # QGIS layer for rpr point I/O
+        self.srcLayer = None                                                    # QGIS layer for src point I/O
+        self.recLayer = None                                                    # QGIS layer for rec point I/O
+        self.spsField = None                                                    # QGIS field for sps point selection I/O
+        self.rpsField = None                                                    # QGIS field for rps point selection I/O
+        self.srcField = None                                                    # QGIS field for src point selection I/O
+        self.recField = None                                                    # QGIS field for rec point selection I/O
 
         # ruler settings
         self.lineROI = None                                                     # the ruler's dotted line
@@ -1290,7 +1294,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnSrcRemoveOrphans = QPushButton('Remove &REL-orphins')
 
         self.btnSrcExportToQGIS = QPushButton('Export to QGIS')
-        self.btnSrcUpdateToQGIS = QPushButton('Update QGIS')
         self.btnSrcReadFromQGIS = QPushButton('Read from QGIS')
 
         self.btnRelRemoveSrcOrphans = QPushButton('Remove &SRC-orphins')
@@ -1301,7 +1304,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnRecRemoveOrphans = QPushButton('Remove &REL-orphins')
 
         self.btnRecExportToQGIS = QPushButton('Export to QGIS')
-        self.btnRecUpdateToQGIS = QPushButton('Update QGIS')
         self.btnRecReadFromQGIS = QPushButton('Read from QGIS')
 
         self.btnRelExportToQGIS = QPushButton('Export Src, Cmp, Rec && Binning &Boundaries to QGIS')
@@ -1320,11 +1322,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnRecRemoveOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
 
         self.btnSrcExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-        self.btnSrcUpdateToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
         self.btnSrcReadFromQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
 
         self.btnRecExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-        self.btnRecUpdateToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
         self.btnRecReadFromQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
 
         self.btnRelExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
@@ -1334,7 +1334,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnSrcRemoveOrphans.pressed.connect(self.removeSrcOrphans)
         self.actionExportSrcToQGIS.triggered.connect(self.exportSrcToQgis)      # export src records to QGIS
         self.btnSrcExportToQGIS.pressed.connect(self.exportSrcToQgis)           # export src records to QGIS
-        self.btnSrcUpdateToQGIS.pressed.connect(self.updateSrcToQGIS)
         self.btnSrcReadFromQGIS.pressed.connect(self.importSrcFromQgis)
 
         self.btnRelRemoveDuplicates.pressed.connect(self.removeRelDuplicates)   # rel buttons & actions
@@ -1347,7 +1346,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnRecRemoveOrphans.pressed.connect(self.removeRecOrphans)
         self.actionExportRecToQGIS.triggered.connect(self.exportRecToQgis)      # export rec records to QGIS
         self.btnRecExportToQGIS.pressed.connect(self.exportRecToQgis)           # export rec records to QGIS
-        self.btnRecUpdateToQGIS.pressed.connect(self.updateRecToQGIS)
         self.btnRecReadFromQGIS.pressed.connect(self.importRecFromQgis)
 
         self.btnBinToQGIS.pressed.connect(self.exportBinToQGIS)                 # figures
@@ -1363,13 +1361,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         label2.setStyleSheet('border: 1px solid black;background-color:lavender')
         label2.setAlignment(Qt.AlignCenter)
 
+        label3 = QLabel('«- QGIS I/O -»')
+        label3.setStyleSheet('border: 1px solid black;background-color:lavender')
+        label3.setAlignment(Qt.AlignCenter)
+
+        label4 = QLabel('«- QGIS I/O -»')
+        label4.setStyleSheet('border: 1px solid black;background-color:lavender')
+        label4.setAlignment(Qt.AlignCenter)
+
         grid1 = QGridLayout()
         grid1.addWidget(self.btnSrcRemoveDuplicates, 0, 0)
         grid1.addWidget(label1, 0, 1)
         grid1.addWidget(self.btnSrcRemoveOrphans, 0, 2)
 
         grid1.addWidget(self.btnSrcExportToQGIS, 1, 0)
-        grid1.addWidget(self.btnSrcUpdateToQGIS, 1, 1)
+        grid1.addWidget(label3, 1, 1)
         grid1.addWidget(self.btnSrcReadFromQGIS, 1, 2)
 
         grid2 = QGridLayout()
@@ -1384,7 +1390,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         grid3.addWidget(self.btnRecRemoveDuplicates, 0, 2)
 
         grid3.addWidget(self.btnRecExportToQGIS, 1, 0)
-        grid3.addWidget(self.btnRecUpdateToQGIS, 1, 1)
+        grid3.addWidget(label4, 1, 1)
         grid3.addWidget(self.btnRecReadFromQGIS, 1, 2)
 
         # then create the three vertical layouts
@@ -1701,7 +1707,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if index < 3:
             self.xpsImport.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
         elif index == 3:
-            self.xpsImport.sort(order=['RecNum', 'SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+            self.xpsImport.sort(order=['Record', 'SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
         else:
             self.xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax'])
         self.xpsModel.setData(self.xpsImport)
@@ -1786,7 +1792,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if index < 3:
             self.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
         elif index == 3:
-            self.relGeom.sort(order=['RecNum', 'SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+            self.relGeom.sort(order=['Record', 'SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
         else:
             self.relGeom.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax'])
         self.relModel.setData(self.relGeom)
@@ -1922,77 +1928,85 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def exportRpsToQgis(self):
         if self.rpsImport is not None and self.survey is not None and self.survey.crs is not None:
-            layerName = QFileInfo(self.fileName).baseName() + '-rps-data'
-            self.rpsLayerId = exportPointLayerToQgis(layerName, self.rpsImport, self.survey.crs, source=False)
+            if not self.fileName:                                               # filename ="" normally indicates working with 'new' file !
+                layerName = self.survey.name
+            else:
+                layerName = QFileInfo(self.fileName).baseName()
+            layerName += '-rps-data'
+            self.rpsLayer = exportPointLayerToQgis(layerName, self.rpsImport, self.survey.crs, source=False)
 
     def exportSpsToQgis(self):
         if self.spsImport is not None and self.survey is not None and self.survey.crs is not None:
-            layerName = QFileInfo(self.fileName).baseName() + '-sps-data'
-            self.spsLayerId = exportPointLayerToQgis(layerName, self.spsImport, self.survey.crs, source=True)
+            if not self.fileName:                                               # filename ="" normally indicates working with 'new' file !
+                layerName = self.survey.name
+            else:
+                layerName = QFileInfo(self.fileName).baseName()
+            layerName += '-sps-data'
+            self.spsLayer = exportPointLayerToQgis(layerName, self.spsImport, self.survey.crs, source=True)
 
     def exportRecToQgis(self):
         if self.recGeom is not None and self.survey is not None and self.survey.crs is not None:
-            layerName = QFileInfo(self.fileName).baseName() + '-rec-data'
-            self.recLayerId = exportPointLayerToQgis(layerName, self.recGeom, self.survey.crs, source=False)
+            if not self.fileName:                                               # filename ="" normally indicates working with 'new' file !
+                layerName = self.survey.name
+            else:
+                layerName = QFileInfo(self.fileName).baseName()
+            layerName += '-rec-data'
+            self.recLayer = exportPointLayerToQgis(layerName, self.recGeom, self.survey.crs, source=False)
 
     def exportSrcToQgis(self):
         if self.srcGeom is not None and self.survey is not None and self.survey.crs is not None:
-            layerName = QFileInfo(self.fileName).baseName() + '-src-data'
-            self.srcLayerId = exportPointLayerToQgis(layerName, self.srcGeom, self.survey.crs, source=True)
-
-    def updateRecToQGIS(self):
-        if self.recLayerId is None:
-            self.recLayerId = identifyQgisPointLayer(self.iface, 'Rec')
-            if self.recLayerId is None:
-                return False
-
-        if self.recGeom is not None and self.survey is not None and self.survey.crs is not None:
-            success = updateQgisPointLayer(self.recLayerId, self.recGeom, self.survey.crs, source=False)
-            return success
-
-    def updateSrcToQGIS(self):
-        if self.srcLayerId is None:
-            self.srcLayerId = identifyQgisPointLayer(self.iface, 'Src')
-            if self.srcLayerId is None:
-                return False
-
-        if self.srcGeom is not None and self.survey is not None and self.survey.crs is not None:
-            success = updateQgisPointLayer(self.srcLayerId, self.srcGeom, self.survey.crs, source=True)
-            return success
+            if not self.fileName:                                               # filename ="" normally indicates working with 'new' file !
+                layerName = self.survey.name
+            else:
+                layerName = QFileInfo(self.fileName).baseName()
+            layerName += '-src-data'
+            self.srcLayer = exportPointLayerToQgis(layerName, self.srcGeom, self.survey.crs, source=True)
 
     def importSrcFromQgis(self):
+        self.srcLayer, self.srcField = identifyQgisPointLayer(self.iface, self.srcLayer, self.srcField, 'Src')
 
-        if self.srcLayerId is None:
-            self.srcLayerId = identifyQgisPointLayer(self.iface, 'Src')
-            if self.srcLayerId is None:
-                return
+        if self.srcLayer is None:
+            return
 
-        self.srcGeom = readQgisPointLayer(self.srcLayerId)
+        with pg.BusyCursor():
+            self.srcGeom = readQgisPointLayer(self.srcLayer.id(), self.srcField)
 
-        nSrcOrphans, nRelOrphans = findSrcOrphans(self.srcGeom, self.relGeom)
-        self.appendLogMessage(f'Import : . . . src-records contain {nRelOrphans:,} xps-orphans')
-        self.appendLogMessage(f'Import : . . . rel-records contain {nSrcOrphans:,} sps-orphans')
+        if self.srcGeom is None:
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS layer', QMessageBox.Cancel)
+            return
+
+        # nSrcOrphans, nRelOrphans = findSrcOrphans(self.srcGeom, self.relGeom)
+        # self.appendLogMessage(f'Import : . . . src-records contain {nRelOrphans:,} xps-orphans')
+        # self.appendLogMessage(f'Import : . . . rel-records contain {nSrcOrphans:,} sps-orphans')
 
         self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
+
         self.srcModel.setData(self.srcGeom)
+        self.textEdit.document().setModified(True)                              # set modified flag; so we'll save src data as numpy arrays upon saving the file
         self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
         self.plotLayout()
 
     def importRecFromQgis(self):
+        self.recLayer, self.recField = identifyQgisPointLayer(self.iface, self.recLayer, self.recField, 'Rec')
 
-        if self.recLayerId is None:
-            self.recLayerId = identifyQgisPointLayer(self.iface, 'Rec')
-            if self.recLayerId is None:
-                return
+        if self.recLayer is None:
+            return
 
-        self.recGeom = readQgisPointLayer(self.recLayerId)
+        with pg.BusyCursor():
+            self.recGeom = readQgisPointLayer(self.recLayer.id(), self.recField)
 
-        nRecOrphans, nRelOrphans = findRecOrphans(self.recGeom, self.relGeom)
-        self.appendLogMessage(f'Import : . . . rps-records contain {nRelOrphans:,} rel-orphans')
-        self.appendLogMessage(f'Import : . . . xps-records contain {nRecOrphans:,} rec-orphans')
+        if self.recGeom is None:
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS layer', QMessageBox.Cancel)
+            return
+
+        # nRecOrphans, nRelOrphans = findRecOrphans(self.recGeom, self.relGeom)
+        # self.appendLogMessage(f'Import : . . . rps-records contain {nRelOrphans:,} rel-orphans')
+        # self.appendLogMessage(f'Import : . . . xps-records contain {nRecOrphans:,} rec-orphans')
 
         self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
+
         self.recModel.setData(self.recGeom)
+        self.textEdit.document().setModified(True)                              # set modified flag; so we'll save rec data as numpy arrays upon saving the file
         self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
         self.plotLayout()
 
@@ -2002,7 +2016,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def updateMenuStatus(self, resetAnalysis=True):
         if resetAnalysis:
-            self.actionNone.setChecked(True)                                    # coupled with tbNone
+            self.actionNone.setChecked(True)                                    # coupled with tbNone; reset analysis figure
             self.imageType = 0                                                  # reset analysis type to zero
 
         self.actionExportFoldMap.setEnabled(self.survey.output.binOutput is not None)
@@ -2032,12 +2046,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnSrcRemoveDuplicates.setEnabled(self.srcGeom is not None)
         self.btnSrcRemoveOrphans.setEnabled(self.srcGeom is not None)
         self.btnSrcExportToQGIS.setEnabled(self.srcGeom is not None)
-        self.btnSrcUpdateToQGIS.setEnabled(self.srcGeom is not None)
 
         self.btnRecRemoveDuplicates.setEnabled(self.recGeom is not None)
         self.btnRecRemoveOrphans.setEnabled(self.recGeom is not None)
         self.btnRecExportToQGIS.setEnabled(self.recGeom is not None)
-        self.btnRecUpdateToQGIS.setEnabled(self.recGeom is not None)
 
         self.btnRelRemoveSrcOrphans.setEnabled(self.relGeom is not None)
         self.btnRelRemoveDuplicates.setEnabled(self.relGeom is not None)
@@ -2506,6 +2518,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # https://pyqtgraph.readthedocs.io/en/latest/api_reference/graphicsItems/plotdataitem.html#pyqtgraph.PlotDataItem.__init__
         # https://pyqtgraph.readthedocs.io/en/latest/api_reference/graphicsItems/scatterplotitem.html#pyqtgraph.ScatterPlotItem.setSymbol
         # https://pyqtgraph.readthedocs.io/en/latest/api_reference/graphicsItems/plotdataitem.html
+
+        # addItem(item, *args, **kargs,)
+        # [source] https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph/graphicsItems/PlotItem/PlotItem.html#PlotItem.addItem
+        # Add a graphics item to the view box. If the item has plot data (PlotDataItem , PlotCurveItem , ScatterPlotItem ), it may be included in analysis performed by the PlotItem.
 
         if self.tbSpsList.isChecked() and self.spsCoordE is not None and self.spsCoordN is not None:
             spsTransform = QTransform()                                         # empty (unit) transform
@@ -3019,10 +3035,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionSpider.setChecked(False)                                     # reset spider plot to 'off'
 
         # export layers to QGIS
-        self.rpsLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
-        self.spsLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
-        self.recLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
-        self.srcLayerId = None                                                  # QGIS layerId to be checked when updating a QgisVectorLayer
+        self.spsLayer = None                                                    # QGIS layer for sps point I/O
+        self.rpsLayer = None                                                    # QGIS layer for rpr point I/O
+        self.srcLayer = None                                                    # QGIS layer for src point I/O
+        self.recLayer = None                                                    # QGIS layer for rec point I/O
+        self.spsField = None                                                    # QGIS field for sps point selection I/O
+        self.rpsField = None                                                    # QGIS field for rps point selection I/O
+        self.srcField = None                                                    # QGIS field for src point selection I/O
+        self.recField = None                                                    # QGIS field for rec point selection I/O
 
         # ruler settings
         self.lineROI = None                                                     # the ruler's dotted line
@@ -4525,6 +4545,7 @@ def main():
 if __name__ == '__main__':
     # attempt to run roll outside of QGIS
     # does not work yet: "Importerror attempted relative import with no known parent package"
+    # See also: https://stackoverflow.com/questions/76262177/packing-qgis-standalone-application-with-qgis-gui
     PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.append(PARENT_DIR)
     os.chdir(PARENT_DIR)
