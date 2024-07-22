@@ -19,7 +19,6 @@ from qgis.core import (
     QgsSingleBandPseudoColorRenderer,
     QgsStyle,
     QgsTextFormat,
-    QgsVectorDataProvider,
     QgsVectorLayer,
     QgsVectorLayerSimpleLabeling,
 )

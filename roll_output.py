@@ -17,6 +17,7 @@ class RollOutput:
         self.maxOffset = None                                                   # numpy array with maximum offset
         self.rmsOffset = None                                                   # numpy array with rms offset increments
         self.anaOutput = None                                                   # memory mapped numpy trace record array
+        self.D2_Output = None                                                   # partially flattened version of self.anaOutput (N x 13)
 
         self.recGeom = None                                                     # numpy array with list of receiver locations
         self.srcGeom = None                                                     # numpy array with list of source locations

@@ -108,7 +108,6 @@ srcBrushColor = '#77FF2929'                                                     
 srcPointSymbol = 'o'
 srcSymbolSize = 25
 
-
 # default spsDialect should equal a name from the spsFormatList dicts
 spsDialect = 'New Zealand'
 
@@ -150,6 +149,25 @@ kxyRange = QVector3D(-5.0, 5.0, 0.05)   # settings for kxy plots (min, max, step
 
 # useNumba is used to indicate wether or not to use numba (IF it has been installed)
 useNumba = False
+
+# max nr. rows QTableView can handle without 'hanging' QGIS
+# beyond this number the trace table model is reset to None
+# See: https://bugreports.qt.io/browse/QTBUG-31194
+
+maxAnalysisRows = 50_000_000
+
+# this is unwanted behavior, as some surveys can contain > 1_000_000_000 traces
+# but this can only be resolved by making a dedicated table widget from scratch
+
+# This could be done using QTableView with a paginated approach.
+# Use an offset from the start of the analysis file, and show data accordingly
+# When scrolled out of reach, re-adjust the offset, and show the new segment
+# See: https://stackoverflow.com/questions/46069254/qtableview-how-to-get-the-scroll-bar-row-position to get access to scrollbars
+# See: https://doc.qt.io/qt-5/qtwidgets-itemviews-fetchmore-example.html
+# Alternatively QTreeView might do the trick...
+# https://github.com/pyqt/examples/tree/_/src/12%20QTreeView%20example%20in%20Python
+# https://doc.qt.io/qtforpython-6/overviews/qtwidgets-itemviews-simpletreemodel-example.html
+
 
 # Example on using config.py
 # A) Set a default value of 'x' in config.py

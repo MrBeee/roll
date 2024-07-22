@@ -136,6 +136,7 @@ from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
 from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer
 from .roll_binning import BinningType
+from .roll_output import RollOutput
 from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
 from .sps_io_and_qc import (
@@ -289,23 +290,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.progressBar.setMaximumHeight(height)                               # to avoid ugly appearance on statusbar
 
         # binning analysis
-        self.imageType = 0                                                      # 1 = fold map
-        self.layoutMax = 0.0                                                    # max value for image's colorbar (minimum is always 0)
-        self.minimumFold = 0                                                    # fold minimum
-        self.maximumFold = 0                                                    # fold maximum
-        self.minMinOffset = 0.0                                                 # min-offset minimum
-        self.maxMinOffset = 0.0                                                 # min-offset maximum
-        self.minMaxOffset = 0.0                                                 # max-offset minimum
-        self.maxMaxOffset = 0.0                                                 # max-offset maximum
-        self.minRmsOffset = 0.0                                                 # rms-offset minimum
-        self.maxRmsOffset = 0.0                                                 # rms-offset maximum
-
+        self.output = RollOutput()                                              # contains result arrays and min/max values
         self.binAreaChanged = False                                             # set when binning area changes in property tree
 
-        # numpy binning arrays
-        self.layoutImg = None                                                   # numpy array to be displayed; binOutput / minOffset / maxOffset
-
-        self.D2_Output = None                                                   # flattened 2D-version of self.survey.output.anaOutput
+        # display parameters in Layout tab
+        self.imageType = 0                                                      # 1 = fold map
+        self.layoutMax = 0.0                                                    # max value for image's colorbar (minimum is always 0)
+        self.layoutImg = None                                                   # numpy array to be displayed; binOutput / minOffset / maxOffset / rmsOffset
 
         # analysis numpy arrays
         self.inlineStk = None                                                   # numpy array with inline Kr stack reponse
@@ -361,6 +352,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spiderRecX = None                                                  # numpy array with list of REC part of spider plot
         self.spiderRecY = None                                                  # numpy array with list of REC part of spider plot
         self.spiderText = None                                                  # text label describing spider bin, stake, fold
+        self.actionSpider.setChecked(False)                                     # reset spider plot to 'off'
 
         # export layers to QGIS
         self.spsLayer = None                                                    # QGIS layer for sps point I/O
@@ -769,7 +761,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.actionRuler.setCheckable(True)
         self.actionRuler.setChecked(self.ruler)
-        self.actionRuler.triggered.connect(self.plotRuler)
+        self.actionRuler.triggered.connect(self.showRuler)
 
         # actions related to the file menu
         for i in range(config.maxRecentFiles):
@@ -1023,10 +1015,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.parameters.sigTreeStateChanged.connect(self.propertyTreeStateChanged)
         self.paramTree.setParameters(self.parameters, showTop=False)
 
-        # Make sure we get a notification, when the binning area has changed, to ditch the analysis files
+        # Make sure we get a notification, when the binning area or the survey grid has changed, to ditch the analysis files
         self.anaChild = self.parameters.child('Survey analysis')
         self.binChild = self.anaChild.child('Binning area')
-        self.binChild.sigTreeStateChanged.connect(self.binAreaHasChanged)
+        self.binChild.sigTreeStateChanged.connect(self.binningSettingsHaveChanged)
+
+        self.grdChild = self.parameters.child('Survey grid')
+        self.grdChild.sigTreeStateChanged.connect(self.binningSettingsHaveChanged)
 
         # deal with a bug, not showing tooltip information in the list of parameterItems
         for item in self.paramTree.listAllItems():                              # Bug. See: https://github.com/pyqtgraph/pyqtgraph/issues/2744
@@ -1090,36 +1085,74 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.xyPatResp = None                                               # numpy array with pattern's KxKy response
             self.offAziPlt = None                                               # numpy array with offset distribution
 
-            self.survey.output.binOutput = None                                 # numpy array with foldmap
-            self.survey.output.minOffset = None                                 # numpy array with minimum offset
-            self.survey.output.maxOffset = None                                 # numpy array with maximum offset
-            self.survey.output.rmsOffset = None                                 # numpy array with rms delta offset
+            self.output.binOutput = None                                        # numpy array with foldmap
+            self.output.minOffset = None                                        # numpy array with minimum offset
+            self.output.maxOffset = None                                        # numpy array with maximum offset
+            self.output.rmsOffset = None                                        # numpy array with rms delta offset
+
+            if self.output.anaOutput is not None:                               # close memory mapped file, as well
+                self.appendLogMessage(f"Edited : Closing memory mapped file {self.fileName + '.ana.npy'}")
+
+                self.anaModel.setData(None)                                     # first remove reference to self.output.anaOutput
+                self.output.D2_Output = None                                    # flattened reference to self.output.anaOutput
+
+                # Note  numpy.load can also be used to access a file from disk, in a memory-mapped mode
+                # See: https://numpy.org/doc/stable/reference/generated/numpy.load.html
+
+                # alternatively, use numpy.lib.format.open_memmap
+                # See; https://numpy.org/doc/stable/reference/generated/numpy.lib.format.open_memmap.html#numpy.lib.format.open_memmap
+                # note that this approach is incompatible with using numpy.memmap
+                # the reason is that unlike numpy.memmap, lib.format.open_memmap uses an additional file header
+                # this means that metadata such as the shape of the array is serialized with the data itself
+                # this approach woull be preferred over numpy.memmap, as it is less prone to errors
+                # BUT; it does not allow resizing any already created memory mapped files. So this is a no-go.
+
+                # I had serious difficulties in closing/deleting a memory mapped file
+                # see: https://stackoverflow.com/questions/6481378/cant-delete-file-for-memorymappedfile
+                # see: https://stackoverflow.com/questions/50460461/python-mmap-what-if-i-dont-call-mmap-close-manually
+                # See: https://stackoverflow.com/questions/6397495/unmap-of-numpy-memmap
+                # See: https://stackoverflow.com/questions/39953501/i-cant-remove-file-created-by-memmap
+                # In the end the solution appeared to be:
+                # 1) Flush the data to make sure everything has been copied to disk
+                # 2) remove all references (self.output.D2_Output) to the memory mapped object
+                # 3) delete the self.output.anaOutput object
+                # 4) reinstate the object as 'None'
+                # 5) force the garbage collector to do its thing (probably not equired, but let's get some memory space anyhow)
+                # this removed all references to the memory mapped file, and the file can now be deleted
+
+                self.anaModel.setData(None)                                     # show empty trace table
+                self.output.D2_Output = None                                    # remove reference to self.output.anaOutput
+                del self.output.anaOutput                                       # try to delete the object
+                self.output.anaOutput = None                                    # the object was deleted; reinstate the None version
+                gc.collect()                                                    # get the garbage collector going
 
             binFileName = self.fileName + '.bin.npy'                            # file names for analysis files
             minFileName = self.fileName + '.min.npy'
             maxFileName = self.fileName + '.max.npy'
+            rmsFileName = self.fileName + '.rms.npy'
+            anaFileName = self.fileName + '.ana.npy'
 
             try:
-                os.remove(binFileName)                                          # remove file names, if possible
-                os.remove(minFileName)
-                os.remove(maxFileName)
-            except OSError:
-                print('cant delete analysis file')
-
-            if self.survey.output.anaOutput is not None:                        # remove memory mapped file, as well
-                self.survey.output.anaOutput.flush()
-                # self.survey.output.anaOutput._mmap.close()                    # See: https://stackoverflow.com/questions/6397495/unmap-of-numpy-memmap
-                del self.survey.output.anaOutput
-                self.D2_Output = None                                           # first remove reference to self.survey.output.anaOutput
-                self.survey.output.anaOutput = None                             # then remove self.survey.output.anaOutput itself
-                gc.collect()                                                    # get the garbage collector going
-
-            self.updateMenuStatus(True)                                         # keep menu status in sync with program's state
+                if os.path.exists(binFileName):
+                    os.remove(binFileName)                                      # remove file names, if possible
+                if os.path.exists(minFileName):
+                    os.remove(minFileName)
+                if os.path.exists(maxFileName):
+                    os.remove(maxFileName)
+                if os.path.exists(rmsFileName):
+                    os.remove(rmsFileName)
+                if os.path.exists(anaFileName):
+                    os.remove(anaFileName)
+            except OSError as e:
+                self.appendLogMessage(f"Can't delete file, {e}")
+            self.updateMenuStatus(True)                                         # keep menu status in sync with program's state; analysis fileshave been deleted !
+        else:
+            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; analysis files have not been deleted
 
         self.appendLogMessage(f'Edited : {self.fileName} survey object updated')
         self.plotLayout()
 
-    def binAreaHasChanged(self, *_):                                               # param, changes unused; replaced by *_
+    def binningSettingsHaveChanged(self, *_):                                               # param, changes unused; replaced by *_
         self.binAreaChanged = True
 
     ## If anything changes in the tree, print a message
@@ -1225,7 +1258,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def createTraceTableTab(self):
         # analysis table; to copy data to clipboard, create a subclassed QTableView, see bottom of following article:
         # See: https://stackoverflow.com/questions/40225270/copy-paste-multiple-items-from-qtableview-in-pyqt4
-        self.anaModel = AnaTableModel(self.D2_Output)
+        self.anaModel = AnaTableModel(self.output.D2_Output)
+
+        # to resize a table to available space, see:
+        # See: https://stackoverflow.com/questions/58855704/how-to-squeeze-the-column-to-minimum-in-qtableview-in-pyqt5
 
         # See: https://stackoverflow.com/questions/7840325/change-the-selection-color-of-a-qtablewidget
         table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
@@ -1233,7 +1269,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # first create the widget(s)
         self.anaView = TableView()
         self.anaView.setModel(self.anaModel)
-        self.anaView.resizeColumnsToContents()
+        # self.anaView.setResizeContentsPrecision(0)
+        # self.anaView.resizeColumnsToContents()                                # takes WAY too much time for large tables
+        self.anaView.horizontalHeader().setMinimumSectionSize(10)
+        self.anaView.horizontalHeader().setDefaultSectionSize(100)
+
+        self.anaView.verticalHeader().setDefaultSectionSize(24)
+        self.anaView.verticalHeader().sectionResizeMode(QHeaderView.Fixed)
+        self.anaView.verticalHeader().setFont(QFont('Arial', 8, QFont.Normal))
+        self.anaView.verticalHeader().setFixedWidth(95)
+
         self.anaView.setStyleSheet(table_style)                                 # define selection colors
 
         label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
@@ -1259,6 +1304,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.srcModel = SpsTableModel(self.srcGeom)                             # create src model
         self.srcView.setModel(self.srcModel)                                    # add the model to the view
         self.srcView.setStyleSheet(table_style)                                 # define selection colors
+        self.srcView.resizeColumnsToContents()
+        self.srcView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.relView = TableView()                                              # create rel view
         self.relModel = XpsTableModel(self.relGeom)                             # create rel model
@@ -1266,11 +1313,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.relHdrView = self.relView.horizontalHeader()                       # to detect button clicks here
         self.relHdrView.sectionClicked.connect(self.sortRelData)                # handle the section-clicked signal
         self.relView.setStyleSheet(table_style)                                 # define selection colors
+        self.relView.resizeColumnsToContents()
+        self.relView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.recView = TableView()                                              # create rec view
         self.recModel = RpsTableModel(self.recGeom)                             # create rec model
         self.recView.setModel(self.recModel)                                    # add the model to the view
         self.recView.setStyleSheet(table_style)                                 # define selection colors
+        self.recView.resizeColumnsToContents()
+        self.recView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.srcLabel = QLabel('SRC records')
         self.srcLabel.setAlignment(Qt.AlignCenter)
@@ -1453,6 +1504,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsModel = SpsTableModel(self.spsImport)                          # create sps model
         self.spsView.setModel(self.spsModel)                                    # add the model to the view
         self.spsView.setStyleSheet(table_style)                                 # define selection colors
+        self.spsView.resizeColumnsToContents()
+        self.spsView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.xpsView = TableView()                                              # create xps view
         self.xpsModel = XpsTableModel(self.xpsImport)                           # create xps model
@@ -1460,11 +1513,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.xpsHdrView = self.xpsView.horizontalHeader()                       # to detect button clicks here
         self.xpsHdrView.sectionClicked.connect(self.sortXpsData)                # handle the section-clicked signal
         self.xpsView.setStyleSheet(table_style)                                 # define selection colors
+        self.xpsView.resizeColumnsToContents()
+        self.xpsView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.rpsView = TableView()                                              # create rps view
         self.rpsModel = RpsTableModel(self.rpsImport)                           # create xps model
         self.rpsView.setModel(self.rpsModel)                                    # add the model to the view
         self.rpsView.setStyleSheet(table_style)                                 # define selection colors
+        self.rpsView.resizeColumnsToContents()
+        self.rpsView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.spsLabel = QLabel('SPS records')
         self.spsLabel.setAlignment(Qt.AlignCenter)
@@ -1604,7 +1661,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.plotLayout()
 
     def navigateSpider(self, direction):
-        if self.survey.output.anaOutput is None or self.survey.output.binOutput is None:
+        if self.output.anaOutput is None or self.output.binOutput is None:
             return
 
         step = 1
@@ -1615,11 +1672,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if (modifierPressed & Qt.ShiftModifier) == Qt.ShiftModifier:
             step *= 5
 
-        xSize = self.survey.output.anaOutput.shape[0]
-        ySize = self.survey.output.anaOutput.shape[1]
+        xAnaSize = self.output.anaOutput.shape[0]                        # spider only available when anaOutput is available
+        yAnaSize = self.output.anaOutput.shape[1]
+        zAnaFold = self.output.anaOutput.shape[2]                        # max allowable fold
+        wAnaCols = self.output.anaOutput.shape[3]                        # need 13 columns here
+
+        assert wAnaCols == 13, 'there need to be 13 fields in the analysis array'
+
+        xBinSize = self.output.binOutput.shape[0]                               # The x, y sizes need to match
+        yBinSize = self.output.binOutput.shape[1]
+
+        if xAnaSize != xBinSize or yAnaSize != yBinSize:
+            QMessageBox.warning(self, 'Misaligned analysis arrays', 'Binning file and extended analysis file have dissimilar sizes. Please rerun analysis')
+            return
 
         if self.spiderPoint == QPoint(-1, -1):                                  # no valid position yet; move to center
-            self.spiderPoint = QPoint(xSize // 2, ySize // 2)
+            self.spiderPoint = QPoint(xAnaSize // 2, yAnaSize // 2)
         elif direction == Direction.Rt:                                         # valid position, so move spider around
             self.spiderPoint += QPoint(1, 0) * step
         elif direction == Direction.Lt:
@@ -1635,25 +1703,28 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if self.spiderPoint.y() < 0:
             self.spiderPoint.setY(0)
 
-        if self.spiderPoint.x() >= xSize:
-            self.spiderPoint.setX(xSize - 1)
+        if self.spiderPoint.x() >= xAnaSize:
+            self.spiderPoint.setX(xAnaSize - 1)
 
-        if self.spiderPoint.y() >= ySize:
-            self.spiderPoint.setY(ySize - 1)
+        if self.spiderPoint.y() >= yAnaSize:
+            self.spiderPoint.setY(yAnaSize - 1)
 
         nX = self.spiderPoint.x()                                               # get x, y indices into bin array
         nY = self.spiderPoint.y()
 
         try:                                                                    # protect against potential index errors
-            fold = self.survey.output.binOutput[nX, nY]                         # max fold; accounting for unique fold
-            fold = min(fold, self.survey.output.anaOutput.shape[2])             # 3rd dimension in analysis file reflects available records in cmp
+            fold = self.output.binOutput[nX, nY]                         # max fold; accounting for unique fold
+            fold = min(fold, zAnaFold)                                          # 3rd dimension in analysis file reflects available records per cmp
         except IndexError:                                                      # in case array is resized during FileNew()
             return                                                              # something went wrong accessing binning array
 
         plotIndex = self.getVisiblePlotWidget()[1]                              # get the active plot widget nr
         if plotIndex == 0:                                                      # update the layout plot
 
-            self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = numbaSpiderBin(self.survey.output.anaOutput[nX, nY, 0:fold, :])
+            if fold > 0:                                                        # create the spider legs
+                self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = numbaSpiderBin(self.output.anaOutput[nX, nY, 0:fold, :])
+            else:                                                               # nothing to show
+                self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = (None, None, None, None)
 
             invBinTransform, _ = self.survey.binTransform.inverted()            # need to go from bin nr's to cmp(x, y)
             cmpX, cmpY = invBinTransform.map(nX, nY)                            # get local coordinates from line and point indices
@@ -1669,9 +1740,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if self.glob:                                                       # we need to convert local to global coords
                 labelX, labelY = self.survey.glbTransform.map(labelX, labelY)   # get global position from local version
 
-            if self.spiderText is None:
+            if self.spiderText is None:                                         # first time around
                 self.spiderText = pg.TextItem(anchor=(0.5, 1.3), border='b', color='b', fill=(130, 255, 255, 200), text='spiderLabel')
-                self.spiderText.setZValue(1000)
+                self.spiderText.setZValue(1000)                                 # make sure it is visible
 
             self.spiderText.setPos(labelX, labelY)                                  # move the label above spider's cmp position
             self.spiderText.setText(f'S({int(stkX)},{int(stkY)}), fold = {fold}')   # update the label text accordingly
@@ -1680,11 +1751,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         else:
             self.updateVisiblePlotWidget(plotIndex)                             # update one of the analysis plots
 
-        # now sync the trace table with the spider position
-        sizeY = self.survey.output.anaOutput.shape[1]                           # x-line size of analysis array
-        maxFld = self.survey.output.anaOutput.shape[2]                          # max fold from analysis file
-        offset = (nX * sizeY + nY) * maxFld                                     # calculate offset for self.D2_Output array
-        index = self.anaView.model().index(offset, 0)                           # turn offset into index
+        # now sync the trace table selection with the spider position
+        sizeY = self.output.anaOutput.shape[1]                           # x-line size of analysis array
+        maxFld = self.output.anaOutput.shape[2]                          # max fold from analysis file
+        offset = (nX * sizeY + nY) * maxFld                                     # calculate offset for self.output.D2_Output array
+        index = self.anaView.model().index(offset, 0)                           # turn offset into index object
         self.anaView.scrollTo(index)                                            # scroll to index
         self.anaView.selectRow(offset)                                          # for the time being, *only* select first row of traces in a bin
 
@@ -1871,58 +1942,58 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     # define file export functions
     def fileExportFoldMap(self):
-        if self.survey is not None and self.survey.output.binOutput is not None and self.survey.crs is not None:
+        if self.survey is not None and self.output.binOutput is not None and self.survey.crs is not None:
             fileName = self.fileName + '.bin.tif'
-            fileName = CreateQgisRasterLayer(fileName, self.survey.output.binOutput, self.survey)
+            fileName = CreateQgisRasterLayer(fileName, self.output.binOutput, self.survey)
             if fileName:
                 self.appendLogMessage(f'Export : exported fold map to {fileName}')
 
     def fileExportMinOffsets(self):
-        if self.survey is not None and self.survey.output.minOffset is not None and self.survey.crs is not None:
+        if self.survey is not None and self.output.minOffset is not None and self.survey.crs is not None:
             fileName = self.fileName + '.min.tif'
-            fileName = CreateQgisRasterLayer(fileName, self.survey.output.minOffset, self.survey)
+            fileName = CreateQgisRasterLayer(fileName, self.output.minOffset, self.survey)
             if fileName:
                 self.appendLogMessage(f'Export : exported min-offsets to {fileName}')
 
     def fileExportMaxOffsets(self):
-        if self.survey is not None and self.survey.output.maxOffset is not None and self.survey.crs is not None:
+        if self.survey is not None and self.output.maxOffset is not None and self.survey.crs is not None:
             fileName = self.fileName + '.max.tif'
-            fileName = CreateQgisRasterLayer(fileName, self.survey.output.maxOffset, self.survey)
+            fileName = CreateQgisRasterLayer(fileName, self.output.maxOffset, self.survey)
             if fileName:
                 self.appendLogMessage(f'Export : exported max-offsets to {fileName}')
 
     def fileExportRmsOffsets(self):
-        if self.survey is not None and self.survey.output.rmsOffset is not None and self.survey.crs is not None:
+        if self.survey is not None and self.output.rmsOffset is not None and self.survey.crs is not None:
             fileName = self.fileName + '.rms.tif'
-            fileName = CreateQgisRasterLayer(fileName, self.survey.output.rmsOffset, self.survey)
+            fileName = CreateQgisRasterLayer(fileName, self.output.rmsOffset, self.survey)
             if fileName:
                 self.appendLogMessage(f'Export : exported rms-offsets to {fileName}')
 
     def exportBinToQGIS(self):
-        if self.survey is not None and self.survey.output.binOutput is not None and self.survey.crs is not None:
+        if self.survey is not None and self.output.binOutput is not None and self.survey.crs is not None:
             fileName = self.fileName + '.bin.tif'
-            fileName = ExportRasterLayerToQgis(fileName, self.survey.output.binOutput, self.survey)
+            fileName = ExportRasterLayerToQgis(fileName, self.output.binOutput, self.survey)
             if fileName:
                 self.appendLogMessage('Export : incorporated fold map in QGIS')
 
     def exportMinToQGIS(self):
-        if self.survey is not None and self.survey.output.minOffset is not None and self.survey.crs is not None:
+        if self.survey is not None and self.output.minOffset is not None and self.survey.crs is not None:
             fileName = self.fileName + '.min.tif'
-            fileName = ExportRasterLayerToQgis(fileName, self.survey.output.minOffset, self.survey)
+            fileName = ExportRasterLayerToQgis(fileName, self.output.minOffset, self.survey)
             if fileName:
                 self.appendLogMessage('Export : incorporated min-offset map in QGIS')
 
     def exportMaxToQGIS(self):
-        if self.survey is not None and self.survey.output.maxOffset is not None and self.survey.crs is not None:
+        if self.survey is not None and self.output.maxOffset is not None and self.survey.crs is not None:
             fileName = self.fileName + '.max.tif'
-            fileName = ExportRasterLayerToQgis(fileName, self.survey.output.maxOffset, self.survey)
+            fileName = ExportRasterLayerToQgis(fileName, self.output.maxOffset, self.survey)
             if fileName:
                 self.appendLogMessage('Export : incorporated max-offset map in QGIS')
 
     def exportRmsToQGIS(self):
-        if self.survey is not None and self.survey.output.rmsOffset is not None and self.survey.crs is not None:
+        if self.survey is not None and self.output.rmsOffset is not None and self.survey.crs is not None:
             fileName = self.fileName + '.rms.tif'
-            fileName = ExportRasterLayerToQgis(fileName, self.survey.output.rmsOffset, self.survey)
+            fileName = ExportRasterLayerToQgis(fileName, self.output.rmsOffset, self.survey)
             if fileName:
                 self.appendLogMessage('Export : incorporated max-offset map in QGIS')
 
@@ -2018,12 +2089,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if resetAnalysis:
             self.actionNone.setChecked(True)                                    # coupled with tbNone; reset analysis figure
             self.imageType = 0                                                  # reset analysis type to zero
+            self.handleImageSelection()                                         # change image (if available) and finally plot survey layout
 
-        self.actionExportFoldMap.setEnabled(self.survey.output.binOutput is not None)
-        self.actionExportMinOffsets.setEnabled(self.survey.output.minOffset is not None)
-        self.actionExportMaxOffsets.setEnabled(self.survey.output.maxOffset is not None)
-        self.actionExportRmsOffsets.setEnabled(self.survey.output.rmsOffset is not None)
-        self.actionExportAnaAsCsv.setEnabled(self.survey.output.anaOutput is not None)
+        self.actionExportFoldMap.setEnabled(self.output.binOutput is not None)
+        self.actionExportMinOffsets.setEnabled(self.output.minOffset is not None)
+        self.actionExportMaxOffsets.setEnabled(self.output.maxOffset is not None)
+        self.actionExportRmsOffsets.setEnabled(self.output.rmsOffset is not None)
+        self.actionExportAnaAsCsv.setEnabled(self.output.anaOutput is not None)
 
         self.actionExportRecAsCsv.setEnabled(self.recGeom is not None)
         self.actionExportSrcAsCsv.setEnabled(self.srcGeom is not None)
@@ -2061,26 +2133,26 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnSpsExportToQGIS.setEnabled(self.spsImport is not None)
         self.btnRpsExportToQGIS.setEnabled(self.rpsImport is not None)
 
-        self.actionFold.setEnabled(self.survey.output.binOutput is not None)
-        self.actionMinO.setEnabled(self.survey.output.minOffset is not None)
-        self.actionMaxO.setEnabled(self.survey.output.maxOffset is not None)
-        self.actionRmsO.setEnabled(self.survey.output.rmsOffset is not None)
+        self.actionFold.setEnabled(self.output.binOutput is not None)
+        self.actionMinO.setEnabled(self.output.minOffset is not None)
+        self.actionMaxO.setEnabled(self.output.maxOffset is not None)
+        self.actionRmsO.setEnabled(self.output.rmsOffset is not None)
 
-        self.actionSpider.setEnabled(self.survey.output.anaOutput is not None)  # the spider button in the display pane
-        self.actionMoveLt.setEnabled(self.survey.output.anaOutput is not None)  # the navigation buttons in the Display pane AND on toolbar (moveBar)
-        self.actionMoveRt.setEnabled(self.survey.output.anaOutput is not None)
-        self.actionMoveUp.setEnabled(self.survey.output.anaOutput is not None)
-        self.actionMoveDn.setEnabled(self.survey.output.anaOutput is not None)
+        self.actionSpider.setEnabled(self.output.anaOutput is not None and self.output.binOutput is not None)  # the spider button in the display pane
+        self.actionMoveLt.setEnabled(self.output.anaOutput is not None)  # the navigation buttons in the Display pane AND on toolbar (moveBar)
+        self.actionMoveRt.setEnabled(self.output.anaOutput is not None)
+        self.actionMoveUp.setEnabled(self.output.anaOutput is not None)
+        self.actionMoveDn.setEnabled(self.output.anaOutput is not None)
 
-        self.btnBinToQGIS.setEnabled(self.survey.output.binOutput is not None)
-        self.btnMinToQGIS.setEnabled(self.survey.output.minOffset is not None)
-        self.btnMaxToQGIS.setEnabled(self.survey.output.maxOffset is not None)
-        self.btnRmsToQGIS.setEnabled(self.survey.output.rmsOffset is not None)
+        self.btnBinToQGIS.setEnabled(self.output.binOutput is not None)
+        self.btnMinToQGIS.setEnabled(self.output.minOffset is not None)
+        self.btnMaxToQGIS.setEnabled(self.output.maxOffset is not None)
+        self.btnRmsToQGIS.setEnabled(self.output.rmsOffset is not None)
 
-        self.actionExportFoldMapToQGIS.setEnabled(self.survey.output.binOutput is not None)
-        self.actionExportMinOffsetsToQGIS.setEnabled(self.survey.output.minOffset is not None)
-        self.actionExportMaxOffsetsToQGIS.setEnabled(self.survey.output.maxOffset is not None)
-        self.actionExportRmsOffsetsToQGIS.setEnabled(self.survey.output.rmsOffset is not None)
+        self.actionExportFoldMapToQGIS.setEnabled(self.output.binOutput is not None)
+        self.actionExportMinOffsetsToQGIS.setEnabled(self.output.minOffset is not None)
+        self.actionExportMaxOffsetsToQGIS.setEnabled(self.output.maxOffset is not None)
+        self.actionExportRmsOffsetsToQGIS.setEnabled(self.output.rmsOffset is not None)
 
         self.actionRecPoints.setEnabled(self.recGeom is not None)
         self.actionSrcPoints.setEnabled(self.srcGeom is not None)
@@ -2116,40 +2188,39 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
 
-        if self.layoutImItem is not None and self.layoutColorBar is None:
-            self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.inActiveCmap, label='N/A', limits=(0, None), rounding=10.0, values=(0, 10))
-
-        if self.layoutImg is None or self.imageType == 0:
-            self.layoutImItem = None
+        colorMap = config.fold_OffCmap                                          # default fold & offset color map
+        if self.imageType == 0:                                                 # now deal with all image types
+            self.layoutImg = None                                               # no image to show
             label = 'N/A'
             self.layoutMax = 10
-            colorMap = config.inActiveCmap
+            colorMap = config.inActiveCmap                                      # grey color map
+        elif self.imageType == 1:
+            self.layoutImg = self.output.binOutput                              # don't make a copy, create a view
+            self.layoutMax = self.output.maximumFold
+            label = 'fold'
+        elif self.imageType == 2:
+            self.layoutImg = self.output.minOffset
+            self.layoutMax = self.output.maxMinOffset
+            label = 'minimum offset'
+        elif self.imageType == 3:
+            self.layoutImg = self.output.maxOffset
+            self.layoutMax = self.output.maxMaxOffset
+            label = 'maximum offset'
+        elif self.imageType == 4:
+            self.layoutImg = self.output.rmsOffset
+            self.layoutMax = self.output.maxRmsOffset
+            label = 'rms offset increments'
         else:
-            if self.imageType == 1:
-                self.layoutImg = self.survey.output.binOutput                   # don't make a copy, just a view
-                self.layoutMax = self.maximumFold
-                label = 'fold'
-            elif self.imageType == 2:
-                self.layoutImg = self.survey.output.minOffset
-                self.layoutMax = self.maxMinOffset
-                label = 'minimum offset'
-            elif self.imageType == 3:
-                self.layoutImg = self.survey.output.maxOffset
-                self.layoutMax = self.maxMaxOffset
-                label = 'maximum offset'
-            elif self.imageType == 4:
-                self.layoutImg = self.survey.output.rmsOffset
-                self.layoutMax = self.maxRmsOffset
-                label = 'rms offset increments'
-            else:
-                raise NotImplementedError('selected analysis type currently not implemented.')
+            raise NotImplementedError('selected analysis type currently not implemented.')
 
-            colorMap = config.fold_OffCmap
-            self.layoutImItem = pg.ImageItem()                                     # create PyqtGraph image item
-            self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
-            self.layoutColorBar.setImageItem(self.layoutImItem)
+        self.layoutImItem = pg.ImageItem()                                          # create a PyqtGraph image item
+        self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))    # set image and its range limits
+
+        if self.layoutColorBar is None:                                             # create colorbar with default values
+            self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.inActiveCmap, label='N/A', limits=(0, None), rounding=10.0, values=(0, 10))
 
         if self.layoutColorBar is not None:
+            self.layoutColorBar.setImageItem(self.layoutImItem)                     # couple imageItem to the colorbar
             self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
             self.layoutColorBar.setColorMap(colorMap)
             self.setColorbarLabel(label)
@@ -2305,16 +2376,28 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.plotLayout()                                                   # no conditions to plot main layout plot
             return
 
-        if self.survey.output.anaOutput is None:                                # we need self.survey.output.anaOutput to display meaningful ANALYSIS information
+        if self.output.anaOutput is None:                                # we need self.output.anaOutput to display meaningful ANALYSIS information
             return
 
-        xSize = self.survey.output.anaOutput.shape[0]                           # make sure we have a valid self.spiderPoint, hence valid nx, ny
-        ySize = self.survey.output.anaOutput.shape[1]
+        xAnaSize = self.output.anaOutput.shape[0]                        # make sure we have a valid self.spiderPoint, hence valid nx, ny
+        yAnaSize = self.output.anaOutput.shape[1]
 
         if self.spiderPoint == QPoint(-1, -1):                                  # no valid position yet; move to center
-            self.spiderPoint = QPoint(xSize // 2, ySize // 2)
+            self.spiderPoint = QPoint(xAnaSize // 2, yAnaSize // 2)
 
-        nX = self.spiderPoint.x()                                               # create nx, ny from self.spiderPoint
+        if self.spiderPoint.x() < 0:                                            # build in some safety settings
+            self.spiderPoint.setX(0)
+
+        if self.spiderPoint.y() < 0:
+            self.spiderPoint.setY(0)
+
+        if self.spiderPoint.x() >= xAnaSize:
+            self.spiderPoint.setX(xAnaSize - 1)
+
+        if self.spiderPoint.y() >= yAnaSize:
+            self.spiderPoint.setY(yAnaSize - 1)
+
+        nX = self.spiderPoint.x()                                               # get x, y indices into bin array
         nY = self.spiderPoint.y()
 
         invBinTransform, _ = self.survey.binTransform.inverted()                # need to go from bin nr's to cmp(x, y)
@@ -2396,7 +2479,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         if self.ruler:
             self.actionRuler.setChecked(False)
-            self.plotRuler()
+            self.showRuler(False)
 
         self.rulerState = None
 
@@ -2428,8 +2511,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.layoutWidget.autoRange()                                           # show the full range of objects when changing local vs global coordinates
         self.plotLayout()
 
-    def plotRuler(self):
-        self.ruler = not self.ruler
+    def showRuler(self, checked):
+        self.ruler = checked
         self.plotLayout()
 
     def UpdateAllViews(self):
@@ -2612,19 +2695,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
             rec.setTransform(recTransform)
 
-        if self.tbSpider.isChecked() and self.survey.output.anaOutput is not None and self.survey.output.binOutput is not None and self.spiderSrcX is not None:
+        if self.tbSpider.isChecked() and self.output.anaOutput is not None and self.output.binOutput is not None:
+            if self.spiderSrcX is not None:                                     # if we have data to show, plot it
 
-            src = self.layoutWidget.plot(
-                x=self.spiderSrcX, y=self.spiderSrcY, connect='pairs', symbol='o', pen=pg.mkPen('r', width=2), symbolSize=5, pxMode=False, symbolPen=pg.mkPen('r'), symbolBrush=QColor('#77FF2929')
-            )
-            src.setTransform(transform)
+                src = self.layoutWidget.plot(
+                    x=self.spiderSrcX, y=self.spiderSrcY, connect='pairs', symbol='o', pen=pg.mkPen('r', width=2), symbolSize=5, pxMode=False, symbolPen=pg.mkPen('r'), symbolBrush=QColor('#77FF2929')
+                )
+                src.setTransform(transform)
 
-            rec = self.layoutWidget.plot(
-                x=self.spiderRecX, y=self.spiderRecY, connect='pairs', symbol='o', pen=pg.mkPen('b', width=2), symbolSize=5, pxMode=False, symbolPen=pg.mkPen('b'), symbolBrush=QColor('#772929FF')
-            )
-            rec.setTransform(transform)
+                rec = self.layoutWidget.plot(
+                    x=self.spiderRecX, y=self.spiderRecY, connect='pairs', symbol='o', pen=pg.mkPen('b', width=2), symbolSize=5, pxMode=False, symbolPen=pg.mkPen('b'), symbolBrush=QColor('#772929FF')
+                )
+                rec.setTransform(transform)
 
-            self.layoutWidget.plotItem.addItem(self.spiderText)
+            if self.spiderText is not None:
+                self.layoutWidget.plotItem.addItem(self.spiderText)                 # show the spider label anyhow
 
         if self.tbTemplat.isChecked():
             # Add a marker for the origin
@@ -2678,66 +2763,68 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def plotOffTrk(self, nY: int, stkY: int, ox: float):
         with pg.BusyCursor():
-            slice3D = self.survey.output.anaOutput[:, nY, :, :]
-            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
+            plotTitle = f'{self.plotTitles[1]} [line={stkY}]'
 
+            slice3D = self.output.anaOutput[:, nY, :, :]
+            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
             slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
-            if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
+
+            self.offTrkWidget.plotItem.clear()
+            self.offTrkWidget.setTitle(plotTitle, color='b', size='16pt')
+            if slice2D.shape[0] == 0:                                           # empty array
                 return
 
             x, y = numbaOffInline(slice2D, ox)
-
-            plotTitle = f'{self.plotTitles[1]} [line={stkY}]'
-            self.offTrkWidget.setTitle(plotTitle, color='b', size='16pt')
-            self.offTrkWidget.plotItem.clear()
             self.offTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotOffBin(self, nX: int, stkX: int, oy: float):
         with pg.BusyCursor():
-            slice3D = self.survey.output.anaOutput[nX, :, :, :]
-            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
+            self.offBinWidget.plotItem.clear()
 
+            slice3D = self.output.anaOutput[nX, :, :, :]
+            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
             slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+
+            plotTitle = f'{self.plotTitles[2]} [stake={stkX}]'
+            self.offBinWidget.setTitle(plotTitle, color='b', size='16pt')
+
             if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
             x, y = numbaOffX_line(slice2D, oy)
-
-            plotTitle = f'{self.plotTitles[2]} [stake={stkX}]'
-            self.offBinWidget.setTitle(plotTitle, color='b', size='16pt')
-            self.offBinWidget.plotItem.clear()
             self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotAziTrk(self, nY: int, stkY: int, ox: float):
         with pg.BusyCursor():
-            slice3D = self.survey.output.anaOutput[:, nY, :, :]
-            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
+            self.aziTrkWidget.plotItem.clear()
 
+            slice3D = self.output.anaOutput[:, nY, :, :]
+            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
             slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+
+            plotTitle = f'{self.plotTitles[3]} [line={stkY}]'
+            self.aziTrkWidget.setTitle(plotTitle, color='b', size='16pt')
+
             if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
             x, y = numbaAziInline(slice2D, ox)
-
-            plotTitle = f'{self.plotTitles[3]} [line={stkY}]'
-            self.aziTrkWidget.setTitle(plotTitle, color='b', size='16pt')
-            self.aziTrkWidget.plotItem.clear()
             self.aziTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotAziBin(self, nX: int, stkX: int, oy: float):
         with pg.BusyCursor():
-            slice3D = self.survey.output.anaOutput[nX, :, :, :]
-            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
+            self.aziBinWidget.plotItem.clear()
 
+            slice3D = self.output.anaOutput[nX, :, :, :]
+            slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
             slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+
+            plotTitle = f'{self.plotTitles[4]} [stake={stkX}]'
+            self.aziBinWidget.setTitle(plotTitle, color='b', size='16pt')
             if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
             x, y = numbaAziX_line(slice2D, oy)
-
-            plotTitle = f'{self.plotTitles[4]} [stake={stkX}]'
-            self.aziBinWidget.setTitle(plotTitle, color='b', size='16pt')
-            self.aziBinWidget.plotItem.clear()
             self.aziBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotStkTrk(self, nY: int, stkY: int, x0: float, dx: float):
@@ -2747,7 +2834,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
-            slice3D, I = numbaSlice3D(self.survey.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
+            slice3D, I = numbaSlice3D(self.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
             if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
@@ -2781,7 +2868,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
-            slice3D, I = numbaSlice3D(self.survey.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
+            slice3D, I = numbaSlice3D(self.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
             if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
@@ -2818,11 +2905,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             kStart = 1000.0 * (kMin - 0.5 * dK)                             # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                            # same here
 
-            offsetX, offsetY, noData = numbaOffsetBin(self.survey.output.anaOutput[nX, nY, :, :], self.survey.unique.apply)
+            offsetX, offsetY, noData = numbaOffsetBin(self.output.anaOutput[nX, nY, :, :], self.survey.unique.apply)
             if noData:
-                return
+                fold = 0
+            else:
+                fold = offsetX.shape[0]
 
-            self.xyCellStk = numbaNdft_2D(kMin, kMax, dK, offsetX, offsetY)
+            if offsetX is None:
+                kX = np.arange(kMin, kMax, dK)
+                nX = kX.shape[0]
+                self.xyCellStk = np.ones(shape=(nX, nX), dtype=np.float32) * -50.0           # create -50 dB array of the right size and type
+            else:
+                self.xyCellStk = numbaNdft_2D(kMin, kMax, dK, offsetX, offsetY)
 
             tr = QTransform()                                               # prepare ImageItem transformation:
             tr.translate(kStart, kStart)                                    # move image to correct location
@@ -2841,12 +2935,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.stkCelWidget.plotItem.clear()
             self.stkCelWidget.plotItem.addItem(self.stkCelImItem)
 
-            plotTitle = f'{self.plotTitles[7]} [stake={stkX}, line={stkY}, fold={offsetX.shape[0]}]'
+            plotTitle = f'{self.plotTitles[7]} [stake={stkX}, line={stkY}, fold={fold}]'
             self.stkCelWidget.setTitle(plotTitle, color='b', size='16pt')
 
     def plotOffset(self):
         with pg.BusyCursor():
-            offsets, _, noData = numbaSliceStats(self.survey.output.anaOutput, self.survey.unique.apply)
+            offsets, _, noData = numbaSliceStats(self.output.anaOutput, self.survey.unique.apply)
             if noData:
                 return
 
@@ -2857,6 +2951,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.offsetWidget.setTitle(plotTitle, color='b', size='16pt')
             self.offsetWidget.plotItem.clear()
             self.offsetWidget.plot(x, y, stepMode='center', fillLevel=0, fillOutline=True, brush=(0, 0, 255, 150), pen=pg.mkPen('k', width=1))
+            # pass
 
     def plotOffAzi(self):
         with pg.BusyCursor():
@@ -2866,12 +2961,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             aMax += dA                                                      # make sure end value is included
 
             dO = 100.0                                                      # offsets increments
-            oMax = ceil(self.maxMaxOffset / dO) * dO + dO                   # max y-scale; make sure end value is included
+            oMax = ceil(self.output.maxMaxOffset / dO) * dO + dO                   # max y-scale; make sure end value is included
 
             aR = np.arange(aMin, aMax, dA)                                  # numpy array with values [0 ... fMax]
             oR = np.arange(0, oMax, dO)                                     # numpy array with values [0 ... oMax]
 
-            offsets, azimuth, noData = numbaSliceStats(self.survey.output.anaOutput, self.survey.unique.apply)
+            offsets, azimuth, noData = numbaSliceStats(self.output.anaOutput, self.survey.unique.apply)
             if noData:
                 return
 
@@ -2897,6 +2992,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             count = offsets.shape[0]                                        # nr available traces
             plotTitle = f'{self.plotTitles[9]} [{count:,} traces]'
             self.offAziWidget.setTitle(plotTitle, color='b', size='16pt')
+            # pass
 
         # For Polar Coordinates, see:
         # See: https://stackoverflow.com/questions/57174173/polar-coordinate-system-in-pyqtgraph
@@ -3049,6 +3145,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.roiLabels = None                                                   # the ruler's three labels
         self.rulerState = None                                                  # ruler's state, used to redisplay ruler at last used location
 
+        self.anaModel.setData(None)                                             # update the trace table model
+
         self.rpsModel.setData(self.rpsImport)                                   # update the three rps/sps/xps models
         self.spsModel.setData(self.spsImport)
         self.xpsModel.setData(self.xpsImport)
@@ -3057,19 +3155,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.relModel.setData(self.relGeom)
         self.srcModel.setData(self.srcGeom)
 
-        self.survey.output.binOutput = None
-        self.survey.output.minOffset = None
-        self.survey.output.maxOffset = None
-        self.survey.output.rmsOffset = None
+        self.output.binOutput = None
+        self.output.minOffset = None
+        self.output.maxOffset = None
+        self.output.rmsOffset = None
 
-        if self.survey.output.anaOutput is not None:                            # remove memory mapped file, as well
-            self.survey.output.anaOutput.flush()
-            # self.survey.output.anaOutput._mmap.close()                        # See: https://stackoverflow.com/questions/6397495/unmap-of-numpy-memmap
-            del self.survey.output.anaOutput
-            self.D2_Output = None                                               # first remove reference to self.survey.output.anaOutput
-            self.survey.output.anaOutput = None                                 # then remove self.survey.output.anaOutput itself
+        if self.output.anaOutput is not None:                                   # remove memory mapped file, as well
+            self.output.D2_Output = None                                        # flattened reference to self.output.anaOutput
+
+            self.output.anaOutput.flush()                                       # make sure all data is written to disk
+            del self.output.anaOutput                                           # try to delete the object
+            self.output.anaOutput = None                                        # the object was deleted; reinstate the None version
             gc.collect()                                                        # get the garbage collector going
-        self.anaModel.setData(self.D2_Output)                                   # use this as the model data
 
         self.resetPlotWidget(self.offTrkWidget, self.plotTitles[1])             # clear all analysis plots
         self.resetPlotWidget(self.offBinWidget, self.plotTitles[2])
@@ -3241,110 +3338,162 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # Xml tab
         success = self.parseText(plainText)                                     # parse the string; load the textEdit even if parsing fails !
         self.textEdit.setPlainText(plainText)                                   # update plainText widget, and reset undo/redo & modified status
+        self.resetNumpyArraysAndModels()                                        # empty all arrays and reset plot titles
 
         if success:                                                             # read the corresponding analysis files
-            self.resetNumpyArraysAndModels()                                    # empty all arrays and reset plot titles
+            # continue loading the anaysis files that belong to this project
+
+            w = self.survey.output.rctOutput.width()                            # expected dimensions of analysis files
+            h = self.survey.output.rctOutput.height()
+            dx = self.survey.grid.binSize.x()
+            dy = self.survey.grid.binSize.y()
+            nx = ceil(w / dx)
+            ny = ceil(h / dy)
 
             if os.path.exists(self.fileName + '.bin.npy'):                      # open the existing foldmap file
-                self.survey.output.binOutput = np.load(self.fileName + '.bin.npy')
-                self.maximumFold = self.survey.output.binOutput.max()           # calc min/max fold is straightforward
-                self.minimumFold = self.survey.output.binOutput.min()
+                self.output.binOutput = np.load(self.fileName + '.bin.npy')
+                nX = self.output.binOutput.shape[0]                             # check against nx, ny
+                nY = self.output.binOutput.shape[1]                             # check against nx, ny
 
-                self.actionFold.setChecked(True)
-                self.imageType = 1                                              # set analysis type to one (fold)
+                if nx != nX or ny != nY:
+                    self.appendLogMessage('Loaded : . . . Fold map&nbsp; : Wrong dimensions, compared to analysis area - file ignored')
+                    self.output.binOutput = None
+                else:
+                    self.output.maximumFold = self.output.binOutput.max()           # calc min/max fold is straightforward
+                    self.output.minimumFold = self.output.binOutput.min()
 
-                self.layoutImg = self.survey.output.binOutput                   # use fold map for image data np-array
-                self.layoutMax = self.maximumFold                               # use appropriate maximum
-                self.layoutImItem = pg.ImageItem()                              # create PyqtGraph image item
-                self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
+                    # todo: clean this up, so image handling isn't required here !
+                    self.actionFold.setChecked(True)
 
-                self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.minimumFold} - Max:{self.maximumFold} ')
+                    self.imageType = 1                                              # set analysis type to one (fold)
+                    self.layoutImg = self.survey.output.binOutput                   # use fold map for image data np-array
+                    self.layoutMax = self.output.maximumFold                        # use appropriate maximum
+                    self.layoutImItem = pg.ImageItem()                              # create PyqtGraph image item
+                    self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
+
+                    label = 'fold'
+                    if self.layoutColorBar is None:
+                        self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.fold_OffCmap, label=label, limits=(0, None), rounding=10.0, values=(0.0, self.layoutMax))
+                    else:
+                        self.layoutColorBar.setImageItem(self.layoutImItem)
+                        self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
+                        self.layoutColorBar.setColorMap(config.fold_OffCmap)
+                        self.setColorbarLabel(label)
+
+                    self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ')
             else:
-                self.survey.output.binOutput = None
-                self.actionFold.setChecked(False)
+                self.output.binOutput = None
+                # todo: cleanup next 2 lines as well
+                self.actionNone.setChecked(True)
                 self.imageType = 0                                              # set analysis type to zero (no analysis)
 
             if os.path.exists(self.fileName + '.min.npy'):                      # load the existing min-offsets file
-                self.survey.output.minOffset = np.load(self.fileName + '.min.npy')
+                self.output.minOffset = np.load(self.fileName + '.min.npy')
+                nX = self.output.minOffset.shape[0]                             # check against nx, ny
+                nY = self.output.minOffset.shape[1]                             # check against nx, ny
 
-                self.survey.output.minOffset[self.survey.output.minOffset == np.NINF] = np.Inf    # replace (-inf) by (inf) for min values
-                self.minMinOffset = self.survey.output.minOffset.min()          # calc min offset against max (inf) values
+                if nx != nX or ny != nY:
+                    self.appendLogMessage('Loaded : . . . Min-offset: Wrong dimensions, compared to analysis area - file ignored')
+                    self.output.minOffset = None
+                else:
+                    self.output.minOffset[self.output.minOffset == np.NINF] = np.Inf    # replace (-inf) by (inf) for min values
+                    self.output.minMinOffset = self.output.minOffset.min()          # calc min offset against max (inf) values
 
-                self.survey.output.minOffset[self.survey.output.minOffset == np.Inf] = np.NINF  # replace (inf) by (-inf) for max values
-                self.maxMinOffset = self.survey.output.minOffset.max()          # calc max values against (-inf) minimum
-                self.maxMinOffset = max(self.maxMinOffset, 0)                   # avoid -inf as maximum
-                self.appendLogMessage(f'Loaded : . . . Min-offset: Min:{self.minMinOffset:.2f}m - Max:{self.maxMinOffset:.2f}m ')
+                    self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF  # replace (inf) by (-inf) for max values
+                    self.output.maxMinOffset = self.output.minOffset.max()          # calc max values against (-inf) minimum
+                    self.output.maxMinOffset = max(self.output.maxMinOffset, 0)     # avoid -inf as maximum
+
+                    self.appendLogMessage(f'Loaded : . . . Min-offset: Min:{self.output.minMinOffset:.2f}m - Max:{self.output.maxMinOffset:.2f}m ')
             else:
-                self.survey.output.minOffset = None
+                self.output.minOffset = None
 
             if os.path.exists(self.fileName + '.max.npy'):                      # load the existing max-offsets file
-                self.survey.output.maxOffset = np.load(self.fileName + '.max.npy')
+                self.output.maxOffset = np.load(self.fileName + '.max.npy')
+                nX = self.output.maxOffset.shape[0]                             # check against nx, ny
+                nY = self.output.maxOffset.shape[1]                             # check against nx, ny
 
-                self.maxMaxOffset = self.survey.output.maxOffset.max()          # calc max offset against max (-inf) values
-                self.maxMaxOffset = max(self.maxMaxOffset, 0)                   # avoid -inf as maximum
-                self.survey.output.maxOffset[self.survey.output.maxOffset == np.NINF] = np.inf              # replace (-inf) by (inf) for min values
+                if nx != nX or ny != nY:
+                    self.appendLogMessage('Loaded : . . . Max-offset: Wrong dimensions, compared to analysis area - file ignored')
+                    self.output.maxOffset = None
+                else:
+                    self.output.maxMaxOffset = self.output.maxOffset.max()          # calc max offset against max (-inf) values
+                    self.output.maxMaxOffset = max(self.output.maxMaxOffset, 0)     # avoid -inf as maximum
+                    self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf   # replace (-inf) by (inf) for min values
 
-                self.minMaxOffset = self.survey.output.maxOffset.min()          # calc min offset against min (inf) values
-                self.survey.output.maxOffset[self.survey.output.maxOffset == np.Inf] = np.NINF              # replace (inf) by (-inf) for max values
-                self.appendLogMessage(f'Loaded : . . . Max-offset: Min:{self.minMaxOffset:.2f}m - Max:{self.maxMaxOffset:.2f}m ')
+                    self.output.minMaxOffset = self.output.maxOffset.min()          # calc min offset against min (inf) values
+                    self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF   # replace (inf) by (-inf) for max values
+                    self.appendLogMessage(f'Loaded : . . . Max-offset: Min:{self.output.minMaxOffset:.2f}m - Max:{self.output.maxMaxOffset:.2f}m ')
             else:
-                self.survey.output.maxOffset = None
+                self.output.maxOffset = None
 
             if os.path.exists(self.fileName + '.rms.npy'):                      # load the existing max-offsets file
-                self.survey.output.rmsOffset = np.load(self.fileName + '.rms.npy')
-                self.maxRmsOffset = self.survey.output.rmsOffset.max()          # calc max offset against max (-inf) values
-                self.minRmsOffset = self.survey.output.rmsOffset.min()                        # calc min offset against min (inf) values
-                self.minRmsOffset = max(self.minRmsOffset, 0)                   # avoid -inf as maximum
-                self.appendLogMessage(f'Loaded : . . . Rms-offset: Min:{self.minRmsOffset:.2f}m - Max:{self.maxRmsOffset:.2f}m ')
-            else:
-                self.survey.output.rmsOffset = None
+                self.output.rmsOffset = np.load(self.fileName + '.rms.npy')
+                nX = self.output.rmsOffset.shape[0]                             # check against nx, ny
+                nY = self.output.rmsOffset.shape[1]                             # check against nx, ny
 
-            if os.path.exists(self.fileName + '.ana.npy'):                      # open the existing analysis file
-
-                if self.survey.grid.fold > 0:
-                    fold = self.survey.grid.fold                                # fold is defined by the grid's fold
+                if nx != nX or ny != nY:
+                    self.appendLogMessage('Loaded : . . . Rms-offset: Wrong dimensions, compared to analysis area - file ignored')
                 else:
-                    fold = self.maximumFold                                     # fold is defined by observed maxfold in bin file
+                    self.output.maxRmsOffset = self.output.rmsOffset.max()          # calc max offset against max (-inf) values
+                    self.output.minRmsOffset = self.output.rmsOffset.min()          # calc min offset against min (inf) values
+                    self.output.minRmsOffset = max(self.output.minRmsOffset, 0)     # avoid -inf as maximum
+                    self.appendLogMessage(f'Loaded : . . . Rms-offset: Min:{self.output.minRmsOffset:.2f}m - Max:{self.output.maxRmsOffset:.2f}m ')
+            else:
+                self.output.rmsOffset = None
 
-                if fold > 0:
+            if self.output.binOutput is not None and os.path.exists(self.fileName + '.ana.npy'):   # only open the analysis file if binning file exists
+                try:
+
+                    if self.survey.grid.fold > 0:
+                        fold = self.survey.grid.fold                            # fold is defined by the grid's fold (preferred)
+                    else:
+                        fold = self.maximumFold                                 # fold is defined by observed maxfold in bin file
+
                     ### if we had a large memmap file open earlier; close it and call the garbage collector
-                    if self.survey.output.anaOutput is not None:
-                        del self.survey.output.anaOutput                        # delete self.survey.output.anaOutput array with detailed results
-                        self.D2_Output = None                                   # remove reference to self.survey.output.anaOutput
-                        self.survey.output.anaOutput = None                     # remove self.survey.output.anaOutput itself
+                    if self.output.anaOutput is not None:
+                        self.output.D2_Output = None                            # remove reference to self.output.anaOutput
+                        del self.output.anaOutput                               # delete self.output.anaOutput array with detailed results
+                        self.output.anaOutput = None                            # remove self.output.anaOutput itself
                         gc.collect()                                            # start the garbage collector to free up some space
 
-                    w = self.survey.output.rctOutput.width()
-                    h = self.survey.output.rctOutput.height()
-                    dx = self.survey.grid.binSize.x()
-                    dy = self.survey.grid.binSize.y()
+                    # self.output.anaOutput = np.lib.format.open_memmap(self.fileName + '.ana.npy', mode='r+', dtype=np.float32, shape=None)
+                    self.output.anaOutput = np.memmap(self.fileName + '.ana.npy', dtype=np.float32, mode='r+', shape=(nx, ny, fold, 13))
+                    nT = self.output.anaOutput.size                             # total size of array in Nr of elements
 
-                    nx = round(w / dx)
-                    ny = round(h / dy)
+                    # we know the (supposed) size of the binning area, and nr of columns in the file. Therefore
+                    delta = nT - (nx * ny * fold * 13)
 
-                    # Note also numpy.load can be used to access a file from disk, in a memory-mapped mode
-                    # See: https://numpy.org/doc/stable/reference/generated/numpy.load.html
-                    anaFileName = self.fileName + '.ana.npy'
-                    self.survey.output.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r+', shape=(nx, ny, fold, 13))
+                    if delta != 0:
+                        self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: mismatch in trace table compared to fold {fold:,} x-size {nx}, and y-size {ny}. Please rerun extended analysis', MsgType.Error)
+                        self.output.D2_Output = None                            # remove reference to self.output.anaOutput
+                        self.output.anaOutput = None                            # remove self.output.anaOutput itself
+                        self.anaModel.setData(None)                             # use this as the model data
+                    else:
+                        self.output.D2_Output = self.output.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
+                        self.anaModel.setData(self.output.D2_Output)                    # use this as the model data
 
-                    self.D2_Output = self.survey.output.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
-                    self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.D2_Output.shape[0]:,} traces (reserved space)')
-                    # print(self.survey.output.anaOutput)
-                    # for i in range(nx):
-                    #     for j in range(ny):
-                    #         for k in range(fold):
-                    #             print (self.survey.output.anaOutput[i, j, k])
-                else:
+                    if self.output.maximumFold > fold:
+                        self.appendLogMessage(
+                            f'Loaded : . . . Analysis &nbsp;: observed fold in in binning file {self.output.maximumFold:,} larger than allowed in trace table {fold:,} missing traces in spider plot !'
+                        )
+
+                    self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces (reserved space)')
+                except ValueError:
+                    self.appendLogMessage(f"Loaded : . . . Analysis &nbsp;: read error {self.fileName + '.ana.npy'}")
                     self.anaModel.setData(None)
-                    self.D2_Output = None
-                    self.survey.output.anaOutput = None
+                    self.output.D2_Output = None
+                    self.output.anaOutput = None
             else:
                 self.anaModel.setData(None)
-                self.D2_Output = None
-                self.survey.output.anaOutput = None
+                self.output.D2_Output = None
+                self.output.anaOutput = None
 
-            self.anaModel.setData(self.D2_Output)                               # use this as the model data
-            self.anaView.resizeColumnsToContents()                              # resize the columns of the view
+            # unfortunately the 'standard' QTableView widget does not like too large a dataset
+            if self.output.D2_Output is not None and self.output.D2_Output.shape[0] > config.maxAnalysisRows:
+                self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces; too large to display in Trace Table', MsgType.Error)
+                self.anaModel.setData(None)                                     # we can still use self.output.D2_Output and self.output.anaOutput; we just can't display the trace table
+            else:
+                self.anaModel.setData(self.output.D2_Output)                    # use this as the model data
 
             if os.path.exists(self.fileName + '.rps.npy'):                      # open the existing rps-file
                 self.rpsImport = np.load(self.fileName + '.rps.npy')
@@ -3420,10 +3569,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         index = self.anaView.model().index(0, 0)                                # turn offset into index
         self.anaView.scrollTo(index)                                            # scroll to the first trace in the trace table
         self.anaView.selectRow(0)                                               # for the time being, *only* select first row of traces in a bin
+
         self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
         self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
         self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
-        self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the 'xml' tab
+        self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the Layout tab
 
         # self.plotLayout()                                                     # plot the survey object
         self.resetSurveyProperties()                                            # get the new parameters into the parameter tree
@@ -3657,17 +3807,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             file.close()
 
             # try to save the analysis files as well
-            if self.survey.output.binOutput is not None:
-                np.save(self.fileName + '.bin.npy', self.survey.output.binOutput)   # numpy array with fold map
+            if self.output.binOutput is not None:
+                np.save(self.fileName + '.bin.npy', self.output.binOutput)   # numpy array with fold map
 
-            if self.survey.output.minOffset is not None:
-                np.save(self.fileName + '.min.npy', self.survey.output.minOffset)   # numpy array with min-offset map
+            if self.output.minOffset is not None:
+                np.save(self.fileName + '.min.npy', self.output.minOffset)   # numpy array with min-offset map
 
-            if self.survey.output.maxOffset is not None:
-                np.save(self.fileName + '.max.npy', self.survey.output.maxOffset)   # numpy array with max-offset map
+            if self.output.maxOffset is not None:
+                np.save(self.fileName + '.max.npy', self.output.maxOffset)   # numpy array with max-offset map
 
-            if self.survey.output.rmsOffset is not None:
-                np.save(self.fileName + '.rms.npy', self.survey.output.rmsOffset)   # numpy array with max-offset map
+            if self.output.rmsOffset is not None:
+                np.save(self.fileName + '.rms.npy', self.output.rmsOffset)   # numpy array with max-offset map
 
             if self.rpsImport is not None:
                 np.save(self.fileName + '.rps.npy', self.rpsImport)             # numpy array with list of RPS records
@@ -3755,11 +3905,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         hdr = asstr(delimiter).join(map(asstr, self.anaModel.getHeader()))     # one-liner (from numpy) to assemble header
         fmt = self.anaModel.getFormat()
-        data = self.D2_Output
+        data = self.output.D2_Output
 
         with pg.BusyCursor():
             np.savetxt(fn, data, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
-            self.appendLogMessage(f"Export : exported {self.D2_Output.shape[0]:,} lines to '{fn}'")
+            self.appendLogMessage(f"Export : exported {self.output.D2_Output.shape[0]:,} lines to '{fn}'")
 
     def fileExportRecAsCsv(self):
 
@@ -4073,12 +4223,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         return True
 
     def prepFullBinningConditions(self):
-        if self.survey.output.anaOutput is not None:                                          # get rid of current memory mapped array first
-            self.survey.output.anaOutput.flush()                                              # write all stuff to disk
-            del self.survey.output.anaOutput                                                  # delete object
-            self.D2_Output = None                                               # remove reference to self.survey.output.anaOutput
-            self.survey.output.anaOutput = None                                               # remove self.survey.output.anaOutput itself
-            gc.collect()                                                        # free up memory as much as possible
+        if self.output.anaOutput is not None:                                   # get rid of current memory mapped array first
+            self.anaModel.setData(None)                                         # first remove reference to self.output.anaOutput
+            self.output.D2_Output = None                                        # flattened reference to self.output.anaOutput
+
+            self.output.anaOutput.flush()                                       # make sure all data is written to disk
+            del self.output.anaOutput                                           # try to delete the object
+            self.output.anaOutput = None                                        # the object was deleted; reinstate the None version
+            gc.collect()                                                        # get the garbage collector going
 
         # prepare for a new memory mapped object; calculate memmap size
         w = self.survey.output.rctOutput.width()
@@ -4097,12 +4249,24 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         try:
             anaFileName = self.fileName + '.ana.npy'
             if os.path.exists(anaFileName):
-                self.survey.output.anaOutput = np.memmap(anaFileName, shape=(nx, ny, fold, 13), dtype=np.float32, mode='r+')
-            else:
-                self.survey.output.anaOutput = np.memmap(anaFileName, shape=(nx, ny, fold, 13), dtype=np.float32, mode='w+')
-            self.survey.output.anaOutput.fill(0.0)                                            # enforce zero values for all elements
+                # self.output.anaOutput = np.lib.format.open_memmap(anaFileName, mode='r+', dtype=np.float32, shape=(nx, ny, fold, 13))
+                self.output.anaOutput = np.memmap(anaFileName, shape=(nx, ny, fold, 13), dtype=np.float32, mode='r+')
 
-            # self.D2_output = self.survey.output.anaOutput.reshape(nx * ny * fold, 13)
+            else:
+                # self.output.anaOutput = np.lib.format.open_memmap(anaFileName, mode='w+', dtype=np.float32, shape=(nx, ny, fold, 13))
+                self.output.anaOutput = np.memmap(anaFileName, shape=(nx, ny, fold, 13), dtype=np.float32, mode='w+')
+            self.output.anaOutput.fill(0.0)                                            # enforce zero values for all elements
+
+            nX = self.output.anaOutput.shape[0]                             # check against nx, ny
+            nY = self.output.anaOutput.shape[1]                             # check against nx, ny
+            nZ = self.output.anaOutput.shape[2]                             # fold
+            nC = self.output.anaOutput.shape[3]                             # columns
+
+            if nx != nX or ny != nY or nZ != fold or nC != 13:
+                self.appendLogMessage('Thread : memory mapped file size error while allocating memory', MsgType.Error)
+                return False
+
+            # self.D2_output = self.output.anaOutput.reshape(nx * ny * fold, 13)
             # self.D2_output[:,:] = 0.0
 
         except MemoryError as e:
@@ -4164,7 +4328,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.worker.setExtended(fullAnalysis)
 
         # pass the memory mapped file to worker
-        self.worker.setMemMappedFile(self.survey.output.anaOutput)
+        self.worker.setMemMappedFile(self.output.anaOutput)
 
         # Step 4: Move worker to the thread
         self.worker.moveToThread(self.thread)
@@ -4213,7 +4377,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.worker.setExtended(fullAnalysis)
 
         # pass the memory mapped file to worker
-        self.worker.setMemMappedFile(self.survey.output.anaOutput)
+        self.worker.setMemMappedFile(self.output.anaOutput)
 
         # Pass the geometry tables, in same order as used in the Geometry tab
         self.worker.setGeometryArrays(self.srcGeom, self.relGeom, self.recGeom)
@@ -4265,7 +4429,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.worker.setExtended(fullAnalysis)
 
         # pass the memory mapped file to worker
-        self.worker.setMemMappedFile(self.survey.output.anaOutput)
+        self.worker.setMemMappedFile(self.output.anaOutput)
 
         # Pass the geometry tables, in same order as used in the Geometry tab
         self.worker.setGeometryArrays(self.spsImport, self.xpsImport, self.rpsImport)
@@ -4342,30 +4506,30 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             QMessageBox.information(self, 'Interrupted', 'Worker thread aborted')
         else:
             # copy analysis arrays from worker
-            self.survey.output.binOutput = self.worker.survey.output.binOutput.copy()       # create a copy; not a view of the array(s)
-            self.survey.output.minOffset = self.worker.survey.output.minOffset.copy()
-            self.survey.output.maxOffset = self.worker.survey.output.maxOffset.copy()
+            self.output.binOutput = self.worker.survey.output.binOutput.copy()  # create a copy; not a view of the array(s)
+            self.output.minOffset = self.worker.survey.output.minOffset.copy()
+            self.output.maxOffset = self.worker.survey.output.maxOffset.copy()
 
             if self.worker.survey.output.anaOutput is not None:                             # extended binning
-                self.survey.output.rmsOffset = self.worker.survey.output.rmsOffset.copy()   # only defined in extended binning
-                self.survey.output.anaOutput = self.worker.survey.output.anaOutput.copy()   # results from full binning analysis
-                shape = self.survey.output.anaOutput.shape
-                self.D2_Output = self.survey.output.anaOutput.reshape(shape[0] * shape[1] * shape[2], shape[3])
-                self.anaModel.setData(self.D2_Output)
-                self.anaView.resizeColumnsToContents()
+                self.output.rmsOffset = self.worker.survey.output.rmsOffset.copy()   # only defined in extended binning
+                self.output.anaOutput = self.worker.survey.output.anaOutput.copy()   # results from full binning analysis
+                shape = self.output.anaOutput.shape
+                self.output.D2_Output = self.output.anaOutput.reshape(shape[0] * shape[1] * shape[2], shape[3])
+                self.anaModel.setData(self.output.D2_Output)
+                # self.anaView.resizeColumnsToContents()
 
             # copy limits from worker; avoid -inf values
-            self.minimumFold = max(self.worker.survey.output.minimumFold, 0)
-            self.maximumFold = max(self.worker.survey.output.maximumFold, 0)
-            self.minMinOffset = max(self.worker.survey.output.minMinOffset, 0)
-            self.maxMinOffset = max(self.worker.survey.output.maxMinOffset, 0)
-            self.minMaxOffset = max(self.worker.survey.output.minMaxOffset, 0)
-            self.maxMaxOffset = max(self.worker.survey.output.maxMaxOffset, 0)
-            self.minRmsOffset = max(self.worker.survey.output.minRmsOffset, 0)
-            self.maxRmsOffset = max(self.worker.survey.output.maxRmsOffset, 0)
+            self.output.minimumFold = max(self.worker.survey.output.minimumFold, 0)
+            self.output.maximumFold = max(self.worker.survey.output.maximumFold, 0)
+            self.output.minMinOffset = max(self.worker.survey.output.minMinOffset, 0)
+            self.output.maxMinOffset = max(self.worker.survey.output.maxMinOffset, 0)
+            self.output.minMaxOffset = max(self.worker.survey.output.minMaxOffset, 0)
+            self.output.maxMaxOffset = max(self.worker.survey.output.maxMaxOffset, 0)
+            self.output.minRmsOffset = max(self.worker.survey.output.minRmsOffset, 0)
+            self.output.maxRmsOffset = max(self.worker.survey.output.maxRmsOffset, 0)
 
             if self.survey.grid.fold <= 0:
-                self.survey.grid.fold = self.maximumFold                        # make sure we have a workable fold value next time around
+                self.survey.grid.fold = self.output.maximumFold                        # make sure we have a workable fold value next time around
 
                 # now we need to update the fold value in the text edit as well
                 plainText = self.survey.toXmlString()                           # convert the survey object itself to an xml string
@@ -4377,20 +4541,20 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.imageType = 1                                              # set analysis type to one (fold)
 
             if self.imageType == 1:
-                self.layoutImg = self.survey.output.binOutput
-                self.layoutMax = self.maximumFold
+                self.layoutImg = self.output.binOutput
+                self.layoutMax = self.output.maximumFold
                 label = 'fold'
             elif self.imageType == 2:
-                self.layoutImg = self.survey.output.minOffset
-                self.layoutMax = self.maxMinOffset
+                self.layoutImg = self.output.minOffset
+                self.layoutMax = self.output.maxMinOffset
                 label = 'minimum offset'
             elif self.imageType == 3:
-                self.layoutImg = self.survey.output.maxOffset
-                self.layoutMax = self.maxMaxOffset
+                self.layoutImg = self.output.maxOffset
+                self.layoutMax = self.output.maxMaxOffset
                 label = 'maximum offset'
             elif self.imageType == 4:
-                self.layoutImg = self.survey.output.rmsOffset
-                self.layoutMax = self.maxRmsOffset
+                self.layoutImg = self.output.rmsOffset
+                self.layoutMax = self.output.maxRmsOffset
                 label = 'rms delta-offset'
             else:
                 raise NotImplementedError('selected analysis type currently not implemented.')
@@ -4416,12 +4580,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             elapsed = timedelta(seconds=ceil(elapsed.total_seconds()))          # round up to nearest second
 
             self.appendLogMessage(f'Thread : Binning completed. Elapsed time:{elapsed} ', MsgType.Binning)
-            self.appendLogMessage(f'Thread : . . . Fold&nbsp; &nbsp; &nbsp; &nbsp;: Min:{self.minimumFold} - Max:{self.maximumFold} ', MsgType.Binning)
-            self.appendLogMessage(f'Thread : . . . Min-offsets: Min:{self.minMinOffset:.2f}m - Max:{self.maxMinOffset:.2f}m ', MsgType.Binning)
-            self.appendLogMessage(f'Thread : . . . Max-offsets: Min:{self.minMaxOffset:.2f}m - Max:{self.maxMaxOffset:.2f}m ', MsgType.Binning)
+            self.appendLogMessage(f'Thread : . . . Fold&nbsp; &nbsp; &nbsp; &nbsp;: Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ', MsgType.Binning)
+            self.appendLogMessage(f'Thread : . . . Min-offsets: Min:{self.output.minMinOffset:.2f}m - Max:{self.output.maxMinOffset:.2f}m ', MsgType.Binning)
+            self.appendLogMessage(f'Thread : . . . Max-offsets: Min:{self.output.minMaxOffset:.2f}m - Max:{self.output.maxMaxOffset:.2f}m ', MsgType.Binning)
 
-            if self.survey.output.rmsOffset is not None:                        # only do this for "Full binning"
-                self.appendLogMessage(f'Thread : . . . Rms-offsets: Min:{self.minRmsOffset:.2f}m - Max:{self.maxRmsOffset:.2f}m ', MsgType.Binning)
+            if self.output.rmsOffset is not None:                        # only do this for "Full binning"
+                self.appendLogMessage(f'Thread : . . . Rms-offsets: Min:{self.output.minRmsOffset:.2f}m - Max:{self.output.maxRmsOffset:.2f}m ', MsgType.Binning)
 
             info = ''
             if not self.fileName:
@@ -4430,13 +4594,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 info = 'Analysis results are yet to be saved.'
             else:
                 # Save the analysis results
-                np.save(self.fileName + '.bin.npy', self.survey.output.binOutput)
-                np.save(self.fileName + '.min.npy', self.survey.output.minOffset)
-                np.save(self.fileName + '.max.npy', self.survey.output.maxOffset)
+                np.save(self.fileName + '.bin.npy', self.output.binOutput)
+                np.save(self.fileName + '.min.npy', self.output.minOffset)
+                np.save(self.fileName + '.max.npy', self.output.maxOffset)
 
                 # Note, the rms offset results are only available with extended binning
-                if self.survey.output.rmsOffset is not None:                    # only do this for "Full binning"
-                    np.save(self.fileName + '.rms.npy', self.survey.output.rmsOffset)
+                if self.output.rmsOffset is not None:                    # only do this for "Full binning"
+                    np.save(self.fileName + '.rms.npy', self.output.rmsOffset)
 
                 info = 'Analysis results have been saved.'
 

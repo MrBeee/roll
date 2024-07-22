@@ -65,8 +65,13 @@ class AnaTableModel(QAbstractTableModel):
             return QFont('Arial', 8, QFont.Normal)
 
     def setData(self, data):
+        # self.beginResetModel()                                                  # https://doc.qt.io/qt-6/qabstractitemmodel.html#beginResetModel
         self._data = data
-        self.layoutChanged.emit()
+        self.layoutChanged.emit()                                               # needed to indicate that 'model' has changed
+
+        # TL = QModelIndex(self.anaView.model().index(0, 0))
+        # BR = QModelIndex(self.anaView.model().index(offset + fold - 1, 0))
+        # self.dataChanged.emit(TL, BR)                                                 # needed to indicate that 'model' has changed
 
     def getData(self):
         return self._data
@@ -103,7 +108,7 @@ class AnaTableModel(QAbstractTableModel):
             return self._data.shape[1]
         if self._header is not None:
             return len(self._header)
-        return 10
+        return 13
 
     def nextDuplicate(self, _):                                                 # index not used and replaced by _
         return None
@@ -130,12 +135,12 @@ class TableView(QTableView):
         self.setMinimumSize(100, 100)
         self.installEventFilter(self)
         self.setAlternatingRowColors(True)
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         # Can't use these lines here; header needs to exist already
         # self.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
         # self.horizontalHeader().setSectionResizeMode(3, QHeaderView.Fixed)
-        self.horizontalHeader().setMinimumSectionSize(20)
-        self.horizontalHeader().setDefaultSectionSize(40)
+        self.horizontalHeader().setMinimumSectionSize(0)
+        self.horizontalHeader().setDefaultSectionSize(20)
 
         # don't allow selecting columns in a large virtual table; instead, always select a complete row
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -444,6 +449,14 @@ class TableView(QTableView):
 
 # arr = arr[:sliceLocation+1]
 # idx = np.where(arr==0)[0][-1]
+
+# On dealing with very large tables
+# See: http://doc.qt.io/qt-5/qtwidgets-itemviews-fetchmore-example.html
+# See: https://stackoverflow.com/questions/28033633/using-large-record-set-with-qtableview-and-qabstracttablemodel-retrieve-visib
+# See: https://forum.qt.io/topic/96814/how-set-height-of-all-rows-qtableview
+# Note: resizeColumnsToContents() Appears to be very very slow for large datasets
+#
+# See: https://github.com/ajenter/qt_hugelistview/blob/tableview-experiment/src/main.cpp
 
 
 class RpsTableModel(QAbstractTableModel):

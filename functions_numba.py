@@ -132,7 +132,7 @@ def numbaNdft_2D(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offse
 
     xyCellStk = np.zeros(shape=(nX, nY), dtype=np.float32)  # start with empty array of the right size and type
 
-    for x in range(nX):
+    for x in range(nX):                                                         # execute 3 loops; x, y, fold
         for y in range(nY):
             response = 0.0
             for p in range(nP):
@@ -148,8 +148,8 @@ def numbaNdft_2D(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offse
 
 @nb.jit(nopython=True)
 def numbaOffInline(slice2D: np.ndarray, ox: float):
-    x__Inline = slice2D[:, 7]                                       # get all available cmp values belonging to this row
-    offInline = slice2D[:, 10]                                      # get all available offsets belonging to this row
+    x__Inline = slice2D[:, 7]                                                   # get all available cmp values belonging to this row
+    offInline = slice2D[:, 10]                                                  # get all available offsets belonging to this row
 
     x = np.empty((2 * x__Inline.size), dtype=x__Inline.dtype)
     x[0::2] = x__Inline - ox
@@ -164,8 +164,8 @@ def numbaOffInline(slice2D: np.ndarray, ox: float):
 
 @nb.jit(nopython=True)
 def numbaOffX_line(slice2D: np.ndarray, oy: float):
-    y__Inline = slice2D[:, 8]                                       # get all available cmp values belonging to this row
-    offInline = slice2D[:, 10]                                      # get all available offsets belonging to this row
+    y__Inline = slice2D[:, 8]                                                   # get all available cmp values belonging to this row
+    offInline = slice2D[:, 10]                                                  # get all available offsets belonging to this row
 
     x = np.empty((2 * y__Inline.size), dtype=y__Inline.dtype)
     x[0::2] = y__Inline - oy
@@ -180,8 +180,8 @@ def numbaOffX_line(slice2D: np.ndarray, oy: float):
 
 @nb.jit(nopython=True)
 def numbaAziInline(slice2D: np.ndarray, ox: float):
-    x__Inline = slice2D[:, 7]                                       # get all available cmp values belonging to this row
-    offInline = slice2D[:, 11]                                      # get all available azimuths belonging to this row
+    x__Inline = slice2D[:, 7]                                                   # get all available cmp values belonging to this row
+    offInline = slice2D[:, 11]                                                  # get all available azimuths belonging to this row
 
     x = np.empty((2 * x__Inline.size), dtype=x__Inline.dtype)
     x[0::2] = x__Inline - ox
@@ -196,8 +196,8 @@ def numbaAziInline(slice2D: np.ndarray, ox: float):
 
 @nb.jit(nopython=True)
 def numbaAziX_line(slice2D: np.ndarray, oy: float):
-    y__Inline = slice2D[:, 8]                                       # get all available cmp values belonging to this row
-    offInline = slice2D[:, 11]                                      # get all available azimuths belonging to this row
+    y__Inline = slice2D[:, 8]                                                   # get all available cmp values belonging to this row
+    offInline = slice2D[:, 11]                                                  # get all available azimuths belonging to this row
 
     x = np.empty((2 * y__Inline.size), dtype=y__Inline.dtype)
     x[0::2] = y__Inline - oy
@@ -212,50 +212,50 @@ def numbaAziX_line(slice2D: np.ndarray, oy: float):
 
 @nb.jit(nopython=True)
 def numbaOffsetBin(slice2D: np.ndarray, unique=False):
-    if unique is True:                                              # we'd like to use unique offsets
-        havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
-        useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
+    if unique is True:                                                          # we'd like to use unique offsets
+        havUnique = slice2D[:, 12]                                              # get all available cmp values belonging to this row
+        useUnique = True if havUnique.min() == -1 else False                    # are there any -1 records ?
     else:
-        useUnique = False                                           # unique not required or not available
+        useUnique = False                                                       # unique not required or not available
 
     if useUnique:
-        I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
+        I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)                        # fold > 0 AND unique == -1
     else:
-        I = slice2D[:, 2] > 0                                       # fold > 0
+        I = slice2D[:, 2] > 0                                                   # fold > 0
 
     noData = np.count_nonzero(I) == 0
     if noData:
-        return (None, None, noData)                                   # nothing to show; return
+        return (None, None, noData)                                             # nothing to show; return
 
-    slice2D = slice2D[I, :]                                         # filter the 2D slice
+    slice2D = slice2D[I, :]                                                     # filter the 2D slice
 
-    offsetX = slice2D[:, 5] - slice2D[:, 3]                         # x-component of available offsets
-    offsetY = slice2D[:, 6] - slice2D[:, 4]                         # y-component of available offsets
+    offsetX = slice2D[:, 5] - slice2D[:, 3]                                     # x-component of available offsets
+    offsetY = slice2D[:, 6] - slice2D[:, 4]                                     # y-component of available offsets
 
     return (offsetX, offsetY, noData)
 
 
 @nb.jit(nopython=True)
-def numbaSpiderBin(slice2D: np.ndarray):                            # slicing should already have reduced fold to account for unique fold, if need be
+def numbaSpiderBin(slice2D: np.ndarray):                                        # slicing should already have reduced fold to account for unique fold, if need be
 
     foldX2 = slice2D.shape[0] * 2
 
-    spiderSrcX = np.zeros(shape=foldX2, dtype=np.float32)           # needed to display data points
-    spiderSrcY = np.zeros(shape=foldX2, dtype=np.float32)           # needed to display data points
-    spiderRecX = np.zeros(shape=foldX2, dtype=np.float32)           # needed to display data points
-    spiderRecY = np.zeros(shape=foldX2, dtype=np.float32)           # needed to display data points
+    spiderSrcX = np.zeros(shape=foldX2, dtype=np.float32)                       # needed to display data points
+    spiderSrcY = np.zeros(shape=foldX2, dtype=np.float32)                       # needed to display data points
+    spiderRecX = np.zeros(shape=foldX2, dtype=np.float32)                       # needed to display data points
+    spiderRecY = np.zeros(shape=foldX2, dtype=np.float32)                       # needed to display data points
 
-    spiderSrcX[0::2] = slice2D[:, 3]                                # src-x
-    spiderSrcX[1::2] = slice2D[:, 7]                                # src-x
+    spiderSrcX[0::2] = slice2D[:, 3]                                            # src-x
+    spiderSrcX[1::2] = slice2D[:, 7]                                            # src-x
 
-    spiderSrcY[0::2] = slice2D[:, 4]                                # src-y
-    spiderSrcY[1::2] = slice2D[:, 8]                                # src-y
+    spiderSrcY[0::2] = slice2D[:, 4]                                            # src-y
+    spiderSrcY[1::2] = slice2D[:, 8]                                            # src-y
 
-    spiderRecX[0::2] = slice2D[:, 5]                                # rec-x
-    spiderRecX[1::2] = slice2D[:, 7]                                # rec-x
+    spiderRecX[0::2] = slice2D[:, 5]                                            # rec-x
+    spiderRecX[1::2] = slice2D[:, 7]                                            # rec-x
 
-    spiderRecY[0::2] = slice2D[:, 6]                                # rec-y
-    spiderRecY[1::2] = slice2D[:, 8]                                # rec-y
+    spiderRecY[0::2] = slice2D[:, 6]                                            # rec-y
+    spiderRecY[1::2] = slice2D[:, 8]                                            # rec-y
 
     return (spiderSrcX, spiderSrcY, spiderRecX, spiderRecY)
 
