@@ -5,8 +5,10 @@ import pyqtgraph as pg
 
 # from numpy.compat import asstr
 from qgis.PyQt.QtCore import QFile, QIODevice, QTextStream
+from qgis.PyQt.QtGui import QColor, qAlpha, qBlue, qGreen, qRed
 from qgis.PyQt.QtWidgets import QFileDialog
 
+from . import config  # used to pass initial settings
 from .functions import toFloat, toInt
 
 # sps file formats
@@ -883,51 +885,25 @@ def calculateLineStakeTransform(spsImport) -> []:
     # YS =  B0' + B1' * XT  +  B2' * YT
 
 
-def getRecGeometry(recGeom, connect=False):
-    if recGeom is None:
-        return (None, None, None)
-
-    nRec = recGeom.shape[0]
-    recCoordE = np.zeros(shape=nRec, dtype=np.float32)                          # needed to display data points
-    recCoordN = np.zeros(shape=nRec, dtype=np.float32)
-    recCoordI = None
-
-    recCoordE = recGeom['East']                                                 # initialize northings and eastings
-    recCoordN = recGeom['North']
-
-    # source_list = [8, 4, 7, 3, 6, 1, 9]
-    # for x in source_list[:-1]:
-    #     print(x)
-
-    if connect:
-        recCoordI = np.zeros(shape=nRec, dtype=np.int32)
-        lines = recGeom['Line']
-        for index, line in enumerate(lines[:-1]):                               # do this for all points, apart from the last one
-            nextLine = lines[index + 1]
-            if line == nextLine:
-                recCoordI[index] = 1                                            # yes; they sit on the same rec line
-
-    return (recCoordE, recCoordN, recCoordI)
-
-
-def getSrcGeometry(srcGeom, connect=False):
+def getGeometry(srcGeom, color=QColor('crimson'), grey=QColor('mintcream')):
     if srcGeom is None:
         return (None, None, None)
 
     nSrc = srcGeom.shape[0]
     srcCoordE = np.zeros(shape=nSrc, dtype=np.float32)                          # needed to display data points
     srcCoordN = np.zeros(shape=nSrc, dtype=np.float32)
-    srcCoordI = None
+    srcColors = color
 
     srcCoordE = srcGeom['East']                                                 # initialize northings and eastings
     srcCoordN = srcGeom['North']
 
-    if connect:
-        srcCoordI = np.zeros(shape=nSrc, dtype=np.int32)
-        lines = srcGeom['Point']
-        for index, line in enumerate(lines[:-1]):                               # do this for all points, apart from the last one
-            nextLine = lines[index + 1]
-            if line == nextLine:
-                srcCoordI[index] = 1                                            # yes; they sit on the same src line
+    if srcGeom['InUse'].min() != srcGeom['InUse'].max():                        # not all are equal
+        srcColors = []                                                          # create empty list of colors
 
-    return (srcCoordE, srcCoordN, srcCoordI)
+        for index, _ in enumerate(srcGeom['InUse']):                            # iterate over all points
+            if srcGeom['InUse'][index] > 0:                                     # point is being used
+                srcColors.append(color)                                         # active brush
+            else:
+                srcColors.append(grey)                                          # inactive brush
+
+    return (srcCoordE, srcCoordN, srcColors)

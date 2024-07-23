@@ -89,10 +89,12 @@ analysisCmap = 'CET-R4'                                                         
 inActiveCmap = 'CET-L1'                                                         # used when no imageItem is available
 
 # RPS, SPS point format
+rpsBrushGrey = '#77F0F0F0'                                                      # used for inactive stations
 rpsBrushColor = '#772929FF'
 rpsPointSymbol = 'o'
 rpsSymbolSize = 25
 
+spsBrushGrey = '#77F0F0F0'                                                      # used for inactive stations
 spsBrushColor = '#77FF2929'
 spsPointSymbol = 'o'
 spsSymbolSize = 25

@@ -151,8 +151,7 @@ from .sps_io_and_qc import (
     fileExportAsX01,
     findRecOrphans,
     findSrcOrphans,
-    getRecGeometry,
-    getSrcGeometry,
+    getGeometry,
     markUniqueRPSrecords,
     markUniqueSPSrecords,
     markUniqueXPSrecords,
@@ -326,11 +325,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.rpsCoordE = None                                                   # numpy array with list of RPS coordinates
         self.rpsCoordN = None                                                   # numpy array with list of RPS coordinates
-        self.rpsCoordI = None                                                   # numpy array with list of RPS connections
+        self.rpsColors = None                                                   # list of RPS QColor active status-es
 
         self.spsCoordE = None                                                   # numpy array with list of SPS coordinates
         self.spsCoordN = None                                                   # numpy array with list of SPS coordinates
-        self.spsCoordI = None                                                   # numpy array with list of SPS connections
+        self.spsColors = None                                                   #  list of RPS QColor active status-es
 
         # rel, src, rel input arrays
         self.recGeom = None                                                     # numpy array with list of REC records
@@ -339,11 +338,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.recCoordE = None                                                   # numpy array with list of REC coordinates
         self.recCoordN = None                                                   # numpy array with list of REC coordinates
-        self.recCoordI = None                                                   # numpy array with list of REC connections
+        self.recColors = None                                                   # list of RPS QColor active status-es
 
         self.srcCoordE = None                                                   # numpy array with list of SRC coordinates
         self.srcCoordN = None                                                   # numpy array with list of SRC coordinates
-        self.srcCoordI = None                                                   # numpy array with list of SRC connections
+        self.srcColors = None                                                   # list of RPS QColor active status-es
 
         # spider plot settings
         self.spiderPoint = QPoint(-1, -1)                                       # spider point 'out of scope'
@@ -1790,7 +1789,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsImport, before, after = deletePntDuplicates(self.rpsImport)
         self.rpsModel.setData(self.rpsImport)                                   # update the model's data
         if after < before:                                                      # need to update the (x, y) points as well
-            self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
+            self.rpsCoordE, self.rpsCoordN, self.rpsColors = getGeometry(self.rpsImport, QColor(config.rpsBrushColor), QColor(config.rpsBrushGrey))
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps-duplicates')
@@ -1802,7 +1801,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsImport, before, after = deletePntDuplicates(self.spsImport)
         self.spsModel.setData(self.spsImport)
         if after < before:
-            self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
+            self.spsCoordE, self.spsCoordN, self.spsColors = getGeometry(self.spsImport, QColor(config.spsBrushColor), QColor(config.spsBrushGrey))
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps-duplicates')
@@ -1814,7 +1813,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsImport, before, after = deletePntOrphans(self.rpsImport)
         self.rpsModel.setData(self.rpsImport)
         if after < before:
-            self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
+            self.rpsCoordE, self.rpsCoordN, self.rpsColors = getGeometry(self.rpsImport, QColor(config.rpsBrushColor), QColor(config.rpsBrushGrey))
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps/xps-orphans')
@@ -1826,7 +1825,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsImport, before, after = deletePntOrphans(self.spsImport)
         self.spsModel.setData(self.spsImport)
         if after < before:
-            self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
+            self.spsCoordE, self.spsCoordN, self.spsColors = getGeometry(self.spsImport, QColor(config.spsBrushColor), QColor(config.spsBrushGrey))
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps/xps-orphans')
@@ -1875,7 +1874,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.recGeom, before, after = deletePntDuplicates(self.recGeom)
         self.recModel.setData(self.recGeom)                                     # update the model's data
         if after < before:                                                      # need to update the (x, y) points as well
-            self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
+            self.recCoordE, self.recCoordN, self.recColors = getGeometry(self.recGeom, QColor(config.recBrushColor), QColor(config.recBrushGrey))
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec-duplicates')
@@ -1887,7 +1886,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.srcGeom, before, after = deletePntDuplicates(self.srcGeom)
         self.srcModel.setData(self.srcGeom)
         if after < before:
-            self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
+            self.srcCoordE, self.srcCoordN, self.srcColors = getGeometry(self.srcGeom, QColor(config.srcBrushColor), QColor(config.srcBrushGrey))
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src-duplicates')
@@ -1899,7 +1898,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.recGeom, before, after = deletePntOrphans(self.recGeom)
         self.recModel.setData(self.recGeom)
         if after < before:
-            self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
+            self.recCoordE, self.recCoordN, self.recColors = getGeometry(self.recGeom, QColor(config.recBrushColor), QColor(config.recBrushGrey))
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec/rel-orphans')
@@ -1911,7 +1910,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.srcGeom, before, after = deletePntOrphans(self.srcGeom)
         self.srcModel.setData(self.srcGeom)
         if after < before:
-            self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
+            self.srcCoordE, self.srcCoordN, self.srcColors = getGeometry(self.srcGeom, QColor(config.srcBrushColor), QColor(config.srcBrushGrey))
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src/rel-orphans')
@@ -2050,7 +2049,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # self.appendLogMessage(f'Import : . . . src-records contain {nRelOrphans:,} xps-orphans')
         # self.appendLogMessage(f'Import : . . . rel-records contain {nSrcOrphans:,} sps-orphans')
 
-        self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
+        self.srcCoordE, self.srcCoordN, self.srcColors = getGeometry(self.srcGeom, QColor(config.srcBrushColor), QColor(config.srcBrushGrey))
 
         self.srcModel.setData(self.srcGeom)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save src data as numpy arrays upon saving the file
@@ -2074,7 +2073,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # self.appendLogMessage(f'Import : . . . rps-records contain {nRelOrphans:,} rel-orphans')
         # self.appendLogMessage(f'Import : . . . xps-records contain {nRecOrphans:,} rec-orphans')
 
-        self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
+        self.recCoordE, self.recCoordN, self.recColors = getGeometry(self.recGeom, QColor(config.recBrushColor), QColor(config.recBrushGrey))
 
         self.recModel.setData(self.recGeom)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save rec data as numpy arrays upon saving the file
@@ -2611,12 +2610,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 spsTransform, _ = self.survey.glbTransform.inverted()
 
-            # sps = self.layoutWidget.plot( x=self.spsCoordE, y=self.spsCoordN, connect=self.spsCoordI, pxMode=False,
-            #                             symbol=config.spsPointSymbol,
-            #                             symbolPen=pg.mkPen("k"),
-            #                             symbolSize=config.spsSymbolSize,
-            #                             symbolBrush=QColor(config.spsBrushColor))
-
             sps = self.layoutWidget.plot(
                 x=self.spsCoordE,
                 y=self.spsCoordN,
@@ -2634,12 +2627,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             rpsTransform = QTransform()                                         # empty (unit) transform
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 rpsTransform, _ = self.survey.glbTransform.inverted()
-
-            # rps = self.layoutWidget.plot( x=self.rpsCoordE, y=self.rpsCoordN, connect=self.rpsCoordI, pxMode=False,
-            #                             symbol=config.rpsPointSymbol,
-            #                             symbolPen=pg.mkPen("k"),
-            #                             symbolSize=config.rpsSymbolSize,
-            #                             symbolBrush=QColor(config.rpsBrushColor ))
 
             rps = self.layoutWidget.plot(
                 x=self.rpsCoordE,
@@ -2662,12 +2649,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             src = self.layoutWidget.plot(
                 x=self.srcCoordE,
                 y=self.srcCoordN,
-                connect=self.srcCoordI,
+                connect='all',
                 pxMode=False,
+                pen=None,
                 symbol=config.srcPointSymbol,
-                symbolPen=pg.mkPen('k'),
+                symbolPen=pg.mkPen('#bdbdbd'),
                 symbolSize=config.srcSymbolSize,
-                symbolBrush=QColor(config.srcBrushColor),
+                symbolBrush=self.srcColors,
             )
             src.setTransform(srcTransform)
 
@@ -2676,7 +2664,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 recTransform, _ = self.survey.glbTransform.inverted()
 
-            # rec = self.layoutWidget.plot( x=self.recCoordE, y=self.recCoordN, connect=self.recCoordI, pxMode=False,
+            # rec = self.layoutWidget.plot( x=self.recCoordE, y=self.recCoordN, connect=self.recColors, pxMode=False,
             #                             symbol=config.recPointSymbol,
             #                             symbolPen=pg.mkPen("k"),
             #                             symbolSize=config.recSymbolSize,
@@ -2689,9 +2677,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 pxMode=False,
                 pen=None,
                 symbol=config.recPointSymbol,
-                symbolPen=pg.mkPen('k'),
+                symbolPen=pg.mkPen('#bdbdbd'),
                 symbolSize=config.recSymbolSize,
-                symbolBrush=QColor(config.recBrushColor),
+                symbolBrush=self.recColors,
             )
             rec.setTransform(recTransform)
 
@@ -3102,11 +3090,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.rpsCoordE = None                                                   # numpy array with list of RPS coordinates
         self.rpsCoordN = None                                                   # numpy array with list of RPS coordinates
-        self.rpsCoordI = None                                                   # numpy array with list of RPS connections
+        self.rpsColors = None                                                   # numpy array with list of RPS connections
 
         self.spsCoordE = None                                                   # numpy array with list of SPS coordinates
         self.spsCoordN = None                                                   # numpy array with list of SPS coordinates
-        self.spsCoordI = None                                                   # numpy array with list of SPS connections
+        self.spsColors = None                                                   # numpy array with list of SPS connections
 
         # rel, src, rel input arrays
         self.recGeom = None                                                     # numpy array with list of REC records
@@ -3115,11 +3103,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.recCoordE = None                                                   # numpy array with list of REC coordinates
         self.recCoordN = None                                                   # numpy array with list of REC coordinates
-        self.recCoordI = None                                                   # numpy array with list of REC connections
+        self.recColors = None                                                   # numpy array with list of REC connections
 
         self.srcCoordE = None                                                   # numpy array with list of SRC coordinates
         self.srcCoordN = None                                                   # numpy array with list of SRC coordinates
-        self.srcCoordI = None                                                   # numpy array with list of SRC connections
+        self.srcColors = None                                                   # numpy array with list of SRC connections
 
         # spider plot settings
         self.spiderPoint = QPoint(-1, -1)                                       # spider point 'out of scope'
@@ -3497,7 +3485,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if os.path.exists(self.fileName + '.rps.npy'):                      # open the existing rps-file
                 self.rpsImport = np.load(self.fileName + '.rps.npy')
-                self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
+                self.rpsCoordE, self.rpsCoordN, self.rpsColors = getGeometry(self.rpsImport, QColor(config.rpsBrushColor), QColor(config.rpsBrushGrey))
 
                 nImport = self.rpsImport.shape[0]
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} rps-records')
@@ -3508,7 +3496,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if os.path.exists(self.fileName + '.sps.npy'):                      # open the existing sps-file
                 self.spsImport = np.load(self.fileName + '.sps.npy')
-                self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
+                self.spsCoordE, self.spsCoordN, self.spsColors = getGeometry(self.spsImport, QColor(config.spsBrushColor), QColor(config.spsBrushGrey))
 
                 nImport = self.spsImport.shape[0]
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} sps-records')
@@ -3527,7 +3515,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if os.path.exists(self.fileName + '.rec.npy'):                      # open the existing rps-file
                 self.recGeom = np.load(self.fileName + '.rec.npy')
-                self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
+                self.recCoordE, self.recCoordN, self.recColors = getGeometry(self.recGeom, QColor(config.recBrushColor), QColor(config.recBrushGrey))
 
                 nImport = self.recGeom.shape[0]
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} rec-records')
@@ -3538,7 +3526,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if os.path.exists(self.fileName + '.src.npy'):                      # open the existing rps-file
                 self.srcGeom = np.load(self.fileName + '.src.npy')
-                self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
+                self.srcCoordE, self.srcCoordN, self.srcColors = getGeometry(self.srcGeom, QColor(config.srcBrushColor), QColor(config.srcBrushGrey))
 
                 nImport = self.srcGeom.shape[0]
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} src-records')
@@ -3719,7 +3707,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Import : . . . from rps info: X = {X[0]:.2f} + {X[2]:.2f} x Nx + {X[4]:.2f} x Ny')
                 self.appendLogMessage(f'Import : . . . from rps info: Y = {X[1]:.2f} + {X[3]:.2f} x Nx + {X[5]:.2f} x Ny')
 
-                self.rpsCoordE, self.rpsCoordN, self.rpsCoordI = getRecGeometry(self.rpsImport, connect=False)
+                self.rpsCoordE, self.rpsCoordN, self.rpsColors = getGeometry(self.rpsImport, QColor(config.rpsBrushColor), QColor(config.rpsBrushGrey))
                 self.tbRpsList.setChecked(True)
 
             if self.spsImport is not None:
@@ -3733,7 +3721,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Import : . . . from sps info: X = {X[0]:.2f} + {X[2]:.2f} x Nx + {X[4]:.2f} x Ny')
                 self.appendLogMessage(f'Import : . . . from sps info: Y = {X[1]:.2f} + {X[3]:.2f} x Nx + {X[5]:.2f} x Ny')
 
-                self.spsCoordE, self.spsCoordN, self.spsCoordI = getSrcGeometry(self.spsImport, connect=False)
+                self.spsCoordE, self.spsCoordN, self.spsColors = getGeometry(self.spsImport, QColor(config.spsBrushColor), QColor(config.spsBrushGrey))
                 self.tbSpsList.setChecked(True)
 
             if self.xpsImport is not None:
@@ -4647,8 +4635,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.relModel.setData(self.relGeom)
             self.srcModel.setData(self.srcGeom)
 
-            self.recCoordE, self.recCoordN, self.recCoordI = getRecGeometry(self.recGeom, connect=False)
-            self.srcCoordE, self.srcCoordN, self.srcCoordI = getSrcGeometry(self.srcGeom, connect=False)
+            self.recCoordE, self.recCoordN, self.recColors = getGeometry(self.recGeom, QColor(config.recBrushColor), QColor(config.recBrushGrey))
+            self.srcCoordE, self.srcCoordN, self.srcColors = getGeometry(self.srcGeom, QColor(config.srcBrushColor), QColor(config.srcBrushGrey))
 
             endTime = timer()
             elapsed = timedelta(seconds=endTime - self.startTime)               # get the elapsed time for geometry creation
