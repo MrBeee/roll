@@ -907,3 +907,51 @@ def getGeometry(srcGeom, color=QColor('crimson'), grey=QColor('mintcream')):
                 srcColors.append(grey)                                          # inactive brush
 
     return (srcCoordE, srcCoordN, srcColors)
+
+
+def getGeometry2(geom):
+
+    if geom is None:
+        return (None, None, None, None)
+
+    nPnts = geom.shape[0]
+    nLive = np.count_nonzero(I)
+    nDead = nPnts - nLive
+
+    if nDead > 0:                                                               # there must be some dead points
+        pntLiveE = np.zeros(shape=nLive, dtype=np.float32)                      # needed to display live data points
+        pntLiveN = np.zeros(shape=nLive, dtype=np.float32)
+        pntDeadE = np.zeros(shape=nDead, dtype=np.float32)                      # needed to display dead data points
+        pntDeadN = np.zeros(shape=nDead, dtype=np.float32)
+
+        pntE = geom['East']                                                     # initialize northings and eastings
+        pntN = geom['North']
+
+        I = geom['InUse'] > 0                                                   # select the live points
+        pntLiveE = pntE[I]
+        pntLiveN = pntN[I]
+
+        I = np.logical_not(I)                                                   # get the complementary points
+        pntDeadE = pntE[I]                                                      # select the dead points
+        pntDeadN = pntN[I]
+    else:
+        pntLiveE = np.zeros(shape=nLive, dtype=np.float32)                      # needed to display live data points
+        pntLiveN = np.zeros(shape=nLive, dtype=np.float32)
+        pntDeadE = None
+        pntDeadN = None
+
+        pntLiveE = geom['East']                                                 # initialize northings and eastings
+        pntLiveN = geom['North']
+
+    return (pntLiveE, pntLiveN, pntDeadE, pntDeadN)                         # ready to return 4 arrays
+
+    if srcGeom['InUse'].min() != srcGeom['InUse'].max():                        # not all points are equal
+        srcColors = []                                                          # create empty list of colors
+
+        for index, _ in enumerate(srcGeom['InUse']):                            # iterate over all points
+            if srcGeom['InUse'][index] > 0:                                     # point is being used
+                srcColors.append(color)                                         # active brush
+            else:
+                srcColors.append(grey)                                          # inactive brush
+
+    return (srcCoordE, srcCoordN, srcColors)
