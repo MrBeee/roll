@@ -69,7 +69,11 @@ Once the geometry has been defined, a binning analysis can be done directly usin
 - A **minimum offset map** is created that shows minimum offsets coverage
 - A **maximum offset map** is created that show maximum offsets coverage
 
-To use 'full binning', first the project needs to be saved, as an 'analysis' file is created that contains the complete binning information. Think of: 
+- A **RMS offset increment map** is created that shows regularity of offset increments
+
+As the survey project-file always contains a (projected) coordinate reference system (CRS) the analysis maps can be exported to the current QGIS project as a georeferenced Tiff (GeoTiff) file. These files can also be exported as a standalone GeoTiff file from the  File -> Export menu.
+
+To use **full binning** from the Processing menu, the project needs to be saved first, as a (large, memory mapped) **analysis file** is created that contains the complete binning information. Think of: 
 
 - line & stake numbers, 
 - src (x, y), 
@@ -80,12 +84,12 @@ To use 'full binning', first the project needs to be saved, as an 'analysis' fil
 - azimuth, and 
 - uniqueness (for unique fold)
 
-Once this has been completed, additional analysis information becomes available in the **Layout** tab:
+Once this step has been completed, additional analysis information becomes available in the **Layout** tab:
 
 - An **rms offset map** that shows the rms offset increments in each bin (lower is better)
 - A **spider diagram**, that is overlaid on the layout map, showing start- and end-points of all races in a single (selected) bin
 
-In the Layout tab, the following information then becomes available:
+In the **Analysis** tab, the following information then becomes available:
 
 - A **trace table**, showing the information from the analysis file
 - **Radial offsets** shown for a line in the **inline** direction
@@ -98,11 +102,19 @@ In the Layout tab, the following information then becomes available:
 - **|Offset| histogram** for all traces in the selected binning area
 - **Offset/azimuth histogram** for all traces in the selected binning area, in steps of 5 degrees
 
-As the survey file always contains a (projected) coordinate reference system (CRS) these three maps can be exported to the current QGIS project as a georeferenced Tiff (GeoTiff) file. These files can also be exported as a standalone GeoTiff file from the  File -> Export menu.
-
 The templates can be converted into geometry files, consisting of (a) a source file, (b) a receiver file and (c) a relation file, similar how this is managed in the SPS format. The source- and receiver points from the source and receiver files can be exported to the current QGIS project as an ArcGIS Shape file, where these points can be inspected, moved around or deleted. Edited points can be re-imported into Roll to assess the impact on fold, etc.
 
 The geometry files themselves can also be exported as SPS-files.
+
+Note: the Model/View approach used by Qt (that takes care of all the widgets in QGIS) allows for fairly large tables. Nevertheless, for each row, circa 12 bytes per row is allocated. For very large tables, QGIS will simply crash without any warning. As a result the GUI will 'hang' and you may lose all your work. For that reason, the trace table is currently limited to 50 million traces.  Larger tables can still be used okay, they are just not shown in the trace table. If you need detailed information on traces that belong to a bin area somewhere in a large survey, the current work around is to select a smaller binning area, such that the total traces (Nx x Ny x Fold) is less than 50 million. A 'proper' solution is being worked on.
+
+The plugin works best using two QHD Screens (2560 x 1440 pixels) or larger. As of QGIS V3.32 High DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a>. The Help menu in Roll shows how you can mitigate against these. 
+
+As of version 3.34.6, QGIS upgraded Python from V3.9 to to V3.12 This change speeds up calculations and solves some security issues.  But when <i>**upgrading**</i> from an earlier QGIS version, it requires installing all the dependencies ***again***. See chapter 4 below for a list of external dependencies.
+
+As of version 0.3.3 Roll has a 'working' interface with QGIS, and is able to read back points that have been changed in QGIS. This involves either moving points around, or setting a flag whether the point is in use. The integer Field Code that is used to decide whether a point is active or not can be selected in the Layer Selection Dialog. Points that are 'inactive' are shown in grey in the geometry tables and do not contribute is the fold (etc.) analysis.
+
+The interface still requires a few tweaks, but as of version 3.3.3 Roll is no longer considered an experimental plugin.
 
 
 
@@ -135,7 +147,7 @@ xpsFormatList = [
 
 *Excerpt from the py.config file*
 
-The user can expand this list with new SPS 'flavors', by defining new 'point' and 'relational' record formats
+The user can expand this list with new SPS 'flavors', by defining new 'point' and 'relational' record formats and store these in the config.py file.
 
 
 
@@ -167,20 +179,19 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
 
-Currently, there is still some functionality left to be added. See 'To Do' section.
+As of version 3.3.3 Roll is no longer considered an experimental plugin
+
+But there is still some functionality left to be added. See 'To Do' section.
 
 See the 'Changelog' for already implemented functionality
 
 Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
 
-As of QGIS V3.32 High DPI UI scaling issues have arisen. See the following discussion on GitHub [here](https://github.com/qgis/QGIS/issues/53898).
-
-A solution for High DPI monitors has been proposed, that is also shown under the help menu in Roll
-
 
 
 #### 6	Changelog
 
+- 2024-07/24 (0.3.3) Interface with QGIS improved. Display active / inactive points separately. Fixed rasterio CRS bug
 - 2024-07/08 (0.3.2) Geometry creation from templates now runs significantly faster. Fixed some bugs in Land Survey Wizard
 - 2024-06-02 (0.3.1) Created a 'display' menu. This allows for closing the display pane, when using *smallish* full HD displays. Fixed some bugs
 - 2024-05-27 (0.3.0) reduced minimal width of Geometry & SPS tables, in order to make working with a *smallish* full HD (1920x1080) screen easier.
@@ -202,8 +213,8 @@ A solution for High DPI monitors has been proposed, that is also shown under the
 
 #### 7	To Do
 
-- **Fix new CRS bug, exporting fold map to QGIS as GeoTiff file**
-- **Fix issues reading back (edited) SPS data from QGIS into Roll**
+- Improve handling of SPS data, and related interface with QGIS
+- Make processing of Geometry & SPS data more robust
 - Create wizard for Marine towed-streamer geometry
 - Improve analysis capabilities
 - Include Level Of Detail (LOD) settings in Read/Save settings to make them permanent
