@@ -158,7 +158,7 @@ As it is cumbersome to manipulate xml-data directly, the user is helped on two l
 1. Creating a new project can be done using a **survey wizard**. At present there is one wizard suitable to generate templates for land seismic and OBN-data. A marine wizard is in the making.
 2. Parameters can be modified added or deleted from the **property pane**. Behind the scenes, this updates the xml-structure, which is always visible from the Xml-tab in the main window. 
 
-But if you are familiar with the xml-structure , you can edit the xml data directly and apply any changes using the '**Refresh Document**' toolbar button.
+But if you get familiar with the xml-structure, you could edit the xml data directly and apply any changes using the '**Refresh Document**' toolbar button.
 
 
 
@@ -169,7 +169,7 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 | Library    | Minimum Version | Description (purpose)                                      |
 | :--------- | :-------------- | :--------------------------------------------------------- |
-| numba      | 0.59.1          | ***Significantly*** speed up numpy calculations            |
+| numba      | 0.59.1          | ***Significantly*** speed up some numpy calculations       |
 | numpy      | 1.26.24         | Array and matrix manipulation                              |
 | pyqtgraph  | 0.13.4          | Plotting of vector and raster data                         |
 | rasterio   | 1.3.9           | Export of figures as GeoTiff  files                        |
