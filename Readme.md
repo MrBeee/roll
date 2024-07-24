@@ -87,7 +87,7 @@ To use **full binning** from the Processing menu, the project needs to be saved 
 Once this step has been completed, additional analysis information becomes available in the **Layout** tab:
 
 - An **rms offset map** that shows the rms offset increments in each bin (lower is better)
-- A **spider diagram**, that is overlaid on the layout map, showing start- and end-points of all races in a single (selected) bin
+- A **spider diagram**, that is overlaid on the layout map, showing start- and end-points of all traces in a single (selected) bin
 
 In the **Analysis** tab, the following information then becomes available:
 
