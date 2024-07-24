@@ -94,8 +94,8 @@ In the **Analysis** tab, the following information then becomes available:
 - A **trace table**, showing the information from the analysis file
 - **Radial offsets** shown for a line in the **inline** direction
 - **Radial offsets** shown for a line in the **x-line** direction
-- **Source -> receiver azimuths ** shown for a line in the **inline** direction
-- **Source -> receiver azimuths ** shown for a line in the **x-line** direction
+- **Source -> receiver azimuths** shown for a line in the **inline** direction
+- **Source -> receiver azimuths** shown for a line in the **x-line** direction
 - **Kr stack response** shown for a line in the **inline** direction
 - **Kr stack response** shown for a line in the **x-line** direction
 - **Kxy stack response** shown for a **single bin**
