@@ -439,12 +439,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbSrcList = QToolButton()
         self.tbRpsList = QToolButton()
         self.tbSpsList = QToolButton()
+        self.tbAllList = QToolButton()
 
         self.tbTemplat.setMinimumWidth(110)
         self.tbRecList.setMinimumWidth(110)
         self.tbSrcList.setMinimumWidth(110)
         self.tbRpsList.setMinimumWidth(110)
         self.tbSpsList.setMinimumWidth(110)
+        self.tbAllList.setMinimumWidth(110)
 
         self.tbTemplat.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbRecList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
@@ -452,18 +454,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbTemplat.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbRpsList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbSpsList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbAllList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
 
         self.tbTemplat.setDefaultAction(self.actionTemplates)
         self.tbRecList.setDefaultAction(self.actionRecPoints)
         self.tbSrcList.setDefaultAction(self.actionSrcPoints)
         self.tbRpsList.setDefaultAction(self.actionRpsPoints)
         self.tbSpsList.setDefaultAction(self.actionSpsPoints)
+        self.tbAllList.setDefaultAction(self.actionAllPoints)
 
         self.actionTemplates.setChecked(True)
         self.actionRecPoints.setEnabled(False)
         self.actionSrcPoints.setEnabled(False)
         self.actionRpsPoints.setEnabled(False)
         self.actionSpsPoints.setEnabled(False)
+        self.actionAllPoints.setEnabled(False)
+        self.actionAllPoints.setChecked(True)
 
         vbox1 = QVBoxLayout()
         vbox1.addWidget(self.tbTemplat)
@@ -471,6 +477,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         vbox1.addWidget(self.tbSrcList)
         vbox1.addWidget(self.tbRpsList)
         vbox1.addWidget(self.tbSpsList)
+        vbox1.addWidget(QHLine())
+        vbox1.addWidget(self.tbAllList)
+
         self.geometryChoice.setLayout(vbox1)
 
         vbox2 = QVBoxLayout()
@@ -854,6 +863,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionSrcPoints.triggered.connect(self.plotLayout)
         self.actionRpsPoints.triggered.connect(self.plotLayout)
         self.actionSpsPoints.triggered.connect(self.plotLayout)
+        self.actionAllPoints.triggered.connect(self.plotLayout)
 
         # enable/disable various actions
         self.actionClose.setEnabled(False)
@@ -2161,6 +2171,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionSrcPoints.setEnabled(self.srcGeom is not None)
         self.actionRpsPoints.setEnabled(self.rpsImport is not None)
         self.actionSpsPoints.setEnabled(self.spsImport is not None)
+        self.actionAllPoints.setEnabled(self.recGeom is not None or self.srcGeom is not None or self.rpsImport is not None or self.spsImport is not None)
 
     def setColorbarLabel(self, label):                                          # I should really subclass colorbarItem to properly set the text label
         if label is not None:
@@ -2627,7 +2638,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
             spsLive.setTransform(spsTransform)
 
-        if self.tbSpsList.isChecked() and self.spsDeadE is not None and self.spsDeadN is not None:
+        if self.tbSpsList.isChecked() and self.tbAllList.isChecked() and self.spsDeadE is not None and self.spsDeadN is not None:
             spsTransform = QTransform()                                         # empty (unit) transform
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 spsTransform, _ = self.survey.glbTransform.inverted()
@@ -2663,7 +2674,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
             rpsLive.setTransform(rpsTransform)
 
-        if self.tbRpsList.isChecked() and self.rpsDeadE is not None and self.rpsDeadN is not None:
+        if self.tbRpsList.isChecked() and self.tbAllList.isChecked() and self.rpsDeadE is not None and self.rpsDeadN is not None:
             rpsTransform = QTransform()                                         # empty (unit) transform
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 rpsTransform, _ = self.survey.glbTransform.inverted()
@@ -2699,7 +2710,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
             srcLive.setTransform(srcTransform)
 
-        if self.tbSrcList.isChecked() and self.srcDeadE is not None and self.srcDeadN is not None:
+        if self.tbSrcList.isChecked() and self.tbAllList.isChecked() and self.srcDeadE is not None and self.srcDeadN is not None:
             srcTransform = QTransform()                                         # empty (unit) transform
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 srcTransform, _ = self.survey.glbTransform.inverted()
@@ -2735,7 +2746,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
             recLive.setTransform(recTransform)
 
-        if self.tbRecList.isChecked() and self.recDeadE is not None and self.recDeadN is not None:
+        if self.tbRecList.isChecked() and self.tbAllList.isChecked() and self.recDeadE is not None and self.recDeadN is not None:
             recTransform = QTransform()                                         # empty (unit) transform
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
                 recTransform, _ = self.survey.glbTransform.inverted()

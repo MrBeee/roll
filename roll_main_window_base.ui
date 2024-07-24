@@ -197,7 +197,7 @@
     <addaction name="actionRpsPoints"/>
     <addaction name="actionSpsPoints"/>
     <addaction name="separator"/>
-    <addaction name="actionIdlePoints"/>
+    <addaction name="actionAllPoints"/>
     <addaction name="separator"/>
     <addaction name="actionAnalysis_to_display"/>
     <addaction name="actionNone"/>
@@ -1134,7 +1134,7 @@
     <string>No Analysis</string>
    </property>
    <property name="toolTip">
-    <string>No Analysis shown</string>
+    <string>Don't show an analysis figure</string>
    </property>
   </action>
   <action name="actionFold">
@@ -1145,7 +1145,7 @@
     <string>Fold Map</string>
    </property>
    <property name="toolTip">
-    <string>Show fold map</string>
+    <string>Show fold map in Layout view</string>
    </property>
   </action>
   <action name="actionMinO">
@@ -1156,7 +1156,7 @@
     <string>Min Offsets</string>
    </property>
    <property name="toolTip">
-    <string>Show minimum offsets</string>
+    <string>Show minimum offsets in Layout view</string>
    </property>
   </action>
   <action name="actionMaxO">
@@ -1167,7 +1167,7 @@
     <string>Max Offsets</string>
    </property>
    <property name="toolTip">
-    <string>Show maximum offsets</string>
+    <string>Show maximum offsets in Layout view</string>
    </property>
   </action>
   <action name="actionRmsO">
@@ -1178,7 +1178,7 @@
     <string>RMS Offset inc</string>
    </property>
    <property name="toolTip">
-    <string>Show RMS offset incremenents</string>
+    <string>Show RMS offset incremenents in Layout view</string>
    </property>
   </action>
   <action name="actionSpider">
@@ -1187,6 +1187,9 @@
    </property>
    <property name="text">
     <string>Spider plot</string>
+   </property>
+   <property name="toolTip">
+    <string>Show Spider plot in Layout area</string>
    </property>
   </action>
   <action name="actionExportAreasToQGIS">
@@ -1197,7 +1200,7 @@
     <string>Export Src, Rec, CMP  &amp; Binning Area to QGIS</string>
    </property>
   </action>
-  <action name="actionIdlePoints">
+  <action name="actionAllPoints">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -1205,7 +1208,7 @@
     <string>Idle points</string>
    </property>
    <property name="toolTip">
-    <string>Show inactive points in Layout view</string>
+    <string>Also show inactive points in Layout view</string>
    </property>
   </action>
  </widget>
