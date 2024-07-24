@@ -145,7 +145,7 @@ xpsFormatList = [
 ]
 ```
 
-*Excerpt from the py.config file*
+*Excerpt from the config.py file*
 
 The user can expand this list with new SPS 'flavors', by defining new 'point' and 'relational' record formats and store these in the config.py file.
 
