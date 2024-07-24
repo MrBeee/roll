@@ -5,10 +5,8 @@ import pyqtgraph as pg
 
 # from numpy.compat import asstr
 from qgis.PyQt.QtCore import QFile, QIODevice, QTextStream
-from qgis.PyQt.QtGui import QColor, qAlpha, qBlue, qGreen, qRed
 from qgis.PyQt.QtWidgets import QFileDialog
 
-from . import config  # used to pass initial settings
 from .functions import toFloat, toInt
 
 # sps file formats
@@ -885,73 +883,42 @@ def calculateLineStakeTransform(spsImport) -> []:
     # YS =  B0' + B1' * XT  +  B2' * YT
 
 
-def getGeometry(srcGeom, color=QColor('crimson'), grey=QColor('mintcream')):
-    if srcGeom is None:
-        return (None, None, None)
-
-    nSrc = srcGeom.shape[0]
-    srcCoordE = np.zeros(shape=nSrc, dtype=np.float32)                          # needed to display data points
-    srcCoordN = np.zeros(shape=nSrc, dtype=np.float32)
-    srcColors = color
-
-    srcCoordE = srcGeom['East']                                                 # initialize northings and eastings
-    srcCoordN = srcGeom['North']
-
-    if srcGeom['InUse'].min() != srcGeom['InUse'].max():                        # not all are equal
-        srcColors = []                                                          # create empty list of colors
-
-        for index, _ in enumerate(srcGeom['InUse']):                            # iterate over all points
-            if srcGeom['InUse'][index] > 0:                                     # point is being used
-                srcColors.append(color)                                         # active brush
-            else:
-                srcColors.append(grey)                                          # inactive brush
-
-    return (srcCoordE, srcCoordN, srcColors)
-
-
-def getGeometry2(geom):
+def getGeometry(geom):
 
     if geom is None:
         return (None, None, None, None)
 
+    try:
+        I = geom['InUse'] > 0                                                   # select the live points, if we find the column
+        nLive = np.count_nonzero(I)
+    except ValueError:
+        nLive = geom.shape[0]                                                   # assume only live points
+
     nPnts = geom.shape[0]
-    nLive = np.count_nonzero(I)
     nDead = nPnts - nLive
 
     if nDead > 0:                                                               # there must be some dead points
-        pntLiveE = np.zeros(shape=nLive, dtype=np.float32)                      # needed to display live data points
+        pntLiveE = np.zeros(shape=nLive, dtype=np.float32)                      # reserve space to display live data points
         pntLiveN = np.zeros(shape=nLive, dtype=np.float32)
-        pntDeadE = np.zeros(shape=nDead, dtype=np.float32)                      # needed to display dead data points
+        pntDeadE = np.zeros(shape=nDead, dtype=np.float32)                      # reserve space to display dead data points
         pntDeadN = np.zeros(shape=nDead, dtype=np.float32)
 
-        pntE = geom['East']                                                     # initialize northings and eastings
+        pntE = geom['East']                                                     # get the northings and eastings
         pntN = geom['North']
 
-        I = geom['InUse'] > 0                                                   # select the live points
-        pntLiveE = pntE[I]
+        pntLiveE = pntE[I]                                                      # Select the live points
         pntLiveN = pntN[I]
 
         I = np.logical_not(I)                                                   # get the complementary points
         pntDeadE = pntE[I]                                                      # select the dead points
         pntDeadN = pntN[I]
     else:
-        pntLiveE = np.zeros(shape=nLive, dtype=np.float32)                      # needed to display live data points
+        pntLiveE = np.zeros(shape=nLive, dtype=np.float32)                      # reserve space to display live data points
         pntLiveN = np.zeros(shape=nLive, dtype=np.float32)
-        pntDeadE = None
+        pntDeadE = None                                                         # no dead data points
         pntDeadN = None
 
         pntLiveE = geom['East']                                                 # initialize northings and eastings
         pntLiveN = geom['North']
 
-    return (pntLiveE, pntLiveN, pntDeadE, pntDeadN)                         # ready to return 4 arrays
-
-    if srcGeom['InUse'].min() != srcGeom['InUse'].max():                        # not all points are equal
-        srcColors = []                                                          # create empty list of colors
-
-        for index, _ in enumerate(srcGeom['InUse']):                            # iterate over all points
-            if srcGeom['InUse'][index] > 0:                                     # point is being used
-                srcColors.append(color)                                         # active brush
-            else:
-                srcColors.append(grey)                                          # inactive brush
-
-    return (srcCoordE, srcCoordN, srcColors)
+    return (pntLiveE, pntLiveN, pntDeadE, pntDeadN)                             # return the 4 arrays

@@ -197,6 +197,8 @@
     <addaction name="actionRpsPoints"/>
     <addaction name="actionSpsPoints"/>
     <addaction name="separator"/>
+    <addaction name="actionIdlePoints"/>
+    <addaction name="separator"/>
     <addaction name="actionAnalysis_to_display"/>
     <addaction name="actionNone"/>
     <addaction name="actionFold"/>
@@ -1066,7 +1068,7 @@
     <string>Templates</string>
    </property>
    <property name="toolTip">
-    <string>Show templates</string>
+    <string>Show templates in Layout view</string>
    </property>
   </action>
   <action name="actionRecPoints">
@@ -1077,7 +1079,7 @@
     <string>REC points</string>
    </property>
    <property name="toolTip">
-    <string>Show receiver points</string>
+    <string>Show receiver points in Layout view</string>
    </property>
   </action>
   <action name="actionSrcPoints">
@@ -1088,7 +1090,7 @@
     <string>SRC points</string>
    </property>
    <property name="toolTip">
-    <string>Show source points</string>
+    <string>Show source points in Layout view</string>
    </property>
   </action>
   <action name="actionRpsPoints">
@@ -1099,7 +1101,7 @@
     <string>RPS points</string>
    </property>
    <property name="toolTip">
-    <string>Show RPS receiver points</string>
+    <string>Show RPS receiver points in Layout view</string>
    </property>
   </action>
   <action name="actionSpsPoints">
@@ -1110,7 +1112,7 @@
     <string>SPS points</string>
    </property>
    <property name="toolTip">
-    <string>Show SPS source points</string>
+    <string>Show SPS source points in Layout view</string>
    </property>
   </action>
   <action name="actionAnalysis_to_display">
@@ -1193,6 +1195,17 @@
    </property>
    <property name="toolTip">
     <string>Export Src, Rec, CMP  &amp; Binning Area to QGIS</string>
+   </property>
+  </action>
+  <action name="actionIdlePoints">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Idle points</string>
+   </property>
+   <property name="toolTip">
+    <string>Show inactive points in Layout view</string>
    </property>
   </action>
  </widget>
