@@ -106,13 +106,13 @@ The templates can be converted into geometry files, consisting of (a) a source f
 
 The geometry files themselves can also be exported as SPS-files.
 
-Note: the Model/View approach used by Qt (that takes care of all the widgets in QGIS) allows for fairly large tables. Nevertheless, for each row, circa 12 bytes per row is allocated. For very large tables, QGIS will simply crash without any warning. As a result the GUI will 'hang' and you may lose all your work. For that reason, the trace table is currently limited to 50 million traces.  Larger tables can still be used okay, they are just not shown in the trace table. If you need detailed information on traces that belong to a bin area somewhere in a large survey, the current work around is to select a smaller binning area, such that the total traces (Nx x Ny x Fold) is less than 50 million. A 'proper' solution is being worked on.
+Note: the Model/View approach used by Qt (that takes care of all the widgets in QGIS) allows for fairly large tables. Nevertheless, for each row in a table view, circa 12 bytes are allocated per row. For very large tables, QGIS will simply crash without any warning. As a result the GUI will 'hang' and you may lose all your work. For that reason, the trace table is currently limited to 50 million traces.  Larger tables can still be used okay, they are just not shown in the trace table. If you need detailed information on traces that belong to a bin area somewhere in a large survey, the current work around is to select a smaller binning area, such that the total number of traces (Nx x Ny x Fold) is less than 50 million. A 'proper' solution is being worked on.
 
-The plugin works best using two QHD Screens (2560 x 1440 pixels) or larger. As of QGIS V3.32 High DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a>. The Help menu in Roll shows how you can mitigate against these. 
+The plugin works best using one or two QHD Screens (2560 x 1440 pixels) or larger. As of QGIS V3.32 High DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a>. The Help menu in Roll shows how you can mitigate against these issues. 
 
 As of version 3.34.6, QGIS upgraded Python from V3.9 to to V3.12 This change speeds up calculations and solves some security issues.  But when <i>**upgrading**</i> from an earlier QGIS version, it requires installing all the dependencies ***again***. See chapter 4 below for a list of external dependencies.
 
-As of version 0.3.3 Roll has a 'working' interface with QGIS, and is able to read back points that have been changed in QGIS. This involves either moving points around, or setting a flag whether the point is in use. The integer Field Code that is used to decide whether a point is active or not can be selected in the Layer Selection Dialog. Points that are 'inactive' are shown in grey in the geometry tables and do not contribute is the fold (etc.) analysis.
+As of version 0.3.3 Roll has a 'working' interface with QGIS, and is able to read back points that have been changed in QGIS. This involves either moving points around, or setting a flag whether the point is in use. The integer Field Code that is used to decide whether a point is active or not can be selected in the Layer Selection Dialog. Points that are 'inactive' are shown in grey in the geometry tables and in the Layout view. They do not contribute is the fold (etc.) analysis.
 
 The interface still requires a few tweaks, but as of version 3.3.3 Roll is no longer considered an experimental plugin.
 
@@ -155,8 +155,10 @@ The user can expand this list with new SPS 'flavors', by defining new 'point' an
 
 As it is cumbersome to manipulate xml-data directly, the user is helped on two levels:
 
-1. Creating a new project is done using a **survey wizard**. At present there is one wizard suitable to generate templates for land seismic and OBN-data. A marine wizard is in the making.
-2. Parameters can be modified added or deleted from the **property pane**. Behind the scenes, this updates the xml-structure, which is always visible from the Xml-tab in the main window.
+1. Creating a new project can be done using a **survey wizard**. At present there is one wizard suitable to generate templates for land seismic and OBN-data. A marine wizard is in the making.
+2. Parameters can be modified added or deleted from the **property pane**. Behind the scenes, this updates the xml-structure, which is always visible from the Xml-tab in the main window. 
+
+But if you are familiar with the xml-structure , you can edit the xml data directly and apply any changes using the '**Refresh Document**' toolbar button.
 
 
 
@@ -213,7 +215,7 @@ Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 7	To Do
 
-- Improve handling of SPS data, and related interface with QGIS
+- Improve handling of SPS data, and related to this, the interface with QGIS
 - Make processing of Geometry & SPS data more robust
 - Create wizard for Marine towed-streamer geometry
 - Improve analysis capabilities
