@@ -5,6 +5,7 @@ import uuid
 import numpy as np
 import rasterio as rio
 from qgis.core import (
+    QgsCategorizedSymbolRenderer,
     QgsColorRampShader,
     QgsFeature,
     QgsField,
@@ -16,6 +17,7 @@ from qgis.core import (
     QgsProject,
     QgsRasterLayer,
     QgsRasterShader,
+    QgsRendererCategory,
     QgsSingleBandPseudoColorRenderer,
     QgsStyle,
     QgsTextFormat,
@@ -207,6 +209,7 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> QgsV
             QgsField('code', QVariant.String, len=4),
             QgsField('depth', QVariant.Double, len=10, prec=1),
             QgsField('elev', QVariant.Double, len=23, prec=1),
+            QgsField('inuse', QVariant.Int, len=10),
         ]
     )
     vl.updateFields()
@@ -214,28 +217,50 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> QgsV
 
     featureList = []
 
-    for record in spsRecords:
-        # account for numpy float32 format, and the unicode string format
-        l = float(record['Line'])
-        p = float(record['Point'])
-        i = int(record['Index'])
-        c = str(record['Code'])
-        x = float(record['East'])
-        y = float(record['North'])
-        d = float(record['Depth'])
-        z = float(record['Elev'])
+    try:
+        record = spsRecords[0]
+        u = int(record['InUse'])                                                # this will throw an excption if InUse isn't available
 
-        f = QgsFeature()
-        f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
-        f.setAttributes([l, p, i, c, d, z])
-        featureList.append(f)
+        for record in spsRecords:                                               # no exception, so do this
+            # account for numpy float32 format, and the unicode string format
+            l = float(record['Line'])
+            p = float(record['Point'])
+            i = int(record['Index'])
+            c = str(record['Code'])
+            x = float(record['East'])
+            y = float(record['North'])
+            d = float(record['Depth'])
+            z = float(record['Elev'])
+            u = int(record['InUse'])
+
+            f = QgsFeature()
+            f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
+            f.setAttributes([l, p, i, c, d, z, u])
+            featureList.append(f)
+    except ValueError:                                                          # exception; set inuse = 1 for all features
+        for record in spsRecords:
+            # account for numpy float32 format, and the unicode string format
+            l = float(record['Line'])
+            p = float(record['Point'])
+            i = int(record['Index'])
+            c = str(record['Code'])
+            x = float(record['East'])
+            y = float(record['North'])
+            d = float(record['Depth'])
+            z = float(record['Elev'])
+            u = 1                                                               # if it wasn't there before; put it at 1 (True)
+
+            f = QgsFeature()
+            f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
+            f.setAttributes([l, p, i, c, d, z, u])
+            featureList.append(f)
 
     pr.addFeatures(featureList)
     vl.updateExtents()
 
     # select src/rec symbol
     if source:
-        symbol = QgsMarkerSymbol.createSimple(
+        liveSymbol = QgsMarkerSymbol.createSimple(
             {
                 'name': 'circle',
                 'color': '255,0,0,255',
@@ -246,8 +271,22 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> QgsV
                 'size_unit': 'RenderMetersInMapUnits',
             }
         )
+        liveSymbol.setOpacity(0.45)                                             # opacity apparently not allowed in constructor properties ?!?
+
+        deadSymbol = QgsMarkerSymbol.createSimple(
+            {
+                'name': 'circle',
+                'color': '255,237,237,255',
+                'outline_color': '35,35,35,255',
+                'outline_width': '0.5',
+                'outline_width_unit': 'RenderMetersInMapUnits',
+                'size': '20',
+                'size_unit': 'RenderMetersInMapUnits',
+            }
+        )
+        deadSymbol.setOpacity(0.45)                                             # opacity apparently not allowed in constructor properties ?!?
     else:
-        symbol = QgsMarkerSymbol.createSimple(
+        liveSymbol = QgsMarkerSymbol.createSimple(
             {
                 'name': 'circle',
                 'color': '0,0,255,255',
@@ -258,9 +297,26 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> QgsV
                 'size_unit': 'RenderMetersInMapUnits',
             }
         )
+        liveSymbol.setOpacity(0.45)                                             # opacity apparently not allowed in constructor properties ?!?
 
-    symbol.setOpacity(0.45)                                                     # opacity not allowed in constructor properties ?!
-    vl.renderer().setSymbol(symbol)
+        deadSymbol = QgsMarkerSymbol.createSimple(
+            {
+                'name': 'circle',
+                'color': '237,237,255,255',
+                'outline_color': '35,35,35,255',
+                'outline_width': '0.5',
+                'outline_width_unit': 'RenderMetersInMapUnits',
+                'size': '20',
+                'size_unit': 'RenderMetersInMapUnits',
+            }
+        )
+        deadSymbol.setOpacity(0.45)                                             # opacity apparently not allowed in constructor properties ?!?
+
+    cDead = QgsRendererCategory(0, deadSymbol, 'idle', True)
+    cLive = QgsRendererCategory(1, liveSymbol, 'inuse', True)
+    renderer = QgsCategorizedSymbolRenderer('inuse', [cDead, cLive])
+
+    vl.setRenderer(renderer)
 
     # update meta data through metadata() object
     metaId = uuid.uuid4()                                                       # create a UUID object
