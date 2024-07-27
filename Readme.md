@@ -179,17 +179,11 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 #### 5	Status
 
-On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll).
+On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll). Initial release on the QGIS plugin website occurred on 13 March 2024.
 
-Initial release on the QGIS plugin website occurred on 13 March 2024.
+As of version 3.3.3 Roll is no longer considered an experimental plugin But there is still some functionality left to be added. See 'To Do' section.
 
-As of version 3.3.3 Roll is no longer considered an experimental plugin
-
-But there is still some functionality left to be added. See 'To Do' section.
-
-Furthermore, see the 'Changelog' for already implemented functionality
-
-Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
+Furthermore, see the 'Changelog' for already implemented functionality. Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository.
 
 
 
