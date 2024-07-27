@@ -179,13 +179,15 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 #### 5	Status
 
-On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll)
+On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll).
+
+Initial release on the QGIS plugin website occurred on 13 March 2024.
 
 As of version 3.3.3 Roll is no longer considered an experimental plugin
 
 But there is still some functionality left to be added. See 'To Do' section.
 
-See the 'Changelog' for already implemented functionality
+Furthermore, see the 'Changelog' for already implemented functionality
 
 Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository
 
@@ -193,9 +195,10 @@ Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
 
 #### 6	Changelog
 
-- 2024-07/24 (0.3.3) Interface with QGIS improved. Display active / inactive points separately. Fixed rasterio CRS bug
-- 2024-07/08 (0.3.2) Geometry creation from templates now runs significantly faster. Fixed some bugs in Land Survey Wizard
-- 2024-06-02 (0.3.1) Created a 'display' menu. This allows for closing the display pane, when using *smallish* full HD displays. Fixed some bugs
+- 2024-07/27 (0.3.4) "inuse" field added to src & rec points in QGIS. Categorized Symbol Renderer implemented to display used/unused points in QGIS.
+- 2024-07/24 (0.3.3) Interface with QGIS improved. Display active / inactive points separately. Fixed rasterio CRS bug. Cleared experimental flag.
+- 2024-07/08 (0.3.2) Geometry creation from templates now runs significantly faster. Fixed some bugs in Land Survey Wizard.
+- 2024-06-02 (0.3.1) Created a 'display' menu. This allows for closing the display pane, when using *smallish* full HD displays. Fixed some bugs.
 - 2024-05-27 (0.3.0) reduced minimal width of Geometry & SPS tables, in order to make working with a *smallish* full HD (1920x1080) screen easier.
 - 2024-05-23 (0.2.9) expanded numba @jit functions, added rms-offset plot on Layout tab. Fixed some bugs. Implemented function profiling.
 - 2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added stack-response analysis and |O| & O/A Histograms. Fixed some bugs.
@@ -205,11 +208,11 @@ Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://g
   - In-/ and X-line offsets
   - In-/ and X-line azimuths
   - In-/ and X-line stack response
-- 2024-04-13 (0.2.5) included TWT values in trace table and implemented 'Unique Fold' capability
-- 2024-04-08 (0.2.4) improved handling of well-files
-- 2024-03-30 (0.2.3) updated metadata.txt (a) about text and (b) dependencies
-- 2024-03-30 (0.2.2) improved handling of line- and stake numbers; refactoring of parameter handling
-- 2024-03-13 (0.2.1) Initial release on the QGIS plugin website
+- 2024-04-13 (0.2.5) included TWT values in trace table and implemented 'Unique Fold' capability.
+- 2024-04-08 (0.2.4) improved handling of well-files.
+- 2024-03-30 (0.2.3) updated metadata.txt (a) about text and (b) dependencies.
+- 2024-03-30 (0.2.2) improved handling of line- and stake numbers; refactoring of parameter handling.
+- 2024-03-13 (0.2.1) Initial release on the QGIS plugin website.
 
 
 

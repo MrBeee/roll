@@ -2008,7 +2008,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             fileName = self.fileName + '.rms.tif'
             fileName = ExportRasterLayerToQgis(fileName, self.output.rmsOffset, self.survey)
             if fileName:
-                self.appendLogMessage('Export : incorporated max-offset map in QGIS')
+                self.appendLogMessage('Export : incorporated rms-offset map in QGIS')
 
     def exportRpsToQgis(self):
         if self.rpsImport is not None and self.survey is not None and self.survey.crs is not None:
