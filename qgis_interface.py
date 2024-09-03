@@ -675,7 +675,7 @@ def ExportRasterLayerToQgis(fileName, data, survey) -> str:
     return fileName
 
 
-def readQgisPointLayer(layerId, field=''):
+def readQgisPointLayer(layerId, selectionField=''):
 
     layer = QgsProject.instance().mapLayer(layerId)
 
@@ -710,6 +710,11 @@ def readQgisPointLayer(layerId, field=''):
             north = point.y()
             elev = feature['elev']
 
+            try:
+                inuse = feature['inuse']
+            except KeyError:                                                    # inuse field does not exist; make it True by default
+                inuse = True
+
             # dtype=pntType1
             # ('Line', 'f4'),  # F10.2
             # ('Point', 'f4'),  # F10.2
@@ -725,12 +730,12 @@ def readQgisPointLayer(layerId, field=''):
             # ('LocX', 'f4'),  # F9.1
             # ('LocY', 'f4'),  # F10.1
 
-            if field == '':
-                inuse = True
-                record = (line, stake, index, code, depth, east, north, elev, 1, 1, inuse, 0.0, 0.0)
+            if selectionField == '':
+                used = inuse
             else:
-                inuse = feature[field]
-                record = (line, stake, index, code, depth, east, north, elev, 1, 1, inuse, 0.0, 0.0)
+                used = feature[selectionField]
+
+            record = (line, stake, index, code, depth, east, north, elev, 1, 1, inuse, 0.0, 0.0)
 
             pointArray[nRecord] = record
             nRecord += 1
