@@ -108,7 +108,6 @@ from qgis.PyQt.QtWidgets import (
     QFileDialog,
     QFrame,
     QGraphicsEllipseItem,
-    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -118,7 +117,6 @@ from qgis.PyQt.QtWidgets import (
     QPlainTextEdit,
     QProgressBar,
     QPushButton,
-    QSplitter,
     QTabWidget,
     QToolButton,
     QVBoxLayout,
@@ -136,6 +134,9 @@ from .land_wizard import LandSurveyWizard
 from .my_parameters import registerAllParameterTypes
 from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer
 from .roll_binning import BinningType
+from .roll_main_window_create_geom_tab import createGeomTab
+from .roll_main_window_create_sps_tab import createSpsTab
+from .roll_main_window_create_trace_table_tab import createTraceTableTab
 from .roll_output import RollOutput
 from .roll_survey import RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
@@ -161,7 +162,6 @@ from .sps_io_and_qc import (
     readXPSFiles,
     relType2,
 )
-from .table_model_view import AnaTableModel, RpsTableModel, SpsTableModel, TableView, XpsTableModel
 from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
@@ -390,6 +390,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.workingDirectory = ''
         self.importDirectory = ''
 
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
         # first docking pane, used to display geometry and analysis results
         self.dockDisplay = QDockWidget('Display pane')
         self.dockDisplay.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
@@ -411,7 +413,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # display pane
         vbox0 = QVBoxLayout()
-        # self.displayLayout = QVBoxLayout()                                      # required layout
         self.displayLayout = QHBoxLayout()                                      # required layout
 
         self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
@@ -425,14 +426,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         vbox0.addStretch()                                                      # add some stretch to main center widget(s)
         vbox0.addWidget(self.analysisToQgis)                                    # add main widget(s)
         vbox0.addStretch()                                                      # add some stretch to main center widget(s)
-
-        # self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
-        # self.displayLayout.addWidget(self.geometryChoice)                       # add main widget(s)
-        # self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
-        # self.displayLayout.addWidget(self.analysisChoice)                       # add main widget(s)
-        # self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
-        # self.displayLayout.addWidget(self.analysisToQgis)                       # add main widget(s)
-        # self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
 
         self.tbTemplat = QToolButton()
         self.tbRecList = QToolButton()
@@ -704,9 +697,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tabTraces.installEventFilter(self)                                 # catch the 'Show' event to connect to toolbar buttons
 
         self.createLayoutTab()
-        self.createGeomTab()
-        self.createSpsTab()
-        self.createTraceTableTab()
+
+        # the following functions have been removed from this file's class definition, to reduce file size of roll_main_window.py
+        # therefore self.createGeomTab() has now become createGeomTab(self)
+        createGeomTab(self)
+        createSpsTab(self)
+        createTraceTableTab(self)
 
         # Add tabs to main tab widget
         self.mainTabWidget.addTab(self.layoutWidget, 'Layout')
@@ -1267,390 +1263,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     # create tabbed pages
     def createLayoutTab(self):
         self.layoutWidget = self.createPlotWidget()
-
-    def createTraceTableTab(self):
-        # analysis table; to copy data to clipboard, create a subclassed QTableView, see bottom of following article:
-        # See: https://stackoverflow.com/questions/40225270/copy-paste-multiple-items-from-qtableview-in-pyqt4
-        self.anaModel = AnaTableModel(self.output.D2_Output)
-
-        # to resize a table to available space, see:
-        # See: https://stackoverflow.com/questions/58855704/how-to-squeeze-the-column-to-minimum-in-qtableview-in-pyqt5
-
-        # See: https://stackoverflow.com/questions/7840325/change-the-selection-color-of-a-qtablewidget
-        table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
-
-        # first create the widget(s)
-        self.anaView = TableView()
-        self.anaView.setModel(self.anaModel)
-        # self.anaView.setResizeContentsPrecision(0)
-        # self.anaView.resizeColumnsToContents()                                # takes WAY too much time for large tables
-        self.anaView.horizontalHeader().setMinimumSectionSize(10)
-        self.anaView.horizontalHeader().setDefaultSectionSize(100)
-
-        self.anaView.verticalHeader().setDefaultSectionSize(24)
-        self.anaView.verticalHeader().sectionResizeMode(QHeaderView.Fixed)
-        self.anaView.verticalHeader().setFont(QFont('Arial', 8, QFont.Normal))
-        self.anaView.verticalHeader().setFixedWidth(95)
-
-        self.anaView.setStyleSheet(table_style)                                 # define selection colors
-
-        label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
-        self.anaLabel = QLabel('\nANALYSIS records')
-        self.anaLabel.setAlignment(Qt.AlignCenter)
-        self.anaLabel.setStyleSheet(label_style)
-
-        # then create the layout
-        self.tabTraces.layout = QVBoxLayout(self)
-        self.tabTraces.layout.setContentsMargins(1, 1, 1, 1)
-        self.tabTraces.layout.addWidget(self.anaLabel)
-        self.tabTraces.layout.addWidget(self.anaView)
-
-        # put table on traces tab
-        self.tabTraces.setLayout(self.tabTraces.layout)
-
-    def createGeomTab(self):
-        table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
-        label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
-
-        # first create the main widgets
-        self.srcView = TableView()                                              # create src view
-        self.srcModel = SpsTableModel(self.srcGeom)                             # create src model
-        self.srcView.setModel(self.srcModel)                                    # add the model to the view
-        self.srcView.setStyleSheet(table_style)                                 # define selection colors
-        self.srcView.resizeColumnsToContents()
-        self.srcView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        self.relView = TableView()                                              # create rel view
-        self.relModel = XpsTableModel(self.relGeom)                             # create rel model
-        self.relView.setModel(self.relModel)                                    # add the model to the view
-        self.relHdrView = self.relView.horizontalHeader()                       # to detect button clicks here
-        self.relHdrView.sectionClicked.connect(self.sortRelData)                # handle the section-clicked signal
-        self.relView.setStyleSheet(table_style)                                 # define selection colors
-        self.relView.resizeColumnsToContents()
-        self.relView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        self.recView = TableView()                                              # create rec view
-        self.recModel = RpsTableModel(self.recGeom)                             # create rec model
-        self.recView.setModel(self.recModel)                                    # add the model to the view
-        self.recView.setStyleSheet(table_style)                                 # define selection colors
-        self.recView.resizeColumnsToContents()
-        self.recView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        self.srcLabel = QLabel('SRC records')
-        self.srcLabel.setAlignment(Qt.AlignCenter)
-        self.srcLabel.setStyleSheet(label_style)
-
-        self.relLabel = QLabel('REL records')
-        self.relLabel.setAlignment(Qt.AlignCenter)
-        self.relLabel.setStyleSheet(label_style)
-
-        self.recLabel = QLabel('REC records')
-        self.recLabel.setAlignment(Qt.AlignCenter)
-        self.recLabel.setStyleSheet(label_style)
-
-        # then create widget containers for the layout
-        self.srcPane = QWidget()
-        self.relPane = QWidget()
-        self.recPane = QWidget()
-
-        # then create button layout
-        self.btnSrcRemoveDuplicates = QPushButton('Remove &Duplicates')
-        self.btnSrcRemoveOrphans = QPushButton('Remove &REL-orphins')
-
-        self.btnSrcExportToQGIS = QPushButton('Export to QGIS')
-        self.btnSrcReadFromQGIS = QPushButton('Read from QGIS')
-
-        self.btnRelRemoveSrcOrphans = QPushButton('Remove &SRC-orphins')
-        self.btnRelRemoveDuplicates = QPushButton('Remove &Duplicates')
-        self.btnRelRemoveRecOrphans = QPushButton('Remove &REC-orphins')
-
-        self.btnRecRemoveDuplicates = QPushButton('Remove &Duplicates')
-        self.btnRecRemoveOrphans = QPushButton('Remove &REL-orphins')
-
-        self.btnRecExportToQGIS = QPushButton('Export to QGIS')
-        self.btnRecReadFromQGIS = QPushButton('Read from QGIS')
-
-        self.btnRelExportToQGIS = QPushButton('Export Src, Cmp, Rec && Binning &Boundaries to QGIS')
-        self.btnRelExportToQGIS.setToolTip('This button is enabled once you have saved the project')
-
-        # make the buttons stand out a bit
-        # See: https://www.webucator.com/article/python-color-constants-module/
-        self.btnSrcRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
-        self.btnSrcRemoveOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
-
-        self.btnRelRemoveSrcOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
-        self.btnRelRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
-        self.btnRelRemoveRecOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
-
-        self.btnRecRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
-        self.btnRecRemoveOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
-
-        self.btnSrcExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-        self.btnSrcReadFromQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-
-        self.btnRecExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-        self.btnRecReadFromQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-
-        self.btnRelExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-
-        # these buttons have signals
-        self.btnSrcRemoveDuplicates.pressed.connect(self.removeSrcDuplicates)   # src buttons & actions
-        self.btnSrcRemoveOrphans.pressed.connect(self.removeSrcOrphans)
-        self.actionExportSrcToQGIS.triggered.connect(self.exportSrcToQgis)      # export src records to QGIS
-        self.btnSrcExportToQGIS.pressed.connect(self.exportSrcToQgis)           # export src records to QGIS
-        self.btnSrcReadFromQGIS.pressed.connect(self.importSrcFromQgis)
-
-        self.btnRelRemoveDuplicates.pressed.connect(self.removeRelDuplicates)   # rel buttons & actions
-        self.btnRelRemoveSrcOrphans.pressed.connect(self.removeRelSrcOrphans)
-        self.btnRelRemoveRecOrphans.pressed.connect(self.removeRelRecOrphans)
-        self.actionExportAreasToQGIS.triggered.connect(self.exportOutToQgis)    # export survey outline to QGIS
-        self.btnRelExportToQGIS.pressed.connect(self.exportOutToQgis)           # export survey outline to QGIS
-
-        self.btnRecRemoveDuplicates.pressed.connect(self.removeRecDuplicates)   # rec buttons & actions
-        self.btnRecRemoveOrphans.pressed.connect(self.removeRecOrphans)
-        self.actionExportRecToQGIS.triggered.connect(self.exportRecToQgis)      # export rec records to QGIS
-        self.btnRecExportToQGIS.pressed.connect(self.exportRecToQgis)           # export rec records to QGIS
-        self.btnRecReadFromQGIS.pressed.connect(self.importRecFromQgis)
-
-        self.btnBinToQGIS.pressed.connect(self.exportBinToQGIS)                 # figures
-        self.btnMinToQGIS.pressed.connect(self.exportMinToQGIS)
-        self.btnMaxToQGIS.pressed.connect(self.exportMaxToQGIS)
-        self.btnRmsToQGIS.pressed.connect(self.exportRmsToQGIS)
-
-        label1 = QLabel('«-Cleanup table-»')
-        label1.setStyleSheet('border: 1px solid black;background-color:lavender')
-        label1.setAlignment(Qt.AlignCenter)
-
-        label2 = QLabel('«-Cleanup table-»')
-        label2.setStyleSheet('border: 1px solid black;background-color:lavender')
-        label2.setAlignment(Qt.AlignCenter)
-
-        label3 = QLabel('«- QGIS I/O -»')
-        label3.setStyleSheet('border: 1px solid black;background-color:lavender')
-        label3.setAlignment(Qt.AlignCenter)
-
-        label4 = QLabel('«- QGIS I/O -»')
-        label4.setStyleSheet('border: 1px solid black;background-color:lavender')
-        label4.setAlignment(Qt.AlignCenter)
-
-        grid1 = QGridLayout()
-        grid1.addWidget(self.btnSrcRemoveDuplicates, 0, 0)
-        grid1.addWidget(label1, 0, 1)
-        grid1.addWidget(self.btnSrcRemoveOrphans, 0, 2)
-
-        grid1.addWidget(self.btnSrcExportToQGIS, 1, 0)
-        grid1.addWidget(label3, 1, 1)
-        grid1.addWidget(self.btnSrcReadFromQGIS, 1, 2)
-
-        grid2 = QGridLayout()
-        grid2.addWidget(self.btnRelRemoveSrcOrphans, 0, 0)
-        grid2.addWidget(self.btnRelRemoveDuplicates, 0, 1)
-        grid2.addWidget(self.btnRelRemoveRecOrphans, 0, 2)
-        grid2.addWidget(self.btnRelExportToQGIS, 1, 0, 1, 3)
-
-        grid3 = QGridLayout()
-        grid3.addWidget(self.btnRecRemoveOrphans, 0, 0)
-        grid3.addWidget(label2, 0, 1)
-        grid3.addWidget(self.btnRecRemoveDuplicates, 0, 2)
-
-        grid3.addWidget(self.btnRecExportToQGIS, 1, 0)
-        grid3.addWidget(label4, 1, 1)
-        grid3.addWidget(self.btnRecReadFromQGIS, 1, 2)
-
-        # then create the three vertical layouts
-        vbox1 = QVBoxLayout()
-        vbox1.addWidget(self.srcLabel)
-        vbox1.addWidget(self.srcView)
-        vbox1.addLayout(grid1)
-
-        vbox2 = QVBoxLayout()
-        vbox2.addWidget(self.relLabel)
-        vbox2.addWidget(self.relView)
-        vbox2.addLayout(grid2)
-
-        vbox3 = QVBoxLayout()
-        vbox3.addWidget(self.recLabel)
-        vbox3.addWidget(self.recView)
-        vbox3.addLayout(grid3)
-
-        # set the layout for the three panes
-        self.srcPane.setLayout(vbox1)
-        self.relPane.setLayout(vbox2)
-        self.recPane.setLayout(vbox3)
-
-        # Create the widgets for the bottom pane
-        self.geomBottom = QPlainTextEdit()
-        self.geomBottom.appendHtml('<b>Navigation:</b>')
-        self.geomBottom.appendHtml('Use <b>Ctrl + Page-Up / Page-Down</b> to find next duplicate record.')
-        self.geomBottom.appendHtml('Use <b>Ctrl + Up-arrow / Down-arrow</b> to find next source orphan.')
-        self.geomBottom.appendHtml('Use <b>Ctrl + Left-arrow / Right-arrow</b> to find next receiver orphan.')
-        self.geomBottom.appendHtml('The <b>XPS records</b> are only tested for valid rec-station values in the <b>rec min</b> and <b>rec max</b> columns (and not for any stations in between).')
-        self.geomBottom.setReadOnly(True)                                        # if we set this 'True' the context menu no longer allows 'delete', just 'select all' and 'copy'
-
-        self.geomBottom.setFrameShape(QFrame.StyledPanel)
-        self.geomBottom.setStyleSheet('background-color:lavender')   # See: https://www.w3.org/TR/SVG11/types.html#ColorKeywords
-
-        # use splitters to be able to rearrange the layout
-        splitter1 = QSplitter(Qt.Horizontal)
-        splitter1.addWidget(self.srcPane)
-        splitter1.addWidget(self.relPane)
-        splitter1.addWidget(self.recPane)
-        splitter1.setSizes([200, 200, 200])
-
-        splitter2 = QSplitter(Qt.Vertical)
-        splitter2.addWidget(splitter1)
-        splitter2.addWidget(self.geomBottom)
-        splitter2.setSizes([900, 100])
-
-        # ceate the main layout for the SPS tab
-        hbox = QHBoxLayout()
-        hbox.addWidget(splitter2)
-
-        self.tabGeom.setLayout(hbox)
-
-    def createSpsTab(self):
-        table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
-        label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
-
-        # first create the main widgets
-        self.spsView = TableView()                                              # create sps view
-        self.spsModel = SpsTableModel(self.spsImport)                          # create sps model
-        self.spsView.setModel(self.spsModel)                                    # add the model to the view
-        self.spsView.setStyleSheet(table_style)                                 # define selection colors
-        self.spsView.resizeColumnsToContents()
-        self.spsView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        self.xpsView = TableView()                                              # create xps view
-        self.xpsModel = XpsTableModel(self.xpsImport)                           # create xps model
-        self.xpsView.setModel(self.xpsModel)                                    # add the model to the view
-        self.xpsHdrView = self.xpsView.horizontalHeader()                       # to detect button clicks here
-        self.xpsHdrView.sectionClicked.connect(self.sortXpsData)                # handle the section-clicked signal
-        self.xpsView.setStyleSheet(table_style)                                 # define selection colors
-        self.xpsView.resizeColumnsToContents()
-        self.xpsView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        self.rpsView = TableView()                                              # create rps view
-        self.rpsModel = RpsTableModel(self.rpsImport)                           # create xps model
-        self.rpsView.setModel(self.rpsModel)                                    # add the model to the view
-        self.rpsView.setStyleSheet(table_style)                                 # define selection colors
-        self.rpsView.resizeColumnsToContents()
-        self.rpsView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        self.spsLabel = QLabel('SPS records')
-        self.spsLabel.setAlignment(Qt.AlignCenter)
-        self.spsLabel.setStyleSheet(label_style)
-
-        self.xpsLabel = QLabel('XPS records')
-        self.xpsLabel.setAlignment(Qt.AlignCenter)
-        self.xpsLabel.setStyleSheet(label_style)
-
-        self.rpsLabel = QLabel('RPS records')
-        self.rpsLabel.setAlignment(Qt.AlignCenter)
-        self.rpsLabel.setStyleSheet(label_style)
-
-        # then create widget containers for the layout
-        self.spsPane = QWidget()
-        self.xpsPane = QWidget()
-        self.rpsPane = QWidget()
-
-        # then create button layout
-        self.btnSpsRemoveDuplicates = QPushButton('Remove Duplicates')
-        self.btnSpsExportToQGIS = QPushButton('Export to QGIS')
-        self.btnSpsRemoveOrphans = QPushButton('Remove &XPS-orphins')
-
-        self.btnXpsRemoveSpsOrphans = QPushButton('Remove SPS-orphins')
-        self.btnXpsRemoveDuplicates = QPushButton('Remove Duplicates')
-        self.btnXpsRemoveRpsOrphans = QPushButton('Remove RPS-orphins')
-
-        self.btnRpsRemoveDuplicates = QPushButton('Remove &Duplicates')
-        self.btnRpsExportToQGIS = QPushButton('Export to QGIS')
-        self.btnRpsRemoveOrphans = QPushButton('Remove &XPS-orphins')
-
-        # make the export buttons stand out a bit
-        self.btnSpsExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-        self.btnRpsExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-
-        # these buttons have signals
-        self.btnSpsRemoveDuplicates.pressed.connect(self.removeSpsDuplicates)
-
-        self.actionExportSpsToQGIS.triggered.connect(self.exportSpsToQgis)      # export sps records to QGIS
-        self.btnSpsExportToQGIS.pressed.connect(self.exportSpsToQgis)           # export sps records to QGIS
-        self.btnSpsRemoveOrphans.pressed.connect(self.removeSpsOrphans)
-
-        self.btnXpsRemoveSpsOrphans.pressed.connect(self.removeXpsSpsOrphans)
-        self.btnXpsRemoveDuplicates.pressed.connect(self.removeXpsDuplicates)
-        self.btnXpsRemoveRpsOrphans.pressed.connect(self.removeXpsRpsOrphans)
-
-        self.btnRpsRemoveDuplicates.pressed.connect(self.removeRpsDuplicates)
-        self.actionExportRpsToQGIS.triggered.connect(self.exportRpsToQgis)      # export rps records to QGIS
-        self.btnRpsExportToQGIS.pressed.connect(self.exportRpsToQgis)           # export rps records to QGIS
-        self.btnRpsRemoveOrphans.pressed.connect(self.removeRpsOrphans)
-
-        grid1 = QGridLayout()
-        grid1.addWidget(self.btnSpsRemoveDuplicates, 0, 0)
-        grid1.addWidget(self.btnSpsExportToQGIS, 0, 1)
-        grid1.addWidget(self.btnSpsRemoveOrphans, 0, 2)
-
-        grid2 = QGridLayout()
-        grid2.addWidget(self.btnXpsRemoveSpsOrphans, 0, 0)
-        grid2.addWidget(self.btnXpsRemoveDuplicates, 0, 1)
-        grid2.addWidget(self.btnXpsRemoveRpsOrphans, 0, 2)
-
-        grid3 = QGridLayout()
-        grid3.addWidget(self.btnRpsRemoveOrphans, 0, 0)
-        grid3.addWidget(self.btnRpsExportToQGIS, 0, 1)
-        grid3.addWidget(self.btnRpsRemoveDuplicates, 0, 2)
-
-        # then create the three vertical layouts
-        vbox1 = QVBoxLayout()
-        vbox1.addWidget(self.spsLabel)
-        vbox1.addWidget(self.spsView)
-        vbox1.addLayout(grid1)
-
-        vbox2 = QVBoxLayout()
-        vbox2.addWidget(self.xpsLabel)
-        vbox2.addWidget(self.xpsView)
-        vbox2.addLayout(grid2)
-
-        vbox3 = QVBoxLayout()
-        vbox3.addWidget(self.rpsLabel)
-        vbox3.addWidget(self.rpsView)
-        vbox3.addLayout(grid3)
-
-        # set the layout for the three panes
-        self.spsPane.setLayout(vbox1)
-        self.xpsPane.setLayout(vbox2)
-        self.rpsPane.setLayout(vbox3)
-
-        # Create the widgets for the bottom pane
-        self.spsBottom = QPlainTextEdit()
-        self.spsBottom.appendHtml('<b>Navigation:</b>')
-        self.spsBottom.appendHtml('Use <b>Ctrl + Page-Up / Page-Down</b> to find next duplicate record.')
-        self.spsBottom.appendHtml('Use <b>Ctrl + Up-arrow / Down-arrow</b> to find next source orphan.')
-        self.spsBottom.appendHtml('Use <b>Ctrl + Left-arrow / Right-arrow</b> to find next receiver orphan.')
-        self.spsBottom.appendHtml('The <b>XPS records</b> are only tested for valid rec-station values in the <b>rec min</b> and <b>rec max</b> columns (and not for any stations in between).')
-        self.spsBottom.setReadOnly(True)                                        # if we set this 'True' the context menu no longer allows 'delete', just 'select all' and 'copy'
-
-        self.spsBottom.setFrameShape(QFrame.StyledPanel)
-        self.spsBottom.setStyleSheet('background-color:lightgoldenrodyellow')   # See: https://www.w3.org/TR/SVG11/types.html#ColorKeywords
-
-        # use splitters to be able to rearrange the layout
-        splitter1 = QSplitter(Qt.Horizontal)
-        splitter1.addWidget(self.spsPane)
-        splitter1.addWidget(self.xpsPane)
-        splitter1.addWidget(self.rpsPane)
-        splitter1.setSizes([200, 200, 200])
-
-        splitter2 = QSplitter(Qt.Vertical)
-        splitter2.addWidget(splitter1)
-        splitter2.addWidget(self.spsBottom)
-        splitter2.setSizes([900, 100])
-
-        # ceate the main layout for the SPS tab
-        hbox = QHBoxLayout()
-        hbox.addWidget(splitter2)
-
-        self.tabSps.setLayout(hbox)
 
     # deal with the spider navigation
     # See: https://stackoverflow.com/questions/49316067/how-get-pressed-keys-in-mousepressevent-method-with-qt
@@ -3368,7 +2980,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 pass
 
             self.recentFileList.insert(0, fileName)                             # insert it at the top
-            del self.recentFileList[config.maxRecentFiles :]                     # make sure the list does not overgrow
+            del self.recentFileList[config.maxRecentFiles :]                    # make sure the list does not overgrow
 
             self.updateRecentFileActions()
 
