@@ -1,7 +1,6 @@
 """
 This module provides the main classes used in Roll
 """
-import gc
 import math
 import os
 import sys
@@ -19,9 +18,7 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .functions import containsPoint3D
-from .functions_numba import (clipLineF, numbaFixRelationRecord,
-                              numbaSetPointRecord, numbaSetRelationRecord,
-                              pointsInRect)
+from .functions_numba import clipLineF, numbaFixRelationRecord, numbaSetPointRecord, numbaSetRelationRecord, numbaSliceStats, pointsInRect
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -875,7 +872,6 @@ class RollSurvey(pg.GraphicsObject):
 
                             # create new relation record; fill it in completely
                             numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcStkX, srcStkY, nBlock, self.nShotPoint, recStkY, recStkX, recStkX)
-                            numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
                             # self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStkY)
                             # self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStkX)
                             # self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
@@ -1367,6 +1363,7 @@ class RollSurvey(pg.GraphicsObject):
         self.calcRmsOffsetValues()
         self.calcUniqueFoldValues()
         self.calcFoldAndOffsetEssentials()
+        self.calcOffsetAndAzimuthDistribution()
         return True
 
     def setupBinFromTemplates(self, fullAnalysis) -> bool:
@@ -1448,6 +1445,7 @@ class RollSurvey(pg.GraphicsObject):
         self.calcRmsOffsetValues()
         self.calcUniqueFoldValues()
         self.calcFoldAndOffsetEssentials()
+        self.calcOffsetAndAzimuthDistribution()
         return True
 
     def binTemplate6(self, block, template, templateOffset, fullAnalysis):
@@ -1592,13 +1590,13 @@ class RollSurvey(pg.GraphicsObject):
 
                             if fullAnalysis:
                                 fold = self.output.binOutput[nx, ny]
-                                if fold < self.grid.fold:                   # prevent overwriting next bin
+                                if fold < self.grid.fold:                       # prevent overwriting next bin
                                     # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(), recLoc.x(), recLoc.y(), cmpLoc.x(), cmpLoc.y(), 0, 0, 0, 0)
                                     # line & stake nrs for reporting in extended np-array
 
-                                    # from numpy documentation: note that x[0, 2] == x[0][2] though the second case is more inefficient
+                                    # from numpy documentation: it follows that x[0, 2] == x[0][2] though the second case is less efficient;
                                     # as a new temporary array is created after the first index that is subsequently indexed by 2.
-                                    # for this reason replaced [a][b][c][d] indices by [a, b, c, d]
+                                    # for this reason I replaced all [a][b][c][d] indices by [a, b, c, d]
 
                                     stkX, stkY = self.st2Transform.map(cmpX, cmpY)
                                     self.output.anaOutput[nx, ny, fold, 0] = int(stkX)
@@ -1689,7 +1687,7 @@ class RollSurvey(pg.GraphicsObject):
         # See: https://www.sharpsightlabs.com/blog/numpy-axes-explained/
         # See: https://www.geeksforgeeks.org/python-slicing-multi-dimensional-arrays/
 
-        self.message.emit('Calculate unique fold')
+        self.message.emit('Calc unique fold')
 
         offSlot = self.unique.dOffset                                       # slots and scalars for unique offset, azimuth
         offScalar = 1.0 / offSlot
@@ -1826,6 +1824,39 @@ class RollSurvey(pg.GraphicsObject):
 
         self.output.minRmsOffset = self.output.rmsOffset.min()
         self.output.maxRmsOffset = self.output.rmsOffset.max()
+
+        return True
+
+    def calcOffsetAndAzimuthDistribution(self) -> bool:
+        """code to calculate offsets / azimuth distribution as a post-processing step"""
+
+        if self.output.anaOutput is None:                                       # this array is essential to calculate the distribution
+            return False
+
+        self.message.emit('Calc offset/azimuth distribution - 1/2')
+        offsets, azimuth, noData = numbaSliceStats(self.output.anaOutput, self.unique.apply)
+        if noData:
+            return False
+
+        dA = 5.0                                                                # azimuth increments
+        dO = 100.0                                                              # offsets increments
+
+        aMin = -180.0                                                           # max x-scale
+        aMax = 180.0                                                            # max x-scale
+        aMax += dA                                                              # make sure end value is included
+        oMax = math.ceil(self.output.maxMaxOffset / dO) * dO + dO               # max y-scale; make sure end value is included
+
+        aR = np.arange(aMin, aMax, dA)                                          # numpy array with values [0 ... fMax]
+        oR = np.arange(0, oMax, dO)                                             # numpy array with values [0 ... oMax]
+        self.output.ofAziHist = np.histogram2d(x=azimuth, y=offsets, bins=[aR, oR], range=None, density=None, weights=None)[0]
+
+        self.message.emit('Calc offset/azimuth distribution - 2/2')
+        dO = 50.0                                                               # offsets increments
+        oR = np.arange(0, oMax, dO)                                             # numpy array with values [0 ... oMax]
+        y, x = np.histogram(offsets, bins=oR)                                   # create a histogram with 100m offset increments
+
+        y1 = np.append(y, 0)                                                    # add a dummy value to make x- and y-arrays equal size
+        self.output.offstHist = np.stack((x, y1))                               # See: https://numpy.org/doc/stable/reference/generated/numpy.stack.html#numpy.stack
 
         return True
 
