@@ -10,21 +10,23 @@ version=0.3.4
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is for creating and analyzing 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
-  <li><b>numba</b> (version: >= 0.59.1) Not strictly required, but <i><b>significantly</b></i> speeds up calculations</li>
-  <li><b>numpy</b> (version: >= 1.26.4) </li>
-  <li><b>pyqtgraph</b> (version: >= 0.13.4) </li>
-  <li><b>rasterio</b> (version: >= 1.3.9) </li>
-  <li><b>wellpathpy</b> (version: >= 0.50) </li></ul>
-  <p>Please install these packages first, using pip from the OSGeo4W command prompt (on Windows).
-  <p>Usage: <b> python -m pip install {package_name} --upgrade</b>
+  <li><b>numba</b> (version 0.60.0) Not strictly required, but it <i><b>significantly</b></i> speeds up calculations</li>
+  <li><b>numpy</b> (version 1.26.4) <i>should already be installed</i> </li>
+  <li><b>pyqtgraph</b> (version 0.13.7) </li>
+  <li><b>rasterio</b> (version 1.4.1) </li>
+  <li><b>wellpathpy</b> (version 0.5.0) </li></ul>
+  <p>Please install these packages first, using pip from the OSGeo4W command prompt (on Windows)
+  <p>Use <b>pip list</b> to detect which packages and versions have already been installed. (E.g. numpy should already be installed)
+  <p>Start with installing rasterio (it has quite a few dependencies), followed by  pyqtgraph, numba and wellpathpy in that order
+  <p>Usage: <b> python -m pip install {package_name}=={package_version}</b>
   <p>
   <p>Please take note:<ul>
+  <li>Packages newer than those listed above may have bug fixes (nice) or incompatibilities (not so nice) </li>
   <li>The plugin has not (yet) been tested on Linux or macOS </li>
   <li>The plugin works best on a QHD Screen (2560 x 1440 pixels) or larger </li>
   <li>As of V3.32 High DPI UI scaling issues have arisen in QGIS. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a> </li> 
   <li>As of version 3.34.6, QGIS upgraded Python from v 3.9 to to 3.12 This speeds up calculations and solves some security issues. <br>
   But when <i>upgrading</i> from an earlier QGIS version, it requires installing the above listed packages <b><i>again.</b></i> </li></ul>
-
 
 tracker=https://github.com/MrBeee/roll/issues
 repository=https://github.com/MrBeee/roll
