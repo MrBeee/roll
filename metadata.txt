@@ -6,7 +6,7 @@
 name=Roll
 qgisMinimumVersion=3.28
 description=Design and analysis of 3D seismic survey geometries
-version=0.3.4
+version=0.3.5
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is for creating and analyzing 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -38,7 +38,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog: <p>2024-07/27 (0.3.4) "inuse" field added to src & rec points in QGIS. A Categorized Symbol Renderer implemented to display used/unused points
+changelog: <p>2024-10-09 (0.3.5) Moved statistics calculations to extended binning. Updated metadata.txt to describe installation of plugin
+  <p>2024-07-27 (0.3.4) Added "inuse" field to src & rec points in QGIS. Implemented a Categorized Symbol Renderer to display used/unused points in QGIS
   <p>2024-07-24 (0.3.3) Interface with QGIS improved. Display active / inactive points separately. Fixed rasterio CRS bug
   <p>2024-07-08 (0.3.2) Geometry creation from templates now runs significantly faster. Fixed some bugs in Land Survey Wizard
   <p>2024-06-02 (0.3.1) Created a 'display' menu. This allows for closing the display pane, when using (small) full HD monitors. Fixed some bugs
