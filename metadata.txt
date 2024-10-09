@@ -17,8 +17,11 @@ about:<p>This plugin is for creating and analyzing 3D seismic survey geometries.
   <li><b>wellpathpy</b> (version 0.5.0) </li></ul>
   <p>Please install these packages first, using pip from the OSGeo4W command prompt (on Windows)
   <p>Use <b>pip list</b> to detect which packages and versions have already been installed. (E.g. numpy should already be installed)
-  <p>Start with installing rasterio (it has quite a few dependencies), followed by  pyqtgraph, numba and wellpathpy in that order
+  <p>Start with installing rasterio (it has quite a few dependencies), followed by numba, pyqtgraph and wellpathpy in that order
   <p>Usage: <b> python -m pip install {package_name}=={package_version}</b>
+  <p>
+  <p>Whereby rasterio will install (requires) affine, attrs, certifi, chardet, charset-normalizer, click, click-plugins, cligj, and colorama
+  <p>And numba will install the llvmlite binding for the llvm JIT compiler
   <p>
   <p>Please take note:<ul>
   <li>Packages newer than those listed above may have bug fixes (nice) or incompatibilities (not so nice) </li>
