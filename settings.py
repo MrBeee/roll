@@ -3,7 +3,7 @@ from ast import literal_eval
 import pyqtgraph as pg
 from console import console
 from qgis.PyQt.QtCore import QStandardPaths, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QVector3D
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QHeaderView, QVBoxLayout
 
 try:    # need to TRY importing numba, only to see if it is available
@@ -142,21 +142,25 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Kr  stack response', type='myRange', flat=True, expanded=False, value=config.kr_Range, suffix=' [1/km]'),  # fixedMin=True,
-                    dict(name='Kxy stack response', type='myRange', flat=True, expanded=False, value=config.kxyRange, suffix=' [1/km]', twoDim=True),
+                    dict(name='Kr  stack response', type='myRange', flat=True, expanded=False, value=config.kr_Stack, suffix=' [1/km]'),  # fixedMin=True,
+                    dict(name='Kxy stack response', type='myRange', flat=True, expanded=False, value=config.kxyStack, suffix=' [1/km]', twoDim=True),
+                    dict(name='Kxy array response', type='myRange', flat=True, expanded=False, value=config.kxyArray, suffix=' [1/km]', twoDim=True),
                 ],
             ),
         ]
 
         useNumba = config.useNumba if haveNumba else False
-        tip = 'This is an experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
+        tip1 = 'This is an experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
+        tip2 = "This shows functionality that hasn't been completed yet.\nWork in progress !"
+
         misParams = [
             dict(
                 name='Miscellaneous Settings',
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip),
+                    dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip1),
+                    dict(name='Show unfinished code', type='bool', value=config.showUnfinished, default=config.showUnfinished, enabled=True, tip=tip2),
                 ],
             ),
         ]
@@ -264,13 +268,15 @@ class SettingsDialog(QDialog):
         config.srcSymbolSize = srcValue.size()
 
         # k-plot settings
-        config.kr_Range = KKK.child('Kr  stack response').value()
-        config.kxyRange = KKK.child('Kxy stack response').value()
+        config.kr_Stack = KKK.child('Kr  stack response').value()
+        config.kxyStack = KKK.child('Kxy stack response').value()
+        config.kxyArray = KKK.child('Kxy array response').value()
 
         # miscellaneous settings
         config.useNumba = MIS.child('Use Numba').value()
         if haveNumba:                                                           # can only do this when numba has been installed
             numba.config.DISABLE_JIT = not config.useNumba                      # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
+        config.showUnfinished = MIS.child('Show unfinished code').value()       # show/hide "work in progress"
 
 
 def readSettings(self):
@@ -337,13 +343,16 @@ def readSettings(self):
     config.srcSymbolSize = self.settings.value('settings/geo/srcSymbolSize', 25)
 
     # k-plot information
-    config.kr_Range = rng.read(self.settings.value('settings/k-plots/kr_Range', '0;20;0.1'))
-    config.kxyRange = rng.read(self.settings.value('settings/k-plots/kxyRange', '-5;5;0.05'))
+    config.kr_Stack = rng.read(self.settings.value('settings/k-plots/kr_Stack', '0;20;0.1'))
+    config.kxyStack = rng.read(self.settings.value('settings/k-plots/kxyStack', '-5;5;0.05'))
+    config.kxyArray = rng.read(self.settings.value('settings/k-plots/kxyArray', '-50;50;0.5'))
 
     # miscellaneous information
     config.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)   # assume Numba not installed (and used) by default
     if haveNumba:                                                                       # can only do this when numba has been installed
         numba.config.DISABLE_JIT = not config.useNumba                                  # disable/enable numba pre-compilation in @jit decorator
+
+    config.showUnfinished = self.settings.value('settings/misc/showUnfinished', False, type=bool)
 
 
 def writeSettings(self):
@@ -385,8 +394,10 @@ def writeSettings(self):
     self.settings.setValue('settings/geo/srcSymbolSize', config.srcSymbolSize)
 
     # k-plot information
-    self.settings.setValue('settings/k-plots/kr_Range', rng.write(config.kr_Range))
-    self.settings.setValue('settings/k-plots/kxyRange', rng.write(config.kxyRange))
+    self.settings.setValue('settings/k-plots/kr_Stack', rng.write(config.kr_Stack))
+    self.settings.setValue('settings/k-plots/kxyStack', rng.write(config.kxyStack))
+    self.settings.setValue('settings/k-plots/kxyArray', rng.write(config.kxyArray))
 
     # miscellaneous information
     self.settings.setValue('settings/misc/useNumba', config.useNumba)
+    self.settings.setValue('settings/misc/showUnfinished', config.showUnfinished)

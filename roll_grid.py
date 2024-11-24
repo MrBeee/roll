@@ -66,6 +66,14 @@ class RollGrid:
                 pointIter += growStep.increment                                 # shift the iteration point with the appropriate amount
 
         boundingBox = QRectF(origin.toPointF(), pointIter.toPointF())           # create a rect from origin + shifted point
+
+        # make sure that QRectF.intersected() '&' and united() '|' work as expected by giving seed a minimal size
+        if boundingBox.width() == 0.0:                                          # give it very narrow width
+            boundingBox.setWidth(1.0e-6)
+
+        if boundingBox.height() == 0.0:                                         # give it very small height
+            boundingBox.setHeight(1.0e-6)
+
         return boundingBox
 
     def calcSalvoLine(self, origin):

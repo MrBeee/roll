@@ -6,7 +6,7 @@
 name=Roll
 qgisMinimumVersion=3.28
 description=Design and analysis of 3D seismic survey geometries
-version=0.3.5
+version=0.3.8
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is for creating and analyzing 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -15,13 +15,13 @@ about:<p>This plugin is for creating and analyzing 3D seismic survey geometries.
   <li><b>pyqtgraph</b> (version 0.13.7) </li>
   <li><b>rasterio</b> (version 1.4.1) </li>
   <li><b>wellpathpy</b> (version 0.5.0) </li></ul>
-  <p>Please install these packages first, using pip from the OSGeo4W command prompt (on Windows)
+  <p>Please install these packages <b>first</b>, using pip from the OSGeo4W command prompt (on Windows)
   <p>Use <b>pip list</b> to detect which packages and versions have already been installed. (E.g. numpy should already be installed)
   <p>Start with installing rasterio (it has quite a few dependencies), followed by numba, pyqtgraph and wellpathpy in that order
   <p>Usage: <b> python -m pip install {package_name}=={package_version}</b>
   <p>
   <p>Whereby rasterio will install (requires) affine, attrs, certifi, chardet, charset-normalizer, click, click-plugins, cligj, and colorama
-  <p>And numba will install the llvmlite binding for the llvm JIT compiler
+  <p>And numba will install the llvmlite bindings for the llvm JIT compiler
   <p>
   <p>Please take note:<ul>
   <li>Packages newer than those listed above may have bug fixes (nice) or incompatibilities (not so nice) </li>
@@ -38,7 +38,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog: <p>2024-10-09 (0.3.5) moved statistics calculations to extended binning. Updated metadata.txt to describe installation of plugin
+changelog: <p>2024-11-02 (0.3.8) improved editing patterns in Property pane and displaying hem in the Pattern tab.
+  <p>2024-10-22 (0.3.7) introduced multiple seeds per pattern, allowing for very complex pattern layout. Ensured backwards compatibility.  <p>2024-10-15 (0.3.6) added 'pattern' tab for pattern display & analysis. Added convolution with patterns to kx-ky stack response. Fixed an assertion bug in Land Wizard.  <p>2024-10-09 (0.3.5) moved statistics calculations to extended binning. Updated metadata.txt to describe installation of plugin
   <p>2024-07-27 (0.3.4) added "inuse" field to src & rec points in QGIS. Implemented a Categorized Symbol Renderer to display used/unused points in QGIS
   <p>2024-07-24 (0.3.3) interface with QGIS improved. Display active / inactive points separately. Fixed rasterio CRS bug
   <p>2024-07-08 (0.3.2) geometry creation from templates now runs significantly faster. Fixed some bugs in Land Survey Wizard

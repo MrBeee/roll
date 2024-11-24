@@ -31,6 +31,7 @@ from .roll_block import RollBlock
 from .roll_circle import RollCircle
 from .roll_offset import RollOffset
 from .roll_pattern import RollPattern
+from .roll_pattern_seed import RollPatternSeed
 from .roll_plane import RollPlane
 from .roll_seed import RollSeed
 from .roll_sphere import RollSphere
@@ -968,7 +969,7 @@ class MyTemplateParameter(MyGroupParameter):
         self.template = opts.get('value', template)
 
         self.addChild(dict(name='Roll steps', type='myRollList', value=self.template.rollList, default=self.template.rollList, expanded=True, flat=True, decimals=d, suffix=s))
-        self.addChild(dict(name='Seed list', type='mySeedList', value=self.template.seedList, brush='#add8e6', flat=True))
+        self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.template.seedList, brush='#add8e6', flat=True))
 
         self.parR = self.child('Roll steps')
         self.parS = self.child('Seed list')
@@ -1337,7 +1338,7 @@ class MySeedListParameter(MyGroupParameter):
             raise ValueError('Need at least two seeds for a valid template')
 
         for n, seed in enumerate(self.seedList):
-            self.addChild(dict(name=seed.name, type='mySeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m'))
+            self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m'))
 
         self.sigContextMenu.connect(self.contextMenu)
 
@@ -1372,8 +1373,101 @@ class MySeedListParameter(MyGroupParameter):
             # self.seedList.insert(0, seed)
             self.seedList.append(seed)
 
-            # self.insertChild(0, dict(name=newName, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-            self.addChild(dict(name=newName, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+            # self.insertChild(0, dict(name=newName, type='myTemplateSeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+            self.addChild(dict(name=newName, type='myTemplateSeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+            self.sigAddNew.emit(self, name)
+            self.sigValueChanging.emit(self, self.value())
+
+
+### class MyPatternSeedList ##########################################################
+
+
+class MyPatternSeedListPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+
+        self.showInformation(param)
+
+    def showInformation(self, param):
+        nChilds = len(param.childs)
+
+        if nChilds == 0:
+            t = 'No pattern seeds'
+        else:
+            t = f'{nChilds} pattern seed(s)'
+
+        self.setText(t)
+        self.update()
+
+        # print(f'+++{lineNo():5d} MyPatternSeedListPreviewLabel.showInformation | {t} +++')
+
+    def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        # print(f'>>>{lineNo():5d} MyPatternSeedListPreviewLabel.ValueChanging <<<')
+        self.showInformation(param)
+
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        # print(f'>>>{lineNo():5d} MyPatternSeedListPreviewLabel.TreeStateChanged <<<')
+
+        self.showInformation(param)
+
+
+class MyPatternSeedListParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyPatternSeedListPreviewLabel(param))
+
+
+class MyPatternSeedListParameter(MyGroupParameter):
+
+    itemClass = MyPatternSeedListParameterItem
+
+    def __init__(self, **opts):
+        opts['context'] = {'addNew': 'Add new Seed'}
+        opts['tip'] = 'Right click to add seeds'
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MySeedListParameter opts')
+
+        self.seedList = [RollPatternSeed()]
+        self.seedList = opts.get('value', self.seedList)
+
+        if not isinstance(self.seedList, list):
+            raise ValueError("Need 'list' instance at this point")
+
+        for n, seed in enumerate(self.seedList):
+            self.addChild(dict(name=seed.name, type='myPatternSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m'))
+
+        self.sigContextMenu.connect(self.contextMenu)
+
+    def value(self):
+        return self.seedList
+
+    def contextMenu(self, name=None):
+        if name == 'addNew':
+            n = len(self.names) + 1
+            newName = f'Seed-{n}'
+            while newName in self.names:
+                n += 1
+                newName = f'Seed-{n}'
+
+            seed = RollPatternSeed(newName)
+            if len(self.seedList) > 0:
+                seed.color = self.seedList[-1].color                            # default to last color
+            else:
+                seed.color = QColor('#77ff0000')                                # empty list; just make it blue
+
+            # using append/addChild instead of insert(0, ...) will add the item at the end of the list
+            # self.seedList.insert(0, seed)
+            self.seedList.append(seed)
+
+            # self.insertChild(0, dict(name=newName, type='myTemplateSeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+            self.addChild(dict(name=newName, type='myPatternSeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
             self.sigAddNew.emit(self, name)
             self.sigValueChanging.emit(self, self.value())
@@ -1446,7 +1540,7 @@ class MySeedParameter(MyGroupParameter):
 
         MyGroupParameter.__init__(self, **opts)
         if 'children' in opts:
-            raise KeyError('Cannot set "children" argument in mySeed Parameter opts')
+            raise KeyError('Cannot set "children" argument in myTemplateSeed Parameter opts')
 
         self.seed = RollSeed()
         self.seed = opts.get('value', self.seed)
@@ -1557,7 +1651,7 @@ class MySeedParameter(MyGroupParameter):
 
                 seed = parent.seedList.pop(index)
                 parent.seedList.insert(index - 1, seed)
-                parent.insertChild(index - 1, dict(name=seed.name, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                parent.insertChild(index - 1, dict(name=seed.name, type='myTemplateSeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
         elif name == 'moveDown':
             n = len(parent.children())
@@ -1566,7 +1660,132 @@ class MySeedParameter(MyGroupParameter):
 
                 seed = parent.seedList.pop(index)
                 parent.seedList.insert(index + 1, seed)
-                parent.insertChild(index + 1, dict(name=seed.name, type='mySeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                parent.insertChild(index + 1, dict(name=seed.name, type='myTemplateSeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+        elif name == 'preview':
+            ...
+        elif name == 'export':
+            ...
+
+
+### class MyPatternSeed ##############################################################
+
+
+class MyPatternSeedPreviewLabel(MyPreviewLabel):
+    def __init__(self, param):
+        super().__init__()
+
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+    def onValueChanging(self, _, val):                                          # unused param replaced by _
+
+        nSteps = 1
+        for growStep in val.grid.growList:                                  # iterate through all grow steps
+            nSteps *= growStep.steps                                        # multiply seed's shots at each level
+
+        t = f'{nSteps} points'
+
+        self.setText(t)
+        self.update()
+
+        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.ValueChanging | {t} <<<')
+
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
+
+        val = param.opts.get('value', None)
+        self.onValueChanging(None, val)
+
+
+class MyPatternSeedParameterItem(MyGroupParameterItem):
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        self.setPreviewLabel(MyPatternSeedPreviewLabel(param))
+
+
+class MyPatternSeedParameter(MyGroupParameter):
+
+    itemClass = MyPatternSeedParameterItem
+
+    def __init__(self, **opts):
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+        opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
+        opts['tip'] = 'Right click to manage seed'
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in myPatternSeed Parameter opts')
+
+        self.seed = RollSeed()
+        self.seed = opts.get('value', self.seed)
+
+        d = opts.get('decimals', 7)
+
+        self.addChild(dict(name='Seed color', type='color', value=self.seed.color))
+        self.addChild(dict(name='Seed origin', type='myPoint3D', value=self.seed.origin, expanded=False, flat=True, decimals=d))
+        self.addChild(dict(name='Grid grow steps', type='myRollList', value=self.seed.grid.growList, default=self.seed.grid.growList, expanded=True, flat=True, decimals=d, suffix='m', brush='#add8e6'))
+
+        self.parL = self.child('Seed color')
+        self.parO = self.child('Seed origin')
+        self.parG = self.child('Grid grow steps')
+
+        self.parL.sigValueChanged.connect(self.changed)
+        self.parO.sigValueChanged.connect(self.changed)
+        self.parG.sigValueChanged.connect(self.changed)
+
+        self.sigContextMenu.connect(self.contextMenu)
+        self.sigNameChanged.connect(self.nameChanged)
+
+    def nameChanged(self, _):
+        self.seed.name = self.name()
+
+    def changed(self):
+        self.seed.color = self.parL.value()
+        self.seed.origin = self.parO.value()
+        self.seed.grid.growList = self.parG.value()
+        self.sigValueChanging.emit(self, self.value())
+
+    def value(self):
+        return self.seed
+
+    def contextMenu(self, name=None):
+        parent = self.parent()
+        index = parent.children().index(self)
+
+        if not isinstance(parent, MyPatternSeedListParameter):
+            raise ValueError("Need 'MyPatternSeedListParameter' instances at this point")
+
+        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
+        if name == 'remove':
+            reply = QMessageBox.question(None, 'Please confirm', 'Delete selected seed ?', QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.remove()
+
+                parent.seedList.pop(index)
+                parent.sigChildRemoved.emit(self, parent)
+
+        elif name == 'moveUp':
+            if index > 0:
+                self.remove()
+
+                seed = parent.seedList.pop(index)
+                parent.seedList.insert(index - 1, seed)
+                parent.insertChild(index - 1, dict(name=seed.name, type='myPatternSeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+        elif name == 'moveDown':
+            n = len(parent.children())
+            if index < n - 1:
+                self.remove()
+
+                seed = parent.seedList.pop(index)
+                parent.seedList.insert(index + 1, seed)
+                parent.insertChild(index + 1, dict(name=seed.name, type='myPatternSeed', value=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
         elif name == 'preview':
             ...
@@ -2108,7 +2327,7 @@ class MyBlockListParameter(MyGroupParameter):
         pass
 
 
-### class MyPattern ###########################################################
+### class MyPattern ##########################################################
 
 
 class MyPatternPreviewLabel(MyPreviewLabel):
@@ -2122,12 +2341,19 @@ class MyPatternPreviewLabel(MyPreviewLabel):
 
     def showInformation(self, param):
 
-        nPlane = param.child('Pattern grow steps', 'Planes', 'N').opts['value']
-        nLines = param.child('Pattern grow steps', 'Lines', 'N').opts['value']
-        nPoint = param.child('Pattern grow steps', 'Points', 'N').opts['value']
-        nPoints = nPlane * nLines * nPoint
+        nElements = 0
+        seeds = param.child('Seed list')
+        if seeds.hasChildren():
+            for seed in seeds:
 
-        t = f'{nPoints} points ({nPlane} x {nLines} x {nPoint})'
+                # grid seed
+                nPlane = seed.child('Grid grow steps', 'Planes', 'N').opts['value']
+                nLines = seed.child('Grid grow steps', 'Lines', 'N').opts['value']
+                nPoint = seed.child('Grid grow steps', 'Points', 'N').opts['value']
+
+                nElements += nPlane * nLines * nPoint
+
+        t = f'{nElements} elements(s)'
 
         self.setText(t)
         self.update()
@@ -2166,37 +2392,16 @@ class MyPatternParameter(MyGroupParameter):
         if 'children' in opts:
             raise KeyError('Cannot set "children" argument in myPattern Parameter opts')
 
-        d = opts.get('decimals', 7)
-
         self.pattern = RollPattern()
         self.pattern = opts.get('value', self.pattern)
 
-        self.addChild(dict(name='Pattern origin', type='myPoint3D', value=self.pattern.origin, expanded=False, flat=True, decimals=d))
-        self.addChild(dict(name='Pattern color', type='color', value=self.pattern.color))
-        self.addChild(dict(name='Pattern grow steps', type='myRollList', value=self.pattern.growList, default=self.pattern.growList, expanded=True, flat=True, brush='#add8e6', decimals=5, suffix='m'))
-
-        self.parC = self.child('Pattern color')
-        self.parO = self.child('Pattern origin')
-        self.parG = self.child('Pattern grow steps')
-
-        self.parC.sigValueChanged.connect(self.colorChanged)
-        self.parG.sigValueChanged.connect(self.growListChanged)
-        self.parO.sigValueChanged.connect(self.originChanged)
+        self.addChild(dict(name='Seed list', type='myPatternSeedList', value=self.pattern.seedList, brush='#add8e6', flat=True))
 
         self.sigContextMenu.connect(self.contextMenu)
         self.sigNameChanged.connect(self.nameChanged)
 
     def nameChanged(self, _):
         self.pattern.name = self.name()
-
-    def colorChanged(self):
-        self.pattern.color = self.parC.value()
-
-    def growListChanged(self):
-        self.pattern.growList = self.parG.value()
-
-    def originChanged(self):
-        self.pattern.origin = self.parO.value()
 
     def value(self):
         return self.pattern
@@ -2586,8 +2791,10 @@ def registerAllParameterTypes():
     registerParameterType('myReflectors', MyReflectorsParameter, override=True)
     registerParameterType('myRoll', MyRollParameter, override=True)
     registerParameterType('myRollList', MyRollListParameter, override=True)
-    registerParameterType('mySeed', MySeedParameter, override=True)
-    registerParameterType('mySeedList', MySeedListParameter, override=True)
+    registerParameterType('myTemplateSeed', MySeedParameter, override=True)
+    registerParameterType('myPatternSeed', MyPatternSeedParameter, override=True)
+    registerParameterType('myTemplateSeedList', MySeedListParameter, override=True)
+    registerParameterType('myPatternSeedList', MyPatternSeedListParameter, override=True)
     registerParameterType('mySphere', MySphereParameter, override=True)
     registerParameterType('mySpiral', MySpiralParameter, override=True)
     registerParameterType('mySurvey', MySurveyParameter, override=True)

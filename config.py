@@ -18,7 +18,7 @@ maxRecentFiles = 9                                                              
 deployInline = 10000                                                            # inline deployment distance
 deployX_line = 10000                                                            # x-line deployment distance
 
-# source
+# source for land/obc templates
 nsl = 1                                                                         # nr. src lines in template
 nsl_par = 681                                                                   # nr. src pointd in parallel template
 nsp = 4                                                                         # nr. src points in template
@@ -28,7 +28,7 @@ spi = 50                                                                        
 slr = 1                                                                         # src line roll along
 sld = 41                                                                        # src line deployments (inline)
 
-# receiver
+# receiver for land/obc templates
 # spreadlength = 12000                                                          # initial spread length [m], before changes are made
 nrl = 8                                                                         # nr. rec lines in template
 nrp = 240                                                                       # nr. rec points in template
@@ -45,6 +45,26 @@ binImin = 4000                                                                  
 binXmin = 5000                                                                  # x-size
 binIsiz = 2000                                                                  # y-min
 binXsiz = 2000                                                                  # y-size
+
+# general presets for towed marine settings
+vSail = 4.5                                                                     # [knot]
+vTurn = 4.3                                                                     # [knot]
+vCross = 0.0                                                                    # [knot]
+
+srcPopInt = 12.5                                                                # [m]
+
+nSrc = 2                                                                        # flip-flop shooting
+nCab = 10                                                                       # using 10 cables
+
+srcLayback = 250.0                                                              # cabLayback - 200, but > 100 and < 400
+cabLayback = 450.0                                                              # Nr streamers - 1 x streamer interval @ front / 2
+cabLength = 8000.0                                                              # 8 km streamer per default
+groupInt = 12.5                                                                 # group interval [m]
+
+cabDepthHead = 8.0                                                              # [m]       streamer depth
+cabDepthTail = 10.0                                                             # [m]       streamer depth at end of spread
+srcDepth = 10.0                                                                 # [m]       source depth default
+
 
 # Level of Detail (LOD) settings
 lod0 = 0.005                                                                    # Lowest level;  < lod0: paint survey as rect outline
@@ -146,11 +166,15 @@ surveyCrs = None
 surveyTransform = None
 
 # k-plot settings
-kr_Range = QVector3D(0.0, 20.0, 0.10)   # settings for k_r plots (min, max, step size)
-kxyRange = QVector3D(-5.0, 5.0, 0.05)   # settings for kxy plots (min, max, step size)
+kr_Stack = QVector3D(0.0, 20.0, 0.10)   # settings for k_r plots (min, max, step size)
+kxyStack = QVector3D(-5.0, 5.0, 0.05)   # settings for kxy plots (min, max, step size)
+kxyArray = QVector3D(-50.0, 50.0, 0.5)  # settings for pattern kxy plots (min, max, step size)
 
 # useNumba is used to indicate wether or not to use numba (IF it has been installed)
 useNumba = False
+
+# showUnfinished is used to indicate wether or not code "still under construction" is to be shown to end user
+showUnfinished = False
 
 # max nr. rows QTableView can handle without 'hanging' QGIS
 # beyond this number the trace table model is reset to None

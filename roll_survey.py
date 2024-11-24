@@ -26,6 +26,7 @@ from .roll_block import RollBlock
 from .roll_offset import RollOffset
 from .roll_output import RollOutput
 from .roll_pattern import RollPattern
+from .roll_pattern_seed import RollPatternSeed
 from .roll_plane import RollPlane
 from .roll_seed import RollSeed
 from .roll_sphere import RollSphere
@@ -115,6 +116,7 @@ SurveyList = [
     'Slanted - legacy variation on orthogonal, aiming to reduce LMOS',
     'Brick - legacy variation on orthogonal, aiming to reduce LMOS',
     'zigzag - legacy manner acquiring narrrow azimuth vibroseis data',
+    'streamer - towed streamer marine survey',
 ]
 
 
@@ -1984,6 +1986,10 @@ class RollSurvey(pg.GraphicsObject):
                     # at this point; convert the point-lists to numpy-arrays for more efficient processing
                     seed.calcPointArray()                                       # setup the numpy arrays
 
+        for pattern in self.patternList:
+            for seed in pattern.seedList:
+                seed.pointList = seed.grid.calcPointList(seed.origin)   # calculate the point list for all seeds
+
     def createBasicSkeleton(self, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=2):
 
         block = RollBlock('block-1')                                            # create a block
@@ -2033,15 +2039,14 @@ class RollSurvey(pg.GraphicsObject):
         for pattern in range(nPatterns):
             patternName = f'pattern-{pattern + 1}'                              # create suitable pattern name
             pattern = RollPattern(patternName)                                  # create the pattern
+            self.patternList.append(pattern)                                    # add pattern to patternList
 
-            grow1 = RollTranslate()                                             # create a 'vertical' grow object
-            pattern.growList.append(grow1)                                      # add grow object to pattern's growList
-            grow2 = RollTranslate()                                             # create a 'horizontal' grow object
-            pattern.growList.append(grow2)                                      # add grow object to pattern's growList
-            grow3 = RollTranslate()                                             # create a 'horizontal' grow object
-            pattern.growList.append(grow3)                                      # add grow object to pattern's growList
+            seed = RollPatternSeed()                                            # create a new seed (we need just one)
+            pattern.seedList.append(seed)                                       # add this seed to pattern's seedList
 
-            self.patternList.append(pattern)                                    # add block to survey object
+            for i in range(3):                                                  # do this three times
+                translate = RollTranslate()                                     # create a translation
+                seed.grid.growList.append(translate)                            # add translation to seed's grid-growlist
 
     def writeXml(self, doc: QDomDocument):
         doc.clear()
@@ -2279,7 +2284,7 @@ class RollSurvey(pg.GraphicsObject):
                     for template in block.templateList:                         # get all templates
                         length = len(template.rollList)                         # how deep is the list ?
 
-                        assert length == 3, 'there must always be 3 roll steps / grow steps'
+                        ### todo; fix this later in land wizard                       assert length == 3, 'there must always be 3 roll steps / grow steps'
 
                         if length == 0:
                             offset = QVector3D()                                # always start at (0, 0, 0)

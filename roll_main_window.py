@@ -129,11 +129,15 @@ from .find import Find
 from .functions import aboutText, exampleSurveyXmlText, highDpiText, licenseText, rawcount
 from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
 from .land_wizard import LandSurveyWizard
+from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
 from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer
 from .roll_binning import BinningType
 from .roll_main_window_create_geom_tab import createGeomTab
+from .roll_main_window_create_layout_tab import createLayoutTab
+from .roll_main_window_create_pattern_tab import createPatternTab
 from .roll_main_window_create_sps_tab import createSpsTab
+from .roll_main_window_create_stack_response_tab import createStackResponseTab
 from .roll_main_window_create_trace_table_tab import createTraceTableTab
 from .roll_output import RollOutput
 from .roll_survey import RollSurvey, SurveyType
@@ -259,7 +263,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.glob = False                                                       # global coordinates
         self.gridX = True                                                       # use grid lines
         self.gridY = True                                                       # use grid lines
-        self.antiA = [False for i in range(10)]                                 # anti-alias painting
+        self.antiA = [False for i in range(12)]                                 # anti-alias painting
         self.ruler = False                                                      # show a ruler to measure distances
 
         # exception handling
@@ -307,6 +311,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.stkBinImItem = None
         self.stkCelImItem = None
         self.offAziImItem = None
+        self.kxyPatImItem = None
 
         # corresponding color bars
         self.layoutColorBar = None                                              # colorBars, added to imageItem
@@ -314,6 +319,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.stkBinColorBar = None
         self.stkCelColorBar = None
         self.offAziColorBar = None
+        self.kxyPatColorBar = None
 
         # rps, sps, xps input arrays
         self.rpsImport = None                                                   # numpy array with list of RPS records
@@ -371,6 +377,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # warning dialogs that can be hidden
         self.hideSpsCrsWarning = False                                          # warning message: sps crs should be identical to project crs
+
+        # pattern information plotting parameters
+        self.patternLayout = True                                               # True shows geometry (layout). False shows kxky response
 
         icon_path = ':/plugins/roll/icon.png'
         icon = QIcon(icon_path)
@@ -472,8 +481,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.geometryChoice.setLayout(vbox1)
 
-        vbox2 = QVBoxLayout()
-
         self.tbNone = QToolButton()
         self.tbFold = QToolButton()
         self.tbMinO = QToolButton()
@@ -499,6 +506,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbMaxO.setDefaultAction(self.actionMaxO)
         self.tbRmsO.setDefaultAction(self.actionRmsO)
 
+        vbox2 = QVBoxLayout()
         vbox2.addWidget(self.tbNone)
         vbox2.addWidget(self.tbFold)
         vbox2.addWidget(self.tbMinO)
@@ -553,12 +561,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.analysisChoice.setLayout(vbox2)
 
-        self.anActionGroup = QActionGroup(self)
-        self.anActionGroup.addAction(self.actionNone)
-        self.anActionGroup.addAction(self.actionFold)
-        self.anActionGroup.addAction(self.actionMinO)
-        self.anActionGroup.addAction(self.actionMaxO)
-        self.anActionGroup.addAction(self.actionRmsO)
+        self.analysisActionGroup = QActionGroup(self)
+        self.analysisActionGroup.addAction(self.actionNone)
+        self.analysisActionGroup.addAction(self.actionFold)
+        self.analysisActionGroup.addAction(self.actionMinO)
+        self.analysisActionGroup.addAction(self.actionMaxO)
+        self.analysisActionGroup.addAction(self.actionRmsO)
         self.actionNone.setChecked(True)
 
         self.actionNone.triggered.connect(self.onActionNoneTriggered)
@@ -652,13 +660,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             'Azimuth for x-line direction',
             'Stack response for inline direction',
             'Stack response for x-line direction',
-            'Kx-Ky strack response for a single bin',
+            'Kx-Ky single bin stack response',
             '|Offset| distribution in binning area',
             'Offset/azimuth distribution in binning area',
+            'Pattern information',
         ]
 
         # these plotting widgets have "installEventFilter()" applied to catch the window 'Show' event in "eventFilter()"
-        # this makes it possile to reroute commands and status from the plotting toolbar buttons to the active plot
+        # this makes it possible to reroute commands and status from the plotting toolbar buttons to the active plot
         self.offTrkWidget = self.createPlotWidget(self.plotTitles[1], 'inline', 'offset', 'm', 'm')                         # False -> no fixed aspect ratio
         self.offBinWidget = self.createPlotWidget(self.plotTitles[2], 'x-line', 'offset', 'm', 'm')
         self.aziTrkWidget = self.createPlotWidget(self.plotTitles[3], 'inline', 'angle of incidence', 'm', 'deg', False)
@@ -668,6 +677,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.stkCelWidget = self.createPlotWidget(self.plotTitles[7], 'Kx', 'Ky', '1/km', '1/km')
         self.offsetWidget = self.createPlotWidget(self.plotTitles[8], '|offset|', 'frequency', 'm', ' #', False)
         self.offAziWidget = self.createPlotWidget(self.plotTitles[9], 'azimuth', '|offset|', 'deg', 'm', False)
+        self.arraysWidget = self.createPlotWidget(self.plotTitles[10], 'inline', 'x-line', 'm', 'm')
 
         # Create the various views (tabs) on the data
         # Use QCodeEditor with a XmlHighlighter instead of a 'plain' QPlainTextEdit
@@ -678,23 +688,28 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.textEdit.installEventFilter(self)                                  # catch the 'Show' event to connect to toolbar buttons
 
         # The following tabs have multiple widgets per page, start by giving them a simple QWidget
+        self.tabPatterns = QWidget()
         self.tabGeom = QWidget()
         self.tabSps = QWidget()
         self.tabTraces = QWidget()
+        self.tabKxKyStack = QWidget()
 
         self.tabGeom.installEventFilter(self)                                   # catch the 'Show' event to connect to toolbar buttons
         self.tabSps.installEventFilter(self)                                    # catch the 'Show' event to connect to toolbar buttons
         self.tabTraces.installEventFilter(self)                                 # catch the 'Show' event to connect to toolbar buttons
 
-        self.createLayoutTab()
-        # the following functions have been removed from this file's class definition, to reduce file size of roll_main_window.py
-        # therefore self.createGeomTab() has now become createGeomTab(self)
+        # The following functions have been removed from this file's class definition, to reduce the size of 'roll_main_window.py'
+        # They now reside in separate source files. Therefore self.createLayoutTab() is now called as createLayoutTab(self) instead.
+        createLayoutTab(self)
+        createPatternTab(self)
         createGeomTab(self)
         createSpsTab(self)
         createTraceTableTab(self)
+        createStackResponseTab(self)
 
         # Add tabs to main tab widget
         self.mainTabWidget.addTab(self.layoutWidget, 'Layout')
+        self.mainTabWidget.addTab(self.tabPatterns, 'Patterns')
         self.mainTabWidget.addTab(self.textEdit, 'Xml')
         self.mainTabWidget.addTab(self.tabGeom, 'Geometry')
         self.mainTabWidget.addTab(self.tabSps, 'SPS import')
@@ -709,9 +724,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.analysisTabWidget.addTab(self.aziBinWidget, 'Azi X-line')
         self.analysisTabWidget.addTab(self.stkTrkWidget, 'Stack Inline')
         self.analysisTabWidget.addTab(self.stkBinWidget, 'Stack X-line')
-        self.analysisTabWidget.addTab(self.stkCelWidget, 'Kx-Ky Stack')
+        self.analysisTabWidget.addTab(self.tabKxKyStack, 'Kx-Ky Stack')
         self.analysisTabWidget.addTab(self.offsetWidget, '|O| Histogram')
         self.analysisTabWidget.addTab(self.offAziWidget, 'O/A Histogram')
+        # self.arraysWidget is embedded in the layout of the 'pattern' tab
+        # self.analysisTabWidget.addTab(self.stkCelWidget, 'Kx-Ky Stack')
         # self.analysisTabWidget.currentChanged.connect(self.onAnalysisTabChange)   # active tab changed!
 
         self.setCurrentFileName()
@@ -928,6 +945,41 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.appendLogMessage('Plugin : Started')
         self.statusbar.showMessage('Ready', 3000)
 
+    # deal with pattern selection for display & kxky plotting
+    def onPattern1IndexChanged(self):
+        self.plotPatterns()
+
+    def onPattern2IndexChanged(self):
+        self.plotPatterns()
+
+    def onActionPatternLayoutTriggered(self):
+        self.patternLayout = True
+        self.plotPatterns()
+
+    def onActionPattern_kx_kyTriggered(self):
+        self.patternLayout = False
+        self.plotPatterns()
+
+    # deal with pattern selection for bin stack response
+    def onStackPatternIndexChanged(self):
+        nX = self.spiderPoint.x()                                               # get x, y indices into bin array
+        nY = self.spiderPoint.y()
+
+        if self.spiderPoint.x() < 0:
+            return
+
+        if self.spiderPoint.y() < 0:
+            return
+
+        if self.survey.binTransform is None:
+            return
+
+        invBinTransform, _ = self.survey.binTransform.inverted()                # need to go from bin nr's to cmp(x, y)
+        cmpX, cmpY = invBinTransform.map(nX, nY)                                # get local coordinates from line and point indices
+        stkX, stkY = self.survey.st2Transform.map(cmpX, cmpY)                   # get the corresponding bin and stake numbers
+
+        self.plotStkCel(nX, nY, stkX, stkY)
+
     def eventFilter(self, source, event):
         if event.type() == QEvent.Show:                                             # do 'cheap' test first
             if isinstance(source, pg.PlotWidget):                                   # do 'expensive' test next
@@ -985,11 +1037,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # set the survey object in the property pane using current survey properties
         copy = self.survey.deepcopy()
-
-        # first (globally) define the patterns to choose from
-        config.patternList = ['<no pattern>']
-        for p in copy.patternList:
-            config.patternList.append(p.name)
+        self.updatePatternList(copy)                                            # create valid pattern list, before using it in property pane
 
         # first copy the crs for global access (need to fix this later)
         config.surveyCrs = copy.crs
@@ -1029,6 +1077,44 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 item.updateDefaultBtn()                                         # reset the default-buttons to their grey value
             if 'tip' in p.opts:                                                 # this solves the above mentioned bug
                 item.setToolTip(0, p.opts['tip'])                               # the widgets now get their tooltips
+
+    def updatePatternList(self, survey):
+
+        assert isinstance(survey, RollSurvey), 'make sure we have a RollSurvey object here'
+
+        # first (globally) define the patterns to choose from
+        config.patternList = ['<no pattern>']
+        for p in survey.patternList:
+            config.patternList.append(p.name)
+
+        # for pattern response display and kxky response
+        self.pattern1.clear()
+        self.pattern1.addItem('<no pattern>')                                   # setup first pattern list in pattern tab
+        for item in self.survey.patternList:
+            self.pattern1.addItem(item.name)
+
+        self.pattern2.clear()
+        self.pattern2.addItem('<no pattern>')                                   # setup second pattern list in pattern tab
+        for item in self.survey.patternList:
+            self.pattern2.addItem(item.name)
+
+        listSize = len(self.survey.patternList)                                 # show the first two paterns (if available)
+        self.pattern1.setCurrentIndex(min(listSize, 1))                         # select first pattern in list
+        self.pattern2.setCurrentIndex(min(listSize, 2))                         # select first pattern in list
+
+        # for convolution of stack response with pattern response
+        self.pattern3.clear()
+        self.pattern3.addItem('<no pattern>')                                   # setup first pattern list in pattern tab
+        for item in self.survey.patternList:
+            self.pattern3.addItem(item.name)
+
+        self.pattern4.clear()
+        self.pattern4.addItem('<no pattern>')                                   # setup second pattern list in pattern tab
+        for item in self.survey.patternList:
+            self.pattern4.addItem(item.name)
+
+        self.pattern3.setCurrentIndex(min(listSize, 1))                         # select first pattern in list
+        self.pattern4.setCurrentIndex(min(listSize, 2))                         # select first pattern in list
 
     def applyPropertyChanges(self):
         # build new survey object from scratch, and start adding to it
@@ -1145,11 +1231,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     os.remove(anaFileName)
             except OSError as e:
                 self.appendLogMessage(f"Can't delete file, {e}")
-            self.updateMenuStatus(True)                                         # keep menu status in sync with program's state; analysis fileshave been deleted !
+            self.updateMenuStatus(True)                                         # keep menu status in sync with program's state; analysis files have been deleted !
         else:
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; analysis files have not been deleted
 
         self.appendLogMessage(f'Edited : {self.fileName} survey object updated')
+
+        self.updatePatternList(self.survey)                                     # pattern list may be altered during parameter editing session
         self.plotLayout()
 
     def binningSettingsHaveChanged(self, *_):                                   # param, changes unused; replaced by *_
@@ -1250,10 +1338,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def resetPlotWidget(self, w, plotTitle):
         w.plotItem.clear()
         w.setTitle(plotTitle, color='b', size='16pt')
-
-    # create tabbed pages
-    def createLayoutTab(self):
-        self.layoutWidget = self.createPlotWidget()
 
     # deal with the spider navigation
     # See: https://stackoverflow.com/questions/49316067/how-get-pressed-keys-in-mousepressevent-method-with-qt
@@ -1961,6 +2045,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return 8
         elif plotWidget == self.offAziWidget:
             return 9
+        elif plotWidget == self.arraysWidget:
+            return 10
 
         return None
 
@@ -1985,18 +2071,24 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return (self.offsetWidget, 8)
         if self.offAziWidget.isVisible():
             return (self.offAziWidget, 9)
+        if self.arraysWidget.isVisible():
+            return (self.arraysWidget, 10)
 
         return (None, None)
 
-    def updateVisiblePlotWidget(self, index: int):
+    def updateVisiblePlotWidget(self, index: int) -> None:
         if index == 0:
             self.plotLayout()                                                   # no conditions to plot main layout plot
             return
 
-        if self.output.anaOutput is None:                                # we need self.output.anaOutput to display meaningful ANALYSIS information
+        if index == 10:                                                         # no condition to plot patterns either
+            self.plotPatterns()
             return
 
-        xAnaSize = self.output.anaOutput.shape[0]                        # make sure we have a valid self.spiderPoint, hence valid nx, ny
+        if self.output.anaOutput is None:                                       # we need self.output.anaOutput to display meaningful ANALYSIS information
+            return
+
+        xAnaSize = self.output.anaOutput.shape[0]                               # make sure we have a valid self.spiderPoint, hence valid nx, ny
         yAnaSize = self.output.anaOutput.shape[1]
 
         if self.spiderPoint == QPoint(-1, -1):                                  # no valid position yet; move to center
@@ -2501,8 +2593,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def plotStkTrk(self, nY: int, stkY: int, x0: float, dx: float):
         with pg.BusyCursor():
-            dK = 0.001 * config.kr_Range.z()
-            kMax = 0.001 * config.kr_Range.y() + dK
+            dK = 0.001 * config.kr_Stack.z()
+            kMax = 0.001 * config.kr_Stack.y() + dK
             kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
@@ -2535,8 +2627,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def plotStkBin(self, nX: int, stkX: int, y0: float, dy: float):
         with pg.BusyCursor():
-            dK = 0.001 * config.kr_Range.z()
-            kMax = 0.001 * config.kr_Range.y() + dK
+            dK = 0.001 * config.kr_Stack.z()
+            kMax = 0.001 * config.kr_Stack.y() + dK
             kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
@@ -2569,13 +2661,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def plotStkCel(self, nX: int, nY: int, stkX: int, stkY: int):
         with pg.BusyCursor():
-            kMin = 0.001 * config.kxyRange.x()
-            kMax = 0.001 * config.kxyRange.y()
-            dK = 0.001 * config.kxyRange.z()
+            kMin = 0.001 * config.kxyStack.x()
+            kMax = 0.001 * config.kxyStack.y()
+            dK = 0.001 * config.kxyStack.z()
             kMax = kMax + dK
 
-            kStart = 1000.0 * (kMin - 0.5 * dK)                             # scale by factor 1000 as we want to show [1/km] on scale
-            kDelta = 1000.0 * dK                                            # same here
+            kStart = 1000.0 * (kMin - 0.5 * dK)                                 # scale by factor 1000 as we want to show [1/km] on scale
+            kDelta = 1000.0 * dK                                                # same here
 
             offsetX, offsetY, noData = numbaOffsetBin(self.output.anaOutput[nX, nY, :, :], self.survey.unique.apply)
             if noData:
@@ -2589,6 +2681,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.xyCellStk = np.ones(shape=(nX, nX), dtype=np.float32) * -50.0           # create -50 dB array of the right size and type
             else:
                 self.xyCellStk = numbaNdft_2D(kMin, kMax, dK, offsetX, offsetY)
+
+            i3 = self.pattern3.currentIndex() - 1                               # turn <no pattern> into -1
+            i4 = self.pattern4.currentIndex() - 1
+            imax = len(self.survey.patternList)
+
+            if self.tbStackPatterns.isChecked() and i3 >= 0 and i3 < imax:
+                x3, y3 = self.survey.patternList[i3].calcPatternPointArrays()
+                self.xyCellStk = self.xyCellStk + numbaNdft_2D(kMin, kMax, dK, x3, y3)
+
+            if self.tbStackPatterns.isChecked() and i4 >= 0 and i4 < imax:
+                x4, y4 = self.survey.patternList[i4].calcPatternPointArrays()
+                self.xyCellStk = self.xyCellStk + numbaNdft_2D(kMin, kMax, dK, x4, y4)
 
             tr = QTransform()                                               # prepare ImageItem transformation:
             tr.translate(kStart, kStart)                                    # move image to correct location
@@ -2685,6 +2789,90 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # See: https://stackoverflow.com/questions/50720719/how-to-create-a-color-circle-in-pyqt
         # See: https://stackoverflow.com/questions/70471687/pyqt-creating-color-circle
 
+    def plotPatterns(self):
+
+        self.arraysWidget.plotItem.clear()
+        self.arraysWidget.setTitle(self.plotTitles[10], color='b', size='16pt')
+        self.arraysWidget.showAxes(True, showValues=(True, False, False, True))   # show values at the left and at the bottom
+
+        styles = {'color': '#000', 'font-size': '10pt'}
+        self.arraysWidget.setLabel('top', ' ', **styles)                        # shows axis at the top, no label, no tickmarks
+        self.arraysWidget.setLabel('right', ' ', **styles)                      # shows axis at the right, no label, no tickmarks
+
+        i1 = self.pattern1.currentIndex() - 1                                   # turn <no pattern> into -1
+        i2 = self.pattern2.currentIndex() - 1
+        imax = len(self.survey.patternList)
+
+        if self.patternLayout:                                                  # display the layout
+            self.arraysWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
+            self.arraysWidget.setLabel('left', 'crossline', units='m', **styles)  # shows axis at the left, and shows the units label
+
+            if i1 >= 0 and i1 < imax:
+                self.arraysWidget.plotItem.addItem(self.survey.patternList[i1])
+
+            if i2 >= 0 and i2 < imax:
+                self.arraysWidget.plotItem.addItem(self.survey.patternList[i2])
+
+        else:                                                                   # calculate kxky pattern response of selected patterns
+            self.arraysWidget.setLabel('bottom', 'Kx', units='1/km', **styles)  # shows axis at the bottom, and shows the units label
+            self.arraysWidget.setLabel('left', 'Ky', units='1/km', **styles)    # shows axis at the left, and shows the units label
+
+            with pg.BusyCursor():                                               # now do the real work
+                kMin = 0.001 * config.kxyArray.x()
+                kMax = 0.001 * config.kxyArray.y()
+                dK = 0.001 * config.kxyArray.z()
+                kMax = kMax + dK
+
+                kStart = 1000.0 * (kMin - 0.5 * dK)                             # scale by factor 1000 as we want to show [1/km] on scale
+                kDelta = 1000.0 * dK                                            # same here
+
+                x1 = y1 = x2 = y2 = None                                        # avoid these variables from being undefined
+
+                if i1 >= 0 and i1 < imax:
+                    x1, y1 = self.survey.patternList[i1].calcPatternPointArrays()
+
+                if i2 >= 0 and i2 < imax:
+                    x2, y2 = self.survey.patternList[i2].calcPatternPointArrays()
+
+                kX = np.arange(kMin, kMax, dK)                                  # setup k value array
+                nX = kX.shape[0]                                                # get array size
+
+                if (x1 is None or len(x1) == 0) and (x2 is None or len(x2) == 0):
+                    self.xyPatResp = np.ones(shape=(nX, nX), dtype=np.float32) * -50.0  # create -50 dB array of the right size and type
+                else:
+                    self.xyPatResp = np.zeros(shape=(nX, nX), dtype=np.float32)   # create zero array of the right size and type
+
+                    if i1 >= 0 and i1 < imax:                                   # multiply with array response (dB -> multiplication becomes summation)
+                        self.xyPatResp = self.xyPatResp + numbaNdft_2D(kMin, kMax, dK, x1, y1)
+
+                    if i2 >= 0 and i2 < imax:                                   # multiply with array response (dB -> multiplication becomes summation)
+                        self.xyPatResp = self.xyPatResp + numbaNdft_2D(kMin, kMax, dK, x2, y2)
+
+                tr = QTransform()                                               # prepare ImageItem transformation:
+                tr.translate(kStart, kStart)                                    # move image to correct location
+                tr.scale(kDelta, kDelta)                                        # scale horizontal and vertical axes
+
+                self.kxyPatImItem = pg.ImageItem()                              # create PyqtGraph image item
+                self.kxyPatImItem.setImage(self.xyPatResp, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
+                self.kxyPatImItem.setTransform(tr)
+                if self.kxyPatColorBar is None:
+                    self.kxyPatColorBar = self.arraysWidget.plotItem.addColorBar(
+                        self.kxyPatImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0)
+                    )
+                    self.kxyPatColorBar.setLevels(low=-50.0, high=0.0)
+                else:
+                    self.kxyPatColorBar.setImageItem(self.kxyPatImItem)
+                    self.kxyPatColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
+
+                self.arraysWidget.plotItem.clear()
+                self.arraysWidget.plotItem.addItem(self.kxyPatImItem)
+
+        plotTitle = f'{self.plotTitles[10]} [{self.pattern1.currentText()} * {self.pattern2.currentText()}]'
+        plotTitle = plotTitle.replace('<', '&lt;')                              # bummer; plotTitle is an html string
+        plotTitle = plotTitle.replace('>', '&gt;')                              # we need to escape the angle brackets
+
+        self.arraysWidget.setTitle(plotTitle, color='b', size='16pt')
+
     def roiChanged(self):
         pos = []
         for i, handle in enumerate(self.lineROI.getHandles()):
@@ -2769,6 +2957,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.stkBinImItem = None
         self.stkCelImItem = None
         self.offAziImItem = None
+        self.kxyPatImItem = None
 
         # corresponding color bars
         # self.layoutColorBar = None                                              # DON'T reset these; adjust the existing ones
@@ -2865,6 +3054,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.resetPlotWidget(self.stkCelWidget, self.plotTitles[7])
         self.resetPlotWidget(self.offsetWidget, self.plotTitles[8])
         self.resetPlotWidget(self.offAziWidget, self.plotTitles[9])
+        self.resetPlotWidget(self.arraysWidget, self.plotTitles[10])
 
         self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
 
@@ -2925,8 +3115,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     i += 1
 
     def fileNewMarineSurvey(self):
-        QMessageBox.information(self, 'Not implemented', 'The marine wizard has not yet been implemented', QMessageBox.Cancel)
-        return
+        if not config.showUnfinished:
+            QMessageBox.information(self, 'Not implemented', 'The marine wizard has not yet been implemented', QMessageBox.Cancel)
+            return
+
+        if not self.fileNew():                                                  # user had 2nd thoughts and did not close the document; return False
+            return False
+
+        dlg = MarineSurveyWizard(self)
+
+        if dlg.exec():                                                          # Run the dialog event loop, and obtain survey object
+            self.survey = dlg.survey                                            # get survey from dialog
 
     def maybeSave(self):
         if not self.textEdit.document().isModified():                           # no need to do anything, as the doc wasn't modified
@@ -3131,18 +3330,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.output.rmsOffset = None
 
             ##### 4/9/24
-
-            if os.path.exists(self.fileName + '.off.npy'):                      # load the existing azimuth/offset histogram file
-                self.output.offstHist = np.load(self.fileName + '.azi.npy')
-                nX = self.output.offstHist.shape[0]                             # check against nx
-
-                if nX != 2:
-                    self.appendLogMessage('Loaded : . . . offset: Wrong dimensions of histogram - file ignored')
-                    self.output.offstHist = None
-                else:
-                    self.appendLogMessage('Loaded : . . . offset histogram')
-            else:
-                self.output.offstHist = None
 
             if os.path.exists(self.fileName + '.off.npy'):                      # load the existing azimuth/offset histogram file
                 self.output.offstHist = np.load(self.fileName + '.off.npy')
@@ -3488,7 +3675,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.xpsModel.setData(self.xpsImport)
         self.rpsModel.setData(self.rpsImport)
 
-        self.mainTabWidget.setCurrentIndex(3)                                   # make sure we display the 'SPS import' tab
+        self.mainTabWidget.setCurrentIndex(4)                                   # make sure we display the 'SPS import' tab
 
         self.actionRpsPoints.setEnabled(nRps > 0)
         self.actionSpsPoints.setEnabled(nSps > 0)

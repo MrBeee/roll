@@ -1211,6 +1211,50 @@
     <string>Also show inactive points in Layout view</string>
    </property>
   </action>
+  <action name="actionPatternLayout">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Pattern Layout</string>
+   </property>
+   <property name="toolTip">
+    <string>Show Pattern Layout(s)</string>
+   </property>
+  </action>
+  <action name="actionPattern_kx_ky">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>kx-ky Response</string>
+   </property>
+   <property name="toolTip">
+    <string>Show kx-ky pattern response</string>
+   </property>
+  </action>
+  <action name="actionStackResponse">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Stack only</string>
+   </property>
+   <property name="toolTip">
+    <string>Just the stack response</string>
+   </property>
+  </action>
+  <action name="actionStackPatterns">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>with array(s)</string>
+   </property>
+   <property name="toolTip">
+    <string>stack convolved with pattern(s)</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

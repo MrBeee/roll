@@ -39,7 +39,7 @@ class RollSeed:
         self.color = QColor()                                                   # color of seed to discriminate different sources / receivers
 
         # seed subtypes
-        self.type = 0                                                           # Seed type 0 = rolling, 1 = fixed, 2 = circle, 3 = spiral, 4 = well,
+        self.type = 0                                                           # Seed type 0 = rolling [default], 1 = fixed, 2 = circle, 3 = spiral, 4 = well
         self.grid = RollGrid()
         self.circle = RollCircle()
         self.spiral = RollSpiral()
@@ -67,6 +67,7 @@ class RollSeed:
         seedElem.setAttribute('x0', str(round(self.origin.x(), 2)))
         seedElem.setAttribute('y0', str(round(self.origin.y(), 2)))
         seedElem.setAttribute('z0', str(round(self.origin.z(), 2)))
+
         seedElem.setAttribute('src', str(self.bSource))
         seedElem.setAttribute('azi', str(self.bAzimuth))
         seedElem.setAttribute('patno', str(self.patternNo))

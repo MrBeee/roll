@@ -66,7 +66,7 @@ class SurveyWizardPage(QWizardPage):
         pass                                                                    # Default is to do absolutely nothing !
 
 
-class LandSurveyWizard(SurveyWizard):
+class MarineSurveyWizard(SurveyWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -82,7 +82,7 @@ class LandSurveyWizard(SurveyWizard):
         self.addPage(Page_7(self))
         self.addPage(Page_8(self))
 
-        self.setWindowTitle('Land & OBN Seismic Survey Wizard')
+        self.setWindowTitle('Towed Streamer Survey Wizard')
         self.setWizardStyle(QWizard.ClassicStyle)
 
         # self.setOption(QWizard.IndependentPages , True) # Don't use this option as fields are no longer updated !!! Make dummy cleanupPage(self) instead
@@ -106,14 +106,59 @@ class Page_1(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setTitle('1. Template Properties')
-        self.setSubTitle('Enter survey type and template properties')
+        self.setTitle('1. Template Properties (1/2)')
+        self.setSubTitle('Enter survey name and towing configuration')
 
         print('page 1 init')
 
         # create some widgets
         self.name = QLineEdit()
         self.type = QComboBox()
+
+        self.vSail = QDoubleSpinBox()
+        self.vTurn = QDoubleSpinBox()
+
+        self.vSail.setRange(1.0, 10.0)
+        self.vTurn.setRange(1.0, 10.0)
+
+        self.vSail.setValue(config.vSail)
+        self.vTurn.setValue(config.vTurn)
+
+        self.vCross = QDoubleSpinBox()
+        self.vCurrent = QDoubleSpinBox()
+        self.vTail = QDoubleSpinBox()
+
+        self.vCross.setRange(-5.0, 5.0)
+        self.vTail.setRange(-5.0, 5.0)
+        self.vCurrent.setRange(-10.0, 10.0)
+
+        self.vCross.setValue(0.0)
+        self.vCurrent.setValue(0.0)
+        self.vTail.setValue(0.0)
+
+        self.aFeat = QDoubleSpinBox()
+        self.aFeat.setRange(-90.0, 90.0)
+        self.aFeat.setValue(0.0)
+
+        self.cabLength = QDoubleSpinBox()
+        self.groupInt = QDoubleSpinBox()
+
+        self.cabLength.setRange(100.0, 20_000.0)
+        self.groupInt.setRange(3.125, 250.0)
+
+        self.cabLength.setValue(config.cabLength)
+        self.groupInt.setValue(config.groupInt)
+
+        self.nSrc = QSpinBox()
+        self.nCab = QSpinBox()
+
+        self.srcPopInt = QDoubleSpinBox()
+        self.srcShtInt = QDoubleSpinBox()
+        self.recTail = QDoubleSpinBox()
+        self.recHead = QDoubleSpinBox()
+
+        self.srcDepth = QDoubleSpinBox()
+        self.recLength = QDoubleSpinBox()
 
         self.nsl = QSpinBox()
         self.nrl = QSpinBox()
@@ -133,7 +178,7 @@ class Page_1(SurveyWizardPage):
         self.spi.setRange(0.01, 10000)
         self.rpi.setRange(0.01, 10000)
 
-        self.chkLinePntAlign = QCheckBox('Match point intervals (SPI && RPI) to line intervals (SLI && RLI)')
+        self.chkPopGroupAlign = QCheckBox('Match pop interval to binsize (binsize = ½ streamer group)')
 
         # controls for specific survey types (orthogonal, parallel, slanted, brick, zigzag)
         self.slantS = QSpinBox()                                                # nr templates required for slant
@@ -154,8 +199,9 @@ class Page_1(SurveyWizardPage):
         self.chkMirrorOddEven.setChecked(True)
 
         # initialize the widgets
-        for item in SurveyList[:-1]:                                            # skip last item from list; streamer survey
-            self.type.addItem(item)
+        self.type.addItem(SurveyList[-1])
+
+        # self.type.setEnabled(False)                                             # disable comboBox
 
         self.name.setStyleSheet('QLineEdit  { background-color : lightblue} ')
         self.type.setStyleSheet('QComboBox  { background-color : lightblue} ')
@@ -164,16 +210,14 @@ class Page_1(SurveyWizardPage):
         layout = QGridLayout()
 
         row = 0
-        layout.addWidget(QLabel('Select the correct survey <b>type</b>'), row, 0, 1, 4)
-
-        row += 1
-        layout.addWidget(self.type, row, 0, 1, 4)
+        layout.addWidget(self.type, row, 0, 1, 3)
+        layout.addWidget(QLabel('<b>Survey type</b>'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel('Provide an appropriate <b>description</b> for the survey (default is survey type)'), row, 0, 1, 4)
+        layout.addWidget(QLabel('Provide an appropriate <b>description/name</b> for the survey'), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.name, row, 0, 1, 4)
@@ -182,115 +226,110 @@ class Page_1(SurveyWizardPage):
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel('<b>Source</b> and <b>receiver</b> basic template configuration'), row, 0, 1, 4)
-
-        # » Page 2 (this page) defines nr of lines and line/point intervals of the template<br>
-        # » Page 3 defines the bin grid, used to combine traces for 'fold' calculations<br>
-        # » Page 4 defines the starting point and the length of source and receiver lines <br>
-        # » Page 5 defines how and how often a template is rolled to a new location<br>
-        # » Page 6 defines the offset range valid for binning purposes<br>
-
-        strLocal = """
-        The template(s) consist(s) of one or more source and receiver lines<br>
-        Only sources and receivers within the same template result in valid traces<br>
-        <br>
-        You can freely move forwards and backwards through the wizard. Please note:<br>
-        » changes made in later pages won't introduce changes in the earlier pages<br>
-        » changes in earlier pages can affect parameters in the later pages. E.g. :<br>
-        &nbsp;&nbsp;· Changing receiver line interval (RLI) may impact the salvo length (NSP)<br>
-        &nbsp;&nbsp;· But changing the salvo length (NSP) won't affect the receiver line interval (RLI)<br>
-        """
+        layout.addWidget(QLabel('<b>Vessel speed in water'), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel(strLocal), row, 0, 1, 4)
+        layout.addWidget(self.vSail, row, 0)
+        layout.addWidget(QLabel('<b>Acquisition</b> speed [kn]'), row, 1)
+        layout.addWidget(self.vTurn, row, 2)
+        layout.addWidget(QLabel('<b>Line turn</b> speed [kn]'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        self.templateLabel = QLabel('Nr <b>active</b> source and receiver lines in a template')
-        layout.addWidget(self.templateLabel, row, 0, 1, 4)
+        layout.addWidget(QLabel('<b>Tail- and Crossline currents</b>'), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(self.nsl, row, 0)
-
-        self.nslLabel = QLabel('<b>NSL</b> Nr Src Line(s)')
-        layout.addWidget(self.nslLabel, row, 1)   ##
-
-        layout.addWidget(self.nrl, row, 2)
-        layout.addWidget(QLabel('<b>NRL</b> Nr Rec Lines [&#8593;]'), row, 3)
+        layout.addWidget(self.vTail, row, 0)
+        layout.addWidget(QLabel('<b>Tail</b> current [kn]'), row, 1)
+        layout.addWidget(self.vCross, row, 2)
+        layout.addWidget(QLabel('<b>Crossline</b> current [kn]'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        self.lineLabel = QLabel('<b>Line</b> spacing between sources and receivers')
-        layout.addWidget(self.lineLabel, row, 0, 1, 4)
+        layout.addWidget(QLabel('<b>Total current and feather angle</b>'), row, 0, 1, 2)
 
         row += 1
-        layout.addWidget(self.sli, row, 0)
-        self.sliLabel = QLabel('<b>SLI</b> Src Line Int [m&#8594;]')   ##
-        layout.addWidget(self.sliLabel, row, 1)   ##
-
-        layout.addWidget(self.rli, row, 2)
-        layout.addWidget(QLabel('<b>RLI</b> Rec Line Int [m&#8593;]'), row, 3)
+        layout.addWidget(self.vCurrent, row, 0)
+        layout.addWidget(QLabel('<b>Total</b> current [kn]'), row, 1)   ##
+        layout.addWidget(self.aFeat, row, 2)
+        layout.addWidget(QLabel('<b>Feather</b> angle [deg]'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        self.pointLabel = QLabel('<b>Point</b> spacing between sources and receivers')
-        layout.addWidget(self.pointLabel, row, 0, 1, 4)
+        layout.addWidget(QLabel('<b>Towing configuration</b>'), row, 0, 1, 2)
 
         row += 1
-        layout.addWidget(self.spi, row, 0)
-        self.spiLabel = QLabel('<b>SLI</b> Src Point Int [m&#8593;]')   ##
-        layout.addWidget(self.spiLabel, row, 1)
-        layout.addWidget(self.rpi, row, 2)
-        layout.addWidget(QLabel('<b>RPI</b> Rec Point Int [m&#8594;]'), row, 3)
-
-        row += 1
-        layout.addWidget(self.chkLinePntAlign, row, 0, 1, 4)
+        layout.addWidget(self.nCab, row, 0)
+        layout.addWidget(QLabel('<b>Nr. streamers</b> [#]'), row, 1)
+        layout.addWidget(self.nSrc, row, 2)
+        layout.addWidget(QLabel('<b>Nr. sources</b> [#]'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
-        # controls for specific survey types (parallel, slanted, brick, zigzag)
         row += 1
-        self.slantH = QLabel('<b>Slanted</b> template source configuration')    # slant header
-        layout.addWidget(self.slantH, row, 0, 1, 4)                             # slant header
+        layout.addWidget(QLabel('<b>Streamer length & Group interval</b>'), row, 0, 1, 2)
 
         row += 1
-        self.slantL = QLabel("Nr RLI's needed to move up one complete SLI")     # slant label
-        layout.addWidget(self.slantS, row, 0)                                   # slant spinbox
-        layout.addWidget(self.slantL, row, 1, 1, 3)                             # slant label
+        layout.addWidget(self.cabLength, row, 0)
+        layout.addWidget(QLabel('Streamer <b>length</b> [m]'), row, 1)   ##
+        layout.addWidget(self.groupInt, row, 2)
+        layout.addWidget(QLabel('Group <b>interval</b> [m]'), row, 3)
 
         row += 1
-        self.slantT = QLabel('Slant angle [deg] (deviation from orthogonal)')   # slant text
-        layout.addWidget(self.slantA, row, 0)                                   # slant spinbox
-        layout.addWidget(self.slantT, row, 1, 1, 3)                             # slant label
+        layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        self.brickH = QLabel('<b>Brick </b> template source configuration')     # brick header
-        layout.addWidget(self.brickH, row, 0, 1, 2)                             # brick header
-        layout.addWidget(self.chkBrickMatchRpi, row, 2, 1, 2)                   # checkbox - match or not
+        layout.addWidget(QLabel('<b>Shooting operation</b> (pop- and source point interval)'), row, 0, 1, 2)
 
         row += 1
-        self.brickL = QLabel('<b></b>Distance of 2nd- to 1st source line [m&#8594;]')         # brick label (force html)
-        layout.addWidget(self.brickS, row, 0)                                   # brick spinbox
-        layout.addWidget(self.brickL, row, 1, 1, 2)                             # brick label
+        layout.addWidget(self.srcPopInt, row, 0)
+        layout.addWidget(QLabel('<b>Pop</b> interval [m]'), row, 1)
+        layout.addWidget(self.srcShtInt, row, 2)
+        layout.addWidget(QLabel('<b>SP</b> interval [m]'), row, 3)
 
         row += 1
-        self.zigzagH = QLabel('<b>Zigzag </b> template source configuration')   # zigzag header
-        layout.addWidget(self.zigzagH, row, 0, 1, 2)                            # zigzag header
+        layout.addWidget(self.chkPopGroupAlign, row, 0, 1, 4)
 
         row += 1
-        self.zigzagL = QLabel('Nr zig-zags [1 - 3]')                            # zigzag label
-        layout.addWidget(self.zigzagS, row, 0)                                  # zigzag spinbox
-        layout.addWidget(self.zigzagL, row, 1)                                  # zigzag label
-        layout.addWidget(self.chkMirrorOddEven, row, 2, 1, 2)                   # checkbox - mirror or not
+        layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(QLabel('<b>Source depth</b> and <b>record length</b>'), row, 0, 1, 2)
+
+        row += 1
+        layout.addWidget(self.srcDepth, row, 0)
+        layout.addWidget(QLabel('<b>depth</b> [m]'), row, 1)   ##
+        layout.addWidget(self.recLength, row, 2)
+        layout.addWidget(QLabel('<b>Record length</b> [s]'), row, 3)
+
+        row += 1
+        layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(QLabel('<b>Clean record length</b> (i.e. without SP blending)'), row, 0, 1, 2)
+
+        row += 1
+        layout.addWidget(self.recTail, row, 0)
+        layout.addWidget(QLabel('for <b>Tail</b> current [s]'), row, 1)
+        layout.addWidget(self.recHead, row, 2)
+        layout.addWidget(QLabel('for <b>Head</b> current [s]'), row, 3)
+
+        # row += 1
+        # layout.addWidget(QHLine(), row, 0, 1, 4)
 
         self.setLayout(layout)
+
+        # start values in the constructor, taken from config.py
+
+        self.nSrc.setValue(config.nSrc)
+        self.nCab.setValue(config.nCab)
 
         # register fields for variable access in other Wizard Pages
         # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
@@ -302,8 +341,6 @@ class Page_1(SurveyWizardPage):
         self.registerField('rpi', self.rpi, 'value')                            # receiver point interval
         self.registerField('type', self.type)                                   # Survey type
         self.registerField('name', self.name)                                   # Survey name
-
-        self.registerField('chkLinePntAlign', self.chkLinePntAlign)             # Match point intervals (SPI && RPI) to line intervals (SLI && RLI)
 
         self.registerField('nslant', self.slantS, 'value')                      # nr templates in a slanted survey
         self.registerField('brk', self.brickS, 'value')                         # brick offset distance for 2nd source line
@@ -319,7 +356,6 @@ class Page_1(SurveyWizardPage):
         self.rli.editingFinished.connect(self.evt_rli_editingFinished)          # for receiver line interval
         self.rpi.editingFinished.connect(self.evt_rpi_editingFinished)          # for receiver point interval
 
-        self.chkLinePntAlign.stateChanged.connect(self.evt_align_stateChanged)
         self.chkBrickMatchRpi.stateChanged.connect(self.evt_match_stateChanged)
 
         self.slantS.valueChanged.connect(self.evt_slantS_valueChanged)
@@ -332,7 +368,7 @@ class Page_1(SurveyWizardPage):
         self.rli.setValue(config.rli)
         self.spi.setValue(config.spi)
         self.rpi.setValue(config.rpi)
-        self.name.setText(config.surveyName)
+        self.name.setText('10_x_8000_x_100_x_2')
         self.brickS.setValue(config.brick)
 
         # variables to keep survey dimensions more or less the same, when editing
@@ -340,30 +376,9 @@ class Page_1(SurveyWizardPage):
         self.old_rli = config.rli
         self.old_sli = config.sli
 
-        # hide optional controls for non-orthogonal surveys
-        slanted = False
-        self.slantH.setVisible(slanted)
-        self.slantS.setVisible(slanted)
-        self.slantL.setVisible(slanted)
-        self.slantA.setVisible(slanted)
-        self.slantT.setVisible(slanted)
-
-        brick = False
-        self.brickH.setVisible(brick)
-        self.brickS.setVisible(brick)
-        self.brickL.setVisible(brick)
-        self.chkBrickMatchRpi.setVisible(brick)
-
-        Zigzag = False
-        self.zigzagH.setVisible(Zigzag)
-        self.zigzagS.setVisible(Zigzag)
-        self.zigzagL.setVisible(Zigzag)
-        self.chkMirrorOddEven.setVisible(Zigzag)
-
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         print('initialize page 1')
-        self.chkLinePntAlign.setChecked(True)
-        self.chkBrickMatchRpi.setChecked(True)
+        self.chkPopGroupAlign.setChecked(True)
 
     def cleanupPage(self):                                                      # needed to update previous page
         print('cleanup of page 1')
@@ -591,8 +606,8 @@ class Page_2(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setTitle('2. Template Properties')
-        self.setSubTitle('Enter Spread and Salvo details')
+        self.setTitle('2. Template Properties (2/2)')
+        self.setSubTitle('Complete towing configuration')
 
         print('page 2 init')
 
@@ -609,6 +624,24 @@ class Page_2(SurveyWizardPage):
         # create some widgets
         self.nsp = QSpinBox()
         self.nrp = QSpinBox()
+
+        self.srcLayback = QDoubleSpinBox()
+        self.cabLayback = QDoubleSpinBox()
+
+        self.srcLayback.setValue(config.srcLayback)
+        self.cabLayback.setValue(config.cabLayback)
+
+        self.cabIntHead = QDoubleSpinBox()
+        self.cabIntTail = QDoubleSpinBox()
+
+        self.cabDepthHead = QDoubleSpinBox()
+        self.cabDepthTail = QDoubleSpinBox()
+
+        self.cabDepthHead.setValue(config.cabDepthHead)
+        self.cabDepthTail.setValue(config.cabDepthTail)
+
+        self.srcSepFactor = QSpinBox()
+        self.srcSeparation = QDoubleSpinBox()
 
         self.offImin = QDoubleSpinBox()
         self.offImax = QDoubleSpinBox()
@@ -640,46 +673,52 @@ class Page_2(SurveyWizardPage):
         layout = QGridLayout()
 
         row = 0
-        layout.addWidget(QLabel('<b>SPREAD</b> definition  [nr &#8594;]'), row, 0)
-        layout.addWidget(QLabel('<b>SALVO</b> definition  [nr &#8593;]'), row, 2)
+        layout.addWidget(QLabel('<b>Laybacks</b> in towing configuration'), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(self.chkNrecMatch, row, 0, 1, 2)
-        layout.addWidget(self.chkNsrcMatch, row, 2, 1, 2)
-
-        row += 1
-        layout.addWidget(self.chkNrecKnown, row, 0, 1, 2)
-        layout.addWidget(self.chkNsrcKnown, row, 2, 1, 2)
-
-        row += 1
-        layout.addWidget(self.nrp, row, 0)
-        layout.addWidget(QLabel('Nr channels/cable'), row, 1)
-        layout.addWidget(self.nsp, row, 2)
-        layout.addWidget(QLabel('Nr shots/traverse'), row, 3)
+        layout.addWidget(self.cabLayback, row, 0)
+        layout.addWidget(QLabel('<b>Streamer</b> layback [m]'), row, 1)
+        layout.addWidget(self.srcLayback, row, 2)
+        layout.addWidget(QLabel('<b>Source</b> layback [m]'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel('<b>Inline</b> [&#8594;] offset range relative <b>first</b> shot line'), row, 0, 1, 4)
+        layout.addWidget(QLabel('<b>Streamer separation</b> (with optional fanning)'), row, 0, 1, 2)
 
         row += 1
-        layout.addWidget(self.offImin, row, 0)
-        layout.addWidget(QLabel('Minimum [m]'), row, 1)
-        layout.addWidget(self.offImax, row, 2)
-        layout.addWidget(QLabel('Maximum [m]'), row, 3)
+        layout.addWidget(self.cabIntHead, row, 0)
+        layout.addWidget(QLabel('<b>Head</b> [m]'), row, 1)   ##
+        layout.addWidget(self.cabIntTail, row, 2)
+        layout.addWidget(QLabel('<b>Tail</b> [m]'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel('<b>Crossline</b> [&#8593;] offset range relative <b>first</b> receiver line'), row, 0, 1, 4)
+        layout.addWidget(QLabel('<b>Streamer depth</b> (with optional slant)'), row, 0, 1, 2)
 
         row += 1
-        layout.addWidget(self.offXmin, row, 0)
-        layout.addWidget(QLabel('Minimum [m]'), row, 1)
-        layout.addWidget(self.offXmax, row, 2)
-        layout.addWidget(QLabel('Maximum [m]'), row, 3)
+        layout.addWidget(self.cabDepthHead, row, 0)
+        layout.addWidget(QLabel('<b>Head</b> [m]'), row, 1)   ##
+        layout.addWidget(self.cabDepthTail, row, 2)
+        layout.addWidget(QLabel('<b>Tail</b> [m]'), row, 3)
+
+        row += 1
+        layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(QLabel('<b>Source separation </b> (resulting from streamer separation & widening <b>factor</b>)'), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(self.srcSepFactor, row, 0)
+        layout.addWidget(QLabel('<b>Factor</b> [#]'), row, 1)   ##
+        layout.addWidget(self.srcSeparation, row, 2)
+        layout.addWidget(QLabel('<b>Separation</b> [m]'), row, 3)
+
+        row += 1
+        layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)

@@ -59,6 +59,22 @@ def toInt(value: any, default: int = 0) -> int:
         return default
 
 
+def knotToMeterperSec(speed: float) -> float:
+    return speed * 0.514444444
+
+
+def meterPerSecToKnot(speed: float) -> float:
+    return speed * 1.94384449412
+
+
+def newtonToTonForce(force: float) -> float:
+    return force * 0.0001019716
+
+
+def tonForceToNewton(force: float) -> float:
+    return force * 9806.652
+
+
 def makePenFromParms(parms):
     assert len(parms) == 6, "need 6 parameters for: ('color', 'width', 'style', 'capStyle', 'joinStyle', 'cosmetic')"
 
@@ -613,54 +629,57 @@ def exampleSurveyXmlText() -> str:
             </spatialrefsys>
         </surveyCrs>
         <limits>
-            <angles azimin="0.0" refmin="0.0" azimax="360.0" refmax="45.0"/>
-            <binning method="cmp"/>
-            <offset xmax="5976.0" ymin="-776.0" ymax="776.0" xmin="-5976.0" rmin="0.0" rmax="6027.0"/>
-            <output xmax="7225.0" ymin="1400.0" ymax="1800.0" xmin="6975.0"/>
-            <unique apply="False" deltaoff="200.0" deltaazi="5.0"/>
+            <output xmax="7225.0" ymax="1800.0" xmin="6975.0" ymin="1400.0"/>
+            <angles refmin="0.0" azimin="0.0" azimax="360.0" refmax="45.0"/>
+            <offset rmin="0.0" xmax="5976.0" rmax="6027.0" ymax="776.0" xmin="-5976.0" ymin="-776.0"/>
+            <unique deltaoff="200.0" deltaazi="5.0" apply="False" write="False"/>
+            <binning vint="2000.0" method="cmp"/>
         </limits>
         <reflectors>
-            <plane z0="-2000.0" y0="450000.0" dip="4.0" azi="45.0" x0="150000.0"/>
+            <plane azi="45.0" z0="-2000.0" dip="4.0" y0="450000.0" x0="150000.0"/>
             <!--Plane equation: -0.049325·x + -0.049325·y + 0.997564·z + 31590.294922 = 0  -->
             <!--Plane is defined in global coordinates. Subsurface corresponds with negative z-values-->
-            <sphere z0="-4000.0" y0="456100.0" radius="2000.0" x0="153900.0"/>
+            <sphere z0="-4000.0" radius="2000.0" y0="456100.0" x0="153900.0"/>
             <!--Sphere is defined in global coordinates. Subsurface corresponds with negative z-values-->
         </reflectors>
         <grid>
-            <local x0="12.5" y0="12.5" fold="-1" dx="25.0" dy="25.0" l0="1000.0" s0="1000.0"/>
-            <global x0="150000.0" sx="1.0" sy="1.0" y0="450000.0" azi="45.0"/>
-            <!--Forward transform: A0=10000.000, B0=10000.000, A1=0.707107, B1=0.707107, A2=-0.707107, B2=0.707107-->
-            <!--Inverse transform: A0=-14142.136, B0=0.000, A1=0.707107, B1=-0.707107, A2=0.707107, B2=0.707107-->
+            <local l0="1000.0" s0="1000.0" fold="-1" dl="25.0" dy="25.0" y0="12.5" dx="25.0" ds="25.0" x0="12.5"/>
+            <global azi="45.0" sy="1.0" sx="1.0" y0="450000.0" x0="150000.0"/>
+            <!--Forward transform: A0=150000.000, B0=450000.000, A1=0.707107, B1=0.707107, A2=-0.707107, B2=0.707107-->
+            <!--Inverse transform: A0=-424264.069, B0=-212132.034, A1=0.707107, B1=-0.707107, A2=0.707107, B2=0.707107-->
             <!--See EPSG:9624 (https://epsg.io/9624-method) for the affine parametric transform definition-->
         </grid>
         <block_list>
             <block>
                 <name>Block-1</name>
                 <borders>
-                    <src_border xmin="-20000.0" xmax="20000.0" ymin="-20000.0" ymax="20000.0"/>
-                    <rec_border xmin="0.0" xmax="0.0" ymin="0.0" ymax="0.0"/>
+                    <src_border xmax="20000.0" ymax="20000.0" ymin="-20000.0" xmin="-20000.0"/>
+                    <rec_border xmax="0.0" ymax="0.0" ymin="0.0" xmin="0.0"/>
                 </borders>
                 <template_list>
                     <template>
                         <name>Template-1</name>
                         <roll_list>
-                            <translate n="10" dx="0.0" dy="200.0"/>
-                            <translate n="10" dx="250.0" dy="0.0"/>
+                            <translate dz="0.0" dy="0.0" n="1" dx="0.0"/>
+                            <translate dz="0.0" dy="200.0" n="10" dx="0.0"/>
+                            <translate dz="0.0" dy="0.0" n="10" dx="250.0"/>
                         </roll_list>
                         <seed_list>
-                            <seed x0="5975.0" src="True" y0="625.0" argb="#77ff0000" typno="0" azi="False" patno="0">
+                            <seed azi="False" typno="0" z0="0.0" y0="625.0" argb="#77ff0000" x0="5975.0" src="True" patno="0">
                                 <name>Src-1</name>
-                                <grow_list>
-                                    <translate n="1" dx="250.0" dy="0.0"/>
-                                    <translate n="4" dx="0.0" dy="50.0"/>
-                                </grow_list>
+                                <grid roll="False" points="4">
+                                    <translate dz="0.0" dy="0.0" n="1" dx="0.0"/>
+                                    <translate dz="0.0" dy="0.0" n="1" dx="250.0"/>
+                                    <translate dz="0.0" dy="50.0" n="4" dx="0.0"/>
+                                </grid>
                             </seed>
-                            <seed x0="0.0" src="False" y0="0.0" argb="#7700b0f0" typno="0" azi="False" patno="1">
+                            <seed azi="False" typno="0" z0="0.0" y0="0.0" argb="#7700b0f0" x0="0.0" src="False" patno="1">
                                 <name>Rec-1</name>
-                                <grow_list>
-                                    <translate n="8" dx="0.0" dy="200.0"/>
-                                    <translate n="240" dx="50.0" dy="0.0"/>
-                                </grow_list>
+                                <grid roll="False" points="1920">
+                                    <translate dz="0.0" dy="0.0" n="1" dx="0.0"/>
+                                    <translate dz="0.0" dy="200.0" n="8" dx="0.0"/>
+                                    <translate dz="0.0" dy="0.0" n="240" dx="50.0"/>
+                                </grid>
                             </seed>
                         </seed_list>
                     </template>
@@ -668,21 +687,31 @@ def exampleSurveyXmlText() -> str:
             </block>
         </block_list>
         <pattern_list>
-            <pattern x0="-0.0" y0="-12.5" argb="#ffff0000">
+            <pattern>
                 <name>src-array</name>
-                <grow_list>
-                    <translate n="1" dx="0.0" dy="0.0"/>
-                    <translate n="1" dx="0.0" dy="0.0"/>
-                    <translate n="3" dx="0.0" dy="12.5"/>
-                </grow_list>
+                <seed_list>
+                    <seed azi="False" z0="0.0" y0="-12.5" argb="#ffff0000" x0="-0.0">
+                        <name>seed-1</name>
+                        <grid roll="True" points="3">
+                            <translate dz="0.0" dy="0.0" n="1" dx="0.0"/>
+                            <translate dz="0.0" dy="0.0" n="1" dx="0.0"/>
+                            <translate dz="0.0" dy="12.5" n="3" dx="0.0"/>
+                        </grid>
+                    </seed>
+                </seed_list>
             </pattern>
-            <pattern x0="-20.8333" y0="-20.825" argb="#ff0000ff">
+            <pattern>
                 <name>rec-array</name>
-                <grow_list>
-                    <translate n="3" dx="16.6667" dy="0.0"/>
-                    <translate n="2" dx="8.333" dy="8.333"/>
-                    <translate n="3" dx="0.0" dy="16.667"/>
-                </grow_list>
+                <seed_list>
+                    <seed azi="False" z0="0.0" y0="-20.83" argb="#ff0000ff" x0="-20.83">
+                        <name>seed-1</name>
+                        <grid roll="True" points="18">
+                            <translate dz="0.0" dy="0.0" n="3" dx="16.66670036315918"/>
+                            <translate dz="0.0" dy="8.333000183105469" n="2" dx="8.333000183105469"/>
+                            <translate dz="0.0" dy="16.66699981689453" n="3" dx="0.0"/>
+                        </grid>
+                    </seed>
+                </seed_list>
             </pattern>
         </pattern_list>
     </survey>"""
