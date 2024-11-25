@@ -64,7 +64,7 @@ groupInt = 12.5                                                                 
 cabDepthHead = 8.0                                                              # [m]       streamer depth
 cabDepthTail = 10.0                                                             # [m]       streamer depth at end of spread
 srcDepth = 10.0                                                                 # [m]       source depth default
-
+recLength = 6.0                                                                 # [s]       record length
 
 # Level of Detail (LOD) settings
 lod0 = 0.005                                                                    # Lowest level;  < lod0: paint survey as rect outline

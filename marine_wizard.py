@@ -17,6 +17,7 @@ from qgis.PyQt.QtGui import QColor, QImage, QPixmap, QTextOption, QTransform
 from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QSizePolicy, QSpinBox, QVBoxLayout, QWizard, QWizardPage
 
 from . import config  # used to pass initial settings
+from .functions import knotToMeterperSec
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
 from .roll_survey import PaintMode, RollSurvey, SurveyList, SurveyType
@@ -124,9 +125,21 @@ class Page_1(SurveyWizardPage):
         self.vSail.setValue(config.vSail)
         self.vTurn.setValue(config.vTurn)
 
+        self.vSail.textChanged.connect(self.evt_vSail_vCross_changed)           # for vessel acquisition speed
+        self.vSail.editingFinished.connect(self.evt_vSail_vCross_changed)       # for vessel acquisition speed
+
+        self.vTurn.editingFinished.connect(self.evt_vTurn_editingFinished)      # for vessel acquisition speed
+
         self.vCross = QDoubleSpinBox()
-        self.vCurrent = QDoubleSpinBox()
         self.vTail = QDoubleSpinBox()
+
+        self.vCross.textChanged.connect(self.evt_vSail_vCross_changed)          # for vessel acquisition speed
+        self.vCross.editingFinished.connect(self.evt_vSail_vCross_changed)      # for vessel acquisition speed
+
+        self.vTail.textChanged.connect(self.evt_vSail_vCross_changed)           # for vessel acquisition speed
+        self.vTail.editingFinished.connect(self.evt_vSail_vCross_changed)       # for vessel acquisition speed
+
+        self.vCurrent = QDoubleSpinBox()                                        # readonly spinbox
 
         self.vCross.setRange(-5.0, 5.0)
         self.vTail.setRange(-5.0, 5.0)
@@ -134,11 +147,14 @@ class Page_1(SurveyWizardPage):
 
         self.vCross.setValue(0.0)
         self.vCurrent.setValue(0.0)
+        self.vCurrent.setEnabled(False)                                         # readonly
+
         self.vTail.setValue(0.0)
 
         self.aFeat = QDoubleSpinBox()
         self.aFeat.setRange(-90.0, 90.0)
         self.aFeat.setValue(0.0)
+        self.aFeat.setEnabled(False)                                            # readonly
 
         self.cabLength = QDoubleSpinBox()
         self.groupInt = QDoubleSpinBox()
@@ -331,6 +347,12 @@ class Page_1(SurveyWizardPage):
         self.nSrc.setValue(config.nSrc)
         self.nCab.setValue(config.nCab)
 
+        self.srcPopInt.setValue(2 * 0.5 * config.groupInt)
+        self.srcShtInt.setValue(2 * 0.5 * config.groupInt * config.nSrc)
+
+        self.srcDepth.setValue(config.srcDepth)
+        self.recLength.setValue(config.recLength)
+
         # register fields for variable access in other Wizard Pages
         # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
         self.registerField('nsl', self.nsl, 'value')                            # nr source lines
@@ -485,6 +507,29 @@ class Page_1(SurveyWizardPage):
             self.sli.setValue(nsp * rpi)
 
         self.update()                                                           # update GUI
+
+    def evt_vSail_vCross_changed(self):
+        vSail = self.vSail.value()
+        vTail = self.vTail.value()
+        vCross = self.vCross.value()
+        popInt = self.srcPopInt.value()
+
+        aFeat = math.degrees(math.asin(vCross / vSail))
+        vCurrent = math.sqrt(vTail * vTail + vCross * vCross)
+
+        vAtHeadCurrent = knotToMeterperSec(math.acos(vCross / vSail) - vTail)
+        vAtTailCurrent = knotToMeterperSec(math.acos(vCross / vSail) + vTail)
+        tAtHeadCurrent = popInt / vAtHeadCurrent
+        tAtTailCurrent = popInt / vAtTailCurrent
+
+        self.aFeat.setValue(aFeat)
+        self.vCurrent.setValue(vCurrent)
+
+        self.recTail.setValue(tAtTailCurrent)
+        self.recHead.setValue(tAtHeadCurrent)
+
+    def evt_vTurn_editingFinished(self):
+        pass
 
     def evt_sli_editingFinished(self):
         nrIntervals = max(round(self.sli.value() / self.rpi.value()), 1)
