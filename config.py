@@ -47,24 +47,28 @@ binIsiz = 2000                                                                  
 binXsiz = 2000                                                                  # y-size
 
 # general presets for towed marine settings
-vSail = 4.5                                                                     # [knot]
-vTurn = 4.3                                                                     # [knot]
-vCross = 0.0                                                                    # [knot]
+vSail = 4.5                                                                     # [knot]    vessel's acquisition speed in water
+vTurn = 4.3                                                                     # [knot]    vessel's line turn speed in water
+vCross = 0.0                                                                    # [knot]    cross current
+vTail = 0.0                                                                     # [knot]    tail current
 
-srcPopInt = 12.5                                                                # [m]
+srcPopInt = 25.0                                                                # [m]       default pop-interval; impacts 'clean' record length
+nSrc = 2                                                                        # [#]       flip-flop shooting
+nCab = 10                                                                       # [#]       using 10 cables is quite normal
 
-nSrc = 2                                                                        # flip-flop shooting
-nCab = 10                                                                       # using 10 cables
+srcLayback = 250.0                                                              # [m]       limited by umbilical length
+cabLayback = 450.0                                                              # [m]       approximately half the spreadwidth
+cabLength = 8000.0                                                              # [m]       8 km streamer per default
+groupInt = 12.5                                                                 # [m]       group interval, 12.5 m is industry standard
 
-srcLayback = 250.0                                                              # cabLayback - 200, but > 100 and < 400
-cabLayback = 450.0                                                              # Nr streamers - 1 x streamer interval @ front / 2
-cabLength = 8000.0                                                              # 8 km streamer per default
-groupInt = 12.5                                                                 # group interval [m]
-
-cabDepthHead = 8.0                                                              # [m]       streamer depth
+cabDepthHead = 8.0                                                              # [m]       streamer depth at head of spread
 cabDepthTail = 10.0                                                             # [m]       streamer depth at end of spread
+
+cabSepHead = 100.0                                                              # [m]       streamer inerval at head of spread
+cabSepTail = 100.0                                                              # [m]       streamer depth at end of spread
+
 srcDepth = 10.0                                                                 # [m]       source depth default
-recLength = 6.0                                                                 # [s]       record length
+recLength = 8.0                                                                 # [s]       record length
 
 # Level of Detail (LOD) settings
 lod0 = 0.005                                                                    # Lowest level;  < lod0: paint survey as rect outline

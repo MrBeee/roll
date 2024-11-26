@@ -108,7 +108,7 @@ class Page_1(SurveyWizardPage):
         super().__init__(parent)
 
         self.setTitle('1. Template Properties (1/2)')
-        self.setSubTitle('Enter survey name and towing configuration')
+        self.setSubTitle('Enter survey name, currents and towing configuration')
 
         print('page 1 init')
 
@@ -119,25 +119,25 @@ class Page_1(SurveyWizardPage):
         self.vSail = QDoubleSpinBox()
         self.vTurn = QDoubleSpinBox()
 
-        self.vSail.setRange(1.0, 10.0)
-        self.vTurn.setRange(1.0, 10.0)
+        self.vSail.setRange(0.1, 10.0)
+        self.vTurn.setRange(0.1, 10.0)
 
         self.vSail.setValue(config.vSail)
         self.vTurn.setValue(config.vTurn)
 
-        self.vSail.textChanged.connect(self.evt_vSail_vCross_changed)           # for vessel acquisition speed
-        self.vSail.editingFinished.connect(self.evt_vSail_vCross_changed)       # for vessel acquisition speed
+        self.vSail.textChanged.connect(self.updateParameters)
+        self.vSail.editingFinished.connect(self.updateParameters)
 
-        self.vTurn.editingFinished.connect(self.evt_vTurn_editingFinished)      # for vessel acquisition speed
+        self.vTurn.editingFinished.connect(self.evt_vTurn_editingFinished)
 
         self.vCross = QDoubleSpinBox()
         self.vTail = QDoubleSpinBox()
 
-        self.vCross.textChanged.connect(self.evt_vSail_vCross_changed)          # for vessel acquisition speed
-        self.vCross.editingFinished.connect(self.evt_vSail_vCross_changed)      # for vessel acquisition speed
+        self.vCross.textChanged.connect(self.updateParameters)
+        self.vCross.editingFinished.connect(self.updateParameters)
 
-        self.vTail.textChanged.connect(self.evt_vSail_vCross_changed)           # for vessel acquisition speed
-        self.vTail.editingFinished.connect(self.evt_vSail_vCross_changed)       # for vessel acquisition speed
+        self.vTail.textChanged.connect(self.updateParameters)
+        self.vTail.editingFinished.connect(self.updateParameters)
 
         self.vCurrent = QDoubleSpinBox()                                        # readonly spinbox
 
@@ -165,13 +165,35 @@ class Page_1(SurveyWizardPage):
         self.cabLength.setValue(config.cabLength)
         self.groupInt.setValue(config.groupInt)
 
+        self.groupInt.textChanged.connect(self.updateParameters)
+        self.groupInt.editingFinished.connect(self.updateParameters)
+
         self.nSrc = QSpinBox()
         self.nCab = QSpinBox()
 
+        self.nSrc.setRange(1, 50)
+        self.nCab.setRange(1, 50)
+
+        self.nSrc.textChanged.connect(self.updateParameters)
+        self.nSrc.editingFinished.connect(self.updateParameters)
+
         self.srcPopInt = QDoubleSpinBox()
         self.srcShtInt = QDoubleSpinBox()
+
+        self.srcPopInt.setRange(0.0, 10_000.0)
+        self.srcShtInt.setRange(0.0, 10_000.0)
+
+        self.srcPopInt.editingFinished.connect(self.updateParameters)
+        self.srcShtInt.editingFinished.connect(self.updateParameters)
+
         self.recTail = QDoubleSpinBox()
         self.recHead = QDoubleSpinBox()
+
+        self.recTail.setRange(0.001, 1000.0)
+        self.recHead.setRange(0.001, 1000.0)
+
+        self.recTail.setEnabled(False)
+        self.recHead.setEnabled(False)
 
         self.srcDepth = QDoubleSpinBox()
         self.recLength = QDoubleSpinBox()
@@ -320,10 +342,11 @@ class Page_1(SurveyWizardPage):
         layout.addWidget(QLabel('<b>Source depth</b> and <b>record length</b>'), row, 0, 1, 2)
 
         row += 1
+        self.recLengthLabel = QLabel('<b>Record length</b> [s]')
         layout.addWidget(self.srcDepth, row, 0)
         layout.addWidget(QLabel('<b>depth</b> [m]'), row, 1)   ##
         layout.addWidget(self.recLength, row, 2)
-        layout.addWidget(QLabel('<b>Record length</b> [s]'), row, 3)
+        layout.addWidget(self.recLengthLabel, row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
@@ -347,11 +370,13 @@ class Page_1(SurveyWizardPage):
         self.nSrc.setValue(config.nSrc)
         self.nCab.setValue(config.nCab)
 
-        self.srcPopInt.setValue(2 * 0.5 * config.groupInt)
-        self.srcShtInt.setValue(2 * 0.5 * config.groupInt * config.nSrc)
+        self.srcPopInt.setValue(4.0 * 0.5 * config.groupInt)
+        self.srcShtInt.setValue(4.0 * 0.5 * config.groupInt * config.nSrc)
 
         self.srcDepth.setValue(config.srcDepth)
         self.recLength.setValue(config.recLength)
+
+        self.recLength.textChanged.connect(self.updateParameters)
 
         # register fields for variable access in other Wizard Pages
         # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
@@ -370,18 +395,6 @@ class Page_1(SurveyWizardPage):
         self.registerField('mir', self.chkMirrorOddEven)                        # mirror od/even templates
 
         # connect signals to slots
-        self.type.currentIndexChanged.connect(self.evt_type_indexChanged)
-
-        # signals and slots for when editing is finished
-        self.sli.editingFinished.connect(self.evt_sli_editingFinished)          # for source line interval
-        self.spi.editingFinished.connect(self.evt_spi_editingFinished)          # for source point interval
-        self.rli.editingFinished.connect(self.evt_rli_editingFinished)          # for receiver line interval
-        self.rpi.editingFinished.connect(self.evt_rpi_editingFinished)          # for receiver point interval
-
-        self.chkBrickMatchRpi.stateChanged.connect(self.evt_match_stateChanged)
-
-        self.slantS.valueChanged.connect(self.evt_slantS_valueChanged)
-        self.brickS.editingFinished.connect(self.evt_brickS_editingFinished)
 
         # start values in the constructor, taken from config.py
         self.nsl.setValue(config.nsl)
@@ -401,124 +414,34 @@ class Page_1(SurveyWizardPage):
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         print('initialize page 1')
         self.chkPopGroupAlign.setChecked(True)
+        self.updateParameters()
 
     def cleanupPage(self):                                                      # needed to update previous page
         print('cleanup of page 1')
 
-    def adjustBingrid(self):
-        rpi = self.rpi.value()                                                  # horizontal
-        sli = self.sli.value()
-        rpi = min(rpi, sli)
-
-        spi = self.spi.value()                                                  # vertical
-        rli = self.rli.value()
-        spi = min(spi, rli)
-
-        self.setField('binI', 0.5 * rpi)                                        # need to adjust bingrid too
-        self.setField('binX', 0.5 * spi)
-
-        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
-        self.parent.page(3).evt_binImin_editingFinished(plot=False)             # need to update binning area too
-        self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
-        self.parent.page(3).evt_binXmin_editingFinished(plot=False)
-        self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
-
-    def evt_align_stateChanged(self):                                           # alignment state changed
-        self.evt_sli_editingFinished()                                          # update dependent controls
-        self.evt_rli_editingFinished()
-        self.evt_spi_editingFinished()
-        self.evt_rpi_editingFinished()
-
-    def evt_match_stateChanged(self):                                           # match state changed
-        self.evt_brickS_editingFinished()                                       # update dependent control
-
-    def evt_type_indexChanged(self, index):
-        self.nsl.setValue(1)                                                    # reset nr source lines in case we came from zigzag or parallel
-
-        self.sli.setEnabled(True)                                               # in case we disabled this earlier
-        self.nsl.setEnabled(True)                                               # for instance with zigzag or parallel
-
-        self.sli.setValue(config.sli)                                           # in case we used parallel earlier
-        self.old_sli = config.sli                                               # in case we used parallel earlier
-
-        self.nsl.setValue(config.nsl)
-        self.setField('rlr', 1)                                                 # One line to roll
-        self.setField('slr', 1)                                                 # One line to roll
-        self.setField('sld', round(config.deployInline / (config.slr * config.sli)) + 1)
-        self.setField('rld', round(config.deployX_line / (config.rlr * config.rli)) + 1)
-
-        name = SurveyType(index).name                                           # get name from enum
-        number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
-        self.name.setText(f'{name}_{number}')                                   # show the new name
-        # self.type = SurveyType(index)                                         # update survey type; no need for this, done automatically
-
-        parallel = index == SurveyType.Parallel.value
-        if parallel:
-            # self.sli.setEnabled(False)                                          # calculate sli from nsl
-            self.templateLabel.setText('In a <b>parallel</b> template, source points run <b>parallel</b> to the receiver lines')
-            self.lineLabel.setText('<b>Point</b> spacing between sources and <b>line</b> spacing between receivers')
-            self.pointLabel.setText('<b>Line</b> spacing between sources and <b>point</b> spacing between receivers')
-            self.sli.setValue(config.sli_par)
-            self.nsl.setValue(config.nsl_par)
-            self.setField('nrp', config.nrp_par)
-
-            self.nslLabel.setText('<b>NSP</b> Nr Src Points [&#8594;]')
-            self.sliLabel.setText('<b>SPI</b> Src Point Int [m&#8594;]')   ##
-            self.spiLabel.setText('<b>SLI</b> Src Line Int [m&#8593;]')
-        else:
-            self.templateLabel.setText('<b>Active</b> source and receiver lines in a template')
-            self.lineLabel.setText('<b>Line</b> spacing between sources and receivers')
-            self.pointLabel.setText('<b>point</b> spacing between sources and receivers')
-
-            self.nslLabel.setText('<b>NSL</b> Nr Src Lines [&#8594;]')
-            self.sliLabel.setText('<b>SLI</b> Src Line Int [m&#8594;]')   ##
-            self.spiLabel.setText('<b>SPI</b> Src Point Int [m&#8593;]')
-
-        slanted = index == SurveyType.Slanted.value
-        self.slantH.setVisible(slanted)
-        self.slantS.setVisible(slanted)
-        self.slantL.setVisible(slanted)
-        self.slantA.setVisible(slanted)
-        self.slantT.setVisible(slanted)
-        if slanted:
-            self.evt_slantS_valueChanged(self.slantS.value())
-
-        brick = index == SurveyType.Brick.value
-        self.brickH.setVisible(brick)
-        self.brickS.setVisible(brick)
-        self.brickL.setVisible(brick)
-        self.chkBrickMatchRpi.setVisible(brick)
-
-        zigzag = index == SurveyType.Zigzag.value
-        self.zigzagH.setVisible(zigzag)
-        self.zigzagS.setVisible(zigzag)
-        self.zigzagL.setVisible(zigzag)
-        self.chkMirrorOddEven.setVisible(zigzag)
-
-        if zigzag:
-            self.nsl.setEnabled(False)                                          # always 1 source line
-            self.nsl.setValue(2)
-
-            self.sli.setEnabled(False)
-            rli = self.field('rli')                                             # get variables from field names
-            rpi = self.field('rpi')
-            spi = self.field('spi')
-            nsp = max(round(rli / spi), 1)
-            self.sli.setValue(nsp * rpi)
-
-        self.update()                                                           # update GUI
-
-    def evt_vSail_vCross_changed(self):
+    def updateParameters(self):
         vSail = self.vSail.value()
         vTail = self.vTail.value()
         vCross = self.vCross.value()
+
+        if abs(vTail) >= vSail:                                                 # handle excessive tail current
+            vTrunc = vSail - 0.1
+            vTail = vTrunc if vTail > 0.0 else -vTrunc
+            self.vTail.setValue(vTail)
+
+        if abs(vCross) >= vSail:                                                # handle excessive cross current
+            vTrunc = vSail - 0.1
+            vCross = vTrunc if vCross > 0.0 else -vTrunc
+            self.vCross.setValue(vCross)
+
         popInt = self.srcPopInt.value()
 
         aFeat = math.degrees(math.asin(vCross / vSail))
         vCurrent = math.sqrt(vTail * vTail + vCross * vCross)
 
-        vAtHeadCurrent = knotToMeterperSec(math.acos(vCross / vSail) - vTail)
-        vAtTailCurrent = knotToMeterperSec(math.acos(vCross / vSail) + vTail)
+        vAtHeadCurrent = knotToMeterperSec(vSail * math.cos(vCross / vSail) - vTail)
+        vAtTailCurrent = knotToMeterperSec(vSail * math.cos(vCross / vSail) + vTail)
+
         tAtHeadCurrent = popInt / vAtHeadCurrent
         tAtTailCurrent = popInt / vAtTailCurrent
 
@@ -528,119 +451,29 @@ class Page_1(SurveyWizardPage):
         self.recTail.setValue(tAtTailCurrent)
         self.recHead.setValue(tAtHeadCurrent)
 
+        tRecord = self.recLength.value()
+
+        if tRecord > tAtHeadCurrent or tRecord > tAtTailCurrent:
+            self.recLength.setStyleSheet('QDoubleSpinBox {color:red; background-color:lightblue;}')
+            self.recLengthLabel.setStyleSheet('QLabel {color:red}')
+        else:
+            self.recLength.setStyleSheet('QDoubleSpinBox {color:black; background-color:white;}')
+            self.recLengthLabel.setStyleSheet('QLabel {color:black}')
+
+        nSrc = self.nSrc.value()
+        self.srcShtInt.setValue(popInt * nSrc)
+
+        groupInt = self.groupInt.value()
+        step = 0.5 * groupInt
+        if self.chkPopGroupAlign.isChecked():
+            self.srcPopInt.setSingleStep(step)
+            steps = max(round(popInt / step), 1)
+            self.srcPopInt.setValue(steps * step)
+        else:
+            self.srcPopInt.setSingleStep(1.0)
+
     def evt_vTurn_editingFinished(self):
         pass
-
-    def evt_sli_editingFinished(self):
-        nrIntervals = max(round(self.sli.value() / self.rpi.value()), 1)
-        rpiValue = self.sli.value() / nrIntervals
-
-        if self.chkLinePntAlign.isChecked():
-            if self.field('type') != SurveyType.Zigzag.value:                   # don't update rpi in case of zigzag
-                self.rpi.setValue(rpiValue)                                     # for zigzag sli is 'fixed' by other variables
-
-        nslant = self.field('nslant')                                           # get variable from field name
-        self.evt_slantS_valueChanged(nslant)                                    # update the slant angle for slanted surveys
-
-        sld = self.field('sld')                                                 # get variables from field names
-        slr = self.field('slr')                                                 # get variables from field names
-        sizI = sld * slr * self.old_sli
-        sld = max(round(sizI / self.sli.value()), 1)
-        self.setField('sld', sld)                                               # adjust nr source line deployments
-
-        self.old_sli = self.sli.value()
-        self.adjustBingrid()
-
-    def evt_rli_editingFinished(self):
-        nrIntervals = max(round(self.rli.value() / self.spi.value()), 1)
-        spiValue = self.rli.value() / nrIntervals
-
-        if self.chkLinePntAlign.isChecked():
-            self.spi.setValue(spiValue)
-            # Affects Page 4
-            self.setField('nsp', nrIntervals)                                   # RLI has been altered; adjust the salvo length
-
-        if self.field('type') == SurveyType.Zigzag.value:
-            self.sli.setValue(nrIntervals * self.rpi.value())
-
-        # if self.field("type") == SurveyType.Parallel.value:                     # in case of a parallel template
-        #     sliValue = self.rli.value() / self.nsl.value()
-        #     self.sli.setValue(sliValue)
-
-        nslant = self.field('nslant')                                           # get variable from field name
-        self.evt_slantS_valueChanged(nslant)                                    # update the slant angle for slanted surveys
-
-        rld = self.field('rld')                                                 # get variables from field names
-        rlr = self.field('rlr')                                                 # get variables from field names
-        sizX = rld * rlr * self.old_rli
-        rld = max(round(sizX / self.rli.value()), 1)
-        self.setField('rld', rld)                                               # adjust nr receiver line deployments
-
-        self.old_rli = self.rli.value()
-        self.adjustBingrid()
-
-    def evt_spi_editingFinished(self):
-        nsp = self.field('nsp')                                                 # get variables from field names
-        rli = self.rli.value()
-        rpi = self.rpi.value()
-        spi = self.spi.value()
-
-        if self.field('type') == SurveyType.Parallel.value:                     # in case of a parallel template
-            pass
-            # # set initial offset values
-            # lenS = self.parent.surveySize.width() + config.spreadlength
-            # nsp = round(lenS / spi) + 1                                         # SPI has been altered; adjust the salvo length
-        else:
-            nrIntervals = max(round(rli / spi), 1)
-            spiValue = rli / nrIntervals
-
-            if self.chkLinePntAlign.isChecked():                                # write back the aligned value
-                self.spi.setValue(spiValue)
-
-            if self.field('type') == SurveyType.Zigzag.value:                   # need to adjust sli for zigzag
-                self.sli.setValue(nrIntervals * rpi)
-
-            nsp = max(round(rli / spi), 1)
-            self.setField('nsp', nsp)                                           # Adjust the salvo length
-
-        self.adjustBingrid()
-
-    def evt_rpi_editingFinished(self):
-        nrIntervals = max(round(self.sli.value() / self.rpi.value()), 1)
-        rpiValue = self.sli.value() / nrIntervals
-
-        if self.chkLinePntAlign.isChecked():
-            self.rpi.setValue(rpiValue)
-
-        if self.field('type') == SurveyType.Zigzag.value:
-            nsp = self.field('nsp')                                             # get variables from field names
-            self.sli.setValue(nsp * self.rpi.value())
-
-        nrp = self.field('nrp')                                                 # get variables from field names
-        spreadlength = nrp * self.old_rpi                                       # current receiver line length
-        nrp = max(round(spreadlength / self.rpi.value()), 1)                    # RPI has been altered; adjust nrp
-        self.setField('nrp', nrp)                                               # save its value
-
-        self.old_rpi = self.rpi.value()
-        self.adjustBingrid()
-
-    def evt_slantS_valueChanged(self, i):
-        sli = self.field('sli')                                                 # get variables from field names
-        rli = self.field('rli')
-        angle = 90.0 - math.degrees(math.atan2(i * rli, sli))                   # get the slant angle (deviation from orthogonal
-        self.slantA.setText(f'{angle:.3f}')                                     # put it back in the edit window
-
-    def evt_brickS_editingFinished(self):
-        sli = self.field('sli')                                                 # get variable from field names
-        brick = self.brickS.value()
-        brick = min(sli - 1.0, brick)
-        if self.chkBrickMatchRpi.isChecked():
-            rpi = self.field('rpi')                                             # get variable from field names
-            nrIntervals = max(round(brick / rpi), 1)
-            if nrIntervals * rpi == sli:
-                nrIntervals -= 1
-            brick = rpi * nrIntervals
-        self.brickS.setValue(brick)
 
 
 # Page_2 =======================================================================
@@ -652,7 +485,7 @@ class Page_2(SurveyWizardPage):
         super().__init__(parent)
 
         self.setTitle('2. Template Properties (2/2)')
-        self.setSubTitle('Complete towing configuration')
+        self.setSubTitle('Complete the towing configuration')
 
         print('page 2 init')
 
@@ -673,14 +506,26 @@ class Page_2(SurveyWizardPage):
         self.srcLayback = QDoubleSpinBox()
         self.cabLayback = QDoubleSpinBox()
 
+        self.srcLayback.setRange(25.0, 1000.0)
+        self.cabLayback.setRange(25.0, 1000.0)
+
         self.srcLayback.setValue(config.srcLayback)
         self.cabLayback.setValue(config.cabLayback)
 
-        self.cabIntHead = QDoubleSpinBox()
-        self.cabIntTail = QDoubleSpinBox()
+        self.cabSepHead = QDoubleSpinBox()
+        self.cabSepTail = QDoubleSpinBox()
+
+        self.cabSepHead.setRange(10.0, 1000.0)
+        self.cabSepTail.setRange(10.0, 1000.0)
+
+        self.cabSepHead.setValue(config.cabSepHead)
+        self.cabSepTail.setValue(config.cabSepTail)
 
         self.cabDepthHead = QDoubleSpinBox()
         self.cabDepthTail = QDoubleSpinBox()
+
+        self.cabDepthHead.setRange(1.0, 100.0)
+        self.cabDepthTail.setRange(1.0, 100.0)
 
         self.cabDepthHead.setValue(config.cabDepthHead)
         self.cabDepthTail.setValue(config.cabDepthTail)
@@ -733,9 +578,9 @@ class Page_2(SurveyWizardPage):
         layout.addWidget(QLabel('<b>Streamer separation</b> (with optional fanning)'), row, 0, 1, 2)
 
         row += 1
-        layout.addWidget(self.cabIntHead, row, 0)
+        layout.addWidget(self.cabSepHead, row, 0)
         layout.addWidget(QLabel('<b>Head</b> [m]'), row, 1)   ##
-        layout.addWidget(self.cabIntTail, row, 2)
+        layout.addWidget(self.cabSepTail, row, 2)
         layout.addWidget(QLabel('<b>Tail</b> [m]'), row, 3)
 
         row += 1
