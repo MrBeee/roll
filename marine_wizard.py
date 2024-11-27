@@ -380,14 +380,42 @@ class Page_1(SurveyWizardPage):
 
         # register fields for variable access in other Wizard Pages
         # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
+
+        self.registerField('name', self.name)                                   # Survey name
+        self.registerField('type', self.type)                                   # Survey type
+
+        self.registerField('vSail', self.vSail)                                 # Vessel acquisition speed
+        self.registerField('vTurn', self.vTurn)                                 # Vessel line turn speed
+
+        self.registerField('vTail', self.vTail)                                 # Tail current speed
+        self.registerField('vCross', self.vCross)                               # crosscurrent speed
+
+        self.registerField('vCurrent', self.vCurrent)                           # overall current speed
+        self.registerField('aFeat', self.aFeat)                                 # Feather angle
+
+        self.registerField('nCab', self.nCab)                                   # number of cables deployed
+        self.registerField('nSrc', self.nSrc)                                   # number of sources deployed
+
+        self.registerField('cabLength', self.cabLength)                         # streamer length
+        self.registerField('groupInt', self.groupInt)                           # group interval
+
+        self.registerField('srcPopInt', self.srcPopInt)                         # pop interval
+        self.registerField('srcShtInt', self.srcShtInt)                         # shot point interval (per cmp line)
+
+        self.registerField('srcDepth', self.srcDepth)                           # source depth [m]
+        self.registerField('recLength', self.recLength)                         # record length [s]
+
+        self.registerField('recTail', self.recTail)                             # Clean record time, with tail current
+        self.registerField('recHead', self.recHead)                             # Clean record time, with head current
+
+        # todo: remove this later:
+
         self.registerField('nsl', self.nsl, 'value')                            # nr source lines
         self.registerField('nrl', self.nrl, 'value')                            # nr receiver lines
         self.registerField('sli', self.sli, 'value')                            # source line interval
         self.registerField('rli', self.rli, 'value')                            # receiver line interval
         self.registerField('spi', self.spi, 'value')                            # source point interval
         self.registerField('rpi', self.rpi, 'value')                            # receiver point interval
-        self.registerField('type', self.type)                                   # Survey type
-        self.registerField('name', self.name)                                   # Survey name
 
         self.registerField('nslant', self.slantS, 'value')                      # nr templates in a slanted survey
         self.registerField('brk', self.brickS, 'value')                         # brick offset distance for 2nd source line
@@ -489,20 +517,6 @@ class Page_2(SurveyWizardPage):
 
         print('page 2 init')
 
-        # to support plotting
-        self.rect = False
-        self.XisY = True
-        self.antA = False
-        self.grid = True
-
-        # variables altered when nrp, nsp change
-        self.offsetInshift = 0.0
-        self.offsetX_shift = 0.0
-
-        # create some widgets
-        self.nsp = QSpinBox()
-        self.nrp = QSpinBox()
-
         self.srcLayback = QDoubleSpinBox()
         self.cabLayback = QDoubleSpinBox()
 
@@ -533,6 +547,27 @@ class Page_2(SurveyWizardPage):
         self.srcSepFactor = QSpinBox()
         self.srcSeparation = QDoubleSpinBox()
 
+        self.srcSepFactor.setRange(1, 10)
+        self.srcSeparation.setRange(10.0, 500.0)
+
+        self.srcSepFactor.setValue(config.srcSepFactor)
+        self.srcSeparation.setValue(config.srcSeparation)
+
+        # todo: remove this later
+
+        # to support plotting
+        self.rect = False
+        self.XisY = True
+        self.antA = False
+        self.grid = True
+
+        # variables altered when nrp, nsp change
+        self.offsetInshift = 0.0
+        self.offsetX_shift = 0.0
+
+        # create some widgets
+        self.nsp = QSpinBox()
+        self.nrp = QSpinBox()
         self.offImin = QDoubleSpinBox()
         self.offImax = QDoubleSpinBox()
 

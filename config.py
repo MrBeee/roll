@@ -58,6 +58,7 @@ nCab = 10                                                                       
 
 srcLayback = 250.0                                                              # [m]       limited by umbilical length
 cabLayback = 450.0                                                              # [m]       approximately half the spreadwidth
+
 cabLength = 8000.0                                                              # [m]       8 km streamer per default
 groupInt = 12.5                                                                 # [m]       group interval, 12.5 m is industry standard
 
@@ -65,10 +66,13 @@ cabDepthHead = 8.0                                                              
 cabDepthTail = 10.0                                                             # [m]       streamer depth at end of spread
 
 cabSepHead = 100.0                                                              # [m]       streamer inerval at head of spread
-cabSepTail = 100.0                                                              # [m]       streamer depth at end of spread
+cabSepTail = 120.0                                                              # [m]       streamer depth at end of spread
 
 srcDepth = 10.0                                                                 # [m]       source depth default
 recLength = 8.0                                                                 # [s]       record length
+
+srcSepFactor = 1                                                                # [#]       Source separation factor [1 ... nCab-1]
+srcSeparation = 50.0                                                            # [#]       Source separation interval
 
 # Level of Detail (LOD) settings
 lod0 = 0.005                                                                    # Lowest level;  < lod0: paint survey as rect outline
