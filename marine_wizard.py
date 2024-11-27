@@ -239,8 +239,6 @@ class Page_1(SurveyWizardPage):
         # initialize the widgets
         self.type.addItem(SurveyList[-1])
 
-        # self.type.setEnabled(False)                                             # disable comboBox
-
         self.name.setStyleSheet('QLineEdit  { background-color : lightblue} ')
         self.type.setStyleSheet('QComboBox  { background-color : lightblue} ')
 
@@ -520,8 +518,8 @@ class Page_2(SurveyWizardPage):
         self.srcLayback = QDoubleSpinBox()
         self.cabLayback = QDoubleSpinBox()
 
-        self.srcLayback.setRange(25.0, 1000.0)
-        self.cabLayback.setRange(25.0, 1000.0)
+        self.srcLayback.setRange(0.0, 5000.0)
+        self.cabLayback.setRange(0.0, 5000.0)
 
         self.srcLayback.setValue(config.srcLayback)
         self.cabLayback.setValue(config.cabLayback)
@@ -535,6 +533,12 @@ class Page_2(SurveyWizardPage):
         self.cabSepHead.setValue(config.cabSepHead)
         self.cabSepTail.setValue(config.cabSepTail)
 
+        self.cabSepHead.textChanged.connect(self.updateCableSeparation)
+        self.cabSepHead.editingFinished.connect(self.updateCableSeparation)
+
+        self.cabSepTail.textChanged.connect(self.updateCableSeparation)
+        self.cabSepTail.editingFinished.connect(self.updateCableSeparation)
+
         self.cabDepthHead = QDoubleSpinBox()
         self.cabDepthTail = QDoubleSpinBox()
 
@@ -544,14 +548,24 @@ class Page_2(SurveyWizardPage):
         self.cabDepthHead.setValue(config.cabDepthHead)
         self.cabDepthTail.setValue(config.cabDepthTail)
 
+        self.cabDepthHead.textChanged.connect(self.updateCableDepth)
+        self.cabDepthHead.editingFinished.connect(self.updateCableDepth)
+
+        self.cabDepthTail.textChanged.connect(self.updateCableDepth)
+        self.cabDepthTail.editingFinished.connect(self.updateCableDepth)
+
         self.srcSepFactor = QSpinBox()
         self.srcSeparation = QDoubleSpinBox()
+        self.srcSeparation.setEnabled(False)                                    # readonly
 
         self.srcSepFactor.setRange(1, 10)
-        self.srcSeparation.setRange(10.0, 500.0)
+        self.srcSeparation.setRange(0.0, 1000.0)
 
         self.srcSepFactor.setValue(config.srcSepFactor)
         self.srcSeparation.setValue(config.srcSeparation)
+
+        self.srcSepFactor.textChanged.connect(self.updateSourceSeparation)
+        self.srcSepFactor.editingFinished.connect(self.updateSourceSeparation)
 
         # todo: remove this later
 
@@ -613,10 +627,11 @@ class Page_2(SurveyWizardPage):
         layout.addWidget(QLabel('<b>Streamer separation</b> (with optional fanning)'), row, 0, 1, 2)
 
         row += 1
+        self.cabSepTailLabel = QLabel('<b>Tail</b> [m]')
         layout.addWidget(self.cabSepHead, row, 0)
         layout.addWidget(QLabel('<b>Head</b> [m]'), row, 1)   ##
         layout.addWidget(self.cabSepTail, row, 2)
-        layout.addWidget(QLabel('<b>Tail</b> [m]'), row, 3)
+        layout.addWidget(self.cabSepTailLabel, row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
@@ -625,10 +640,11 @@ class Page_2(SurveyWizardPage):
         layout.addWidget(QLabel('<b>Streamer depth</b> (with optional slant)'), row, 0, 1, 2)
 
         row += 1
+        self.cabDepthTailLabel = QLabel('<b>Tail</b> [m]')
         layout.addWidget(self.cabDepthHead, row, 0)
         layout.addWidget(QLabel('<b>Head</b> [m]'), row, 1)   ##
         layout.addWidget(self.cabDepthTail, row, 2)
-        layout.addWidget(QLabel('<b>Tail</b> [m]'), row, 3)
+        layout.addWidget(self.cabDepthTailLabel, row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
@@ -644,6 +660,14 @@ class Page_2(SurveyWizardPage):
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        self.plotType = QComboBox()
+        self.plotType.addItems(['Cross section of towed equipment', 'template(s) forward sailing on race track', 'template(s) return sailing  on race track'])
+        self.plotType.setStyleSheet('QComboBox  { background-color : lightblue} ')
+
+        row += 1
+        layout.addWidget(self.plotType, row, 0, 1, 3)
+        layout.addWidget(QLabel('<b>Plot type</b>'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
@@ -682,6 +706,19 @@ class Page_2(SurveyWizardPage):
         ## self.nrp.setValue(round(config.spreadlength/config.rpi))
         ## self.nsp.setValue(round(config.rli/config.spi))
 
+        self.registerField('srcLayback', self.srcLayback, 'value')
+        self.registerField('cabLayback', self.cabLayback, 'value')
+
+        self.registerField('cabSepHead', self.cabSepHead, 'value')
+        self.registerField('cabSepTail', self.cabSepTail, 'value')
+
+        self.registerField('cabDepthHead', self.cabDepthHead, 'value')
+        self.registerField('cabDepthTail', self.cabDepthTail, 'value')
+
+        self.registerField('srcSepFactor', self.srcSepFactor, 'value')
+        self.registerField('srcSeparation', self.srcSeparation, 'value')
+
+        #  todo: remove this later
         self.registerField('nsp', self.nsp, 'value')
         self.registerField('nrp', self.nrp, 'value')
         self.registerField('offImin', self.offImin, 'value')
@@ -716,6 +753,8 @@ class Page_2(SurveyWizardPage):
         self.offXmax.setEnabled(not chkd)
 
         # get variables from field names
+
+        # todo: remove this later
         nrl = self.field('nrl')
         nsl = self.field('nsl')
         sli = self.field('sli')
@@ -773,6 +812,40 @@ class Page_2(SurveyWizardPage):
 
     def cleanupPage(self):                                                      # needed to update previous page
         print('cleanup of page 2')
+
+    def updateCableSeparation(self):
+        cabSepHead = self.cabSepHead.value()
+        cabSepTail = self.cabSepTail.value()
+
+        if cabSepTail < cabSepHead:                                             # provide a warning
+            self.cabSepTail.setStyleSheet('QDoubleSpinBox {color:red; background-color:lightblue;}')
+            self.cabSepTailLabel.setStyleSheet('QLabel {color:red}')
+        else:
+            self.cabSepTail.setStyleSheet('QDoubleSpinBox {color:black; background-color:white;}')
+            self.cabSepTailLabel.setStyleSheet('QLabel {color:black}')
+
+        self.updateSourceSeparation()                                           # cable separation affects source separation too
+
+    def updateCableDepth(self):
+        cabDepthHead = self.cabDepthHead.value()
+        cabDepthTail = self.cabDepthTail.value()
+
+        if cabDepthTail < cabDepthHead:                                             # provide a warning
+            self.cabDepthTail.setStyleSheet('QDoubleSpinBox {color:red; background-color:lightblue;}')
+            self.cabDepthTailLabel.setStyleSheet('QLabel {color:red}')
+        else:
+            self.cabDepthTail.setStyleSheet('QDoubleSpinBox {color:black; background-color:white;}')
+            self.cabDepthTailLabel.setStyleSheet('QLabel {color:black}')
+
+    def updateSourceSeparation(self):
+        nCab = self.field('nCab')
+        nSrc = self.field('nSrc')
+
+        cabSepHead = self.cabSepHead.value()
+        srcSepFactor = self.srcSepFactor.value()
+
+        srcSeparation = cabSepHead * srcSepFactor / nSrc
+        self.srcSeparation.setValue(srcSeparation)
 
     def updateParentSurvey(self):
         # populate / update the survey skeleton
