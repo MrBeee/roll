@@ -56,12 +56,7 @@ class SurveyWizard(QWizard):
 class SurveyWizardPage(QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        self.parent = parent                                                    # to access parameters in the wizard itself
-
-        # in the page constructor, first get a reference to the survey object from the survey wizard itself
-        # not really needed, as we can access the survey object referring to: "parent.survey" in each page
-        # self.survey = parent.survey
+        self.parent = parent                                                    # to access parent's parameters in the wizard pages (this will crash if parent is None)
 
     def cleanupPage(self):                                                      # To prevent initializePage() being called when browsing backwards
         pass                                                                    # Default is to do absolutely nothing !
@@ -703,9 +698,6 @@ class Page_2(SurveyWizardPage):
         # set the combined layouts to become this page's layout
         self.setLayout(vbl)
 
-        ## self.nrp.setValue(round(config.spreadlength/config.rpi))
-        ## self.nsp.setValue(round(config.rli/config.spi))
-
         self.registerField('srcLayback', self.srcLayback, 'value')
         self.registerField('cabLayback', self.cabLayback, 'value')
 
@@ -727,18 +719,7 @@ class Page_2(SurveyWizardPage):
         self.registerField('offXmax', self.offXmax, 'value')
 
         # connect signals to slots for checkboxes
-        self.chkNrecKnown.toggled.connect(self.evt_chkNrecKnown_toggled)        # work from numbers or offsets
-        self.chkNsrcKnown.toggled.connect(self.evt_chkNsrcKnown_toggled)
-        self.chkNrecMatch.toggled.connect(self.evt_chkNrecMatch_toggled)        # require NRP & NSP, matching to SLI & RLI
-        self.chkNsrcMatch.toggled.connect(self.evt_chkNsrcMatch_toggled)
-
         # connect signals to slots for edit controls
-        self.nsp.editingFinished.connect(self.evt_nsp_editingFinished)      # evaluate new nsp
-        self.nrp.editingFinished.connect(self.evt_nrp_editingFinished)      # evaluate new nrp
-        self.offImin.editingFinished.connect(self.evt_offImin_editingFinished)  # evaluate new offsets
-        self.offImax.editingFinished.connect(self.evt_offImax_editingFinished)
-        self.offXmin.editingFinished.connect(self.evt_offxmin_editingFinished)
-        self.offXmax.editingFinished.connect(self.evt_offXmax_editingFinished)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         print('initialize page 2')
@@ -838,9 +819,7 @@ class Page_2(SurveyWizardPage):
             self.cabDepthTailLabel.setStyleSheet('QLabel {color:black}')
 
     def updateSourceSeparation(self):
-        nCab = self.field('nCab')
         nSrc = self.field('nSrc')
-
         cabSepHead = self.cabSepHead.value()
         srcSepFactor = self.srcSepFactor.value()
 
@@ -1237,157 +1216,24 @@ class Page_2(SurveyWizardPage):
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
 
-    def evt_chkNrecKnown_toggled(self, chkd):                                   # toggle enabled status for 2 controls
-        self.nrp.setEnabled(chkd)
-        self.offImax.setEnabled(not chkd)
-
-    def evt_chkNsrcKnown_toggled(self, chkd):                                   # toggle enabled status for 2 controls
-        self.nsp.setEnabled(chkd)
-        self.offXmax.setEnabled(not chkd)
-
-    def evt_chkNrecMatch_toggled(self):
-        nrp = self.field('nrp')
-        self.alignRecPoints(nrp)
-
-        self.updateParentSurvey()                                               # update the survey object
-        self.plot()                                                             # refresh the plot
-
-    def evt_chkNsrcMatch_toggled(self):
-        nsp = self.field('nsp')
-        self.alignSrcPoints(nsp)
-
-        self.updateParentSurvey()                                               # update the survey object
-        self.plot()                                                             # refresh the plot
-
-    def alignRecPoints(self, nrp):
-        sli = self.field('sli')
-        rpi = self.field('rpi')
-
-        if self.chkNrecMatch.isChecked():
-            nrIntervals = max(round(nrp * rpi / sli), 1)                        # spreadlength expressed in source line intervals
-            nrPtsPerInt = max(round(sli / rpi), 1)                              # nr receivers per source line interval
-            nrp = nrIntervals * nrPtsPerInt
-
-        self.nrp.setValue(nrp)                                                  # always set value; so value becomes permanent
-        return nrp
-
-    def alignSrcPoints(self, nsp):
-        rli = self.field('rli')
-        spi = self.field('spi')
-        if self.chkNsrcMatch.isChecked():
-            nrIntervals = max(round(nsp * spi / rli), 1)                        # salvo length expressed in receiver line intervals
-            nrPtsPerInt = max(round(rli / spi), 1)                              # nr source points per receiver line interval
-            nsp = nrIntervals * nrPtsPerInt
-
-        self.nsp.setValue(nsp)                                                  # always set value; so value becomes permanent
-        return nsp
-
-    def evt_nrp_editingFinished(self):
-        sli = self.field('sli')
-        rpi = self.field('rpi')
-        nsl = self.field('nsl')
-        nrp = self.field('nrp')
-        nrp = self.alignRecPoints(nrp)                                          # checks nrp and stores its value
-
-        # set the offset values
-        templateInShift = 0.5 * (nsl - 1) * sli
-        self.offImin.setValue(-0.5 * (nrp - 1) * rpi + self.offsetInshift + templateInShift)
-        self.offImax.setValue(0.5 * (nrp - 1) * rpi + self.offsetInshift + templateInShift)
-
-        self.updateParentSurvey()                                               # update the survey object
-        self.plot()                                                             # refresh the plot
-
-    def evt_nsp_editingFinished(self):
-        rli = self.field('rli')
-        spi = self.field('spi')
-        nrl = self.field('nrl')
-        nsp = self.field('nsp')
-        nsp = self.alignSrcPoints(nsp)                                          # checks nsp and stores its value
-
-        # set the  offset values
-        templateX_shift = 0.5 * (nrl - 1) * rli
-        self.offXmin.setValue(-0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
-        self.offXmax.setValue(0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
-
-        self.updateParentSurvey()                                               # update the survey object
-        self.plot()                                                             # refresh the plot
-
-    def evt_offImin_editingFinished(self):
-        nsl = self.field('nsl')
-        rpi = self.field('rpi')
-        nrp = self.field('nrp')
-        sli = self.field('sli')
-
-        templateInshift = 0.5 * (nsl - 1) * sli
-        halfSpreadLength = 0.5 * (nrp - 1) * rpi
-
-        self.offsetInshift = halfSpreadLength - templateInshift + self.offImin.value()
-        self.offImax.setValue(self.offImin.value() + 2 * halfSpreadLength)
-
-        self.updateParentSurvey()                                               # update the survey object
-        self.plot()                                                             # refresh the plot
-
-    def evt_offxmin_editingFinished(self):
-        nsp = self.field('nsp')
-        nrl = self.field('nrl')
-        spi = self.field('spi')
-        rli = self.field('rli')
-
-        templateX_shift = 0.5 * (nrl - 1) * rli
-        halfSalvoLength = 0.5 * (nsp - 1) * spi
-
-        self.offsetX_shift = halfSalvoLength - templateX_shift + self.offXmin.value()
-        self.offXmax.setValue(self.offXmin.value() + 2 * halfSalvoLength)
-
-        self.updateParentSurvey()                                               # update the survey object
-        self.plot()                                                             # refresh the plot
-
-    def evt_offImax_editingFinished(self):
-        nsl = self.field('nsl')
-        rpi = self.field('rpi')
-        sli = self.field('sli')
-
-        nrp = max(round((self.offImax.value() - self.offImin.value()) / rpi) + 1, 1)  # nr channels over offset range
-        nrp = self.alignRecPoints(nrp)                                          # checks nrp and stores its value
-
-        templateInshift = 0.5 * (nsl - 1) * sli
-        halfSpreadLength = 0.5 * (nrp - 1) * rpi
-
-        self.offsetInshift = templateInshift - halfSpreadLength + self.offImin.value()
-        self.offImax.setValue(self.offImin.value() + 2 * halfSpreadLength)
-
-        self.updateParentSurvey()                                               # update the survey object
-        self.plot()                                                             # refresh the plot
-
-    def evt_offXmax_editingFinished(self):
-        nrl = self.field('nrl')
-        rli = self.field('rli')
-        spi = self.field('spi')
-
-        nsp = max(round((self.offXmax.value() - self.offXmin.value()) / spi) + 1, 1)  # nr source points over offset range
-        nsp = self.alignSrcPoints(nsp)                                          # checks nsp and stores its value
-
-        templateX_shift = 0.5 * (nrl - 1) * rli
-        halfSalvoLength = 0.5 * (nsp - 1) * spi
-
-        self.offsetX_shift = templateX_shift - halfSalvoLength + self.offXmin.value()
-        self.offXmax.setValue(self.offXmin.value() + 2 * halfSalvoLength)
-
-        self.updateParentSurvey()                                               # update the survey object
-        self.plot()                                                             # refresh the plot
-
     def plot(self):
-        """plot spread and salvo detail"""
+        """plot cross-section or templates"""
+        plotIndex = self.plotType.currentIndex()                                # first, check what type of plot is expected
 
         self.plotWidget.plotItem.clear()
         self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
         self.plotWidget.setAntialiasing(True)
 
         styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)  # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)      # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)   # shows axis at the top, and shows the survey name
+        styles = {'color': '#000', 'font-size': '10pt'}
+
+        if plotIndex == 0:                                                      # crossection plot
+            self.plotWidget.setLabel('bottom', 'cross-section', units='m', **styles)   # shows axis at the bottom, and shows the units label
+            self.plotWidget.setLabel('left', 'depth', units='m', **styles)      # shows axis at the left, and shows the units label
+            # self.plotWidget.setLabel('top', ' ', **styles)                    # shows axis at the top, no label, no tickmarks
+            # self.plotWidget.setLabel('right', ' ', **styles)                  # shows axis at the right, no label, no tickmarks
+            self.plotWidget.setLabel('top', 'cross-section', units='m', **styles)   # shows axis at the top, no label, no tickmarks
+            self.plotWidget.setLabel('right', 'depth', units='m', **styles)         # shows axis at the right, no label, no tickmarks
 
         self.parent.survey.paintMode = PaintMode.justPoints                 # justLines
         self.parent.survey.lodScale = 6.0
