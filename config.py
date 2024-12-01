@@ -74,6 +74,8 @@ recLength = 8.0                                                                 
 srcSepFactor = 1                                                                # [#]       Source separation factor [1 ... nCab-1]
 srcSeparation = 50.0                                                            # [#]       Source separation interval
 
+cdpDepth = 2000.0                                                               # [m]       shown cdp depth in marine wizard
+
 # Level of Detail (LOD) settings
 lod0 = 0.005                                                                    # Lowest level;  < lod0: paint survey as rect outline
 lod1 = 0.050                                                                    # Next level up; < lod1: paint the templates as rects

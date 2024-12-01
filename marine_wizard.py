@@ -10,6 +10,7 @@ import math
 import os
 import os.path
 
+import numpy as np
 import pyqtgraph as pg
 from qgis.gui import QgsProjectionSelectionTreeWidget
 from qgis.PyQt.QtCore import QRectF, QSizeF
@@ -174,12 +175,13 @@ class Page_1(SurveyWizardPage):
 
         self.srcPopInt = QDoubleSpinBox()
         self.srcShtInt = QDoubleSpinBox()
+        self.srcShtInt.setEnabled(False)
 
         self.srcPopInt.setRange(0.0, 10_000.0)
         self.srcShtInt.setRange(0.0, 10_000.0)
 
+        self.srcPopInt.textChanged.connect(self.updateParameters)
         self.srcPopInt.editingFinished.connect(self.updateParameters)
-        self.srcShtInt.editingFinished.connect(self.updateParameters)
 
         self.recTail = QDoubleSpinBox()
         self.recHead = QDoubleSpinBox()
@@ -212,6 +214,7 @@ class Page_1(SurveyWizardPage):
         self.rpi.setRange(0.01, 10000)
 
         self.chkPopGroupAlign = QCheckBox('Match pop interval to binsize (binsize = ½ streamer group)')
+        self.chkPopGroupAlign.stateChanged.connect(self.updateParameters)
 
         # controls for specific survey types (orthogonal, parallel, slanted, brick, zigzag)
         self.slantS = QSpinBox()                                                # nr templates required for slant
@@ -358,7 +361,10 @@ class Page_1(SurveyWizardPage):
 
         self.setLayout(layout)
 
-        # start values in the constructor, taken from config.py
+        # start values in the constructor, mostly taken from config.py
+        name = SurveyType(SurveyType.Streamer.value).name                       # get name from enum
+        number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
+        self.name.setText(f'{name}_{number}')                                   # show the new name
 
         self.nSrc.setValue(config.nSrc)
         self.nCab.setValue(config.nCab)
@@ -373,33 +379,34 @@ class Page_1(SurveyWizardPage):
 
         # register fields for variable access in other Wizard Pages
         # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
-
+        # See: https://stackoverflow.com/questions/33796022/use-registerfield-in-pyqt
         self.registerField('name', self.name)                                   # Survey name
         self.registerField('type', self.type)                                   # Survey type
 
-        self.registerField('vSail', self.vSail)                                 # Vessel acquisition speed
-        self.registerField('vTurn', self.vTurn)                                 # Vessel line turn speed
+        self.registerField('vSail', self.vSail, 'value')                        # Vessel acquisition speed
+        self.registerField('vTurn', self.vTurn, 'value')                        # Vessel line turn speed
 
-        self.registerField('vTail', self.vTail)                                 # Tail current speed
-        self.registerField('vCross', self.vCross)                               # crosscurrent speed
+        self.registerField('vTail', self.vTail, 'value')                        # Tail current speed
+        self.registerField('vCross', self.vCross, 'value')                      # crosscurrent speed
 
-        self.registerField('vCurrent', self.vCurrent)                           # overall current speed
-        self.registerField('aFeat', self.aFeat)                                 # Feather angle
+        self.registerField('vCurrent', self.vCurrent, 'value')                  # overall current speed
+        self.registerField('aFeat', self.aFeat, 'value')                        # Feather angle
 
-        self.registerField('nCab', self.nCab)                                   # number of cables deployed
-        self.registerField('nSrc', self.nSrc)                                   # number of sources deployed
+        self.registerField('nCab', self.nCab, 'value')                          # number of cables deployed
+        self.registerField('nSrc', self.nSrc, 'value')                          # number of sources deployed
 
-        self.registerField('cabLength', self.cabLength)                         # streamer length
-        self.registerField('groupInt', self.groupInt)                           # group interval
+        self.registerField('nsl', self.nsl, 'value')                            # nr source lines
+        self.registerField('cabLength', self.cabLength, 'value')                # streamer length
+        self.registerField('groupInt', self.groupInt, 'value')                  # group interval
 
-        self.registerField('srcPopInt', self.srcPopInt)                         # pop interval
-        self.registerField('srcShtInt', self.srcShtInt)                         # shot point interval (per cmp line)
+        self.registerField('srcPopInt', self.srcPopInt, 'value')                # pop interval
+        self.registerField('srcShtInt', self.srcShtInt, 'value')                # shot point interval (per cmp line)
 
-        self.registerField('srcDepth', self.srcDepth)                           # source depth [m]
-        self.registerField('recLength', self.recLength)                         # record length [s]
+        self.registerField('srcDepth', self.srcDepth, 'value')                  # source depth [m]
+        self.registerField('recLength', self.recLength, 'value')                # record length [s]
 
-        self.registerField('recTail', self.recTail)                             # Clean record time, with tail current
-        self.registerField('recHead', self.recHead)                             # Clean record time, with head current
+        self.registerField('recTail', self.recTail, 'value')                    # Clean record time, with tail current
+        self.registerField('recHead', self.recHead, 'value')                    # Clean record time, with head current
 
         # todo: remove this later:
 
@@ -424,7 +431,6 @@ class Page_1(SurveyWizardPage):
         self.rli.setValue(config.rli)
         self.spi.setValue(config.spi)
         self.rpi.setValue(config.rpi)
-        self.name.setText('10_x_8000_x_100_x_2')
         self.brickS.setValue(config.brick)
 
         # variables to keep survey dimensions more or less the same, when editing
@@ -434,6 +440,7 @@ class Page_1(SurveyWizardPage):
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         print('initialize page 1')
+
         self.chkPopGroupAlign.setChecked(True)
         self.updateParameters()
 
@@ -509,6 +516,11 @@ class Page_2(SurveyWizardPage):
         self.setSubTitle('Complete the towing configuration')
 
         print('page 2 init')
+
+        self.spiderSrcX = None                                                  # needed for the cross-section plot
+        self.spiderSrcZ = None
+        self.spiderRecX = None
+        self.spiderRecZ = None
 
         self.srcLayback = QDoubleSpinBox()
         self.cabLayback = QDoubleSpinBox()
@@ -679,7 +691,7 @@ class Page_2(SurveyWizardPage):
 
         # insert PyQtGraph plotWidget                                           # See: https://groups.google.com/g/pyqtgraph/c/ls-9I2tHu2w
         self.plotWidget = pg.PlotWidget(background='w')
-        self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
+        self.plotWidget.setAspectLocked(False)                                  # setting can be changed through a toolbar
         self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
         self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
         self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
@@ -690,6 +702,7 @@ class Page_2(SurveyWizardPage):
 
         self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
         self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
+        self.zoomBar.actionAspectRatio.setChecked(False)                        # don't use same scaling for x and y axes
 
         # add toolbar and plotwidget to the vertical box layout
         vbl.addWidget(self.zoomBar)
@@ -744,13 +757,14 @@ class Page_2(SurveyWizardPage):
         rpi = self.field('rpi')
         nsp = self.field('nsp')
         nrp = self.field('nrp')
-        typ = self.field('type')
+        nam = self.field('name')
+        typ = SurveyType.Streamer.value
 
         # first RESET the survey object, so we can start with it from scratch
         self.parent.survey = RollSurvey()
 
         # fill in the survey object information we already know now
-        self.parent.survey.name = self.field('name')                            # Survey name
+        self.parent.survey.name = nam                                           # Survey name
         self.parent.survey.type = SurveyType(typ)                               # Survey type Enum
 
         nsla = self.field('nslant')                                             # nr templates in a slanted survey
@@ -782,6 +796,8 @@ class Page_2(SurveyWizardPage):
         elif typ == SurveyType.Zigzag.value:
             self.parent.nTemplates = 2 if mir else 1                            # for mirrored templates
             nSrcSeeds = 2 * nzz                                                 # every zigzag requires 2 source seeds
+        elif typ == SurveyType.Streamer.value:
+            pass
         else:
             raise NotImplementedError('unsupported survey type.')
 
@@ -805,18 +821,19 @@ class Page_2(SurveyWizardPage):
             self.cabSepTail.setStyleSheet('QDoubleSpinBox {color:black; background-color:white;}')
             self.cabSepTailLabel.setStyleSheet('QLabel {color:black}')
 
-        self.updateSourceSeparation()                                           # cable separation affects source separation too
+        self.updateSourceSeparation()                                           # cable separation affects source separation too; contains self.plot()
 
     def updateCableDepth(self):
         cabDepthHead = self.cabDepthHead.value()
         cabDepthTail = self.cabDepthTail.value()
 
-        if cabDepthTail < cabDepthHead:                                             # provide a warning
+        if cabDepthTail < cabDepthHead:                                         # give a warning
             self.cabDepthTail.setStyleSheet('QDoubleSpinBox {color:red; background-color:lightblue;}')
             self.cabDepthTailLabel.setStyleSheet('QLabel {color:red}')
         else:
             self.cabDepthTail.setStyleSheet('QDoubleSpinBox {color:black; background-color:white;}')
             self.cabDepthTailLabel.setStyleSheet('QLabel {color:black}')
+        self.plot()                                                             # refresh the plot
 
     def updateSourceSeparation(self):
         nSrc = self.field('nSrc')
@@ -825,6 +842,7 @@ class Page_2(SurveyWizardPage):
 
         srcSeparation = cabSepHead * srcSepFactor / nSrc
         self.srcSeparation.setValue(srcSeparation)
+        self.plot()                                                             # refresh the plot
 
     def updateParentSurvey(self):
         # populate / update the survey skeleton
@@ -841,7 +859,7 @@ class Page_2(SurveyWizardPage):
         rpi = self.field('rpi')
         nsp = self.field('nsp')
         nrp = self.field('nrp')
-        typ = self.field('type')
+        typ = SurveyType.Streamer.value
 
         nsla = self.field('nslant')                                             # nr templates in a slanted survey
         brk = self.field('brk')                                                 # brick offset distance
@@ -1210,6 +1228,8 @@ class Page_2(SurveyWizardPage):
                 self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].steps = nrp + nPadding  # nrp
                 self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].increment.setX(rpi)   # rpi
                 self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].increment.setY(0.0)   # horizontal
+        elif typ == SurveyType.Streamer.value:
+            pass
         else:
             raise NotImplementedError('unsupported survey type.')
 
@@ -1218,15 +1238,25 @@ class Page_2(SurveyWizardPage):
 
     def plot(self):
         """plot cross-section or templates"""
-        plotIndex = self.plotType.currentIndex()                                # first, check what type of plot is expected
+
+        # parameters from fields from other page
+        nSrc = self.field('nSrc')
+        nCab = self.field('nCab')
+        name = self.field('name')
+        srcDepth = self.field('srcDepth')
+
+        # parameters from controls on this page
+        cabSepHead = self.cabSepHead.value()
+        cabDepthHead = self.cabDepthHead.value()
+        srcSeparation = self.srcSeparation.value()
 
         self.plotWidget.plotItem.clear()
-        self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
+        self.plotWidget.setTitle(name, color='b', size='12pt')
         self.plotWidget.setAntialiasing(True)
-
-        styles = {'color': '#646464', 'font-size': '10pt'}
+        # styles = {'color': '#646464', 'font-size': '10pt'}
         styles = {'color': '#000', 'font-size': '10pt'}
 
+        plotIndex = self.plotType.currentIndex()                                # first, check what type of plot is expected
         if plotIndex == 0:                                                      # crossection plot
             self.plotWidget.setLabel('bottom', 'cross-section', units='m', **styles)   # shows axis at the bottom, and shows the units label
             self.plotWidget.setLabel('left', 'depth', units='m', **styles)      # shows axis at the left, and shows the units label
@@ -1235,17 +1265,68 @@ class Page_2(SurveyWizardPage):
             self.plotWidget.setLabel('top', 'cross-section', units='m', **styles)   # shows axis at the top, no label, no tickmarks
             self.plotWidget.setLabel('right', 'depth', units='m', **styles)         # shows axis at the right, no label, no tickmarks
 
-        self.parent.survey.paintMode = PaintMode.justPoints                 # justLines
-        self.parent.survey.lodScale = 6.0
-        item = self.parent.survey
+            cmps = nSrc * nCab                                                  # nr of cmp locations created by nSrc and nCab combined
+            rays = 2 * cmps                                                     # to draw a line between from source --> cdp --> receiver for all src & rec combinations
+            spiderSrcX = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
+            spiderSrcZ = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
+            spiderRecX = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
+            spiderRecZ = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
 
-        # 2. Template Properties - Enter Spread and Salvo details
-        self.plotWidget.plotItem.addItem(item)
+            cmpActX = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
+            cmpActZ = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
+            cmpNomX = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
+            cmpNomZ = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
+
+            dR = cabSepHead
+            dS = srcSeparation
+
+            recZ = -cabDepthHead
+            srcZ = -srcDepth
+            cmpZ = -config.cdpDepth
+
+            r0 = -0.5 * (nCab - 1) * dR                                         # first receiver
+            s0 = -0.5 * (nSrc - 1) * dS                                         # first source actual location
+            s1 = -0.5 * (nSrc - 1) * dR / nSrc                                  # first source nominal location (sep. factor == 1)
+            c0 = 0.5 * (r0 + s1)                                                # first cmp
+            dC = 0.5 * dR / nSrc                                                # cmp xline size
+
+            for nS in range(nSrc):
+                for nR in range(nCab):
+
+                    cmpX = 0.5 * (s0 + nS * dS + r0 + nR * dR)
+
+                    l = nS * nCab + nR                                          # cmp index
+                    n = 2 * l                                                   # line segment index 1st point
+                    m = n + 1                                                   # line segment index 2nd point
+
+                    spiderSrcX[n] = s0 + nS * dS
+                    spiderSrcZ[n] = srcZ
+
+                    spiderSrcX[m] = cmpX
+                    spiderSrcZ[m] = cmpZ
+
+                    spiderRecX[n] = r0 + nR * dR
+                    spiderRecZ[n] = recZ
+
+                    spiderRecX[m] = cmpX
+                    spiderRecZ[m] = cmpZ
+
+                    cmpActX[l] = cmpX
+                    cmpActZ[l] = cmpZ
+
+            for n in range(nSrc * nCab):
+                cmpNomX[n] = c0 + n * dC
+                cmpNomZ[n] = cmpZ
 
         # Add a marker for the origin
-        # oriX = [0.0]
-        # oriY = [0.0]
-        # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+        oriX = [0.0]
+        oriY = [0.0]
+        orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+
+        src = self.plotWidget.plot(x=spiderSrcX, y=spiderSrcZ, connect='pairs', pen=pg.mkPen('r', width=2), symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='r')
+        rec = self.plotWidget.plot(x=spiderRecX, y=spiderRecZ, connect='pairs', pen=pg.mkPen('b', width=2), symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='b')
+        nom = self.plotWidget.plot(x=cmpNomX, y=cmpNomZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+        act = self.plotWidget.plot(x=cmpActX, y=cmpActZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='g')
 
 
 # Page_3 =======================================================================
@@ -1778,6 +1859,9 @@ class Page_4(SurveyWizardPage):
                 # receiver
                 i = 2 * nzz
                 self.parent.survey.blockList[0].templateList[1].seedList[i].origin.setX(offImin + shiftI)                # Seed origin
+
+        elif typ == SurveyType.Streamer.value:
+            pass
 
         else:
             raise NotImplementedError('unsupported survey type.')

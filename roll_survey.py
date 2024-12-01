@@ -107,6 +107,7 @@ class SurveyType(Enum):
     Slanted = 2
     Brick = 3
     Zigzag = 4
+    Streamer = 5
 
 
 # Note: we need to keep SurveyType and SurveyList in sync; maybe combine in a dictionary ?!
