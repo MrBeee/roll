@@ -67,8 +67,7 @@ class MarineSurveyWizard(SurveyWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.nTemplates = 1                                                     # nr of templates in a design. Will be affected by brick, slant & zigzag geometries
-        self.surveySize = QSizeF(config.deployInline, config.deployX_line)      # initial survey size; determined by src area for orthogonal surveys and rec area for parallel
+        self.nTemplates = 2                                                     # nr of templates in a streamer design. Will be equal to 2 x nr source towed
 
         self.addPage(Page_1(self))
         self.addPage(Page_2(self))
@@ -671,6 +670,7 @@ class Page_2(SurveyWizardPage):
         self.plotType = QComboBox()
         self.plotType.addItems(['Cross section of towed equipment', 'template(s) forward sailing on race track', 'template(s) return sailing  on race track'])
         self.plotType.setStyleSheet('QComboBox  { background-color : lightblue} ')
+        self.plotType.currentIndexChanged.connect(self.plot)
 
         row += 1
         layout.addWidget(self.plotType, row, 0, 1, 3)
@@ -781,30 +781,6 @@ class Page_2(SurveyWizardPage):
         self.offXmin.setValue(-0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
         self.offXmax.setValue(0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
 
-        # as of Python version 3.10, there is an official switch-case statement.
-        # Alas, QGIS 3.28 is using Python v3.9.5 so we have to use if ... elif ... elif etc.
-        self.parent.nTemplates = 1
-        nSrcSeeds = 1
-        if typ == SurveyType.Orthogonal.value:
-            pass
-        elif typ == SurveyType.Parallel.value:
-            pass
-        elif typ == SurveyType.Slanted.value:
-            self.parent.nTemplates = nsla                                       # as many as needed for the slanted design
-        elif typ == SurveyType.Brick.value:
-            self.parent.nTemplates = 2                                          # for odd/even templates
-        elif typ == SurveyType.Zigzag.value:
-            self.parent.nTemplates = 2 if mir else 1                            # for mirrored templates
-            nSrcSeeds = 2 * nzz                                                 # every zigzag requires 2 source seeds
-        elif typ == SurveyType.Streamer.value:
-            pass
-        else:
-            raise NotImplementedError('unsupported survey type.')
-
-        # Create a survey skeleton, so we can simply update survey properties, without having to instantiate underlying classes
-        self.parent.survey.createBasicSkeleton(nTemplates=self.parent.nTemplates, nSrcSeeds=nSrcSeeds, nRecSeeds=1)    # add Block, template(s)
-
-        self.updateParentSurvey()                                               # update the survey object
         self.plot()                                                             # refresh the plot
 
     def cleanupPage(self):                                                      # needed to update previous page
@@ -844,6 +820,106 @@ class Page_2(SurveyWizardPage):
         self.srcSeparation.setValue(srcSeparation)
         self.plot()                                                             # refresh the plot
 
+    def plot(self):
+        """plot cross-section or templates"""
+
+        # parameters from fields from other page
+        nSrc = self.field('nSrc')
+        nCab = self.field('nCab')
+        name = self.field('name')
+
+        self.plotWidget.plotItem.clear()
+        self.plotWidget.setTitle(name, color='b', size='12pt')
+        self.plotWidget.setAntialiasing(True)
+        # styles = {'color': '#646464', 'font-size': '10pt'}
+        styles = {'color': '#000', 'font-size': '10pt'}
+
+        plotIndex = self.plotType.currentIndex()                                # first, check what type of plot is expected
+        if plotIndex == 0:                                                      # crossection plot
+            self.plotWidget.setLabel('bottom', 'cross-section', units='m', **styles)   # shows axis at the bottom, and shows the units label
+            self.plotWidget.setLabel('left', 'depth', units='m', **styles)      # shows axis at the left, and shows the units label
+            # self.plotWidget.setLabel('top', ' ', **styles)                    # shows axis at the top, no label, no tickmarks
+            # self.plotWidget.setLabel('right', ' ', **styles)                  # shows axis at the right, no label, no tickmarks
+            self.plotWidget.setLabel('top', 'cross-section', units='m', **styles)   # shows axis at the top, no label, no tickmarks
+            self.plotWidget.setLabel('right', 'depth', units='m', **styles)         # shows axis at the right, no label, no tickmarks
+
+            cmps = nSrc * nCab                                                  # nr of cmp locations created by nSrc and nCab combined
+            rays = 2 * cmps                                                     # to draw a line between from source --> cdp --> receiver for all src & rec combinations
+            spiderSrcX = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
+            spiderSrcZ = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
+            spiderRecX = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
+            spiderRecZ = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
+
+            cmpActX = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
+            cmpActZ = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
+            cmpNomX = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
+            cmpNomZ = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
+
+            dR = self.cabSepHead.value()
+            dS = self.srcSeparation.value()
+
+            recZ = -self.field('cabDepthHead')
+            srcZ = -self.field('srcDepth')
+            cmpZ = -config.cdpDepth
+
+            r0 = -0.5 * (nCab - 1) * dR                                         # first receiver
+            s0 = -0.5 * (nSrc - 1) * dS                                         # first source actual location
+            s1 = -0.5 * (nSrc - 1) * dR / nSrc                                  # first source nominal location (sep. factor == 1)
+            c0 = 0.5 * (r0 + s1)                                                # first cmp
+            dC = 0.5 * dR / nSrc                                                # cmp xline size
+
+            for nS in range(nSrc):
+                for nR in range(nCab):
+
+                    cmpX = 0.5 * (s0 + nS * dS + r0 + nR * dR)
+
+                    l = nS * nCab + nR                                          # cmp index
+                    n = 2 * l                                                   # line segment index 1st point
+                    m = n + 1                                                   # line segment index 2nd point
+
+                    spiderSrcX[n] = s0 + nS * dS
+                    spiderSrcZ[n] = srcZ
+
+                    spiderSrcX[m] = cmpX
+                    spiderSrcZ[m] = cmpZ
+
+                    spiderRecX[n] = r0 + nR * dR
+                    spiderRecZ[n] = recZ
+
+                    spiderRecX[m] = cmpX
+                    spiderRecZ[m] = cmpZ
+
+                    cmpActX[l] = cmpX
+                    cmpActZ[l] = cmpZ
+
+            for n in range(nSrc * nCab):
+                cmpNomX[n] = c0 + n * dC
+                cmpNomZ[n] = cmpZ
+
+            # Add a marker for the origin
+            oriX = [0.0]
+            oriY = [0.0]
+            orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+
+            src = self.plotWidget.plot(x=spiderSrcX, y=spiderSrcZ, connect='pairs', pen=pg.mkPen('r', width=2), symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='r')
+            rec = self.plotWidget.plot(x=spiderRecX, y=spiderRecZ, connect='pairs', pen=pg.mkPen('b', width=2), symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='b')
+            nom = self.plotWidget.plot(x=cmpNomX, y=cmpNomZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+            act = self.plotWidget.plot(x=cmpActX, y=cmpActZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='g')
+
+        elif plotIndex == 1:                                                      # top view forwards on race track
+            # Create a survey skeleton, so we can simply update survey properties, without having to instantiate underlying classes
+            self.parent.survey.createBasicSkeleton(nTemplates=2 * nSrc, nSrcSeeds=1, nRecSeeds=nCab)    # add Block with template(s)
+            self.updateParentSurvey()
+
+            self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
+            self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
+            self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
+            self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
+
+            self.parent.survey.paintMode = PaintMode.justPoints                     # justLines
+            self.parent.survey.lodScale = 6.0
+            item = self.parent.survey
+
     def updateParentSurvey(self):
         # populate / update the survey skeleton
 
@@ -868,7 +944,6 @@ class Page_2(SurveyWizardPage):
 
         # populate / update the survey skeleton
 
-        # do the patterns here (instead of page 5) as pattern orientation may depend on template type (e.g. zigzag)
         # source & receiver patterns
         rNam = self.field('rNam')
         sNam = self.field('sNam')
@@ -934,10 +1009,6 @@ class Page_2(SurveyWizardPage):
         self.parent.survey.patternList[0].calcBoundingRect()                    # also creates the pattern figure
         self.parent.survey.patternList[1].calcBoundingRect()                    # also creates the pattern figure
 
-        # now the patterns have been initialized, initialise the figures with the right color
-        # self.parent.survey.patternList[0].calcPatternPicture()                  # not needed; done in calcBoundingRect()
-        # self.parent.survey.patternList[1].calcPatternPicture()                  # not needed; done in calcBoundingRect()
-
         # offsets; from start/end of salvo to start/end of spread; both inline and x-line
         if typ == SurveyType.Parallel.value:                                    # no hard values; give arbitrary inline limits
             inline1 = -5975.0                                                   # negative number
@@ -963,7 +1034,137 @@ class Page_2(SurveyWizardPage):
         self.parent.survey.offset.radOffsets.setY(r)                            # radial; rmax
 
         # deal with different survey types
-        if typ == SurveyType.Orthogonal.value:
+        if typ == SurveyType.Streamer.value:
+
+            sL = self.field('srcLayback')
+            rL = self.field('cabLayback')
+            sX = rL - sL
+
+            cL = self.field('cabLength')                                        # streamer length
+            gI = self.field('groupInt')                                         # group interval
+            nGrp = round(cL / gI)
+
+            dR = self.field('cabSepHead')
+            dS = self.field('srcSeparation')
+            recZ = -self.field('cabDepthHead')
+            srcZ = -self.field('srcDepth')
+            nSrc = self.field('nSrc')
+            nCab = self.field('nCab')
+
+            r0 = -0.5 * (nCab - 1) * dR                                         # first receiver
+            s0 = -0.5 * (nSrc - 1) * dS                                         # first source actual location
+            s1 = -0.5 * (nSrc - 1) * dR / nSrc                                  # first source nominal location (sep. factor == 1)
+            # c0 = 0.5 * (r0 + s1)                                                # first cmp
+            # dC = 0.5 * dR / nSrc                                                # cmp xline size
+
+            # for nS in range(nSrc):
+            #     for nR in range(nCab):
+
+            #         cmpX = 0.5 * (s0 + nS * dS + r0 + nR * dR)
+
+            #         l = nS * nCab + nR                                          # cmp index
+            #         n = 2 * l                                                   # line segment index 1st point
+            #         m = n + 1                                                   # line segment index 2nd point
+
+            #         spiderSrcX[n] = s0 + nS * dS
+            #         spiderSrcZ[n] = srcZ
+
+            #         spiderSrcX[m] = cmpX
+            #         spiderSrcZ[m] = cmpZ
+
+            #         spiderRecX[n] = r0 + nR * dR
+            #         spiderRecZ[n] = recZ
+
+            #         spiderRecX[m] = cmpX
+            #         spiderRecZ[m] = cmpZ
+
+            #         cmpActX[l] = cmpX
+            #         cmpActZ[l] = cmpZ
+
+            for i in range(nSrc):
+                templateNameFwd = f'Sailing Fwd-{i + 1}'                        # get suitable template name for all sources
+                self.parent.survey.blockList[0].templateList[i].name = templateNameFwd
+
+                # source fwd
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(sX)                         # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(s0 + i * dS)                # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setZ(srcZ)                       # Seed origin
+
+                # the following values are default anyhow
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = 1              # nr planes
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(0.0)    # n/a
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)    # n/a
+
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = 1              # nr lines
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(0.0)    # n/a
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(0.0)    # n/a
+
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].steps = 1              # nsp
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setX(0.0)    # n/a
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setY(0.0)    # n/a
+
+                # receiver fwd; identical for all source locations (does not depend on i)
+                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(0.0)                        # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setY(r0)                         # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setZ(recZ)                       # Seed origin
+
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].steps = 1              # nr planes
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setX(0.0)    # n/a
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setY(0.0)    # n/a
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setZ(0.0)    # no slant
+
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].steps = nCab           # nr cables
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(0.0)    # vertical
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(dR)     # cable interval @ head
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setZ(0.0)    # no slant
+
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].steps = nGrp           # nr of groups in cable
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setX(gI)     # group interval
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setY(0.0)    # no fanning
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setZ(0.0)    # no slant
+
+            for i in range(nSrc):
+                templateNameBwd = f'Sailing Bwd-{i + 1}'                        # get suitable template name
+                self.parent.survey.blockList[0].templateList[i].name = templateNameBwd
+
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(sX)                         # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(s0 + i * dS)                # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setZ(srcZ)                       # Seed origin
+
+                # the following values are default anyhow
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = 1              # nr planes
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(0.0)    # n/a
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)    # n/a
+
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = 1              # nr lines
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(0.0)    # n/a
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(0.0)    # n/a
+
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].steps = 1              # nsp
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setX(0.0)    # n/a
+                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setY(0.0)    # n/a
+
+                # receiver fwd; identical for all source locations (does not depend on i)
+                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(0.0)                        # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setY(r0)                         # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setZ(recZ)                       # Seed origin
+
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].steps = 1              # nr planes
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setX(0.0)    # n/a
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setY(0.0)    # n/a
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setZ(0.0)    # no slant
+
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].steps = nCab           # nr cables
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(0.0)    # vertical
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(dR)     # cable interval @ head
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setZ(0.0)    # no slant
+
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].steps = nGrp           # nr of groups in cable
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setX(-gI)    # group interval
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setY(0.0)    # no fanning
+                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setZ(0.0)    # no slant
+
+        elif typ == SurveyType.Orthogonal.value:
 
             # source
             if nsl > 6:                                                                                         # it is assumed only crossline roll is being used
@@ -1228,105 +1429,11 @@ class Page_2(SurveyWizardPage):
                 self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].steps = nrp + nPadding  # nrp
                 self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].increment.setX(rpi)   # rpi
                 self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].increment.setY(0.0)   # horizontal
-        elif typ == SurveyType.Streamer.value:
-            pass
         else:
             raise NotImplementedError('unsupported survey type.')
 
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
-
-    def plot(self):
-        """plot cross-section or templates"""
-
-        # parameters from fields from other page
-        nSrc = self.field('nSrc')
-        nCab = self.field('nCab')
-        name = self.field('name')
-        srcDepth = self.field('srcDepth')
-
-        # parameters from controls on this page
-        cabSepHead = self.cabSepHead.value()
-        cabDepthHead = self.cabDepthHead.value()
-        srcSeparation = self.srcSeparation.value()
-
-        self.plotWidget.plotItem.clear()
-        self.plotWidget.setTitle(name, color='b', size='12pt')
-        self.plotWidget.setAntialiasing(True)
-        # styles = {'color': '#646464', 'font-size': '10pt'}
-        styles = {'color': '#000', 'font-size': '10pt'}
-
-        plotIndex = self.plotType.currentIndex()                                # first, check what type of plot is expected
-        if plotIndex == 0:                                                      # crossection plot
-            self.plotWidget.setLabel('bottom', 'cross-section', units='m', **styles)   # shows axis at the bottom, and shows the units label
-            self.plotWidget.setLabel('left', 'depth', units='m', **styles)      # shows axis at the left, and shows the units label
-            # self.plotWidget.setLabel('top', ' ', **styles)                    # shows axis at the top, no label, no tickmarks
-            # self.plotWidget.setLabel('right', ' ', **styles)                  # shows axis at the right, no label, no tickmarks
-            self.plotWidget.setLabel('top', 'cross-section', units='m', **styles)   # shows axis at the top, no label, no tickmarks
-            self.plotWidget.setLabel('right', 'depth', units='m', **styles)         # shows axis at the right, no label, no tickmarks
-
-            cmps = nSrc * nCab                                                  # nr of cmp locations created by nSrc and nCab combined
-            rays = 2 * cmps                                                     # to draw a line between from source --> cdp --> receiver for all src & rec combinations
-            spiderSrcX = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
-            spiderSrcZ = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
-            spiderRecX = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
-            spiderRecZ = np.zeros(shape=rays, dtype=np.float32)                 # needed to display data points
-
-            cmpActX = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
-            cmpActZ = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
-            cmpNomX = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
-            cmpNomZ = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
-
-            dR = cabSepHead
-            dS = srcSeparation
-
-            recZ = -cabDepthHead
-            srcZ = -srcDepth
-            cmpZ = -config.cdpDepth
-
-            r0 = -0.5 * (nCab - 1) * dR                                         # first receiver
-            s0 = -0.5 * (nSrc - 1) * dS                                         # first source actual location
-            s1 = -0.5 * (nSrc - 1) * dR / nSrc                                  # first source nominal location (sep. factor == 1)
-            c0 = 0.5 * (r0 + s1)                                                # first cmp
-            dC = 0.5 * dR / nSrc                                                # cmp xline size
-
-            for nS in range(nSrc):
-                for nR in range(nCab):
-
-                    cmpX = 0.5 * (s0 + nS * dS + r0 + nR * dR)
-
-                    l = nS * nCab + nR                                          # cmp index
-                    n = 2 * l                                                   # line segment index 1st point
-                    m = n + 1                                                   # line segment index 2nd point
-
-                    spiderSrcX[n] = s0 + nS * dS
-                    spiderSrcZ[n] = srcZ
-
-                    spiderSrcX[m] = cmpX
-                    spiderSrcZ[m] = cmpZ
-
-                    spiderRecX[n] = r0 + nR * dR
-                    spiderRecZ[n] = recZ
-
-                    spiderRecX[m] = cmpX
-                    spiderRecZ[m] = cmpZ
-
-                    cmpActX[l] = cmpX
-                    cmpActZ[l] = cmpZ
-
-            for n in range(nSrc * nCab):
-                cmpNomX[n] = c0 + n * dC
-                cmpNomZ[n] = cmpZ
-
-        # Add a marker for the origin
-        oriX = [0.0]
-        oriY = [0.0]
-        orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
-
-        src = self.plotWidget.plot(x=spiderSrcX, y=spiderSrcZ, connect='pairs', pen=pg.mkPen('r', width=2), symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='r')
-        rec = self.plotWidget.plot(x=spiderRecX, y=spiderRecZ, connect='pairs', pen=pg.mkPen('b', width=2), symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='b')
-        nom = self.plotWidget.plot(x=cmpNomX, y=cmpNomZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
-        act = self.plotWidget.plot(x=cmpActX, y=cmpActZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='g')
 
 
 # Page_3 =======================================================================
