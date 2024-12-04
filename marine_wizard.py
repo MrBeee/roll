@@ -1091,37 +1091,39 @@ class Page_2(SurveyWizardPage):
                 self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setZ(srcZ)                       # Seed origin
 
                 # the following values are default anyhow
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)    # n/a
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = 1              # nr planes
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(0.0)    # n/a
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)    # n/a
 
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = 1              # nr lines
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(0.0)    # n/a
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = 1              # nr lines
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(0.0)    # n/a
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(0.0)    # n/a
 
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].steps = 1              # nsp
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setY(0.0)    # n/a
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].steps = 1              # nsp
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setX(0.0)    # n/a
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setY(0.0)    # n/a
 
-                # receiver fwd; identical for all source locations (does not depend on i)
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(0.0)                        # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setY(r0)                         # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setZ(recZ)                       # Seed origin
+                for j in range(nCab):
+                    # we need to allow for streaer feathering; hence each streamer will have its own orientation
+                    # this implies we can not 'grow' the spread to multiple streamers as a grow step in a grid
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setX(0.0)                      # Seed origin
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setY(r0 + j * dR)              # Seed origin
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setZ(recZ)                     # Seed origin
 
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setY(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setZ(0.0)    # no slant
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[0].steps = 1            # nr planes
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[0].increment.setX(0.0)  # n/a
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[0].increment.setY(0.0)  # n/a
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[0].increment.setZ(0.0)  # no slant
 
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].steps = nCab           # nr cables
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(0.0)    # vertical
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(dR)     # cable interval @ head
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setZ(0.0)    # no slant
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[1].steps = 1            # apply to 1 streamer only
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[1].increment.setX(0.0)  # vertical
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[1].increment.setY(0.0)  # cable interval @ head
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[1].increment.setZ(0.0)  # no slant
 
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].steps = nGrp           # nr of groups in cable
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setX(gI)     # group interval
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setY(0.0)    # no fanning
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setZ(0.0)    # no slant
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].steps = nGrp         # nr of groups in cable
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setX(gI)   # group interval
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setY(0.0)  # no fanning (yet)
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setZ(0.0)  # no slant (yet)
 
             for i in range(nSrc):
                 templateNameBwd = f'Sailing Bwd-{i + 1}'                        # get suitable template name
@@ -1132,303 +1134,40 @@ class Page_2(SurveyWizardPage):
                 self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setZ(srcZ)                       # Seed origin
 
                 # the following values are default anyhow
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)    # n/a
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = 1              # nr planes
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(0.0)    # n/a
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)    # n/a
+
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = 1              # nr lines
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(0.0)    # n/a
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(0.0)    # n/a
+
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].steps = 1              # nsp
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setX(0.0)    # n/a
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setY(0.0)    # n/a
+
+                for j in range(nCab):
+                    # we need to allow for streaer feathering; hence each streamer will have its own orientation
+                    # this implies we can not 'grow' the spread to multiple streamers as a grow step in a grid
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setX(0.0)                      # Seed origin
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setY(r0 + j * dR)              # Seed origin
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setZ(recZ)                     # Seed origin
+
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[0].steps = 1            # nr planes
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[0].increment.setX(0.0)  # n/a
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[0].increment.setY(0.0)  # n/a
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[0].increment.setZ(0.0)  # no slant
+
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[1].steps = 1            # apply to 1 streamer only
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[1].increment.setX(0.0)  # vertical
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[1].increment.setY(0.0)  # cable interval @ head
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[1].increment.setZ(0.0)  # no slant
+
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].steps = nGrp         # nr of groups in cable
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setX(-gI)  # group interval (in opposite direction)
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setY(0.0)  # no fanning (yet)
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setZ(0.0)  # no slant (yet)
 
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = 1              # nr lines
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(0.0)    # n/a
-
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].steps = 1              # nsp
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setY(0.0)    # n/a
-
-                # receiver fwd; identical for all source locations (does not depend on i)
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(0.0)                        # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setY(r0)                         # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setZ(recZ)                       # Seed origin
-
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setY(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setZ(0.0)    # no slant
-
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].steps = nCab           # nr cables
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(0.0)    # vertical
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(dR)     # cable interval @ head
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setZ(0.0)    # no slant
-
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].steps = nGrp           # nr of groups in cable
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setX(-gI)    # group interval
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setY(0.0)    # no fanning
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setZ(0.0)    # no slant
-
-        elif typ == SurveyType.Orthogonal.value:
-
-            # source
-            if nsl > 6:                                                                                         # it is assumed only crossline roll is being used
-                nPadding = 0                                                                                    # don't add extra nr recs to the rec lines
-            else:
-                nPadding = (nsl - 1) * round(sli / rpi)                                                         # lengthen rec lines with nr recs between the source lines
-            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(0.0)                        # Seed origin; source inline at x = 0.0
-            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setY(offXmin)                    # Seed origin; positive number
-
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].steps = 1              # nr planes
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setX(0.0)    # n/a
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setY(0.0)    # n/a
-
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].steps = nsl            # nsl
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setX(sli)    # sli
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setY(0.0)    # horizontal
-
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[2].steps = nsp            # nsp
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[2].increment.setX(0.0)    # vertical
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[2].increment.setY(spi)    # spi
-
-            # receiver
-            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setX(offImin)                    # Seed origin; negative number
-            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setY(0.0)                        # Seed origin; receiver x-line at 0.0
-
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].steps = 1              # nr planes
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setX(0.0)    # n/a
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setY(0.0)    # n/a
-
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].steps = nrl            # nrl
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setX(0.0)    # vertical
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setY(rli)    # rli
-
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[2].steps = nrp + nPadding  # nrp
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[2].increment.setX(rpi)    # rpi
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[2].increment.setY(0.0)    # horizontal
-
-        elif typ == SurveyType.Parallel.value:
-            # source
-            nPadding = 0                                                                                        # no paddding required
-            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(0.0)                        # Seed origin
-            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setY(offXmin)                    # Seed origin
-
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].steps = 1              # nr planes
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setX(0.0)    # n/a
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[0].increment.setY(0.0)    # n/a
-
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].steps = nsp            # nsp
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setX(0.0)    # vertical
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[1].increment.setY(spi)    # spi
-
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[2].steps = nsl            # nsl
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[2].increment.setX(sli)    # sli
-            self.parent.survey.blockList[0].templateList[0].seedList[0].grid.growList[2].increment.setY(0.0)    # horizontal
-
-            # receiver
-            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setX(offImin)                    # Seed origin
-            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setY(0.0)                        # Seed origin
-
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].steps = 1              # nr planes
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setX(0.0)    # n/a
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[0].increment.setY(0.0)    # n/a
-
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].steps = nrl            # nrl
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setX(0.0)    # vertical
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[1].increment.setY(rli)    # rli
-
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[2].steps = nrp + nPadding   # nrp
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[2].increment.setX(rpi)    # rpi
-            self.parent.survey.blockList[0].templateList[0].seedList[1].grid.growList[2].increment.setY(0.0)    # horizontal
-
-        elif typ == SurveyType.Slanted.value:
-            nPadding = round(sli / rpi)                                                                         # as many rec points as there are between 2 src lines
-            nPadding += (nsl - 1) * round(sli / rpi)                                                            # add nr recs between two source lines
-
-            ratio = sli / (nsla * rli)                                                                          # get the ratio from the slant angle
-
-            for i in range(nsla):
-                # source
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(i * rli * ratio)        # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(offXmin + i * rli)      # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[0].bAzimuth = True                     # Pattern in deviated direction
-
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)    # n/a
-
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = nsl            # nsl
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(sli)    # sli
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(0.0)    # horizontal
-
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].steps = nsp            # nsp
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setX(spi * ratio)   # slanted
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setY(spi)    # spi
-
-                # receiver
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(offImin)                    # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setY(i * rli)                    # Seed origin
-
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setY(0.0)    # n/a
-
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].steps = nrl            # nrl
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(0.0)    # vertical
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(rli)    # rli
-
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].steps = nrp + nPadding  # nrp
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setX(rpi)    # rpi
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setY(0.0)    # horizontal
-
-        elif typ == SurveyType.Brick.value:
-            nPadding = round(brk / rpi)                                                                             # shift in source lines
-            nPadding += (nsl - 1) * round(sli / rpi)                                                                # add nr recs between two source lines
-
-            for i in range(self.parent.nTemplates):
-                # source
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(i * brk)                    # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(offXmin + i * rli)          # Seed origin
-
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[0].increment.setY(0.0)    # n/a
-
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].steps = nsl            # nsl
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setX(sli)    # sli
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[1].increment.setY(0.0)    # horizontal
-
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].steps = nsp            # nsp
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setX(0.0)    # vertical
-                self.parent.survey.blockList[0].templateList[i].seedList[0].grid.growList[2].increment.setY(spi)    # spi
-
-                # receiver
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(offImin)                    # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setY(i * rli)                    # Seed origin
-
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[0].increment.setY(0.0)    # n/a
-
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].steps = nrl            # nrl
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setX(0.0)    # vertical
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[1].increment.setY(rli)    # rli
-
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].steps = nrp + nPadding  # nrp
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setX(rpi)    # rpi
-                self.parent.survey.blockList[0].templateList[i].seedList[1].grid.growList[2].increment.setY(0.0)    # horizontal
-
-        elif typ == SurveyType.Zigzag.value:
-            nPadding = 2 * (round(rli / spi) + nzz - 1) - 1                       # zig + zag distance, accounted for nzz
-            # no need to adjust for nsl; is always 1 for zigzag
-
-            # The zigzag template is a special case, as it leads to (max) two templates with a lot of source seeds.
-            # A 'zig' and a 'zag' combined can be seen as two seperate (slanted) source lines, together defining 'sli'
-
-            # Some zigzag implementations allow for a single zig/zag point at each end of a zig/zag source segment
-            # These implementations are inferior, as they result in reduced coverage for cmp lines next to the receiver lines
-            # Or they create a duplicate SP (=duplicate ray paths) at these VP locations.
-            # also, they lead to a discontinuity in the slanted source lines around receiver line crossings
-            # Therefore, this wizard only creates zigzags with double end points near the adjacent receiver line
-
-            # It is standard practice to mirror odd and even templates, as this provides continuity in the source lines
-            # this allows for an FKxKy analysis, both in the common source- and in the common receiver domain
-
-            for i in range(0, 2 * nzz, 2):
-                # source up
-                self.parent.survey.blockList[0].templateList[0].seedList[i].origin.setX(i * rpi)              # Seed origin
-                self.parent.survey.blockList[0].templateList[0].seedList[i].origin.setY(offXmin)              # Seed origin
-
-                self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[0].increment.setY(0.0)    # n/a
-
-                self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[1].steps = 1              # nr lines
-                self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[1].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[1].increment.setY(0.0)    # n/a
-
-                self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[2].steps = nsp           # nsp
-                self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[2].increment.setX(rpi)   # rpi
-                self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[2].increment.setY(spi)   # spi
-
-                # source down
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].origin.setX(sli + i * rpi)        # Seed origin
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].origin.setY(offXmin + rli - spi)  # Seed origin
-
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].grid.growList[0].increment.setY(0.0)    # n/a
-
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].grid.growList[1].steps = 1              # nr lines
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].grid.growList[1].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].grid.growList[1].increment.setY(0.0)    # n/a
-
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].grid.growList[2].steps = nsp           # nsp
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].grid.growList[2].increment.setX(rpi)   # rpi
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].grid.growList[2].increment.setY(-spi)  # spi
-
-            # receiver
-            i = 2 * nzz
-            self.parent.survey.blockList[0].templateList[0].seedList[i].origin.setX(offImin)                # Seed origin
-            self.parent.survey.blockList[0].templateList[0].seedList[i].origin.setY(0)                      # Seed origin
-
-            self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[0].steps = 1              # nr planes
-            self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[0].increment.setX(0.0)    # n/a
-            self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[0].increment.setY(0.0)    # n/a
-
-            self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[1].steps = nrl             # nrl
-            self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[1].increment.setX(0.0)   # vertical
-            self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[1].increment.setY(rli)   # rli
-
-            self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[2].steps = nrp + nPadding  # nrp
-            self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[2].increment.setX(rpi)   # rpi
-            self.parent.survey.blockList[0].templateList[0].seedList[i].grid.growList[2].increment.setY(0.0)   # horizontal
-
-            if mir:                                                             # now do the second template (templateList[1])
-                for i in range(0, 2 * nzz, 2):
-                    # source up
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].origin.setX(i * rpi)              # Seed origin
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].origin.setY(offXmin + 2.0 * rli - spi)   # Seed origin
-
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[0].steps = 1              # nr planes
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[0].increment.setX(0.0)    # n/a
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[0].increment.setY(0.0)    # n/a
-
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[1].steps = 1              # nr lines
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[1].increment.setX(0.0)    # n/a
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[1].increment.setY(0.0)    # n/a
-
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].steps = nsp            # nsp
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].increment.setX(rpi)    # rpi
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].increment.setY(-spi)   # spi
-
-                    # source down
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].origin.setX(sli + i * rpi)        # Seed origin
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].origin.setY(offXmin + rli)        # Seed origin
-
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].grid.growList[0].steps = 1              # nr planes
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].grid.growList[0].increment.setX(0.0)    # n/a
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].grid.growList[0].increment.setY(0.0)    # n/a
-
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].grid.growList[1].steps = 1              # nr lines
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].grid.growList[1].increment.setX(0.0)    # n/a
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].grid.growList[1].increment.setY(0.0)    # n/a
-
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].grid.growList[2].steps = nsp           # nsp
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].grid.growList[2].increment.setX(rpi)   # rpi
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].grid.growList[2].increment.setY(spi)  # spi
-
-                # receiver
-                i = 2 * nzz
-                self.parent.survey.blockList[0].templateList[1].seedList[i].origin.setX(offImin)                # Seed origin
-                self.parent.survey.blockList[0].templateList[1].seedList[i].origin.setY(rli)                    # Seed origin
-
-                self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[0].steps = 1              # nr planes
-                self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[0].increment.setX(0.0)    # n/a
-                self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[0].increment.setY(0.0)    # n/a
-
-                self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[1].steps = nrl             # nrl
-                self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[1].increment.setX(0.0)   # vertical
-                self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[1].increment.setY(rli)   # rli
-
-                self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].steps = nrp + nPadding  # nrp
-                self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].increment.setX(rpi)   # rpi
-                self.parent.survey.blockList[0].templateList[1].seedList[i].grid.growList[2].increment.setY(0.0)   # horizontal
         else:
             raise NotImplementedError('unsupported survey type.')
 
@@ -1663,6 +1402,20 @@ class Page_3(SurveyWizardPage):
         self.parent.survey.grid.stakeSize.setY(self.field('binX'))              # x-line line interval
 
     def alignBingrid(self):
+
+        dR = self.field('cabSepHead')
+        dS = self.field('srcSeparation')
+        recZ = -self.field('cabDepthHead')
+        srcZ = -self.field('srcDepth')
+        nSrc = self.field('nSrc')
+        nCab = self.field('nCab')
+
+        r0 = -0.5 * (nCab - 1) * dR                                         # first receiver
+        s0 = -0.5 * (nSrc - 1) * dS                                         # first source actual location
+        s1 = -0.5 * (nSrc - 1) * dR / nSrc                                  # first source nominal location (sep. factor == 1)
+        # c0 = 0.5 * (r0 + s1)                                                # first cmp
+        # dC = 0.5 * dR / nSrc                                                # cmp xline size
+
         rpi = self.field('rpi')                                                 # inline
         sli = self.field('sli')                                                 # inline
         spi = self.field('spi')                                                 # x-line
