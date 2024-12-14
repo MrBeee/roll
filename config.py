@@ -47,8 +47,13 @@ binIsiz = 2000                                                                  
 binXsiz = 2000                                                                  # y-size
 
 # general presets for towed marine settings
+swDensity = 1029.0                                                              # [kg/m3]   seawater density
+cDrag = 0.0055                                                                  # [-]       streamer drag coefficient
+maxDragForce = 3.07                                                             # [ton-force]   max force on streamer(s)
 vSail = 4.5                                                                     # [knot]    vessel's acquisition speed in water
 vTurn = 4.3                                                                     # [knot]    vessel's line turn speed in water
+vMinInner = 3.8                                                                 # [knot]    min speed in water of inner streamer
+
 vCross = 0.0                                                                    # [knot]    cross current
 vTail = 0.0                                                                     # [knot]    tail current
 
@@ -60,6 +65,7 @@ srcLayback = 250.0                                                              
 cabLayback = 450.0                                                              # [m]       approximately half the spreadwidth
 
 cabLength = 8000.0                                                              # [m]       8 km streamer per default
+cabDiameter = 0.06                                                              # [m]       cable diameter; for drag forces
 groupInt = 12.5                                                                 # [m]       group interval, 12.5 m is industry standard
 
 cabDepthHead = 8.0                                                              # [m]       streamer depth at head of spread
@@ -75,6 +81,9 @@ srcSepFactor = 1                                                                
 srcSeparation = 50.0                                                            # [#]       Source separation interval
 
 cdpDepth = 2000.0                                                               # [m]       shown cdp depth in marine wizard
+
+surveySizeI = 40_000.0                                                          # [m]       inline survey size
+surveySizeX = 30_000.0                                                          # [m]       x-line survey size
 
 # Level of Detail (LOD) settings
 lod0 = 0.005                                                                    # Lowest level;  < lod0: paint survey as rect outline
