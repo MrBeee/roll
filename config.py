@@ -50,8 +50,8 @@ binXsiz = 2000                                                                  
 swDensity = 1029.0                                                              # [kg/m3]   seawater density
 cDrag = 0.0055                                                                  # [-]       streamer drag coefficient
 maxDragForce = 3.07                                                             # [ton-force]   max force on streamer(s)
-vSail = 4.5                                                                     # [knot]    vessel's acquisition speed in water
-vTurn = 4.3                                                                     # [knot]    vessel's line turn speed in water
+vSail = 4.6                                                                     # [knot]    vessel's acquisition speed in water
+vTurn = 4.48                                                                    # [knot]    vessel's line turn speed in water
 vMinInner = 3.8                                                                 # [knot]    min speed in water of inner streamer
 
 vCross = 0.0                                                                    # [knot]    cross current

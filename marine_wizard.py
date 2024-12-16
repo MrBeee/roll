@@ -13,7 +13,7 @@ import os.path
 import numpy as np
 import pyqtgraph as pg
 from qgis.gui import QgsProjectionSelectionTreeWidget
-from qgis.PyQt.QtCore import QRectF, QSizeF
+from qgis.PyQt.QtCore import QRectF, QSizeF, Qt
 from qgis.PyQt.QtGui import QColor, QImage, QPixmap, QTextOption, QTransform
 from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QSizePolicy, QSpinBox, QVBoxLayout, QWizard, QWizardPage
 
@@ -1380,6 +1380,25 @@ class Page_4(SurveyWizardPage):
         self.turnRad.setEnabled(False)                                          # readonly
         self.turnRad.setRange(1.0, 1_000_000.0)
 
+        self.runIn = QDoubleSpinBox()
+        self.runIn.setRange(0.0, 1_000_000.0)
+
+        self.velInn = QDoubleSpinBox()                                         # turning speed inner streamer
+        self.velInn.setEnabled(False)                                          # readonly
+        self.velInn.setRange(1.0, 1_000_000.0)                                 # turn radius [m]
+
+        self.velOut = QDoubleSpinBox()                                         # turning speed outer streamer
+        self.velOut.setEnabled(False)                                          # readonly
+        self.velOut.setRange(1.0, 1_000_000.0)                                 # turn radius [m]
+
+        self.frcInn = QDoubleSpinBox()                                         # force on inner streamer
+        self.frcInn.setEnabled(False)                                          # readonly
+        self.frcInn.setRange(1.0, 1_000_000.0)                                 # turn radius [m]
+
+        self.frcOut = QDoubleSpinBox()                                         # force on outer streamer
+        self.frcOut.setEnabled(False)                                          # readonly
+        self.frcOut.setRange(1.0, 1_000_000.0)                                 # turn radius [m]
+
         self.nsl = QSpinBox()                                                   # nr sail lines
         self.nsl.setEnabled(False)                                              # readonly
 
@@ -1418,7 +1437,46 @@ class Page_4(SurveyWizardPage):
         layout = QGridLayout()
 
         row = 0
-        layout.addWidget(QLabel('Size of <b>full fold</b> survey area'), row, 0, 1, 4)
+        turnLabel = QLabel('- - - Factors affecting vessel <b>turning radius</b> - - -')
+        turnLabel.setAlignment(Qt.AlignCenter)
+        turnLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        turnLabel.setLineWidth(2)
+        turnLabel.setFixedHeight(30)
+        # turnLabel.setStyleSheet('QLabel  { background-color : lightblue} ')
+
+        layout.addWidget(turnLabel, row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(QLabel(f'Speed during line turns for <b>inner</b> (&ge; {config.vMinInner:.1f} [kn]) and <b>outer</b> streamers '), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(self.velInn, row, 0)
+        layout.addWidget(QLabel('Inner speed [kn]'), row, 1)
+        layout.addWidget(self.velOut, row, 2)
+        layout.addWidget(QLabel('Outer speed [kn]'), row, 3)
+
+        row += 1
+        layout.addWidget(QLabel(f'Towing force during line turns for <b>inner</b> and <b>outer</b> (&le; {config.maxDragForce:.2f} [tonF]) streamers'), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(self.frcInn, row, 0)
+        layout.addWidget(QLabel('Inner force [tonF]'), row, 1)
+        layout.addWidget(self.frcOut, row, 2)
+        layout.addWidget(QLabel('Outer force [tonF]'), row, 3)
+
+        row += 1
+        layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(self.turnRad, row, 0)
+        layout.addWidget(QLabel('Min turn radius [m]'), row, 1)
+        layout.addWidget(self.msg, row, 2, 1, 2)
+
+        row += 1
+        layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(QLabel('Size of <b>full fold</b> survey area and <b>run-outs</b>'), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.surIsiz, row, 0)
@@ -1427,16 +1485,10 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(QLabel('X-line size [m]'), row, 3)
 
         row += 1
-        layout.addWidget(self.turnRad, row, 0)
-        layout.addWidget(QLabel('Min turn radius [m]'), row, 1)
+        layout.addWidget(self.runIn, row, 0)
+        layout.addWidget(QLabel('Run-out length [m]'), row, 1)
         layout.addWidget(self.nsl, row, 2)
         layout.addWidget(QLabel('Sail lines in survey [#]'), row, 3)
-
-        row += 1
-        layout.addWidget(self.msg, row, 0, 1, 4)
-
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(QLabel('Nr of times to <b>deploy</b> the template in inline and X-line direction'), row, 0, 1, 4)
@@ -1542,31 +1594,37 @@ class Page_4(SurveyWizardPage):
         self.nsl.setValue(nsl)
 
         spreadWidth = (nCab - 1) * dCab
-        innerTurningRadius = 0.5 * config.vSail * spreadWidth / (config.vSail - config.vMinInner)   # speed in knot or m/s does not matter for their ratio
+        innerTurningRadius = 0.5 * config.vTurn * spreadWidth / (config.vTurn - config.vMinInner)   # speed in knot or m/s does not matter for their ratio
 
         cL = self.field('cabLength')                                            # streamer length
         wetSurface = math.pi * cL * config.cabDiameter                          # wet area per streamer
         dragPerMeter = 0.5 * wetSurface * config.swDensity * config.cDrag
-
-        innerStreamerSpeed = knotToMeterperSec(config.vTurn)                    # speed of inner streamer
-        outerStreamerSpeed = knotToMeterperSec(config.vSail) / innerTurningRadius * (innerTurningRadius + 0.5 * spreadWidth)  # speed of outer streamer
-
-        innerStreamerDrag = newtonToTonForce(dragPerMeter * innerStreamerSpeed**2)
-        outerStreamerDrag = newtonToTonForce(dragPerMeter * outerStreamerSpeed**2)
-
-        a = 1.0 - tonForceToNewton(config.maxDragForce) / (dragPerMeter * knotToMeterperSec(config.vSail) ** 2.0)
+        a = 1.0 - tonForceToNewton(config.maxDragForce) / (dragPerMeter * knotToMeterperSec(config.vTurn) ** 2.0)
         b = spreadWidth
         c = 0.25 * spreadWidth**2.0
         outerTurningRadius = (-1.0 * b - math.sqrt(b**2 - 4 * a * c)) / (2 * a)
 
         # rounded up minimum turning radius, constraint by inner- and outer streamers
+        # vesselTurningRadius = max(innerTurningRadius, outerTurningRadius)
         vesselTurningRadius = max(2500.0, 10.0 * math.ceil(0.1 * max(innerTurningRadius, outerTurningRadius)))
         self.turnRad.setValue(vesselTurningRadius)
 
+        velInn = (1.0 - 0.5 * spreadWidth / vesselTurningRadius) * config.vTurn
+        self.velInn.setValue(velInn)
+
+        velOut = (1.0 + 0.5 * spreadWidth / vesselTurningRadius) * config.vTurn
+        self.velOut.setValue(velOut)
+
+        innerStreamerDrag = newtonToTonForce(dragPerMeter * knotToMeterperSec(velInn) ** 2)
+        self.frcInn.setValue(innerStreamerDrag)
+
+        outerStreamerDrag = newtonToTonForce(dragPerMeter * knotToMeterperSec(velOut) ** 2)
+        self.frcOut.setValue(outerStreamerDrag)
+
         if innerTurningRadius > outerTurningRadius:
-            turnText = f'Radius set by min speed of inner streamer {config.vMinInner:.1f} [knot], affected by spread width {spreadWidth:.0f} [m]'
+            turnText = 'Limited by min speed inner streamer'
         else:
-            turnText = f'Radius set by max drag {outerStreamerDrag:.1f} [tonF] on outer streamer, affected by streamer length {cL:.0f} [m]'
+            turnText = 'Limited by max force on outer streamer'
 
         self.msg.setText(turnText)
 
