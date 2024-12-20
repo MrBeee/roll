@@ -13,12 +13,12 @@ import os.path
 import numpy as np
 import pyqtgraph as pg
 from qgis.gui import QgsProjectionSelectionTreeWidget
-from qgis.PyQt.QtCore import QRectF, QSizeF, Qt
-from qgis.PyQt.QtGui import QColor, QImage, QPixmap, QTextOption, QTransform
+from qgis.PyQt.QtCore import QRectF, QRegularExpression, Qt
+from qgis.PyQt.QtGui import QColor, QImage, QPalette, QPixmap, QRegularExpressionValidator, QTextOption, QTransform
 from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QSizePolicy, QSpinBox, QVBoxLayout, QWizard, QWizardPage
 
 from . import config  # used to pass initial settings
-from .functions import knotToMeterperSec, newtonToTonForce, tonForceToNewton
+from .functions import even, intListToString, knotToMeterperSec, newtonToTonForce, stringToIntList, tonForceToNewton
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
 from .roll_survey import PaintMode, RollSurvey, SurveyList, SurveyType
@@ -117,8 +117,8 @@ class Page_1(SurveyWizardPage):
         self.vSail.setRange(0.1, 10.0)
         self.vTurn.setRange(0.1, 10.0)
 
-        self.vSail.setValue(config.vSail)
-        self.vTurn.setValue(config.vTurn)
+        self.vSail.setValue(config.vSail)                                       # do this once in the constructor
+        self.vTurn.setValue(config.vTurn)                                       # do this once in the constructor
 
         self.vSail.textChanged.connect(self.updateParameters)
         self.vSail.editingFinished.connect(self.updateParameters)
@@ -152,14 +152,13 @@ class Page_1(SurveyWizardPage):
         self.aFeat.setEnabled(False)                                            # readonly
 
         self.cabLength = QDoubleSpinBox()
-        self.groupInt = QDoubleSpinBox()
-
         self.cabLength.setRange(100.0, 20_000.0)
-        self.groupInt.setRange(3.125, 250.0)
-
         self.cabLength.setValue(config.cabLength)
-        self.groupInt.setValue(config.groupInt)
+        self.cabLength.setSingleStep(1000.0)                                    # increment by km extra streamer
 
+        self.groupInt = QDoubleSpinBox()
+        self.groupInt.setRange(3.125, 250.0)
+        self.groupInt.setValue(config.groupInt)
         self.groupInt.textChanged.connect(self.updateParameters)
         self.groupInt.editingFinished.connect(self.updateParameters)
 
@@ -168,6 +167,7 @@ class Page_1(SurveyWizardPage):
 
         self.nSrc.setRange(1, 50)
         self.nCab.setRange(1, 50)
+        self.nCab.setSingleStep(2)                                              # we want to stick to an even number of streamers
 
         self.nSrc.textChanged.connect(self.updateParameters)
         self.nSrc.editingFinished.connect(self.updateParameters)
@@ -279,8 +279,8 @@ class Page_1(SurveyWizardPage):
         layout.addWidget(self.vCross, row, 2)
         layout.addWidget(QLabel('<b>Crossline</b> current [kn]'), row, 3)
 
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
+        # row += 1
+        # layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(QLabel('<b>Total current and feather angle</b>'), row, 0, 1, 2)
@@ -343,8 +343,8 @@ class Page_1(SurveyWizardPage):
         layout.addWidget(self.recLength, row, 2)
         layout.addWidget(self.recLengthLabel, row, 3)
 
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
+        # row += 1
+        # layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(QLabel('<b>Clean record length</b> (i.e. without SP blending)'), row, 0, 1, 2)
@@ -409,7 +409,6 @@ class Page_1(SurveyWizardPage):
 
         # todo: remove this later:
 
-        self.registerField('nsl', self.nsl, 'value')                            # nr source lines
         self.registerField('nrl', self.nrl, 'value')                            # nr receiver lines
         self.registerField('sli', self.sli, 'value')                            # source line interval
         self.registerField('rli', self.rli, 'value')                            # receiver line interval
@@ -1251,6 +1250,54 @@ class Page_3(SurveyWizardPage):
         oriY = [0.0]
         orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
+    def updateParameters(self):
+        # from other pages
+        dCab = self.field('cabSepHead')
+        nSrc = self.field('nSrc')
+        cabLength = self.field('cabLength')                                     # streamer length
+        srcShtInt = self.field('srcShtInt')                                     # shot point interval (per cmp line)
+        recGrpInt = self.field('groupInt')                                      # group interval
+
+        foldINatural = 0.5 * cabLength / srcShtInt
+        foldXNatural = 1.0
+
+        binINatural = 0.5 * recGrpInt
+        binXNatural = 0.5 * dCab / nSrc
+
+        binIActual = self.field('binI')
+        binXActual = self.field('binX')
+
+        foldIActual = foldINatural * binIActual / binINatural
+        foldXActual = foldXNatural * binXActual / binXNatural
+
+        foldTActual = foldIActual * foldXActual
+
+        foldText = f'Max fold: {foldIActual:.1f} inline & {foldXActual:.1f} x-line, {foldTActual:.1f} fold total, in {binIActual:.2f} x {binXActual:.2f} m bins'
+
+        self.msg.setText(foldText)
+
+        if self.chkBingridAlign.isChecked():                                    # adjust the bin grid if required
+            self.binI.setSingleStep(binINatural)
+            self.binX.setSingleStep(binXNatural)
+
+            stepsI = max(round(self.binI.value() / binINatural), 1)
+            stepsX = max(round(self.binX.value() / binXNatural), 1)
+
+            self.binI.setValue(stepsI * binINatural)
+            self.binX.setValue(stepsX * binXNatural)
+        else:
+            self.binI.setSingleStep(1.0)
+            self.binX.setSingleStep(1.0)
+
+        # note page(x) starts with a ZERO index; therefore page(0) == Page_1
+        self.parent.page(3).evt_binImin_editingFinished(plot=False)             # adjust binning parameters in next page (Page_4)
+        self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
+        self.parent.page(3).evt_binXmin_editingFinished(plot=False)
+        self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
+
+        self.updateParentSurvey()
+        self.plot()
+
     def updateParentSurvey(self):
         # populate / update the survey skeleton
 
@@ -1306,54 +1353,6 @@ class Page_3(SurveyWizardPage):
         self.parent.survey.grid.stakeSize.setX(self.field('binI'))              # inline stake interval
         self.parent.survey.grid.stakeSize.setY(self.field('binX'))              # x-line line interval
 
-    def updateParameters(self):
-        # from other pages
-        dCab = self.field('cabSepHead')
-        nSrc = self.field('nSrc')
-        cabLength = self.field('cabLength')                                     # streamer length
-        srcShtInt = self.field('srcShtInt')                                     # shot point interval (per cmp line)
-        recGrpInt = self.field('groupInt')                                      # group interval
-
-        foldINatural = 0.5 * cabLength / srcShtInt
-        foldXNatural = 1.0
-
-        binINatural = 0.5 * recGrpInt
-        binXNatural = 0.5 * dCab / nSrc
-
-        binIActual = self.field('binI')
-        binXActual = self.field('binX')
-
-        foldIActual = foldINatural * binIActual / binINatural
-        foldXActual = foldXNatural * binXActual / binXNatural
-
-        foldTActual = foldIActual * foldXActual
-
-        foldText = f'Max fold: {foldIActual:.1f} inline & {foldXActual:.1f} x-line, {foldTActual:.1f} fold total, in {binIActual:.2f} x {binXActual:.2f} m bins'
-
-        self.msg.setText(foldText)
-
-        if self.chkBingridAlign.isChecked():                                    # adjust the bin grid if required
-            self.binI.setSingleStep(binINatural)
-            self.binX.setSingleStep(binXNatural)
-
-            stepsI = max(round(self.binI.value() / binINatural), 1)
-            stepsX = max(round(self.binX.value() / binXNatural), 1)
-
-            self.binI.setValue(stepsI * binINatural)
-            self.binX.setValue(stepsX * binXNatural)
-        else:
-            self.binI.setSingleStep(1.0)
-            self.binX.setSingleStep(1.0)
-
-        # note page(x) starts with a ZERO index; therefore page(0) == Page_1
-        self.parent.page(3).evt_binImin_editingFinished(plot=False)             # adjust binning parameters in next page (Page_4)
-        self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
-        self.parent.page(3).evt_binXmin_editingFinished(plot=False)
-        self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
-
-        self.updateParentSurvey()
-        self.plot()
-
     def evt_BingridAlign_toggled(self):
         self.updateParameters()
 
@@ -1366,9 +1365,10 @@ class Page_4(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('4. Template Properties')
-        self.setSubTitle('Binning Area and Race Track details')
+        self.setSubTitle('Race Track details and Binning Area')
 
         print('page 4 init')
+        self.trackList = []                                                     # list of integers
 
         self.recRect = QRectF()                                                 # receiver rect
         self.srcRect = QRectF()                                                 # source rect
@@ -1380,30 +1380,71 @@ class Page_4(SurveyWizardPage):
         self.turnRad.setEnabled(False)                                          # readonly
         self.turnRad.setRange(1.0, 1_000_000.0)
 
-        self.runIn = QDoubleSpinBox()
-        self.runIn.setRange(0.0, 1_000_000.0)
+        self.runOut = QDoubleSpinBox()                                          # run-out (= 1/2 streamer length)
+        self.runOut.setEnabled(False)                                           # readonly
+        self.runOut.setRange(0.0, 1_000_000.0)
 
-        self.velInn = QDoubleSpinBox()                                         # turning speed inner streamer
-        self.velInn.setEnabled(False)                                          # readonly
-        self.velInn.setRange(1.0, 1_000_000.0)                                 # turn radius [m]
+        self.vMinInner = QDoubleSpinBox()                                       # min turn radius [m]
+        self.vMinInner.setRange(1.0, 1_000_000.0)
+        self.vMinInner.setSingleStep(0.1)                                       # increment by km 0.1 knot
+        self.vMinInner.setValue(config.vMinInner)
+        self.vMinInner.textChanged.connect(self.updateParameters)
 
-        self.velOut = QDoubleSpinBox()                                         # turning speed outer streamer
-        self.velOut.setEnabled(False)                                          # readonly
-        self.velOut.setRange(1.0, 1_000_000.0)                                 # turn radius [m]
+        self.maxDragForce = QDoubleSpinBox()                                    # max tow force [tonF]
+        self.maxDragForce.setRange(0.1, 100.0)
+        self.maxDragForce.setSingleStep(0.1)                                    # increment by km 0.1 tonF
+        self.maxDragForce.setValue(config.maxDragForce)
+        self.maxDragForce.textChanged.connect(self.updateParameters)
 
-        self.frcInn = QDoubleSpinBox()                                         # force on inner streamer
-        self.frcInn.setEnabled(False)                                          # readonly
-        self.frcInn.setRange(1.0, 1_000_000.0)                                 # turn radius [m]
+        self.velInn = QDoubleSpinBox()                                          # turning speed inner streamer
+        self.velInn.setEnabled(False)                                           # readonly
+        self.velInn.setRange(1.0, 1_000_000.0)                                  # turn radius [m]
 
-        self.frcOut = QDoubleSpinBox()                                         # force on outer streamer
-        self.frcOut.setEnabled(False)                                          # readonly
-        self.frcOut.setRange(1.0, 1_000_000.0)                                 # turn radius [m]
+        self.velOut = QDoubleSpinBox()                                          # turning speed outer streamer
+        self.velOut.setEnabled(False)                                           # readonly
+        self.velOut.setRange(1.0, 1_000_000.0)                                  # turn radius [m]
 
-        self.nsl = QSpinBox()                                                   # nr sail lines
-        self.nsl.setEnabled(False)                                              # readonly
+        self.radInn = QDoubleSpinBox()                                          # turn radius from inner streamer
+        self.radInn.setEnabled(False)                                           # readonly
+        self.radInn.setRange(1.0, 1_000_000.0)                                  # turn radius [m]
+
+        self.radOut = QDoubleSpinBox()                                          # turn radius speed outer streamer
+        self.radOut.setEnabled(False)                                           # readonly
+        self.radOut.setRange(1.0, 1_000_000.0)                                  # turn radius [m]
+
+        self.frcInn = QDoubleSpinBox()                                          # force on inner streamer
+        self.frcInn.setEnabled(False)                                           # readonly
+        self.frcInn.setRange(1.0, 1_000_000.0)                                  # turn radius [m]
+
+        self.frcOut = QDoubleSpinBox()                                          # force on outer streamer
+        self.frcOut.setEnabled(False)                                           # readonly
+        self.frcOut.setRange(1.0, 1_000_000.0)                                  # turn radius [m]
 
         self.nsl = QSpinBox()                                                   # nr sail lines in survey
         self.nsl.setEnabled(False)                                              # readonly
+
+        self.nsl2 = QSpinBox()                                                  # nr sail lines in survey
+        self.nsl2.setEnabled(False)                                             # readonly
+        self.nsl2.setRange(0, 1_000)                                            # set some (positive) limits
+
+        # See: https://stackoverflow.com/questions/40178432/how-to-customize-text-on-qpushbutton-using-qpalette
+        # See: https://forum.qt.io/topic/142031/understanding-qpalette/2
+        # See: https://medium.com/@wintersweet001/palette-using-pyside6-pyqt-42982328d6e1
+        self.normalPalette = self.nsl2.palette()                                # get the palette of this control
+        fgColorActive = self.normalPalette.color(QPalette.Active, QPalette.Text)      # foreground-color
+        bgColorActive = self.normalPalette.color(QPalette.Active, QPalette.Window)    # background-color
+        fgColorDisabled = self.normalPalette.color(QPalette.Disabled, QPalette.Text)      # foreground-color
+        bgColorDisabled = self.normalPalette.color(QPalette.Disabled, QPalette.Window)    # background-color
+
+        self.nsl2.setAutoFillBackground(True)
+
+        self.nrLinesPerTrack = QSpinBox()                                       # nr lines per race track
+        self.nrLinesPerTrack.setEnabled(False)                                  # readonly
+        self.nrLinesPerTrack.setRange(1, 1_000)                                 # set some (positive) limits
+
+        self.nrTracks = QDoubleSpinBox()                                        # nr race tracks per survey
+        self.nrTracks.setEnabled(False)                                         # readonly
+        self.nrTracks.setRange(1.0, 1_000.0)                                    # set some (positive) limits
 
         self.slr = QSpinBox()   # src line roll along
         self.rlr = QSpinBox()   # rec line roll along
@@ -1414,9 +1455,7 @@ class Page_4(SurveyWizardPage):
         self.msg.setReadOnly(True)
 
         self.binImin = QDoubleSpinBox()
-        self.surIsiz = QDoubleSpinBox()
         self.binXmin = QDoubleSpinBox()
-        self.surXsiz = QDoubleSpinBox()
 
         shift = True
         self.chkShiftSpread = QCheckBox('Move first receiver to (0,0) for easier global bingrid definition')
@@ -1429,25 +1468,45 @@ class Page_4(SurveyWizardPage):
         self.rld.setRange(1, 1000000)
 
         self.binImin.setRange(-1000000, 1000000)
-        self.surIsiz.setRange(1, 1000000)
         self.binXmin.setRange(-1000000, 1000000)
+
+        self.surIsiz = QDoubleSpinBox()
+        self.surIsiz.setRange(1, 1000000)
+        self.surIsiz.setSingleStep(1000.0)                                      # increment by km 1 km
+        self.surIsiz.setValue(config.surveySizeI)
+        self.surIsiz.textChanged.connect(self.updateParameters)
+
+        self.surXsiz = QDoubleSpinBox()
         self.surXsiz.setRange(1, 1000000)
+        self.surXsiz.setSingleStep(1000.0)                                      # increment by km 1 km
+        self.surXsiz.setValue(config.surveySizeX)
+        self.surXsiz.textChanged.connect(self.updateParameters)
 
         # set the page layout
         layout = QGridLayout()
 
         row = 0
-        turnLabel = QLabel('- - - Factors affecting vessel <b>turning radius</b> - - -')
+        turnLabel = QLabel("· · · · Factors affecting the vessel's minimum <b>turning radius</b> · · · ·")
         turnLabel.setAlignment(Qt.AlignCenter)
         turnLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
         turnLabel.setLineWidth(2)
         turnLabel.setFixedHeight(30)
-        # turnLabel.setStyleSheet('QLabel  { background-color : lightblue} ')
-
         layout.addWidget(turnLabel, row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel(f'Speed during line turns for <b>inner</b> (&ge; {config.vMinInner:.1f} [kn]) and <b>outer</b> streamers '), row, 0, 1, 4)
+        layout.addWidget(QLabel('Minimum streamer <b>speed</b> [kn] and maximum <b>tow force</b> [tonF] in water'), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(self.vMinInner, row, 0)
+        layout.addWidget(QLabel('Min speed [kn]'), row, 1)
+        layout.addWidget(self.maxDragForce, row, 2)
+        layout.addWidget(QLabel('Max force [tonF]'), row, 3)
+
+        row += 1
+        layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(QLabel('Speed during line turns for <b>inner</b> and <b>outer</b> streamers '), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.velInn, row, 0)
@@ -1456,7 +1515,7 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(QLabel('Outer speed [kn]'), row, 3)
 
         row += 1
-        layout.addWidget(QLabel(f'Towing force during line turns for <b>inner</b> and <b>outer</b> (&le; {config.maxDragForce:.2f} [tonF]) streamers'), row, 0, 1, 4)
+        layout.addWidget(QLabel('Towing force during line turns for <b>inner</b> and <b>outer</b> streamers'), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.frcInn, row, 0)
@@ -1468,6 +1527,15 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
+        layout.addWidget(QLabel('Line turn radius from limits <b>inner</b> and <b>outer</b> streamers '), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(self.radInn, row, 0)
+        layout.addWidget(QLabel('From inner streamer [m]'), row, 1)
+        layout.addWidget(self.radOut, row, 2)
+        layout.addWidget(QLabel('From outer streamer [m]'), row, 3)
+
+        row += 1
         layout.addWidget(self.turnRad, row, 0)
         layout.addWidget(QLabel('Min turn radius [m]'), row, 1)
         layout.addWidget(self.msg, row, 2, 1, 2)
@@ -1476,73 +1544,94 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel('Size of <b>full fold</b> survey area and <b>run-outs</b>'), row, 0, 1, 4)
+        ffLabel = QLabel('· · · · Size of full fold <b>survey area</b>, run-outs and nr sail lines · · · ·')
+        ffLabel.setAlignment(Qt.AlignCenter)
+        ffLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        ffLabel.setLineWidth(2)
+        ffLabel.setFixedHeight(30)
+        layout.addWidget(ffLabel, row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.surIsiz, row, 0)
-        layout.addWidget(QLabel('Inline size [m]'), row, 1)
+        layout.addWidget(QLabel('FF inline size [m]'), row, 1)
         layout.addWidget(self.surXsiz, row, 2)
-        layout.addWidget(QLabel('X-line size [m]'), row, 3)
+        layout.addWidget(QLabel('Crossline size [m]'), row, 3)
 
         row += 1
-        layout.addWidget(self.runIn, row, 0)
+        layout.addWidget(self.runOut, row, 0)
         layout.addWidget(QLabel('Run-out length [m]'), row, 1)
         layout.addWidget(self.nsl, row, 2)
         layout.addWidget(QLabel('Sail lines in survey [#]'), row, 3)
 
         row += 1
-        layout.addWidget(QLabel('Nr of times to <b>deploy</b> the template in inline and X-line direction'), row, 0, 1, 4)
+        layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(self.sld, row, 0)
-        layout.addWidget(QLabel('Inline deployments'), row, 1)
-        layout.addWidget(self.rld, row, 2)
-        layout.addWidget(QLabel('X-line deployments'), row, 3)
+        lapsLabel = QLabel('· · · · <b>Optimal</b> nr of <b>sail lines</b> per race track, and nr <b>tracks</b> in survey · · · ·')
+        lapsLabel.setAlignment(Qt.AlignCenter)
+        lapsLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        lapsLabel.setLineWidth(2)
+        lapsLabel.setFixedHeight(30)
+        layout.addWidget(lapsLabel, row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(self.nrLinesPerTrack, row, 0)
+        layout.addWidget(QLabel('lines/race track [#]'), row, 1)
+        layout.addWidget(self.nrTracks, row, 2)
+        layout.addWidget(QLabel('Race tracks in survey'), row, 3)
+
+        row += 1
+        layout.addWidget(QLabel('List the series of race tracks, by their respective nr of sail lines, separated by a space'), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(QLabel('Note: apart from the <b>last</b> race track, all numbers shall be <b>odd</b>'), row, 0, 1, 4)
+
+        row += 1
+        self.lineSeries = QLineEdit('15 15 15 15')
+        layout.addWidget(self.lineSeries, row, 0)
+        input_validator = QRegularExpressionValidator(QRegularExpression('[0-9 ]+'), self.lineSeries)
+        self.lineSeries.setValidator(input_validator)
+        self.lineSeries.textEdited.connect(self.updateTrackList)
+
+        layout.addWidget(self.lineSeries, row, 0)
+        layout.addWidget(QLabel('list of sail lines/track'), row, 1)
+        layout.addWidget(self.nsl2, row, 2)
+        layout.addWidget(QLabel('Sail lines in survey [#]'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
-        row += 1
-        layout.addWidget(QLabel('<b>Origin</b> of binning area'), row, 0, 1, 2)
-        layout.addWidget(QLabel('<b>Size</b> of binning area'), row, 2, 1, 2)
+        # # create a vertical box layout widget (vbl)
+        # vbl = QVBoxLayout()
 
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
+        # # add the so far developed QGridLayout to the QVBoxLayout (layout)
+        # vbl.addLayout(layout)
 
-        row += 1
-        layout.addWidget(self.chkShiftSpread, row, 0, 1, 4)
+        # # insert PyQtGraph plotWidget                                           # See: https://groups.google.com/g/pyqtgraph/c/ls-9I2tHu2w
+        # self.plotWidget = pg.PlotWidget(background='w')
+        # self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
+        # self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
+        # self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
+        # self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
+        # self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
 
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
+        # self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
+        # self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
 
-        # create a vertical box layout widget (vbl)
-        vbl = QVBoxLayout()
+        # # add toolbar and plotwidget to the vertical box layout
+        # vbl.addWidget(self.zoomBar)
+        # vbl.addWidget(self.plotWidget)
 
-        # add the so far developed QGridLayout to the QVBoxLayout (layout)
-        vbl.addLayout(layout)
-
-        # insert PyQtGraph plotWidget                                           # See: https://groups.google.com/g/pyqtgraph/c/ls-9I2tHu2w
-        self.plotWidget = pg.PlotWidget(background='w')
-        self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
-        self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
-        self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
-        self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
-
-        self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
-        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
-
-        # add toolbar and plotwidget to the vertical box layout
-        vbl.addWidget(self.zoomBar)
-        vbl.addWidget(self.plotWidget)
-
-        # set the combined layouts to become this page's layout
-        self.setLayout(vbl)
+        # # set the combined layouts to become this page's layout
+        # self.setLayout(vbl)
 
         # set the combined layouts
-        self.setLayout(vbl)
+        self.setLayout(layout)
 
         # register fields
+        self.registerField('vMinInner', self.vMinInner, 'value')                # min cable velocity
+        self.registerField('maxDragForce', self.maxDragForce, 'value')          # max towing force
+
         self.registerField('rlr', self.rlr, 'value')                            # rec line roll steps
         self.registerField('slr', self.slr, 'value')                            # src line roll steps
         self.registerField('rld', self.rld, 'value')                            # rec line deployments
@@ -1561,10 +1650,10 @@ class Page_4(SurveyWizardPage):
         self.rld.editingFinished.connect(self.evt_roll_editingFinished)
         self.sld.editingFinished.connect(self.evt_roll_editingFinished)
 
-        self.binImin.editingFinished.connect(self.evt_binImin_editingFinished)
-        self.surIsiz.editingFinished.connect(self.evt_binIsiz_editingFinished)
-        self.binXmin.editingFinished.connect(self.evt_binXmin_editingFinished)
-        self.surXsiz.editingFinished.connect(self.evt_binXsiz_editingFinished)
+        # self.binImin.editingFinished.connect(self.evt_binImin_editingFinished)
+        # self.surIsiz.editingFinished.connect(self.evt_binIsiz_editingFinished)
+        # self.binXmin.editingFinished.connect(self.evt_binXmin_editingFinished)
+        # self.surXsiz.editingFinished.connect(self.evt_binXsiz_editingFinished)
 
         self.chkShiftSpread.toggled.connect(self.evt_chkShiftSpread_toggled)
 
@@ -1577,56 +1666,10 @@ class Page_4(SurveyWizardPage):
         # initial bin analysis area
         shiftI = 6000 if shift else 0
         self.binImin.setValue(config.binImin + shiftI)
-        self.surIsiz.setValue(config.surveySizeI)
-        self.binXmin.setValue(config.binXmin)
-        self.surXsiz.setValue(config.surveySizeX)
+        # self.surXsiz.setValue(config.surveySizeX)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         print('initialize page 4')
-
-        # need to work out nr of sail lines and ideal racetrack width
-        dCab = self.field('cabSepHead')
-        nCab = self.field('nCab')
-        surXsiz = self.field('surXsiz')
-
-        sli = 0.5 * nCab * dCab                                                 # sail line interval
-        nsl = math.ceil(surXsiz / sli)
-        self.nsl.setValue(nsl)
-
-        spreadWidth = (nCab - 1) * dCab
-        innerTurningRadius = 0.5 * config.vTurn * spreadWidth / (config.vTurn - config.vMinInner)   # speed in knot or m/s does not matter for their ratio
-
-        cL = self.field('cabLength')                                            # streamer length
-        wetSurface = math.pi * cL * config.cabDiameter                          # wet area per streamer
-        dragPerMeter = 0.5 * wetSurface * config.swDensity * config.cDrag
-        a = 1.0 - tonForceToNewton(config.maxDragForce) / (dragPerMeter * knotToMeterperSec(config.vTurn) ** 2.0)
-        b = spreadWidth
-        c = 0.25 * spreadWidth**2.0
-        outerTurningRadius = (-1.0 * b - math.sqrt(b**2 - 4 * a * c)) / (2 * a)
-
-        # rounded up minimum turning radius, constraint by inner- and outer streamers
-        # vesselTurningRadius = max(innerTurningRadius, outerTurningRadius)
-        vesselTurningRadius = max(2500.0, 10.0 * math.ceil(0.1 * max(innerTurningRadius, outerTurningRadius)))
-        self.turnRad.setValue(vesselTurningRadius)
-
-        velInn = (1.0 - 0.5 * spreadWidth / vesselTurningRadius) * config.vTurn
-        self.velInn.setValue(velInn)
-
-        velOut = (1.0 + 0.5 * spreadWidth / vesselTurningRadius) * config.vTurn
-        self.velOut.setValue(velOut)
-
-        innerStreamerDrag = newtonToTonForce(dragPerMeter * knotToMeterperSec(velInn) ** 2)
-        self.frcInn.setValue(innerStreamerDrag)
-
-        outerStreamerDrag = newtonToTonForce(dragPerMeter * knotToMeterperSec(velOut) ** 2)
-        self.frcOut.setValue(outerStreamerDrag)
-
-        if innerTurningRadius > outerTurningRadius:
-            turnText = 'Limited by min speed inner streamer'
-        else:
-            turnText = 'Limited by max force on outer streamer'
-
-        self.msg.setText(turnText)
 
         sli = self.field('sli')
         rli = self.field('rli')
@@ -1642,24 +1685,111 @@ class Page_4(SurveyWizardPage):
         self.setField('sld', sld)
         self.setField('rld', rld)
 
+        self.updateParameters()
+        self.updateTrackList()
+
         self.updateParentSurvey()                                               # update the survey object
-        self.plot()                                                             # show the plot, center the bin analysis area
+        # self.plot()                                                             # show the plot, center the bin analysis area
 
-    def cleanupPage(self):                                                      # needed to update previous page
-        print('cleanup of page 4')
+    def updateParameters(self):
+        # need to work out nr of sail lines and ideal racetrack width
+        cL = self.field('cabLength')                                            # streamer length
+        dCab = self.field('cabSepHead')
+        nCab = self.field('nCab')
+        surXsiz = self.field('surXsiz')
+        vTurn = self.field('vTurn')                                             # Vessel line turn speed (from page 1)
+        vMinInner = self.field('vMinInner')
+        maxDragForce = self.field('maxDragForce')
 
-        # added 19/06/2024
-        self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in 'earlier' wizard pages; instead, create empty rect
-        for i in range(self.parent.nTemplates):
-            self.parent.survey.blockList[0].templateList[i].rollList[0].steps = 1  # nr deployments in y-direction
-            self.parent.survey.blockList[0].templateList[i].rollList[1].steps = 1  # nr deployments in x-direction
+        sli = 0.5 * nCab * dCab                                                 # sail line interval
+        nsl = math.ceil(surXsiz / sli)                                          # nr sail lines
+        self.nsl.setValue(nsl)
 
-        self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
-        self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey ignoring rolling along
+        spreadWidth = (nCab - 1) * dCab
+        innerTurningRadius = 0.5 * vTurn * spreadWidth / (vTurn - vMinInner)   # speed in knot or m/s does not matter for their ratio
 
-        # note page(x) starts with a ZERO index; therefore page(0) == Page_1 and page(2) == Page_3
-        self.parent.page(2).updateParentSurvey()                                # (re)center single spread, may be shifted inline due to origin shift
-        self.parent.page(2).plot()                                              # needed to update the plot
+        self.runOut.setValue(0.5 * cL)
+
+        wetSurface = math.pi * cL * config.cabDiameter                          # wet area per streamer
+        dragPerMeter = 0.5 * wetSurface * config.swDensity * config.cDrag
+        a = 1.0 - tonForceToNewton(maxDragForce) / (dragPerMeter * knotToMeterperSec(vTurn) ** 2.0)
+        b = spreadWidth
+        c = 0.25 * spreadWidth**2.0
+        outerTurningRadius = (-1.0 * b - math.sqrt(b**2 - 4 * a * c)) / (2 * a)
+
+        self.radInn.setValue(innerTurningRadius)
+        self.radOut.setValue(outerTurningRadius)
+
+        # rounded up minimum turning radius, constraint by inner- and outer streamers
+        vesselTurningRadius = max(2500.0, 10.0 * math.ceil(0.1 * max(innerTurningRadius, outerTurningRadius)))
+        self.turnRad.setValue(vesselTurningRadius)
+
+        velInn = (1.0 - 0.5 * spreadWidth / vesselTurningRadius) * vTurn
+        self.velInn.setValue(velInn)
+
+        velOut = (1.0 + 0.5 * spreadWidth / vesselTurningRadius) * vTurn
+        self.velOut.setValue(velOut)
+
+        innerStreamerDrag = newtonToTonForce(dragPerMeter * knotToMeterperSec(velInn) ** 2)
+        self.frcInn.setValue(innerStreamerDrag)
+
+        outerStreamerDrag = newtonToTonForce(dragPerMeter * knotToMeterperSec(velOut) ** 2)
+        self.frcOut.setValue(outerStreamerDrag)
+
+        if innerTurningRadius > outerTurningRadius:
+            turnText = 'Limited by min speed inner streamer'
+        else:
+            turnText = 'Limited by max force on outer streamer'
+
+        self.msg.setText(turnText)
+
+        nrLinesPerTrack = round(vesselTurningRadius / sli + 0.5) * 2 + 1
+        self.nrLinesPerTrack.setValue(nrLinesPerTrack)
+
+        nrTracks = surXsiz / (sli * nrLinesPerTrack)
+        self.nrTracks.setValue(nrTracks)
+
+        # create basic tracklist
+
+        self.trackList = []
+        while sum(self.trackList) < nsl:
+            self.trackList.append(nrLinesPerTrack)
+        # else:
+        #     print('i is no longer less than 6')
+
+        self.lineSeries.setText(intListToString(self.trackList))
+        self.nsl2.setValue(sum(self.trackList))
+
+    def updateTrackList(self):
+        # work out sequence of saillines per race track
+
+        trackList = stringToIntList(self.lineSeries.text())
+        self.nsl2.setValue(sum(trackList))
+
+        nTracks = len(trackList)
+
+        error = False
+        if nTracks > 1:                                                         # need at least 2 tracks to restrict the first track
+            for track in trackList[:-1]:                                        # ignore last entry
+                if even(track):                                                 # not allowed
+                    error = True
+                    break
+        if error:
+            self.lineSeries.setStyleSheet('QLineEdit {color:red; background-color:lightblue;}')
+            # self.lineSeries.setStyleSheet('QLabel {color:red}')
+        else:
+            self.lineSeries.setStyleSheet('QLineEdit {color:black; background-color:white;}')
+            # self.lineSeries.setStyleSheet('QLabel {color:black}')
+
+        nsl2 = self.nsl2.value()
+        nsl = self.nsl.value()
+
+        if nsl2 < nsl:
+            self.nsl2.setStyleSheet('QSpinBox {color:red; background-color:lightblue;}')
+            # self.nsl2.setStyleSheet('QLabel {color:red}')
+        else:
+            self.nsl2.setStyleSheet('QSpinBox {color:black; background-color:lightgrey;}')
+            # self.nsl2.setStyleSheet('QLabel {color:black}')
 
     def updateParentSurvey(self):                                               # update the survey object
         # populate / update the survey skeleton; growList is not being affected
@@ -1772,29 +1902,46 @@ class Page_4(SurveyWizardPage):
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
 
+    def cleanupPage(self):                                                      # needed to update previous page
+        print('cleanup of page 4')
+
+        # added 19/06/2024
+        self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in 'earlier' wizard pages; instead, create empty rect
+        for i in range(self.parent.nTemplates):
+            self.parent.survey.blockList[0].templateList[i].rollList[0].steps = 1  # nr deployments in y-direction
+            self.parent.survey.blockList[0].templateList[i].rollList[1].steps = 1  # nr deployments in x-direction
+
+        self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
+        self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey ignoring rolling along
+
+        # note page(x) starts with a ZERO index; therefore page(0) == Page_1 and page(2) == Page_3
+        self.parent.page(2).updateParentSurvey()                                # (re)center single spread, may be shifted inline due to origin shift
+        self.parent.page(2).plot()                                              # needed to update the plot
+
     def plot(self):
-        """plot the survey area"""
+        pass
+        # """plot the survey area"""
 
-        self.plotWidget.plotItem.clear()
-        self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
+        # self.plotWidget.plotItem.clear()
+        # self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
 
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
+        # styles = {'color': '#646464', 'font-size': '10pt'}
+        # self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
+        # self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
+        # self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
+        # self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
 
-        self.parent.survey.paintMode = PaintMode.justTemplates                      # .justLines
-        self.parent.survey.lodScale = 6.0
-        item = self.parent.survey
+        # self.parent.survey.paintMode = PaintMode.justTemplates                      # .justLines
+        # self.parent.survey.lodScale = 6.0
+        # item = self.parent.survey
 
-        # 4. roll along and binning area
-        self.plotWidget.plotItem.addItem(item)
+        # # 4. roll along and binning area
+        # self.plotWidget.plotItem.addItem(item)
 
-        # Add a marker for the origin
-        oriX = [0.0]
-        oriY = [0.0]
-        orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+        # # Add a marker for the origin
+        # oriX = [0.0]
+        # oriY = [0.0]
+        # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
     def evt_chkShiftSpread_toggled(self, chkd):
         offImin = self.field('offImin')
@@ -1825,7 +1972,7 @@ class Page_4(SurveyWizardPage):
         binI = self.field('binI')
         nrIntervals = max(round(self.surIsiz.value() / binI), 1)
         surIsiz = nrIntervals * binI
-        self.surIsiz.setValue(surIsiz)
+        # self.surIsiz.setValue(surIsiz)
         self.updateBinningArea(plot)
 
     def evt_binXmin_editingFinished(self, plot=True):
@@ -1839,7 +1986,7 @@ class Page_4(SurveyWizardPage):
         binX = self.field('binX')
         nrIntervals = max(round(self.surXsiz.value() / binX), 1)
         surXsiz = nrIntervals * binX
-        self.surXsiz.setValue(surXsiz)
+        # self.surXsiz.setValue(surXsiz)
         self.updateBinningArea(plot)
 
     def updateBinningArea(self, plot):

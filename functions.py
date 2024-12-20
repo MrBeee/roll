@@ -75,6 +75,43 @@ def tonForceToNewton(force: float) -> float:
     return force * 9806.652
 
 
+def stringToIntList(string: str):
+
+    string = string.replace(',', ' ').replace(';', ' ')                         # first convert all delimiters back to spaces
+    str_list = string.split()                                                   # split the string into a list of strings
+    num_list = []
+
+    for s in str_list:
+        try:
+            num_list.append(int(s))                                             # append the integer to the list
+        except ValueError:
+            return []                                                           # bummer; input error
+
+    return num_list
+
+
+def intListToString(num_list):
+
+    delimiter = ' '                                                             # Define the delimiter to be used
+    num_list_string = map(str, num_list)                                        # Convert each element into a string
+    join_num_str = delimiter.join(num_list_string)                              # Join the strings using the delimiter
+    return join_num_str
+
+
+def odd(number):
+    if number % 2 == 0:
+        return False                                                            # even
+    else:
+        return True                                                             # odd
+
+
+def even(number):
+    if number % 2 == 0:
+        return True                                                            # even
+    else:
+        return False                                                             # odd
+
+
 def makePenFromParms(parms):
     assert len(parms) == 6, "need 6 parameters for: ('color', 'width', 'style', 'capStyle', 'joinStyle', 'cosmetic')"
 

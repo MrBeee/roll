@@ -82,7 +82,7 @@ srcSeparation = 50.0                                                            
 
 cdpDepth = 2000.0                                                               # [m]       shown cdp depth in marine wizard
 
-surveySizeI = 40_000.0                                                          # [m]       inline survey size
+surveySizeI = 50_000.0                                                          # [m]       inline survey size
 surveySizeX = 30_000.0                                                          # [m]       x-line survey size
 
 # Level of Detail (LOD) settings
