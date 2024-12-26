@@ -1365,7 +1365,7 @@ class Page_4(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('4. Template Properties')
-        self.setSubTitle('Race Track details and Binning Area')
+        self.setSubTitle('Race-Track details and Line-Turn overhead')
 
         print('page 4 init')
         self.trackList = []                                                     # list of integers
@@ -1408,7 +1408,7 @@ class Page_4(SurveyWizardPage):
         self.radInn.setEnabled(False)                                           # readonly
         self.radInn.setRange(1.0, 1_000_000.0)                                  # turn radius [m]
 
-        self.radOut = QDoubleSpinBox()                                          # turn radius speed outer streamer
+        self.radOut = QDoubleSpinBox()                                          # turn radius from inner streamer
         self.radOut.setEnabled(False)                                           # readonly
         self.radOut.setRange(1.0, 1_000_000.0)                                  # turn radius [m]
 
@@ -1426,17 +1426,8 @@ class Page_4(SurveyWizardPage):
         self.nsl2 = QSpinBox()                                                  # nr sail lines in survey
         self.nsl2.setEnabled(False)                                             # readonly
         self.nsl2.setRange(0, 1_000)                                            # set some (positive) limits
-
-        # See: https://stackoverflow.com/questions/40178432/how-to-customize-text-on-qpushbutton-using-qpalette
-        # See: https://forum.qt.io/topic/142031/understanding-qpalette/2
-        # See: https://medium.com/@wintersweet001/palette-using-pyside6-pyqt-42982328d6e1
-        self.normalPalette = self.nsl2.palette()                                # get the palette of this control
-        fgColorActive = self.normalPalette.color(QPalette.Active, QPalette.Text)      # foreground-color
-        bgColorActive = self.normalPalette.color(QPalette.Active, QPalette.Window)    # background-color
-        fgColorDisabled = self.normalPalette.color(QPalette.Disabled, QPalette.Text)      # foreground-color
-        bgColorDisabled = self.normalPalette.color(QPalette.Disabled, QPalette.Window)    # background-color
-
-        self.nsl2.setAutoFillBackground(True)
+        linesTip = '<p><font color="red"><b>Red</b></font> when there are too few lines in the survey.<p><font color="darkorange"><b>Orange</b></font> when there are too many lines in the survey'
+        self.nsl2.setToolTip(linesTip)
 
         self.nrLinesPerTrack = QSpinBox()                                       # nr lines per race track
         self.nrLinesPerTrack.setEnabled(False)                                  # readonly
@@ -1488,9 +1479,9 @@ class Page_4(SurveyWizardPage):
         row = 0
         turnLabel = QLabel("· · · · Factors affecting the vessel's minimum <b>turning radius</b> · · · ·")
         turnLabel.setAlignment(Qt.AlignCenter)
-        turnLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        turnLabel.setLineWidth(2)
-        turnLabel.setFixedHeight(30)
+        # turnLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        # turnLabel.setLineWidth(2)
+        # turnLabel.setFixedHeight(30)
         layout.addWidget(turnLabel, row, 0, 1, 4)
 
         row += 1
@@ -1546,9 +1537,9 @@ class Page_4(SurveyWizardPage):
         row += 1
         ffLabel = QLabel('· · · · Size of full fold <b>survey area</b>, run-outs and nr sail lines · · · ·')
         ffLabel.setAlignment(Qt.AlignCenter)
-        ffLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        ffLabel.setLineWidth(2)
-        ffLabel.setFixedHeight(30)
+        # ffLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        # ffLabel.setLineWidth(2)
+        # ffLabel.setFixedHeight(30)
         layout.addWidget(ffLabel, row, 0, 1, 4)
 
         row += 1
@@ -1561,7 +1552,7 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(self.runOut, row, 0)
         layout.addWidget(QLabel('Run-out length [m]'), row, 1)
         layout.addWidget(self.nsl, row, 2)
-        layout.addWidget(QLabel('Sail lines in survey [#]'), row, 3)
+        layout.addWidget(QLabel('<b>Sail lines</b> in survey [#]'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
@@ -1569,9 +1560,9 @@ class Page_4(SurveyWizardPage):
         row += 1
         lapsLabel = QLabel('· · · · <b>Optimal</b> nr of <b>sail lines</b> per race track, and nr <b>tracks</b> in survey · · · ·')
         lapsLabel.setAlignment(Qt.AlignCenter)
-        lapsLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        lapsLabel.setLineWidth(2)
-        lapsLabel.setFixedHeight(30)
+        # lapsLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        # lapsLabel.setLineWidth(2)
+        # lapsLabel.setFixedHeight(30)
         layout.addWidget(lapsLabel, row, 0, 1, 4)
 
         row += 1
@@ -1584,22 +1575,57 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(QLabel('List the series of race tracks, by their respective nr of sail lines, separated by a space'), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel('Note: apart from the <b>last</b> race track, all numbers shall be <b>odd</b>'), row, 0, 1, 4)
+        layout.addWidget(QLabel('Note: apart from the <b>final</b> race track, all track numbers shall be <b>odd</b>'), row, 0, 1, 4)
 
-        row += 1
         self.lineSeries = QLineEdit('15 15 15 15')
-        layout.addWidget(self.lineSeries, row, 0)
         input_validator = QRegularExpressionValidator(QRegularExpression('[0-9 ]+'), self.lineSeries)
         self.lineSeries.setValidator(input_validator)
         self.lineSeries.textEdited.connect(self.updateTrackList)
+        self.lineSeriesLabel = QLabel('list of sail lines/track')
+        self.nsl2Label = QLabel('Sail lines in survey [#]')
+        self.nsl2Label.setToolTip(linesTip)
 
+        row += 1
         layout.addWidget(self.lineSeries, row, 0)
-        layout.addWidget(QLabel('list of sail lines/track'), row, 1)
+        layout.addWidget(self.lineSeriesLabel, row, 1)
         layout.addWidget(self.nsl2, row, 2)
-        layout.addWidget(QLabel('Sail lines in survey [#]'), row, 3)
+        layout.addWidget(self.nsl2Label, row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        row += 1
+        self.totalTurns = QDoubleSpinBox()
+        self.totalPrime = QDoubleSpinBox()
+        layout.addWidget(self.totalTurns, row, 0)
+        layout.addWidget(QLabel('<b>Total turn effort</b> [km]'), row, 1)
+        layout.addWidget(self.totalPrime, row, 2)
+        layout.addWidget(QLabel('<b>Total prime lines</b> [km]'), row, 3)
+
+        row += 1
+        layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(QLabel('Line turn <b>detailed information</b>'), row, 0, 1, 2)
+        self.turnOverhead = QDoubleSpinBox()
+        layout.addWidget(self.turnOverhead, row, 2)
+        layout.addWidget(QLabel('Line turn <b>overhead</b> [%]'), row, 3)
+
+        row += 1
+        self.turn180 = QDoubleSpinBox()
+        self.runIns = QDoubleSpinBox()
+        layout.addWidget(self.turn180, row, 0)
+        layout.addWidget(QLabel('180° turns [km]'), row, 1)
+        layout.addWidget(self.runIns, row, 2)
+        layout.addWidget(QLabel('run-ins [km]'), row, 3)
+
+        row += 1
+        self.tearDrops = QDoubleSpinBox()
+        self.xLineSail = QDoubleSpinBox()
+        layout.addWidget(self.tearDrops, row, 0)
+        layout.addWidget(QLabel('Tear drops [km]'), row, 1)
+        layout.addWidget(self.xLineSail, row, 2)
+        layout.addWidget(QLabel('x-line sailing [km]'), row, 3)
 
         # # create a vertical box layout widget (vbl)
         # vbl = QVBoxLayout()
@@ -1721,7 +1747,7 @@ class Page_4(SurveyWizardPage):
         self.radOut.setValue(outerTurningRadius)
 
         # rounded up minimum turning radius, constraint by inner- and outer streamers
-        vesselTurningRadius = max(2500.0, 10.0 * math.ceil(0.1 * max(innerTurningRadius, outerTurningRadius)))
+        vesselTurningRadius = max(500.0, 10.0 * math.ceil(0.1 * max(innerTurningRadius, outerTurningRadius)))
         self.turnRad.setValue(vesselTurningRadius)
 
         velInn = (1.0 - 0.5 * spreadWidth / vesselTurningRadius) * vTurn
@@ -1743,7 +1769,10 @@ class Page_4(SurveyWizardPage):
 
         self.msg.setText(turnText)
 
-        nrLinesPerTrack = round(vesselTurningRadius / sli + 0.5) * 2 + 1
+        nrLinesForward = round(vesselTurningRadius / sli + 0.5) * 2 + 1
+        nrLinesBackward = nrLinesForward - 1
+
+        nrLinesPerTrack = nrLinesForward + nrLinesBackward
         self.nrLinesPerTrack.setValue(nrLinesPerTrack)
 
         nrTracks = surXsiz / (sli * nrLinesPerTrack)
@@ -1776,20 +1805,50 @@ class Page_4(SurveyWizardPage):
                     break
         if error:
             self.lineSeries.setStyleSheet('QLineEdit {color:red; background-color:lightblue;}')
-            # self.lineSeries.setStyleSheet('QLabel {color:red}')
+            self.lineSeriesLabel.setStyleSheet('QLabel {color:red}')
         else:
             self.lineSeries.setStyleSheet('QLineEdit {color:black; background-color:white;}')
-            # self.lineSeries.setStyleSheet('QLabel {color:black}')
+            self.lineSeriesLabel.setStyleSheet('QLabel {color:black}')
 
         nsl2 = self.nsl2.value()
         nsl = self.nsl.value()
 
+        # See: https://stackoverflow.com/questions/40178432/how-to-customize-text-on-qpushbutton-using-qpalette
+        # See: https://medium.com/@wintersweet001/palette-using-pyside6-pyqt-42982328d6e1
+
+        pagPalette = self.palette()                                             # palette of this wizard page
+        fgColorOke = pagPalette.color(QPalette.Active, QPalette.Text)           # foreground-color = text color
+        bgColorOke = pagPalette.color(QPalette.Active, QPalette.Window)         # background-color = window color
+        fgColorBad = QColor('red')                                              # force red text in case of error
+        bgColorBad = QColor('lightblue')                                        # force lightblue background in case of error
+        fgColorBig = QColor('darkorange')                                       # force orange text in case of suboptimal solution
+        bgColorBig = QColor('lightblue')                                        # force lightblue background in case of error
+
+        okePalette = QPalette()                                                 # when things are fine in disabled QSpinBox
+        okePalette.setColor(QPalette.Disabled, QPalette.Text, fgColorOke)
+        okePalette.setColor(QPalette.Disabled, QPalette.Window, bgColorOke)
+
+        badPalette = QPalette()                                                 # in case of error in disabled QSpinBox
+        badPalette.setColor(QPalette.Disabled, QPalette.Text, fgColorBad)
+        badPalette.setColor(QPalette.Disabled, QPalette.Window, bgColorBad)
+
+        bigPalette = QPalette()                                                 # in case of error in disabled QSpinBox
+        bigPalette.setColor(QPalette.Disabled, QPalette.Text, fgColorBig)
+        bigPalette.setColor(QPalette.Disabled, QPalette.Window, bgColorBig)
+
+        self.nsl2.setAutoFillBackground(True)                                   # Need to do this to get the lightblue background
+        lineEdit = self.nsl2.lineEdit()
         if nsl2 < nsl:
-            self.nsl2.setStyleSheet('QSpinBox {color:red; background-color:lightblue;}')
-            # self.nsl2.setStyleSheet('QLabel {color:red}')
+            self.nsl2.setPalette(badPalette)
+            lineEdit.setPalette(badPalette)
+            self.nsl2Label.setStyleSheet('QLabel {color:red}')
+        elif nsl < nsl2:
+            lineEdit.setPalette(bigPalette)
+            self.nsl2Label.setStyleSheet('QLabel {color:darkorange}')
         else:
-            self.nsl2.setStyleSheet('QSpinBox {color:black; background-color:lightgrey;}')
-            # self.nsl2.setStyleSheet('QLabel {color:black}')
+            self.nsl2.setPalette(okePalette)
+            lineEdit.setPalette(okePalette)
+            self.nsl2Label.setStyleSheet('QLabel {color:black}')
 
     def updateParentSurvey(self):                                               # update the survey object
         # populate / update the survey skeleton; growList is not being affected
