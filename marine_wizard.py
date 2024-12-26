@@ -1453,13 +1453,13 @@ class Page_4(SurveyWizardPage):
         self.chkShiftSpread.setChecked(shift)
 
         # set ranges
-        self.slr.setRange(1, 1000000)
-        self.rlr.setRange(1, 1000000)
-        self.sld.setRange(1, 1000000)
-        self.rld.setRange(1, 1000000)
+        self.slr.setRange(1, 1_000_000)
+        self.rlr.setRange(1, 1_000_000)
+        self.sld.setRange(1, 1_000_000)
+        self.rld.setRange(1, 1_000_00_0)
 
-        self.binImin.setRange(-1000000, 1000000)
-        self.binXmin.setRange(-1000000, 1000000)
+        self.binImin.setRange(-1_000_000, 1_000_000)
+        self.binXmin.setRange(-1_000_000, 1_000_000)
 
         self.surIsiz = QDoubleSpinBox()
         self.surIsiz.setRange(1, 1000000)
@@ -1479,9 +1479,10 @@ class Page_4(SurveyWizardPage):
         row = 0
         turnLabel = QLabel("· · · · Factors affecting the vessel's minimum <b>turning radius</b> · · · ·")
         turnLabel.setAlignment(Qt.AlignCenter)
-        # turnLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        # turnLabel.setLineWidth(2)
-        # turnLabel.setFixedHeight(30)
+        turnLabel.setStyleSheet('QLabel {color:darkblue}')
+        turnLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        turnLabel.setLineWidth(2)
+        turnLabel.setFixedHeight(30)
         layout.addWidget(turnLabel, row, 0, 1, 4)
 
         row += 1
@@ -1537,9 +1538,10 @@ class Page_4(SurveyWizardPage):
         row += 1
         ffLabel = QLabel('· · · · Size of full fold <b>survey area</b>, run-outs and nr sail lines · · · ·')
         ffLabel.setAlignment(Qt.AlignCenter)
-        # ffLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        # ffLabel.setLineWidth(2)
-        # ffLabel.setFixedHeight(30)
+        ffLabel.setStyleSheet('QLabel {color:darkblue}')
+        ffLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        ffLabel.setLineWidth(2)
+        ffLabel.setFixedHeight(30)
         layout.addWidget(ffLabel, row, 0, 1, 4)
 
         row += 1
@@ -1560,9 +1562,10 @@ class Page_4(SurveyWizardPage):
         row += 1
         lapsLabel = QLabel('· · · · <b>Optimal</b> nr of <b>sail lines</b> per race track, and nr <b>tracks</b> in survey · · · ·')
         lapsLabel.setAlignment(Qt.AlignCenter)
-        # lapsLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        # lapsLabel.setLineWidth(2)
-        # lapsLabel.setFixedHeight(30)
+        lapsLabel.setStyleSheet('QLabel {color:darkblue}')
+        lapsLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        lapsLabel.setLineWidth(2)
+        lapsLabel.setFixedHeight(30)
         layout.addWidget(lapsLabel, row, 0, 1, 4)
 
         row += 1
@@ -1577,10 +1580,15 @@ class Page_4(SurveyWizardPage):
         row += 1
         layout.addWidget(QLabel('Note: apart from the <b>final</b> race track, all track numbers shall be <b>odd</b>'), row, 0, 1, 4)
 
-        self.lineSeries = QLineEdit('15 15 15 15')
+        self.lineSeries = QLineEdit()
         input_validator = QRegularExpressionValidator(QRegularExpression('[0-9 ]+'), self.lineSeries)
         self.lineSeries.setValidator(input_validator)
         self.lineSeries.textEdited.connect(self.updateTrackList)
+
+        # needed to prevent that the edit control consumes al available extra space when expanding, for no obvious reasons...
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.lineSeries.setSizePolicy(sizePolicy)
+
         self.lineSeriesLabel = QLabel('list of sail lines/track')
         self.nsl2Label = QLabel('Sail lines in survey [#]')
         self.nsl2Label.setToolTip(linesTip)
@@ -1596,7 +1604,13 @@ class Page_4(SurveyWizardPage):
 
         row += 1
         self.totalTurns = QDoubleSpinBox()
+        self.totalTurns.setEnabled(False)                                  # readonly
+        self.totalTurns.setRange(-1.0, 1_000_000.0)
+
         self.totalPrime = QDoubleSpinBox()
+        self.totalPrime.setEnabled(False)                                  # readonly
+        self.totalPrime.setRange(-1.0, 1_000_000.0)
+
         layout.addWidget(self.totalTurns, row, 0)
         layout.addWidget(QLabel('<b>Total turn effort</b> [km]'), row, 1)
         layout.addWidget(self.totalPrime, row, 2)
@@ -1627,31 +1641,6 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(self.xLineSail, row, 2)
         layout.addWidget(QLabel('x-line sailing [km]'), row, 3)
 
-        # # create a vertical box layout widget (vbl)
-        # vbl = QVBoxLayout()
-
-        # # add the so far developed QGridLayout to the QVBoxLayout (layout)
-        # vbl.addLayout(layout)
-
-        # # insert PyQtGraph plotWidget                                           # See: https://groups.google.com/g/pyqtgraph/c/ls-9I2tHu2w
-        # self.plotWidget = pg.PlotWidget(background='w')
-        # self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
-        # self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        # self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
-        # self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
-        # self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
-
-        # self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
-        # self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
-
-        # # add toolbar and plotwidget to the vertical box layout
-        # vbl.addWidget(self.zoomBar)
-        # vbl.addWidget(self.plotWidget)
-
-        # # set the combined layouts to become this page's layout
-        # self.setLayout(vbl)
-
-        # set the combined layouts
         self.setLayout(layout)
 
         # register fields
@@ -1666,9 +1655,9 @@ class Page_4(SurveyWizardPage):
         self.registerField('rec_00', self.chkShiftSpread)                       # put 1st receiver at (0,0)
 
         self.registerField('binImin', self.binImin, 'value')                    # bin area x-origin
-        self.registerField('surIsiz', self.surIsiz, 'value')                    # bin area x-size
+        self.registerField('surIsiz', self.surIsiz, 'value')                    # bin area inline size
         self.registerField('binXmin', self.binXmin, 'value')                    # bin area y-origin
-        self.registerField('surXsiz', self.surXsiz, 'value')                    # bin area y-size
+        self.registerField('surXsiz', self.surXsiz, 'value')                    # bin area x-line size
 
         # connect signals to slots
         self.rlr.editingFinished.connect(self.evt_roll_editingFinished)         # connect all signals to the same slot
@@ -1793,7 +1782,9 @@ class Page_4(SurveyWizardPage):
         # work out sequence of saillines per race track
 
         trackList = stringToIntList(self.lineSeries.text())
-        self.nsl2.setValue(sum(trackList))
+        nsl2 = sum(trackList)
+
+        self.nsl2.setValue(nsl2)
 
         nTracks = len(trackList)
 
@@ -1809,9 +1800,6 @@ class Page_4(SurveyWizardPage):
         else:
             self.lineSeries.setStyleSheet('QLineEdit {color:black; background-color:white;}')
             self.lineSeriesLabel.setStyleSheet('QLabel {color:black}')
-
-        nsl2 = self.nsl2.value()
-        nsl = self.nsl.value()
 
         # See: https://stackoverflow.com/questions/40178432/how-to-customize-text-on-qpushbutton-using-qpalette
         # See: https://medium.com/@wintersweet001/palette-using-pyside6-pyqt-42982328d6e1
@@ -1836,8 +1824,10 @@ class Page_4(SurveyWizardPage):
         bigPalette.setColor(QPalette.Disabled, QPalette.Text, fgColorBig)
         bigPalette.setColor(QPalette.Disabled, QPalette.Window, bgColorBig)
 
-        self.nsl2.setAutoFillBackground(True)                                   # Need to do this to get the lightblue background
+        # self.nsl2.setAutoFillBackground(True)                                   # Need to do this to get the lightblue background
         lineEdit = self.nsl2.lineEdit()
+
+        nsl = self.nsl.value()
         if nsl2 < nsl:
             self.nsl2.setPalette(badPalette)
             lineEdit.setPalette(badPalette)
@@ -1849,6 +1839,15 @@ class Page_4(SurveyWizardPage):
             self.nsl2.setPalette(okePalette)
             lineEdit.setPalette(okePalette)
             self.nsl2Label.setStyleSheet('QLabel {color:black}')
+
+        cL = self.field('cabLength')                                            # streamer length
+        FF = self.field('surIsiz')                                              # bin area inline size
+        totalPrimeKm = 0.001 * nsl2 * (FF + 0.5 * cL)                           # sailline effort in km
+
+        if error:
+            self.totalPrime.setValue(-1.0)
+        else:
+            self.totalPrime.setValue(totalPrimeKm)
 
     def updateParentSurvey(self):                                               # update the survey object
         # populate / update the survey skeleton; growList is not being affected

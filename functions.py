@@ -10,6 +10,7 @@ except ImportError:
 
 import configparser
 import importlib
+import math
 import os
 import pickle
 import re
@@ -107,9 +108,29 @@ def odd(number):
 
 def even(number):
     if number % 2 == 0:
-        return True                                                            # even
+        return True                                                             # even
     else:
-        return False                                                             # odd
+        return False                                                            # odd
+
+
+def wideTurnDetour(turnRadius, lineInterval):
+    return max(lineInterval - 2.0 * turnRadius, 0.0)
+
+
+def teardropDetour(turnRadius, lineInterval):
+    # no teardrop effects for a wide turn
+    if turnRadius >= 0.5 * lineInterval:
+        return 0.0
+
+    # amount of x-line compensation for each side of the teardrop
+    teardropMoveout = turnRadius - 0.5 * lineInterval
+
+    # get the angle of the pie segment
+    teardropAngle = math.degrees(math.acos(1.0 - 0.5 * teardropMoveout / turnRadius))
+
+    # there are two pie segments for each side of the teardrop; hence four segments in total
+    detour = 4.0 * (teardropAngle / 360.0) * 2.0 * math.pi * turnRadius
+    return detour
 
 
 def makePenFromParms(parms):
