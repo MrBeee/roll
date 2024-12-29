@@ -18,7 +18,7 @@ from qgis.PyQt.QtGui import QColor, QImage, QPalette, QPixmap, QRegularExpressio
 from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QSizePolicy, QSpinBox, QVBoxLayout, QWizard, QWizardPage
 
 from . import config  # used to pass initial settings
-from .functions import even, intListToString, knotToMeterperSec, newtonToTonForce, stringToIntList, tonForceToNewton
+from .functions import even, intListToString, knotToMeterperSec, lineturnDetour, newtonToTonForce, stringToIntList, tonForceToNewton
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
 from .roll_survey import PaintMode, RollSurvey, SurveyList, SurveyType
@@ -1378,7 +1378,8 @@ class Page_4(SurveyWizardPage):
         # create some widgets
         self.turnRad = QDoubleSpinBox()                                         # min turning radius
         self.turnRad.setEnabled(False)                                          # readonly
-        self.turnRad.setRange(1.0, 1_000_000.0)
+        self.turnRad.setRange(-1.0, 1_000_000.0)
+        self.turnRad.setStyleSheet('QDoubleSpinBox {font: bold;} ')
 
         self.runOut = QDoubleSpinBox()                                          # run-out (= 1/2 streamer length)
         self.runOut.setEnabled(False)                                           # readonly
@@ -1477,12 +1478,12 @@ class Page_4(SurveyWizardPage):
         layout = QGridLayout()
 
         row = 0
-        turnLabel = QLabel("· · · · Factors affecting the vessel's minimum <b>turning radius</b> · · · ·")
-        turnLabel.setAlignment(Qt.AlignCenter)
-        turnLabel.setStyleSheet('QLabel {color:darkblue}')
-        turnLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        turnLabel.setLineWidth(2)
-        turnLabel.setFixedHeight(30)
+        turnLabel = QLabel("Factors affecting the vessel's minimum <b>turning radius</b>")
+        # turnLabel.setAlignment(Qt.AlignCenter)
+        # turnLabel.setStyleSheet('QLabel {color:darkblue}')
+        # turnLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        # turnLabel.setLineWidth(2)
+        # turnLabel.setFixedHeight(30)
         layout.addWidget(turnLabel, row, 0, 1, 4)
 
         row += 1
@@ -1515,33 +1516,33 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(self.frcOut, row, 2)
         layout.addWidget(QLabel('Outer force [tonF]'), row, 3)
 
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
+        # row += 1
+        # layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(QLabel('Line turn radius from limits <b>inner</b> and <b>outer</b> streamers '), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.radInn, row, 0)
-        layout.addWidget(QLabel('From inner streamer [m]'), row, 1)
+        layout.addWidget(QLabel('From <b>inner</b> streamer [m]'), row, 1)
         layout.addWidget(self.radOut, row, 2)
-        layout.addWidget(QLabel('From outer streamer [m]'), row, 3)
+        layout.addWidget(QLabel('From <b>outer</b> streamer [m]'), row, 3)
 
         row += 1
         layout.addWidget(self.turnRad, row, 0)
-        layout.addWidget(QLabel('Min turn radius [m]'), row, 1)
+        layout.addWidget(QLabel('<b>Min turn radius</b> [m]'), row, 1)
         layout.addWidget(self.msg, row, 2, 1, 2)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        ffLabel = QLabel('· · · · Size of full fold <b>survey area</b>, run-outs and nr sail lines · · · ·')
-        ffLabel.setAlignment(Qt.AlignCenter)
-        ffLabel.setStyleSheet('QLabel {color:darkblue}')
-        ffLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        ffLabel.setLineWidth(2)
-        ffLabel.setFixedHeight(30)
+        ffLabel = QLabel('<b>Size</b> of full fold <b>survey area</b>, run-outs, nr sail lines and optimal nr lines per race track')
+        # ffLabel.setAlignment(Qt.AlignCenter)
+        # ffLabel.setStyleSheet('QLabel {color:darkblue}')
+        # ffLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        # ffLabel.setLineWidth(2)
+        # ffLabel.setFixedHeight(30)
         layout.addWidget(ffLabel, row, 0, 1, 4)
 
         row += 1
@@ -1556,17 +1557,17 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(self.nsl, row, 2)
         layout.addWidget(QLabel('<b>Sail lines</b> in survey [#]'), row, 3)
 
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
+        # row += 1
+        # layout.addWidget(QHLine(), row, 0, 1, 4)
 
-        row += 1
-        lapsLabel = QLabel('· · · · <b>Optimal</b> nr of <b>sail lines</b> per race track, and nr <b>tracks</b> in survey · · · ·')
-        lapsLabel.setAlignment(Qt.AlignCenter)
-        lapsLabel.setStyleSheet('QLabel {color:darkblue}')
-        lapsLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        lapsLabel.setLineWidth(2)
-        lapsLabel.setFixedHeight(30)
-        layout.addWidget(lapsLabel, row, 0, 1, 4)
+        # row += 1
+        # lapsLabel = QLabel('<b>Optimal</b> nr of <b>sail lines</b> per race track, and nr <b>tracks</b> in survey')
+        # lapsLabel.setAlignment(Qt.AlignCenter)
+        # lapsLabel.setStyleSheet('QLabel {color:darkblue}')
+        # lapsLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        # lapsLabel.setLineWidth(2)
+        # lapsLabel.setFixedHeight(30)
+        # layout.addWidget(lapsLabel, row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.nrLinesPerTrack, row, 0)
@@ -1575,10 +1576,13 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(QLabel('Race tracks in survey'), row, 3)
 
         row += 1
-        layout.addWidget(QLabel('List the series of race tracks, by their respective nr of sail lines, separated by a space'), row, 0, 1, 4)
+        layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel('Note: apart from the <b>final</b> race track, all track numbers shall be <b>odd</b>'), row, 0, 1, 4)
+        layout.addWidget(QLabel('<b>List the series of race tracks</b>, by their number of sail lines, separated by a space'), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(QLabel('Note: apart from the <b>final</b> race track, all sail line numbers must be <b>odd</b>'), row, 0, 1, 4)
 
         self.lineSeries = QLineEdit()
         input_validator = QRegularExpressionValidator(QRegularExpression('[0-9 ]+'), self.lineSeries)
@@ -1600,43 +1604,57 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(self.nsl2Label, row, 3)
 
         row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
+        self.turnOverhead = QDoubleSpinBox()
+        self.turnOverhead.setStyleSheet('QDoubleSpinBox {font: bold;} ')
+        self.turnOverhead.setRange(-1.0, 1_000_000.0)
+        self.turnOverhead.setEnabled(False)                                  # readonly
 
-        row += 1
         self.totalTurns = QDoubleSpinBox()
         self.totalTurns.setEnabled(False)                                  # readonly
         self.totalTurns.setRange(-1.0, 1_000_000.0)
 
         self.totalPrime = QDoubleSpinBox()
+        self.totalPrime.setStyleSheet('QDoubleSpinBox {font: bold;} ')
         self.totalPrime.setEnabled(False)                                  # readonly
         self.totalPrime.setRange(-1.0, 1_000_000.0)
 
-        layout.addWidget(self.totalTurns, row, 0)
-        layout.addWidget(QLabel('<b>Total turn effort</b> [km]'), row, 1)
+        layout.addWidget(self.turnOverhead, row, 0)
+        layout.addWidget(QLabel('<b>% Line turn overhead</b>'), row, 1)
         layout.addWidget(self.totalPrime, row, 2)
-        layout.addWidget(QLabel('<b>Total prime lines</b> [km]'), row, 3)
+        layout.addWidget(QLabel('<b>Total km prime lines</b>'), row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel('Line turn <b>detailed information</b>'), row, 0, 1, 2)
-        self.turnOverhead = QDoubleSpinBox()
-        layout.addWidget(self.turnOverhead, row, 2)
-        layout.addWidget(QLabel('Line turn <b>overhead</b> [%]'), row, 3)
+        layout.addWidget(QLabel('<b>Detailed line turn information</b>'), row, 0, 1, 2)
+        layout.addWidget(self.totalTurns, row, 2)
+        layout.addWidget(QLabel('Total turn effort [km]'), row, 3)
 
         row += 1
         self.turn180 = QDoubleSpinBox()
+        self.turn180.setEnabled(False)                                  # readonly
+        self.turn180.setRange(-1.0, 1_000_000.0)
+
         self.runIns = QDoubleSpinBox()
+        self.runIns.setEnabled(False)                                  # readonly
+        self.runIns.setRange(-1.0, 1_000_000.0)
+
         layout.addWidget(self.turn180, row, 0)
         layout.addWidget(QLabel('180° turns [km]'), row, 1)
         layout.addWidget(self.runIns, row, 2)
         layout.addWidget(QLabel('run-ins [km]'), row, 3)
 
         row += 1
-        self.tearDrops = QDoubleSpinBox()
+        self.teardrops = QDoubleSpinBox()
+        self.teardrops.setEnabled(False)                                  # readonly
+        self.teardrops.setRange(-1.0, 1_000_000.0)
+
         self.xLineSail = QDoubleSpinBox()
-        layout.addWidget(self.tearDrops, row, 0)
+        self.xLineSail.setEnabled(False)                                  # readonly
+        self.xLineSail.setRange(-1.0, 1_000_000.0)
+
+        layout.addWidget(self.teardrops, row, 0)
         layout.addWidget(QLabel('Tear drops [km]'), row, 1)
         layout.addWidget(self.xLineSail, row, 2)
         layout.addWidget(QLabel('x-line sailing [km]'), row, 3)
@@ -1646,6 +1664,7 @@ class Page_4(SurveyWizardPage):
         # register fields
         self.registerField('vMinInner', self.vMinInner, 'value')                # min cable velocity
         self.registerField('maxDragForce', self.maxDragForce, 'value')          # max towing force
+        self.registerField('turnRad', self.turnRad, 'value')                    # turn radius
 
         self.registerField('rlr', self.rlr, 'value')                            # rec line roll steps
         self.registerField('slr', self.slr, 'value')                            # src line roll steps
@@ -1702,9 +1721,7 @@ class Page_4(SurveyWizardPage):
 
         self.updateParameters()
         self.updateTrackList()
-
         self.updateParentSurvey()                                               # update the survey object
-        # self.plot()                                                             # show the plot, center the bin analysis area
 
     def updateParameters(self):
         # need to work out nr of sail lines and ideal racetrack width
@@ -1843,11 +1860,57 @@ class Page_4(SurveyWizardPage):
         cL = self.field('cabLength')                                            # streamer length
         FF = self.field('surIsiz')                                              # bin area inline size
         totalPrimeKm = 0.001 * nsl2 * (FF + 0.5 * cL)                           # sailline effort in km
+        totalRuninKm = 0.001 * nsl2 * 0.5 * cL
+
+        turnRadius = self.field('turnRad')                                      # turn radius
+        dCab = self.field('cabSepHead')
+        nCab = self.field('nCab')
+        saillineInterval = 0.5 * nCab * dCab
 
         if error:
+            self.totalTurns.setValue(-1.0)
             self.totalPrime.setValue(-1.0)
+            self.turn180.setValue(-1.0)
+            self.teardrops.setValue(-1.0)
+            self.xLineSail.setValue(-1.0)
+            self.runIns.setValue(-1.0)
+            self.turnOverhead.setValue(-1.0)
         else:
             self.totalPrime.setValue(totalPrimeKm)
+            self.runIns.setValue(totalRuninKm)
+
+            lineturnTotal = 0.0
+            crosslineTotal = 0.0
+            teardropTotal = 0.0
+
+            if nTracks > 0:                                                         # need at least 2 tracks to restrict the first track
+                for lines in trackList[:-1]:                                        # ignore last entry
+                    lineturn, crossline, teardrop = lineturnDetour(turnRadius, saillineInterval, lines)
+                    lineturnTotal += lineturn
+                    crosslineTotal += crossline
+                    teardropTotal += teardrop
+
+                lines = trackList[-1]                                               # use the  last entry
+                lineturn, crossline, teardrop = lineturnDetour(turnRadius, saillineInterval, lines, final=True)
+                lineturnTotal += lineturn
+                crosslineTotal += crossline
+                teardropTotal += teardrop
+
+                lineturnTotal *= 0.001
+                teardropTotal *= 0.001
+                crosslineTotal *= 0.001
+
+                cL = self.field('cabLength')                                            # streamer length
+                FF = self.field('surIsiz')                                              # bin area inline size
+                totalPrimeKm = 0.001 * nsl2 * (FF + 0.5 * cL)                           # sailline effort in km, including run-outs
+                totalRuninKm = 0.001 * nsl2 * 0.5 * cL
+                totalTurns = lineturnTotal + teardropTotal + crosslineTotal + totalRuninKm
+
+                self.turn180.setValue(lineturnTotal)
+                self.teardrops.setValue(teardropTotal)
+                self.xLineSail.setValue(crosslineTotal)
+                self.totalTurns.setValue(totalTurns)
+                self.turnOverhead.setValue(100.0 * totalTurns / totalPrimeKm)
 
     def updateParentSurvey(self):                                               # update the survey object
         # populate / update the survey skeleton; growList is not being affected

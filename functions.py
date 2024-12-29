@@ -113,13 +113,13 @@ def even(number):
         return False                                                            # odd
 
 
-def wideTurnDetour(turnRadius, lineInterval):
+def wideturnDetour(turnRadius, lineInterval):
     return max(lineInterval - 2.0 * turnRadius, 0.0)
 
 
 def teardropDetour(turnRadius, lineInterval):
     # no teardrop effects for a wide turn
-    if turnRadius >= 0.5 * lineInterval:
+    if turnRadius <= 0.5 * lineInterval:
         return 0.0
 
     # amount of x-line compensation for each side of the teardrop
@@ -131,6 +131,34 @@ def teardropDetour(turnRadius, lineInterval):
     # there are two pie segments for each side of the teardrop; hence four segments in total
     detour = 4.0 * (teardropAngle / 360.0) * 2.0 * math.pi * turnRadius
     return detour
+
+
+def lineturnDetour(turnRadius, saillineInterval, linesPerTrack, final=False):
+
+    halfCircle = math.pi * turnRadius
+
+    forwardLines = math.ceil(0.5 * linesPerTrack)
+    backwardLines = math.floor(0.5 * linesPerTrack)
+
+    xlineForward = forwardLines * saillineInterval
+    xlineBackward = backwardLines * saillineInterval
+
+    crosslineForward = wideturnDetour(turnRadius, xlineForward)
+    crosslineBackward = wideturnDetour(turnRadius, xlineBackward)
+
+    teardropForward = teardropDetour(turnRadius, xlineForward)
+    teardropBackward = teardropDetour(turnRadius, xlineBackward)
+
+    if final:
+        lineturnTotal = halfCircle * backwardLines * 2
+        crosslineTotal = (crosslineForward + crosslineBackward) * backwardLines
+        teardropTotal = (teardropForward + teardropBackward) * backwardLines
+    else:
+        lineturnTotal = halfCircle * (forwardLines + backwardLines)
+        crosslineTotal = crosslineForward * forwardLines + crosslineBackward * backwardLines
+        teardropTotal = teardropForward * forwardLines + teardropBackward * backwardLines
+
+    return (lineturnTotal, crosslineTotal, teardropTotal)
 
 
 def makePenFromParms(parms):
