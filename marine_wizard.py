@@ -1425,6 +1425,7 @@ class Page_4(SurveyWizardPage):
         self.nsl.setEnabled(False)                                              # readonly
 
         self.nsl2 = QSpinBox()                                                  # nr sail lines in survey
+        self.nsl2.setStyleSheet('QDoubleSpinBox {font: bold;} ')
         self.nsl2.setEnabled(False)                                             # readonly
         self.nsl2.setRange(0, 1_000)                                            # set some (positive) limits
         linesTip = '<p><font color="red"><b>Red</b></font> when there are too few lines in the survey.<p><font color="darkorange"><b>Orange</b></font> when there are too many lines in the survey'
@@ -1537,7 +1538,7 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        ffLabel = QLabel('<b>Size</b> of full fold <b>survey area</b>, run-outs, nr sail lines and optimal nr lines per race track')
+        ffLabel = QLabel('<b>Size</b> of full fold <b>survey area</b>, run-outs, nr sail lines and <b><i>optimal</i></b>  nr lines per race track')
         # ffLabel.setAlignment(Qt.AlignCenter)
         # ffLabel.setStyleSheet('QLabel {color:darkblue}')
         # ffLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
@@ -1593,8 +1594,8 @@ class Page_4(SurveyWizardPage):
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.lineSeries.setSizePolicy(sizePolicy)
 
-        self.lineSeriesLabel = QLabel('list of sail lines/track')
-        self.nsl2Label = QLabel('Sail lines in survey [#]')
+        self.lineSeriesLabel = QLabel('<b>list</b> of sail lines/track')
+        self.nsl2Label = QLabel('<b>Sail lines in survey</b> [#]')
         self.nsl2Label.setToolTip(linesTip)
 
         row += 1
@@ -1818,43 +1819,15 @@ class Page_4(SurveyWizardPage):
             self.lineSeries.setStyleSheet('QLineEdit {color:black; background-color:white;}')
             self.lineSeriesLabel.setStyleSheet('QLabel {color:black}')
 
-        # See: https://stackoverflow.com/questions/40178432/how-to-customize-text-on-qpushbutton-using-qpalette
-        # See: https://medium.com/@wintersweet001/palette-using-pyside6-pyqt-42982328d6e1
-
-        pagPalette = self.palette()                                             # palette of this wizard page
-        fgColorOke = pagPalette.color(QPalette.Active, QPalette.Text)           # foreground-color = text color
-        bgColorOke = pagPalette.color(QPalette.Active, QPalette.Window)         # background-color = window color
-        fgColorBad = QColor('red')                                              # force red text in case of error
-        bgColorBad = QColor('lightblue')                                        # force lightblue background in case of error
-        fgColorBig = QColor('darkorange')                                       # force orange text in case of suboptimal solution
-        bgColorBig = QColor('lightblue')                                        # force lightblue background in case of error
-
-        okePalette = QPalette()                                                 # when things are fine in disabled QSpinBox
-        okePalette.setColor(QPalette.Disabled, QPalette.Text, fgColorOke)
-        okePalette.setColor(QPalette.Disabled, QPalette.Window, bgColorOke)
-
-        badPalette = QPalette()                                                 # in case of error in disabled QSpinBox
-        badPalette.setColor(QPalette.Disabled, QPalette.Text, fgColorBad)
-        badPalette.setColor(QPalette.Disabled, QPalette.Window, bgColorBad)
-
-        bigPalette = QPalette()                                                 # in case of error in disabled QSpinBox
-        bigPalette.setColor(QPalette.Disabled, QPalette.Text, fgColorBig)
-        bigPalette.setColor(QPalette.Disabled, QPalette.Window, bgColorBig)
-
-        # self.nsl2.setAutoFillBackground(True)                                   # Need to do this to get the lightblue background
-        lineEdit = self.nsl2.lineEdit()
-
         nsl = self.nsl.value()
         if nsl2 < nsl:
-            self.nsl2.setPalette(badPalette)
-            lineEdit.setPalette(badPalette)
+            self.nsl2.setStyleSheet('QSpinBox {font:bold; color:red} ')
             self.nsl2Label.setStyleSheet('QLabel {color:red}')
         elif nsl < nsl2:
-            lineEdit.setPalette(bigPalette)
+            self.nsl2.setStyleSheet('QSpinBox {font:bold; color:darkorange} ')
             self.nsl2Label.setStyleSheet('QLabel {color:darkorange}')
         else:
-            self.nsl2.setPalette(okePalette)
-            lineEdit.setPalette(okePalette)
+            self.nsl2.setStyleSheet('QSpinBox {font:bold; color:dimgrey} ')
             self.nsl2Label.setStyleSheet('QLabel {color:black}')
 
         cL = self.field('cabLength')                                            # streamer length
@@ -1867,7 +1840,15 @@ class Page_4(SurveyWizardPage):
         nCab = self.field('nCab')
         saillineInterval = 0.5 * nCab * dCab
 
-        if error:
+        if nsl2 == 0:
+            self.totalTurns.setValue(0.0)
+            self.totalPrime.setValue(0.0)
+            self.turn180.setValue(0.0)
+            self.teardrops.setValue(0.0)
+            self.xLineSail.setValue(0.0)
+            self.runIns.setValue(0.0)
+            self.turnOverhead.setValue(0.0)
+        elif error:
             self.totalTurns.setValue(-1.0)
             self.totalPrime.setValue(-1.0)
             self.turn180.setValue(-1.0)
