@@ -1,5 +1,6 @@
 # -----------------------------------------------------------------------------------------------------------------
-# https://north-road.com/2018/03/09/implementing-an-in-house-new-project-wizard-for-qgis/
+# See: https://north-road.com/2018/03/09/implementing-an-in-house-new-project-wizard-for-qgis/
+# And: https://plugins.qgis.org/planet/user/29/tag/python/
 # See: https://doc.qt.io/archives/qq/qq22-qwizard.html#registeringandusingfields for innards of a QWizard
 # -----------------------------------------------------------------------------------------------------------------
 
@@ -1633,11 +1634,6 @@ class Page_4(SurveyWizardPage):
 
         print('page 4 init')
 
-        self.recRect = QRectF()                                                 # receiver rect
-        self.srcRect = QRectF()                                                 # source rect
-        self.binRect = QRectF()                                                 # cmp rect
-        self.an_Rect = QRectF()                                                 # analysis rect
-
         # create some widgets
         self.slr = QSpinBox()   # src line roll along
         self.rlr = QSpinBox()   # rec line roll along
@@ -1692,7 +1688,7 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        layout.addWidget(QLabel('<b>Origin</b> of binning area'), row, 0, 1, 2)
+        layout.addWidget(QLabel('<b>Start corner</b> of binning area'), row, 0, 1, 2)
         layout.addWidget(QLabel('<b>Size</b> of binning area'), row, 2, 1, 2)
 
         row += 1
@@ -2022,9 +2018,6 @@ class Page_5(SurveyWizardPage):
         print('page 5 init')
 
         # Add some widgets
-        self.chkExtendOffsets = QCheckBox('Extend offsets with 0.5 bingrid - to prevent roundoff errors')
-        self.chkExtendOffsets.setChecked(True)
-
         self.recPatName = QLineEdit(config.rNam)
         self.srcPatName = QLineEdit(config.sNam)
 

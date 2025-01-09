@@ -1991,54 +1991,65 @@ class RollSurvey(pg.GraphicsObject):
             for seed in pattern.seedList:
                 seed.pointList = seed.grid.calcPointList(seed.origin)   # calculate the point list for all seeds
 
-    def createBasicSkeleton(self, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=2):
+    def createBasicSkeleton(self, nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=2):
 
-        block = RollBlock('block-1')                                            # create a block
-        self.blockList.append(block)                                            # add block to survey object
+        assert nBlocks > 0, 'Need at least 1 block'
+        assert nTemplates > 0, 'Need at least 1 template'
+        assert nSrcSeeds > 0, 'Need at least 1 source seed'
+        assert nRecSeeds > 0, 'Need at least 1 receiver seed'
+        # nPatterns may be zero
 
-        for template in range(nTemplates):
-            templateName = f'template-{template + 1}'                           # get suitable template name
-            template = RollTemplate(templateName)                               # create template
+        self.blockList = []                                                     # make sure, we start with an empty list
 
-            roll1 = RollTranslate()                                             # create the 'first' roll object
-            template.rollList.append(roll1)                                     # add roll object to template's rollList
-            roll2 = RollTranslate()                                             # create a 'second' roll object
-            template.rollList.append(roll2)                                     # add roll object to template's rollList
+        for nBlock in range(nBlocks):
+            blockName = f'block-{nBlock + 1}'                                   # get suitable block name
+            block = RollBlock(blockName)                                        # create block
+            self.blockList.append(block)                                        # add block to survey object
 
-            block.templateList.append(template)                                 # add template to block object
+            for nTemplate in range(nTemplates):
+                templateName = f'template-{nTemplate + 1}'                      # get suitable template name
+                template = RollTemplate(templateName)                           # create template
 
-            for srcSeed in range(nSrcSeeds):
-                seedName = f'src-{srcSeed + 1}'                                 # create a source seed object
-                seedSrc = RollSeed(seedName)
-                seedSrc.bSource = True
-                seedSrc.color = QColor('#77FF8989')
+                roll1 = RollTranslate()                                         # create the 'first' roll object
+                template.rollList.append(roll1)                                 # add roll object to template's rollList
+                roll2 = RollTranslate()                                         # create a 'second' roll object
+                template.rollList.append(roll2)                                 # add roll object to template's rollList
 
-                growR1 = RollTranslate()                                        # create a 'lines' grow object
-                seedSrc.grid.growList.append(growR1)                            # add grow object to seed
-                growR2 = RollTranslate()                                        # create a 'points' grow object
-                seedSrc.grid.growList.append(growR2)                            # add grow object to seed
-                growR3 = RollTranslate()                                        # create a 'points' grow object
-                seedSrc.grid.growList.append(growR3)                            # add grow object to seed
+                block.templateList.append(template)                             # add template to block object
 
-                template.seedList.append(seedSrc)                               # add seed object to template
+                for nSrcSeed in range(nSrcSeeds):
+                    seedName = f'src-{nSrcSeed + 1}'                            # create a source seed object
+                    seedSrc = RollSeed(seedName)
+                    seedSrc.bSource = True
+                    seedSrc.color = QColor('#77FF8989')
 
-            for recSeed in range(nRecSeeds):
-                seedName = f'rec-{recSeed + 1}'                                 # create a receiver seed object
-                seedRec = RollSeed(seedName)
-                seedRec.bSource = False
-                seedRec.color = QColor('#7787A4D9')
+                    growR1 = RollTranslate()                                    # create a 'lines' grow object
+                    seedSrc.grid.growList.append(growR1)                        # add grow object to seed
+                    growR2 = RollTranslate()                                    # create a 'points' grow object
+                    seedSrc.grid.growList.append(growR2)                        # add grow object to seed
+                    growR3 = RollTranslate()                                    # create a 'points' grow object
+                    seedSrc.grid.growList.append(growR3)                        # add grow object to seed
 
-                growR1 = RollTranslate()                                        # create a 'lines' grow object
-                seedRec.grid.growList.append(growR1)                            # add grow object to seed's growlist
-                growR2 = RollTranslate()                                        # create a 'points' grow object
-                seedRec.grid.growList.append(growR2)                            # add grow object to seed
-                growR3 = RollTranslate()                                        # create a 'points' grow object
-                seedRec.grid.growList.append(growR3)                            # add grow object to seed
+                    template.seedList.append(seedSrc)                           # add seed object to template
 
-                template.seedList.append(seedRec)                               # add seed object to template
+                for nRecSeed in range(nRecSeeds):
+                    seedName = f'rec-{nRecSeed + 1}'                            # create a receiver seed object
+                    seedRec = RollSeed(seedName)
+                    seedRec.bSource = False
+                    seedRec.color = QColor('#7787A4D9')
 
-        for pattern in range(nPatterns):
-            patternName = f'pattern-{pattern + 1}'                              # create suitable pattern name
+                    growR1 = RollTranslate()                                    # create a 'lines' grow object
+                    seedRec.grid.growList.append(growR1)                        # add grow object to seed's growlist
+                    growR2 = RollTranslate()                                    # create a 'points' grow object
+                    seedRec.grid.growList.append(growR2)                        # add grow object to seed
+                    growR3 = RollTranslate()                                    # create a 'points' grow object
+                    seedRec.grid.growList.append(growR3)                        # add grow object to seed
+
+                    template.seedList.append(seedRec)                           # add seed object to template
+
+        self.patternList = []                                                   # make sure, we start with an empty list
+        for nPattern in range(nPatterns):
+            patternName = f'pattern-{nPattern + 1}'                             # create suitable pattern name
             pattern = RollPattern(patternName)                                  # create the pattern
             self.patternList.append(pattern)                                    # add pattern to patternList
 

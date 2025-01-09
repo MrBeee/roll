@@ -13,8 +13,8 @@ import os.path
 import numpy as np
 import pyqtgraph as pg
 from qgis.gui import QgsProjectionSelectionTreeWidget
-from qgis.PyQt.QtCore import QRectF, QRegularExpression, Qt
-from qgis.PyQt.QtGui import QColor, QImage, QPalette, QPixmap, QRegularExpressionValidator, QTextOption, QTransform
+from qgis.PyQt.QtCore import QRectF, QRegularExpression
+from qgis.PyQt.QtGui import QColor, QImage, QPixmap, QRegularExpressionValidator, QTextOption, QTransform
 from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QSizePolicy, QSpinBox, QVBoxLayout, QWizard, QWizardPage
 
 from . import config  # used to pass initial settings
@@ -59,15 +59,15 @@ class SurveyWizardPage(QWizardPage):
         super().__init__(parent)
         self.parent = parent                                                    # to access parent's parameters in the wizard pages (this will crash if parent is None)
 
-    def cleanupPage(self):                                                      # To prevent initializePage() being called when browsing backwards
-        pass                                                                    # Default is to do absolutely nothing !
+    def cleanupPage(self):                                                      # is called to reset the page’s contents when the user clicks the wizard’s Back button.
+        # The default implementation resets the page’s fields to their original values
+        # To prevent initializePage() being called when browsing backwards,
+        pass                                                                    # the default is now to do absolutely nothing !
 
 
 class MarineSurveyWizard(SurveyWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        self.nTemplates = 2                                                     # nr of templates in a streamer design. Will be equal to 2 x nr source towed
 
         self.addPage(Page_1(self))
         self.addPage(Page_2(self))
@@ -77,6 +77,7 @@ class MarineSurveyWizard(SurveyWizard):
         self.addPage(Page_6(self))
         self.addPage(Page_7(self))
         self.addPage(Page_8(self))
+        self.addPage(Page_9(self))
 
         self.setWindowTitle('Towed Streamer Survey Wizard')
         self.setWizardStyle(QWizard.ClassicStyle)
@@ -109,42 +110,39 @@ class Page_1(SurveyWizardPage):
 
         # create some widgets
         self.name = QLineEdit()
+        self.name.setStyleSheet('QLineEdit  { background-color : lightblue} ')
+
         self.type = QComboBox()
+        self.type.addItem(SurveyList[-1])
+        self.type.setStyleSheet('QComboBox  { background-color : lightblue} ')
 
         self.vSail = QDoubleSpinBox()
-        self.vTurn = QDoubleSpinBox()
-
         self.vSail.setRange(0.1, 10.0)
-        self.vTurn.setRange(0.1, 10.0)
-
         self.vSail.setValue(config.vSail)                                       # do this once in the constructor
-        self.vTurn.setValue(config.vTurn)                                       # do this once in the constructor
-
         self.vSail.textChanged.connect(self.updateParameters)
         self.vSail.editingFinished.connect(self.updateParameters)
 
+        self.vTurn = QDoubleSpinBox()
+        self.vTurn.setRange(0.1, 10.0)
+        self.vTurn.setValue(config.vTurn)                                       # do this once in the constructor
         self.vTurn.editingFinished.connect(self.evt_vTurn_editingFinished)
 
         self.vCross = QDoubleSpinBox()
-        self.vTail = QDoubleSpinBox()
-
         self.vCross.textChanged.connect(self.updateParameters)
         self.vCross.editingFinished.connect(self.updateParameters)
+        self.vCross.setRange(-5.0, 5.0)
+        self.vCross.setValue(0.0)
 
+        self.vTail = QDoubleSpinBox()
         self.vTail.textChanged.connect(self.updateParameters)
         self.vTail.editingFinished.connect(self.updateParameters)
+        self.vTail.setRange(-5.0, 5.0)
+        self.vTail.setValue(0.0)
 
         self.vCurrent = QDoubleSpinBox()                                        # readonly spinbox
-
-        self.vCross.setRange(-5.0, 5.0)
-        self.vTail.setRange(-5.0, 5.0)
         self.vCurrent.setRange(-10.0, 10.0)
-
-        self.vCross.setValue(0.0)
         self.vCurrent.setValue(0.0)
         self.vCurrent.setEnabled(False)                                         # readonly
-
-        self.vTail.setValue(0.0)
 
         self.aFeat = QDoubleSpinBox()
         self.aFeat.setRange(-90.0, 90.0)
@@ -163,81 +161,40 @@ class Page_1(SurveyWizardPage):
         self.groupInt.editingFinished.connect(self.updateParameters)
 
         self.nSrc = QSpinBox()
-        self.nCab = QSpinBox()
-
         self.nSrc.setRange(1, 50)
-        self.nCab.setRange(1, 50)
-        self.nCab.setSingleStep(2)                                              # we want to stick to an even number of streamers
-
         self.nSrc.textChanged.connect(self.updateParameters)
         self.nSrc.editingFinished.connect(self.updateParameters)
 
+        self.nCab = QSpinBox()
+        self.nCab.setRange(1, 50)
+        self.nCab.setSingleStep(2)                                              # we want to stick to an even number of streamers
+
         self.srcPopInt = QDoubleSpinBox()
-        self.srcShtInt = QDoubleSpinBox()
-        self.srcShtInt.setEnabled(False)
-
         self.srcPopInt.setRange(0.0, 10_000.0)
-        self.srcShtInt.setRange(0.0, 10_000.0)
-
         self.srcPopInt.textChanged.connect(self.updateParameters)
         self.srcPopInt.editingFinished.connect(self.updateParameters)
 
+        self.srcShtInt = QDoubleSpinBox()
+        self.srcShtInt.setEnabled(False)
+        self.srcShtInt.setRange(0.0, 10_000.0)
+
         self.recTail = QDoubleSpinBox()
-        self.recHead = QDoubleSpinBox()
-
         self.recTail.setRange(0.001, 1000.0)
-        self.recHead.setRange(0.001, 1000.0)
-
         self.recTail.setEnabled(False)
+
+        self.recHead = QDoubleSpinBox()
+        self.recHead.setRange(0.001, 1000.0)
         self.recHead.setEnabled(False)
 
         self.srcDepth = QDoubleSpinBox()
+        self.srcDepth.setValue(config.srcDepth)
+
         self.recLength = QDoubleSpinBox()
-
-        self.nsl = QSpinBox()
-        self.nrl = QSpinBox()
-
-        self.sli = QDoubleSpinBox()
-        self.rli = QDoubleSpinBox()
-
-        self.spi = QDoubleSpinBox()
-        self.rpi = QDoubleSpinBox()
-
-        self.nsl.setRange(1, 1000)
-        self.nrl.setRange(1, 10000)
-
-        self.sli.setRange(0.01, 10000)
-        self.rli.setRange(0.01, 10000)
-
-        self.spi.setRange(0.01, 10000)
-        self.rpi.setRange(0.01, 10000)
+        self.recLength.setValue(config.recLength)
+        self.recLength.textChanged.connect(self.updateParameters)
 
         self.chkPopGroupAlign = QCheckBox('Match pop interval to binsize (binsize = ½ streamer group)')
         self.chkPopGroupAlign.stateChanged.connect(self.updateParameters)
-
-        # controls for specific survey types (orthogonal, parallel, slanted, brick, zigzag)
-        self.slantS = QSpinBox()                                                # nr templates required for slant
-        self.slantS.setRange(1, 8)
-        self.slantS.setValue(5)
-        self.slantA = QLineEdit()                                               # slant angle
-        self.slantA.setReadOnly(True)                                           # read only
-
-        self.brickS = QDoubleSpinBox()                                          # brick offset distance
-        self.brickS.setRange(0.01, 10000)
-        self.chkBrickMatchRpi = QCheckBox('&Align distance with RPI')
-
-        self.zigzagS = QSpinBox()
-        self.zigzagS.setRange(1, 3)
-        self.zigzagS.setValue(1)
-
-        self.chkMirrorOddEven = QCheckBox('&Mirror odd/even templates')
-        self.chkMirrorOddEven.setChecked(True)
-
-        # initialize the widgets
-        self.type.addItem(SurveyList[-1])
-
-        self.name.setStyleSheet('QLineEdit  { background-color : lightblue} ')
-        self.type.setStyleSheet('QComboBox  { background-color : lightblue} ')
 
         # set the page layout
         layout = QGridLayout()
@@ -371,11 +328,6 @@ class Page_1(SurveyWizardPage):
         self.srcPopInt.setValue(4.0 * 0.5 * config.groupInt)
         self.srcShtInt.setValue(4.0 * 0.5 * config.groupInt * config.nSrc)
 
-        self.srcDepth.setValue(config.srcDepth)
-        self.recLength.setValue(config.recLength)
-
-        self.recLength.textChanged.connect(self.updateParameters)
-
         # register fields for variable access in other Wizard Pages
         # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
         # See: https://stackoverflow.com/questions/33796022/use-registerfield-in-pyqt
@@ -394,7 +346,6 @@ class Page_1(SurveyWizardPage):
         self.registerField('nCab', self.nCab, 'value')                          # number of cables deployed
         self.registerField('nSrc', self.nSrc, 'value')                          # number of sources deployed
 
-        self.registerField('nsl', self.nsl, 'value')                            # nr source lines
         self.registerField('cabLength', self.cabLength, 'value')                # streamer length
         self.registerField('groupInt', self.groupInt, 'value')                  # group interval
 
@@ -406,35 +357,6 @@ class Page_1(SurveyWizardPage):
 
         self.registerField('recTail', self.recTail, 'value')                    # Clean record time, with tail current
         self.registerField('recHead', self.recHead, 'value')                    # Clean record time, with head current
-
-        # todo: remove this later:
-
-        self.registerField('nrl', self.nrl, 'value')                            # nr receiver lines
-        self.registerField('sli', self.sli, 'value')                            # source line interval
-        self.registerField('rli', self.rli, 'value')                            # receiver line interval
-        self.registerField('spi', self.spi, 'value')                            # source point interval
-        self.registerField('rpi', self.rpi, 'value')                            # receiver point interval
-
-        self.registerField('nslant', self.slantS, 'value')                      # nr templates in a slanted survey
-        self.registerField('brk', self.brickS, 'value')                         # brick offset distance for 2nd source line
-        self.registerField('nzz', self.zigzagS, 'value')                        # nr source fleets in a zigzag survey
-        self.registerField('mir', self.chkMirrorOddEven)                        # mirror od/even templates
-
-        # connect signals to slots
-
-        # start values in the constructor, taken from config.py
-        self.nsl.setValue(config.nsl)
-        self.nrl.setValue(config.nrl)
-        self.sli.setValue(config.sli)
-        self.rli.setValue(config.rli)
-        self.spi.setValue(config.spi)
-        self.rpi.setValue(config.rpi)
-        self.brickS.setValue(config.brick)
-
-        # variables to keep survey dimensions more or less the same, when editing
-        self.old_rpi = config.rpi
-        self.old_rli = config.rli
-        self.old_sli = config.sli
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         print('initialize page 1')
@@ -515,95 +437,53 @@ class Page_2(SurveyWizardPage):
 
         print('page 2 init')
 
-        self.spiderSrcX = None                                                  # needed for the cross-section plot
+        self.spiderSrcX = None                                                  # np arrays needed for the cross-section plot
         self.spiderSrcZ = None
         self.spiderRecX = None
         self.spiderRecZ = None
 
         self.srcLayback = QDoubleSpinBox()
-        self.cabLayback = QDoubleSpinBox()
-
         self.srcLayback.setRange(0.0, 5000.0)
-        self.cabLayback.setRange(0.0, 5000.0)
-
         self.srcLayback.setValue(config.srcLayback)
+
+        self.cabLayback = QDoubleSpinBox()
+        self.cabLayback.setRange(0.0, 5000.0)
         self.cabLayback.setValue(config.cabLayback)
 
         self.cabSepHead = QDoubleSpinBox()
-        self.cabSepTail = QDoubleSpinBox()
-
         self.cabSepHead.setRange(10.0, 1000.0)
-        self.cabSepTail.setRange(10.0, 1000.0)
-
         self.cabSepHead.setValue(config.cabSepHead)
-        self.cabSepTail.setValue(config.cabSepTail)
-
         self.cabSepHead.textChanged.connect(self.updateCableSeparation)
         self.cabSepHead.editingFinished.connect(self.updateCableSeparation)
 
+        self.cabSepTail = QDoubleSpinBox()
+        self.cabSepTail.setRange(10.0, 1000.0)
+        self.cabSepTail.setValue(config.cabSepTail)
         self.cabSepTail.textChanged.connect(self.updateCableSeparation)
         self.cabSepTail.editingFinished.connect(self.updateCableSeparation)
 
         self.cabDepthHead = QDoubleSpinBox()
-        self.cabDepthTail = QDoubleSpinBox()
-
         self.cabDepthHead.setRange(1.0, 100.0)
-        self.cabDepthTail.setRange(1.0, 100.0)
-
         self.cabDepthHead.setValue(config.cabDepthHead)
-        self.cabDepthTail.setValue(config.cabDepthTail)
-
         self.cabDepthHead.textChanged.connect(self.updateCableDepth)
         self.cabDepthHead.editingFinished.connect(self.updateCableDepth)
 
+        self.cabDepthTail = QDoubleSpinBox()
+        self.cabDepthTail.setRange(1.0, 10000.0)
+        self.cabDepthTail.setValue(config.cabDepthTail)
         self.cabDepthTail.textChanged.connect(self.updateCableDepth)
         self.cabDepthTail.editingFinished.connect(self.updateCableDepth)
 
         self.srcSepFactor = QSpinBox()
-        self.srcSeparation = QDoubleSpinBox()
-        self.srcSeparation.setEnabled(False)                                    # readonly
-
         self.srcSepFactor.setRange(1, 10)
-        self.srcSeparation.setRange(0.0, 1000.0)
-
         self.srcSepFactor.setValue(config.srcSepFactor)
-        self.srcSeparation.setValue(config.srcSeparation)
-
         self.srcSepFactor.textChanged.connect(self.updateSourceSeparation)
         self.srcSepFactor.editingFinished.connect(self.updateSourceSeparation)
 
-        # variables altered when nrp, nsp change
-        self.offsetInshift = 0.0
-        self.offsetX_shift = 0.0
-
-        # create some widgets
-        self.nsp = QSpinBox()
-        self.nrp = QSpinBox()
-        self.offImin = QDoubleSpinBox()
-        self.offImax = QDoubleSpinBox()
-
-        self.offXmin = QDoubleSpinBox()
-        self.offXmax = QDoubleSpinBox()
-
-        self.chkNrecKnown = QCheckBox('Number channels/cable is known')
-        self.chkNsrcKnown = QCheckBox('Number shots/salvo is known')
-
-        self.chkNrecMatch = QCheckBox('Match number channels to SLI')
-        self.chkNsrcMatch = QCheckBox('Match number of shots to RLI')
-
-        # set ranges
-        self.nsp.setRange(1, 1000000)
-        self.nrp.setRange(1, 1000000)
-
-        self.offImin.setRange(-100000, 100000)
-        self.offImax.setRange(-100000, 100000)
-        self.offXmin.setRange(-100000, 100000)
-        self.offXmax.setRange(-100000, 100000)
-
-        self.chkNrecKnown.setChecked(True)
-        self.chkNsrcKnown.setChecked(True)
-        self.chkNrecMatch.setChecked(True)
-        self.chkNsrcMatch.setChecked(True)
+        self.srcSeparation = QDoubleSpinBox()
+        self.srcSeparation.setEnabled(False)                                    # readonly
+        self.srcSeparation.setRange(0.0, 1000.0)
+        self.srcSeparation.setValue(config.srcSeparation)
 
         # set the page layout
         layout = QGridLayout()
@@ -670,10 +550,6 @@ class Page_2(SurveyWizardPage):
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
-        # start values in the constructor, taken from config.py                 # do this in the constructor, so it is only done ONCE
-        self.nsp.setValue(config.nsp)
-        self.nrp.setValue(config.nrp)
-
         # create a vertical box layout widget (vbl)
         vbl = QVBoxLayout()
 
@@ -714,59 +590,17 @@ class Page_2(SurveyWizardPage):
         self.registerField('srcSepFactor', self.srcSepFactor, 'value')
         self.registerField('srcSeparation', self.srcSeparation, 'value')
 
-        #  todo: remove this later
-        self.registerField('nsp', self.nsp, 'value')
-        self.registerField('nrp', self.nrp, 'value')
-        self.registerField('offImin', self.offImin, 'value')
-        self.registerField('offImax', self.offImax, 'value')
-        self.registerField('offXmin', self.offXmin, 'value')
-        self.registerField('offXmax', self.offXmax, 'value')
-
-        # connect signals to slots for checkboxes
-        # connect signals to slots for edit controls
-
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         print('initialize page 2')
 
-        # disable required edit controls
-        chkd = self.chkNrecKnown.isChecked()
-        self.nrp.setEnabled(chkd)
-        self.offImax.setEnabled(not chkd)
-
-        chkd = self.chkNsrcKnown.isChecked()
-        self.nsp.setEnabled(chkd)
-        self.offXmax.setEnabled(not chkd)
-
-        # get variables from field names
-
-        # todo: remove this later
-        nrl = self.field('nrl')
-        nsl = self.field('nsl')
-        sli = self.field('sli')
-        rli = self.field('rli')
-        spi = self.field('spi')
-        rpi = self.field('rpi')
-        nsp = self.field('nsp')
-        nrp = self.field('nrp')
-        nam = self.field('name')
-        typ = SurveyType.Streamer.value
-
-        # first RESET the survey object, so we can start with it from scratch
+        # completely RESET the survey object, so we can start with it from scratch
         self.parent.survey = RollSurvey()
 
         # fill in the survey object information we already know now
-        self.parent.survey.name = nam                                           # Survey name
-        self.parent.survey.type = SurveyType(typ)                               # Survey type Enum
+        self.parent.survey.name = self.field('name')                            # Survey name
+        self.parent.survey.type = SurveyType(SurveyType.Streamer.value)         # Survey type Enum
 
-        # set initial offset values
-        templateInShift = 0.5 * (nsl - 1) * sli
-        templateX_shift = 0.5 * (nrl - 1) * rli
-
-        self.offImin.setValue(-0.5 * (nrp - 1) * rpi + self.offsetInshift + templateInShift)
-        self.offImax.setValue(0.5 * (nrp - 1) * rpi + self.offsetInshift + templateInShift)
-
-        self.offXmin.setValue(-0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
-        self.offXmax.setValue(0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
+        # from now on, the survey object is re-used, though blocklist and patternlist can be emptied using survey.createBasicSkeleton()
 
         self.plot()                                                             # refresh the plot
 
@@ -827,8 +661,7 @@ class Page_2(SurveyWizardPage):
 
         plotIndex = self.plotType.currentIndex()                                # first, check what type of plot is expected
         if plotIndex == 0:                                                      # crossection plot
-            self.parent.survey.createBasicSkeleton(nTemplates=nSrc, nSrcSeeds=1, nRecSeeds=nCab)    # add  single block with template(s)
-            self.updateParentSurvey(1)                                          # update the skeleton, but don't use it for this plot
+            self.updateParentSurvey(1)                                          # setup the skeleton anyhow, but don't use it for this plot
 
             self.plotWidget.setLabel('bottom', 'cross-section', units='m', **styles)   # shows axis at the bottom, and shows the units label
             self.plotWidget.setLabel('left', 'depth', units='m', **styles)      # shows axis at the left, and shows the units label
@@ -849,36 +682,36 @@ class Page_2(SurveyWizardPage):
             cmpNomX = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
             cmpNomZ = np.zeros(shape=cmps, dtype=np.float32)                    # needed to display data points
 
-            dCab = self.cabSepHead.value()
+            dCab0 = self.cabSepHead.value()
             dSrc = self.srcSeparation.value()
 
-            recZ = -self.field('cabDepthHead')
+            recZ0 = -self.field('cabDepthHead')
             srcZ = -self.field('srcDepth')
             cmpZ = -config.cdpDepth
 
-            r0 = -0.5 * (nCab - 1) * dCab                                       # first receiver
-            s0 = -0.5 * (nSrc - 1) * dSrc                                       # first source actual location
-            s1 = -0.5 * (nSrc - 1) * dCab / nSrc                                # first source nominal location (sep. factor == 1)
-            c0 = 0.5 * (r0 + s1)                                                # first cmp
-            dC = 0.5 * dCab / nSrc                                              # cmp xline size
+            rec0 = -0.5 * (nCab - 1) * dCab0                                    # first receiver
+            src0 = -0.5 * (nSrc - 1) * dSrc                                     # first source actual location
+            src1 = -0.5 * (nSrc - 1) * dCab0 / nSrc                             # first source nominal location (sep. factor == 1)
+            cmp0 = 0.5 * (rec0 + src1)                                          # first cmp
+            dCmp = 0.5 * dCab0 / nSrc                                           # cmp xline size
 
             for nS in range(nSrc):
                 for nR in range(nCab):
 
-                    cmpX = 0.5 * (s0 + nS * dSrc + r0 + nR * dCab)
+                    cmpX = 0.5 * (src0 + nS * dSrc + rec0 + nR * dCab0)
 
                     l = nS * nCab + nR                                          # cmp index
                     n = 2 * l                                                   # line segment index 1st point
                     m = n + 1                                                   # line segment index 2nd point
 
-                    spiderSrcX[n] = s0 + nS * dSrc
+                    spiderSrcX[n] = src0 + nS * dSrc
                     spiderSrcZ[n] = srcZ
 
                     spiderSrcX[m] = cmpX
                     spiderSrcZ[m] = cmpZ
 
-                    spiderRecX[n] = r0 + nR * dCab
-                    spiderRecZ[n] = recZ
+                    spiderRecX[n] = rec0 + nR * dCab0
+                    spiderRecZ[n] = recZ0
 
                     spiderRecX[m] = cmpX
                     spiderRecZ[m] = cmpZ
@@ -887,7 +720,7 @@ class Page_2(SurveyWizardPage):
                     cmpActZ[l] = cmpZ
 
             for n in range(nSrc * nCab):
-                cmpNomX[n] = c0 + n * dC
+                cmpNomX[n] = cmp0 + n * dCmp
                 cmpNomZ[n] = cmpZ
 
             # Add a marker for the origin
@@ -901,9 +734,7 @@ class Page_2(SurveyWizardPage):
             act = self.plotWidget.plot(x=cmpActX, y=cmpActZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='g')
 
         else:                                                      # top view forwards on race track
-            # Create a survey skeleton, so we can simply update survey properties, without having to instantiate underlying classes
             # On this wizard page only forward OR backwards sailing templates are shown at once, determined by the plotIndex
-            self.parent.survey.createBasicSkeleton(nTemplates=nSrc, nSrcSeeds=1, nRecSeeds=nCab)    # add  single block with template(s)
             self.updateParentSurvey(plotIndex)                                      # create towing configuration without any roll along
 
             self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
@@ -924,181 +755,159 @@ class Page_2(SurveyWizardPage):
             orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
     def updateParentSurvey(self, plotIndex):
-        # populate / update the survey skeleton
+        # create / update the survey skeleton
 
-        # source(s) first
-        offImin = self.field('offImin')
-        offXmin = self.field('offXmin')
+        # need to move this to pattern page; it can probably just be deleted as pattern page works okay
+        if False:
+            # source & receiver patterns
+            rNam = self.field('rNam')
+            sNam = self.field('sNam')
 
-        nrl = self.field('nrl')
-        nsl = self.field('nsl')
-        sli = self.field('sli')
-        rli = self.field('rli')
-        spi = self.field('spi')
-        rpi = self.field('rpi')
-        nsp = self.field('nsp')
-        nrp = self.field('nrp')
-        typ = SurveyType.Streamer.value
-
-        nsla = self.field('nslant')                                             # nr templates in a slanted survey
-        brk = self.field('brk')                                                 # brick offset distance
-        nzz = self.field('nzz')                                                 # nr source fleets in a zigzag survey
-        mir = self.field('mir')                                                 # mirrored zigzag survey
-
-        # populate / update the survey skeleton
-
-        # source & receiver patterns
-        rNam = self.field('rNam')
-        sNam = self.field('sNam')
-
-        # orthogonal / slanted / brick source patterns
-        sBra = config.sBra
-        sBrI = config.sBrI
-        sEle = config.sEle
-        sElI = config.sElI
-        srcOriX = -0.5 * (sBra - 1) * sBrI
-        srcOriY = -0.5 * (sEle - 1) * sElI
-
-        if typ == SurveyType.Parallel.value or typ == SurveyType.Zigzag.value:
-            sBra = config.sEle
-            sBrI = config.sElI
-            sEle = config.sBra
-            sElI = config.sBrI
+            # orthogonal / slanted / brick source patterns
+            sBra = config.sBra
+            sBrI = config.sBrI
+            sEle = config.sEle
+            sElI = config.sElI
             srcOriX = -0.5 * (sBra - 1) * sBrI
             srcOriY = -0.5 * (sEle - 1) * sElI
 
-        self.setField('sBra', sBra)                                             # update the relevant fields
-        self.setField('sEle', sEle)                                             # only the source pattern
-        self.setField('sBrI', sBrI)                                             # may change orientation
-        self.setField('sElI', sElI)
+            self.setField('sBra', sBra)                                             # update the relevant fields
+            self.setField('sEle', sEle)                                             # only the source pattern
+            self.setField('sBrI', sBrI)                                             # may change orientation
+            self.setField('sElI', sElI)
 
-        self.parent.survey.patternList[0].name = sNam
-        self.parent.survey.patternList[0].seedList[0].color = QColor('red')
+            self.parent.survey.patternList[0].name = sNam
+            self.parent.survey.patternList[0].seedList[0].color = QColor('red')
 
-        self.parent.survey.patternList[0].seedList[0].origin.setX(srcOriX)      # Seed origin
-        self.parent.survey.patternList[0].seedList[0].origin.setY(srcOriY)      # Seed origin
+            self.parent.survey.patternList[0].seedList[0].origin.setX(srcOriX)      # Seed origin
+            self.parent.survey.patternList[0].seedList[0].origin.setY(srcOriY)      # Seed origin
 
-        self.parent.survey.patternList[0].seedList[0].grid.growList[0].steps = sBra              # nr branches
-        self.parent.survey.patternList[0].seedList[0].grid.growList[0].increment.setX(sBrI)      # branch interval
-        self.parent.survey.patternList[0].seedList[0].grid.growList[0].increment.setY(0.0)       # horizontal
+            self.parent.survey.patternList[0].seedList[0].grid.growList[0].steps = sBra              # nr branches
+            self.parent.survey.patternList[0].seedList[0].grid.growList[0].increment.setX(sBrI)      # branch interval
+            self.parent.survey.patternList[0].seedList[0].grid.growList[0].increment.setY(0.0)       # horizontal
 
-        self.parent.survey.patternList[0].seedList[0].grid.growList[1].steps = sEle              # nr elements
-        self.parent.survey.patternList[0].seedList[0].grid.growList[1].increment.setX(0.0)       # vertical
-        self.parent.survey.patternList[0].seedList[0].grid.growList[1].increment.setY(sElI)      # element interval
+            self.parent.survey.patternList[0].seedList[0].grid.growList[1].steps = sEle              # nr elements
+            self.parent.survey.patternList[0].seedList[0].grid.growList[1].increment.setX(0.0)       # vertical
+            self.parent.survey.patternList[0].seedList[0].grid.growList[1].increment.setY(sElI)      # element interval
 
-        # receiver pattern
-        rBra = self.field('rBra')
-        rBrI = self.field('rBrI')
-        rEle = self.field('rEle')
-        rElI = self.field('rElI')
-        recOriX = -0.5 * (rBra - 1) * rBrI
-        recOriY = -0.5 * (rEle - 1) * rElI
+            # receiver pattern
+            rBra = self.field('rBra')
+            rBrI = self.field('rBrI')
+            rEle = self.field('rEle')
+            rElI = self.field('rElI')
+            recOriX = -0.5 * (rBra - 1) * rBrI
+            recOriY = -0.5 * (rEle - 1) * rElI
 
-        self.parent.survey.patternList[1].name = rNam
-        self.parent.survey.patternList[1].seedList[0].color = QColor('blue')
+            self.parent.survey.patternList[1].name = rNam
+            self.parent.survey.patternList[1].seedList[0].color = QColor('blue')
 
-        self.parent.survey.patternList[1].seedList[0].origin.setX(recOriX)                  # Seed origin
-        self.parent.survey.patternList[1].seedList[0].origin.setY(recOriY)                  # Seed origin
+            self.parent.survey.patternList[1].seedList[0].origin.setX(recOriX)                  # Seed origin
+            self.parent.survey.patternList[1].seedList[0].origin.setY(recOriY)                  # Seed origin
 
-        self.parent.survey.patternList[1].seedList[0].grid.growList[0].steps = rBra              # nr branches
-        self.parent.survey.patternList[1].seedList[0].grid.growList[0].increment.setX(rBrI)      # branch interval
-        self.parent.survey.patternList[1].seedList[0].grid.growList[0].increment.setY(0.0)       # horizontal
+            self.parent.survey.patternList[1].seedList[0].grid.growList[0].steps = rBra              # nr branches
+            self.parent.survey.patternList[1].seedList[0].grid.growList[0].increment.setX(rBrI)      # branch interval
+            self.parent.survey.patternList[1].seedList[0].grid.growList[0].increment.setY(0.0)       # horizontal
 
-        self.parent.survey.patternList[1].seedList[0].grid.growList[1].steps = rEle              # nr elements
-        self.parent.survey.patternList[1].seedList[0].grid.growList[1].increment.setX(0.0)       # vertical
-        self.parent.survey.patternList[1].seedList[0].grid.growList[1].increment.setY(rElI)      # element interval
+            self.parent.survey.patternList[1].seedList[0].grid.growList[1].steps = rEle              # nr elements
+            self.parent.survey.patternList[1].seedList[0].grid.growList[1].increment.setX(0.0)       # vertical
+            self.parent.survey.patternList[1].seedList[0].grid.growList[1].increment.setY(rElI)      # element interval
 
-        # calculate the boundingBpx, now the patterns have been populated
-        self.parent.survey.patternList[0].calcBoundingRect()                    # also creates the pattern figure
-        self.parent.survey.patternList[1].calcBoundingRect()                    # also creates the pattern figure
+            # calculate the boundingBpx, now the patterns have been populated
+            self.parent.survey.patternList[0].calcBoundingRect()                    # also creates the pattern figure
+            self.parent.survey.patternList[1].calcBoundingRect()                    # also creates the pattern figure
 
-        # offsets; from start/end of salvo to start/end of spread; both inline and x-line
-        if typ == SurveyType.Parallel.value:                                    # no hard values; give arbitrary inline limits
-            inline1 = -5975.0                                                   # negative number
-            inline2 = 5975.0                                                    # positive number
-        else:
-            inline1 = offImin                                                   # offImin is a negative number
-            inline2 = (nrp - 1) * rpi + inline1                                 # positive number
-
-        x_line1 = -(offXmin + (nsp - 1) * spi)                                  # offXmin is a positive number
-        x_line2 = (nrl - 1) * rli - offXmin
-
-        self.parent.survey.offset.rctOffsets.setLeft(inline1 - 1.0)             # inline offset limits
-        self.parent.survey.offset.rctOffsets.setRight(inline2 + 1.0)
-
-        self.parent.survey.offset.rctOffsets.setTop(x_line1 - 1.0)              # x_line offset limits
-        self.parent.survey.offset.rctOffsets.setBottom(x_line2 + 1.0)
-
-        w = max(abs(inline1), abs(inline2))                                     # calc radial limit r from w & h
-        h = max(abs(x_line1), abs(x_line2))
-        r = round(math.sqrt(w * w + h * h)) + 1.0
-
-        self.parent.survey.offset.radOffsets.setX(0.0)                          # radial; rmin
-        self.parent.survey.offset.radOffsets.setY(r)                            # radial; rmax
-
-        sL = self.field('srcLayback')
-        rL = self.field('cabLayback')
-        sX = rL - sL
-
-        cL = self.field('cabLength')                                            # streamer length
-        gI = self.field('groupInt')                                             # group interval
-        nGrp = round(cL / gI)
-
-        dCab = self.field('cabSepHead')
-        dSrc = self.field('srcSeparation')
-        recZ = -self.field('cabDepthHead')
-        srcZ = -self.field('srcDepth')
         nSrc = self.field('nSrc')
         nCab = self.field('nCab')
 
-        r0 = -0.5 * (nCab - 1) * dCab                                           # first receiver
-        s0 = -0.5 * (nSrc - 1) * dSrc                                           # first source actual location
+        # Create a survey skeleton, so we can simply update survey properties, without having to instantiate underlying classes
+        self.parent.survey.createBasicSkeleton(nTemplates=nSrc, nSrcSeeds=1, nRecSeeds=nCab)    # add  single block with template(s)
 
-        if plotIndex == 1:
+        sL = self.field('srcLayback')
+        rL = self.field('cabLayback')
+        sX = rL - sL                                                            # relative source location
+        cL = self.field('cabLength')                                            # streamer length
+        gI = self.field('groupInt')                                             # group interval
+        nGrp = round(cL / gI)                                                   # nr groups per streamer
+
+        dCab0 = self.field('cabSepHead')
+        dCab9 = self.field('cabSepTail')
+        recZ0 = -self.field('cabDepthHead')
+        recZ9 = -self.field('cabDepthTail')
+
+        dSrc = self.field('srcSeparation')
+        srcZ = -self.field('srcDepth')
+
+        dZCab = recZ9 - recZ0                                                   # depth increase along cable(s)
+        dZGrp = -gI / cL * dZCab                                                # depth increase along group(s); independent on azimuth (from fanning and currents)
+
+        dip = math.degrees(math.asin(dZCab / cL))
+        cL9 = cL * math.cos(math.radians(dip))                                  # cable length reduced by slant
+
+        src0 = -0.5 * (nSrc - 1) * dSrc                                         # cross-line position; first source
+        rec0 = -0.5 * (nCab - 1) * dCab0                                        # cross-line position head receiver; first streamer
+        rec9 = -0.5 * (nCab - 1) * dCab9                                        # cross-line position tail receiver; first streamer
+
+        if plotIndex == 1:                                                      # forward leg
             for i in range(nSrc):
                 templateNameFwd = f'Sailing Fwd-{i + 1}'                        # get suitable template name for all sources
                 self.parent.survey.blockList[0].templateList[i].name = templateNameFwd
 
                 # source fwd
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(sX)                         # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(s0 + i * dSrc)              # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setZ(srcZ)                       # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(sX)                                 # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(src0 + i * dSrc)                    # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setZ(srcZ)                               # Seed origin
 
                 for j in range(nCab):
-                    # we need to allow for streaer feathering; hence each streamer will have its own orientation
+                    # we need to allow for streaer fanning; hence each streamer will have its own orientation
                     # this implies we can not 'grow' the spread to multiple streamers as a grow step in a grid
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setX(0.0)                      # Seed origin
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setY(r0 + j * dCab)              # Seed origin
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setZ(recZ)                     # Seed origin
 
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].steps = nGrp         # nr of groups in cable
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setX(-gI)  # group interval
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setY(0.0)  # no fanning (yet)
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setZ(0.0)  # no slant (yet)
+                    dRec = rec9 - rec0 + j * (dCab9 - dCab0)                                                                # cross-line cable distance
+                    azi = math.degrees(math.asin(dRec / cL9))                                                               # corrresponding azimuth
+                    dRGrp = gI * math.cos(math.radians(dip))
 
-        elif plotIndex == 2:
+                    dXGrp = -dRGrp * math.cos(math.radians(azi))
+                    dYGrp = dRGrp * math.sin(math.radians(azi))
+
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setX(0.0)                        # Seed origin
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setY(rec0 + j * dCab0)           # Seed origin
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setZ(recZ0)                      # Seed origin
+
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].steps = nGrp           # nr of groups in cable
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setX(dXGrp)  # group interval
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setY(dYGrp)  # impact of fanning
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setZ(dZGrp)  # normalized slant
+
+        elif plotIndex == 2:                                                    # return leg
             for i in range(nSrc):
                 templateNameBwd = f'Sailing Bwd-{i + 1}'                        # get suitable template name
                 self.parent.survey.blockList[0].templateList[i].name = templateNameBwd
 
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(-sX)                         # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(s0 + i * dSrc)               # Seed origin
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setZ(srcZ)                        # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(-sX)                                # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(src0 + i * dSrc)                    # Seed origin
+                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setZ(srcZ)                               # Seed origin
 
                 for j in range(nCab):
-                    # we need to allow for streaer feathering; hence each streamer will have its own orientation
-                    # this implies we can not 'grow' the spread to multiple streamers as a grow step in a grid
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setX(0.0)                      # Seed origin
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setY(r0 + j * dCab)              # Seed origin
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setZ(recZ)                     # Seed origin
+                    # we need to allow for streamer fanning; hence each streamer will have its own orientation
+                    # this implies we can not 'grow' the spread to multiple streamers using a grow step in a grid
 
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].steps = nGrp         # nr of groups in cable
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setX(gI)   # group interval (in opposite direction)
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setY(0.0)  # no fanning (yet)
-                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setZ(0.0)  # no slant (yet)
+                    dRec = rec9 - rec0 + j * (dCab9 - dCab0)                                                                # cross-line cable distance
+                    azi = math.degrees(math.asin(dRec / cL9))                                                               # corrresponding azimuth
+                    dRGrp = gI * math.cos(math.radians(dip))
+
+                    dXGrp = dRGrp * math.cos(math.radians(azi))
+                    dYGrp = dRGrp * math.sin(math.radians(azi))
+
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setX(0.0)                        # Seed origin
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setY(rec0 + j * dCab0)           # Seed origin
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].origin.setZ(recZ0)                      # Seed origin
+
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].steps = nGrp           # nr of groups in cable
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setX(dXGrp)  # group interval (in opposite direction)
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setY(dYGrp)  # no fanning (yet)
+                    self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setZ(dZGrp)  # normalized slant
 
         else:
-            raise NotImplementedError('unsupported survey type.')
+            raise NotImplementedError('unsupported plot index.')
 
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
@@ -1215,13 +1024,13 @@ class Page_3(SurveyWizardPage):
 
         self.chkBingridAlign.toggled.connect(self.evt_BingridAlign_toggled)
 
-    def initializePage(self):                                                   # This routine is done each time before the page is activated
+    def initializePage(self):                                                   # This function is called when the user clicks "Next" to prepare the page for display
         print('initialize page 3')
         self.updateParameters()
         self.updateParentSurvey()
         self.plot()                                                             # refresh the plot
 
-    def cleanupPage(self):                                                      # needed to update previous page
+    def cleanupPage(self):                                                      # This function is called when the user clicks "Back" to leave the page, going backwards
         # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
         self.parent.page(1).plot()                                              # needed to update the plot
         print('cleanup of page 3')
@@ -1252,7 +1061,7 @@ class Page_3(SurveyWizardPage):
 
     def updateParameters(self):
         # from other pages
-        dCab = self.field('cabSepHead')
+        dCab0 = self.field('cabSepHead')
         nSrc = self.field('nSrc')
         cabLength = self.field('cabLength')                                     # streamer length
         srcShtInt = self.field('srcShtInt')                                     # shot point interval (per cmp line)
@@ -1262,7 +1071,7 @@ class Page_3(SurveyWizardPage):
         foldXNatural = 1.0
 
         binINatural = 0.5 * recGrpInt
-        binXNatural = 0.5 * dCab / nSrc
+        binXNatural = 0.5 * dCab0 / nSrc
 
         binIActual = self.field('binI')
         binXActual = self.field('binX')
@@ -1289,23 +1098,23 @@ class Page_3(SurveyWizardPage):
             self.binI.setSingleStep(1.0)
             self.binX.setSingleStep(1.0)
 
-        # note page(x) starts with a ZERO index; therefore page(0) == Page_1
-        self.parent.page(3).evt_binImin_editingFinished(plot=False)             # adjust binning parameters in next page (Page_4)
-        self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
-        self.parent.page(3).evt_binXmin_editingFinished(plot=False)
-        self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
+        # # note page(x) starts with a ZERO index; therefore page(0) == Page_1
+        # self.parent.page(3).evt_binImin_editingFinished(plot=False)             # adjust binning parameters in next page (Page_4)
+        # self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
+        # self.parent.page(3).evt_binXmin_editingFinished(plot=False)
+        # self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
 
         self.updateParentSurvey()
         self.plot()
 
     def updateParentSurvey(self):
-        # populate / update the survey skeleton
+        # adjust plot settings and populate / update the survey skeleton
 
         binI = self.field('binI')
         binX = self.field('binX')
 
-        xTicks = [200.0, binI]                                                    # tick interval, depending on zoom level
-        yTicks = [200.0, binX]                                                    # tick interval, depending on zoom level
+        xTicks = [200.0, binI]                                                  # tick interval, depending on zoom level
+        yTicks = [200.0, binX]                                                  # tick interval, depending on zoom level
 
         axBottom = self.plotWidget.plotItem.getAxis('bottom')                   # get x axis
         axBottom.setTickSpacing(xTicks[0], xTicks[1])                           # set x ticks (major and minor)
@@ -1319,24 +1128,17 @@ class Page_3(SurveyWizardPage):
         axRight = self.plotWidget.plotItem.getAxis('right')                     # get y axis
         axRight.setTickSpacing(yTicks[0], yTicks[1])                            # set y ticks (major and minor)
 
-        self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in this wizard page; instead, create empty rect
+        self.parent.survey.output.rctOutput = QRectF()                          # don't display this in this wizard page; instead, create empty rect
 
-        for i in range(self.parent.nTemplates):                                 # make sure nothing 'rolls'
-            self.parent.survey.blockList[0].templateList[i].rollList[0].steps = 1   # nr deployments in y-direction
-            self.parent.survey.blockList[0].templateList[i].rollList[1].steps = 1   # nr deployments in x-direction
+        # make sure nothing 'rolls'; iterate over all blocks
+        for nBlock, _ in enumerate(self.parent.survey.blockList):
+            for nTemplate, _ in enumerate(self.parent.survey.blockList[0].templateList):
+                self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[0].steps = 1   # nr deployments in y-direction
+                self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[1].steps = 1   # nr deployments in x-direction
+                # self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[2].steps = 1   # nr deployments in z-direction; 3rd roll direction not implemented (yet)
 
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
-
-        # surveyCenter = self.parent.survey.cmpBoundingRect.center()              # get its cmp-center
-
-        # xC = surveyCenter.x()
-        # yC = surveyCenter.y()
-        # xR = sli if sli > 100 else 100
-        # yR = rli if rli > 100 else 100
-
-        # self.plotWidget.setXRange(xC - 0.7 * xR, xC + 0.7 * xR)                 # set scaling for plot
-        # self.plotWidget.setYRange(yC - 0.7 * yR, yC + 0.7 * yR)
 
         self.plotWidget.setXRange(-300.0, 300.0)                                # set plot range
         self.plotWidget.setYRange(-200.0, 200.0)
@@ -1365,15 +1167,10 @@ class Page_4(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('4. Template Properties')
-        self.setSubTitle('Race-Track details and Line-Turn overhead')
+        self.setSubTitle('Race-Track details, Line-Turn overhead and Survey-Size definition')
 
         print('page 4 init')
         self.trackList = []                                                     # list of integers
-
-        self.recRect = QRectF()                                                 # receiver rect
-        self.srcRect = QRectF()                                                 # source rect
-        self.binRect = QRectF()                                                 # cmp rect
-        self.an_Rect = QRectF()                                                 # analysis rect
 
         # create some widgets
         self.turnRad = QDoubleSpinBox()                                         # min turning radius
@@ -1421,15 +1218,19 @@ class Page_4(SurveyWizardPage):
         self.frcOut.setEnabled(False)                                           # readonly
         self.frcOut.setRange(1.0, 1_000_000.0)                                  # turn radius [m]
 
-        self.nsl = QSpinBox()                                                   # nr sail lines in survey
-        self.nsl.setEnabled(False)                                              # readonly
+        self.nrSaillines = QSpinBox()                                           # required nr sail lines in survey
+        self.nrSaillines.setEnabled(False)                                      # readonly
 
-        self.nsl2 = QSpinBox()                                                  # nr sail lines in survey
-        self.nsl2.setStyleSheet('QDoubleSpinBox {font: bold;} ')
-        self.nsl2.setEnabled(False)                                             # readonly
-        self.nsl2.setRange(0, 1_000)                                            # set some (positive) limits
-        linesTip = '<p><font color="red"><b>Red</b></font> when there are too few lines in the survey.<p><font color="darkorange"><b>Orange</b></font> when there are too many lines in the survey'
-        self.nsl2.setToolTip(linesTip)
+        self.noSaillines = QSpinBox()                                           # actual nr sail lines in survey
+        self.noSaillines.setStyleSheet('QDoubleSpinBox {font: bold;} ')
+        self.noSaillines.setEnabled(False)                                      # readonly
+        self.noSaillines.setRange(0, 1_000)                                     # set some (positive) limits
+        linesTip = (
+            '<p><font color="red"><b>Red</b></font> when there are too few lines in the survey.'
+            '<p><font color="darkorange"><b>Orange</b></font> when there are too many lines in the survey.'
+            '<p><font color="forestgreen"><b>Green</b></font> when the number matches expectations.'
+        )
+        self.noSaillines.setToolTip(linesTip)
 
         self.nrLinesPerTrack = QSpinBox()                                       # nr lines per race track
         self.nrLinesPerTrack.setEnabled(False)                                  # readonly
@@ -1439,29 +1240,8 @@ class Page_4(SurveyWizardPage):
         self.nrTracks.setEnabled(False)                                         # readonly
         self.nrTracks.setRange(1.0, 1_000.0)                                    # set some (positive) limits
 
-        self.slr = QSpinBox()   # src line roll along
-        self.rlr = QSpinBox()   # rec line roll along
-        self.sld = QSpinBox()   # src line deployments
-        self.rld = QSpinBox()   # rec line deployments
-
         self.msg = QLineEdit('Min turn radius:')
         self.msg.setReadOnly(True)
-
-        self.binImin = QDoubleSpinBox()
-        self.binXmin = QDoubleSpinBox()
-
-        shift = True
-        self.chkShiftSpread = QCheckBox('Move first receiver to (0,0) for easier global bingrid definition')
-        self.chkShiftSpread.setChecked(shift)
-
-        # set ranges
-        self.slr.setRange(1, 1_000_000)
-        self.rlr.setRange(1, 1_000_000)
-        self.sld.setRange(1, 1_000_000)
-        self.rld.setRange(1, 1_000_00_0)
-
-        self.binImin.setRange(-1_000_000, 1_000_000)
-        self.binXmin.setRange(-1_000_000, 1_000_000)
 
         self.surIsiz = QDoubleSpinBox()
         self.surIsiz.setRange(1, 1000000)
@@ -1475,16 +1255,54 @@ class Page_4(SurveyWizardPage):
         self.surXsiz.setValue(config.surveySizeX)
         self.surXsiz.textChanged.connect(self.updateParameters)
 
+        self.lineSeries = QLineEdit()
+        input_validator = QRegularExpressionValidator(QRegularExpression('[0-9 ]+'), self.lineSeries)
+        self.lineSeries.setValidator(input_validator)
+        self.lineSeries.textEdited.connect(self.updateTrackList)
+
+        # needed to prevent that the edit control consumes al available extra space when expanding, for no obvious reasons...
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.lineSeries.setSizePolicy(sizePolicy)
+
+        self.lineSeriesLabel = QLabel('<b>list</b> of sail lines/track')
+        self.nsl2Label = QLabel('<b>Sail lines in survey</b> [#]')
+        self.nsl2Label.setToolTip(linesTip)
+
+        self.teardrops = QDoubleSpinBox()
+        self.teardrops.setEnabled(False)                                  # readonly
+        self.teardrops.setRange(-1.0, 1_000_000.0)
+
+        self.xLineSail = QDoubleSpinBox()
+        self.xLineSail.setEnabled(False)                                  # readonly
+        self.xLineSail.setRange(-1.0, 1_000_000.0)
+
+        self.turn180 = QDoubleSpinBox()
+        self.turn180.setEnabled(False)                                  # readonly
+        self.turn180.setRange(-1.0, 1_000_000.0)
+
+        self.runIns = QDoubleSpinBox()
+        self.runIns.setEnabled(False)                                  # readonly
+        self.runIns.setRange(-1.0, 1_000_000.0)
+
+        self.turnOverhead = QDoubleSpinBox()
+        self.turnOverhead.setStyleSheet('QDoubleSpinBox {font: bold;} ')
+        self.turnOverhead.setRange(-1.0, 1_000_000.0)
+        self.turnOverhead.setEnabled(False)                                  # readonly
+
+        self.totalTurns = QDoubleSpinBox()
+        self.totalTurns.setEnabled(False)                                  # readonly
+        self.totalTurns.setRange(-1.0, 1_000_000.0)
+
+        self.totalPrime = QDoubleSpinBox()
+        self.totalPrime.setStyleSheet('QDoubleSpinBox {font: bold;} ')
+        self.totalPrime.setEnabled(False)                                  # readonly
+        self.totalPrime.setRange(-1.0, 1_000_000.0)
+
         # set the page layout
         layout = QGridLayout()
 
         row = 0
         turnLabel = QLabel("Factors affecting the vessel's minimum <b>turning radius</b>")
-        # turnLabel.setAlignment(Qt.AlignCenter)
-        # turnLabel.setStyleSheet('QLabel {color:darkblue}')
-        # turnLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        # turnLabel.setLineWidth(2)
-        # turnLabel.setFixedHeight(30)
         layout.addWidget(turnLabel, row, 0, 1, 4)
 
         row += 1
@@ -1517,9 +1335,6 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(self.frcOut, row, 2)
         layout.addWidget(QLabel('Outer force [tonF]'), row, 3)
 
-        # row += 1
-        # layout.addWidget(QHLine(), row, 0, 1, 4)
-
         row += 1
         layout.addWidget(QLabel('Line turn radius from limits <b>inner</b> and <b>outer</b> streamers '), row, 0, 1, 4)
 
@@ -1538,13 +1353,7 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
-        ffLabel = QLabel('<b>Size</b> of full fold <b>survey area</b>, run-outs, nr sail lines and <b><i>optimal</i></b>  nr lines per race track')
-        # ffLabel.setAlignment(Qt.AlignCenter)
-        # ffLabel.setStyleSheet('QLabel {color:darkblue}')
-        # ffLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        # ffLabel.setLineWidth(2)
-        # ffLabel.setFixedHeight(30)
-        layout.addWidget(ffLabel, row, 0, 1, 4)
+        layout.addWidget(QLabel('<b>Size</b> of full fold <b>survey area</b>, run-outs, nr sail lines and <b><i>optimal</i></b>  nr lines per race track'), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.surIsiz, row, 0)
@@ -1555,20 +1364,8 @@ class Page_4(SurveyWizardPage):
         row += 1
         layout.addWidget(self.runOut, row, 0)
         layout.addWidget(QLabel('Run-out length [m]'), row, 1)
-        layout.addWidget(self.nsl, row, 2)
+        layout.addWidget(self.nrSaillines, row, 2)
         layout.addWidget(QLabel('<b>Sail lines</b> in survey [#]'), row, 3)
-
-        # row += 1
-        # layout.addWidget(QHLine(), row, 0, 1, 4)
-
-        # row += 1
-        # lapsLabel = QLabel('<b>Optimal</b> nr of <b>sail lines</b> per race track, and nr <b>tracks</b> in survey')
-        # lapsLabel.setAlignment(Qt.AlignCenter)
-        # lapsLabel.setStyleSheet('QLabel {color:darkblue}')
-        # lapsLabel.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        # lapsLabel.setLineWidth(2)
-        # lapsLabel.setFixedHeight(30)
-        # layout.addWidget(lapsLabel, row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.nrLinesPerTrack, row, 0)
@@ -1585,40 +1382,13 @@ class Page_4(SurveyWizardPage):
         row += 1
         layout.addWidget(QLabel('Note: apart from the <b>final</b> race track, all sail line numbers must be <b>odd</b>'), row, 0, 1, 4)
 
-        self.lineSeries = QLineEdit()
-        input_validator = QRegularExpressionValidator(QRegularExpression('[0-9 ]+'), self.lineSeries)
-        self.lineSeries.setValidator(input_validator)
-        self.lineSeries.textEdited.connect(self.updateTrackList)
-
-        # needed to prevent that the edit control consumes al available extra space when expanding, for no obvious reasons...
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        self.lineSeries.setSizePolicy(sizePolicy)
-
-        self.lineSeriesLabel = QLabel('<b>list</b> of sail lines/track')
-        self.nsl2Label = QLabel('<b>Sail lines in survey</b> [#]')
-        self.nsl2Label.setToolTip(linesTip)
-
         row += 1
         layout.addWidget(self.lineSeries, row, 0)
         layout.addWidget(self.lineSeriesLabel, row, 1)
-        layout.addWidget(self.nsl2, row, 2)
+        layout.addWidget(self.noSaillines, row, 2)
         layout.addWidget(self.nsl2Label, row, 3)
 
         row += 1
-        self.turnOverhead = QDoubleSpinBox()
-        self.turnOverhead.setStyleSheet('QDoubleSpinBox {font: bold;} ')
-        self.turnOverhead.setRange(-1.0, 1_000_000.0)
-        self.turnOverhead.setEnabled(False)                                  # readonly
-
-        self.totalTurns = QDoubleSpinBox()
-        self.totalTurns.setEnabled(False)                                  # readonly
-        self.totalTurns.setRange(-1.0, 1_000_000.0)
-
-        self.totalPrime = QDoubleSpinBox()
-        self.totalPrime.setStyleSheet('QDoubleSpinBox {font: bold;} ')
-        self.totalPrime.setEnabled(False)                                  # readonly
-        self.totalPrime.setRange(-1.0, 1_000_000.0)
-
         layout.addWidget(self.turnOverhead, row, 0)
         layout.addWidget(QLabel('<b>% Line turn overhead</b>'), row, 1)
         layout.addWidget(self.totalPrime, row, 2)
@@ -1633,28 +1403,12 @@ class Page_4(SurveyWizardPage):
         layout.addWidget(QLabel('Total turn effort [km]'), row, 3)
 
         row += 1
-        self.turn180 = QDoubleSpinBox()
-        self.turn180.setEnabled(False)                                  # readonly
-        self.turn180.setRange(-1.0, 1_000_000.0)
-
-        self.runIns = QDoubleSpinBox()
-        self.runIns.setEnabled(False)                                  # readonly
-        self.runIns.setRange(-1.0, 1_000_000.0)
-
         layout.addWidget(self.turn180, row, 0)
         layout.addWidget(QLabel('180° turns [km]'), row, 1)
         layout.addWidget(self.runIns, row, 2)
         layout.addWidget(QLabel('run-ins [km]'), row, 3)
 
         row += 1
-        self.teardrops = QDoubleSpinBox()
-        self.teardrops.setEnabled(False)                                  # readonly
-        self.teardrops.setRange(-1.0, 1_000_000.0)
-
-        self.xLineSail = QDoubleSpinBox()
-        self.xLineSail.setEnabled(False)                                  # readonly
-        self.xLineSail.setRange(-1.0, 1_000_000.0)
-
         layout.addWidget(self.teardrops, row, 0)
         layout.addWidget(QLabel('Tear drops [km]'), row, 1)
         layout.addWidget(self.xLineSail, row, 2)
@@ -1663,62 +1417,15 @@ class Page_4(SurveyWizardPage):
         self.setLayout(layout)
 
         # register fields
+        self.registerField('surIsiz', self.surIsiz, 'value')                    # inline survey size
+        self.registerField('surXsiz', self.surXsiz, 'value')                    # x-line survey size
+        self.registerField('lineSeries', self.lineSeries)                       # series of lines per race track
         self.registerField('vMinInner', self.vMinInner, 'value')                # min cable velocity
         self.registerField('maxDragForce', self.maxDragForce, 'value')          # max towing force
         self.registerField('turnRad', self.turnRad, 'value')                    # turn radius
 
-        self.registerField('rlr', self.rlr, 'value')                            # rec line roll steps
-        self.registerField('slr', self.slr, 'value')                            # src line roll steps
-        self.registerField('rld', self.rld, 'value')                            # rec line deployments
-        self.registerField('sld', self.sld, 'value')                            # src line deployments
-
-        self.registerField('rec_00', self.chkShiftSpread)                       # put 1st receiver at (0,0)
-
-        self.registerField('binImin', self.binImin, 'value')                    # bin area x-origin
-        self.registerField('surIsiz', self.surIsiz, 'value')                    # bin area inline size
-        self.registerField('binXmin', self.binXmin, 'value')                    # bin area y-origin
-        self.registerField('surXsiz', self.surXsiz, 'value')                    # bin area x-line size
-
-        # connect signals to slots
-        self.rlr.editingFinished.connect(self.evt_roll_editingFinished)         # connect all signals to the same slot
-        self.slr.editingFinished.connect(self.evt_roll_editingFinished)
-        self.rld.editingFinished.connect(self.evt_roll_editingFinished)
-        self.sld.editingFinished.connect(self.evt_roll_editingFinished)
-
-        # self.binImin.editingFinished.connect(self.evt_binImin_editingFinished)
-        # self.surIsiz.editingFinished.connect(self.evt_binIsiz_editingFinished)
-        # self.binXmin.editingFinished.connect(self.evt_binXmin_editingFinished)
-        # self.surXsiz.editingFinished.connect(self.evt_binXsiz_editingFinished)
-
-        self.chkShiftSpread.toggled.connect(self.evt_chkShiftSpread_toggled)
-
-        # give some initial values
-        self.rlr.setValue(config.rlr)       # moveup one line
-        self.slr.setValue(config.slr)       # moveup one line
-        self.sld.setValue(round(config.deployInline / (config.slr * config.sli)) + 1)
-        self.rld.setValue(round(config.deployX_line / (config.rlr * config.rli)) + 1)
-
-        # initial bin analysis area
-        shiftI = 6000 if shift else 0
-        self.binImin.setValue(config.binImin + shiftI)
-        # self.surXsiz.setValue(config.surveySizeX)
-
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         print('initialize page 4')
-
-        sli = self.field('sli')
-        rli = self.field('rli')
-        nsl = self.field('nsl')
-
-        slr = nsl                                                               # normally roll amount of source lines in template; should be different for parallel !!
-        rlr = self.parent.nTemplates                                            # roll as many lines as there are templates
-        self.setField('slr', slr)
-        self.setField('rlr', rlr)
-
-        sld = max(round(config.deployInline / (slr * sli)), 1)
-        rld = max(round(config.deployX_line / (rlr * rli)), 1)
-        self.setField('sld', sld)
-        self.setField('rld', rld)
 
         self.updateParameters()
         self.updateTrackList()
@@ -1727,19 +1434,19 @@ class Page_4(SurveyWizardPage):
     def updateParameters(self):
         # need to work out nr of sail lines and ideal racetrack width
         cL = self.field('cabLength')                                            # streamer length
-        dCab = self.field('cabSepHead')
+        dCab0 = self.field('cabSepHead')
         nCab = self.field('nCab')
         surXsiz = self.field('surXsiz')
         vTurn = self.field('vTurn')                                             # Vessel line turn speed (from page 1)
         vMinInner = self.field('vMinInner')
         maxDragForce = self.field('maxDragForce')
 
-        sli = 0.5 * nCab * dCab                                                 # sail line interval
-        nsl = math.ceil(surXsiz / sli)                                          # nr sail lines
-        self.nsl.setValue(nsl)
+        sailLineInterval = 0.5 * nCab * dCab0                                   # sail line interval
+        nrSaillines = math.ceil(surXsiz / sailLineInterval)                     # required nr sail lines in survey
+        self.nrSaillines.setValue(nrSaillines)
 
-        spreadWidth = (nCab - 1) * dCab
-        innerTurningRadius = 0.5 * vTurn * spreadWidth / (vTurn - vMinInner)   # speed in knot or m/s does not matter for their ratio
+        spreadWidth = (nCab - 1) * dCab0
+        innerTurningRadius = 0.5 * vTurn * spreadWidth / (vTurn - vMinInner)    # speed in knot or m/s does not matter for their ratio
 
         self.runOut.setValue(0.5 * cL)
 
@@ -1776,33 +1483,30 @@ class Page_4(SurveyWizardPage):
 
         self.msg.setText(turnText)
 
-        nrLinesForward = round(vesselTurningRadius / sli + 0.5) * 2 + 1
+        nrLinesForward = round(vesselTurningRadius / sailLineInterval + 0.5) * 2 + 1
         nrLinesBackward = nrLinesForward - 1
 
         nrLinesPerTrack = nrLinesForward + nrLinesBackward
         self.nrLinesPerTrack.setValue(nrLinesPerTrack)
 
-        nrTracks = surXsiz / (sli * nrLinesPerTrack)
+        nrTracks = surXsiz / (sailLineInterval * nrLinesPerTrack)
         self.nrTracks.setValue(nrTracks)
 
         # create basic tracklist
-
         self.trackList = []
-        while sum(self.trackList) < nsl:
+        while sum(self.trackList) < nrSaillines:
             self.trackList.append(nrLinesPerTrack)
-        # else:
-        #     print('i is no longer less than 6')
 
         self.lineSeries.setText(intListToString(self.trackList))
-        self.nsl2.setValue(sum(self.trackList))
+        self.noSaillines.setValue(sum(self.trackList))
 
     def updateTrackList(self):
         # work out sequence of saillines per race track
 
         trackList = stringToIntList(self.lineSeries.text())
-        nsl2 = sum(trackList)
+        noSaillines = sum(trackList)
 
-        self.nsl2.setValue(nsl2)
+        self.noSaillines.setValue(noSaillines)
 
         nTracks = len(trackList)
 
@@ -1819,28 +1523,30 @@ class Page_4(SurveyWizardPage):
             self.lineSeries.setStyleSheet('QLineEdit {color:black; background-color:white;}')
             self.lineSeriesLabel.setStyleSheet('QLabel {color:black}')
 
-        nsl = self.nsl.value()
-        if nsl2 < nsl:
-            self.nsl2.setStyleSheet('QSpinBox {font:bold; color:red} ')
+        nrSaillines = self.nrSaillines.value()
+        if noSaillines < nrSaillines:                                           # required < actual
+            self.noSaillines.setStyleSheet('QSpinBox {font:bold; color:red} ')
             self.nsl2Label.setStyleSheet('QLabel {color:red}')
-        elif nsl < nsl2:
-            self.nsl2.setStyleSheet('QSpinBox {font:bold; color:darkorange} ')
+        elif nrSaillines < noSaillines:                                         # actual > required
+            self.noSaillines.setStyleSheet('QSpinBox {font:bold; color:darkorange} ')
             self.nsl2Label.setStyleSheet('QLabel {color:darkorange}')
         else:
-            self.nsl2.setStyleSheet('QSpinBox {font:bold; color:dimgrey} ')
-            self.nsl2Label.setStyleSheet('QLabel {color:black}')
+            # self.noSaillines.setStyleSheet('QSpinBox {font:bold; color:dimgrey} ')
+            # self.nsl2Label.setStyleSheet('QLabel {color:black}')                # actual == required
+            self.noSaillines.setStyleSheet('QSpinBox {font:bold; color:forestgreen} ')
+            self.nsl2Label.setStyleSheet('QLabel {color:forestgreen}')                # actual == required
 
         cL = self.field('cabLength')                                            # streamer length
         FF = self.field('surIsiz')                                              # bin area inline size
-        totalPrimeKm = 0.001 * nsl2 * (FF + 0.5 * cL)                           # sailline effort in km
-        totalRuninKm = 0.001 * nsl2 * 0.5 * cL
+        totalPrimeKm = 0.001 * noSaillines * (FF + 0.5 * cL)                    # sailline effort in km
+        totalRuninKm = 0.001 * noSaillines * 0.5 * cL
 
         turnRadius = self.field('turnRad')                                      # turn radius
-        dCab = self.field('cabSepHead')
+        dCab0 = self.field('cabSepHead')
         nCab = self.field('nCab')
-        saillineInterval = 0.5 * nCab * dCab
+        saillineInterval = 0.5 * nCab * dCab0
 
-        if nsl2 == 0:
+        if noSaillines == 0:
             self.totalTurns.setValue(0.0)
             self.totalPrime.setValue(0.0)
             self.turn180.setValue(0.0)
@@ -1864,14 +1570,14 @@ class Page_4(SurveyWizardPage):
             crosslineTotal = 0.0
             teardropTotal = 0.0
 
-            if nTracks > 0:                                                         # need at least 2 tracks to restrict the first track
-                for lines in trackList[:-1]:                                        # ignore last entry
+            if nTracks > 0:                                                     # need at least 2 tracks to restrict the first track
+                for lines in trackList[:-1]:                                    # ignore last entry
                     lineturn, crossline, teardrop = lineturnDetour(turnRadius, saillineInterval, lines)
                     lineturnTotal += lineturn
                     crosslineTotal += crossline
                     teardropTotal += teardrop
 
-                lines = trackList[-1]                                               # use the  last entry
+                lines = trackList[-1]                                           # use the  last entry
                 lineturn, crossline, teardrop = lineturnDetour(turnRadius, saillineInterval, lines, final=True)
                 lineturnTotal += lineturn
                 crosslineTotal += crossline
@@ -1881,10 +1587,10 @@ class Page_4(SurveyWizardPage):
                 teardropTotal *= 0.001
                 crosslineTotal *= 0.001
 
-                cL = self.field('cabLength')                                            # streamer length
-                FF = self.field('surIsiz')                                              # bin area inline size
-                totalPrimeKm = 0.001 * nsl2 * (FF + 0.5 * cL)                           # sailline effort in km, including run-outs
-                totalRuninKm = 0.001 * nsl2 * 0.5 * cL
+                cL = self.field('cabLength')                                    # streamer length
+                FF = self.field('surIsiz')                                      # bin area inline size
+                totalPrimeKm = 0.001 * noSaillines * (FF + 0.5 * cL)            # sailline effort in km, including run-outs
+                totalRuninKm = 0.001 * noSaillines * 0.5 * cL
                 totalTurns = lineturnTotal + teardropTotal + crosslineTotal + totalRuninKm
 
                 self.turn180.setValue(lineturnTotal)
@@ -1893,108 +1599,23 @@ class Page_4(SurveyWizardPage):
                 self.totalTurns.setValue(totalTurns)
                 self.turnOverhead.setValue(100.0 * totalTurns / totalPrimeKm)
 
-    def updateParentSurvey(self):                                               # update the survey object
-        # populate / update the survey skeleton; growList is not being affected
-        # depending on the survey type, we need to iterate over the number of templates
+        self.completeChanged.emit()
 
-        offImin = self.field('offImin')
+    def updateParentSurvey(self):                                               # page 4  - update the survey object
 
-        nsl = self.field('nsl')                                                 # number source lines
-        sli = self.field('sli')                                                 # source line interval
-        rli = self.field('rli')                                                 # receiver line interval
-        spi = self.field('spi')                                                 # source point interval
-        rpi = self.field('rpi')                                                 # receiver point interval
-        typ = self.field('type')                                                # template type
+        # populate / update the survey skeleton; we need as many blocks as there are race tracks
+        # per race track the number of sail lines are given in the track list. Roll along follows from the FF survey length + run-out length
 
-        nsla = self.field('nslant')                                             # nr templates in a slanted survey
-        brk = self.field('brk')                                                 # brick offset distance
-        nzz = self.field('nzz')                                                 # nr source fleets in a zigzag survey
-        mir = self.field('mir')                                                 # mirrored zigzag survey
+        # lineSeries = self.field('lineSeries')                                   # list from edit control
+        # trackList = stringToIntList(lineSeries)                                 # list converted to integers
+        # trackCount = len(trackList)                                             # nr of entries in list
+        # nrSailLines = sum(trackList)                                            # total nr of saillines in survey
 
-        rec_00 = self.field('rec_00')                                           # if True, move receiver origin to (0, 0)
-        shiftI = -offImin if rec_00 else 0.0                                    # amount of x-shift to apply to each seed
-
-        if typ == SurveyType.Orthogonal.value or typ == SurveyType.Parallel.value:
-            # source
-            nPadding = (nsl - 1) * round(sli / rpi)                                                         # add nr recs between two source lines
-            self.parent.survey.blockList[0].templateList[0].seedList[0].origin.setX(shiftI)                # Seed origin
-            # receiver
-            self.parent.survey.blockList[0].templateList[0].seedList[1].origin.setX(offImin + shiftI)       # Seed origin
-
-        elif typ == SurveyType.Slanted.value:
-            nPadding = round(sli / rpi)                                        # as many rec points as there are between 2 src lines
-            nPadding += (nsl - 1) * round(sli / rpi)                            # add nr recs between two source lines
-
-            ratio = sli / (nsla * rli)                                          # get the ratio from the slant angle
-
-            for i in range(nsla):
-                # source
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(i * rli * ratio + shiftI)   # Seed origin
-                # receiver
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(offImin + shiftI)        # Seed origin
-
-        elif typ == SurveyType.Brick.value:
-            nPadding = round(brk / rpi)                                          # shift in source lines
-            nPadding += (nsl - 1) * round(sli / rpi)                            # add nr recs between two source lines
-
-            for i in range(self.parent.nTemplates):
-                # source
-                self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(i * brk + shiftI)       # Seed origin
-                # receiver
-                self.parent.survey.blockList[0].templateList[i].seedList[1].origin.setX(offImin + shiftI)       # Seed origin
-
-        elif typ == SurveyType.Zigzag.value:
-            nPadding = 2 * (round(rli / spi) + nzz - 1) - 1                       # zig + zag distance, accounted for nzz
-            # no need to adjust for nsl; is always 1 for zigzag
-
-            for i in range(0, 2 * nzz, 2):
-                # source up
-                self.parent.survey.blockList[0].templateList[0].seedList[i].origin.setX(i * rpi + shiftI)              # Seed origin
-                # source down
-                self.parent.survey.blockList[0].templateList[0].seedList[i + 1].origin.setX(rli + i * rpi + shiftI)      # Seed origin
-
-            # receiver
-            i = 2 * nzz
-            self.parent.survey.blockList[0].templateList[0].seedList[i].origin.setX(offImin + shiftI)               # Seed origin
-
-            if mir:                                                                                             # now do the mirror template
-                for i in range(0, 2 * nzz, 2):
-                    # source up
-                    self.parent.survey.blockList[0].templateList[1].seedList[i].origin.setX(i * rpi + shiftI)              # Seed origin
-                    # source down
-                    self.parent.survey.blockList[0].templateList[1].seedList[i + 1].origin.setX(rli + i * rpi + shiftI)        # Seed origin
-
-                # receiver
-                i = 2 * nzz
-                self.parent.survey.blockList[0].templateList[1].seedList[i].origin.setX(offImin + shiftI)                # Seed origin
-
-        elif typ == SurveyType.Streamer.value:
-            pass
-
-        else:
-            raise NotImplementedError('unsupported survey type.')
-
-        # the following parameters are at the core of this wizard page
-        # parameters for X-line roll, hence the rec lines increment
-        rld = self.field('rld')                                                 # rec line deployments
-        rlr = self.field('rlr')                                                 # move-up along src line
-        rli = self.field('rli')                                                 # rec line interval
-        rlr *= rli
-
-        # parameters for inline roll, hence the source lines increment
-        sld = self.field('sld')                                                 # src line deployments
-        slr = self.field('slr')                                                 # rec line roll along
-        sli = self.field('sli')                                                 # source line interval
-        slr *= sli
-
-        for i in range(self.parent.nTemplates):
-            self.parent.survey.blockList[0].templateList[i].rollList[0].steps = rld           # nr deployments in y-direction
-            self.parent.survey.blockList[0].templateList[i].rollList[0].increment.setX(0.0)   # vertical
-            self.parent.survey.blockList[0].templateList[i].rollList[0].increment.setY(rlr)   # deployment interval
-
-            self.parent.survey.blockList[0].templateList[i].rollList[1].steps = sld           # nr deployments in x-direction
-            self.parent.survey.blockList[0].templateList[i].rollList[1].increment.setX(slr)   # deployment interval
-            self.parent.survey.blockList[0].templateList[i].rollList[1].increment.setY(0.0)   # horizontal
+        # make sure nothing 'rolls'; iterate over all blocks
+        for nBlock, _ in enumerate(self.parent.survey.blockList):
+            for nTemplate, _ in enumerate(self.parent.survey.blockList[0].templateList):
+                self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[0].increment.setX(0.0)   # vertical
+                self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[1].increment.setY(0.0)   # horizontal
 
         self.parent.survey.output.rctOutput.setLeft(self.field('binImin'))
         self.parent.survey.output.rctOutput.setWidth(self.field('surIsiz'))
@@ -2004,14 +1625,18 @@ class Page_4(SurveyWizardPage):
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
 
-    def cleanupPage(self):                                                      # needed to update previous page
+    def cleanupPage(self):                                                      # needed to update previous page(s)
         print('cleanup of page 4')
 
         # added 19/06/2024
-        self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in 'earlier' wizard pages; instead, create empty rect
-        for i in range(self.parent.nTemplates):
-            self.parent.survey.blockList[0].templateList[i].rollList[0].steps = 1  # nr deployments in y-direction
-            self.parent.survey.blockList[0].templateList[i].rollList[1].steps = 1  # nr deployments in x-direction
+        self.parent.survey.output.rctOutput = QRectF()                          # don't display this in 'earlier' wizard pages; instead, create empty rect
+
+        # make sure nothing 'rolls'; iterate over all blocks
+        for nBlock, _ in enumerate(self.parent.survey.blockList):
+            for nTemplate, _ in enumerate(self.parent.survey.blockList[0].templateList):
+                self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[0].steps = 1   # nr deployments in y-direction
+                self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[1].steps = 1   # nr deployments in x-direction
+                # self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[2].steps = 1   # nr deployments in z-direction; 3rd roll direction not implemented (yet)
 
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey ignoring rolling along
@@ -2045,23 +1670,161 @@ class Page_4(SurveyWizardPage):
         # oriY = [0.0]
         # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
-    def evt_chkShiftSpread_toggled(self, chkd):
-        offImin = self.field('offImin')
-        Imin = self.field('binImin')                                     # get inline origin of binning area
-        if chkd:                                                                # shifted up to (0,0) for the first receiver ?
-            Imin -= offImin                                                   # shift the area to the right (offImin is negative)
-        else:                                                                   # shifted up to (0,0) for the first receiver ?
-            Imin += offImin                                                   # shift the area back to the left
-
-        self.binImin.setValue(Imin)                                             # update the control
-        self.setField('binImin', Imin)                                          # update the field
-
-        self.updateParentSurvey()
-        self.plot()
-
     def evt_roll_editingFinished(self):
         self.updateParentSurvey()
         self.plot()
+
+    def isComplete(self):
+        #  See: https://doc.qt.io/archives/qq/qq22-qwizard.html#validatebeforeitstoolate
+        lineSeries = self.field('lineSeries')                                   # from edit control
+        trackList = stringToIntList(lineSeries)
+        nrSailLines = sum(trackList)
+
+        if nrSailLines == 0:
+            return False
+        else:
+            return True
+
+
+# Page_5 =======================================================================
+# 5. Template Properties - Binning extent in survey area
+
+
+class Page_5(SurveyWizardPage):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTitle('5. Template Properties')
+        self.setSubTitle('Binning extent in survey area')
+
+        print('page 5 init')
+
+        # Add some widgets
+
+        self.binImin = QDoubleSpinBox()
+        self.binImin.setRange(-1_000_000, 1_000_000)
+        self.registerField('binImin', self.binImin, 'value')                    # bin area x-origin
+
+        self.binIsiz = QDoubleSpinBox()
+        self.binIsiz.setRange(0.0, 1_000_000)
+        self.registerField('binIsiz', self.binIsiz, 'value')                    # bin area inline size
+
+        self.binXmin = QDoubleSpinBox()
+        self.binXmin.setRange(-1_000_000, 1_000_000)
+        self.registerField('binXmin', self.binXmin, 'value')                    # bin area y-origin
+
+        self.binXsiz = QDoubleSpinBox()
+        self.binXsiz.setRange(0.0, 1_000_000)
+        self.registerField('binXsiz', self.binXsiz, 'value')                    # bin area x-line size
+
+        # set the page layout
+        layout = QGridLayout()
+
+        row = 0
+        layout.addWidget(QLabel('<b>Start corner</b> of binning area'), row, 0, 1, 2)
+        layout.addWidget(QLabel('<b>Size</b> of binning area'), row, 2, 1, 2)
+
+        row += 1
+        layout.addWidget(self.binImin, row, 0)
+        layout.addWidget(QLabel('Inline origin [m]'), row, 1)
+        layout.addWidget(self.binIsiz, row, 2)
+        layout.addWidget(QLabel('Inline size [m]'), row, 3)
+
+        row += 1
+        layout.addWidget(self.binXmin, row, 0)
+        layout.addWidget(QLabel('X-line origin [m]'), row, 1)
+        layout.addWidget(self.binXsiz, row, 2)
+        layout.addWidget(QLabel('X-line size [m]'), row, 3)
+
+        self.binImin.editingFinished.connect(self.evt_binImin_editingFinished)
+        self.binIsiz.editingFinished.connect(self.evt_binIsiz_editingFinished)
+        self.binXmin.editingFinished.connect(self.evt_binXmin_editingFinished)
+        self.binXsiz.editingFinished.connect(self.evt_binXsiz_editingFinished)
+
+        row += 1
+        layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        # create a vertical box layout widget (vbl)
+        vbl = QVBoxLayout()
+
+        # add the so far developed QGridLayout to the QVBoxLayout (layout)
+        vbl.addLayout(layout)
+
+        # insert PyQtGraph plotWidget                                           # See: https://groups.google.com/g/pyqtgraph/c/ls-9I2tHu2w
+        self.plotWidget = pg.PlotWidget(background='w')
+        self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
+        self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
+        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
+        self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
+        self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
+
+        # self.plotWidget.getViewBox().sigRangeChangedManually.connect(
+        #     self.mouseBeingDragged)                                             # essential to find plotting state for LOD plotting
+
+        self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
+        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
+
+        # add toolbar and plotwidget to the vertical box layout
+        vbl.addWidget(self.zoomBar)
+        vbl.addWidget(self.plotWidget)
+
+        # set the combined layouts to become this page's layout
+        self.setLayout(vbl)
+
+    def initializePage(self):                                                   # This routine is done each time before the page is activated
+        print('initialize page 5')
+
+        lineSeries = self.field('lineSeries')                                   # text from edit control
+        trackList = stringToIntList(lineSeries)                                 # turn numbers into int list
+        nrSailLines = sum(trackList)                                            # get total nr of saillines
+
+        dCab0 = self.field('cabSepHead')
+        nCab = self.field('nCab')
+        sailLineInterval = 0.5 * nCab * dCab0                                   # sail line interval
+        surveyWidth = nrSailLines * sailLineInterval                            # calc survey width
+
+        cL = self.field('cabLength')                                            # streamer length
+        FF = self.field('surIsiz') + 0.5 * cL                                   # bin area inline size
+
+        self.binImin.setValue(0.5 * FF - 1000.0)
+        self.binXmin.setValue(0.5 * surveyWidth - 1000.0)
+
+        self.binIsiz.setValue(2000.0)
+        self.binXsiz.setValue(2000.0)
+
+        self.updateParentSurvey()
+        self.plot()
+
+    def cleanupPage(self):                                                      # needed to update previous page
+        print('cleanup of page 5')
+
+    def updateParentSurvey(self):
+        # sofar now
+        # to do: build up total survey object from scratch
+        pass
+
+    def plot(self):
+        """plot the survey area"""
+
+        self.plotWidget.plotItem.clear()
+        self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
+
+        styles = {'color': '#646464', 'font-size': '10pt'}
+        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
+        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
+        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
+        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
+
+        self.parent.survey.paintMode = PaintMode.justTemplates                      # .justLines
+        self.parent.survey.lodScale = 6.0
+        item = self.parent.survey
+
+        # 4. roll along and binning area
+        self.plotWidget.plotItem.addItem(item)
+
+        # Add a marker for the origin
+        oriX = [0.0]
+        oriY = [0.0]
+        orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
     def evt_binImin_editingFinished(self, plot=True):
         binI = self.field('binI')
@@ -2072,7 +1835,7 @@ class Page_4(SurveyWizardPage):
 
     def evt_binIsiz_editingFinished(self, plot=True):
         binI = self.field('binI')
-        nrIntervals = max(round(self.surIsiz.value() / binI), 1)
+        nrIntervals = max(round(self.field('surIsiz') / binI), 1)
         surIsiz = nrIntervals * binI
         # self.surIsiz.setValue(surIsiz)
         self.updateBinningArea(plot)
@@ -2086,7 +1849,7 @@ class Page_4(SurveyWizardPage):
 
     def evt_binXsiz_editingFinished(self, plot=True):
         binX = self.field('binX')
-        nrIntervals = max(round(self.surXsiz.value() / binX), 1)
+        nrIntervals = max(round(self.field('surXsiz') / binX), 1)
         surXsiz = nrIntervals * binX
         # self.surXsiz.setValue(surXsiz)
         self.updateBinningArea(plot)
@@ -2096,27 +1859,23 @@ class Page_4(SurveyWizardPage):
         self.parent.survey.output.rctOutput.setWidth(self.field('surIsiz'))
         self.parent.survey.output.rctOutput.setTop(self.field('binXmin'))
         self.parent.survey.output.rctOutput.setHeight(self.field('surXsiz'))
-
         if plot:
             self.plot()
 
 
-# Page_5 =======================================================================
-# 5. Template Properties - Pattern/array details
+# Page_6 =======================================================================
+# 6. Template Properties - Pattern/array details
 
 
-class Page_5(SurveyWizardPage):
+class Page_6(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle('5. Template Properties')
+        self.setTitle('6. Template Properties')
         self.setSubTitle('Pattern/array details')
 
-        print('page 5 init')
+        print('page 6 init')
 
         # Add some widgets
-        self.chkExtendOffsets = QCheckBox('Extend offsets with 0.5 bingrid - to prevent roundoff errors')
-        self.chkExtendOffsets.setChecked(True)
-
         self.recPatName = QLineEdit(config.rNam)
         self.srcPatName = QLineEdit(config.sNam)
 
@@ -2254,7 +2013,8 @@ class Page_5(SurveyWizardPage):
         self.srcElemeInt.editingFinished.connect(self.initializePage)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 5')
+        print('initialize page 6')
+
         self.updateParentSurvey()
         self.plot()
 
@@ -2343,7 +2103,7 @@ class Page_5(SurveyWizardPage):
                             seed.patternPicture = None
 
     def plot(self):
-        """plot the template"""
+        """plot the pattern(s)"""
 
         rUse = self.field('rUse')
         sUse = self.field('sUse')
@@ -2371,8 +2131,6 @@ class Page_5(SurveyWizardPage):
         recPattern = RollPattern()
         recPattern = self.parent.survey.patternList[1]
 
-        # 5. Template Properties
-
         if sUse:
             item1 = srcPattern
             self.plotWidget.plotItem.addItem(item1)
@@ -2387,17 +2145,17 @@ class Page_5(SurveyWizardPage):
         # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
 
-# Page_6 =======================================================================
-# 6. Project Coordinate Reference System (CRS)
+# Page_7 =======================================================================
+# 7. Project Coordinate Reference System (CRS)
 
 
-class Page_6(SurveyWizardPage):
+class Page_7(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle('6. Project Coordinate Reference System (CRS)')
+        self.setTitle('7. Project Coordinate Reference System (CRS)')
         self.setSubTitle('Select a Projected CRS to ensure valid distance and areal measurements')
 
-        print('page 6 init')
+        print('page 7 init')
 
         # See: https://api.qgis.org/api/3.16/qgscoordinatereferencesystem_8h_source.html#l00668
         # See https://api.qgis.org/api/classQgsProjectionSelectionTreeWidget.html
@@ -2417,11 +2175,11 @@ class Page_6(SurveyWizardPage):
         self.proj_selector.crsSelected.connect(self.crs_selected)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 6')
+        print('initialize page 7')
 
     def cleanupPage(self):                                                      # needed to update previous page
         self.parent.page(4).plot()                                              # needed to update the plot
-        print('cleanup of page 6')
+        print('cleanup of page 7')
 
     def crs_selected(self):
         # See: https://api.qgis.org/api/classQgsCoordinateReferenceSystem.html
@@ -2439,18 +2197,18 @@ class Page_6(SurveyWizardPage):
         return False
 
 
-# Page_7 =======================================================================
-# 7. Project Coordinate Reference System (CRS) - Enter the survey's coordinate transformation details
+# Page_8 =======================================================================
+# 8. Project Coordinate Reference System (CRS) - Enter the survey's coordinate transformation details
 
 
-class Page_7(SurveyWizardPage):
+class Page_8(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setTitle('7. Project Coordinate Reference System (CRS)')
+        self.setTitle('8. Project Coordinate Reference System (CRS)')
         self.setSubTitle("Enter the survey's coordinate transformation details")
 
-        print('page 7 init')
+        print('page 8 init')
 
         # create some widgets
         self.Xt_0 = QDoubleSpinBox()
@@ -2609,7 +2367,7 @@ class Page_7(SurveyWizardPage):
         self.plot()
 
     def plot(self):
-        """6. Project Coordinate Reference System (CRS)"""
+        """8. Project Coordinate Reference System (CRS)"""
 
         self.plotWidget.plotItem.clear()
         self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
@@ -2643,17 +2401,17 @@ class Page_7(SurveyWizardPage):
     # » Yt = Yt0  –  Xs * k * mX * Ishift(phiX)  +  Ys * k * mY * cos(phiY)<br>
 
 
-# Page_8 =======================================================================
-# 8. Summary information - Survey representation in xml-format
+# Page_9 =======================================================================
+# 9. Summary information - Survey representation in xml-format
 
 
-class Page_8(SurveyWizardPage):
+class Page_9(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle('8. Summary information')
+        self.setTitle('9. Summary information')
         self.setSubTitle('Survey representation in xml-format')
 
-        print('page 8 init')
+        print('page 9 init')
 
         # Add some widgets
         self.xmlEdit = QPlainTextEdit('Element tree')
@@ -2669,10 +2427,10 @@ class Page_8(SurveyWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 8')
+        print('initialize page 9')
 
         xml = self.parent.survey.toXmlString()                                  # check what's in there
         self.xmlEdit.setPlainText(xml)                                          # now show the xml information in the widget
 
     def cleanupPage(self):                                                      # needed to return to previous pages
-        print('cleanup of page 8')
+        print('cleanup of page 9')

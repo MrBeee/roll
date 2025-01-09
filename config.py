@@ -72,7 +72,7 @@ cabDepthHead = 8.0                                                              
 cabDepthTail = 10.0                                                             # [m]       streamer depth at end of spread
 
 cabSepHead = 100.0                                                              # [m]       streamer inerval at head of spread
-cabSepTail = 120.0                                                              # [m]       streamer depth at end of spread
+cabSepTail = 150.0                                                              # [m]       streamer depth at end of spread
 
 srcDepth = 10.0                                                                 # [m]       source depth default
 recLength = 8.0                                                                 # [s]       record length
