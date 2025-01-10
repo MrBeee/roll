@@ -594,13 +594,11 @@ class Page_2(SurveyWizardPage):
         print('initialize page 2')
 
         # completely RESET the survey object, so we can start with it from scratch
-        self.parent.survey = RollSurvey()
+        self.parent.survey = RollSurvey()                                       # the survey object can be reset using survey.createBasicSkeleton()
 
         # fill in the survey object information we already know now
         self.parent.survey.name = self.field('name')                            # Survey name
         self.parent.survey.type = SurveyType(SurveyType.Streamer.value)         # Survey type Enum
-
-        # from now on, the survey object is re-used, though blocklist and patternlist can be emptied using survey.createBasicSkeleton()
 
         self.plot()                                                             # refresh the plot
 
@@ -755,7 +753,7 @@ class Page_2(SurveyWizardPage):
             orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
     def updateParentSurvey(self, plotIndex):
-        # create / update the survey skeleton
+        # create / update the survey skeleton - Page_2
 
         # need to move this to pattern page; it can probably just be deleted as pattern page works okay
         if False:
@@ -1108,7 +1106,7 @@ class Page_3(SurveyWizardPage):
         self.plot()
 
     def updateParentSurvey(self):
-        # adjust plot settings and populate / update the survey skeleton
+        # adjust plot settings and populate / update the survey skeleton - Page_3
 
         binI = self.field('binI')
         binX = self.field('binX')
@@ -1258,7 +1256,7 @@ class Page_4(SurveyWizardPage):
         self.lineSeries = QLineEdit()
         input_validator = QRegularExpressionValidator(QRegularExpression('[0-9 ]+'), self.lineSeries)
         self.lineSeries.setValidator(input_validator)
-        self.lineSeries.textEdited.connect(self.updateTrackList)
+        self.lineSeries.textEdited.connect(self.updateSailLineOverhead)
 
         # needed to prevent that the edit control consumes al available extra space when expanding, for no obvious reasons...
         sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -1428,11 +1426,10 @@ class Page_4(SurveyWizardPage):
         print('initialize page 4')
 
         self.updateParameters()
-        self.updateTrackList()
-        self.updateParentSurvey()                                               # update the survey object
+        self.updateSailLineOverhead()
 
     def updateParameters(self):
-        # need to work out nr of sail lines and ideal racetrack width
+        # need to work out ideal racetrack width and nr of tracks and sail lines in survey
         cL = self.field('cabLength')                                            # streamer length
         dCab0 = self.field('cabSepHead')
         nCab = self.field('nCab')
@@ -1500,7 +1497,7 @@ class Page_4(SurveyWizardPage):
         self.lineSeries.setText(intListToString(self.trackList))
         self.noSaillines.setValue(sum(self.trackList))
 
-    def updateTrackList(self):
+    def updateSailLineOverhead(self):
         # work out sequence of saillines per race track
 
         trackList = stringToIntList(self.lineSeries.text())
@@ -1601,49 +1598,25 @@ class Page_4(SurveyWizardPage):
 
         self.completeChanged.emit()
 
-    def updateParentSurvey(self):                                               # page 4  - update the survey object
-
-        # populate / update the survey skeleton; we need as many blocks as there are race tracks
-        # per race track the number of sail lines are given in the track list. Roll along follows from the FF survey length + run-out length
-
-        # lineSeries = self.field('lineSeries')                                   # list from edit control
-        # trackList = stringToIntList(lineSeries)                                 # list converted to integers
-        # trackCount = len(trackList)                                             # nr of entries in list
-        # nrSailLines = sum(trackList)                                            # total nr of saillines in survey
-
-        # make sure nothing 'rolls'; iterate over all blocks
-        for nBlock, _ in enumerate(self.parent.survey.blockList):
-            for nTemplate, _ in enumerate(self.parent.survey.blockList[0].templateList):
-                self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[0].increment.setX(0.0)   # vertical
-                self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[1].increment.setY(0.0)   # horizontal
-
-        self.parent.survey.output.rctOutput.setLeft(self.field('binImin'))
-        self.parent.survey.output.rctOutput.setWidth(self.field('surIsiz'))
-        self.parent.survey.output.rctOutput.setTop(self.field('binXmin'))
-        self.parent.survey.output.rctOutput.setHeight(self.field('surXsiz'))
-
-        self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
-        self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
-
     def cleanupPage(self):                                                      # needed to update previous page(s)
         print('cleanup of page 4')
 
         # added 19/06/2024
         self.parent.survey.output.rctOutput = QRectF()                          # don't display this in 'earlier' wizard pages; instead, create empty rect
 
-        # make sure nothing 'rolls'; iterate over all blocks
-        for nBlock, _ in enumerate(self.parent.survey.blockList):
-            for nTemplate, _ in enumerate(self.parent.survey.blockList[0].templateList):
-                self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[0].steps = 1   # nr deployments in y-direction
-                self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[1].steps = 1   # nr deployments in x-direction
-                # self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[2].steps = 1   # nr deployments in z-direction; 3rd roll direction not implemented (yet)
+        # # make sure nothing 'rolls'; iterate over all blocks
+        # for nBlock, _ in enumerate(self.parent.survey.blockList):
+        #     for nTemplate, _ in enumerate(self.parent.survey.blockList[0].templateList):
+        #         self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[0].steps = 1   # nr deployments in y-direction
+        #         self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[1].steps = 1   # nr deployments in x-direction
+        #         # self.parent.survey.blockList[nBlock].templateList[nTemplate].rollList[2].steps = 1   # nr deployments in z-direction; 3rd roll direction not implemented (yet)
 
-        self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
-        self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey ignoring rolling along
+        # self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
+        # self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey ignoring rolling along
 
         # note page(x) starts with a ZERO index; therefore page(0) == Page_1 and page(2) == Page_3
-        self.parent.page(2).updateParentSurvey()                                # (re)center single spread, may be shifted inline due to origin shift
-        self.parent.page(2).plot()                                              # needed to update the plot
+        # self.parent.page(2).updateParentSurvey()                                # (re)center single spread, may be shifted inline due to origin shift
+        # self.parent.page(2).plot()                                              # needed to update the plot
 
     def plot(self):
         pass
@@ -1669,10 +1642,6 @@ class Page_4(SurveyWizardPage):
         # oriX = [0.0]
         # oriY = [0.0]
         # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
-
-    def evt_roll_editingFinished(self):
-        self.updateParentSurvey()
-        self.plot()
 
     def isComplete(self):
         #  See: https://doc.qt.io/archives/qq/qq22-qwizard.html#validatebeforeitstoolate
@@ -1798,9 +1767,77 @@ class Page_5(SurveyWizardPage):
         print('cleanup of page 5')
 
     def updateParentSurvey(self):
-        # sofar now
-        # to do: build up total survey object from scratch
-        pass
+        # build up total survey object from scratch
+
+        lineSeries = self.field('lineSeries')                                   # list from edit control
+        trackList = stringToIntList(lineSeries)                                 # list converted to integers
+        trackCount = len(trackList)                                             # nr of entries in list
+        # nrSailLines = sum(trackList)                                            # total nr of saillines in survey
+
+        nSrc = self.field('nSrc')
+        nCab = self.field('nCab')
+
+        # Create a survey skeleton, so we can simply update survey properties, without having to instantiate underlying classes
+        self.parent.survey.createBasicSkeleton(nBlocks=trackCount, nTemplates=nSrc, nSrcSeeds=1, nRecSeeds=nCab)    # setup multiple blocks with their templates and seeds
+
+        sL = self.field('srcLayback')
+        rL = self.field('cabLayback')
+        sX = rL - sL                                                            # relative source location
+        cL = self.field('cabLength')                                            # streamer length
+        gI = self.field('groupInt')                                             # group interval
+        nGrp = round(cL / gI)                                                   # nr groups per streamer
+
+        dCab0 = self.field('cabSepHead')
+        dCab9 = self.field('cabSepTail')
+        recZ0 = -self.field('cabDepthHead')
+        recZ9 = -self.field('cabDepthTail')
+
+        dSrc = self.field('srcSeparation')
+        srcZ = -self.field('srcDepth')
+
+        dZCab = recZ9 - recZ0                                                   # depth increase along cable(s)
+        dZGrp = -gI / cL * dZCab                                                # depth increase along group(s); independent on azimuth (from fanning and currents)
+
+        dip = math.degrees(math.asin(dZCab / cL))
+        cL9 = cL * math.cos(math.radians(dip))                                  # cable length reduced by slant
+
+        src0 = -0.5 * (nSrc - 1) * dSrc                                         # cross-line position; first source
+        rec0 = -0.5 * (nCab - 1) * dCab0                                        # cross-line position head receiver; first streamer
+        rec9 = -0.5 * (nCab - 1) * dCab9                                        # cross-line position tail receiver; first streamer
+
+        for i in range(trackCount):                                             # iterate over all blocks
+            for j in range(nSrc):                                               # iterate over all templates
+                templateNameFwd = f'Sailing Fwd-{j + 1}'                        # get suitable template name for all sources
+                self.parent.survey.blockList[0].templateList[j].name = templateNameFwd
+
+                # source fwd
+                self.parent.survey.blockList[0].templateList[j].seedList[0].origin.setX(sX)                                 # Seed origin
+                self.parent.survey.blockList[0].templateList[j].seedList[0].origin.setY(src0 + j * dSrc)                    # Seed origin
+                self.parent.survey.blockList[0].templateList[j].seedList[0].origin.setZ(srcZ)                               # Seed origin
+
+                for k in range(nCab):                                           # iterate over all deployed cables
+
+                    # we need to allow for streamer fanning; hence each streamer will have its own orientation
+                    # this implies we can not 'grow' the spread to multiple streamers as a grow step in a grid
+
+                    dRec = rec9 - rec0 + k * (dCab9 - dCab0)                                                                # cross-line cable distance
+                    azi = math.degrees(math.asin(dRec / cL9))                                                               # corrresponding azimuth
+                    dRGrp = gI * math.cos(math.radians(dip))
+
+                    dXGrp = -dRGrp * math.cos(math.radians(azi))
+                    dYGrp = dRGrp * math.sin(math.radians(azi))
+
+                    self.parent.survey.blockList[0].templateList[j].seedList[k + 1].origin.setX(0.0)                        # Seed origin
+                    self.parent.survey.blockList[0].templateList[j].seedList[k + 1].origin.setY(rec0 + k * dCab0)           # Seed origin
+                    self.parent.survey.blockList[0].templateList[j].seedList[k + 1].origin.setZ(recZ0)                      # Seed origin
+
+                    self.parent.survey.blockList[0].templateList[j].seedList[k + 1].grid.growList[2].steps = nGrp           # nr of groups in cable
+                    self.parent.survey.blockList[0].templateList[j].seedList[k + 1].grid.growList[2].increment.setX(dXGrp)  # group interval
+                    self.parent.survey.blockList[0].templateList[j].seedList[k + 1].grid.growList[2].increment.setY(dYGrp)  # impact of fanning
+                    self.parent.survey.blockList[0].templateList[j].seedList[k + 1].grid.growList[2].increment.setZ(dZGrp)  # normalized slant
+
+        self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
+        self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
 
     def plot(self):
         """plot the survey area"""
