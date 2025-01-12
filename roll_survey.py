@@ -2015,6 +2015,10 @@ class RollSurvey(pg.GraphicsObject):
                 roll2 = RollTranslate()                                         # create a 'second' roll object
                 template.rollList.append(roll2)                                 # add roll object to template's rollList
 
+                # Todo: Need to add this for completeness; but consequently will have to test the code for every rollList appearance !!!
+                # roll3 = RollTranslate()                                         # create a 'second' roll object
+                # template.rollList.append(roll3)                                 # add roll object to template's rollList
+
                 block.templateList.append(template)                             # add template to block object
 
                 for nSrcSeed in range(nSrcSeeds):
@@ -2279,6 +2283,9 @@ class RollSurvey(pg.GraphicsObject):
                     painter.setBrush(QBrush(QColor(config.srcAreaColor)))
                     painter.drawRect(block.srcBoundingRect)
 
+                    if self.paintMode == PaintMode.justBlocks:                  # done enough
+                        continue
+
                     painter.setPen(config.recAreaPen)
                     painter.setBrush(QBrush(QColor(config.recAreaColor)))
                     painter.drawRect(block.recBoundingRect)
@@ -2286,9 +2293,6 @@ class RollSurvey(pg.GraphicsObject):
                     painter.setPen(config.cmpAreaPen)
                     painter.setBrush(QBrush(QColor(config.cmpAreaColor)))
                     painter.drawRect(block.cmpBoundingRect)
-
-                    if self.paintMode == PaintMode.justBlocks:                  # done enough
-                        continue
 
                     painter.setPen(pg.mkPen(0.5))                               # use a grey pen for template borders
                     painter.setBrush(pg.mkBrush((192, 192, 192, 3)))            # grey & semi-transparent, use for all templates
