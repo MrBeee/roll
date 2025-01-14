@@ -161,6 +161,16 @@ def lineturnDetour(turnRadius, saillineInterval, linesPerTrack, final=False):
     return (lineturnTotal, crosslineTotal, teardropTotal)
 
 
+def maxTurnSpeedVsCableLength(length):
+    maxSpeed = 49.7365 * length**-0.26803
+    return maxSpeed
+
+
+def maxCableLengthVsTurnSpeed(speed):
+    maxLength = 2_138_916 * speed**-3.73094
+    return maxLength
+
+
 def makePenFromParms(parms):
     assert len(parms) == 6, "need 6 parameters for: ('color', 'width', 'style', 'capStyle', 'joinStyle', 'cosmetic')"
 

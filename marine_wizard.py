@@ -18,7 +18,7 @@ from qgis.PyQt.QtGui import QColor, QImage, QPixmap, QRegularExpressionValidator
 from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QSizePolicy, QSpinBox, QVBoxLayout, QWizard, QWizardPage
 
 from . import config  # used to pass initial settings
-from .functions import even, intListToString, knotToMeterperSec, lineturnDetour, newtonToTonForce, stringToIntList, tonForceToNewton
+from .functions import even, intListToString, knotToMeterperSec, lineturnDetour, maxCableLengthVsTurnSpeed, maxTurnSpeedVsCableLength, newtonToTonForce, stringToIntList, tonForceToNewton
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
 from .roll_survey import PaintMode, RollSurvey, SurveyList, SurveyType
@@ -111,48 +111,64 @@ class Page_1(SurveyWizardPage):
         # create some widgets
         self.name = QLineEdit()
         self.name.setStyleSheet('QLineEdit  { background-color : lightblue} ')
+        name = SurveyType(SurveyType.Streamer.value).name                       # get name from enum
+        number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
+        self.name.setText(f'{name}_{number}')                                   # show the new name
+        self.registerField('name', self.name)                                   # Survey name
+
+        # to register fields for variable access in other Wizard Pages
+        # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
+        # See: https://stackoverflow.com/questions/33796022/use-registerfield-in-pyqt
 
         self.type = QComboBox()
         self.type.addItem(SurveyList[-1])
         self.type.setStyleSheet('QComboBox  { background-color : lightblue} ')
+        self.registerField('type', self.type)                                   # Survey type
 
         self.vSail = QDoubleSpinBox()
         self.vSail.setRange(0.1, 10.0)
         self.vSail.setValue(config.vSail)                                       # do this once in the constructor
         self.vSail.textChanged.connect(self.updateParameters)
         self.vSail.editingFinished.connect(self.updateParameters)
+        self.registerField('vSail', self.vSail, 'value')                        # Vessel acquisition speed
 
         self.vTurn = QDoubleSpinBox()
         self.vTurn.setRange(0.1, 10.0)
         self.vTurn.setValue(config.vTurn)                                       # do this once in the constructor
         self.vTurn.editingFinished.connect(self.evt_vTurn_editingFinished)
+        self.registerField('vTurn', self.vTurn, 'value')                        # Vessel line turn speed
 
         self.vCross = QDoubleSpinBox()
         self.vCross.textChanged.connect(self.updateParameters)
         self.vCross.editingFinished.connect(self.updateParameters)
         self.vCross.setRange(-5.0, 5.0)
         self.vCross.setValue(0.0)
+        self.registerField('vCross', self.vCross, 'value')                      # crosscurrent speed
 
         self.vTail = QDoubleSpinBox()
         self.vTail.textChanged.connect(self.updateParameters)
         self.vTail.editingFinished.connect(self.updateParameters)
         self.vTail.setRange(-5.0, 5.0)
         self.vTail.setValue(0.0)
+        self.registerField('vTail', self.vTail, 'value')                        # Tail current speed
 
         self.vCurrent = QDoubleSpinBox()                                        # readonly spinbox
         self.vCurrent.setRange(-10.0, 10.0)
         self.vCurrent.setValue(0.0)
         self.vCurrent.setEnabled(False)                                         # readonly
+        self.registerField('vCurrent', self.vCurrent, 'value')                  # overall current speed
 
         self.aFeat = QDoubleSpinBox()
         self.aFeat.setRange(-90.0, 90.0)
         self.aFeat.setValue(0.0)
         self.aFeat.setEnabled(False)                                            # readonly
+        self.registerField('aFeat', self.aFeat, 'value')                        # Feather angle
 
         self.cabLength = QDoubleSpinBox()
         self.cabLength.setRange(100.0, 20_000.0)
         self.cabLength.setValue(config.cabLength)
         self.cabLength.setSingleStep(1000.0)                                    # increment by km extra streamer
+        self.cabLength.editingFinished.connect(self.evt_cabLength_editingFinished)
         self.registerField('cabLength', self.cabLength, 'value')                # streamer length
 
         self.groupInt = QDoubleSpinBox()
@@ -160,39 +176,52 @@ class Page_1(SurveyWizardPage):
         self.groupInt.setValue(config.groupInt)
         self.groupInt.textChanged.connect(self.updateParameters)
         self.groupInt.editingFinished.connect(self.updateParameters)
+        self.registerField('groupInt', self.groupInt, 'value')                  # group interval
 
         self.nSrc = QSpinBox()
         self.nSrc.setRange(1, 50)
+        self.nSrc.setValue(config.nSrc)
         self.nSrc.textChanged.connect(self.updateParameters)
         self.nSrc.editingFinished.connect(self.updateParameters)
+        self.registerField('nSrc', self.nSrc, 'value')                          # number of sources deployed
 
         self.nCab = QSpinBox()
         self.nCab.setRange(1, 50)
+        self.nCab.setValue(config.nCab)
         self.nCab.setSingleStep(2)                                              # we want to stick to an even number of streamers
+        self.registerField('nCab', self.nCab, 'value')                          # number of cables deployed
 
         self.srcPopInt = QDoubleSpinBox()
         self.srcPopInt.setRange(0.0, 10_000.0)
+        self.srcPopInt.setValue(4.0 * 0.5 * config.groupInt)
         self.srcPopInt.textChanged.connect(self.updateParameters)
         self.srcPopInt.editingFinished.connect(self.updateParameters)
+        self.registerField('srcPopInt', self.srcPopInt, 'value')                # pop interval
 
         self.srcShtInt = QDoubleSpinBox()
         self.srcShtInt.setEnabled(False)
         self.srcShtInt.setRange(0.0, 10_000.0)
+        self.srcShtInt.setValue(4.0 * 0.5 * config.groupInt * config.nSrc)
+        self.registerField('srcShtInt', self.srcShtInt, 'value')                # shot point interval (per cmp line)
 
         self.recTail = QDoubleSpinBox()
         self.recTail.setRange(0.001, 1000.0)
         self.recTail.setEnabled(False)
+        self.registerField('recTail', self.recTail, 'value')                    # Clean record time, with tail current
 
         self.recHead = QDoubleSpinBox()
         self.recHead.setRange(0.001, 1000.0)
         self.recHead.setEnabled(False)
+        self.registerField('recHead', self.recHead, 'value')                    # Clean record time, with head current
 
         self.srcDepth = QDoubleSpinBox()
         self.srcDepth.setValue(config.srcDepth)
+        self.registerField('srcDepth', self.srcDepth, 'value')                  # source depth [m]
 
         self.recLength = QDoubleSpinBox()
         self.recLength.setValue(config.recLength)
         self.recLength.textChanged.connect(self.updateParameters)
+        self.registerField('recLength', self.recLength, 'value')                # record length [s]
 
         self.chkPopGroupAlign = QCheckBox('Match pop interval to binsize (binsize = ½ streamer group)')
         self.chkPopGroupAlign.stateChanged.connect(self.updateParameters)
@@ -313,50 +342,7 @@ class Page_1(SurveyWizardPage):
         layout.addWidget(self.recHead, row, 2)
         layout.addWidget(QLabel('for <b>Head</b> current [s]'), row, 3)
 
-        # row += 1
-        # layout.addWidget(QHLine(), row, 0, 1, 4)
-
         self.setLayout(layout)
-
-        # start values in the constructor, mostly taken from config.py
-        name = SurveyType(SurveyType.Streamer.value).name                       # get name from enum
-        number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
-        self.name.setText(f'{name}_{number}')                                   # show the new name
-
-        self.nSrc.setValue(config.nSrc)
-        self.nCab.setValue(config.nCab)
-
-        self.srcPopInt.setValue(4.0 * 0.5 * config.groupInt)
-        self.srcShtInt.setValue(4.0 * 0.5 * config.groupInt * config.nSrc)
-
-        # register fields for variable access in other Wizard Pages
-        # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
-        # See: https://stackoverflow.com/questions/33796022/use-registerfield-in-pyqt
-        self.registerField('name', self.name)                                   # Survey name
-        self.registerField('type', self.type)                                   # Survey type
-
-        self.registerField('vSail', self.vSail, 'value')                        # Vessel acquisition speed
-        self.registerField('vTurn', self.vTurn, 'value')                        # Vessel line turn speed
-
-        self.registerField('vTail', self.vTail, 'value')                        # Tail current speed
-        self.registerField('vCross', self.vCross, 'value')                      # crosscurrent speed
-
-        self.registerField('vCurrent', self.vCurrent, 'value')                  # overall current speed
-        self.registerField('aFeat', self.aFeat, 'value')                        # Feather angle
-
-        self.registerField('nCab', self.nCab, 'value')                          # number of cables deployed
-        self.registerField('nSrc', self.nSrc, 'value')                          # number of sources deployed
-
-        self.registerField('groupInt', self.groupInt, 'value')                  # group interval
-
-        self.registerField('srcPopInt', self.srcPopInt, 'value')                # pop interval
-        self.registerField('srcShtInt', self.srcShtInt, 'value')                # shot point interval (per cmp line)
-
-        self.registerField('srcDepth', self.srcDepth, 'value')                  # source depth [m]
-        self.registerField('recLength', self.recLength, 'value')                # record length [s]
-
-        self.registerField('recTail', self.recTail, 'value')                    # Clean record time, with tail current
-        self.registerField('recHead', self.recHead, 'value')                    # Clean record time, with head current
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         print('initialize page 1')
@@ -422,7 +408,34 @@ class Page_1(SurveyWizardPage):
             self.srcPopInt.setSingleStep(1.0)
 
     def evt_vTurn_editingFinished(self):
-        pass
+        vTurn = self.field('vTurn')                                             # Vessel line turn speed
+        cL = self.field('cabLength')                                            # streamer length
+        vMax = maxTurnSpeedVsCableLength(cL)
+        if vTurn > vMax:
+            reply = QMessageBox.warning(
+                None, 'Excessive towing force', 'Line turn speed is too high for the current streamer length.\n Reduce streamer length to match line turn speed ?', QMessageBox.Yes, QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                cLmax = maxCableLengthVsTurnSpeed(vTurn)
+                self.cabLength.setValue(cLmax)
+                self.vTurn.setValue(vTurn)
+            else:
+                self.vTurn.setValue(vMax)
+
+    def evt_cabLength_editingFinished(self):
+        cL = self.field('cabLength')                                            # streamer length
+        vTurn = self.field('vTurn')                                             # Vessel line turn speed (from page 1)
+        cLmax = maxCableLengthVsTurnSpeed(vTurn)
+        if cL > cLmax:
+            reply = QMessageBox.warning(
+                None, 'Excessive towing force', 'Streamers are too long for the current line turn speed.\nReduce line turn speed to match streamer length ?', QMessageBox.Yes, QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                vMax = maxTurnSpeedVsCableLength(cL)
+                self.vTurn.setValue(vMax)
+                self.cabLength.setValue(cL)
+            else:
+                self.cabLength.setValue(cLmax)
 
 
 # Page_2 =======================================================================
@@ -1749,7 +1762,7 @@ class Page_5(SurveyWizardPage):
         nSrc = self.field('nSrc')
         nCab = self.field('nCab')
 
-        # Create a survey skeleton, so we can simply update survey properties, without having to instantiate underlying classes
+        # Create a new survey skeleton, so we can simply update survey properties, without having to instantiate the underlying classes
         self.parent.survey.createBasicSkeleton(nBlocks=trackCount * 2, nTemplates=nSrc, nSrcSeeds=1, nRecSeeds=nCab)    # setup multiple blocks with their templates and seeds
 
         sL = self.field('srcLayback')
@@ -1769,8 +1782,6 @@ class Page_5(SurveyWizardPage):
 
         dSrcY = self.field('srcSeparation')
         srcZ = -self.field('srcDepth')
-
-        srcPopInt = self.field('srcPopInt')                                     # pop interval
         srcShtInt = self.field('srcShtInt')                                     # shot point interval (per cmp line)
 
         FF = self.field('surIsiz')                                              # bin area full fold inline size
@@ -1799,17 +1810,28 @@ class Page_5(SurveyWizardPage):
             nrLinesBwd = math.floor(0.5 * linesPerTrack)                        # the nr of lines sailing backward in this race track
             nrLinesOff = sum(trackList[0:trackNo])                              # the nr of lines PRIOR to the lines in this race track (=offset)
 
-            blkOffFwd = nrLinesOff * sailLineInt
-            blkOffBwd = blkOffFwd + nrLinesFwd * sailLineInt
+            blkOffFwd = nrLinesOff * sailLineInt                                # crossline starting point of forward sail lines
+            blkOffBwd = blkOffFwd + nrLinesFwd * sailLineInt                    # crossline starting point of backward sail lines
 
-            trackNo += 1                                                        # make it ready for next iteration of i
+            flip = trackNo % 2 == 1                                           # forward/backward direction of odd race tracks needs to be flipped
+            trackNo += 1                                                        # make it ready for next iteration of i (=trackCount)
 
-            for j in range(nSrc):
+            for j in range(nSrc):                                               # iterate over templates; each template contains 1 source point
 
                 # iterate over all templates (or sources), start with sailing FORWARD in block i
 
-                templateNameFwd = f'Sailing Fwd-{j + 1}'                                                                    # get suitable template name for all sources
-                self.parent.survey.blockList[i].templateList[j].name = templateNameFwd
+                if flip:
+                    nameFwd = 'Sailing Bwd'
+                    nameBwd = 'Sailing Fwd'
+                    PopInt = -self.field('srcPopInt')
+                    RolInt = -self.field('srcShtInt')                                    # shot point interval (per cmp line)
+                else:
+                    nameFwd = 'Sailing Fwd'
+                    nameBwd = 'Sailing Bwd'
+                    PopInt = self.field('srcPopInt')
+                    RolInt = self.field('srcShtInt')                                     # shot point interval (per cmp line)
+
+                self.parent.survey.blockList[i].templateList[j].name = f'{nameFwd}-{j + 1}'                                 # get suitable template name for all sources
 
                 # roll along in crossline direction
                 self.parent.survey.blockList[i].templateList[j].rollList[0].steps = nrLinesFwd                              # nr deployments in crossline-direction
@@ -1818,11 +1840,11 @@ class Page_5(SurveyWizardPage):
 
                 # roll along in inline direction
                 self.parent.survey.blockList[i].templateList[j].rollList[1].steps = nSht                                    # nr deployments in inline-direction
-                self.parent.survey.blockList[i].templateList[j].rollList[1].increment.setX(srcShtInt)                       # each source progresses by the shot interval
+                self.parent.survey.blockList[i].templateList[j].rollList[1].increment.setX(RolInt)                          # each source progresses by the shot interval
                 self.parent.survey.blockList[i].templateList[j].rollList[1].increment.setY(0.0)                             # horizontal movement, hence dY = 0
 
                 # source seed fwd sailing
-                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setX(srcX0 + j * srcPopInt)              # The x-origin is shifted by the pop interval between source arrays
+                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setX(srcX0 + j * PopInt)                 # The x-origin is shifted by the pop interval between source arrays
                 self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setY(blkOffFwd + srcY0 + j * dSrcY)      # The y-origin is shifted by the x-line interval between source arrays
                 self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setZ(srcZ)                               # The z-origin is simply the source depth
 
@@ -1838,7 +1860,7 @@ class Page_5(SurveyWizardPage):
                     dXGrp = -dRGrp * math.cos(math.radians(azi))
                     dYGrp = dRGrp * math.sin(math.radians(azi))
 
-                    self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setX(0.0 + j * srcPopInt)            # Seed origin
+                    self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setX(0.0 + j * PopInt)            # Seed origin
                     self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setY(blkOffFwd + rec0 + k * dCab0)   # Seed origin
                     self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setZ(recZ0)                      # Seed origin
 
@@ -1848,9 +1870,7 @@ class Page_5(SurveyWizardPage):
                     self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].increment.setZ(dZGrp)  # normalized slant
 
                 # iterate over all templates (or sources), continue with sailing BACKWARD in block i + 1
-
-                templateNameBwd = f'Sailing Bwd-{j + 1}'                                                        # get suitable template name for all sources
-                self.parent.survey.blockList[i + 1].templateList[j].name = templateNameBwd
+                self.parent.survey.blockList[i + 1].templateList[j].name = f'{nameBwd}-{j + 1}'                 # get suitable template name for all sources
 
                 # roll along in crossline direction
                 self.parent.survey.blockList[i + 1].templateList[j].rollList[0].steps = nrLinesBwd              # nr deployments in crossline-direction
@@ -1859,11 +1879,11 @@ class Page_5(SurveyWizardPage):
 
                 # roll along in inline direction
                 self.parent.survey.blockList[i + 1].templateList[j].rollList[1].steps = nSht                    # nr deployments in inline-direction
-                self.parent.survey.blockList[i + 1].templateList[j].rollList[1].increment.setX(-srcShtInt)      # src shot interval
+                self.parent.survey.blockList[i + 1].templateList[j].rollList[1].increment.setX(-RolInt)         # src shot interval
                 self.parent.survey.blockList[i + 1].templateList[j].rollList[1].increment.setY(0.0)             # horizontal movement, hence dY = 0
 
                 # source seed bwd sailing
-                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setX(FF - srcX0 - j * srcPopInt)   # The x-origin is shifted by the pop interval between source arrays
+                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setX(FF - srcX0 - j * PopInt)   # The x-origin is shifted by the pop interval between source arrays
                 self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setY(blkOffBwd + srcY0 + j * dSrcY)              # The y-origin is shifted by the x-line interval between source arrays
                 self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setZ(srcZ)                                       # The z-origin is simply the source depth
 
@@ -1879,7 +1899,7 @@ class Page_5(SurveyWizardPage):
                     dXGrp = dRGrp * math.cos(math.radians(azi))
                     dYGrp = dRGrp * math.sin(math.radians(azi))
 
-                    self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setX(FF - j * srcPopInt)             # Seed origin
+                    self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setX(FF - j * PopInt)             # Seed origin
                     self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setY(blkOffBwd + rec0 + k * dCab0)   # Seed origin
                     self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setZ(recZ0)                          # Seed origin
 
