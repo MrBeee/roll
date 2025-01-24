@@ -117,7 +117,8 @@ class RollPattern(pg.GraphicsObject):
     def calcPatternPicture(self):
         # pre-computing a QPicture object allows paint() to run much more quickly,
         # rather than re-drawing the shapes every time. First create the point picture
-        # create painter object to draw against
+
+        # first create the point picture
         painter = QPainter(self.pointPicture)
         painter.setPen(pg.mkPen('k'))
         painter.setBrush(self.color)
@@ -191,6 +192,7 @@ class RollPattern(pg.GraphicsObject):
         else:
             # do something recursively; not  implemented yet
             raise NotImplementedError('More than three grow steps currently not allowed.')
+
         painter.end()
 
     def paint(self, painter, *_):                                               # used in wizard

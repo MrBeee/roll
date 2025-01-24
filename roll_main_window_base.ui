@@ -281,7 +281,7 @@
   </widget>
   <widget class="QToolBar" name="moveBar">
    <property name="windowTitle">
-    <string>&amp;Move bar</string>
+    <string>&amp;Spider bar</string>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>

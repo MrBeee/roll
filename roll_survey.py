@@ -5,7 +5,7 @@ import math
 import os
 import sys
 from collections import defaultdict
-from enum import Enum
+from enum import Enum, Flag
 from time import perf_counter
 
 import numpy as np
@@ -129,6 +129,16 @@ class PaintMode(Enum):
     allDetails = 5      # down to patterns
 
 
+class PaintArea(Flag):
+    noAreas = 0     # reset the whole lot
+    srcArea = 1     # just src area
+    recArea = 2     # just rec area
+    cmpArea = 4     # just cmp area
+    binArea = 8     # just binning area
+    allAreas = 15   # show all areas
+    # note: clearing a flag works with self.paintArea &= ~flagToClear
+
+
 # See: https://docs.python.org/3/howto/enum.html
 # See: https://realpython.com/python-enum/#creating-integer-flags-intflag-and-flag
 # class Show(IntFlag):
@@ -216,6 +226,7 @@ class RollSurvey(pg.GraphicsObject):
 
         # survey painting mode
         self.paintMode = PaintMode.allDetails                                   # paints down to patterns
+        self.paintArea = PaintArea.allAreas                                     # paint src, rec, cmp and binning areas
         self.lodScale = 1.0                                                     # force Level of Detail (LOD) to a higher value (for small Wizard plots)
 
         # survey limits
@@ -2264,7 +2275,7 @@ class RollSurvey(pg.GraphicsObject):
                 return
 
             # a survey has only one binning output area; show this in black
-            if self.output.rctOutput.isValid():
+            if self.output.rctOutput.isValid() and self.paintArea & PaintArea.binArea:
                 painter.setPen(config.binAreaPen)
                 painter.setBrush(QBrush(QColor(config.binAreaColor)))
                 painter.drawRect(self.output.rctOutput)
@@ -2278,21 +2289,25 @@ class RollSurvey(pg.GraphicsObject):
 
                 if block.boundingBox.intersects(vb):                            # is block within viewbox ?
 
-                    # a survey may have more than one block; do this for each block
-                    painter.setPen(config.srcAreaPen)
-                    painter.setBrush(QBrush(QColor(config.srcAreaColor)))
-                    painter.drawRect(block.srcBoundingRect)
+                    # a survey may have more than a single block; do this for each block
+
+                    if self.paintArea & PaintArea.recArea:
+                        painter.setPen(config.recAreaPen)
+                        painter.setBrush(QBrush(QColor(config.recAreaColor)))
+                        painter.drawRect(block.recBoundingRect)
+
+                    if self.paintArea & PaintArea.srcArea:
+                        painter.setPen(config.srcAreaPen)
+                        painter.setBrush(QBrush(QColor(config.srcAreaColor)))
+                        painter.drawRect(block.srcBoundingRect)
+
+                    if self.paintArea & PaintArea.cmpArea:
+                        painter.setPen(config.cmpAreaPen)
+                        painter.setBrush(QBrush(QColor(config.cmpAreaColor)))
+                        painter.drawRect(block.cmpBoundingRect)
 
                     if self.paintMode == PaintMode.justBlocks:                  # done enough
                         continue
-
-                    painter.setPen(config.recAreaPen)
-                    painter.setBrush(QBrush(QColor(config.recAreaColor)))
-                    painter.drawRect(block.recBoundingRect)
-
-                    painter.setPen(config.cmpAreaPen)
-                    painter.setBrush(QBrush(QColor(config.cmpAreaColor)))
-                    painter.drawRect(block.cmpBoundingRect)
 
                     painter.setPen(pg.mkPen(0.5))                               # use a grey pen for template borders
                     painter.setBrush(pg.mkBrush((192, 192, 192, 3)))            # grey & semi-transparent, use for all templates

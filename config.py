@@ -46,7 +46,7 @@ binXmin = 5000                                                                  
 binIsiz = 2000                                                                  # y-min
 binXsiz = 2000                                                                  # y-size
 
-# general presets for towed marine settings
+# General presets for towed marine settings
 swDensity = 1029.0                                                              # [kg/m3]   seawater density
 cDrag = 0.0055                                                                  # [-]       streamer drag coefficient
 maxDragForce = 3.07                                                             # [ton-force]   max force on streamer(s)
@@ -72,7 +72,7 @@ cabDepthHead = 8.0                                                              
 cabDepthTail = 10.0                                                             # [m]       streamer depth at end of spread
 
 cabSepHead = 100.0                                                              # [m]       streamer inerval at head of spread
-cabSepTail = 150.0                                                              # [m]       streamer depth at end of spread
+cabSepTail = 100.0                                                              # [m]       streamer depth at end of spread
 
 srcDepth = 10.0                                                                 # [m]       source depth default
 recLength = 8.0                                                                 # [s]       record length
@@ -98,7 +98,7 @@ lod1Range = [0.010, 0.250]
 lod2Range = [0.100, 2.500]
 lod3Range = [0.250, 6.250]
 
-# geophone and source patterns
+# Source and receiver patterns land / obc
 rNam = 'rec-array'                                                              # pattern name
 sNam = 'src-array'                                                              # pattern name
 rBra = 4                                                                        # nr branches in pattern
@@ -110,19 +110,31 @@ sBrI = 0.0                                                                      
 rElI = 25.0 / 3.0                                                               # element interval
 sElI = 12.5                                                                     # element interval
 
-# default color and pen parameters to display analysis areas, they can be altered in the settings dialog
+# Source and receiver patterns streamers
+rName = 'streamer-group'                                                        # pattern name
+sName = 'airgun-array'                                                          # pattern name
+rBran = 6                                                                       # nr branches in pattern
+sBran = 5                                                                       # nr branches in pattern
+rElem = 1                                                                       # nr elem in branch
+sElem = 3                                                                       # nr elem in branch
+rBrIn = 12.5 / 6                                                                # branch interval
+sBrIn = 15.0 / 5                                                                # branch interval
+rElIn = 0.0                                                                     # element interval
+sElIn = 15.0                                                                    # element interval
+
+# Default color and pen parameters to display analysis areas, they can be altered in the settings dialog
 binAreaColor = '#20000000'                                                      # argb - light grey
 cmpAreaColor = '#0800ff00'                                                      # argb - light green
 recAreaColor = '#080000ff'                                                      # argb - light blue
 srcAreaColor = '#08ff0000'                                                      # argb - light red
 
-# default pen parameters for analysis areas, these can be altered in the settings dialog
+# Default pen parameters for analysis areas, these can be altered in the settings dialog
 binAreaPen = QPen(Qt.black, 2, Qt.DashLine, Qt.RoundCap, Qt.RoundJoin)
 cmpAreaPen = QPen(Qt.green, 1, Qt.DashDotLine, Qt.RoundCap, Qt.RoundJoin)
 recAreaPen = QPen(Qt.blue, 1, Qt.DashDotLine, Qt.RoundCap, Qt.RoundJoin)
 srcAreaPen = QPen(Qt.red, 1, Qt.DashDotLine, Qt.RoundCap, Qt.RoundJoin)
 
-# default colormaps, used to display images
+# Default colormaps, used to display images
 fold_OffCmap = 'CET-L4'                                                         # used for fold/offset map (layout tab)
 analysisCmap = 'CET-R4'                                                         # used for analysis results (analysis tab)
 inActiveCmap = 'CET-L1'                                                         # used when no imageItem is available
@@ -149,7 +161,7 @@ srcBrushColor = '#77FF2929'                                                     
 srcPointSymbol = 'o'
 srcSymbolSize = 25
 
-# default spsDialect should equal a name from the spsFormatList dicts
+# Default spsDialect should equal a name from the spsFormatList dicts
 spsDialect = 'New Zealand'
 
 spsFormatList = [

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="24"
+   height="24"
+   viewBox="0 0 6.3499999 6.35"
+   version="1.1"
+   id="svg10537"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   sodipodi:docname="mActionRecPoints.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview10539"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="47.291667"
+     inkscape:cx="7.2211453"
+     inkscape:cy="12.190308"
+     inkscape:window-width="2560"
+     inkscape:window-height="1351"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs10534" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.29306px;line-height:1.25;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:-0.0264583px;fill:#0000ff;stroke-width:0.264583"
+       x="1.544924"
+       y="3.7695386"
+       id="text359"><tspan
+         sodipodi:role="line"
+         id="tspan1302"
+         x="1.544924"
+         y="3.7695386">rec</tspan></text>
+    <g
+       id="g1555"
+       transform="translate(-0.02657473)">
+      <rect
+         style="fill:#0000ff;stroke:none;stroke-width:10;paint-order:markers stroke fill"
+         id="rect1228"
+         width="1.4266518"
+         height="1.4154625"
+         x="0.45876643"
+         y="4.3475585"
+         rx="0.2070044" />
+      <rect
+         style="fill:#0000ff;stroke:none;stroke-width:10;paint-order:markers stroke fill"
+         id="rect1228-8"
+         width="1.4266518"
+         height="1.4154625"
+         x="4.5177312"
+         y="4.3475585"
+         rx="0.2070044" />
+      <rect
+         style="fill:#0000ff;stroke:none;stroke-width:10;paint-order:markers stroke fill"
+         id="rect1228-3"
+         width="1.4266518"
+         height="1.4154625"
+         x="2.4882488"
+         y="4.3475585"
+         rx="0.2070044" />
+    </g>
+    <g
+       id="g1550"
+       transform="translate(0.22705239)">
+      <rect
+         style="fill:#0000ff;stroke:none;stroke-width:10;paint-order:markers stroke fill"
+         id="rect1228-80"
+         width="1.4266518"
+         height="1.4154625"
+         x="0.20513949"
+         y="0.30910787"
+         rx="0.2070044" />
+      <rect
+         style="fill:#0000ff;stroke:none;stroke-width:10;paint-order:markers stroke fill"
+         id="rect1228-8-7"
+         width="1.4266518"
+         height="1.4154625"
+         x="4.2641039"
+         y="0.30910787"
+         rx="0.2070044" />
+      <rect
+         style="fill:#0000ff;stroke:none;stroke-width:10;paint-order:markers stroke fill"
+         id="rect1228-3-7"
+         width="1.4266518"
+         height="1.4154625"
+         x="2.2346215"
+         y="0.30910787"
+         rx="0.2070044" />
+    </g>
+  </g>
+</svg>

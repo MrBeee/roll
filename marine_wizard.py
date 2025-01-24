@@ -21,7 +21,7 @@ from . import config  # used to pass initial settings
 from .functions import even, intListToString, knotToMeterperSec, lineturnDetour, maxCableLengthVsTurnSpeed, maxTurnSpeedVsCableLength, newtonToTonForce, stringToIntList, tonForceToNewton
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
-from .roll_survey import PaintMode, RollSurvey, SurveyList, SurveyType
+from .roll_survey import PaintArea, PaintMode, RollSurvey, SurveyList, SurveyType
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -1673,6 +1673,26 @@ class Page_5(SurveyWizardPage):
         self.binXsiz.setValue(2000.0)
         self.registerField('binXsiz', self.binXsiz, 'value')                    # bin area x-line size
 
+        self.binImin.editingFinished.connect(self.evt_binImin_editingFinished)
+        self.binIsiz.editingFinished.connect(self.evt_binIsiz_editingFinished)
+        self.binXmin.editingFinished.connect(self.evt_binXmin_editingFinished)
+        self.binXsiz.editingFinished.connect(self.evt_binXsiz_editingFinished)
+
+        self.chkShowSrc = QCheckBox('Source areas')
+        self.chkShowRec = QCheckBox('Receiver areas')
+        self.chkShowCmp = QCheckBox('CMP areas')
+        self.chkShowBin = QCheckBox('Binning area')
+
+        self.chkShowSrc.setChecked(True)
+        self.chkShowRec.setChecked(True)
+        self.chkShowCmp.setChecked(True)
+        self.chkShowBin.setChecked(True)
+
+        self.chkShowSrc.stateChanged.connect(self.updatePaintedAreas)
+        self.chkShowRec.stateChanged.connect(self.updatePaintedAreas)
+        self.chkShowCmp.stateChanged.connect(self.updatePaintedAreas)
+        self.chkShowBin.stateChanged.connect(self.updatePaintedAreas)
+
         # set the page layout
         layout = QGridLayout()
 
@@ -1692,10 +1712,17 @@ class Page_5(SurveyWizardPage):
         layout.addWidget(self.binXsiz, row, 2)
         layout.addWidget(QLabel('X-line size [m]'), row, 3)
 
-        self.binImin.editingFinished.connect(self.evt_binImin_editingFinished)
-        self.binIsiz.editingFinished.connect(self.evt_binIsiz_editingFinished)
-        self.binXmin.editingFinished.connect(self.evt_binXmin_editingFinished)
-        self.binXsiz.editingFinished.connect(self.evt_binXsiz_editingFinished)
+        row += 1
+        layout.addWidget(QHLine(), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(QLabel('<b>Show or hide</b> source, receiver, CMP and binning areas'), row, 0, 1, 4)
+
+        row += 1
+        layout.addWidget(self.chkShowSrc, row, 0)
+        layout.addWidget(self.chkShowRec, row, 1)
+        layout.addWidget(self.chkShowCmp, row, 2)
+        layout.addWidget(self.chkShowBin, row, 3)
 
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
@@ -1767,7 +1794,7 @@ class Page_5(SurveyWizardPage):
 
         sL = self.field('srcLayback')
         rL = self.field('cabLayback')
-        srcX0 = rL - sL                                                         # relative source location
+        LB = rL - sL                                                            # Lay Back; relative source location
 
         cL = self.field('cabLength')                                            # streamer length
         gI = self.field('groupInt')                                             # group interval
@@ -1787,6 +1814,7 @@ class Page_5(SurveyWizardPage):
         FF = self.field('surIsiz')                                              # bin area full fold inline size
         RO = 0.5 * cL                                                           # run out
         nSht = round((FF + RO) / srcShtInt)                                     # nr of shot points per source array
+        PI = self.field('srcPopInt')                                            # pop interval (subsequent firings)
 
         dZCab = recZ9 - recZ0                                                   # depth increase along cable(s)
         dZGrp = -gI / cL * dZCab                                                # depth increase along group(s); independent on azimuth (from fanning and currents)
@@ -1813,25 +1841,41 @@ class Page_5(SurveyWizardPage):
             blkOffFwd = nrLinesOff * sailLineInt                                # crossline starting point of forward sail lines
             blkOffBwd = blkOffFwd + nrLinesFwd * sailLineInt                    # crossline starting point of backward sail lines
 
-            flip = trackNo % 2 == 1                                           # forward/backward direction of odd race tracks needs to be flipped
+            flip = trackNo % 2 == 1                                             # forward/backward direction of odd race tracks needs to be flipped
             trackNo += 1                                                        # make it ready for next iteration of i (=trackCount)
 
             for j in range(nSrc):                                               # iterate over templates; each template contains 1 source point
 
-                # iterate over all templates (or sources), start with sailing FORWARD in block i
-
+                # iterate over all templates (= sources), start with sailing FORWARD in block i
                 if flip:
                     nameFwd = 'Sailing Bwd'
                     nameBwd = 'Sailing Fwd'
                     PopInt = -self.field('srcPopInt')
-                    RolInt = -self.field('srcShtInt')                                    # shot point interval (per cmp line)
+                    RolInt = -self.field('srcShtInt')                           # shot point interval (per cmp line)
+                    SrcFwdX0 = FF - 0.0 * LB - PI
+                    SrcBwdX0 = LB
+                    RecFwdX0 = FF + 1.0 * LB - PI
+                    RecBwdX0 = 0.0
+                    RecFwdDx = 1.0
+                    RecBwdDx = -1.0
                 else:
                     nameFwd = 'Sailing Fwd'
                     nameBwd = 'Sailing Bwd'
-                    PopInt = self.field('srcPopInt')
-                    RolInt = self.field('srcShtInt')                                     # shot point interval (per cmp line)
+                    PopInt = self.field('srcPopInt')                                                                        # pop interval (subsequent firings)
+                    RolInt = self.field('srcShtInt')                                                                        # shot point interval (per cmp line)
+                    SrcFwdX0 = LB
+                    SrcBwdX0 = FF - 0.0 * LB - PI
+                    RecFwdX0 = 0.0
+                    RecBwdX0 = FF + 1.0 * LB - PI
+                    RecFwdDx = -1.0
+                    RecBwdDx = 1.0
 
                 self.parent.survey.blockList[i].templateList[j].name = f'{nameFwd}-{j + 1}'                                 # get suitable template name for all sources
+
+                # source seed fwd sailing
+                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setX(SrcFwdX0 + j * PopInt)              # The x-origin is shifted by the pop interval between source arrays
+                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setY(blkOffFwd + srcY0 + j * dSrcY)      # The y-origin is shifted by the x-line interval between source arrays
+                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setZ(srcZ)                               # The z-origin is simply the source depth
 
                 # roll along in crossline direction
                 self.parent.survey.blockList[i].templateList[j].rollList[0].steps = nrLinesFwd                              # nr deployments in crossline-direction
@@ -1843,11 +1887,6 @@ class Page_5(SurveyWizardPage):
                 self.parent.survey.blockList[i].templateList[j].rollList[1].increment.setX(RolInt)                          # each source progresses by the shot interval
                 self.parent.survey.blockList[i].templateList[j].rollList[1].increment.setY(0.0)                             # horizontal movement, hence dY = 0
 
-                # source seed fwd sailing
-                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setX(srcX0 + j * PopInt)                 # The x-origin is shifted by the pop interval between source arrays
-                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setY(blkOffFwd + srcY0 + j * dSrcY)      # The y-origin is shifted by the x-line interval between source arrays
-                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setZ(srcZ)                               # The z-origin is simply the source depth
-
                 for k in range(nCab):                                           # iterate over all deployed cables
 
                     # we need to allow for streamer fanning; hence each streamer will have its own orientation
@@ -1857,12 +1896,12 @@ class Page_5(SurveyWizardPage):
                     azi = math.degrees(math.asin(dRec / cL9))                                                               # corrresponding azimuth
                     dRGrp = gI * math.cos(math.radians(dip))
 
-                    dXGrp = -dRGrp * math.cos(math.radians(azi))
+                    dXGrp = dRGrp * math.cos(math.radians(azi)) * RecFwdDx
                     dYGrp = dRGrp * math.sin(math.radians(azi))
 
-                    self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setX(0.0 + j * PopInt)            # Seed origin
+                    self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setX(RecFwdX0 + j * PopInt)          # Seed origin
                     self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setY(blkOffFwd + rec0 + k * dCab0)   # Seed origin
-                    self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setZ(recZ0)                      # Seed origin
+                    self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setZ(recZ0)                          # Seed origin
 
                     self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].steps = nGrp           # nr of groups in cable
                     self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].increment.setX(dXGrp)  # group interval
@@ -1871,6 +1910,11 @@ class Page_5(SurveyWizardPage):
 
                 # iterate over all templates (or sources), continue with sailing BACKWARD in block i + 1
                 self.parent.survey.blockList[i + 1].templateList[j].name = f'{nameBwd}-{j + 1}'                 # get suitable template name for all sources
+
+                # source seed bwd sailing
+                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setX(SrcBwdX0 - j * PopInt)          # The x-origin is shifted by the pop interval between source arrays
+                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setY(blkOffBwd + srcY0 + j * dSrcY)  # The y-origin is shifted by the x-line interval between source arrays
+                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setZ(srcZ)                           # The z-origin is simply the source depth
 
                 # roll along in crossline direction
                 self.parent.survey.blockList[i + 1].templateList[j].rollList[0].steps = nrLinesBwd              # nr deployments in crossline-direction
@@ -1882,11 +1926,6 @@ class Page_5(SurveyWizardPage):
                 self.parent.survey.blockList[i + 1].templateList[j].rollList[1].increment.setX(-RolInt)         # src shot interval
                 self.parent.survey.blockList[i + 1].templateList[j].rollList[1].increment.setY(0.0)             # horizontal movement, hence dY = 0
 
-                # source seed bwd sailing
-                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setX(FF - srcX0 - j * PopInt)   # The x-origin is shifted by the pop interval between source arrays
-                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setY(blkOffBwd + srcY0 + j * dSrcY)              # The y-origin is shifted by the x-line interval between source arrays
-                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setZ(srcZ)                                       # The z-origin is simply the source depth
-
                 for k in range(nCab):                                           # iterate over all deployed cables
 
                     # we need to allow for streamer fanning; hence each streamer will have its own orientation
@@ -1896,10 +1935,10 @@ class Page_5(SurveyWizardPage):
                     azi = math.degrees(math.asin(dRec / cL9))                                                                   # corrresponding azimuth
                     dRGrp = gI * math.cos(math.radians(dip))
 
-                    dXGrp = dRGrp * math.cos(math.radians(azi))
+                    dXGrp = dRGrp * math.cos(math.radians(azi)) * RecBwdDx
                     dYGrp = dRGrp * math.sin(math.radians(azi))
 
-                    self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setX(FF - j * PopInt)             # Seed origin
+                    self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setX(RecBwdX0 - j * PopInt)          # Seed origin
                     self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setY(blkOffBwd + rec0 + k * dCab0)   # Seed origin
                     self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setZ(recZ0)                          # Seed origin
 
@@ -1913,6 +1952,7 @@ class Page_5(SurveyWizardPage):
         self.parent.survey.output.rctOutput.setWidth(self.field('binIsiz'))
         self.parent.survey.output.rctOutput.setHeight(self.field('binXsiz'))
 
+        self.parent.survey.calcTransforms()                                     # (re)calculate the transforms being used
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
 
@@ -1982,6 +2022,18 @@ class Page_5(SurveyWizardPage):
         if plot:
             self.plot()
 
+    def updatePaintedAreas(self):
+        self.parent.survey.paintArea = PaintArea.noAreas
+        if self.chkShowSrc.isChecked():
+            self.parent.survey.paintArea |= PaintArea.srcArea
+        if self.chkShowRec.isChecked():
+            self.parent.survey.paintArea |= PaintArea.recArea
+        if self.chkShowCmp.isChecked():
+            self.parent.survey.paintArea |= PaintArea.cmpArea
+        if self.chkShowBin.isChecked():
+            self.parent.survey.paintArea |= PaintArea.binArea
+        self.plot()
+
 
 # Page_6 =======================================================================
 # 6. Template Properties - Pattern/array details
@@ -1996,8 +2048,8 @@ class Page_6(SurveyWizardPage):
         print('page 6 init')
 
         # Add some widgets
-        self.recPatName = QLineEdit(config.rNam)
-        self.srcPatName = QLineEdit(config.sNam)
+        self.recPatName = QLineEdit(config.rName)
+        self.srcPatName = QLineEdit(config.sName)
 
         self.chkRecPattern = QCheckBox('Use receiver patterns')
         self.chkSrcPattern = QCheckBox('Use source patterns')
@@ -2014,15 +2066,18 @@ class Page_6(SurveyWizardPage):
         self.recElemeInt = QDoubleSpinBox()
         self.srcElemeInt = QDoubleSpinBox()
 
-        self.recBranches.setValue(config.rBra)
-        self.srcBranches.setValue(config.sBra)
-        self.recElements.setValue(config.rEle)
-        self.srcElements.setValue(config.sEle)
+        self.recBranches.setValue(config.rBran)
+        self.srcBranches.setValue(config.sBran)
+        self.recElements.setValue(config.rElem)
+        self.srcElements.setValue(config.sElem)
 
-        self.recBrancInt.setValue(config.rBrI)
-        self.srcBrancInt.setValue(config.sBrI)
-        self.recElemeInt.setValue(config.rElI)
-        self.srcElemeInt.setValue(config.sElI)
+        self.recBrancInt.setValue(config.rBrIn)
+        self.srcBrancInt.setValue(config.sBrIn)
+        self.recElemeInt.setValue(config.rElIn)
+        self.srcElemeInt.setValue(config.sElIn)
+
+        self.recElements.setEnabled(False)
+        self.recElemeInt.setEnabled(False)
 
         # set the page layout
         layout = QGridLayout()
@@ -2359,15 +2414,13 @@ class Page_8(SurveyWizardPage):
         The <b>GLOBAL</b> bin grid is realized through an affine transformation.<br>
         The transformation from source (Xs, Ys) to target (Xt, Yt) is represented by:<br>
         » Xt =&nbsp;&nbsp;mX·cos(azim)·Xs +  mY·sin(azim)·Ys + Xt0<br>
-        » Yt = –mX·sin(azim)·Xs +  mY·cos(azim)·Ys + Yt0<br><br>
-        <b>Note:</b> The survey origin can be shifted to the location of the first receiver station<br>
-        See <b>Page 3</b> of the wizard for the appropriate (x0, y0) setting
+        » Yt = –mX·sin(azim)·Xs +  mY·cos(azim)·Ys + Yt0
         """
         row = 0
         layout.addWidget(QLabel(strGlobal), row, 0, 1, 4)
 
-        # row += 1
-        # layout.addWidget(QHLine(), row, 0, 1, 4)
+        row += 1
+        layout.addWidget(QHLine(), row, 0, 1, 4)
 
         # now we are ready to add the transform to world coordinates
         # adding a figure would be very handy for this purpose. See:
@@ -2381,16 +2434,16 @@ class Page_8(SurveyWizardPage):
         layout.addWidget(self.Yt_0, row, 2)
         layout.addWidget(QLabel('Y-origin [m]'), row, 3)
 
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
+        # row += 1
+        # layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.azim, row, 0)
         layout.addWidget(QLabel('rotation angle [deg]'), row, 1)
         layout.addWidget(QLabel('(counter clockwise: 0 - 360°)'), row, 2, 1, 2)
 
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
+        # row += 1
+        # layout.addWidget(QHLine(), row, 0, 1, 4)
 
         row += 1
         layout.addWidget(self.scaX, row, 0)
@@ -2448,16 +2501,16 @@ class Page_8(SurveyWizardPage):
         self.scaY.editingFinished.connect(self.evt_global_editingFinished)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 7')
+        print('initialize page 8')
         self.evt_global_editingFinished()
 
     def cleanupPage(self):                                                      # needed to return to previous pages
-        print('cleanup of page 7')
-        transform = QTransform()                                                # reset transform
-        self.parent.survey.setTransform(transform)                              # back to local survey grid
+        print('cleanup of page 8')
+        # transform = QTransform()                                                # reset transform
+        # self.parent.survey.setTransform(transform)                              # back to local survey grid
 
         # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
-        self.parent.page(3).plot()                                              # needed to update the plot
+        # self.parent.page(3).plot()                                              # needed to update the plot
 
     def evt_global_editingFinished(self):
         azim = self.field('azim')
