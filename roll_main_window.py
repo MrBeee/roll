@@ -84,12 +84,12 @@ import winsound  # make a sound when an exception ocurs
 from datetime import timedelta
 from enum import Enum
 from math import atan2, ceil, degrees
+from time import perf_counter
 from timeit import default_timer as timer
 
 # PyQtGraph related imports
 import numpy as np  # Numpy functions needed for plot creation
 import pyqtgraph as pg
-from console import console
 from numpy.compat import asstr
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
@@ -140,7 +140,7 @@ from .roll_main_window_create_sps_tab import createSpsTab
 from .roll_main_window_create_stack_response_tab import createStackResponseTab
 from .roll_main_window_create_trace_table_tab import createTraceTableTab
 from .roll_output import RollOutput
-from .roll_survey import RollSurvey, SurveyType
+from .roll_survey import PaintDetails, PaintMode, RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
 from .sps_io_and_qc import (
     calcMaxXPStraces,
@@ -257,7 +257,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.iface = None                                                       # access to QGis interface
 
         # toolbar parameters
-        self.debug = False                                                      # use debug settings
         self.XisY = True                                                        # equal x / y scaling
         self.rect = False                                                       # zoom using a rectangle
         self.glob = False                                                       # global coordinates
@@ -440,6 +439,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbSpsList = QToolButton()
         self.tbAllList = QToolButton()
 
+        self.tbTemplat.setToolButtonStyle(Qt.ToolButtonTextOnly)
+
         self.tbTemplat.setMinimumWidth(110)
         self.tbRecList.setMinimumWidth(110)
         self.tbSrcList.setMinimumWidth(110)
@@ -463,6 +464,52 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbAllList.setDefaultAction(self.actionAllPoints)
 
         self.actionTemplates.setChecked(True)
+
+        # control the maximum allowed details in plot
+        self.actionShowPatterns.setChecked(True)
+
+        # by default show source AND receiver lines, points and patterns
+        self.actionShowCmpArea.setChecked(True)
+        self.actionShowBinArea.setChecked(True)
+
+        self.actionShowSrcArea.setChecked(True)
+        self.actionShowSrcLines.setChecked(True)
+        self.actionShowSrcPoints.setChecked(True)
+        self.actionShowSrcPatterns.setChecked(True)
+
+        self.actionShowRecArea.setChecked(True)
+        self.actionShowRecLines.setChecked(True)
+        self.actionShowRecPoints.setChecked(True)
+        self.actionShowRecPatterns.setChecked(True)
+
+        # hook up the signals to the slots
+        self.actionShowCmpArea.triggered.connect(self.updatePaintDetails)
+        self.actionShowBinArea.triggered.connect(self.updatePaintDetails)
+
+        self.actionShowSrcArea.triggered.connect(self.updatePaintDetails)
+        self.actionShowSrcLines.triggered.connect(self.updatePaintDetails)
+        self.actionShowSrcPoints.triggered.connect(self.updatePaintDetails)
+        self.actionShowSrcPatterns.triggered.connect(self.updatePaintDetails)
+
+        self.actionShowRecArea.triggered.connect(self.updatePaintDetails)
+        self.actionShowRecLines.triggered.connect(self.updatePaintDetails)
+        self.actionShowRecPoints.triggered.connect(self.updatePaintDetails)
+        self.actionShowRecPatterns.triggered.connect(self.updatePaintDetails)
+
+        self.actionShowBlocks.triggered.connect(self.updatePaintDetails)
+        self.actionShowTemplates.triggered.connect(self.updatePaintDetails)
+        self.actionShowLines.triggered.connect(self.updatePaintDetails)
+        self.actionShowPoints.triggered.connect(self.updatePaintDetails)
+        self.actionShowPatterns.triggered.connect(self.updatePaintDetails)
+
+        # make these buttons mutually exclusive using a QActionGroup
+        self.paintMode = QActionGroup(self)
+        self.paintMode.addAction(self.actionShowBlocks)
+        self.paintMode.addAction(self.actionShowTemplates)
+        self.paintMode.addAction(self.actionShowLines)
+        self.paintMode.addAction(self.actionShowPoints)
+        self.paintMode.addAction(self.actionShowPatterns)
+
         self.actionRecPoints.setEnabled(False)
         self.actionSrcPoints.setEnabled(False)
         self.actionRpsPoints.setEnabled(False)
@@ -520,7 +567,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbSpider = QToolButton()
         self.tbSpider.setMinimumWidth(110)
         self.tbSpider.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbSpider.setToolButtonStyle(Qt.ToolButtonTextOnly)
         self.tbSpider.setDefaultAction(self.actionSpider)
+
         vbox2.addWidget(self.tbSpider)
 
         self.btnSpiderLt = QToolButton()
@@ -742,11 +791,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.layoutWidget.getViewBox().sigRangeChangedManually.connect(self.mouseBeingDragged)  # essential to find plotting state for LOD plotting
         self.layoutWidget.plotItem.sigRangeChanged.connect(self.layoutRangeChanged)     # to handle changes in tickmarks when zooming
 
-        self.actionDebug.setCheckable(True)
-        self.actionDebug.setChecked(self.debug)
-        self.actionDebug.setStatusTip('Show debug information in QGIS Python console')
-        self.actionDebug.triggered.connect(self.viewDebug)
-
         # the following actions are related to the plotWidget
         self.actionZoomAll.triggered.connect(self.layoutWidget.autoRange)
         self.actionZoomRect.setCheckable(True)
@@ -842,10 +886,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.textEdit.copyAvailable.connect(self.actionCopy.setEnabled)
 
         # actions related to the view menu
-        self.actionRefresh.triggered.connect(self.UpdateAllViews)
-        self.actionAbout.triggered.connect(self.OnAbout)
-        self.actionLicense.triggered.connect(self.OnLicense)
-        self.actionHighDpi.triggered.connect(self.OnHighDpi)
+        self.actionRefreshPlot.triggered.connect(self.plotLayout)               # hooked up with F5
+        self.actionReparseDocument.triggered.connect(self.UpdateAllViews)       # hooked up with Ctrl+F5
 
         # actions related to the processing menu
         self.actionBasicBinFromTemplates.triggered.connect(self.basicBinFromTemplates)
@@ -855,6 +897,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionBasicBinFromSps.triggered.connect(self.basicBinFromSps)
         self.actionFullBinFromSps.triggered.connect(self.fullBinFromSps)
         self.actionGeometryFromTemplates.triggered.connect(self.createGeometryFromTemplates)
+
+        # actions related to the help menu
+        self.actionAbout.triggered.connect(self.OnAbout)
+        self.actionLicense.triggered.connect(self.OnLicense)
+        self.actionHighDpi.triggered.connect(self.OnHighDpi)
 
         self.actionStopThread.triggered.connect(self.stopWorkerThread)
         self.enableProcessingMenuItems()                                        # enables processing menu items except 'stop processing thread'
@@ -934,6 +981,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.menu_View.addAction(self.editBar.toggleViewAction())
         self.menu_View.addAction(self.graphBar.toggleViewAction())
         self.menu_View.addAction(self.moveBar.toggleViewAction())
+        self.menu_View.addAction(self.paintBar.toggleViewAction())
 
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -944,6 +992,55 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.appendLogMessage('Plugin : Started')
         self.statusbar.showMessage('Ready', 3000)
+
+    def updatePaintDetails(self):
+        if self.survey is None:
+            return
+
+        # reset the paintMode flag
+        self.survey.paintMode = PaintMode.none
+
+        # now set the right paintMode value
+        if self.actionShowBlocks.isChecked():
+            self.survey.paintMode = PaintMode.justBlocks
+        if self.actionShowTemplates.isChecked():
+            self.survey.paintMode = PaintMode.justTemplates
+        if self.actionShowLines.isChecked():
+            self.survey.paintMode = PaintMode.justLines
+        if self.actionShowPoints.isChecked():
+            self.survey.paintMode = PaintMode.justPoints
+        if self.actionShowPatterns.isChecked():
+            self.survey.paintMode = PaintMode.all
+
+        # reset all paintDetail flags
+        self.survey.paintDetails = PaintDetails.none
+
+        # now start adding flags; start with various areas
+        if self.actionShowCmpArea.isChecked():
+            self.survey.paintDetails |= PaintDetails.cmpArea
+        if self.actionShowBinArea.isChecked():
+            self.survey.paintDetails |= PaintDetails.binArea
+        if self.actionShowSrcArea.isChecked():
+            self.survey.paintDetails |= PaintDetails.srcArea
+        if self.actionShowRecArea.isChecked():
+            self.survey.paintDetails |= PaintDetails.recArea
+
+        # now add source permissions
+        if self.actionShowSrcLines.isChecked():
+            self.survey.paintDetails |= PaintDetails.srcLin
+        if self.actionShowSrcPoints.isChecked():
+            self.survey.paintDetails |= PaintDetails.srcPnt
+        if self.actionShowSrcPatterns.isChecked():
+            self.survey.paintDetails |= PaintDetails.srcPat
+
+        if self.actionShowRecLines.isChecked():
+            self.survey.paintDetails |= PaintDetails.recLin
+        if self.actionShowRecPoints.isChecked():
+            self.survey.paintDetails |= PaintDetails.recPnt
+        if self.actionShowRecPatterns.isChecked():
+            self.survey.paintDetails |= PaintDetails.recPat
+
+        self.plotLayout()                                                       # make it happen on screen
 
     # deal with pattern selection for display & kxky plotting
     def onPattern1IndexChanged(self):
@@ -1860,6 +1957,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionSpsPoints.setEnabled(self.spsImport is not None)
         self.actionAllPoints.setEnabled(self.recGeom is not None or self.srcGeom is not None or self.rpsImport is not None or self.spsImport is not None)
 
+        if self.survey is None:
+            return
+
+        self.actionShowSrcPatterns.setChecked(self.survey.paintDetails & PaintDetails.srcPat != PaintDetails.none)
+        self.actionShowSrcPoints.setChecked(self.survey.paintDetails & PaintDetails.srcPnt != PaintDetails.none)
+        self.actionShowSrcLines.setChecked(self.survey.paintDetails & PaintDetails.srcLin != PaintDetails.none)
+        self.actionShowRecPatterns.setChecked(self.survey.paintDetails & PaintDetails.recPat != PaintDetails.none)
+        self.actionShowRecPoints.setChecked(self.survey.paintDetails & PaintDetails.recPnt != PaintDetails.none)
+        self.actionShowRecLines.setChecked(self.survey.paintDetails & PaintDetails.recLin != PaintDetails.none)
+
     def setColorbarLabel(self, label):                                          # I should really subclass colorbarItem to properly set the text label
         if label is not None:
             if self.layoutColorBar.horizontal:
@@ -2192,7 +2299,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.rulerState = None
 
-        if self.debug:                                                          # provide some debugging output on the applied transform
+        if config.debug:                                                          # provide some debugging output on the applied transform
             # Get the transform that maps from local coordinates to the item's ViewBox coordinates
             transform = self.survey.glbTransform                                # GraphicsItem method
             if transform is not None:
@@ -3101,18 +3208,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.appendLogMessage(f'Wizard : created land survey: {self.survey.name}')
             config.surveyNumber += 1                                            # update global counter
 
-            if self.debug:
-                self.appendLogMessage('Land Survey Wizard profiling information', MsgType.Debug)
-                i = 0
-                while i < len(self.dlg.survey.timerTmin):                       # log some debug messages
-                    tMin = self.dlg.survey.timerTmin[i] * 1000.0 if self.worker.survey.timerTmin[i] != float('Inf') else 0.0
-                    tMax = self.dlg.survey.timerTmax[i] * 1000.0
-                    tTot = self.dlg.survey.timerTtot[i] * 1000.0
-                    freq = self.dlg.survey.timerFreq[i]
-                    tAvr = tTot / freq if freq > 0 else 0.0
-                    message = f'{i:02d}: min:{tMin:011.3f}, max:{tMax:011.3f}, tot:{tTot:011.3f}, avr:{tAvr:011.3f}, freq:{freq:07d}'
-                    self.appendLogMessage(message, MsgType.Debug)
-                    i += 1
+            # the following code is only intended for lengthy calculations; not sure how it eded up here !?!
+            # if config.debug:
+            #     self.appendLogMessage('Land Survey Wizard profiling information', MsgType.Debug)
+            #     i = 0
+            #     while i < len(self.survey.timerTmin):                       # log some debug messages
+            #         tMin = self.survey.timerTmin[i] * 1000.0 if self.worker.survey.timerTmin[i] != float('Inf') else 0.0
+            #         tMax = self.survey.timerTmax[i] * 1000.0
+            #         tTot = self.survey.timerTtot[i] * 1000.0
+            #         freq = self.survey.timerFreq[i]
+            #         tAvr = tTot / freq if freq > 0 else 0.0
+            #         message = f'{i:02d}: min:{tMin:011.3f}, max:{tMax:011.3f}, tot:{tTot:011.3f}, avr:{tAvr:011.3f}, freq:{freq:07d}'
+            #         self.appendLogMessage(message, MsgType.Debug)
+            #         i += 1
 
     def fileNewMarineSurvey(self):
         if not config.showUnfinished:
@@ -3126,6 +3234,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         if dlg.exec():                                                          # Run the dialog event loop, and obtain survey object
             self.survey = dlg.survey                                            # get survey from dialog
+            self.survey.paintDetails &= ~PaintDetails.recLin                    # don't have it plotting receiver lines
+
+            plainText = self.survey.toXmlString()                               # convert the survey object to an Xml string
+            self.textEdit.highlighter = XMLHighlighter(self.textEdit.document())  # we want some color highlighteded text
+            self.textEdit.setFont(QFont('Ubuntu Mono', 9, QFont.Normal))        # the font may have been messed up by the initial html text
+
+            self.textEdit.setTextViaCursor(plainText)                           # get text into the textEdit, NOT resetting its doc status
+            self.UpdateAllViews()                                               # parse the textEdit; show the corresponding plot
+            self.resetSurveyProperties()                                        # get the new parameters into the parameter tree
+
+            self.appendLogMessage(f'Wizard : created streamer survey: {self.survey.name}')
+            config.surveyNumber += 1                                            # update global counter
 
     def maybeSave(self):
         if not self.textEdit.document().isModified():                           # no need to do anything, as the doc wasn't modified
@@ -3214,8 +3334,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Cannot open file:{fileName}. Error:{file.errorString()}', MsgType.Error)
             return False
+        self.appendLogMessage(f'Opening: {fileName}')                           # send status message
+
         self.survey = RollSurvey()                                              # reset the survey object; get rid of all blocks in the list !
-        self.appendLogMessage(f'Opened : {fileName}')                           # send status message
         self.setCurrentFileName(fileName)                                       # update self.fileName, set textEditModified(False) and setWindowModified(False)
 
         stream = QTextStream(file)                                              # create a stream to read all the data
@@ -3223,13 +3344,23 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         file.close()                                                            # file object no longer needed
 
         # Xml tab
+        self.appendLogMessage(f'Parsing: {fileName}')                           # send status message
         success = self.parseText(plainText)                                     # parse the string; load the textEdit even if parsing fails !
+
+        self.appendLogMessage(f'Reading: {fileName}')                           # send status message
         self.textEdit.setPlainText(plainText)                                   # update plainText widget, and reset undo/redo & modified status
         self.resetNumpyArraysAndModels()                                        # empty all arrays and reset plot titles
 
         if success:                                                             # read the corresponding analysis files
-            # continue loading the anaysis files that belong to this project
+            self.appendLogMessage(f'Loading: {fileName} analysis files')        # send status message
 
+            # check if it is a marine survey; set seed plotting details accordingly
+            if self.survey.type == SurveyType.Streamer:
+                self.survey.paintDetails &= ~PaintDetails.recLin
+                self.actionShowBlocks.setChecked(True)
+                self.survey.paintMode = PaintMode.justBlocks
+
+            # continue loading the anaysis files that belong to this project
             w = self.survey.output.rctOutput.width()                            # expected dimensions of analysis files
             h = self.survey.output.rctOutput.height()
             dx = self.survey.grid.binSize.x()
@@ -3363,7 +3494,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     if self.survey.grid.fold > 0:
                         fold = self.survey.grid.fold                            # fold is defined by the grid's fold (preferred)
                     else:
-                        fold = self.maximumFold                                 # fold is defined by observed maxfold in bin file
+                        fold = self.output.maximumFold                                 # fold is defined by observed maxfold in bin file
 
                     ### if we had a large memmap file open earlier; close it and call the garbage collector
                     if self.output.anaOutput is not None:
@@ -4012,33 +4143,31 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             printer.setOutputFileName(fn)
             self.textEdit.document().print_(printer)
 
-    def viewDebug(self):
-        self.debug = not self.debug                                             # toggle status
-        self.actionDebug.setChecked(self.debug)                                 # update status in button
-        # See also: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
+    # def viewDebug(self):
+    #     config.debug = not config.debug                                             # toggle status
+    #     # See also: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
+    #     if config.debug:
+    #         # builtins.print = self.oldPrint                                    # use/restore builtins.print
+    #         if console._console is None:                                        # pylint: disable=W0212 # unfortunately, need to access protected members
+    #             console.show_console()
+    #         else:
+    #             console._console.setUserVisible(True)                           # pylint: disable=W0212 # unfortunately, need to access protected members
+    #         print('print() to Python console has been enabled; Python console is opened')             # this message should always be printed
+    #         self.appendLogMessage('Debug&nbsp;&nbsp;: print() to Python console has been enabled')
+    #     else:
+    #         print('print() to Python console has been disabled; Python console is closed')            # this message is the last one to be printed
+    #         # builtins.print = silentPrint                                        # suppress print output by calling 'dummy' routine
+    #         print('this print message should not show')                         # this message is the last one to be printed
 
-        if self.debug:
-            # builtins.print = self.oldPrint                                    # use/restore builtins.print
-            if console._console is None:                                        # pylint: disable=W0212 # unfortunately, need to access protected members
-                console.show_console()
-            else:
-                console._console.setUserVisible(True)                           # pylint: disable=W0212 # unfortunately, need to access protected members
-            print('print() to Python console has been enabled; Python console is opened')             # this message should always be printed
-            self.appendLogMessage('Debug&nbsp;&nbsp;: print() to Python console has been enabled')
-        else:
-            print('print() to Python console has been disabled; Python console is closed')            # this message is the last one to be printed
-            # builtins.print = silentPrint                                        # suppress print output by calling 'dummy' routine
-            print('this print message should not show')                         # this message is the last one to be printed
-
-            if console._console is not None:                                    # pylint: disable=W0212 # unfortunately, need to access protected members
-                console._console.setUserVisible(False)                          # pylint: disable=W0212 # unfortunately, need to access protected members
-            self.appendLogMessage('Debug&nbsp;&nbsp;: print() to Python console has been disabled')
+    #         if console._console is not None:                                    # pylint: disable=W0212 # unfortunately, need to access protected members
+    #             console._console.setUserVisible(False)                          # pylint: disable=W0212 # unfortunately, need to access protected members
+    #         self.appendLogMessage('Debug&nbsp;&nbsp;: print() to Python console has been disabled')
 
     def appendLogMessage(self, message: str = 'test', index: MsgType = MsgType.Info):
         # dateTime = QDateTime.currentDateTime().toString("dd-MM-yyyy hh:mm:ss")
         dateTime = QDateTime.currentDateTime().toString('yyyy-MM-ddTHH:mm:ss')  # UTC time; same format as is used in QGis
 
-        if index == MsgType.Debug and not self.debug:                         # debug message, which needs to be suppressed
+        if index == MsgType.Debug and not config.debug:                         # debug message, which needs to be suppressed
             return
 
         # use &nbsp; (non-breaking-space) to prevent html eating up subsequent spaces !
@@ -4067,15 +4196,40 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         success, errorMsg, errorLine, errorColumn = doc.setContent(plainText)
 
         if success:                                                             # parsing went ok, start with a new survey object
-            self.survey = RollSurvey()                                          # only reset the survey object upon succesful parse
-            self.survey.readXml(doc)                                            # build the RollSurvey object tree
-            self.survey.calcTransforms()                                        # (re)calculate the transforms being used
-            self.survey.calcSeedData()                                          # needed for circles, spirals & well-seeds; may affect bounding box
-            self.survey.calcBoundingRect()                                      # (re)calculate the boundingBox as part of parsing the data
-            self.survey.calcNoShotPoints()                                      # (re)calculate nr of SPs
 
-            self.appendLogMessage(f'Parsed : {self.fileName} survey object updated')
-            return True
+            with pg.BusyCursor():                                               # this may take some time
+
+                # see: https://stackoverflow.com/questions/51485285/stop-a-while-loop-by-escape-key to break a do-loop
+
+                time = perf_counter()   ###
+
+                self.survey = RollSurvey()                                      # only reset the survey object upon succesful parse
+                time = self.survey.elapsedTime(time, 0)    ###
+
+                self.survey.readXml(doc)                                        # build the RollSurvey object tree; no heavy lifting takes place here
+                time = self.survey.elapsedTime(time, 1)    ###
+
+                self.survey.calcTransforms()                                    # (re)calculate the transforms being used; some work to to set up the plane using three points in the global space
+                time = self.survey.elapsedTime(time, 2)    ###
+
+                self.survey.calcSeedData()                                      # needed for circles, spirals & well-seeds; may affect bounding box
+                time = self.survey.elapsedTime(time, 3)    ###
+
+                self.survey.calcBoundingRect()                                  # (re)calculate the boundingBox as part of parsing the data
+                time = self.survey.elapsedTime(time, 4)    ###
+
+                self.survey.calcNoShotPoints()                                  # (re)calculate nr of SPs
+                time = self.survey.elapsedTime(time, 5)    ###
+
+                self.appendLogMessage('RollMainWindow.parseText() profiling information', MsgType.Debug)
+                for i in range(0, 6):
+                    time = self.survey.timerTmax[i]                             # perf_counter counts in nano seconds, but returns time in [s]
+                    message = f'Time spent in function call #{i:2d}: {time:11.4f}'
+                    self.appendLogMessage(message, MsgType.Debug)
+
+                self.appendLogMessage(f'Parsing: {self.fileName} survey object succesfully parsed')
+
+                return True
         else:  # an error occurred
             self.appendLogMessage(
                 f'Parse&nbsp;&nbsp;: {errorMsg}, at line: {errorLine} col:{errorColumn}; survey object not updated',
@@ -4537,7 +4691,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def geometryThreadFinished(self, success):
 
-        if self.debug:
+        if config.debug:
             self.appendLogMessage('geometryFromTemplates() profiling information', MsgType.Debug)
             i = 0
             while i < len(self.worker.survey.timerTmin):                        # log some debug messages

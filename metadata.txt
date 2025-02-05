@@ -15,6 +15,7 @@ about:<p>This plugin is for creating and analyzing 3D seismic survey geometries.
   <li><b>pyqtgraph</b> (version 0.13.7) </li>
   <li><b>rasterio</b> (version 1.4.1) </li>
   <li><b>wellpathpy</b> (version 0.5.0) </li></ul>
+  <li><b>ptvsd</b> (version 4.3.3) <i>if you want to debug worker threads</i> </li></ul>
   <p>Please install these packages <b>first</b>, using pip from the OSGeo4W command prompt (on Windows)
   <p>Use <b>pip list</b> to detect which packages and versions have already been installed. (E.g. numpy should already be installed)
   <p>Start with installing rasterio (it has quite a few dependencies), followed by numba, pyqtgraph and wellpathpy in that order

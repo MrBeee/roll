@@ -24,9 +24,9 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="27.287352"
-     inkscape:cx="7.7874906"
-     inkscape:cy="8.850254"
+     inkscape:zoom="33.440258"
+     inkscape:cx="0.074760189"
+     inkscape:cy="9.7038725"
      inkscape:window-width="2560"
      inkscape:window-height="1351"
      inkscape:window-x="-9"
@@ -40,35 +40,29 @@
      inkscape:groupmode="layer"
      id="layer1">
     <g
-       id="g2109"
-       transform="matrix(0.99992876,0,0,1.0522834,0.01813102,-0.16316862)">
+       id="g1511"
+       transform="translate(0,0.0839207)"
+       style="fill:#0000ff;stroke:#0000ff">
       <path
-         style="fill:#0000ff;stroke:#0000ff;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-         d="M 0.40090289,2.3127506 5.8774729,2.3308246"
-         id="path10714-2-8" />
+         style="fill:#0000ff;stroke:#0000ff;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+         d="M 0.43671497,1.2329895 5.913285,1.2510635"
+         id="path10714-2-8-23-2" />
       <path
-         style="fill:#0000ff;stroke:#0000ff;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-         d="m 0.41318281,0.61170668 5.47656999,0.018074"
-         id="path10714-2-8-5" />
-      <path
-         style="fill:#0000ff;stroke:#0000ff;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-         d="M 0.43671503,4.0137944 5.9132849,4.0318684"
-         id="path10714-2-8-2" />
-      <path
-         style="fill:#0000ff;stroke:#0000ff;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-         d="M 0.43671504,5.7148383 5.9132849,5.7329123"
-         id="path10714-2-8-2-0" />
+         style="fill:#0000ff;stroke:#0000ff;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+         d="M 0.43671496,4.9310951 5.913285,4.9491691"
+         id="path10714-2-8-23-2-0" />
     </g>
+    <path
+       style="fill:#0000ff;stroke:#ff0000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -1.4067432,-2.2247853 5.47657,0.018074"
+       id="path10714-2-8-23-9" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.29306px;line-height:1.25;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:-0.0264583px;stroke-width:0.264583"
-       x="1.544924"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.29306px;line-height:1.25;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:-0.0264583px;fill:#0000a8;stroke-width:0.264583;fill-opacity:1"
+       x="1.50811"
        y="3.7695386"
        id="text359"><tspan
          sodipodi:role="line"
-         id="tspan357"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;fill:#0000ff;stroke-width:0.264583"
-         x="1.544924"
-         y="3.7695386">rec</tspan></text>
+         id="tspan1523">rec</tspan></text>
   </g>
 </svg>

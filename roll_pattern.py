@@ -161,11 +161,12 @@ class RollPattern(pg.GraphicsObject):
         painter.setPen(pg.mkPen('k'))                                           # use a black pen for borders
 
         for seed in self.seedList:
+            # first create a 'pointPicture', to build up a pattern by repeating this
             pointPainter = QPainter(self.pointPicture)                          # create painter object to draw against
             pointPainter.setPen(pg.mkPen('k'))                                  # use a black pen
             pointPainter.setBrush(seed.color)                                   # use the seed's brush
             pointPainter.drawRect(QRectF(-2, -2, 4, 4))                         # draw a 4 x 4 m square
-            pointPainter.end()                                                  # finished creating 4 x 4 m square
+            pointPainter.end()                                                  # ready creating 4 x 4 m square, that can be accessed through self.pointPicture
 
             length = len(seed.grid.growList)                                    # how deep is the grow list ?
             # assert length == 3, 'there always need to be 3 roll steps / grow steps'
@@ -215,7 +216,8 @@ class RollPattern(pg.GraphicsObject):
         painter.drawPicture(0, 0, self.patternPicture)
 
     def calcPatternPointLists(self):
-        # Get two lists of all x- and y-locations
+        # Get two lists of all x- and y-locations; only used in calcPatternPointArrays()
+        # todo: merge calcPatternPointLists() into calcPatternPointArrays()
 
         patternPointsX = []
         patternPointsY = []
@@ -262,6 +264,9 @@ class RollPattern(pg.GraphicsObject):
         return (patternPointsX, patternPointsY)
 
     def calcPatternPointArrays(self):
+        # this uses calcPatternPointLists() to convert a list into an ndarray
+        # it is only used to calculate the kxky response of a pattern in 'Patterns' and the 'Analysis -> Kx-Ky Stack' tab
+
         x, y = self.calcPatternPointLists()
         return (np.array(x, dtype=np.float32), np.array(y, dtype=np.float32))
 

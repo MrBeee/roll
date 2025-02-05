@@ -207,6 +207,10 @@ useNumba = False
 # showUnfinished is used to indicate wether or not code "still under construction" is to be shown to end user
 showUnfinished = False
 
+# debug parameters in settings menu
+debug = False   # show debug messages in Logging pane
+ptvsd = False   # run worker threads in debug mode
+
 # max nr. rows QTableView can handle without 'hanging' QGIS
 # beyond this number the trace table model is reset to None
 # See: https://bugreports.qt.io/browse/QTBUG-31194

@@ -5,7 +5,7 @@ from qgis.PyQt.QtCore import QRectF
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
 from .functions import clipRectF
-from .roll_seed import RollSeed
+from .roll_seed import RollSeed, SeedType
 from .roll_translate import RollTranslate
 
 
@@ -136,7 +136,7 @@ class RollTemplate:
                 self.recTemplateRect |= seedBounds                              # add it; no roll along
                 seed.blockBorder = recBorder                                    # seed's extent limited by Block's rec border; needed when painting
 
-            if seed.type == 0:                                                  # in case of rolling grid of seeds
+            if seed.type == SeedType.rollingGrid:                               # in case of rolling grid of seeds
                 if seed.bSource:                                                # it's a source seed
                     self.srcBoundingRect |= self.rollSeed(seed)                 # add it taking roll along into account
                 else:                                                           # it's a receiver seed

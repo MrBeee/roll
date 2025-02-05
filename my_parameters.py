@@ -33,7 +33,7 @@ from .roll_offset import RollOffset
 from .roll_pattern import RollPattern
 from .roll_pattern_seed import RollPatternSeed
 from .roll_plane import RollPlane
-from .roll_seed import RollSeed
+from .roll_seed import RollSeed, SeedType
 from .roll_sphere import RollSphere
 from .roll_spiral import RollSpiral
 from .roll_survey import RollSurvey, SurveyType
@@ -1556,7 +1556,7 @@ class MySeedParameter(MyGroupParameter):
         # A 'global' patternList has been defined using config.py as a backdoor;
         # as patterns are defined on a seperate (not-easy-to-access) branch in the RollSurvey object
         pl = config.patternList
-        if self.seed.type > 1:
+        if self.seed.type > SeedType.fixedGrid:                                 # the assumption is that there are no patterns in circels, spirals and wells
             nPattern = 0
         else:
             nPattern = self.seed.patternNo + 1

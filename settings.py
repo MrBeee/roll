@@ -13,6 +13,13 @@ try:    # need to TRY importing numba, only to see if it is available
 except ImportError:
     haveNumba = False
 
+try:    # need to TRY importing ptvsd, only to see if it is available
+    havePtvsd = True
+    import ptvsd  # pylint: disable=W0611
+except ImportError as ie:
+    havePtvsd = False
+
+
 from . import config  # used to pass initial settings
 from .functions import makeParmsFromPen, makePenFromParms
 from .my_range import MyRangeParameter as rng
@@ -149,6 +156,20 @@ class SettingsDialog(QDialog):
             ),
         ]
 
+        usePtvsd = config.ptvsd if havePtvsd else False
+
+        dbgParams = [
+            dict(
+                name='Debug Settings',
+                type='myGroup',
+                brush='#add8e6',
+                children=[  # Qt light blue background
+                    dict(name='Debug logging', type='bool', value=config.debug, default=config.debug, enabled=True, tip='show debug messages in Logging pane'),
+                    dict(name='Debug worker threads', type='bool', value=usePtvsd, default=usePtvsd, enabled=havePtvsd, tip='run worker threads in debug mode using ptvsd'),
+                ],
+            ),
+        ]
+
         useNumba = config.useNumba if haveNumba else False
         tip1 = 'This is an experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
         tip2 = "This shows functionality that hasn't been completed yet.\nWork in progress !"
@@ -170,6 +191,7 @@ class SettingsDialog(QDialog):
         self.parameters.addChildren(spsParams)
         self.parameters.addChildren(geoParams)
         self.parameters.addChildren(kkkParams)
+        self.parameters.addChildren(dbgParams)
         self.parameters.addChildren(misParams)
 
         self.parameters.sigTreeStateChanged.connect(self.updateSettings)
@@ -212,6 +234,7 @@ class SettingsDialog(QDialog):
         SPS = self.parameters.child('SPS Settings')
         GEO = self.parameters.child('Geometry Settings')
         KKK = self.parameters.child('K-response Settings')
+        DBG = self.parameters.child('Debug Settings')
         MIS = self.parameters.child('Miscellaneous Settings')
 
         # sps settings
@@ -272,6 +295,10 @@ class SettingsDialog(QDialog):
         config.kxyStack = KKK.child('Kxy stack response').value()
         config.kxyArray = KKK.child('Kxy array response').value()
 
+        # debug settings
+        config.debug = DBG.child('Debug logging').value()
+        config.ptvsd = DBG.child('Debug worker threads').value()
+
         # miscellaneous settings
         config.useNumba = MIS.child('Use Numba').value()
         if haveNumba:                                                           # can only do this when numba has been installed
@@ -291,20 +318,6 @@ def readSettings(self):
     self.workingDirectory = self.settings.value('settings/workingDirectory', path)   # start folder for SaveAs
     self.importDirectory = self.settings.value('settings/importDirectory', path)   # start folder for reading SPS files
     self.recentFileList = self.settings.value('settings/recentFileList', [])
-
-    # See: https://forum.qt.io/topic/108622/how-to-get-a-boolean-value-from-qsettings-correctly/8
-    self.debug = self.settings.value('settings/debug', False, type=bool)        # assume no debugging messages required
-    self.actionDebug.setChecked(self.debug)                                     # all menus have already been setup, so do this here
-    if self.debug:
-        # builtins.print = self.oldPrint                                        # use/restore builtins.print
-        if console._console is None:                                            # pylint: disable=W0212 # unfortunately need access to protected member
-            console.show_console()                                              # opens the console for the first time
-        else:
-            console._console.setUserVisible(True)                               # pylint: disable=W0212 # unfortunately need access to protected member
-        print('print() to Python console has been enabled; Python console is opened')   # this message should always be printed
-    else:
-        print('print() to Python console has been disabled from now on')        # this message is the last one to be printed
-        # builtins.print = silentPrint                                          # suppress print, but don't hide Python console, if it would be open
 
     # color & pen information
     config.binAreaColor = self.settings.value('settings/colors/binAreaColor', '#20000000')  # argb - light grey
@@ -347,6 +360,22 @@ def readSettings(self):
     config.kxyStack = rng.read(self.settings.value('settings/k-plots/kxyStack', '-5;5;0.05'))
     config.kxyArray = rng.read(self.settings.value('settings/k-plots/kxyArray', '-50;50;0.5'))
 
+    # debug information
+    # See: https://forum.qt.io/topic/108622/how-to-get-a-boolean-value-from-qsettings-correctly/8
+    config.debug = self.settings.value('settings/debug/logging', False, type=bool)    # assume no debugging messages required
+    config.ptvsd = self.settings.value('settings/debug/ptvsd', False, type=bool)      # assume no debugging in worker threads
+
+    if config.debug:
+        # builtins.print = self.oldPrint                                            # use/restore builtins.print
+        if console._console is None:                                                # pylint: disable=W0212 # unfortunately need access to protected member
+            console.show_console()                                                  # opens the console for the first time
+        else:
+            console._console.setUserVisible(True)                                   # pylint: disable=W0212 # unfortunately need access to protected member
+        print('print() to Python console has been enabled; Python console is opened')   # this message should always be printed
+    else:
+        print('print() to Python console has been disabled from now on')            # this message is the last one to be printed
+        # builtins.print = silentPrint                                              # suppress print, but don't hide Python console, if it would be open
+
     # miscellaneous information
     config.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)   # assume Numba not installed (and used) by default
     if haveNumba:                                                                       # can only do this when numba has been installed
@@ -361,7 +390,6 @@ def writeSettings(self):
     self.settings.setValue('mainWindow/state', self.saveState())                # and the window state too
     self.settings.setValue('settings/workingDirectory', self.workingDirectory)
     self.settings.setValue('settings/importDirectory', self.importDirectory)
-    self.settings.setValue('settings/debug', self.debug)
     self.settings.setValue('settings/recentFileList', self.recentFileList)      # store list in settings
 
     # color and pen information
@@ -397,6 +425,10 @@ def writeSettings(self):
     self.settings.setValue('settings/k-plots/kr_Stack', rng.write(config.kr_Stack))
     self.settings.setValue('settings/k-plots/kxyStack', rng.write(config.kxyStack))
     self.settings.setValue('settings/k-plots/kxyArray', rng.write(config.kxyArray))
+
+    # debug information
+    self.settings.setValue('settings/debug/logging', config.debug)
+    self.settings.setValue('settings/debug/ptvsd', config.ptvsd)
 
     # miscellaneous information
     self.settings.setValue('settings/misc/useNumba', config.useNumba)

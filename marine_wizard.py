@@ -21,7 +21,7 @@ from . import config  # used to pass initial settings
 from .functions import even, intListToString, knotToMeterperSec, lineturnDetour, maxCableLengthVsTurnSpeed, maxTurnSpeedVsCableLength, newtonToTonForce, stringToIntList, tonForceToNewton
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
-from .roll_survey import PaintArea, PaintMode, RollSurvey, SurveyList, SurveyType
+from .roll_survey import PaintDetails, PaintMode, RollSurvey, SurveyList, SurveyType
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -143,6 +143,8 @@ class Page_1(SurveyWizardPage):
         self.vCross.editingFinished.connect(self.updateParameters)
         self.vCross.setRange(-5.0, 5.0)
         self.vCross.setValue(0.0)
+        self.vCross.setEnabled(False)
+        self.vCross.setToolTip('Template rotation due to crossline currents not yet implemented')
         self.registerField('vCross', self.vCross, 'value')                      # crosscurrent speed
 
         self.vTail = QDoubleSpinBox()
@@ -613,6 +615,22 @@ class Page_2(SurveyWizardPage):
         # fill in the survey object information we already know now
         self.parent.survey.name = self.field('name')                            # Survey name
         self.parent.survey.type = SurveyType(SurveyType.Streamer.value)         # Survey type Enum
+
+        # we know the cable length, so let's use that to define the allowed offsets
+        cL = self.field('cabLength')                                            # streamer length
+
+        maxInlineOffset = 1.5 * cL
+        max_XlineOffset = 1.5 * cL
+        maxRadialOffset = 2.5 * cL
+
+        self.parent.survey.offset.rctOffsets.setLeft(-maxInlineOffset)
+        self.parent.survey.offset.rctOffsets.setRight(maxInlineOffset)
+
+        self.parent.survey.offset.rctOffsets.setTop(-max_XlineOffset)
+        self.parent.survey.offset.rctOffsets.setBottom(max_XlineOffset)
+
+        self.parent.survey.offset.radOffsets.setX(0.0)
+        self.parent.survey.offset.radOffsets.setY(maxRadialOffset)
 
         self.plot()                                                             # refresh the plot
 
@@ -1094,6 +1112,8 @@ class Page_3(SurveyWizardPage):
         foldTActual = foldIActual * foldXActual
 
         foldText = f'Max fold: {foldIActual:.1f} inline & {foldXActual:.1f} x-line, {foldTActual:.1f} fold total, in {binIActual:.2f} x {binXActual:.2f} m bins'
+
+        self.parent.survey.grid.fold = int(foldTActual * 1.5)                   # convenient point to update the max fold in the survey object
 
         self.msg.setText(foldText)
 
@@ -2023,15 +2043,15 @@ class Page_5(SurveyWizardPage):
             self.plot()
 
     def updatePaintedAreas(self):
-        self.parent.survey.paintArea = PaintArea.noAreas
+        self.parent.survey.paintDetails = PaintDetails.none
         if self.chkShowSrc.isChecked():
-            self.parent.survey.paintArea |= PaintArea.srcArea
+            self.parent.survey.paintDetails |= PaintDetails.srcArea
         if self.chkShowRec.isChecked():
-            self.parent.survey.paintArea |= PaintArea.recArea
+            self.parent.survey.paintDetails |= PaintDetails.recArea
         if self.chkShowCmp.isChecked():
-            self.parent.survey.paintArea |= PaintArea.cmpArea
+            self.parent.survey.paintDetails |= PaintDetails.cmpArea
         if self.chkShowBin.isChecked():
-            self.parent.survey.paintArea |= PaintArea.binArea
+            self.parent.survey.paintDetails |= PaintDetails.binArea
         self.plot()
 
 

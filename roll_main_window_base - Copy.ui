@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1784</width>
+    <width>1436</width>
     <height>581</height>
    </rect>
   </property>
@@ -26,7 +26,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1784</width>
+     <width>1436</width>
      <height>26</height>
     </rect>
    </property>
@@ -143,8 +143,8 @@
     <property name="title">
      <string>&amp;View</string>
     </property>
-    <addaction name="actionReparseDocument"/>
-    <addaction name="actionRefreshPlot"/>
+    <addaction name="actionDebug"/>
+    <addaction name="actionRefresh"/>
     <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
@@ -218,38 +218,22 @@
       <string>Imported geometry</string>
      </property>
      <addaction name="actionSpsPoints"/>
-     <addaction name="actionRpsPoints"/>
+     <addaction name="actionRpsPoints_2"/>
     </widget>
-    <widget class="QMenu" name="menuShow_areas">
+    <widget class="QMenu" name="menuIdle_points">
      <property name="title">
-      <string>Show areas</string>
+      <string>Idle points</string>
      </property>
-     <addaction name="actionShowBinArea"/>
-     <addaction name="actionShowCmpArea"/>
-     <addaction name="actionShowSrcArea"/>
-     <addaction name="actionShowRecArea"/>
-    </widget>
-    <widget class="QMenu" name="menuDesign_details">
-     <property name="title">
-      <string>Max Level of Detail</string>
-     </property>
-     <addaction name="actionShowBlocks"/>
-     <addaction name="actionShowTemplates"/>
-     <addaction name="actionShowLines"/>
-     <addaction name="actionShowPoints"/>
-     <addaction name="actionShowPatterns"/>
     </widget>
     <addaction name="actionTemplateDetails"/>
     <addaction name="actionTemplates"/>
-    <addaction name="menuShow_areas"/>
     <addaction name="menuSource_details"/>
     <addaction name="menuReceiver_details"/>
-    <addaction name="menuDesign_details"/>
-    <addaction name="separator"/>
-    <addaction name="actionGeometryDetails"/>
+    <addaction name="actionGeometryDetails_2"/>
     <addaction name="menuGenerated_geometry"/>
     <addaction name="menuImported_geometry"/>
-    <addaction name="actionAllPoints"/>
+    <addaction name="separator"/>
+    <addaction name="menuIdle_points"/>
     <addaction name="separator"/>
     <addaction name="actionAnalysisDetails"/>
     <addaction name="actionNone"/>
@@ -292,7 +276,8 @@
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
    <addaction name="separator"/>
-   <addaction name="actionReparseDocument"/>
+   <addaction name="actionDebug"/>
+   <addaction name="actionRefresh"/>
   </widget>
   <widget class="QToolBar" name="editBar">
    <property name="windowTitle">
@@ -332,7 +317,7 @@
   </widget>
   <widget class="QToolBar" name="moveBar">
    <property name="windowTitle">
-    <string>S&amp;pider bar</string>
+    <string>&amp;Spider bar</string>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
@@ -340,16 +325,14 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionSpider"/>
-   <addaction name="separator"/>
    <addaction name="actionMoveLt"/>
    <addaction name="actionMoveRt"/>
    <addaction name="actionMoveUp"/>
    <addaction name="actionMoveDn"/>
   </widget>
-  <widget class="QToolBar" name="paintBar">
+  <widget class="QToolBar" name="seedBar">
    <property name="windowTitle">
-    <string>&amp;Template bar</string>
+    <string>toolBar</string>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
@@ -358,18 +341,6 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionTemplates"/>
-   <addaction name="actionRefreshPlot"/>
-   <addaction name="separator"/>
-   <addaction name="actionShowBlocks"/>
-   <addaction name="actionShowTemplates"/>
-   <addaction name="actionShowLines"/>
-   <addaction name="actionShowPoints"/>
-   <addaction name="actionShowPatterns"/>
-   <addaction name="separator"/>
-   <addaction name="actionShowBinArea"/>
-   <addaction name="actionShowCmpArea"/>
-   <addaction name="actionShowSrcArea"/>
-   <addaction name="actionShowRecArea"/>
    <addaction name="separator"/>
    <addaction name="actionShowSrcLines"/>
    <addaction name="actionShowSrcPoints"/>
@@ -475,19 +446,19 @@
     <string>&amp;Exit Plugin</string>
    </property>
   </action>
-  <action name="actionReparseDocument">
+  <action name="actionRefresh">
    <property name="icon">
     <iconset>
      <normaloff>resources/mActionRefresh.svg</normaloff>resources/mActionRefresh.svg</iconset>
    </property>
    <property name="text">
-    <string>Reload document</string>
+    <string>Refresh</string>
    </property>
    <property name="toolTip">
-    <string>Reparse document from XML pane</string>
+    <string>Refresh Document</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+F5</string>
+    <string>F5</string>
    </property>
   </action>
   <action name="actionCopy">
@@ -617,6 +588,24 @@
    </property>
    <property name="toolTip">
     <string>About Roll</string>
+   </property>
+  </action>
+  <action name="actionDebug">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/icons8-bug-64.png</normaloff>resources/icons8-bug-64.png</iconset>
+   </property>
+   <property name="text">
+    <string>Debug messages</string>
+   </property>
+   <property name="toolTip">
+    <string>Show debug messages in QGIS</string>
    </property>
   </action>
   <action name="actionSettings">
@@ -1125,13 +1114,10 @@
      <normaloff>resources/mActionTemplates.svg</normaloff>resources/mActionTemplates.svg</iconset>
    </property>
    <property name="text">
-    <string>Show templates</string>
+    <string>Templates</string>
    </property>
    <property name="toolTip">
-    <string>Show templates</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>true</bool>
+    <string>Show templates in Layout view</string>
    </property>
   </action>
   <action name="actionRecPoints">
@@ -1236,10 +1222,6 @@
   <action name="actionSpider">
    <property name="checkable">
     <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionSpider.svg</normaloff>resources/mActionSpider.svg</iconset>
    </property>
    <property name="text">
     <string>Spider plot</string>
@@ -1404,7 +1386,7 @@
     </font>
    </property>
   </action>
-  <action name="actionGeometryDetails">
+  <action name="actionGeometryDetails_2">
    <property name="text">
     <string>Geometry details</string>
    </property>
@@ -1418,7 +1400,7 @@
     </font>
    </property>
   </action>
-  <action name="actionRpsPoints">
+  <action name="actionRpsPoints_2">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -1427,182 +1409,6 @@
    </property>
    <property name="toolTip">
     <string>Show RPS receiver points in Layout view</string>
-   </property>
-  </action>
-  <action name="actionAllPoints">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Idle points</string>
-   </property>
-   <property name="toolTip">
-    <string>Also show inactive points in Layout view</string>
-   </property>
-  </action>
-  <action name="actionShowSrcArea">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionSrcArea.svg</normaloff>resources/mActionSrcArea.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Show source areas</string>
-   </property>
-   <property name="toolTip">
-    <string>source areas</string>
-   </property>
-  </action>
-  <action name="actionShowRecArea">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionRecArea.svg</normaloff>resources/mActionRecArea.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Show receiver areas</string>
-   </property>
-   <property name="toolTip">
-    <string>receiver areas</string>
-   </property>
-  </action>
-  <action name="actionShowBinArea">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionBinArea.svg</normaloff>resources/mActionBinArea.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Show binning area</string>
-   </property>
-   <property name="toolTip">
-    <string>Show binning analysis area</string>
-   </property>
-  </action>
-  <action name="actionShowCmpArea">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionCmpArea.svg</normaloff>resources/mActionCmpArea.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Show CMP areas</string>
-   </property>
-   <property name="toolTip">
-    <string>Show CMP areas</string>
-   </property>
-  </action>
-  <action name="actionShowBlocks">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionShowBlocks.svg</normaloff>resources/mActionShowBlocks.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Show blocks</string>
-   </property>
-   <property name="toolTip">
-    <string>Show individual survey blocks</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
-  </action>
-  <action name="actionShowTemplates">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionShowTemplates.svg</normaloff>resources/mActionShowTemplates.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Show templates</string>
-   </property>
-   <property name="toolTip">
-    <string>Show individual templates</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
-  </action>
-  <action name="actionShowLines">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionShowLines.svg</normaloff>resources/mActionShowLines.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Show src/rec lines</string>
-   </property>
-   <property name="toolTip">
-    <string>Show source and receiver lines</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
-  </action>
-  <action name="actionShowPoints">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionShowPoints.svg</normaloff>resources/mActionShowPoints.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Show src/rec points</string>
-   </property>
-   <property name="toolTip">
-    <string>Show source and receiver points</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
-  </action>
-  <action name="actionShowPatterns">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionShowPatterns.svg</normaloff>resources/mActionShowPatterns.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Show src/rec patterns</string>
-   </property>
-   <property name="toolTip">
-    <string>Show source and receiver patterns</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
-  </action>
-  <action name="actionRefreshPlot">
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionRefreshPlot.svg</normaloff>resources/mActionRefreshPlot.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Refresh plot</string>
-   </property>
-   <property name="toolTip">
-    <string>Refresh (repaint) the plot</string>
-   </property>
-   <property name="shortcut">
-    <string>F5</string>
    </property>
   </action>
  </widget>

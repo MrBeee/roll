@@ -23,6 +23,7 @@ class RollGrid:
         self.points = 0                                                         # nr of points on grid
 
     def calcPointList(self, origin):
+        # This routine is only to be used for grids used within patterns
         while len(self.growList) < 3:                                           # First, make sure there are three grow steps for every seed
             self.growList.insert(0, RollTranslate())
 
@@ -43,15 +44,15 @@ class RollGrid:
                     # append point to list
                     pointList.append(off2)
 
-        xMin = 1.0e34
-        xMax = -1.0e34
-        yMin = 1.0e34
-        yMax = -1.0e34
-        for point in pointList:
-            xMin = min(xMin, point[0])
-            xMax = max(xMax, point[0])
-            yMin = min(yMin, point[1])
-            yMax = max(yMax, point[1])
+        # xMin = 1.0e34
+        # xMax = -1.0e34
+        # yMin = 1.0e34
+        # yMax = -1.0e34
+        # for point in pointList:
+        #     xMin = min(xMin, point[0])
+        #     xMax = max(xMax, point[0])
+        #     yMin = min(yMin, point[1])
+        #     yMax = max(yMax, point[1])
         # print('grid seed point list - x', xMin, xMax, '- y', yMin, yMax)
 
         self.points = len(pointList)
@@ -61,9 +62,15 @@ class RollGrid:
     def calcBoundingRect(self, origin):
         # create QRectF by applying grow steps
         pointIter = QVector3D(origin)                                           # declare new object to start iterating from
+
+        # It's quicker NOT to iterate over all growsteps individually, as was done earlier below, but to apply these steps all at once
+        # for growStep in self.growList:                                          # iterate through all grow steps
+        #     for _ in range(growStep.steps - 1):                                 # we have to subtract 1 here' to get from deployments to roll steps
+        #         pointIter += growStep.increment                                 # shift the iteration point with the appropriate amount
+
         for growStep in self.growList:                                          # iterate through all grow steps
-            for _ in range(growStep.steps - 1):                                 # we have to subtract 1 here' to get from deployments to roll steps
-                pointIter += growStep.increment                                 # shift the iteration point with the appropriate amount
+            if growStep.steps > 1:                                              # need more than one to roll
+                pointIter += growStep.increment * (growStep.steps - 1)          # define the new end point, and add this to the previous one
 
         boundingBox = QRectF(origin.toPointF(), pointIter.toPointF())           # create a rect from origin + shifted point
 

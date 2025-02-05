@@ -3,9 +3,8 @@ This module provides Seed Class, core of the placement of src & rec points in a 
 """
 
 import numpy as np
-import pyqtgraph as pg
 from qgis.PyQt.QtCore import QRectF
-from qgis.PyQt.QtGui import QColor, QPainter, QPicture, QVector3D
+from qgis.PyQt.QtGui import QColor, QPicture, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
 from .functions import toFloat
@@ -26,7 +25,7 @@ class RollPatternSeed:
         # calculated variables
         self.boundingBox = QRectF()                                             # Constructs a null rectangle.size of the seed after all grow steps have been done
         self.pointList = []                                                     # point list derived from template seed(s)
-        self.pointArray = None                                                  # numpy array derived from self.pointList
+        self.pointArray = None                                                  # numpy array derived from self.pointList; todo: need to get rid of self.pointList at some point !
         self.pointPicture = QPicture()                                          # pre-computing a QPicture object allows paint() to run much more quickly
         self.patternPicture = QPicture()                                        # pre-computing a QPicture object allows paint() to run much more quickly
 
@@ -96,10 +95,10 @@ class RollPatternSeed:
             self.pointArray[count, 1] = item.y()
             self.pointArray[count, 2] = item.z()
 
-    def calcPointPicture(self):
-        # create painter object to draw against
-        painter = QPainter(self.pointPicture)
-        painter.setPen(pg.mkPen('k'))
-        painter.setBrush(self.color)
-        painter.drawRect(QRectF(-5, -5, 10, 10))
-        painter.end()
+    # def calcPointPicture(self):
+    #     # create painter object to draw against
+    #     painter = QPainter(self.pointPicture)
+    #     painter.setPen(pg.mkPen('k'))
+    #     painter.setBrush(self.color)
+    #     painter.drawRect(QRectF(-5, -5, 10, 10))
+    #     painter.end()

@@ -2,7 +2,7 @@
 This module provides Seed Class, core of the placement of src & rec points in a survey area
 """
 
-from enum import Enum
+from enum import IntFlag
 
 import numpy as np
 import pyqtgraph as pg
@@ -14,12 +14,13 @@ from .functions import toFloat
 from .roll_circle import RollCircle
 from .roll_grid import RollGrid
 from .roll_spiral import RollSpiral
+from .roll_translate import RollTranslate
 from .roll_well import RollWell
 
 # todo: replace integers by class SeedType for seed type indication
 
 
-class SeedType(Enum):
+class SeedType(IntFlag):
     rollingGrid = 0
     fixedGrid = 1
     circle = 2
@@ -39,7 +40,7 @@ class RollSeed:
         self.color = QColor()                                                   # color of seed to discriminate different sources / receivers
 
         # seed subtypes
-        self.type = 0                                                           # Seed type 0 = rolling [default], 1 = fixed, 2 = circle, 3 = spiral, 4 = well
+        self.type = SeedType.rollingGrid                                        # Seed type 0 = rolling [default], 1 = fixed, 2 = circle, 3 = spiral, 4 = well
         self.grid = RollGrid()
         self.circle = RollCircle()
         self.spiral = RollSpiral()
@@ -48,11 +49,11 @@ class RollSeed:
         # calculated variables
         self.boundingBox = QRectF()                                             # Constructs a null rectangle.size of the seed after all grow steps have been done
         # self.salvo = QLineF()                                                 # draws line From FIRST to LAST point of FIRST grow step (quick draw)
-        self.pointList = []                                                     # point list to derive cdp coverage from
+        self.pointList = []                                                     # point list for non-grid seeds to display points and to derive cdp coverage from
         self.pointArray = None                                                  # numpy array to derive cdp coverage from
         self.blockBorder = QRectF()                                             # inherited from seed -> template -> block's srcBorder / recBorder depending on seed type
-        self.pointPicture = QPicture()                                          # pre-computing a QPicture object allows paint() to run much more quickly
-        self.patternPicture = QPicture()                                        # pre-computing a QPicture object allows paint() to run much more quickly
+        self.pointPicture = QPicture()                                          # pre-computing a QPicture object showing a single square; allows paint() to run much more quickly
+        self.patternPicture = QPicture()                                        # pre-computing a QPicture object showing the pattern details; allows paint() to run much more quickly
         self.rendered = False                                                   # prevent painting stationary seeds multiple times due to roll-along of other seeds
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
@@ -71,16 +72,27 @@ class RollSeed:
         seedElem.setAttribute('src', str(self.bSource))
         seedElem.setAttribute('azi', str(self.bAzimuth))
         seedElem.setAttribute('patno', str(self.patternNo))
-        seedElem.setAttribute('typno', str(self.type))
+
+        # todo: solve the following problem:
+        # **somewhere** in the code self.type becomes an int instead of a SeedType
+        # most likely this occurs in the parameter handling
+        # workaround: first cast the int to a SeedType, before taking its value attribute
+
+        self.type = SeedType(self.type)                                         # ugly
+
+        seedElem.setAttribute('typno', str(self.type.value))                    # make sure we save the **value** of the IntFlag (i.e. an integer number)
         seedElem.setAttribute('argb', str(self.color.name(QColor.HexArgb)))
 
-        if self.type < 2:
+        if self.type < SeedType.circle:
             self.grid.writeXml(seedElem, doc)
-        elif self.type == 2:
+
+        elif self.type == SeedType.circle:
             self.circle.writeXml(seedElem, doc)
-        elif self.type == 3:
+
+        elif self.type == SeedType.spiral:
             self.spiral.writeXml(seedElem, doc)
-        elif self.type == 4:
+
+        elif self.type == SeedType.well:
             self.well.writeXml(seedElem, doc)
 
         parent.appendChild(seedElem)
@@ -99,7 +111,8 @@ class RollSeed:
         self.bSource = parent.attribute('src') == 'True'
         self.bAzimuth = parent.attribute('azi') == 'True'
         self.patternNo = int(parent.attribute('patno'))
-        self.type = int(parent.attribute('typno'))
+
+        self.type = SeedType(int(parent.attribute('typno')))                    # convert string -> int -> SeedType
 
         if parent.hasAttribute('argb'):
             self.color = QColor(parent.attribute('argb'))
@@ -114,29 +127,31 @@ class RollSeed:
                 # light blue
                 self.color = QColor('#7787A4D9')
 
-        if self.type < 2:
+        if self.type < SeedType.circle:
             self.grid.readXml(parent)
-        elif self.type == 2:
+
+        elif self.type == SeedType.circle:
             self.circle.readXml(parent)
-        elif self.type == 3:
+
+        elif self.type == SeedType.spiral:
             self.spiral.readXml(parent)
-        elif self.type == 4:
+
+        elif self.type == SeedType.well:
             self.well.readXml(parent)
 
-    # we're in a RollSeed here
-    def calcBoundingRect(self):
+    def calcBoundingRect(self):                                                 # Note: we're in a RollSeed here
         self.boundingBox = QRectF()                                             # Start with a null rectangle.size of the seed
 
-        if self.type < 2:
+        if self.type < SeedType.circle:
             self.boundingBox = self.grid.calcBoundingRect(self.origin)          # grid (rolling = 0, stationary = 1)
 
-        elif self.type == 2:                                                    # circle
+        elif self.type == SeedType.circle:
             self.boundingBox = self.circle.calcBoundingRect(self.origin)
 
-        elif self.type == 3:                                                    # spiral
+        elif self.type == SeedType.spiral:
             self.boundingBox = self.spiral.calcBoundingRect(self.origin)
 
-        elif self.type == 4:                                                    # well
+        elif self.type == SeedType.well:
             self.boundingBox = self.well.polygon.boundingRect()
             # can be more precise by only using the list of in-well points instead of the whole well trajectory
 
@@ -156,13 +171,43 @@ class RollSeed:
         return self.boundingBox  # return  bounding rectangle
 
     def calcPointArray(self):
-        length = max(len(self.pointList), 1)                                    # need 1 or more points for a valid numpy array
-        self.pointArray = np.zeros(shape=(length, 3), dtype=np.float32)         # start with empty array of the right size and type
 
-        for count, item in enumerate(self.pointList):
-            self.pointArray[count, 0] = item.x()
-            self.pointArray[count, 1] = item.y()
-            self.pointArray[count, 2] = item.z()
+        if self.type < SeedType.circle:                                         # for grid based seeds, the point array can be calculated directly from the grow steps
+            while len(self.grid.growList) < 3:                                  # First, make sure there are always three grow steps for every seed
+                self.grid.growList.insert(0, RollTranslate())
+
+            nSteps = 1
+            for growStep in self.grid.growList:                        # iterate through all grow steps
+                nSteps *= growStep.steps                                        # multiply seed's shots at each level
+
+            self.pointArray = np.zeros(shape=(nSteps, 3), dtype=np.float32)     # start with empty array of the right size and type
+
+            # iterate over all three ranges, update counter for each new point
+            count = 0
+            for i in range(self.grid.growList[0].steps):
+                off0 = QVector3D(self.origin)
+                off0 += self.grid.growList[0].increment * i
+
+                for j in range(self.grid.growList[1].steps):
+                    off1 = off0 + self.grid.growList[1].increment * j
+
+                    for k in range(self.grid.growList[2].steps):
+                        off2 = off1 + self.grid.growList[2].increment * k
+
+                        self.pointArray[count, 0] = off2.x()
+                        self.pointArray[count, 1] = off2.y()
+                        self.pointArray[count, 2] = off2.z()
+                        count += 1
+
+        else:  # for all other seeds (circles, spirals and wells), they can be derived from the pointList, needed to plot individual points
+
+            length = max(len(self.pointList), 1)                                    # need 1 or more points for a valid numpy array
+            self.pointArray = np.zeros(shape=(length, 3), dtype=np.float32)         # start with empty array of the right size and type
+
+            for count, item in enumerate(self.pointList):
+                self.pointArray[count, 0] = item.x()
+                self.pointArray[count, 1] = item.y()
+                self.pointArray[count, 2] = item.z()
 
     def calcPointPicture(self):
         # create painter object to draw against

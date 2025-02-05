@@ -49,6 +49,9 @@ def createStackResponseTab(self):
     vbox1.addWidget(self.tbStackPatterns)
     self.stackInfChoice.setLayout(vbox1)
 
+    # note: self refers to the RollMainWindow object;
+    # self.pattern1 and self.pattern2 have already been used in the Patterns tab
+
     self.pattern3 = QComboBox()                                                 # vertical layout for selection 1st pattern
     self.pattern3.currentIndexChanged.connect(self.onStackPatternIndexChanged)
 

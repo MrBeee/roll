@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="24"
+   height="24"
+   viewBox="0 0 6.3499999 6.35"
+   version="1.1"
+   id="svg10537"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   sodipodi:docname="mActionShowBlocks.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview10539"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="47.182667"
+     inkscape:cx="11.985334"
+     inkscape:cy="12.048916"
+     inkscape:window-width="2560"
+     inkscape:window-height="1351"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs10534" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.188226;stroke-dasharray:none;stroke-opacity:1;paint-order:markers stroke fill"
+       id="rect3743"
+       width="4.8616858"
+       height="1.9617739"
+       x="0.094113141"
+       y="0.094113082"
+       ry="0" />
+    <rect
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.188226;stroke-dasharray:none;stroke-opacity:1;paint-order:markers stroke fill"
+       id="rect3743-8"
+       width="4.8616858"
+       height="1.9617739"
+       x="0.094113037"
+       y="4.2941132"
+       ry="0" />
+    <rect
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.188226;stroke-dasharray:none;stroke-opacity:1;paint-order:markers stroke fill"
+       id="rect3743-1"
+       width="4.8616858"
+       height="1.9617739"
+       x="1.3942012"
+       y="2.194113"
+       ry="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.29306px;line-height:1.25;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:-0.0264583px;fill:#000000;stroke-width:0.264583;fill-opacity:1"
+       x="0.51183248"
+       y="3.9822736"
+       id="text359"><tspan
+         sodipodi:role="line"
+         id="tspan3876"
+         x="0.51183248"
+         y="3.9822736">show</tspan></text>
+  </g>
+</svg>
