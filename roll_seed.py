@@ -52,8 +52,11 @@ class RollSeed:
         self.pointList = []                                                     # point list for non-grid seeds to display points and to derive cdp coverage from
         self.pointArray = None                                                  # numpy array to derive cdp coverage from
         self.blockBorder = QRectF()                                             # inherited from seed -> template -> block's srcBorder / recBorder depending on seed type
-        self.pointPicture = QPicture()                                          # pre-computing a QPicture object showing a single square; allows paint() to run much more quickly
-        self.patternPicture = QPicture()                                        # pre-computing a QPicture object showing the pattern details; allows paint() to run much more quickly
+
+        self.pointPicture = None                                                # calculated on the fly; with marine surveys the nr of seeds > 100,000, and only a few are rendered at the same time
+        self.patternPicture = None                                              # calculated on the fly; with marine surveys the nr of seeds > 100,000, and only a few are rendered at the same time
+        # note, in the end, there shall ALWAYS be a pointPicture defined, but NOT ALWAYS a patternPicture, depending on seedType, etc
+
         self.rendered = False                                                   # prevent painting stationary seeds multiple times due to roll-along of other seeds
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
@@ -73,8 +76,8 @@ class RollSeed:
         seedElem.setAttribute('azi', str(self.bAzimuth))
         seedElem.setAttribute('patno', str(self.patternNo))
 
-        # todo: solve the following problem:
-        # **somewhere** in the code self.type becomes an int instead of a SeedType
+        # todo: solve the following issue:
+        # **somewhere** in the code 'self.type' becomes an int instead of a SeedType
         # most likely this occurs in the parameter handling
         # workaround: first cast the int to a SeedType, before taking its value attribute
 
@@ -209,7 +212,21 @@ class RollSeed:
                 self.pointArray[count, 1] = item.y()
                 self.pointArray[count, 2] = item.z()
 
+    def getPointPicture(self):
+        if self.pointPicture is None:
+
+            # create one first, and then prepare the square
+            self.pointPicture = QPicture()
+            painter = QPainter(self.pointPicture)
+            painter.setPen(pg.mkPen('k'))
+            painter.setBrush(self.color)
+            painter.drawRect(QRectF(-5, -5, 10, 10))
+            painter.end()
+        return self.pointPicture
+
     def calcPointPicture(self):
+        # effectively superseded by getPointPicture(self)
+
         # create painter object to draw against
         painter = QPainter(self.pointPicture)
         painter.setPen(pg.mkPen('k'))

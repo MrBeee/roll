@@ -88,7 +88,7 @@ class RollTemplate:
 
         return True
 
-    def rollSeed(self, seed):
+    def rollSeedOld(self, seed):
         # get the pre-calculated seed's boundingbox
         seedBoundingBox = seed.boundingBox
         # start here, with a rect before rolling it
@@ -104,6 +104,33 @@ class RollTemplate:
                 seedIter.translate(rollStep.increment.toPointF())
                 # increase the area with new seed position
                 rolledBoundingRect |= seedIter
+
+        return rolledBoundingRect
+
+    def rollSeed(self, seed):
+        # get the pre-calculated seed's boundingbox
+        seedBoundingBox = seed.boundingBox
+        # start here, with a rect before rolling it
+        rolledBoundingRect = QRectF(seedBoundingBox)
+
+        for rollStep in self.rollList:                                          # iterate through all roll steps
+            # create a copy to roll around
+            seedIter = QRectF(seedBoundingBox)
+
+            if rollStep.steps > 1:
+                seedIter.translate(rollStep.increment.toPointF() * (rollStep.steps - 1))
+                rolledBoundingRect |= seedIter
+
+        # the following code comes from RollGrid, used as an example, as here the same faster approach was applied earlier
+
+        # # It's quicker NOT to iterate over all growsteps individually, as was done earlier below, but to apply these steps all at once
+        # # for growStep in self.growList:                                          # iterate through all grow steps
+        # #     for _ in range(growStep.steps - 1):                                 # we have to subtract 1 here' to get from deployments to roll steps
+        # #         pointIter += growStep.increment                                 # shift the iteration point with the appropriate amount
+
+        # for growStep in self.growList:                                          # iterate through all grow steps
+        #     if growStep.steps > 1:                                              # need more than one to roll
+        #         pointIter += growStep.increment * (growStep.steps - 1)          # define the new end point, and add this to the previous one
 
         return rolledBoundingRect
 

@@ -12,8 +12,8 @@ import numpy as np
 import pyqtgraph as pg
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QMarginsF, QRectF, QThread, pyqtSignal
-from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QTransform, QVector3D
-from qgis.PyQt.QtWidgets import QMessageBox
+from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPicture, QTransform, QVector3D
+from qgis.PyQt.QtWidgets import QMessageBox, qApp
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
@@ -277,12 +277,12 @@ class RollSurvey(pg.GraphicsObject):
         # pattern list
         self.patternList: list[RollPattern] = []
 
-        # timings for time critical functions, allowing for 15 steps
+        # timings for time critical functions, allowing for 20 steps
         # this needs to be cleaned up; and put in separate profiler class
-        self.timerTmin = [float('Inf') for _ in range(15)]
-        self.timerTmax = [0.0 for _ in range(15)]
-        self.timerTtot = [0.0 for _ in range(15)]
-        self.timerFreq = [0 for _ in range(15)]
+        self.timerTmin = [float('Inf') for _ in range(20)]
+        self.timerTmax = [0.0 for _ in range(20)]
+        self.timerTtot = [0.0 for _ in range(20)]
+        self.timerFreq = [0 for _ in range(20)]
 
     def calcTransforms(self, createArrays=False):
         """(re)calculate the transforms being used, and optionally initialize fold & offset arrays"""
@@ -588,6 +588,7 @@ class RollSurvey(pg.GraphicsObject):
         self.timerTmax[index] = max(deltaTime, self.timerTmax[index])
         self.timerTtot[index] = self.timerTtot[index] + deltaTime
         self.timerFreq[index] = self.timerFreq[index] + 1
+        qApp.processEvents()
         return perf_counter()  # call again; to ignore any time spent in this funtion
 
     def geomTemplate(self, nBlock, block, template, templateOffset):
@@ -2011,7 +2012,7 @@ class RollSurvey(pg.GraphicsObject):
             for template in block.templateList:
                 for seed in template.seedList:
 
-                    seed.calcPointPicture()                                     # do this as well in the seed's preparation phase
+                    # seed.calcPointPicture()                                     # do this as well in the seed's preparation phase
 
                     if seed.type == SeedType.rollingGrid:                       # rolling grid
                         seed.grid.calcSalvoLine(seed.origin)                    # calc line to be drawn in low LOD values
@@ -2104,8 +2105,8 @@ class RollSurvey(pg.GraphicsObject):
             pattern.seedList.append(seed)                                       # add this seed to pattern's seedList
 
             for i in range(3):                                                  # do this three times
-                translate = RollTranslate()                                     # create a translation
-                seed.grid.growList.append(translate)                            # add translation to seed's grid-growlist
+                growStep = RollTranslate()                                     # create a translation
+                seed.grid.growList.append(growStep)                            # add translation to seed's grid-growlist
 
     def writeXml(self, doc: QDomDocument):
         doc.clear()
@@ -2251,13 +2252,12 @@ class RollSurvey(pg.GraphicsObject):
         for block in self.blockList:
             for template in block.templateList:
                 for seed in template.seedList:
-                    # todo: remove config.ptvsd. It is just there to test the impact of rotating a pattern on responsiveness user interface
-                    if config.ptvsd and seed.type < SeedType.circle and seed.patternNo > -1 and seed.patternNo < len(self.patternList):
-                        # if seed.type < SeedType.circle and seed.patternNo > -1 and seed.patternNo < len(self.patternList):
-                        translate = seed.grid.growList[-1]
-                        if translate and seed.bAzimuth:                         # need to reorient the pattern
-                            # get the slant angle (deviation from orthogonal)
-                            angle = math.degrees(math.atan2(translate.increment.x(), translate.increment.y()))
+                    if seed.type < SeedType.circle and seed.patternNo > -1 and seed.patternNo < len(self.patternList):
+                        growStep = seed.grid.growList[-1]
+                        if growStep is not None and seed.bAzimuth:
+                            # need to reorient the pattern; get the slant angle (deviation from orthogonal)
+                            angle = math.degrees(math.atan2(growStep.increment.x(), growStep.increment.y()))
+                            seed.patternPicture = QPicture()                    # create initial picture object
                             painter = QPainter(seed.patternPicture)             # create painter object to draw against
                             painter.rotate(-angle)                              # rotate painter in opposite direction before drawing
                             painter.drawPicture(0, 0, self.patternList[seed.patternNo].patternPicture)
@@ -2288,7 +2288,22 @@ class RollSurvey(pg.GraphicsObject):
             # earlier derived result, from blocks -> templates -> seeds
             return self.boundingBox
 
+    # painting can take a long time. Sometimes you may want to kill painting by interupting a half complete paint call.
+    # this can be done by processing a keyboardInterrupt. I think (right now) you need to have the message pump working, for this to have any effect.
+    # QtGui.qApp.processEvents() - called at certain points in the paint() call
+    # See: https://stackoverflow.com/questions/23027447/how-to-set-push-button-to-keyboard-interrupt-in-pyqt
+    # See: https://stackoverflow.com/questions/1353823/handling-keyboardinterrupt-in-a-kde-python-application
+    # See: https://www.geeksforgeeks.org/how-to-create-a-custom-keyboardinterrupt-in-python/
+    # See: https://stackoverflow.com/questions/51485285/stop-a-while-loop-by-escape-key
+
     def paint(self, painter, option, _):
+        # just to check if we can interrupt painting using Ctrl+C
+        try:
+            self.paint_OriginalRoutine(painter, option, _)
+        except KeyboardInterrupt:
+            return
+
+    def paint_OriginalRoutine(self, painter, option, _):
         # the paint function actually is: paint(self, painter, option, widget) but widget is not being used
         with pg.BusyCursor():
             # See: https://doc.qt.io/qt-6/qgraphicsitem.html#paint and for QGraphicsItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr)
@@ -2428,7 +2443,6 @@ class RollSurvey(pg.GraphicsObject):
             self.mouseGrabbed = False
 
     def paintTemplate(self, painter, viewbox, lod, template, templateOffset):
-
         for seed in template.seedList:                                          # iterate over all seeds in a template
             painter.setPen(pg.mkPen(seed.color, width=2))                       # use a solid pen, 2 pixels wide
             if seed.bSource is True:
@@ -2468,7 +2482,7 @@ class RollSurvey(pg.GraphicsObject):
                         if containsPoint3D(seed.blockBorder, seedOrigin):       # is it within block limits ?
                             if containsPoint3D(viewbox, seedOrigin):            # is it within the viewbox ?
                                 if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                    painter.drawPicture(seedOrigin.toPointF(), seed.pointPicture)   # paint seed picture
+                                    painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
                                 if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
                                     if paintDetail & PaintDetails.recPat != PaintDetails.none:
                                         painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
@@ -2498,7 +2512,7 @@ class RollSurvey(pg.GraphicsObject):
                             if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
                                 if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
                                     if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                        painter.drawPicture(seedOrigin.toPointF(), seed.pointPicture)  # paint seed picture
+                                        painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())  # paint seed picture
                                     if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
                                         if paintDetail & PaintDetails.recPat != PaintDetails.none:
                                             painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
@@ -2530,7 +2544,7 @@ class RollSurvey(pg.GraphicsObject):
                                 if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
                                     if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
                                         if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                            painter.drawPicture(seedOrigin.toPointF(), seed.pointPicture)   # paint seed picture
+                                            painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
                                         if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
                                             if paintDetail & PaintDetails.recPat != PaintDetails.none:
                                                 painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)   # paint pattern picture
@@ -2565,7 +2579,7 @@ class RollSurvey(pg.GraphicsObject):
                                     if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
                                         if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
                                             if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                                painter.drawPicture(seedOrigin.toPointF(), seed.pointPicture)   # paint seed picture
+                                                painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
                                             if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
                                                 if paintDetail & PaintDetails.recPat != PaintDetails.none:
                                                     painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)   # paint pattern picture
@@ -2593,7 +2607,7 @@ class RollSurvey(pg.GraphicsObject):
                         p = seed.pointList[i].toPointF()
                         # paint seed picture
                         if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                            painter.drawPicture(p, seed.pointPicture)
+                            painter.drawPicture(p, seed.getPointPicture())
 
             if seed.type == SeedType.spiral and seed.rendered is False:         # spiral seed
                 seed.rendered = True
@@ -2625,7 +2639,7 @@ class RollSurvey(pg.GraphicsObject):
                     if paintDetail & PaintDetails.recPnt != PaintDetails.none:
                         for i in range(length):
                             p = seed.pointList[i].toPointF()
-                            painter.drawPicture(p, seed.pointPicture)           # paint seed picture
+                            painter.drawPicture(p, seed.getPointPicture())           # paint seed picture
 
             if seed.type == SeedType.well and seed.rendered is False:           # well seed
                 seed.rendered = True
@@ -2638,7 +2652,7 @@ class RollSurvey(pg.GraphicsObject):
                     if paintDetail & PaintDetails.recPnt != PaintDetails.none:
                         for i in range(length):
                             p = seed.pointList[i].toPointF()
-                            painter.drawPicture(p, seed.pointPicture)               # paint seed picture
+                            painter.drawPicture(p, seed.getPointPicture())               # paint seed picture
 
     def generateSvg(self, nodes):
         pass                                                                    # for the time being don't do anything; just to keep PyLint happy

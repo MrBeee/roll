@@ -1,5 +1,6 @@
 import math
 import os
+from time import perf_counter
 
 from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt.QtCore import QFileInfo, QPointF, QSettings
@@ -41,11 +42,70 @@ from .roll_template import RollTemplate
 from .roll_translate import RollTranslate
 from .roll_well import RollWell
 
+# This file contains a collections of parameters, as defined in pyQtGraph
+# See: https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph/parametertree/Parameter.html#Parameter.valueIsDefault
+
+# the following signals have been pre-defined for parameter objects:
+#
+# sigStateChanged(self, change, info)  Emitted when anything changes about this parameter at all.
+#                                      The second argument is a string indicating what changed
+#                                      ('value', 'childAdded', etc..)
+#                                      The third argument can be any extra information about the change
+# sigTreeStateChanged(self, changes)   Emitted when any child in the tree changes state
+#                                      (but only if monitorChildren() is called)
+#                                      the format of *changes* is [(param, change, info), ...]
+# sigValueChanged(self, value)         Emitted when value is finished changing
+# sigValueChanging(self, value)        Emitted immediately for all value changes, including during editing.
+# sigChildAdded(self, child, index)    Emitted when a child is added
+# sigChildRemoved(self, child)         Emitted when a child is removed
+# sigRemoved(self)                     Emitted when this parameter is removed
+# sigParentChanged(self, parent)       Emitted when this parameter's parent has changed
+# sigLimitsChanged(self, limits)       Emitted when this parameter's limits have changed
+# sigDefaultChanged(self, default)     Emitted when this parameter's default value has changed
+# sigNameChanged(self, name)           Emitted when this parameter's name has changed
+# sigOptionsChanged(self, opts)        Emitted when any of this parameter's options have changed
+# sigContextMenu(self, name)           Emitted when a context menu was clicked
+
+# These signals contain the following objects/information:
+#
+# sigValueChanged     = QtCore.Signal(object, object)                ## self, value  emitted when value is finished being edited
+# sigValueChanging    = QtCore.Signal(object, object)                ## self, value  emitted as value is being edited
+# sigChildAdded       = QtCore.Signal(object, object, object)        ## self, child, index
+# sigChildRemoved     = QtCore.Signal(object, object)                ## self, child
+# sigRemoved          = QtCore.Signal(object)                        ## self
+# sigParentChanged    = QtCore.Signal(object, object)                ## self, parent
+# sigLimitsChanged    = QtCore.Signal(object, object)                ## self, limits
+# sigDefaultChanged   = QtCore.Signal(object, object)                ## self, default
+# sigNameChanged      = QtCore.Signal(object, object)                ## self, name
+# sigOptionsChanged   = QtCore.Signal(object, object)                ## self, {opt:val, ...}
+# sigStateChanged     = QtCore.Signal(object, object, object)        ## self, change, info
+# sigTreeStateChanged = QtCore.Signal(object, object)                ## self, changes
+#                                                                    ## changes = [(param, change, info), ...]
+
+
+# The class ParameterTree has been subclassed from the pyqtgraph TreeWidget class
+# See: https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph/parametertree/ParameterTree.html#ParameterTree.addParameters
+
+# The class ParameterItem has been derived from the QtWidgets.QTreeWidgetItem class
+# See: https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph/parametertree/ParameterItem.html#ParameterItem
+
+# Signals hand slots for ParameterItems have been wired up as follows:
+# param.sigValueChanged.connect(self.valueChanged)
+# param.sigChildAdded.connect(self.childAdded)
+# param.sigChildRemoved.connect(self.childRemoved)
+# param.sigNameChanged.connect(self.nameChanged)
+# param.sigLimitsChanged.connect(self.limitsChanged)
+# param.sigDefaultChanged.connect(self.defaultChanged)
+# param.sigOptionsChanged.connect(self.optsChanged)
+# param.sigParentChanged.connect(self.parentChanged)
+
+
 ### class MyBinAngles #########################################################
 
 
 class MyBinAnglesPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -55,7 +115,10 @@ class MyBinAnglesPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         d = self.decimals
         y = val.reflection.y()
@@ -70,13 +133,17 @@ class MyBinAnglesPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyBinAnglesPreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyBinAnglesParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBinAnglesPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyBinAnglesParameter(MyGroupParameter):
@@ -84,6 +151,8 @@ class MyBinAnglesParameter(MyGroupParameter):
     itemClass = MyBinAnglesParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -111,12 +180,18 @@ class MyBinAnglesParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         self.angles.azimuthal.setX(self.parAx.value())
         self.angles.azimuthal.setY(self.parAy.value())
         self.angles.reflection.setX(self.parIx.value())
         self.angles.reflection.setY(self.parIy.value())
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.angles
@@ -127,6 +202,7 @@ class MyBinAnglesParameter(MyGroupParameter):
 
 class MyBinOffsetPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -134,7 +210,11 @@ class MyBinOffsetPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         x = max(abs(val.rctOffsets.left()), abs(val.rctOffsets.right()))
         y = max(abs(val.rctOffsets.top()), abs(val.rctOffsets.bottom()))
         d = math.hypot(x, y)
@@ -151,13 +231,17 @@ class MyBinOffsetPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyBinOffsetPreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyBinOffsetParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBinOffsetPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyBinOffsetParameter(MyGroupParameter):
@@ -165,6 +249,8 @@ class MyBinOffsetParameter(MyGroupParameter):
     itemClass = MyBinOffsetParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -194,7 +280,11 @@ class MyBinOffsetParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         #  read parameter changes here
         xmin = self.parXmin.value()
         xmax = self.parXmax.value()
@@ -212,6 +302,8 @@ class MyBinOffsetParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
+        time = config.elapsedTime(time, 6)    ###
+
     def value(self):
         return self.offset
 
@@ -221,6 +313,7 @@ class MyBinOffsetParameter(MyGroupParameter):
 
 class MyUniqOffPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -228,7 +321,11 @@ class MyUniqOffPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         if not val.apply:
             t = 'Not used'
         else:
@@ -238,13 +335,17 @@ class MyUniqOffPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyUniqOffPreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyUniqOffParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyUniqOffPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyUniqOffParameter(MyGroupParameter):
@@ -252,6 +353,8 @@ class MyUniqOffParameter(MyGroupParameter):
     itemClass = MyUniqOffParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -277,13 +380,19 @@ class MyUniqOffParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         self.unique.apply = self.parP.value()
         self.unique.write = self.parR.value()
         self.unique.dOffset = self.parO.value()
         self.unique.dAzimuth = self.parA.value()
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.unique
@@ -294,6 +403,7 @@ class MyUniqOffParameter(MyGroupParameter):
 
 class MyBinMethodPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -301,7 +411,11 @@ class MyBinMethodPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         binningMethod = val.method.value
         method = BinningList[binningMethod]
         t = f'{method} @ Vint={val.vint}m/s'
@@ -310,13 +424,17 @@ class MyBinMethodPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyBinMethodPreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyBinMethodParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBinMethodPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyBinMethodParameter(MyGroupParameter):
@@ -324,6 +442,8 @@ class MyBinMethodParameter(MyGroupParameter):
     itemClass = MyBinMethodParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -345,12 +465,18 @@ class MyBinMethodParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         index = BinningList.index(self.parM.value())
         self.binning.method = BinningType(index)
         self.binning.vint = self.parV.value()
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.binning
@@ -361,6 +487,7 @@ class MyBinMethodParameter(MyGroupParameter):
 
 class MyPlanePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -371,7 +498,11 @@ class MyPlanePreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         dip = val.dip
         azi = val.azi
         z = val.anchor.z()
@@ -386,19 +517,26 @@ class MyPlanePreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyPlanePreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        # print(f'>>>{lineNo():5d} MyPlaneParameter.TreeStateChanged <<<')
+        time = perf_counter()   ###
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        # print(f'>>>{lineNo():5d} MyPlaneParameter.TreeStateChanged <<<')
+        time = config.elapsedTime(time, 7)    ###
+
 
 class MyPlaneParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyPlanePreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyPlaneParameter(MyGroupParameter):
@@ -406,6 +544,8 @@ class MyPlaneParameter(MyGroupParameter):
     itemClass = MyPlaneParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -430,12 +570,18 @@ class MyPlaneParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         self.plane.anchor = self.parO.value()
         self.plane.azi = self.parA.value()
         self.plane.dip = self.parD.value()
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.plane
@@ -446,6 +592,7 @@ class MyPlaneParameter(MyGroupParameter):
 
 class MySpherePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -456,7 +603,11 @@ class MySpherePreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         r = val.radius
         z = val.origin.z()
         d = self.decimals
@@ -466,19 +617,26 @@ class MySpherePreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MySpherePreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        # print(f'>>>{lineNo():5d} MySphereParameter.TreeStateChanged <<<')
+        time = perf_counter()   ###
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        # print(f'>>>{lineNo():5d} MySphereParameter.TreeStateChanged <<<')
+        time = config.elapsedTime(time, 7)    ###
+
 
 class MySphereParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySpherePreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MySphereParameter(MyGroupParameter):
@@ -486,6 +644,8 @@ class MySphereParameter(MyGroupParameter):
     itemClass = MySphereParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -507,11 +667,17 @@ class MySphereParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         self.sphere.origin = self.parO.value()
         self.sphere.radius = self.parR.value()
 
         self.sigValueChanging.emit(self, self.sphere)
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.sphere
@@ -522,6 +688,7 @@ class MySphereParameter(MyGroupParameter):
 
 class MyLocalGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -529,7 +696,11 @@ class MyLocalGridPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         fold = val.fold
 
         if fold < 0:
@@ -541,13 +712,17 @@ class MyLocalGridPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyLocalGridPreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyLocalGridParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyLocalGridPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyLocalGridParameter(MyGroupParameter):
@@ -555,6 +730,8 @@ class MyLocalGridParameter(MyGroupParameter):
     itemClass = MyLocalGridParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -591,7 +768,11 @@ class MyLocalGridParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         # local grid
         self.binGrid.binSize.setX(self.parBx.value())
         self.binGrid.binSize.setY(self.parBy.value())
@@ -605,6 +786,8 @@ class MyLocalGridParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
+        time = config.elapsedTime(time, 6)    ###
+
     def value(self):
         return self.binGrid
 
@@ -614,6 +797,7 @@ class MyLocalGridParameter(MyGroupParameter):
 
 class MyGlobalGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -623,7 +807,11 @@ class MyGlobalGridPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         x = val.orig.x()
         y = val.orig.y()
         a = val.angle
@@ -636,13 +824,17 @@ class MyGlobalGridPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyGlobalGridPreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyGlobalGridParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyGlobalGridPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyGlobalGridParameter(MyGroupParameter):
@@ -650,6 +842,8 @@ class MyGlobalGridParameter(MyGroupParameter):
     itemClass = MyGlobalGridParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -677,7 +871,11 @@ class MyGlobalGridParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         # global grid
         self.binGrid.orig.setX(self.parOx.value())
         self.binGrid.orig.setY(self.parOy.value())
@@ -686,6 +884,8 @@ class MyGlobalGridParameter(MyGroupParameter):
         self.binGrid.angle = self.parAz.value()
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.binGrid
@@ -696,38 +896,20 @@ class MyGlobalGridParameter(MyGroupParameter):
 
 class MyBlockPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
         super().__init__()
-
-        # these are the signals that a parameter can generate with some objects that clarify what happened
-        # sigValueChanged   = QtCore.Signal(object, object)                 ## self, value  emitted when value is finished being edited
-        # sigValueChanging  = QtCore.Signal(object, object)                 ## self, value  emitted as value is being edited
-        # sigChildAdded     = QtCore.Signal(object, object, object)         ## self, child, index
-        # sigChildRemoved   = QtCore.Signal(object, object)                 ## self, child
-        # sigRemoved        = QtCore.Signal(object)                         ## self
-        # sigParentChanged  = QtCore.Signal(object, object)                 ## self, parent
-        # sigLimitsChanged  = QtCore.Signal(object, object)                 ## self, limits
-        # sigDefaultChanged = QtCore.Signal(object, object)                 ## self, default
-        # sigNameChanged    = QtCore.Signal(object, object)                 ## self, name
-        # sigOptionsChanged = QtCore.Signal(object, object)                 ## self, {opt:val, ...}
-
-        # Emitted when anything changes about this parameter at all.
-        # The second argument is a string indicating what changed ('value', 'childAdded', etc..)
-        # The third argument can be any extra information about the change
-        #
-        # sigStateChanged   = QtCore.Signal(object, object, object)         ## self, change, info
-
-        # emitted when any child in the tree changes state
-        # (but only if monitorChildren() is called)
-        # sigTreeStateChanged = QtCore.Signal(object, object)               ## self, changes
-        #                                                                   ## changes = [(param, change, info), ...]
 
         param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
         self.showInformation(param)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def showInformation(self, param):
         # block's source- and receiver boundaries are ignored
+        time = perf_counter()   ###
+
         templates = param.child('Template list')
 
         nTemplates = 0
@@ -777,23 +959,33 @@ class MyBlockPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'+++{lineNo():5d} MyBlockPreviewLabel.showInformation | {t} +++')
+        time = config.elapsedTime(time, 3)    ###
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        # print(f'>>>{lineNo():5d} MyBlockPreviewLabel.ValueChanging <<<')
+        time = perf_counter()   ###
 
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MyBlockPreviewLabel.ValueChanging <<<')
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        # print(f'>>>{lineNo():5d} MyBlockParameter.TreeStateChanged <<<')
+        time = perf_counter()   ###
 
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MyBlockParameter.TreeStateChanged <<<')
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MyBlockParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBlockPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyBlockParameter(MyGroupParameter):
@@ -801,6 +993,8 @@ class MyBlockParameter(MyGroupParameter):
     itemClass = MyBlockParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
         opts['tip'] = 'Right click to manage block'
 
@@ -825,6 +1019,8 @@ class MyBlockParameter(MyGroupParameter):
 
         self.sigNameChanged.connect(self.nameChanged)
         self.sigContextMenu.connect(self.contextMenu)
+
+        time = config.elapsedTime(time, 0)    ###
 
     def nameChanged(self, _):
         self.block.name = self.name()
@@ -882,6 +1078,7 @@ class MyBlockParameter(MyGroupParameter):
 
 class MyTemplatePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -889,7 +1086,11 @@ class MyTemplatePreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def showInformation(self, param):
+        time = perf_counter()   ###
+
         nSeeds = 0
         nTemplateShots = 0
 
@@ -931,23 +1132,36 @@ class MyTemplatePreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
+        time = config.elapsedTime(time, 3)    ###
+
         # print(f'+++{lineNo():5d} MyTemplatePreviewLabel.showInformation | {t} +++')
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        # print(f'>>>{lineNo():5d} MyTemplatePreviewLabel.ValueChanging <<<')
+        time = perf_counter()   ###
+
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MyTemplatePreviewLabel.ValueChanging <<<')
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        # print(f'>>>{lineNo():5d} MyTemplateParameter.TreeStateChanged <<<')
+        time = perf_counter()   ###
 
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MyTemplateParameter.TreeStateChanged <<<')
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MyTemplateParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyTemplatePreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyTemplateParameter(MyGroupParameter):
@@ -955,6 +1169,8 @@ class MyTemplateParameter(MyGroupParameter):
     itemClass = MyTemplateParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
         opts['tip'] = 'Right click to manage template'
 
@@ -979,14 +1195,21 @@ class MyTemplateParameter(MyGroupParameter):
         self.sigNameChanged.connect(self.nameChanged)
         self.sigContextMenu.connect(self.contextMenu)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def nameChanged(self, _):
+
         self.template.name = self.name()
 
     def changed(self):
+        time = perf_counter()   ###
+
         self.template.rollList = self.parR.value()
         self.template.seedList = self.parS.value()
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.template
@@ -1034,6 +1257,8 @@ class MyTemplateParameter(MyGroupParameter):
 
 class MyRollListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)                    # connect signal to slot
@@ -1041,7 +1266,11 @@ class MyRollListPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)                                     # get *value*  from param and provide default (None)
         self.onValueChanging(None, val)                                         # initialize the label in __init__()
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         n0 = val[0].steps                                                       # prepare label text
         n1 = val[1].steps
         n2 = val[2].steps
@@ -1051,13 +1280,18 @@ class MyRollListPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyRollListPreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyRollListParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyRollListPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyRollListParameter(MyGroupParameter):
@@ -1065,6 +1299,8 @@ class MyRollListParameter(MyGroupParameter):
     itemClass = MyRollListParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -1087,7 +1323,10 @@ class MyRollListParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
 
         # paramList defined here, as the childs may be substituted by different children, due to MyRollParameters moving up/down in the list
         paramList = [self.child('Planes'), self.child('Lines'), self.child('Points')]
@@ -1098,6 +1337,8 @@ class MyRollListParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
+        time = config.elapsedTime(time, 6)    ###
+
     def value(self):
         return self.moveList
 
@@ -1107,6 +1348,8 @@ class MyRollListParameter(MyGroupParameter):
 
 class MyRollPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -1116,7 +1359,11 @@ class MyRollPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         n = val.steps
         x = val.increment.x()
         y = val.increment.y()
@@ -1128,15 +1375,20 @@ class MyRollPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyRollPreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyRollParameterItem(MyGroupParameterItem):
     """modeled after PenParameterItem from pen.py in pyqtgraph"""
 
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyRollPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyRollParameter(MyGroupParameter):
@@ -1144,6 +1396,8 @@ class MyRollParameter(MyGroupParameter):
     itemClass = MyRollParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         opts['context'] = {'moveUp': 'Move up', 'moveDown': 'Move dn'}
         opts['tip'] = 'Right click to change position; please keep largest nr of points at bottom of the list'
 
@@ -1176,6 +1430,8 @@ class MyRollParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def setAzimuth(self):
         azimuth = math.degrees(math.atan2(self.row.increment.y(), self.row.increment.x()))
         self.parA.setValue(azimuth)
@@ -1187,6 +1443,8 @@ class MyRollParameter(MyGroupParameter):
 
     # update the values of the five children
     def changed(self):
+        time = perf_counter()   ###
+
         self.row.steps = self.parN.value()
         self.row.increment.setX(self.parX.value())
         self.row.increment.setY(self.parY.value())
@@ -1195,6 +1453,8 @@ class MyRollParameter(MyGroupParameter):
         self.setTilt()
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.row
@@ -1268,6 +1528,8 @@ class MyRollParameter(MyGroupParameter):
 
 class MySeedListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -1275,7 +1537,11 @@ class MySeedListPreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def showInformation(self, param):
+        time = perf_counter()   ###
+
         nChilds = len(param.childs)
         nSource = 0
 
@@ -1297,22 +1563,34 @@ class MySeedListPreviewLabel(MyPreviewLabel):
         self.setErrorCondition(nSource == 0 or nChilds == nSource)
 
         # print(f'+++{lineNo():5d} MySeedListPreviewLabel.showInformation | {t} +++')
+        time = config.elapsedTime(time, 3)    ###
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        # print(f'>>>{lineNo():5d} MySeedListPreviewLabel.ValueChanging <<<')
+        time = perf_counter()   ###
+
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MySeedListPreviewLabel.ValueChanging <<<')
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        # print(f'>>>{lineNo():5d} MySeedListPreviewLabel.TreeStateChanged <<<')
+        time = perf_counter()   ###
 
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MySeedListPreviewLabel.TreeStateChanged <<<')
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MySeedListParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySeedListPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MySeedListParameter(MyGroupParameter):
@@ -1320,6 +1598,8 @@ class MySeedListParameter(MyGroupParameter):
     itemClass = MySeedListParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         opts['context'] = {'addNew': 'Add new Seed'}
         opts['tip'] = 'Right click to add seeds'
 
@@ -1341,6 +1621,8 @@ class MySeedListParameter(MyGroupParameter):
             self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m'))
 
         self.sigContextMenu.connect(self.contextMenu)
+
+        time = config.elapsedTime(time, 0)    ###
 
     def value(self):
         return self.seedList
@@ -1385,6 +1667,8 @@ class MySeedListParameter(MyGroupParameter):
 
 class MyPatternSeedListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -1392,7 +1676,11 @@ class MyPatternSeedListPreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def showInformation(self, param):
+        time = perf_counter()   ###
+
         nChilds = len(param.childs)
 
         if nChilds == 0:
@@ -1404,22 +1692,34 @@ class MyPatternSeedListPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'+++{lineNo():5d} MyPatternSeedListPreviewLabel.showInformation | {t} +++')
+        time = config.elapsedTime(time, 3)    ###
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        # print(f'>>>{lineNo():5d} MyPatternSeedListPreviewLabel.ValueChanging <<<')
+        time = perf_counter()   ###
+
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MyPatternSeedListPreviewLabel.ValueChanging <<<')
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        # print(f'>>>{lineNo():5d} MyPatternSeedListPreviewLabel.TreeStateChanged <<<')
+        time = perf_counter()   ###
 
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MyPatternSeedListPreviewLabel.TreeStateChanged <<<')
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MyPatternSeedListParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyPatternSeedListPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyPatternSeedListParameter(MyGroupParameter):
@@ -1427,6 +1727,8 @@ class MyPatternSeedListParameter(MyGroupParameter):
     itemClass = MyPatternSeedListParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         opts['context'] = {'addNew': 'Add new Seed'}
         opts['tip'] = 'Right click to add seeds'
 
@@ -1445,10 +1747,14 @@ class MyPatternSeedListParameter(MyGroupParameter):
 
         self.sigContextMenu.connect(self.contextMenu)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def value(self):
         return self.seedList
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
+
         if name == 'addNew':
             n = len(self.names) + 1
             newName = f'Seed-{n}'
@@ -1472,12 +1778,16 @@ class MyPatternSeedListParameter(MyGroupParameter):
             self.sigAddNew.emit(self, name)
             self.sigValueChanging.emit(self, self.value())
 
+        time = config.elapsedTime(time, 5)    ###
+
 
 ### class MySeed ##############################################################
 
 
 class MySeedPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -1486,7 +1796,11 @@ class MySeedPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         if val.type == 2:
             kind = 'circle'
             nSteps = len(val.pointList)
@@ -1513,19 +1827,26 @@ class MySeedPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MySeedPreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
+        time = perf_counter()   ###
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
+        time = config.elapsedTime(time, 7)    ###
+
 
 class MySeedParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySeedPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MySeedParameter(MyGroupParameter):
@@ -1533,6 +1854,8 @@ class MySeedParameter(MyGroupParameter):
     itemClass = MySeedParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
         opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
@@ -1596,6 +1919,8 @@ class MySeedParameter(MyGroupParameter):
 
         self.typeChanged()
 
+        time = config.elapsedTime(time, 0)    ###
+
     def nameChanged(self, _):
         self.seed.name = self.name()
 
@@ -1615,6 +1940,8 @@ class MySeedParameter(MyGroupParameter):
         self.parW.show(seedType == 'Well')
 
     def changed(self):
+        time = perf_counter()   ###
+
         self.seed.bSource = self.parR.value()
         self.seed.color = self.parL.value()
         self.seed.origin = self.parO.value()
@@ -1626,10 +1953,14 @@ class MySeedParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
+        time = config.elapsedTime(time, 6)    ###
+
     def value(self):
         return self.seed
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
+
         parent = self.parent()
         index = parent.children().index(self)
 
@@ -1666,6 +1997,7 @@ class MySeedParameter(MyGroupParameter):
             ...
         elif name == 'export':
             ...
+        time = config.elapsedTime(time, 5)    ###
 
 
 ### class MyPatternSeed ##############################################################
@@ -1673,6 +2005,8 @@ class MySeedParameter(MyGroupParameter):
 
 class MyPatternSeedPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -1681,7 +2015,10 @@ class MyPatternSeedPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         nSteps = 1
         for growStep in val.grid.growList:                                  # iterate through all grow steps
@@ -1693,19 +2030,27 @@ class MyPatternSeedPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MySeedPreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
+        time = perf_counter()   ###
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
+        time = config.elapsedTime(time, 7)    ###
+
 
 class MyPatternSeedParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyPatternSeedPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyPatternSeedParameter(MyGroupParameter):
@@ -1713,6 +2058,8 @@ class MyPatternSeedParameter(MyGroupParameter):
     itemClass = MyPatternSeedParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
         opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
@@ -1742,19 +2089,27 @@ class MyPatternSeedParameter(MyGroupParameter):
         self.sigContextMenu.connect(self.contextMenu)
         self.sigNameChanged.connect(self.nameChanged)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def nameChanged(self, _):
         self.seed.name = self.name()
 
     def changed(self):
+        time = perf_counter()   ###
+
         self.seed.color = self.parL.value()
         self.seed.origin = self.parO.value()
         self.seed.grid.growList = self.parG.value()
         self.sigValueChanging.emit(self, self.value())
 
+        time = config.elapsedTime(time, 6)    ###
+
     def value(self):
         return self.seed
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
+
         parent = self.parent()
         index = parent.children().index(self)
 
@@ -1792,12 +2147,16 @@ class MyPatternSeedParameter(MyGroupParameter):
         elif name == 'export':
             ...
 
+        time = config.elapsedTime(time, 5)    ###
+
 
 ### class MyCircle ############################################################
 
 
 class MyCirclePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -1807,7 +2166,11 @@ class MyCirclePreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         r = val.radius
         s = val.dist
         n = val.points
@@ -1818,13 +2181,18 @@ class MyCirclePreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyCirclePreviewLabel.ValueChanging | {t} <<<')
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyCircleParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyCirclePreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyCircleParameter(MyGroupParameter):
@@ -1832,6 +2200,8 @@ class MyCircleParameter(MyGroupParameter):
     itemClass = MyCircleParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -1859,13 +2229,19 @@ class MyCircleParameter(MyGroupParameter):
         self.sigTreeStateChanged.connect(self.changed)
         self.changed()
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         self.circle.radius = self.parR.value()
         self.circle.azi0 = self.parA.value()
         self.circle.dist = self.parI.value()
         self.parN.setValue(self.circle.calcNoPoints())
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.circle
@@ -1876,6 +2252,8 @@ class MyCircleParameter(MyGroupParameter):
 
 class MySpiralPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -1885,7 +2263,11 @@ class MySpiralPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
+
         r1 = val.radMin * 2
         r2 = val.radMax * 2
         s = val.dist
@@ -1897,13 +2279,18 @@ class MySpiralPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MySpiralPreviewLabel.ValueChanging | {t} <<< ')
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MySpiralParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySpiralPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MySpiralParameter(MyGroupParameter):
@@ -1911,6 +2298,8 @@ class MySpiralParameter(MyGroupParameter):
     itemClass = MySpiralParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -1942,7 +2331,11 @@ class MySpiralParameter(MyGroupParameter):
 
         self.changed()
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         self.spiral.radMin = self.parR1.value()
         self.spiral.radMax = self.parR2.value()
         self.spiral.radInc = self.parDr.value()
@@ -1951,6 +2344,8 @@ class MySpiralParameter(MyGroupParameter):
         self.parN.setValue(self.spiral.calcNoPoints())
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.spiral
@@ -1961,6 +2356,8 @@ class MySpiralParameter(MyGroupParameter):
 
 class MyWellPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -1970,7 +2367,11 @@ class MyWellPreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def showInformation(self, param):
+        time = perf_counter()   ###
+
         f = param.child('Well file').opts['value']
         s = param.child('AHD interval').opts['value']
         n = param.child('Points').opts['value']
@@ -1992,23 +2393,34 @@ class MyWellPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'+++{lineNo():5d} MyWellPreviewLabel.showInformation | {t} +++')
+        time = config.elapsedTime(time, 3)    ###
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        # print(f'>>>{lineNo():5d} MyWellPreviewLabel.ValueChanging <<<')
+        time = perf_counter()   ###
 
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MyWellPreviewLabel.ValueChanging <<<')
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
+        time = perf_counter()   ###
 
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MyWellParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyWellPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyWellParameter(MyGroupParameter):
@@ -2016,6 +2428,8 @@ class MyWellParameter(MyGroupParameter):
     itemClass = MyWellParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -2063,7 +2477,11 @@ class MyWellParameter(MyGroupParameter):
 
         self.changedF()                                                         # this will initialise 'value'
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changedF(self):
+        time = perf_counter()   ###
+
         self.well.name = self.parF.value()                                      # file name has changed
 
         if self.well.name is not None and os.path.isfile(self.well.name):       # do we have a valid file name and not 'None'
@@ -2092,6 +2510,8 @@ class MyWellParameter(MyGroupParameter):
             self.sigValueChanging.emit(self, self.value())
 
     def changedC(self):
+        time = perf_counter()   ###
+
         self.well.crs = self.parC.value()
 
         success = self.well.readHeader(config.surveyCrs, config.glbTransform)
@@ -2117,6 +2537,8 @@ class MyWellParameter(MyGroupParameter):
             self.sigValueChanging.emit(self, self.value())
 
     def changedA(self):
+        time = perf_counter()   ###
+
         a = self.well.ahd0 = self.parA.value()
         s = self.well.dAhd = self.parI.value()
         n = self.well.nAhd = self.parN.value()
@@ -2142,6 +2564,8 @@ class MyWellParameter(MyGroupParameter):
         self.sigValueChanging.emit(self, self.value())
 
     def changedI(self):
+        time = perf_counter()   ###
+
         a = self.well.ahd0 = self.parA.value()
         s = self.well.dAhd = self.parI.value()
         n = self.well.nAhd = self.parN.value()
@@ -2168,6 +2592,8 @@ class MyWellParameter(MyGroupParameter):
         self.sigValueChanging.emit(self, self.value())
 
     def changedN(self):
+        time = perf_counter()   ###
+
         a = self.well.ahd0 = self.parA.value()
         s = self.well.dAhd = self.parI.value()
         n = self.well.nAhd = self.parN.value()
@@ -2205,6 +2631,8 @@ class MyTemplateListParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         opts['context'] = {'addNew': 'Add new template'}
         opts['tip'] = 'Right click to add a new template'
 
@@ -2227,10 +2655,14 @@ class MyTemplateListParameter(MyGroupParameter):
 
         self.sigContextMenu.connect(self.contextMenu)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def value(self):
         return self.childs
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
+
         if name == 'addNew':
             n = len(self.names) + 1
             newName = f'Template-{n}'
@@ -2255,6 +2687,8 @@ class MyTemplateListParameter(MyGroupParameter):
 
             self.sigValueChanging.emit(self, self.value())
 
+        time = config.elapsedTime(time, 5)    ###
+
 
 ### class MyBlockList #########################################################
 
@@ -2264,6 +2698,8 @@ class MyBlockListParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         opts['context'] = {'addNew': 'Add new block'}
         opts['tip'] = 'Right click to add a new block'
 
@@ -2288,10 +2724,14 @@ class MyBlockListParameter(MyGroupParameter):
         self.sigChildAdded.connect(self.onChildAdded)
         self.sigChildRemoved.connect(self.onChildRemoved)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def value(self):
         return self.blockList
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
+
         if name == 'addNew':
             n = len(self.names) + 1
             newName = f'Block-{n}'
@@ -2318,6 +2758,8 @@ class MyBlockListParameter(MyGroupParameter):
 
             self.sigValueChanging.emit(self, self.value())
 
+        time = config.elapsedTime(time, 5)    ###
+
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
         # print(f'>>>{lineNo():5d} BlockList.ChildAdded <<<')
         pass
@@ -2332,6 +2774,8 @@ class MyBlockListParameter(MyGroupParameter):
 
 class MyPatternPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -2339,7 +2783,10 @@ class MyPatternPreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def showInformation(self, param):
+        time = perf_counter()   ###
 
         nElements = 0
         seeds = param.child('Seed list')
@@ -2359,23 +2806,34 @@ class MyPatternPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'+++{lineNo():5d} MyPatternPreviewLabel.showInformation | {t} +++')
+        time = config.elapsedTime(time, 3)    ###
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        # print(f'>>>{lineNo():5d} MyPatternPreviewLabel.ValueChanging <<<')
+        time = perf_counter()   ###
 
         self.showInformation(param)
+
+        # print(f'>>>{lineNo():5d} MyPatternPreviewLabel.ValueChanging <<<')
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        # print(f'>>>{lineNo():5d} MyPatternPreviewLabel.TreeStateChanged <<<')
+        time = perf_counter()   ###
 
         self.showInformation(param)
+
+        time = config.elapsedTime(time, 7)    ###
+        # print(f'>>>{lineNo():5d} MyPatternPreviewLabel.TreeStateChanged <<<')
 
 
 class MyPatternParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyPatternPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyPatternParameter(MyGroupParameter):
@@ -2383,6 +2841,8 @@ class MyPatternParameter(MyGroupParameter):
     itemClass = MyPatternParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
         opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
@@ -2400,6 +2860,8 @@ class MyPatternParameter(MyGroupParameter):
         self.sigContextMenu.connect(self.contextMenu)
         self.sigNameChanged.connect(self.nameChanged)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def nameChanged(self, _):
         self.pattern.name = self.name()
 
@@ -2407,6 +2869,8 @@ class MyPatternParameter(MyGroupParameter):
         return self.pattern
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
+
         parent = self.parent()
         index = parent.children().index(self)
 
@@ -2444,6 +2908,8 @@ class MyPatternParameter(MyGroupParameter):
         elif name == 'export':
             ...
 
+        time = config.elapsedTime(time, 5)    ###
+
 
 ### class MyPatternList #######################################################
 
@@ -2453,6 +2919,8 @@ class MyPatternListParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         opts['context'] = {'addNew': 'Add new pattern'}
         opts['tip'] = 'Right click to add a new pattern'
 
@@ -2473,10 +2941,14 @@ class MyPatternListParameter(MyGroupParameter):
         self.sigChildAdded.connect(self.onChildAdded)
         self.sigChildRemoved.connect(self.onChildRemoved)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def value(self):
         return self.patternList
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
+
         if name == 'addNew':
             n = len(self.names) + 1
             newName = f'Pattern-{n}'
@@ -2491,6 +2963,8 @@ class MyPatternListParameter(MyGroupParameter):
             self.sigAddNew.emit(self, name)
 
             self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 5)    ###
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
         # print(f'>>>{lineNo():5d} PatternList.ChildAdded <<<')
@@ -2509,6 +2983,8 @@ class MyGridParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -2530,8 +3006,12 @@ class MyGridParameter(MyGroupParameter):
         self.parL.sigTreeStateChanged.connect(self.changedL)
         self.parG.sigTreeStateChanged.connect(self.changedG)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changedL(self):
         # local grid
+        time = perf_counter()   ###
+
         self.binGrid.binSize = self.parL.value().binSize
         self.binGrid.binShift = self.parL.value().binShift
         self.binGrid.stakeOrig = self.parL.value().stakeOrig
@@ -2542,6 +3022,8 @@ class MyGridParameter(MyGroupParameter):
 
     def changedG(self):
         # global grid
+        time = perf_counter()   ###
+
         self.binGrid.orig = self.parG.value().orig
         self.binGrid.scale = self.parG.value().scale
         self.binGrid.angle = self.parG.value().angle
@@ -2560,6 +3042,8 @@ class MyAnalysisParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -2594,7 +3078,11 @@ class MyAnalysisParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         self.area = self.parB.value()
         self.angles = self.parA.value()
         self.offset = self.parO.value()
@@ -2602,6 +3090,8 @@ class MyAnalysisParameter(MyGroupParameter):
         self.binning = self.parM.value()
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return (self.area, self.angles, self.binning, self.offset, self.unique)
@@ -2615,6 +3105,8 @@ class MyReflectorsParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -2637,11 +3129,17 @@ class MyReflectorsParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         self.plane = self.parP.value()
         self.sphere = self.parS.value()
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return (self.plane, self.sphere)
@@ -2655,6 +3153,8 @@ class MyConfigurationParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
+
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -2683,12 +3183,18 @@ class MyConfigurationParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
+        time = config.elapsedTime(time, 0)    ###
+
     def changed(self):
+        time = perf_counter()   ###
+
         self.crs = self.parC.value()
         self.typ = self.parT.value()
         self.nam = self.parN.value()
 
         self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return (self.crs, self.typ, self.nam)
@@ -2699,6 +3205,8 @@ class MyConfigurationParameter(MyGroupParameter):
 
 class MySurveyPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
+
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -2706,17 +3214,24 @@ class MySurveyPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
+        time = config.elapsedTime(time, 2)    ###
+
     def onValueChanging(self, *_):                                              # unused param, val replaced by *_
         ...
         # self.setText(val.name)
         # self.update()
 
 
+# MySurveyParameterItem and MySurveyParameter are currently not being used.
 class MySurveyParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
+
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySurveyPreviewLabel(param))
+
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MySurveyParameter(MyGroupParameter):
@@ -2724,6 +3239,7 @@ class MySurveyParameter(MyGroupParameter):
     itemClass = MySurveyParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -2742,6 +3258,8 @@ class MySurveyParameter(MyGroupParameter):
         self.addChild(dict(brush=brush, name='Survey grid', type='myGrid', value=self.survey.grid, default=self.survey.grid))
         self.addChild(dict(brush=brush, name='Block list', type='myBlockList', value=self.survey.blockList))
         self.addChild(dict(brush=brush, name='Pattern list', type='myPatternList', value=self.survey.patternList))
+
+        time = config.elapsedTime(time, 0)    ###
 
     def value(self):
         return self.survey

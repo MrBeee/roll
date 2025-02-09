@@ -1,5 +1,8 @@
+from time import perf_counter
+
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QPen, QVector3D
+from qgis.PyQt.QtWidgets import qApp
 
 # This module provides some default settings for variables used in Roll
 
@@ -228,6 +231,38 @@ maxAnalysisRows = 50_000_000
 # Alternatively QTreeView might do the trick...
 # https://github.com/pyqt/examples/tree/_/src/12%20QTreeView%20example%20in%20Python
 # https://doc.qt.io/qtforpython-6/overviews/qtwidgets-itemviews-simpletreemodel-example.html
+
+
+# timings for time critical functions, allowing for 20 steps, accessed through config.elapsedTime(startTime, index: int)
+timerTmin = [float('Inf') for _ in range(20)]
+timerTmax = [0.0 for _ in range(20)]
+timerTtot = [0.0 for _ in range(20)]
+timerFreq = [0 for _ in range(20)]
+
+
+def elapsedTime(startTime, index: int) -> None:
+    currentTime = perf_counter()
+    deltaTime = currentTime - startTime
+    timerTmin[index] = min(deltaTime, timerTmin[index])
+    timerTmax[index] = max(deltaTime, timerTmax[index])
+    timerTtot[index] = timerTtot[index] + deltaTime
+    timerFreq[index] = timerFreq[index] + 1
+    qApp.processEvents()
+    return perf_counter()  # call again; to ignore any time spent in this funtion
+
+
+def resetTimers(timers=20) -> None:
+
+    # Need access to global variables to reset their values; disable pylint warning
+    global timerTmin                                                            # pylint: disable=W0603
+    global timerTmax                                                            # pylint: disable=W0603
+    global timerTtot                                                            # pylint: disable=W0603
+    global timerFreq                                                            # pylint: disable=W0603
+
+    timerTmin = [float('Inf') for _ in range(timers)]
+    timerTmax = [0.0 for _ in range(timers)]
+    timerTtot = [0.0 for _ in range(timers)]
+    timerFreq = [0 for _ in range(timers)]
 
 
 # Example on using config.py

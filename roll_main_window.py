@@ -1130,13 +1130,23 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         registerAllParameterTypes()
 
     def resetSurveyProperties(self):
+
+        time_ = perf_counter()   ###
+
         self.paramTree.clear()
+
+        time_ = self.survey.elapsedTime(time_, 8)    ###
 
         # set the survey object in the property pane using current survey properties
         copy = self.survey.deepcopy()
+
+        time_ = self.survey.elapsedTime(time_, 9)    ###
+
         self.updatePatternList(copy)                                            # create valid pattern list, before using it in property pane
 
-        # first copy the crs for global access (need to fix this later)
+        time_ = self.survey.elapsedTime(time_, 10)    ###
+
+        # first copy the crs for global access (todo: need to fix this later)
         config.surveyCrs = copy.crs
 
         # brush color for main parameter categories
@@ -1151,20 +1161,32 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             dict(brush=brush, name='Pattern list', type='myPatternList', value=copy.patternList),
         ]
 
-        # surveyParams = dict(name='Survey configuration',type='mySurvey', value=copy, brush='#add8e6')
-        # self.parameters = pg.parametertree.Parameter.create(name='Survey configuration', type='mySurvey', value=copy, brush='#add8e6')
+        time_ = self.survey.elapsedTime(time_, 11)    ###
 
         self.parameters = pg.parametertree.Parameter.create(name='Survey Properties', type='group', children=surveyParams)
+
+        time_ = self.survey.elapsedTime(time_, 12)    ###
+
         self.parameters.sigTreeStateChanged.connect(self.propertyTreeStateChanged)
+
+        time_ = self.survey.elapsedTime(time_, 13)    ###
+
+        # todo: fix this; this is the most time consuming step, loading a new survey with many blocks.
         self.paramTree.setParameters(self.parameters, showTop=False)
+
+        time_ = self.survey.elapsedTime(time_, 14)    ###
 
         # Make sure we get a notification, when the binning area or the survey grid has changed, to ditch the analysis files
         self.anaChild = self.parameters.child('Survey analysis')
         self.binChild = self.anaChild.child('Binning area')
         self.binChild.sigTreeStateChanged.connect(self.binningSettingsHaveChanged)
 
+        time_ = self.survey.elapsedTime(time_, 15)    ###
+
         self.grdChild = self.parameters.child('Survey grid')
         self.grdChild.sigTreeStateChanged.connect(self.binningSettingsHaveChanged)
+
+        time_ = self.survey.elapsedTime(time_, 16)    ###
 
         # deal with a bug, not showing tooltip information in the list of parameterItems
         for item in self.paramTree.listAllItems():                              # Bug. See: https://github.com/pyqtgraph/pyqtgraph/issues/2744
@@ -1218,9 +1240,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         copy = RollSurvey()
 
         CFG = self.parameters.child('Survey configuration')
-        # copy.crs = CFG.child('Survey CRS').value()
-        # copy.type = SurveyType[CFG.child('Survey type').value()]
-        # copy.name = CFG.child('Survey name').value()
 
         copy.crs, surType, copy.name = CFG.value()                              # get tuple of data from parameter
         copy.type = SurveyType[surType]                                         # SurveyType is an enum
@@ -1235,8 +1254,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         GRD = self.parameters.child('Survey grid')
         copy.grid = GRD.value()
 
-        BLK = self.parameters.child('Block list')
-        copy.blockList = BLK.value()
+        # BLK = self.parameters.child('Block list')
+        # copy.blockList = BLK.value()
 
         PAT = self.parameters.child('Pattern list')
         copy.patternList = PAT.value()
@@ -1343,6 +1362,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     ## If anything changes in the tree, print a message
     def propertyTreeStateChanged(self, param, changes):
         # self.propertyButtonBox.button(QDialogButtonBox.Apply).setEnabled(True)
+
         print('┌── sigTreeStateChanged --> tree changes:')
         for param, change, data in changes:
             path = self.parameters.childPath(param)
@@ -2068,6 +2088,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def MouseMovedInPlot(self, pos):                                            # See: https://stackoverflow.com/questions/46166205/display-coordinates-in-pyqtgraph
         if self.layoutWidget.sceneBoundingRect().contains(pos):                 # is mouse moved within the scene area ?
+
+            if self.survey is None or self.survey.glbTransform is None:
+                return
+
             mousePoint = self.layoutWidget.plotItem.vb.mapSceneToView(pos)      # get scene coordinates
 
             if self.glob:                                                       # plot is using global coordinates
@@ -3325,6 +3349,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def fileLoad(self, fileName):
 
+        config.resetTimers()    ###                                             # reset timers for debugging code
+
+        time_ = perf_counter()   ###
+
         file = QFile(fileName)
         if not file.open(QFile.ReadOnly | QFile.Text):                          # report status message and return False
             try:                                                                # remove from MRU in case of errors
@@ -3334,6 +3362,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Cannot open file:{fileName}. Error:{file.errorString()}', MsgType.Error)
             return False
+
         self.appendLogMessage(f'Opening: {fileName}')                           # send status message
 
         self.survey = RollSurvey()                                              # reset the survey object; get rid of all blocks in the list !
@@ -3460,8 +3489,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             else:
                 self.output.rmsOffset = None
 
-            ##### 4/9/24
-
             if os.path.exists(self.fileName + '.off.npy'):                      # load the existing azimuth/offset histogram file
                 self.output.offstHist = np.load(self.fileName + '.off.npy')
                 nX = self.output.offstHist.shape[0]                             # check against nx
@@ -3487,6 +3514,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     self.appendLogMessage('Loaded : . . . azi-offset histogram')
             else:
                 self.output.ofAziHist = None
+
+            time_ = self.survey.elapsedTime(time_, 0)    ###
 
             if self.output.binOutput is not None and os.path.exists(self.fileName + '.ana.npy'):   # only open the analysis file if binning file exists
                 try:
@@ -3602,6 +3631,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             else:
                 self.relGeom = None
 
+            time_ = self.survey.elapsedTime(time_, 1)    ###
+
             self.rpsModel.setData(self.rpsImport)                               # update the three rps/sps/xps models
             self.spsModel.setData(self.spsImport)
             self.xpsModel.setData(self.xpsImport)
@@ -3612,19 +3643,70 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             self.handleImageSelection()                                         # change selection and plot survey
 
+        time_ = self.survey.elapsedTime(time_, 2)    ###
+
         self.spiderPoint = QPoint(-1, -1)                                       # reset the spider location
         index = self.anaView.model().index(0, 0)                                # turn offset into index
+
+        time_ = self.survey.elapsedTime(time_, 3)    ###
+
         self.anaView.scrollTo(index)                                            # scroll to the first trace in the trace table
         self.anaView.selectRow(0)                                               # for the time being, *only* select first row of traces in a bin
 
+        time_ = self.survey.elapsedTime(time_, 4)    ###
+
         self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
+
+        time_ = self.survey.elapsedTime(time_, 5)    ###
+
         self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
+
+        time_ = self.survey.elapsedTime(time_, 6)    ###
+
         self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
         self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the Layout tab
 
+        time_ = self.survey.elapsedTime(time_, 7)    ###
+
         # self.plotLayout()                                                     # plot the survey object
+
+        ### todo: check the next routine, as this is where the delays occur ###
+
         self.resetSurveyProperties()                                            # get the new parameters into the parameter tree
+
+        time_ = self.survey.elapsedTime(time_, 17)    ###
+
         self.survey.checkIntegrity()                                            # check for survey integrity; in particular well file validity
+
+        time_ = self.survey.elapsedTime(time_, 18)    ###
+
+        # profiling showed that parsing & loading the survey object is not the largest bottleneck
+        # loading the analysis files can take a considerable amount of time.
+        # maybe try loading these in parallel using asyncio
+        # See: https://stackoverflow.com/questions/24246734/fetching-data-with-pythons-asyncio-in-a-sequential-order
+        # See: https://stackoverflow.com/questions/50757497/simplest-async-await-example-possible-in-python
+        # See: https://djangostars.com/blog/asynchronous-programming-in-python-asyncio/
+        # See: https://github.com/crazyguitar/pysheeet/blob/master/docs/appendix/python-concurrent.rst
+
+        self.appendLogMessage('RollMainWindow.parseText() profiling information', MsgType.Debug)
+        for i in range(0, 20):
+            t = self.survey.timerTmax[i]                             # perf_counter counts in nano seconds, but returns time in [s]
+            message = f'Time spent in function call #{i:2d}: {t:11.4f}'
+            self.appendLogMessage(message, MsgType.Debug)
+
+        self.appendLogMessage('RollMainWindow.resetSurveyProperties() profiling information', MsgType.Debug)
+        i = 0
+        while i < len(config.timerTmin):                        # log some debug messages
+            tMin = config.timerTmin[i] * 1000.0 if config.timerTmin[i] != float('Inf') else 0.0
+            tMax = config.timerTmax[i] * 1000.0
+            tTot = config.timerTtot[i] * 1000.0
+            freq = config.timerFreq[i]
+            tAvr = tTot / freq if freq > 0 else 0.0
+            # message = f'{i:02d}: min:{tMin:011.3f}, max:{tMax:011.3f}, tot:{tTot:011.3f}, avr:{tAvr:011.3f}, freq:{freq:07d}'
+            message = f'{i:02d}: min:{tMin:11.3f}, max:{tMax:11.3f}, tot:{tTot:11.3f}, avr:{tAvr:11.3f}, freq:{freq:7d}'
+            self.appendLogMessage(message, MsgType.Debug)
+            i += 1
+
         return success
 
     def fileImportSPS(self) -> bool:
@@ -4198,35 +4280,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if success:                                                             # parsing went ok, start with a new survey object
 
             with pg.BusyCursor():                                               # this may take some time
-
-                # see: https://stackoverflow.com/questions/51485285/stop-a-while-loop-by-escape-key to break a do-loop
-
-                time = perf_counter()   ###
-
                 self.survey = RollSurvey()                                      # only reset the survey object upon succesful parse
-                time = self.survey.elapsedTime(time, 0)    ###
-
                 self.survey.readXml(doc)                                        # build the RollSurvey object tree; no heavy lifting takes place here
-                time = self.survey.elapsedTime(time, 1)    ###
-
                 self.survey.calcTransforms()                                    # (re)calculate the transforms being used; some work to to set up the plane using three points in the global space
-                time = self.survey.elapsedTime(time, 2)    ###
-
                 self.survey.calcSeedData()                                      # needed for circles, spirals & well-seeds; may affect bounding box
-                time = self.survey.elapsedTime(time, 3)    ###
-
                 self.survey.calcBoundingRect()                                  # (re)calculate the boundingBox as part of parsing the data
-                time = self.survey.elapsedTime(time, 4)    ###
-
                 self.survey.calcNoShotPoints()                                  # (re)calculate nr of SPs
-                time = self.survey.elapsedTime(time, 5)    ###
-
-                self.appendLogMessage('RollMainWindow.parseText() profiling information', MsgType.Debug)
-                for i in range(0, 6):
-                    time = self.survey.timerTmax[i]                             # perf_counter counts in nano seconds, but returns time in [s]
-                    message = f'Time spent in function call #{i:2d}: {time:11.4f}'
-                    self.appendLogMessage(message, MsgType.Debug)
-
                 self.appendLogMessage(f'Parsing: {self.fileName} survey object succesfully parsed')
 
                 return True
