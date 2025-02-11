@@ -1172,7 +1172,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         time_ = self.survey.elapsedTime(time_, 13)    ###
 
         # todo: fix this; this is the most time consuming step, loading a new survey with many blocks.
+        # Disable signals to speed up setting parameters. Suggestion from GitHub Copilot; does not work !
+        # self.paramTree.blockSignals(True)
         self.paramTree.setParameters(self.parameters, showTop=False)
+        # self.paramTree.blockSignals(False)
 
         time_ = self.survey.elapsedTime(time_, 14)    ###
 
@@ -1196,6 +1199,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 item.updateDefaultBtn()                                         # reset the default-buttons to their grey value
             if 'tip' in p.opts:                                                 # this solves the above mentioned bug
                 item.setToolTip(0, p.opts['tip'])                               # the widgets now get their tooltips
+        time_ = self.survey.elapsedTime(time_, 17)    ###
 
     def updatePatternList(self, survey):
 
@@ -1254,8 +1258,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         GRD = self.parameters.child('Survey grid')
         copy.grid = GRD.value()
 
-        # BLK = self.parameters.child('Block list')
-        # copy.blockList = BLK.value()
+        BLK = self.parameters.child('Block list')
+        copy.blockList = BLK.value()
 
         PAT = self.parameters.child('Pattern list')
         copy.patternList = PAT.value()
@@ -3247,9 +3251,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             #         i += 1
 
     def fileNewMarineSurvey(self):
-        if not config.showUnfinished:
-            QMessageBox.information(self, 'Not implemented', 'The marine wizard has not yet been implemented', QMessageBox.Cancel)
-            return
+
+        # the marine wizard only needs cross currents to be added;
+        # it is good enough to give it a go now . . .
+        # if not config.showUnfinished:
+        #     QMessageBox.information(self, 'Not implemented', 'The marine wizard has not yet been implemented', QMessageBox.Cancel)
+        #     return
 
         if not self.fileNew():                                                  # user had 2nd thoughts and did not close the document; return False
             return False
@@ -3655,7 +3662,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         time_ = self.survey.elapsedTime(time_, 4)    ###
 
-        self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
+        # self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
 
         time_ = self.survey.elapsedTime(time_, 5)    ###
 
@@ -3697,13 +3705,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.appendLogMessage('RollMainWindow.resetSurveyProperties() profiling information', MsgType.Debug)
         i = 0
         while i < len(config.timerTmin):                        # log some debug messages
-            tMin = config.timerTmin[i] * 1000.0 if config.timerTmin[i] != float('Inf') else 0.0
-            tMax = config.timerTmax[i] * 1000.0
-            tTot = config.timerTtot[i] * 1000.0
+            tMin = config.timerTmin[i] if config.timerTmin[i] != float('Inf') else 0.0
+            tMax = config.timerTmax[i]
+            tTot = config.timerTtot[i]
             freq = config.timerFreq[i]
             tAvr = tTot / freq if freq > 0 else 0.0
-            # message = f'{i:02d}: min:{tMin:011.3f}, max:{tMax:011.3f}, tot:{tTot:011.3f}, avr:{tAvr:011.3f}, freq:{freq:07d}'
-            message = f'{i:02d}: min:{tMin:11.3f}, max:{tMax:11.3f}, tot:{tTot:11.3f}, avr:{tAvr:11.3f}, freq:{freq:7d}'
+            message = f'Index {i:02d}, min {tMin:011.3f}, max {tMax:011.3f}, tot {tTot:011.3f}, avr {tAvr:011.3f}, freq {freq:07d}'
+            # message = f'{i:02d}: min:{tMin:11.3f}, max:{tMax:11.3f}, tot:{tTot:11.3f}, avr:{tAvr:11.3f}, freq:{freq:7d}'
             self.appendLogMessage(message, MsgType.Debug)
             i += 1
 

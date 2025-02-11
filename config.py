@@ -243,6 +243,9 @@ timerFreq = [0 for _ in range(20)]
 def elapsedTime(startTime, index: int) -> None:
     currentTime = perf_counter()
     deltaTime = currentTime - startTime
+    if deltaTime > 10.0:
+        breakpoint()
+
     timerTmin[index] = min(deltaTime, timerTmin[index])
     timerTmax[index] = max(deltaTime, timerTmax[index])
     timerTtot[index] = timerTtot[index] + deltaTime

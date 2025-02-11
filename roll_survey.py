@@ -2012,8 +2012,6 @@ class RollSurvey(pg.GraphicsObject):
             for template in block.templateList:
                 for seed in template.seedList:
 
-                    # seed.calcPointPicture()                                     # do this as well in the seed's preparation phase
-
                     if seed.type == SeedType.rollingGrid:                       # rolling grid
                         seed.grid.calcSalvoLine(seed.origin)                    # calc line to be drawn in low LOD values
 

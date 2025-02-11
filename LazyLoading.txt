@@ -1,0 +1,141 @@
+class MyRollParameter(MyGroupParameter):
+
+    itemClass = MyRollParameterItem
+
+    def __init__(self, **opts):
+        time = perf_counter()   ###
+
+        opts['context'] = {'moveUp': 'Move up', 'moveDown': 'Move dn'}
+        opts['tip'] = 'Right click to change position; please keep largest nr of points at bottom of the list'
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in MyRollParameter opts')
+
+        self.row = RollTranslate()
+        self.row = opts.get('value', self.row)
+
+        self.decimals = opts.get('decimals', 3)
+        self.suffix = opts.get('suffix', '')
+
+        self.parN = None
+        self.parX = None
+        self.parY = None
+        self.parZ = None
+        self.parA = None
+        self.parT = None
+
+        self.sigTreeStateChanged.connect(self.changed)
+
+        time = config.elapsedTime(time, 0)    ###
+
+    def lazyLoadChildren(self):
+        if self.parN is None:
+            self.addChild(dict(name='N', type='int', limits=[1, None], value=self.row.steps))
+            self.addChild(dict(name='dX', type='float', decimals=self.decimals, suffix=self.suffix, value=self.row.increment.x()))
+            self.addChild(dict(name='dY', type='float', decimals=self.decimals, suffix=self.suffix, value=self.row.increment.y()))
+            self.addChild(dict(name='dZ', type='float', decimals=self.decimals, suffix=self.suffix, value=self.row.increment.z()))
+            self.addChild(dict(name='azimuth', type='myFloat', decimals=self.decimals, suffix='deg', value=0.0, enabled=False, readonly=True))     # set value through setAzimuth()     # myFloat
+            self.addChild(dict(name='tilt', type='myFloat', decimals=self.decimals, suffix='deg', value=0.0, enabled=False, readonly=True))        # set value through setTilt()    # myFloat
+
+            self.parN = self.child('N')
+            self.parX = self.child('dX')
+            self.parY = self.child('dY')
+            self.parZ = self.child('dZ')
+            self.parA = self.child('azimuth')
+            self.parT = self.child('tilt')
+
+            self.setAzimuth()
+            self.setTilt()
+
+    def setAzimuth(self):
+        azimuth = math.degrees(math.atan2(self.row.increment.y(), self.row.increment.x()))
+        self.parA.setValue(azimuth)
+
+    def setTilt(self):
+        lengthXY = math.sqrt(self.row.increment.x() ** 2 + self.row.increment.y() ** 2)
+        tilt = math.degrees(math.atan2(self.row.increment.z(), lengthXY))
+        self.parT.setValue(tilt)
+
+    # update the values of the five children
+    def changed(self):
+        time = perf_counter()   ###
+
+        self.lazyLoadChildren()
+
+        self.row.steps = self.parN.value()
+        self.row.increment.setX(self.parX.value())
+        self.row.increment.setY(self.parY.value())
+        self.row.increment.setZ(self.parZ.value())
+        self.setAzimuth()
+        self.setTilt()
+
+        self.sigValueChanging.emit(self, self.value())
+
+        time = config.elapsedTime(time, 6)    ###
+
+    def value(self):
+        return self.row
+
+    def contextMenu(self, name=None):
+        parent = self.parent()
+        index = parent.children().index(self)
+
+        if not isinstance(parent, MyRollListParameter):
+            raise ValueError("Need 'MyRollListParameter' instances at this point")
+
+        if name == 'moveUp':
+            if index > 0:
+                with parent.treeChangeBlocker():
+                    name0 = parent.childs[index - 0].name()
+                    name1 = parent.childs[index - 1].name()
+
+                    parent.childs[index - 0].remove()
+                    parent.childs[index - 1].remove()
+
+                    move0 = parent.moveList[index - 0]                          # get value of move parameters
+                    move1 = parent.moveList[index - 1]
+
+                    parent.insertChild(index - 1, dict(name=name1, type='myRoll', value=move0, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                    parent.insertChild(index - 0, dict(name=name0, type='myRoll', value=move1, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+                    move0 = parent.moveList.pop(index)                          # get the move list in the right order
+                    parent.moveList.insert(index - 1, move0)
+                    parent.changed()                                            # update the parent
+
+                    value = parent.value()
+
+                    print(value)
+
+            # parent.sigValueChanging.emit(self, parent.value())
+
+        elif name == 'moveDown':
+            n = len(parent.children())
+            if index < n - 1:
+                with parent.treeChangeBlocker():
+
+                    name0 = parent.childs[index + 0].name()
+                    name1 = parent.childs[index + 1].name()
+
+                    parent.childs[index + 1].remove()
+                    parent.childs[index + 0].remove()
+
+                    move1 = parent.moveList[index + 1]
+                    move0 = parent.moveList[index + 0]                          # get value of move parameters
+
+                    parent.insertChild(index + 0, dict(name=name0, type='myRoll', value=move1, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                    parent.insertChild(index + 1, dict(name=name1, type='myRoll', value=move0, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+                    move0 = parent.moveList.pop(index)                          # get the move list in the right order
+                    parent.moveList.insert(index + 1, move0)
+                    parent.changed()                                            # update the parent
+
+                    value = parent.value()
+
+                    print(value)
+
+                    # self.remove()
+                    # name = self.name()
+                    # move = parent.moveList.pop(index)
+                    # parent.moveList.insert(index + 1, move)
+                    # parent.insertChild(index + 1, dict(name=name, type='myRoll', value=move, expanded=False, flat=True, decimals=5, suffix='m'))

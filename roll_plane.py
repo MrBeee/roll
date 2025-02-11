@@ -15,10 +15,10 @@ class RollPlane:
     def __init__(self, anchor: QVector3D = QVector3D(0, 0, -2000), azi: float = 0.0, dip: float = 0.0) -> None:  # assign default values
         # serialization hinges around anchor, azimuth and dip; from these parameters the plane equation is determined
         self.anchor = anchor                                                    # needed in xml-read & write
-        self.azi = azi                                                       # needed in xml-read & write
-        self.dip = dip                                                       # needed in xml-read & write
+        self.azi = azi                                                          # needed in xml-read & write
+        self.dip = dip                                                          # needed in xml-read & write
 
-        self.dist = 0.0                                                       # calculated in calculateNormal()
+        self.dist = 0.0                                                         # calculated in calculateNormal()
         self.normal = QVector3D()                                               # calculated in calculateNormal()
         self.calculateNormal()                                                  # to initialise dist & normal
 

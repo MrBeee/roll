@@ -1,10 +1,11 @@
 import math
 import os
+from time import perf_counter
 
 from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt.QtCore import QFileInfo, QPointF, QSettings
 from qgis.PyQt.QtGui import QColor, QVector3D
-from qgis.PyQt.QtWidgets import QMessageBox, qApp
+from qgis.PyQt.QtWidgets import QMessageBox
 
 from . import config  # used to pass initial settings
 from .my_cmap import MyCmapParameter
@@ -104,7 +105,7 @@ from .roll_well import RollWell
 
 class MyBinAnglesPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
-
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -114,9 +115,10 @@ class MyBinAnglesPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         d = self.decimals
         y = val.reflection.y()
@@ -131,17 +133,17 @@ class MyBinAnglesPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyBinAnglesPreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyBinAnglesParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
-
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBinAnglesPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyBinAnglesParameter(MyGroupParameter):
@@ -149,6 +151,7 @@ class MyBinAnglesParameter(MyGroupParameter):
     itemClass = MyBinAnglesParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -177,9 +180,10 @@ class MyBinAnglesParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.angles.azimuthal.setX(self.parAx.value())
         self.angles.azimuthal.setY(self.parAy.value())
@@ -187,7 +191,7 @@ class MyBinAnglesParameter(MyGroupParameter):
         self.angles.reflection.setY(self.parIy.value())
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.angles
@@ -198,7 +202,7 @@ class MyBinAnglesParameter(MyGroupParameter):
 
 class MyBinOffsetPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
-
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -206,9 +210,10 @@ class MyBinOffsetPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         x = max(abs(val.rctOffsets.left()), abs(val.rctOffsets.right()))
         y = max(abs(val.rctOffsets.top()), abs(val.rctOffsets.bottom()))
@@ -226,17 +231,17 @@ class MyBinOffsetPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyBinOffsetPreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyBinOffsetParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
-
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBinOffsetPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyBinOffsetParameter(MyGroupParameter):
@@ -244,6 +249,7 @@ class MyBinOffsetParameter(MyGroupParameter):
     itemClass = MyBinOffsetParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -274,9 +280,10 @@ class MyBinOffsetParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         #  read parameter changes here
         xmin = self.parXmin.value()
@@ -295,7 +302,7 @@ class MyBinOffsetParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.offset
@@ -306,7 +313,7 @@ class MyBinOffsetParameter(MyGroupParameter):
 
 class MyUniqOffPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
-
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -314,9 +321,10 @@ class MyUniqOffPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         if not val.apply:
             t = 'Not used'
@@ -327,17 +335,17 @@ class MyUniqOffPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyUniqOffPreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyUniqOffParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
-
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyUniqOffPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyUniqOffParameter(MyGroupParameter):
@@ -345,6 +353,7 @@ class MyUniqOffParameter(MyGroupParameter):
     itemClass = MyUniqOffParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -371,9 +380,10 @@ class MyUniqOffParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.unique.apply = self.parP.value()
         self.unique.write = self.parR.value()
@@ -382,7 +392,7 @@ class MyUniqOffParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.unique
@@ -393,7 +403,7 @@ class MyUniqOffParameter(MyGroupParameter):
 
 class MyBinMethodPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
-
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -401,9 +411,10 @@ class MyBinMethodPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         binningMethod = val.method.value
         method = BinningList[binningMethod]
@@ -413,17 +424,17 @@ class MyBinMethodPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyBinMethodPreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyBinMethodParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
-
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBinMethodPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyBinMethodParameter(MyGroupParameter):
@@ -431,6 +442,7 @@ class MyBinMethodParameter(MyGroupParameter):
     itemClass = MyBinMethodParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -453,9 +465,10 @@ class MyBinMethodParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         index = BinningList.index(self.parM.value())
         self.binning.method = BinningType(index)
@@ -463,7 +476,7 @@ class MyBinMethodParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.binning
@@ -474,7 +487,7 @@ class MyBinMethodParameter(MyGroupParameter):
 
 class MyPlanePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
-
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -485,9 +498,10 @@ class MyPlanePreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         dip = val.dip
         azi = val.azi
@@ -503,25 +517,26 @@ class MyPlanePreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyPlanePreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        time = perf_counter()   ###
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
         # print(f'>>>{lineNo():5d} MyPlaneParameter.TreeStateChanged <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MyPlaneParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
-
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyPlanePreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyPlaneParameter(MyGroupParameter):
@@ -529,6 +544,7 @@ class MyPlaneParameter(MyGroupParameter):
     itemClass = MyPlaneParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -554,9 +570,10 @@ class MyPlaneParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.plane.anchor = self.parO.value()
         self.plane.azi = self.parA.value()
@@ -564,7 +581,7 @@ class MyPlaneParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.plane
@@ -575,7 +592,7 @@ class MyPlaneParameter(MyGroupParameter):
 
 class MySpherePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
-
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -586,9 +603,10 @@ class MySpherePreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         r = val.radius
         z = val.origin.z()
@@ -599,25 +617,26 @@ class MySpherePreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MySpherePreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        time = perf_counter()   ###
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
         # print(f'>>>{lineNo():5d} MySphereParameter.TreeStateChanged <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MySphereParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
-
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySpherePreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MySphereParameter(MyGroupParameter):
@@ -625,6 +644,7 @@ class MySphereParameter(MyGroupParameter):
     itemClass = MySphereParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -647,16 +667,17 @@ class MySphereParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.sphere.origin = self.parO.value()
         self.sphere.radius = self.parR.value()
 
         self.sigValueChanging.emit(self, self.sphere)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.sphere
@@ -667,7 +688,7 @@ class MySphereParameter(MyGroupParameter):
 
 class MyLocalGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
-
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -675,9 +696,10 @@ class MyLocalGridPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         fold = val.fold
 
@@ -690,17 +712,17 @@ class MyLocalGridPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyLocalGridPreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyLocalGridParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
-
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyLocalGridPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyLocalGridParameter(MyGroupParameter):
@@ -708,6 +730,7 @@ class MyLocalGridParameter(MyGroupParameter):
     itemClass = MyLocalGridParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -745,9 +768,10 @@ class MyLocalGridParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         # local grid
         self.binGrid.binSize.setX(self.parBx.value())
@@ -762,7 +786,7 @@ class MyLocalGridParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.binGrid
@@ -773,7 +797,7 @@ class MyLocalGridParameter(MyGroupParameter):
 
 class MyGlobalGridPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
-
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -783,9 +807,10 @@ class MyGlobalGridPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         x = val.orig.x()
         y = val.orig.y()
@@ -799,17 +824,17 @@ class MyGlobalGridPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyGlobalGridPreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyGlobalGridParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
-
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyGlobalGridPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyGlobalGridParameter(MyGroupParameter):
@@ -817,6 +842,7 @@ class MyGlobalGridParameter(MyGroupParameter):
     itemClass = MyGlobalGridParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -845,9 +871,10 @@ class MyGlobalGridParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         # global grid
         self.binGrid.orig.setX(self.parOx.value())
@@ -858,7 +885,7 @@ class MyGlobalGridParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.binGrid
@@ -869,7 +896,7 @@ class MyGlobalGridParameter(MyGroupParameter):
 
 class MyBlockPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
-
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -877,10 +904,11 @@ class MyBlockPreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def showInformation(self, param):
         # block's source- and receiver boundaries are ignored
+        time = perf_counter()   ###
 
         templates = param.child('Template list')
 
@@ -931,31 +959,33 @@ class MyBlockPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'+++{lineNo():5d} MyBlockPreviewLabel.showInformation | {t} +++')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 3)    ###
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MyBlockPreviewLabel.ValueChanging <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MyBlockParameter.TreeStateChanged <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MyBlockParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
-
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyBlockPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyBlockParameter(MyGroupParameter):
@@ -963,6 +993,7 @@ class MyBlockParameter(MyGroupParameter):
     itemClass = MyBlockParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
         opts['tip'] = 'Right click to manage block'
@@ -989,7 +1020,7 @@ class MyBlockParameter(MyGroupParameter):
         self.sigNameChanged.connect(self.nameChanged)
         self.sigContextMenu.connect(self.contextMenu)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def nameChanged(self, _):
         self.block.name = self.name()
@@ -1047,7 +1078,7 @@ class MyBlockParameter(MyGroupParameter):
 
 class MyTemplatePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
-
+        time = perf_counter()   ###
         super().__init__()
 
         param.sigValueChanging.connect(self.onValueChanging)
@@ -1055,9 +1086,10 @@ class MyTemplatePreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def showInformation(self, param):
+        time = perf_counter()   ###
 
         nSeeds = 0
         nTemplateShots = 0
@@ -1100,33 +1132,36 @@ class MyTemplatePreviewLabel(MyPreviewLabel):
         self.setText(t)
         self.update()
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 3)    ###
 
         # print(f'+++{lineNo():5d} MyTemplatePreviewLabel.showInformation | {t} +++')
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MyTemplatePreviewLabel.ValueChanging <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MyTemplateParameter.TreeStateChanged <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MyTemplateParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyTemplatePreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyTemplateParameter(MyGroupParameter):
@@ -1134,6 +1169,7 @@ class MyTemplateParameter(MyGroupParameter):
     itemClass = MyTemplateParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         opts['context'] = {'rename': 'Rename', 'remove': 'Remove', 'moveUp': 'Move up', 'moveDown': 'Move dn', 'separator': '----', 'preview': 'Preview', 'export': 'Export'}
         opts['tip'] = 'Right click to manage template'
@@ -1159,20 +1195,21 @@ class MyTemplateParameter(MyGroupParameter):
         self.sigNameChanged.connect(self.nameChanged)
         self.sigContextMenu.connect(self.contextMenu)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def nameChanged(self, _):
 
         self.template.name = self.name()
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.template.rollList = self.parR.value()
         self.template.seedList = self.parS.value()
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.template
@@ -1220,6 +1257,7 @@ class MyTemplateParameter(MyGroupParameter):
 
 class MyRollListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -1228,9 +1266,10 @@ class MyRollListPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)                                     # get *value*  from param and provide default (None)
         self.onValueChanging(None, val)                                         # initialize the label in __init__()
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         n0 = val[0].steps                                                       # prepare label text
         n1 = val[1].steps
@@ -1241,17 +1280,18 @@ class MyRollListPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyRollListPreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyRollListParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyRollListPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyRollListParameter(MyGroupParameter):
@@ -1259,6 +1299,7 @@ class MyRollListParameter(MyGroupParameter):
     itemClass = MyRollListParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -1282,9 +1323,10 @@ class MyRollListParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         # paramList defined here, as the childs may be substituted by different children, due to MyRollParameters moving up/down in the list
         paramList = [self.child('Planes'), self.child('Lines'), self.child('Points')]
@@ -1295,7 +1337,7 @@ class MyRollListParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.moveList
@@ -1306,6 +1348,7 @@ class MyRollListParameter(MyGroupParameter):
 
 class MyRollPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -1316,9 +1359,10 @@ class MyRollPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         n = val.steps
         x = val.increment.x()
@@ -1331,19 +1375,20 @@ class MyRollPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyRollPreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyRollParameterItem(MyGroupParameterItem):
     """modeled after PenParameterItem from pen.py in pyqtgraph"""
 
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyRollPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyRollParameter(MyGroupParameter):
@@ -1351,6 +1396,7 @@ class MyRollParameter(MyGroupParameter):
     itemClass = MyRollParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         opts['context'] = {'moveUp': 'Move up', 'moveDown': 'Move dn'}
         opts['tip'] = 'Right click to change position; please keep largest nr of points at bottom of the list'
@@ -1381,7 +1427,7 @@ class MyRollParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def setAzimuth(self):
         azimuth = math.degrees(math.atan2(self.row.increment.y(), self.row.increment.x()))
@@ -1394,6 +1440,7 @@ class MyRollParameter(MyGroupParameter):
 
     # update the values of the five children
     def changed(self):
+        time = perf_counter()   ###
 
         self.row.steps = self.parN.value()
         self.row.increment.setX(self.parX.value())
@@ -1404,7 +1451,7 @@ class MyRollParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.row
@@ -1478,6 +1525,7 @@ class MyRollParameter(MyGroupParameter):
 
 class MySeedListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -1486,9 +1534,10 @@ class MySeedListPreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def showInformation(self, param):
+        time = perf_counter()   ###
 
         nChilds = len(param.childs)
         nSource = 0
@@ -1511,31 +1560,34 @@ class MySeedListPreviewLabel(MyPreviewLabel):
         self.setErrorCondition(nSource == 0 or nChilds == nSource)
 
         # print(f'+++{lineNo():5d} MySeedListPreviewLabel.showInformation | {t} +++')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 3)    ###
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MySeedListPreviewLabel.ValueChanging <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MySeedListPreviewLabel.TreeStateChanged <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MySeedListParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySeedListPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MySeedListParameter(MyGroupParameter):
@@ -1543,6 +1595,7 @@ class MySeedListParameter(MyGroupParameter):
     itemClass = MySeedListParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         opts['context'] = {'addNew': 'Add new Seed'}
         opts['tip'] = 'Right click to add seeds'
@@ -1566,7 +1619,7 @@ class MySeedListParameter(MyGroupParameter):
 
         self.sigContextMenu.connect(self.contextMenu)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 8)    ###
 
     def value(self):
         return self.seedList
@@ -1611,6 +1664,7 @@ class MySeedListParameter(MyGroupParameter):
 
 class MyPatternSeedListPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -1619,9 +1673,10 @@ class MyPatternSeedListPreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def showInformation(self, param):
+        time = perf_counter()   ###
 
         nChilds = len(param.childs)
 
@@ -1634,31 +1689,34 @@ class MyPatternSeedListPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'+++{lineNo():5d} MyPatternSeedListPreviewLabel.showInformation | {t} +++')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 3)    ###
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MyPatternSeedListPreviewLabel.ValueChanging <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MyPatternSeedListPreviewLabel.TreeStateChanged <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MyPatternSeedListParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyPatternSeedListPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyPatternSeedListParameter(MyGroupParameter):
@@ -1666,6 +1724,7 @@ class MyPatternSeedListParameter(MyGroupParameter):
     itemClass = MyPatternSeedListParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         opts['context'] = {'addNew': 'Add new Seed'}
         opts['tip'] = 'Right click to add seeds'
@@ -1685,12 +1744,13 @@ class MyPatternSeedListParameter(MyGroupParameter):
 
         self.sigContextMenu.connect(self.contextMenu)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def value(self):
         return self.seedList
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
 
         if name == 'addNew':
             n = len(self.names) + 1
@@ -1715,7 +1775,7 @@ class MyPatternSeedListParameter(MyGroupParameter):
             self.sigAddNew.emit(self, name)
             self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 5)    ###
 
 
 ### class MySeed ##############################################################
@@ -1723,6 +1783,7 @@ class MyPatternSeedListParameter(MyGroupParameter):
 
 class MySeedPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -1732,9 +1793,10 @@ class MySeedPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         if val.type == 2:
             kind = 'circle'
@@ -1762,25 +1824,26 @@ class MySeedPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MySeedPreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        time = perf_counter()   ###
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
         # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MySeedParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
-
+        time = perf_counter()   ###
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySeedPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MySeedParameter(MyGroupParameter):
@@ -1788,6 +1851,7 @@ class MySeedParameter(MyGroupParameter):
     itemClass = MySeedParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -1811,16 +1875,16 @@ class MySeedParameter(MyGroupParameter):
 
         # A 'global' patternList has been defined using config.py as a backdoor;
         # as patterns are defined on a seperate (not-easy-to-access) branch in the RollSurvey object
+        pl = config.patternList
         if self.seed.type > SeedType.fixedGrid:                                 # the assumption is that there are no patterns in circels, spirals and wells
             nPattern = 0
         else:
             nPattern = self.seed.patternNo + 1
-            if nPattern >= len(config.patternList):
+            if nPattern >= len(pl):
                 nPattern = 0
-        self.addChild(dict(name='Seed pattern', type='myList', value=config.patternList[nPattern], default=config.patternList[nPattern], limits=config.patternList))
-        self.addChild(dict(name='Grid grow steps', type='myRollList', value=self.seed.grid.growList, default=self.seed.grid.growList, expanded=True, flat=True, decimals=d, suffix='m', brush='#add8e6'))
+        self.addChild(dict(name='Seed pattern', type='myList', value=pl[nPattern], default=pl[nPattern], limits=pl))
 
-        # todo: check alternatives; circle spiral and well slow things down a lot
+        self.addChild(dict(name='Grid grow steps', type='myRollList', value=self.seed.grid.growList, default=self.seed.grid.growList, expanded=True, flat=True, decimals=d, suffix='m', brush='#add8e6'))
         self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
         self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
         self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
@@ -1832,8 +1896,6 @@ class MySeedParameter(MyGroupParameter):
         self.parP = self.child('Seed pattern')
 
         self.parG = self.child('Grid grow steps')
-
-        # circle spiral and well slow things down a lot
         self.parC = self.child('Circle grow steps')
         self.parS = self.child('Spiral grow steps')
         self.parW = self.child('Well grow steps')
@@ -1845,8 +1907,6 @@ class MySeedParameter(MyGroupParameter):
         self.parO.sigValueChanged.connect(self.changed)
         self.parP.sigValueChanged.connect(self.changed)
         self.parG.sigValueChanged.connect(self.changed)
-
-        # circle spiral and well slow things down a lot
         self.parC.sigValueChanged.connect(self.changed)
         self.parS.sigValueChanged.connect(self.changed)
         self.parW.sigValueChanged.connect(self.changed)
@@ -1856,7 +1916,7 @@ class MySeedParameter(MyGroupParameter):
 
         self.typeChanged()
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 9)    ###
 
     def nameChanged(self, _):
         self.seed.name = self.name()
@@ -1872,31 +1932,31 @@ class MySeedParameter(MyGroupParameter):
 
         self.parG.show(seedType == 'Grid (roll along)' or seedType == 'Grid (stationary)')
         self.parP.show(seedType == 'Grid (roll along)' or seedType == 'Grid (stationary)')
-
         self.parC.show(seedType == 'Circle')
         self.parS.show(seedType == 'Spiral')
         self.parW.show(seedType == 'Well')
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.seed.bSource = self.parR.value()
         self.seed.color = self.parL.value()
         self.seed.origin = self.parO.value()
         self.seed.patternNo = config.patternList.index(self.parP.value()) - 1
         self.seed.grid.growList = self.parG.value()
-
-        # self.seed.circle = self.parC.value()
-        # self.seed.spiral = self.parS.value()
-        # self.seed.well = self.parW.value()
+        self.seed.circle = self.parC.value()
+        self.seed.spiral = self.parS.value()
+        self.seed.well = self.parW.value()
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.seed
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
 
         parent = self.parent()
         index = parent.children().index(self)
@@ -1934,7 +1994,7 @@ class MySeedParameter(MyGroupParameter):
             ...
         elif name == 'export':
             ...
-        qApp.processEvents()
+        time = config.elapsedTime(time, 5)    ###
 
 
 ### class MyPatternSeed ##############################################################
@@ -1942,6 +2002,7 @@ class MySeedParameter(MyGroupParameter):
 
 class MyPatternSeedPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -1951,9 +2012,10 @@ class MyPatternSeedPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         nSteps = 1
         for growStep in val.grid.growList:                                  # iterate through all grow steps
@@ -1965,25 +2027,27 @@ class MyPatternSeedPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MySeedPreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        time = perf_counter()   ###
 
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
         # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MyPatternSeedParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyPatternSeedPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyPatternSeedParameter(MyGroupParameter):
@@ -1991,6 +2055,7 @@ class MyPatternSeedParameter(MyGroupParameter):
     itemClass = MyPatternSeedParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -2021,24 +2086,26 @@ class MyPatternSeedParameter(MyGroupParameter):
         self.sigContextMenu.connect(self.contextMenu)
         self.sigNameChanged.connect(self.nameChanged)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def nameChanged(self, _):
         self.seed.name = self.name()
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.seed.color = self.parL.value()
         self.seed.origin = self.parO.value()
         self.seed.grid.growList = self.parG.value()
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.seed
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
 
         parent = self.parent()
         index = parent.children().index(self)
@@ -2077,7 +2144,7 @@ class MyPatternSeedParameter(MyGroupParameter):
         elif name == 'export':
             ...
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 5)    ###
 
 
 ### class MyCircle ############################################################
@@ -2085,6 +2152,7 @@ class MyPatternSeedParameter(MyGroupParameter):
 
 class MyCirclePreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -2095,9 +2163,10 @@ class MyCirclePreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         r = val.radius
         s = val.dist
@@ -2109,17 +2178,18 @@ class MyCirclePreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MyCirclePreviewLabel.ValueChanging | {t} <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MyCircleParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyCirclePreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyCircleParameter(MyGroupParameter):
@@ -2127,6 +2197,7 @@ class MyCircleParameter(MyGroupParameter):
     itemClass = MyCircleParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -2153,12 +2224,12 @@ class MyCircleParameter(MyGroupParameter):
         self.parN = self.child('Points')
 
         self.sigTreeStateChanged.connect(self.changed)
+        self.changed()
 
-        # self.changed()
-
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.circle.radius = self.parR.value()
         self.circle.azi0 = self.parA.value()
@@ -2167,7 +2238,7 @@ class MyCircleParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.circle
@@ -2178,6 +2249,7 @@ class MyCircleParameter(MyGroupParameter):
 
 class MySpiralPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -2188,9 +2260,10 @@ class MySpiralPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, _, val):                                          # unused param replaced by _
+        time = perf_counter()   ###
 
         r1 = val.radMin * 2
         r2 = val.radMax * 2
@@ -2203,17 +2276,18 @@ class MySpiralPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'>>>{lineNo():5d} MySpiralPreviewLabel.ValueChanging | {t} <<< ')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
 
 class MySpiralParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySpiralPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MySpiralParameter(MyGroupParameter):
@@ -2221,6 +2295,7 @@ class MySpiralParameter(MyGroupParameter):
     itemClass = MySpiralParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -2251,11 +2326,12 @@ class MySpiralParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        # self.changed()
+        self.changed()
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 12)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.spiral.radMin = self.parR1.value()
         self.spiral.radMax = self.parR2.value()
@@ -2266,7 +2342,7 @@ class MySpiralParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return self.spiral
@@ -2277,6 +2353,7 @@ class MySpiralParameter(MyGroupParameter):
 
 class MyWellPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -2287,9 +2364,10 @@ class MyWellPreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def showInformation(self, param):
+        time = perf_counter()   ###
 
         f = param.child('Well file').opts['value']
         s = param.child('AHD interval').opts['value']
@@ -2312,31 +2390,34 @@ class MyWellPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'+++{lineNo():5d} MyWellPreviewLabel.showInformation | {t} +++')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 3)    ###
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MyWellPreviewLabel.ValueChanging <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MySeedPreviewLabel.TreeStateChanged <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 7)    ###
 
 
 class MyWellParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyWellPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyWellParameter(MyGroupParameter):
@@ -2344,6 +2425,7 @@ class MyWellParameter(MyGroupParameter):
     itemClass = MyWellParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -2392,9 +2474,10 @@ class MyWellParameter(MyGroupParameter):
 
         self.changedF()                                                         # this will initialise 'value'
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changedF(self):
+        time = perf_counter()   ###
 
         self.well.name = self.parF.value()                                      # file name has changed
 
@@ -2423,9 +2506,8 @@ class MyWellParameter(MyGroupParameter):
         else:
             self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
-
     def changedC(self):
+        time = perf_counter()   ###
 
         self.well.crs = self.parC.value()
 
@@ -2451,9 +2533,8 @@ class MyWellParameter(MyGroupParameter):
         else:
             self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
-
     def changedA(self):
+        time = perf_counter()   ###
 
         a = self.well.ahd0 = self.parA.value()
         s = self.well.dAhd = self.parI.value()
@@ -2478,10 +2559,9 @@ class MyWellParameter(MyGroupParameter):
             self.parN.setValue(n, blockSignal=self.changedN)
 
         self.sigValueChanging.emit(self, self.value())
-
-        qApp.processEvents()
 
     def changedI(self):
+        time = perf_counter()   ###
 
         a = self.well.ahd0 = self.parA.value()
         s = self.well.dAhd = self.parI.value()
@@ -2507,10 +2587,9 @@ class MyWellParameter(MyGroupParameter):
             self.parN.setValue(n, blockSignal=self.changedN)
 
         self.sigValueChanging.emit(self, self.value())
-
-        qApp.processEvents()
 
     def changedN(self):
+        time = perf_counter()   ###
 
         a = self.well.ahd0 = self.parA.value()
         s = self.well.dAhd = self.parI.value()
@@ -2536,8 +2615,6 @@ class MyWellParameter(MyGroupParameter):
             self.parN.setValue(n, blockSignal=self.changedN)
 
         self.sigValueChanging.emit(self, self.value())
-
-        qApp.processEvents()
 
     def value(self):
         return self.well
@@ -2551,6 +2628,7 @@ class MyTemplateListParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         opts['context'] = {'addNew': 'Add new template'}
         opts['tip'] = 'Right click to add a new template'
@@ -2574,12 +2652,13 @@ class MyTemplateListParameter(MyGroupParameter):
 
         self.sigContextMenu.connect(self.contextMenu)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 10)    ###
 
     def value(self):
         return self.childs
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
 
         if name == 'addNew':
             n = len(self.names) + 1
@@ -2605,7 +2684,7 @@ class MyTemplateListParameter(MyGroupParameter):
 
             self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 5)    ###
 
 
 ### class MyBlockList #########################################################
@@ -2616,6 +2695,7 @@ class MyBlockListParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         opts['context'] = {'addNew': 'Add new block'}
         opts['tip'] = 'Right click to add a new block'
@@ -2641,12 +2721,13 @@ class MyBlockListParameter(MyGroupParameter):
         self.sigChildAdded.connect(self.onChildAdded)
         self.sigChildRemoved.connect(self.onChildRemoved)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 11)    ###
 
     def value(self):
         return self.blockList
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
 
         if name == 'addNew':
             n = len(self.names) + 1
@@ -2674,7 +2755,7 @@ class MyBlockListParameter(MyGroupParameter):
 
             self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 5)    ###
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
         # print(f'>>>{lineNo():5d} BlockList.ChildAdded <<<')
@@ -2690,6 +2771,7 @@ class MyBlockListParameter(MyGroupParameter):
 
 class MyPatternPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -2698,9 +2780,10 @@ class MyPatternPreviewLabel(MyPreviewLabel):
 
         self.showInformation(param)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def showInformation(self, param):
+        time = perf_counter()   ###
 
         nElements = 0
         seeds = param.child('Seed list')
@@ -2720,31 +2803,34 @@ class MyPatternPreviewLabel(MyPreviewLabel):
         self.update()
 
         # print(f'+++{lineNo():5d} MyPatternPreviewLabel.showInformation | {t} +++')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 3)    ###
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
         # print(f'>>>{lineNo():5d} MyPatternPreviewLabel.ValueChanging <<<')
-        qApp.processEvents()
+        time = config.elapsedTime(time, 4)    ###
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        time = perf_counter()   ###
 
         self.showInformation(param)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 7)    ###
         # print(f'>>>{lineNo():5d} MyPatternPreviewLabel.TreeStateChanged <<<')
 
 
 class MyPatternParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MyPatternPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MyPatternParameter(MyGroupParameter):
@@ -2752,6 +2838,7 @@ class MyPatternParameter(MyGroupParameter):
     itemClass = MyPatternParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -2770,7 +2857,7 @@ class MyPatternParameter(MyGroupParameter):
         self.sigContextMenu.connect(self.contextMenu)
         self.sigNameChanged.connect(self.nameChanged)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def nameChanged(self, _):
         self.pattern.name = self.name()
@@ -2779,6 +2866,7 @@ class MyPatternParameter(MyGroupParameter):
         return self.pattern
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
 
         parent = self.parent()
         index = parent.children().index(self)
@@ -2817,7 +2905,7 @@ class MyPatternParameter(MyGroupParameter):
         elif name == 'export':
             ...
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 5)    ###
 
 
 ### class MyPatternList #######################################################
@@ -2828,6 +2916,7 @@ class MyPatternListParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         opts['context'] = {'addNew': 'Add new pattern'}
         opts['tip'] = 'Right click to add a new pattern'
@@ -2849,12 +2938,13 @@ class MyPatternListParameter(MyGroupParameter):
         self.sigChildAdded.connect(self.onChildAdded)
         self.sigChildRemoved.connect(self.onChildRemoved)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def value(self):
         return self.patternList
 
     def contextMenu(self, name=None):
+        time = perf_counter()   ###
 
         if name == 'addNew':
             n = len(self.names) + 1
@@ -2871,7 +2961,7 @@ class MyPatternListParameter(MyGroupParameter):
 
             self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 5)    ###
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
         # print(f'>>>{lineNo():5d} PatternList.ChildAdded <<<')
@@ -2890,6 +2980,7 @@ class MyGridParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -2912,10 +3003,11 @@ class MyGridParameter(MyGroupParameter):
         self.parL.sigTreeStateChanged.connect(self.changedL)
         self.parG.sigTreeStateChanged.connect(self.changedG)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changedL(self):
         # local grid
+        time = perf_counter()   ###
 
         self.binGrid.binSize = self.parL.value().binSize
         self.binGrid.binShift = self.parL.value().binShift
@@ -2927,6 +3019,7 @@ class MyGridParameter(MyGroupParameter):
 
     def changedG(self):
         # global grid
+        time = perf_counter()   ###
 
         self.binGrid.orig = self.parG.value().orig
         self.binGrid.scale = self.parG.value().scale
@@ -2946,6 +3039,7 @@ class MyAnalysisParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -2981,9 +3075,10 @@ class MyAnalysisParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.area = self.parB.value()
         self.angles = self.parA.value()
@@ -2993,7 +3088,7 @@ class MyAnalysisParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return (self.area, self.angles, self.binning, self.offset, self.unique)
@@ -3007,6 +3102,7 @@ class MyReflectorsParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -3030,16 +3126,17 @@ class MyReflectorsParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.plane = self.parP.value()
         self.sphere = self.parS.value()
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return (self.plane, self.sphere)
@@ -3053,6 +3150,7 @@ class MyConfigurationParameter(MyGroupParameter):
     itemClass = MyGroupParameterItem
 
     def __init__(self, **opts):
+        time = perf_counter()   ###
 
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
@@ -3082,9 +3180,10 @@ class MyConfigurationParameter(MyGroupParameter):
 
         self.sigTreeStateChanged.connect(self.changed)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def changed(self):
+        time = perf_counter()   ###
 
         self.crs = self.parC.value()
         self.typ = self.parT.value()
@@ -3092,7 +3191,7 @@ class MyConfigurationParameter(MyGroupParameter):
 
         self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 6)    ###
 
     def value(self):
         return (self.crs, self.typ, self.nam)
@@ -3103,6 +3202,7 @@ class MyConfigurationParameter(MyGroupParameter):
 
 class MySurveyPreviewLabel(MyPreviewLabel):
     def __init__(self, param):
+        time = perf_counter()   ###
 
         super().__init__()
 
@@ -3111,7 +3211,7 @@ class MySurveyPreviewLabel(MyPreviewLabel):
         val = param.opts.get('value', None)
         self.onValueChanging(None, val)
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 2)    ###
 
     def onValueChanging(self, *_):                                              # unused param, val replaced by *_
         ...
@@ -3122,12 +3222,13 @@ class MySurveyPreviewLabel(MyPreviewLabel):
 # MySurveyParameterItem and MySurveyParameter are currently not being used.
 class MySurveyParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
+        time = perf_counter()   ###
 
         super().__init__(param, depth)
 
         self.setPreviewLabel(MySurveyPreviewLabel(param))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 1)    ###
 
 
 class MySurveyParameter(MyGroupParameter):
@@ -3135,7 +3236,7 @@ class MySurveyParameter(MyGroupParameter):
     itemClass = MySurveyParameterItem
 
     def __init__(self, **opts):
-
+        time = perf_counter()   ###
         # opts['expanded'] = False                                              # to overrule user-requested options
         # opts['flat'] = True
 
@@ -3155,7 +3256,7 @@ class MySurveyParameter(MyGroupParameter):
         self.addChild(dict(brush=brush, name='Block list', type='myBlockList', value=self.survey.blockList))
         self.addChild(dict(brush=brush, name='Pattern list', type='myPatternList', value=self.survey.patternList))
 
-        qApp.processEvents()
+        time = config.elapsedTime(time, 0)    ###
 
     def value(self):
         return self.survey
