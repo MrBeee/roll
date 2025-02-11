@@ -1171,7 +1171,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         time_ = self.survey.elapsedTime(time_, 13)    ###
 
-        # todo: fix this; this is the most time consuming step, loading a new survey with many blocks.
+        # todo: fix this; this is the most time consuming step,
+        # loading a new survey with several blocks, many templates and many, many more seeds.
         # Disable signals to speed up setting parameters. Suggestion from GitHub Copilot; does not work !
         # self.paramTree.blockSignals(True)
         self.paramTree.setParameters(self.parameters, showTop=False)

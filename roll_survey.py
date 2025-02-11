@@ -2102,9 +2102,9 @@ class RollSurvey(pg.GraphicsObject):
             seed = RollPatternSeed()                                            # create a new seed (we need just one)
             pattern.seedList.append(seed)                                       # add this seed to pattern's seedList
 
-            for i in range(3):                                                  # do this three times
-                growStep = RollTranslate()                                     # create a translation
-                seed.grid.growList.append(growStep)                            # add translation to seed's grid-growlist
+            for _ in range(3):                                                  # do this three times
+                growStep = RollTranslate()                                      # create a translation
+                seed.grid.growList.append(growStep)                             # add translation to seed's grid-growlist
 
     def writeXml(self, doc: QDomDocument):
         doc.clear()
