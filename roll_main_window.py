@@ -1171,8 +1171,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         time_ = self.survey.elapsedTime(time_, 13)    ###
 
-        # todo: fix this; this is the most time consuming step,
-        # loading a new survey with several blocks, many templates and many, many more seeds.
+        # todo: fix this; this is the most time consuming step, loading a new survey with several blocks,
+        # A marine survey contains many templates and many, many more seeds.
         # Disable signals to speed up setting parameters. Suggestion from GitHub Copilot; does not work !
         # self.paramTree.blockSignals(True)
         self.paramTree.setParameters(self.parameters, showTop=False)
@@ -1276,6 +1276,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.survey.calcSeedData()                                              # needed for circles, spirals & well-seeds; may affect bounding box
         self.survey.calcBoundingRect()                                          # (re)calculate the boundingBox as part of parsing the data
         self.survey.calcNoShotPoints()                                          # (re)calculate nr of shot points
+
+        # check if it is a marine survey; set seed plotting details accordingly
+        if self.survey.type == SurveyType.Streamer:
+            self.survey.paintDetails &= ~PaintDetails.recLin
+            self.actionShowBlocks.setChecked(True)
+            self.survey.paintMode = PaintMode.justBlocks
 
         plainText = self.survey.toXmlString()                                   # convert the survey object itself to an Xml string
         self.textEdit.setTextViaCursor(plainText)                               # get text into the textEdit, NOT resetting its doc status
@@ -3232,33 +3238,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             self.textEdit.setTextViaCursor(plainText)                           # get text into the textEdit, NOT resetting its doc status
             self.UpdateAllViews()                                               # parse the textEdit; show the corresponding plot
-            self.resetSurveyProperties()                                        # get the new parameters into the parameter tree
 
             self.appendLogMessage(f'Wizard : created land survey: {self.survey.name}')
             config.surveyNumber += 1                                            # update global counter
 
-            # the following code is only intended for lengthy calculations; not sure how it eded up here !?!
-            # if config.debug:
-            #     self.appendLogMessage('Land Survey Wizard profiling information', MsgType.Debug)
-            #     i = 0
-            #     while i < len(self.survey.timerTmin):                       # log some debug messages
-            #         tMin = self.survey.timerTmin[i] * 1000.0 if self.worker.survey.timerTmin[i] != float('Inf') else 0.0
-            #         tMax = self.survey.timerTmax[i] * 1000.0
-            #         tTot = self.survey.timerTtot[i] * 1000.0
-            #         freq = self.survey.timerFreq[i]
-            #         tAvr = tTot / freq if freq > 0 else 0.0
-            #         message = f'{i:02d}: min:{tMin:011.3f}, max:{tMax:011.3f}, tot:{tTot:011.3f}, avr:{tAvr:011.3f}, freq:{freq:07d}'
-            #         self.appendLogMessage(message, MsgType.Debug)
-            #         i += 1
-
     def fileNewMarineSurvey(self):
-
-        # the marine wizard only needs cross currents to be added;
-        # it is good enough to give it a go now . . .
-        # if not config.showUnfinished:
-        #     QMessageBox.information(self, 'Not implemented', 'The marine wizard has not yet been implemented', QMessageBox.Cancel)
-        #     return
-
         if not self.fileNew():                                                  # user had 2nd thoughts and did not close the document; return False
             return False
 
@@ -3266,15 +3250,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         if dlg.exec():                                                          # Run the dialog event loop, and obtain survey object
             self.survey = dlg.survey                                            # get survey from dialog
-            self.survey.paintDetails &= ~PaintDetails.recLin                    # don't have it plotting receiver lines
 
             plainText = self.survey.toXmlString()                               # convert the survey object to an Xml string
             self.textEdit.highlighter = XMLHighlighter(self.textEdit.document())  # we want some color highlighteded text
             self.textEdit.setFont(QFont('Ubuntu Mono', 9, QFont.Normal))        # the font may have been messed up by the initial html text
 
             self.textEdit.setTextViaCursor(plainText)                           # get text into the textEdit, NOT resetting its doc status
+
+            self.survey.paintDetails &= ~PaintDetails.recLin                    # turn off recLin painting
+            self.actionShowBlocks.setChecked(True)                              # show blocks by default
+            self.survey.paintMode = PaintMode.justBlocks                        # show blocks by default
+
             self.UpdateAllViews()                                               # parse the textEdit; show the corresponding plot
-            self.resetSurveyProperties()                                        # get the new parameters into the parameter tree
 
             self.appendLogMessage(f'Wizard : created streamer survey: {self.survey.name}')
             config.surveyNumber += 1                                            # update global counter

@@ -167,13 +167,14 @@ But if you get familiar with the xml-structure, you could edit the xml data dire
 Roll depends on the following Python libraries that need to be installed separately 
 In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'```,  where --upgrade forces the installation of the latest version
 
-| Library    | Minimum Version | Description (purpose)                                      |
-| :--------- | :-------------- | :--------------------------------------------------------- |
-| numba      | 0.59.1          | ***Significantly*** speed up some numpy calculations       |
-| numpy      | 1.26.24         | Array and matrix manipulation                              |
-| pyqtgraph  | 0.13.4          | Plotting of vector and raster data                         |
-| rasterio   | 1.3.9           | Export of figures as GeoTiff  files                        |
-| wellpathpy | 0.5.0           | Handle sensors  & sources in a well trajectory (VSPs etc.) |
+| Library    | Minimum Version | Description (purpose)                                        |
+| :--------- | :-------------- | :----------------------------------------------------------- |
+| numba      | 0.59.1          | ***Significantly*** speed up some numpy calculations         |
+| numpy      | 1.26.24         | Array and matrix manipulation                                |
+| pyqtgraph  | 0.13.4          | Plotting of vector and raster data                           |
+| rasterio   | 1.3.9           | Export of figures as GeoTiff  files                          |
+| wellpathpy | 0.5.0           | Handle sensors  & sources in a well trajectory (VSPs etc.)   |
+| ptvsd      | 4.3.3           | Needed if you want to debug routines that run in a worker thread |
 
 
 
@@ -189,6 +190,12 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 #### 6	Changelog
 
+- 2025-02-15 (0.4.0) updated Marine Wizard; simplifying data structure in case there's no streamer fanning, significantly speeding up property editing
+- 2025-02-11 (0.3.9) implemented Marine Wizard for streamer surveys and improved Level of Detail (LOD) rendering in Layout pane
+- 2024-11-02 (0.3.8) improved editing patterns in Property pane and displaying hem in the Pattern tab. 
+- 2024-10-22 (0.3.7) introduced multiple seeds per pattern, allowing for very complex pattern layout. Ensured backwards compatibility.  
+- 2024-10-15 (0.3.6) added 'pattern' tab for pattern display & analysis. Added convolution with patterns to kx-ky stack response. Fixed an assertion bug in Land Wizard.  
+- 2024-10-09 (0.3.5) moved statistics calculations to extended binning. Updated metadata.txt to describe installation of plugin
 - 2024-07/27 (0.3.4) "inuse" field added to src & rec points in QGIS. Categorized Symbol Renderer implemented to display used/unused points in QGIS.
 - 2024-07/24 (0.3.3) Interface with QGIS improved. Display active / inactive points separately. Fixed rasterio CRS bug. Cleared experimental flag.
 - 2024-07/08 (0.3.2) Geometry creation from templates now runs significantly faster. Fixed some bugs in Land Survey Wizard.
@@ -212,12 +219,11 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 #### 7	To Do
 
-- Improve handling of SPS data, and related to this, the interface with QGIS
+- Improve handling of SPS data
+- Related to this, improve the interface with QGIS to manipulate SPS data
 - Make processing of Geometry & SPS data more robust
-- Create wizard for Marine towed-streamer geometry
-- Improve analysis capabilities
-- Include Level Of Detail (LOD) settings in Read/Save settings to make them permanent
-- Show pattern layout and add Kx-Ky pattern analysis
+- Improve speed of loading large parameter sets in the Property pane (*mainly affecting streamer surveys, using fanning*)
+- Improve Roll's analysis capabilities
 - Use multiprocessing instead of a worker thread to speed up background tasks
 - Consider using a relational database instead of numpy arrays for geometry tables
 

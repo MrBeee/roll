@@ -3,10 +3,18 @@
 # See: https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
 # See: https://www.geeksforgeeks.org/line-clipping-set-2-cyrus-beck-algorithm/?ref=rp
 
-try:   # needed to report out on installed numba version (if any)
-    import numba
+try:    # need to TRY importing numba, only to see if it is available
+    haveNumba = True
+    import numba  # pylint: disable=W0611
 except ImportError:
-    numba = None
+    haveNumba = False
+
+try:    # need to TRY importing ptvsd, only to see if it is available
+    havePtvsd = True
+    import ptvsd  # pylint: disable=W0611
+except ImportError as ie:
+    havePtvsd = False
+
 
 import configparser
 import importlib
@@ -243,6 +251,16 @@ def ndft_1Db(x, kMax, dK):
     r = np.exp(2j * np.pi * k * x[:, np.newaxis]) * a
     s = r.sum(axis=0)
     return s
+
+
+def rotatePoint2D(x: float, y: float, angle: float) -> tuple:
+    # rotate a point around the origin
+    # x' = x * cos(angle) - y * sin(angle)
+    # y' = x * sin(angle) + y * cos(angle)
+    angle = math.radians(angle)
+    x1 = x * math.cos(angle) - y * math.sin(angle)
+    y1 = x * math.sin(angle) + y * math.cos(angle)
+    return x1, y1
 
 
 def dummyText_on_nDFT():
@@ -632,10 +650,8 @@ def aboutText() -> str:
     pythonVersionList = sys.version.split(' ')
     pythonVersion = pythonVersionList[0]
 
-    if numba is None:
-        numbaVersion = 'not installed'
-    else:
-        numbaVersion = numba.__version__
+    numbaVersion = numba.__version__ if haveNumba else 'not installed'
+    ptvsdVersion = ptvsd.__version__ if havePtvsd else 'not installed'
 
     sourceUrl = "<a href='https://github.com/MrBeee/roll'>here</a>"
     sampleUrl = "<a href='https://github.com/MrBeee/roll_samples'>here</a>"
@@ -651,12 +667,13 @@ def aboutText() -> str:
         f'The following libraries are used: <ul>'
         f'<li>Numba version: {numbaVersion} </li>'
         f'<li>Numpy version: {np.__version__} </li>'
+        f'<li>Ptvsd version: {ptvsdVersion} </li>'
         f'<li>PyQtGraph version: {pg.__version__} </li>'
         f'<li>Rasterio version: {rio.__version__} </li>'
         f'<li>Wellpathpy version: {wp.__version__} </li></ul>'
         f'Source code is available on GitHub {sourceUrl} <br> '
         f'Sample projects are available on GitHub {sampleUrl} <br><br> '
-        f'Copyright © 2022-2024 by Duijndam.Dev'
+        f'Copyright © 2022-2025 by Duijndam.Dev'
     )
 
     return text

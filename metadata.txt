@@ -6,7 +6,7 @@
 name=Roll
 qgisMinimumVersion=3.28
 description=Design and analysis of 3D seismic survey geometries
-version=0.3.8
+version=0.4.0
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is for creating and analyzing 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -14,7 +14,7 @@ about:<p>This plugin is for creating and analyzing 3D seismic survey geometries.
   <li><b>numpy</b> (version 1.26.4) <i>should already be installed</i> </li>
   <li><b>pyqtgraph</b> (version 0.13.7) </li>
   <li><b>rasterio</b> (version 1.4.1) </li>
-  <li><b>wellpathpy</b> (version 0.5.0) </li></ul>
+  <li><b>wellpathpy</b> (version 0.5.0) </li>
   <li><b>ptvsd</b> (version 4.3.3) <i>if you want to debug worker threads</i> </li></ul>
   <p>Please install these packages <b>first</b>, using pip from the OSGeo4W command prompt (on Windows)
   <p>Use <b>pip list</b> to detect which packages and versions have already been installed. (E.g. numpy should already be installed)
@@ -29,7 +29,7 @@ about:<p>This plugin is for creating and analyzing 3D seismic survey geometries.
   <li>The plugin has not (yet) been tested on Linux or macOS </li>
   <li>The plugin works best on a QHD Screen (2560 x 1440 pixels) or larger </li>
   <li>As of V3.32 High DPI UI scaling issues have arisen in QGIS. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a> </li> 
-  <li>As of version 3.34.6, QGIS upgraded Python from v 3.9 to to 3.12 This speeds up calculations and solves some security issues. <br>
+  <li>As of version 3.34.6, QGIS upgraded Python from v 3.9 to to 3.12 This speeds up calculations and solves some security issues. </li>
   But when <i>upgrading</i> from an earlier QGIS version, it requires installing the above listed packages <b><i>again.</b></i> </li></ul>
 
 tracker=https://github.com/MrBeee/roll/issues
@@ -39,8 +39,12 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog: <p>2024-11-02 (0.3.8) improved editing patterns in Property pane and displaying hem in the Pattern tab.
+changelog: <p>2025-02-15 (0.4.0) updated Marine Wizard; simplifying data structure in case there's no streamer fanning, significantly speeding up property editing
+  <p>2025-02-11 (0.3.9) implemented Marine Wizard for streamer surveys and improved Level of Detail (LOD) rendering in Layout pane
+  <p>2024-11-02 (0.3.8) improved editing patterns in Property pane and displaying hem in the Pattern tab. 
   <p>2024-10-22 (0.3.7) introduced multiple seeds per pattern, allowing for very complex pattern layout. Ensured backwards compatibility.  <p>2024-10-15 (0.3.6) added 'pattern' tab for pattern display & analysis. Added convolution with patterns to kx-ky stack response. Fixed an assertion bug in Land Wizard.  <p>2024-10-09 (0.3.5) moved statistics calculations to extended binning. Updated metadata.txt to describe installation of plugin
+  <p>2024-07-27 (0.3.6) added 'pattern' tab for pattern display & analysis. Added convolution with patterns to kx-ky stack response. Fixed an assertion bug in Land Wizard
+  <p>2024-07-27 (0.3.5) moved statistics calculations to extended binning. Updated metadata.txt to describe installation of plugin
   <p>2024-07-27 (0.3.4) added "inuse" field to src & rec points in QGIS. Implemented a Categorized Symbol Renderer to display used/unused points in QGIS
   <p>2024-07-24 (0.3.3) interface with QGIS improved. Display active / inactive points separately. Fixed rasterio CRS bug
   <p>2024-07-08 (0.3.2) geometry creation from templates now runs significantly faster. Fixed some bugs in Land Survey Wizard

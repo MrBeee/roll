@@ -7,9 +7,8 @@ from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QHeaderView, QVBoxLayout
 
 try:    # need to TRY importing numba, only to see if it is available
-    import numba  # pylint: disable=W0611
-
     haveNumba = True
+    import numba  # pylint: disable=W0611
 except ImportError:
     haveNumba = False
 
