@@ -190,6 +190,7 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 #### 6	Changelog
 
+- 2025-02-22 (0.4.1) implemented feathering in Marine Wizard; enabled selective drawing of survey details (lines and/or points and/or patterns)
 - 2025-02-15 (0.4.0) updated Marine Wizard; simplifying data structure in case there's no streamer fanning, significantly speeding up property editing
 - 2025-02-11 (0.3.9) implemented Marine Wizard for streamer surveys and improved Level of Detail (LOD) rendering in Layout pane
 - 2024-11-02 (0.3.8) improved editing patterns in Property pane and displaying hem in the Pattern tab. 
