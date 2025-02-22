@@ -803,7 +803,7 @@ class Page_2(SurveyWizardPage):
 
         sL = self.field('srcLayback')
         rL = self.field('cabLayback')
-        sX = rL - sL                                                            # relative source location
+        LB = rL - sL                                                            # relative source location (Lay back)
         cL = self.field('cabLength')                                            # streamer length
         gI = self.field('groupInt')                                             # group interval
         nGrp = round(cL / gI)                                                   # nr groups per streamer
@@ -831,8 +831,8 @@ class Page_2(SurveyWizardPage):
                 self.parent.survey.blockList[0].templateList[i].name = templateNameFwd
 
                 # source fwd
-                srcX, srcY = rotatePoint2D(sX, src0 + i * dSrc, azim)                                                       # rotate source location
-                # self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(sX)                                 # Seed origin
+                srcX, srcY = rotatePoint2D(LB, src0 + i * dSrc, azim)                                                       # rotate source location
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(LB)                                 # Seed origin
                 # self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(src0 + i * dSrc)                    # Seed origin
                 self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(srcX)                               # Seed origin
                 self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(srcY)                               # Seed origin
@@ -894,8 +894,8 @@ class Page_2(SurveyWizardPage):
                 self.parent.survey.blockList[0].templateList[i].name = templateNameBwd
 
                 # source bwd
-                srcX, srcY = rotatePoint2D(-sX, src0 + i * dSrc, -azim)                                                     # rotate source location
-                # self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(-sX)                                # Seed origin
+                srcX, srcY = rotatePoint2D(-LB, src0 + i * dSrc, -azim)                                                     # rotate source location
+                # self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(-LB)                                # Seed origin
                 # self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(src0 + i * dSrc)                    # Seed origin
                 self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setX(srcX)                               # Seed origin
                 self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(srcY)                               # Seed origin
@@ -1827,16 +1827,42 @@ class Page_5(SurveyWizardPage):
         dCab0 = self.field('cabSepHead')
         dCab9 = self.field('cabSepTail')
 
-        fanning = True if dCab9 != dCab0 else False
+        # a marine survey cconsists of a number of race tracks, each with a number of sail lines going forward, and a number of sail lines going backward
+        # the lines going forward and those going backward are represented by a single block in Roll
+        # therefore; with n race tracks in a survey, the survey would contain 2n blocks 0, 2, 4, ... going forwards and 1, 3, 5, ... going backwards
+        # in practice, we want to reduce the number of sailline reversals. This can be achieved by flipping the direction of the even race tracks
 
+        # block number  direction   flipped ?   final direction
+        ################################################
+        #       0       forwards        no      forwards
+        ################################################
+        #       1       backward        no      backward
+        #       2       forwards        yes     backward
+        ################################################
+        #       3       backward        yes     forwards
+        #       4       forwards        no      forwards
+        ################################################
+        #       5       backward        no      backward
+        #       6       forwards        yes     backward
+        ################################################
+        #       7       backward        yes     forwards
+
+        # so by flipping the direction of the even race tracks, we can create a survey with 'paired' forward and backward sailing
+        # this reduces the number of sail line reversals by ~ 2, thereby reducing the amount of striping in the data
+
+        # at present feathering is implemented partially: streamers are feathered, but the vessel isn't crabbing accordingly
+
+        fanning = True if dCab9 != dCab0 else False
         if fanning:
             self.parent.survey.createBasicSkeleton(nBlocks=trackCount * 2, nTemplates=nSrc, nSrcSeeds=1, nRecSeeds=nCab)    # setup multiple blocks with their templates and one seed per streamer
         else:
             self.parent.survey.createBasicSkeleton(nBlocks=trackCount * 2, nTemplates=nSrc, nSrcSeeds=1, nRecSeeds=1)       # setup multiple blocks with their templates and one seed for all streamers
 
+        sailLineInt = 0.5 * nCab * dCab0                                        # sail line interval
+
         sL = self.field('srcLayback')
         rL = self.field('cabLayback')
-        LB = rL - sL                                                            # Lay Back; relative source location
+        LB = rL - sL                                                            # Lay Back; source location relative to receiver location
 
         cL = self.field('cabLength')                                            # streamer length
         gI = self.field('groupInt')                                             # group interval
@@ -1844,33 +1870,33 @@ class Page_5(SurveyWizardPage):
 
         recZ0 = -self.field('cabDepthHead')
         recZ9 = -self.field('cabDepthTail')
+        dZCab = recZ9 - recZ0                                                   # depth increase along the cable(s)
+        dZGrp = -gI / cL * dZCab                                                # depth increase along a group; independent of azimuth (i.e. from fanning and currents)
 
-        sailLineInt = 0.5 * nCab * dCab0                                        # sail line interval
-
-        dSrcY = self.field('srcSeparation')
-        srcZ = -self.field('srcDepth')
+        dSrcY = self.field('srcSeparation')                                     # source separation in cross-line direction
+        srcZ = -self.field('srcDepth')                                          # source depth
         srcShtInt = self.field('srcShtInt')                                     # shot point interval (per cmp line)
 
         FF = self.field('surIsiz')                                              # bin area full fold inline size
         RO = 0.5 * cL                                                           # run out
         nSht = round((FF + RO) / srcShtInt)                                     # nr of shot points per source array
-        PI = self.field('srcPopInt')                                            # pop interval (subsequent firings)
+        PI = self.field('srcPopInt')                                            # pop interval (subsequent firings of any of the sources)
 
-        dZCab = recZ9 - recZ0                                                   # depth increase along cable(s)
-        dZGrp = -gI / cL * dZCab                                                # depth increase along group(s); independent on azimuth (from fanning and currents)
+        azim = self.field('aFeat')                                              # streamer feather angle
 
-        dip = math.degrees(math.asin(dZCab / cL))
+        dip = math.degrees(math.asin(dZCab / cL))                               # cable dip angle, due to slant
         cL9 = cL * math.cos(math.radians(dip))                                  # cable length reduced by slant
 
         srcY0 = -0.5 * (nSrc - 1) * dSrcY                                       # cross-line position; first source
-        rec0 = -0.5 * (nCab - 1) * dCab0                                        # cross-line position head receiver; first streamer
-        rec9 = -0.5 * (nCab - 1) * dCab9                                        # cross-line position tail receiver; first streamer
+        recY0 = -0.5 * (nCab - 1) * dCab0                                       # cross-line position; first streamer @ head receiver
+        recY9 = -0.5 * (nCab - 1) * dCab9                                       # cross-line position; first streamer @ tail receiver
 
         trackNo = 0
         for i in range(0, trackCount * 2, 2):                                   # iterate over all blocks in steps of two; for forward & backward sailing
 
             # blocks 0, 2, 4, ... = moving forward block [i]
             # blocks 1, 3, 5, ... = moving back in block [i + 1]
+            # 'flip' condition will reverse direction. See below
 
             linesPerTrack = trackList[trackNo]                                  # the nr of lines in this race track (need to divide i by 2)
             nrLinesFwd = math.ceil(0.5 * linesPerTrack)                         # the nr of lines sailing forward in this race track
@@ -1884,16 +1910,20 @@ class Page_5(SurveyWizardPage):
             flip = trackNo % 2 == 1                                             # forward/backward direction of odd race tracks needs to be flipped
             trackNo += 1                                                        # make it ready for next iteration of i (=trackCount)
 
-            for j in range(nSrc):                                               # iterate over templates; each template contains 1 source point
+            self.parent.survey.blockList[i + 0].name = f'Track-{trackNo}a'      # name the block after its role in a race track
+            self.parent.survey.blockList[i + 1].name = f'Track-{trackNo}b'      # name the block after its role in a race track
 
-                # iterate over all templates (= sources), start with sailing FORWARD in block i
+            for j in range(nSrc):                                               # iterate over templates; each template contains 1 source point
+                # for every increment in j, the source point is moved by dSrcY in crossline direction, and moved by PopInt in inline direction
+
+                # iterate over all templates (= sources), start with sailing FORWARD in block i = 0
                 if flip:
                     nameFwd = 'Sailing Bwd'
                     nameBwd = 'Sailing Fwd'
                     PopInt = -self.field('srcPopInt')
                     RolInt = -self.field('srcShtInt')                           # shot point interval (per cmp line)
-                    SrcFwdX0 = FF - 0.0 * LB - PI
-                    SrcBwdX0 = LB
+                    SrcFwdX0 = FF - 1.0 * LB - PI
+                    SrcBwdX0 = 0.0
                     RecFwdX0 = FF + 1.0 * LB - PI
                     RecBwdX0 = 0.0
                     RecFwdDx = 1.0
@@ -1901,10 +1931,10 @@ class Page_5(SurveyWizardPage):
                 else:
                     nameFwd = 'Sailing Fwd'
                     nameBwd = 'Sailing Bwd'
-                    PopInt = self.field('srcPopInt')                                                                        # pop interval (subsequent firings)
-                    RolInt = self.field('srcShtInt')                                                                        # shot point interval (per cmp line)
-                    SrcFwdX0 = LB
-                    SrcBwdX0 = FF - 0.0 * LB - PI
+                    PopInt = self.field('srcPopInt')                            # pop interval (subsequent firings)
+                    RolInt = self.field('srcShtInt')                            # shot point interval (per cmp line)
+                    SrcFwdX0 = 0.0
+                    SrcBwdX0 = FF - 1.0 * LB - PI
                     RecFwdX0 = 0.0
                     RecBwdX0 = FF + 1.0 * LB - PI
                     RecFwdDx = -1.0
@@ -1913,8 +1943,11 @@ class Page_5(SurveyWizardPage):
                 self.parent.survey.blockList[i].templateList[j].name = f'{nameFwd}-{j + 1}'                                 # get suitable template name for all sources
 
                 # source seed fwd sailing
-                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setX(SrcFwdX0 + j * PopInt)              # The x-origin is shifted by the pop interval between source arrays
-                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setY(blkOffFwd + srcY0 + j * dSrcY)      # The y-origin is shifted by the x-line interval between source arrays
+                dX, dY = rotatePoint2D(LB, srcY0 + j * dSrcY, azim * RecBwdDx)                                              # rotate source seed location, based on layback, source y-location and azimuth
+                # self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setX(SrcFwdX0 + j * PopInt)              # The x-origin is shifted by the pop interval between source arrays
+                # self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setY(blkOffFwd + srcY0 + j * dSrcY)      # The y-origin is shifted by the x-line interval between source arrays
+                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setX(dX + SrcFwdX0 + j * PopInt)         # The x-origin is shifted by the pop interval between source arrays
+                self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setY(dY + blkOffFwd)                     # The y-origin is shifted by the x-line interval between source arrays
                 self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setZ(srcZ)                               # The z-origin is simply the source depth
 
                 # roll along in crossline direction
@@ -1933,21 +1966,24 @@ class Page_5(SurveyWizardPage):
                         # we need to allow for streamer fanning; hence each streamer will have its own orientation
                         # this implies we can not 'grow' the spread to multiple streamers as a grow step in a grid
 
-                        dRec = rec9 - rec0 + k * (dCab9 - dCab0)                                                            # cross-line cable distance
-                        azi = math.degrees(math.asin(dRec / cL9))                                                           # corrresponding azimuth
+                        dRec = recY9 - recY0 + k * (dCab9 - dCab0)                                                          # cross-line cable distance
+                        azi = math.degrees(math.asin(dRec / cL9)) - azim                                                    # corrresponding azimuth
                         dRGrp = gI * math.cos(math.radians(dip))
 
                         dXGrp = dRGrp * math.cos(math.radians(azi)) * RecFwdDx
                         dYGrp = dRGrp * math.sin(math.radians(azi))
 
-                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setX(RecFwdX0 + j * PopInt)          # Seed origin
-                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setY(blkOffFwd + rec0 + k * dCab0)   # Seed origin
+                        dX, dY = rotatePoint2D(0.0, recY0 + k * dCab0, azim * RecBwdDx)                                             # rotate receiver seed origin
+                        # self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setX(RecFwdX0 + j * PopInt)          # Seed origin
+                        # self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setY(blkOffFwd + recY0 + k * dCab0)  # Seed origin
+                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setX(dX + RecFwdX0 + j * PopInt)     # Seed origin
+                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setY(dY + blkOffFwd)                 # Seed origin
                         self.parent.survey.blockList[i].templateList[j].seedList[k + 1].origin.setZ(recZ0)                          # Seed origin
 
-                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].steps = nGrp           # nr of groups in cable
-                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].increment.setX(dXGrp)  # group interval
-                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].increment.setY(dYGrp)  # impact of fanning
-                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].increment.setZ(dZGrp)  # normalized slant
+                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].steps = nGrp               # nr of groups in cable
+                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].increment.setX(dXGrp)      # group interval
+                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].increment.setY(dYGrp)      # impact of fanning
+                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].grid.growList[2].increment.setZ(dZGrp)      # normalized slant
                 else:
                     # no allowance for streamer fanning; all streamers will have the same orientation
                     # this implies we can 'grow' the spread to multiple streamers as a single grow step in a grid
@@ -1955,41 +1991,53 @@ class Page_5(SurveyWizardPage):
                     dRGrp = gI * math.cos(math.radians(dip))
                     dXGrp = dRGrp * RecFwdDx
 
-                    self.parent.survey.blockList[i].templateList[j].seedList[1].origin.setX(RecFwdX0 + j * PopInt)      # Seed origin
-                    self.parent.survey.blockList[i].templateList[j].seedList[1].origin.setY(blkOffFwd + rec0)           # Seed origin
-                    self.parent.survey.blockList[i].templateList[j].seedList[1].origin.setZ(recZ0)                      # Seed origin
+                    dX, dY = rotatePoint2D(0.0, recY0, azim * RecBwdDx)                                                     # rotate receiver seed origin for all streamers
+                    # self.parent.survey.blockList[i].templateList[j].seedList[1].origin.setX(RecFwdX0 + j * PopInt)          # Seed origin
+                    # self.parent.survey.blockList[i].templateList[j].seedList[1].origin.setY(blkOffFwd + recY0)              # Seed origin
+                    self.parent.survey.blockList[i].templateList[j].seedList[1].origin.setX(dX + RecFwdX0 + j * PopInt)     # Seed origin
+                    self.parent.survey.blockList[i].templateList[j].seedList[1].origin.setY(dY + blkOffFwd)                 # Seed origin
+                    self.parent.survey.blockList[i].templateList[j].seedList[1].origin.setZ(recZ0)                          # Seed origin
 
+                    dCabX, dCabY = rotatePoint2D(0.0, dCab0, azim * RecBwdDx)                                           # rotate cable orientation
                     self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[1].steps = nCab           # nr cable in spread
-                    self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[1].increment.setX(0.0)    # no inline shift
-                    self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[1].increment.setY(dCab0)  # cable interval
+                    # self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[1].increment.setX(0.0)    # no inline shift
+                    # self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[1].increment.setY(dCab0)  # cable interval
+                    self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[1].increment.setX(dCabX)  # no inline shift
+                    self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[1].increment.setY(dCabY)  # cable interval
                     self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[1].increment.setZ(0.0)    # no vertical shift
 
+                    dXGrp, dYGrp = rotatePoint2D(dXGrp, 0.0, azim * RecBwdDx)                                           # rotate group orientation
                     self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[2].steps = nGrp           # nr of groups in cable
+                    # self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[2].increment.setX(dXGrp)  # group interval
+                    # self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[2].increment.setY(0.0)    # no fanning
                     self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[2].increment.setX(dXGrp)  # group interval
-                    self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[2].increment.setY(0.0)    # no fanning
+                    self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[2].increment.setY(dYGrp)  # no fanning
                     self.parent.survey.blockList[i].templateList[j].seedList[1].grid.growList[2].increment.setZ(dZGrp)  # normalized slant
 
                 #####################################################################################################################################################################
-                # iterate over all templates (or sources), continue with sailing BACKWARD in block i + 1 ############################################################################
+                # iterate over all templates (= sources), continue with sailing BACKWARD in block i + 1  ############################################################################
+                # so i now becomes i + 1 and j is still the same                                         ############################################################################
                 #####################################################################################################################################################################
-                # so i now becomes i + 1 and j is still the same
 
-                self.parent.survey.blockList[i + 1].templateList[j].name = f'{nameBwd}-{j + 1}'                 # get suitable template name for all sources
+                self.parent.survey.blockList[i + 1].templateList[j].name = f'{nameBwd}-{j + 1}'                             # get suitable template name for all sources
 
                 # source seed bwd sailing
-                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setX(SrcBwdX0 - j * PopInt)          # The x-origin is shifted by the pop interval between source arrays
-                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setY(blkOffBwd + srcY0 + j * dSrcY)  # The y-origin is shifted by the x-line interval between source arrays
+                dX, dY = rotatePoint2D(LB, srcY0 + j * dSrcY, -azim * RecBwdDx)                                             # rotate source seed location, based on layback, source y-location and azimuth
+                # self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setX(SrcBwdX0 - j * PopInt)          # The x-origin is shifted by the pop interval between source arrays
+                # self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setY(blkOffBwd + srcY0 + j * dSrcY)  # The y-origin is shifted by the x-line interval between source arrays
+                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setX(dX + SrcBwdX0 - j * PopInt)     # The x-origin is shifted by the pop interval between source arrays
+                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setY(dY + blkOffBwd)                 # The y-origin is shifted by the x-line interval between source arrays
                 self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setZ(srcZ)                           # The z-origin is simply the source depth
 
                 # roll along in crossline direction
-                self.parent.survey.blockList[i + 1].templateList[j].rollList[0].steps = nrLinesBwd              # nr deployments in crossline-direction
-                self.parent.survey.blockList[i + 1].templateList[j].rollList[0].increment.setX(0.0)             # vertical movement, hence dX = 0
+                self.parent.survey.blockList[i + 1].templateList[j].rollList[0].steps = nrLinesBwd                          # nr deployments in crossline-direction
+                self.parent.survey.blockList[i + 1].templateList[j].rollList[0].increment.setX(0.0)                         # vertical movement, hence dX = 0
                 self.parent.survey.blockList[i + 1].templateList[j].rollList[0].increment.setY(sailLineInt)
 
                 # roll along in inline direction
-                self.parent.survey.blockList[i + 1].templateList[j].rollList[1].steps = nSht                    # nr deployments in inline-direction
-                self.parent.survey.blockList[i + 1].templateList[j].rollList[1].increment.setX(-RolInt)         # src shot interval
-                self.parent.survey.blockList[i + 1].templateList[j].rollList[1].increment.setY(0.0)             # horizontal movement, hence dY = 0
+                self.parent.survey.blockList[i + 1].templateList[j].rollList[1].steps = nSht                                # nr deployments in inline-direction
+                self.parent.survey.blockList[i + 1].templateList[j].rollList[1].increment.setX(-RolInt)                     # src shot interval
+                self.parent.survey.blockList[i + 1].templateList[j].rollList[1].increment.setY(0.0)                         # horizontal movement, hence dY = 0
 
                 if fanning:                                                                                                 # this all for streamer fanning; hence each streamer will have its own orientation
                     for k in range(nCab):                                           # iterate over all deployed cables
@@ -1997,15 +2045,18 @@ class Page_5(SurveyWizardPage):
                         # we need to allow for streamer fanning; hence each streamer will have its own orientation
                         # this implies we can not 'grow' the spread to multiple streamers as a grow step in a grid
 
-                        dRec = rec9 - rec0 + k * (dCab9 - dCab0)                                                                    # cross-line cable distance
-                        azi = math.degrees(math.asin(dRec / cL9))                                                                   # corrresponding azimuth
+                        dRec = recY9 - recY0 + k * (dCab9 - dCab0)                                                          # cross-line cable distance
+                        azi = math.degrees(math.asin(dRec / cL9)) - azim                                                    # corrresponding azimuth
                         dRGrp = gI * math.cos(math.radians(dip))
 
                         dXGrp = dRGrp * math.cos(math.radians(azi)) * RecBwdDx
                         dYGrp = dRGrp * math.sin(math.radians(azi))
 
-                        self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setX(RecBwdX0 - j * PopInt)          # Seed origin
-                        self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setY(blkOffBwd + rec0 + k * dCab0)   # Seed origin
+                        dX, dY = rotatePoint2D(0.0, recY0 + k * dCab0, -azim * RecBwdDx)                                                # rotate receiver seed origin
+                        # self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setX(RecBwdX0 - j * PopInt)          # Seed origin
+                        # self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setY(blkOffBwd + recY0 + k * dCab0)   # Seed origin
+                        self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setX(dX + RecBwdX0 - j * PopInt)     # Seed origin
+                        self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setY(dY + blkOffBwd)                 # Seed origin
                         self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].origin.setZ(recZ0)                          # Seed origin
 
                         self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].grid.growList[2].steps = nGrp               # nr of groups in cable
@@ -2019,18 +2070,27 @@ class Page_5(SurveyWizardPage):
                     dRGrp = gI * math.cos(math.radians(dip))
                     dXGrp = dRGrp * RecBwdDx
 
-                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].origin.setX(RecBwdX0 - j * PopInt)          # Seed origin
-                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].origin.setY(blkOffBwd + rec0)               # Seed origin
+                    dX, dY = rotatePoint2D(0.0, recY0, -azim * RecBwdDx)                                                        # rotate receiver seed origin for all streamers
+                    # self.parent.survey.blockList[i + 1].templateList[j].seedList[1].origin.setX(RecBwdX0 - j * PopInt)          # Seed origin
+                    # self.parent.survey.blockList[i + 1].templateList[j].seedList[1].origin.setY(blkOffBwd + recY0)              # Seed origin
+                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].origin.setX(dX + RecBwdX0 - j * PopInt)     # Seed origin
+                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].origin.setY(dY + blkOffBwd)                 # Seed origin
                     self.parent.survey.blockList[i + 1].templateList[j].seedList[1].origin.setZ(recZ0)                          # Seed origin
 
+                    dCabX, dCabY = rotatePoint2D(0.0, dCab0, -azim * RecBwdDx)                                                  # rotate cable orientation
                     self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[1].steps = nCab               # nr of cables in spread
-                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[1].increment.setX(0.0)        # no inline shift
-                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[1].increment.setY(dCab0)      # cable interval
+                    # self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[1].increment.setX(0.0)        # no inline shift
+                    # self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[1].increment.setY(dCab0)      # cable interval
+                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[1].increment.setX(dCabX)      # no inline shift
+                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[1].increment.setY(dCabY)      # cable interval
                     self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[1].increment.setZ(0.0)        # no vertical shift
 
+                    dXGrp, dYGrp = rotatePoint2D(dXGrp, 0.0, -azim * RecBwdDx)                                                  # rotate group orientation
                     self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[2].steps = nGrp               # nr of groups in cable
+                    # self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[2].increment.setX(dXGrp)      # group interval
+                    # self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[2].increment.setY(0.0)        # no fanning
                     self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[2].increment.setX(dXGrp)      # group interval
-                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[2].increment.setY(0.0)        # no fanning
+                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[2].increment.setY(dYGrp)      # no fanning
                     self.parent.survey.blockList[i + 1].templateList[j].seedList[1].grid.growList[2].increment.setZ(dZGrp)      # normalized slant
 
         self.parent.survey.output.rctOutput.setLeft(self.field('binImin'))

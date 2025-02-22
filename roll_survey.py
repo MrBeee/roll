@@ -2361,7 +2361,7 @@ class RollSurvey(pg.GraphicsObject):
                     painter.setPen(pg.mkPen(0.5))                               # use a grey pen for template borders
                     painter.setBrush(pg.mkBrush((192, 192, 192, 32)))           # grey & semi-transparent, use for all templates
 
-                    if self.paintMode == PaintMode.justBlocks:                  # just paint the blocks bounding box
+                    if self.paintMode == PaintMode.justBlocks:                  # just paint the blocks bounding box, irrespective of LOD
                         painter.drawRect(block.boundingBox)                     # draw bloc's rectangle
                         continue                                                # we've done enough
 
@@ -2441,6 +2441,12 @@ class RollSurvey(pg.GraphicsObject):
             self.mouseGrabbed = False
 
     def paintTemplate(self, painter, viewbox, lod, template, templateOffset):
+        # we are now painting a template; this is a bit more complex. We need to paint the seeds in the template
+        # we need to check if the seed is within the viewbox; if not, we skip it
+        # we need to check if the seed is within the block's src/rec area; if not, we skip it
+        # we need to check the level-of-detail (lod) to decide whether to draw a line, a series of points or a series of patterns
+        # this is controlled by the lod, the paintMode and the paintDetails flags
+
         for seed in template.seedList:                                          # iterate over all seeds in a template
             painter.setPen(pg.mkPen(seed.color, width=2))                       # use a solid pen, 2 pixels wide
             if seed.bSource is True:
@@ -2566,21 +2572,26 @@ class RollSurvey(pg.GraphicsObject):
                                     painter.drawLine(salvo)
                                 continue
 
-                            if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
-                                if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                                    painter.drawLine(salvo)
-                            else:
-                                for k in range(seed.grid.growList[2].steps):
-                                    seedOrigin = offset + seed.origin                   # start at templateOffset and add seed's origin
-                                    seedOrigin += seed.grid.growList[2].increment * k   # we now have the correct location
+                            if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                                painter.drawLine(salvo)                         # always draw a line, if the PaintDetails flag allow for this
 
-                                    if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
-                                        if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
-                                            if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                                painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
-                                            if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
-                                                if paintDetail & PaintDetails.recPat != PaintDetails.none:
-                                                    painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)   # paint pattern picture
+                            if lod < config.lod2 or self.paintMode == PaintMode.justLines:   # nothing else to do
+                                continue
+
+                            for k in range(seed.grid.growList[2].steps):            # we are about to draw the points now
+                                seedOrigin = offset + seed.origin                   # start at templateOffset and add seed's origin
+                                seedOrigin += seed.grid.growList[2].increment * k   # we now have the correct location
+
+                                if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
+                                    if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
+                                        if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                                            painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
+
+                                        if lod < config.lod3 or self.paintMode == PaintMode.justPoints:   # nothing else to do
+                                            continue
+
+                                        if seed.patternPicture is not None and paintDetail & PaintDetails.recPat != PaintDetails.none:
+                                            painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)   # paint pattern picture
                 else:
                     # do something recursively; not  implemented yet
                     raise NotImplementedError('More than three grow steps currently not allowed.')
@@ -2590,67 +2601,74 @@ class RollSurvey(pg.GraphicsObject):
             # instead they would sit on the same level as Block list, i.e. Well list, Circle list and Spiral list
             # However, the advantage of keeping them under a 'block' is that the Src, Rec & Cmp outlines are valid, incl. these 'special' seeds
 
-            if seed.type == SeedType.circle and seed.rendered is False:         # circle seed
+            if seed.type == SeedType.circle and seed.rendered is False:         # circle seed; only draw once
                 seed.rendered = True
-                if lod < config.lod2 or self.mouseGrabbed:                      # just draw a circle
 
-                    # empty brush
-                    painter.setBrush(QBrush())
+                if self.mouseGrabbed:                                           # just draw a circle and return
+                    if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                        painter.setBrush(QBrush())                              # empty brush
+                        r = seed.circle.radius
+                        o = seed.origin.toPointF()
+                        painter.drawEllipse(o, r, r)
+                    continue
+
+                if paintDetail & PaintDetails.recLin != PaintDetails.none:      # start drawing the circle
+                    painter.setBrush(QBrush())                                  # empty brush
                     r = seed.circle.radius
                     o = seed.origin.toPointF()
                     painter.drawEllipse(o, r, r)
-                else:
+
+                if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # nothing else to do
+                    continue
+
+                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
                     length = len(seed.pointList)
                     for i in range(length):
                         p = seed.pointList[i].toPointF()
-                        # paint seed picture
-                        if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                            painter.drawPicture(p, seed.getPointPicture())
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
 
             if seed.type == SeedType.spiral and seed.rendered is False:         # spiral seed
                 seed.rendered = True
-                if lod < config.lod2 or self.mouseGrabbed:
 
-                    # empty brush
-                    painter.setBrush(QBrush())
-                    # r1 = seed.spiral.radMin
-                    # r2 = seed.spiral.radMax
-                    # o = seed.origin.toPointF()
-                    # painter.drawEllipse(o, r1, r1)                              # just draw two circles
-                    # painter.drawEllipse(o, r2, r2)
-                    # draw spiral shape
+                if self.mouseGrabbed:                                           # just draw a spiral and return
+                    if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                        painter.setBrush(QBrush())                                  # empty brush
+                        painter.drawPath(seed.spiral.path)
+                    continue
+
+                if paintDetail & PaintDetails.recLin != PaintDetails.none:      # start drawing the spiral
+                    painter.setBrush(QBrush())                                  # empty brush
                     painter.drawPath(seed.spiral.path)
-                else:
-                    # empty brush
-                    painter.setBrush(QBrush())
-                    # r1 = seed.spiral.radMin
-                    # r2 = seed.spiral.radMax
-                    # o = seed.origin.toPointF()
-                    # painter.drawEllipse(o, r1, r1)
-                    # painter.drawEllipse(o, r2, r2)
-                    # draw spiral shape
-                    painter.drawPath(seed.spiral.path)
+
+                if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # nothing else to do
+                    continue
+
+                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
                     length = len(seed.pointList)
-
-                    # for p in seed.pointList                                   # this for loop causes a crash ???
-                    #     painter.drawPicture(p.toPointF(), seed.pointPicture)  # paint seed picture; causes problems when list is empty
-                    if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                        for i in range(length):
-                            p = seed.pointList[i].toPointF()
-                            painter.drawPicture(p, seed.getPointPicture())           # paint seed picture
+                    for i in range(length):
+                        p = seed.pointList[i].toPointF()
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
 
             if seed.type == SeedType.well and seed.rendered is False:           # well seed
                 seed.rendered = True
-                painter.drawPolyline(seed.well.polygon)                         # draw well trajectory as part of this template; move this up to paint()
-                painter.drawEllipse(seed.well.origL, 5.0, 5.0)                  # draw small circle where well surfaces
 
-                if lod > config.lod2 and not self.mouseGrabbed:                 # need the in-well points as well...
-                    length = len(seed.pointList)
+                if self.mouseGrabbed:                                           # just draw a circle and return
+                    if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                        painter.drawPolyline(seed.well.polygon)                 # draw well trajectory as part of this template
+                        painter.drawEllipse(seed.well.origL, 5.0, 5.0)          # draw small circle where well surfaces
+                    continue
 
-                    if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                        for i in range(length):
-                            p = seed.pointList[i].toPointF()
-                            painter.drawPicture(p, seed.getPointPicture())               # paint seed picture
+                if paintDetail & PaintDetails.recLin != PaintDetails.none:      # start drawing the well trajectory
+                    painter.drawPolyline(seed.well.polygon)                     # draw well trajectory as part of this template
+                    painter.drawEllipse(seed.well.origL, 5.0, 5.0)              # draw small circle where well surfaces
+
+                if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # nothing else to do
+                    continue
+
+                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                    for i in range(length):
+                        p = seed.pointList[i].toPointF()
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
 
     def generateSvg(self, nodes):
         pass                                                                    # for the time being don't do anything; just to keep PyLint happy

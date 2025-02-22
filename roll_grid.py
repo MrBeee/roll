@@ -58,28 +58,21 @@ class RollGrid:
         self.points = len(pointList)
         return pointList
 
-    # we're in a RollGrid here
     def calcBoundingRect(self, origin):
-        # create QRectF by applying grow steps
-        pointIter = QVector3D(origin)                                           # declare new object to start iterating from
+        # we're in a RollGrid here; create QRectF and apply nessary grow steps
+        boundingBox = QRectF(origin.toPointF(), origin.toPointF())              # create an empty rect from the origin
 
-        # It's quicker NOT to iterate over all growsteps individually, as was done earlier below, but to apply these steps all at once
-        # for growStep in self.growList:                                          # iterate through all grow steps
-        #     for _ in range(growStep.steps - 1):                                 # we have to subtract 1 here' to get from deployments to roll steps
-        #         pointIter += growStep.increment                                 # shift the iteration point with the appropriate amount
+        # make sure that QRectF.intersected() '&' and united() '|' work as expected by giving boundingBox a minimal size
+        boundingBox.setWidth(1.0e-3)                                            # make it 1 mm wide
+        boundingBox.setHeight(1.0e-3)                                           # make it 1 mm high
 
-        for growStep in self.growList:                                          # iterate through all grow steps
+        for growStep in reversed(self.growList):                                # iterate backwards through all grow steps
             if growStep.steps > 1:                                              # need more than one to roll
-                pointIter += growStep.increment * (growStep.steps - 1)          # define the new end point, and add this to the previous one
-
-        boundingBox = QRectF(origin.toPointF(), pointIter.toPointF())           # create a rect from origin + shifted point
-
-        # make sure that QRectF.intersected() '&' and united() '|' work as expected by giving seed a minimal size
-        if boundingBox.width() == 0.0:                                          # give it very narrow width
-            boundingBox.setWidth(1.0e-6)
-
-        if boundingBox.height() == 0.0:                                         # give it very small height
-            boundingBox.setHeight(1.0e-6)
+                boundingBoxCopy = QRectF(boundingBox)                           # make a copy of the current bounding box
+                move = growStep.increment.toPointF()                            # get a single move step
+                move *= growStep.steps - 1                                      # define the total move for this grow step
+                boundingBoxCopy.translate(move)                                 # shift the bounding box with the appropriate amount
+                boundingBox = boundingBox.united(boundingBoxCopy)               # unite the two bounding boxes
 
         return boundingBox
 

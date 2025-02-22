@@ -88,51 +88,23 @@ class RollTemplate:
 
         return True
 
-    def rollSeedOld(self, seed):
-        # get the pre-calculated seed's boundingbox
-        seedBoundingBox = seed.boundingBox
-        # start here, with a rect before rolling it
-        rolledBoundingRect = QRectF(seedBoundingBox)
-
-        for rollStep in self.rollList:                                          # iterate through all roll steps
-            # create a copy to roll around
-            seedIter = QRectF(seedBoundingBox)
-
-            # if we get a 0 here, there's no additional rolling occurring
-            for _ in range(rollStep.steps - 1):
-                # apply a roll step on the seed area
-                seedIter.translate(rollStep.increment.toPointF())
-                # increase the area with new seed position
-                rolledBoundingRect |= seedIter
-
-        return rolledBoundingRect
-
     def rollSeed(self, seed):
-        # get the pre-calculated seed's boundingbox
-        seedBoundingBox = seed.boundingBox
-        # start here, with a rect before rolling it
-        rolledBoundingRect = QRectF(seedBoundingBox)
+        boundingBox = seed.boundingBox                                          # get the pre-calculated seed's boundingbox
 
-        for rollStep in self.rollList:                                          # iterate through all roll steps
-            # create a copy to roll around
-            seedIter = QRectF(seedBoundingBox)
+        if boundingBox.width() == 0.0:                                          # give it a minimal with if it's empty
+            boundingBox.setWidth(1.0e-3)                                        # make it 1 mm wide
+        if boundingBox.height() == 0.0:                                         # give it a minimal height if it's empty
+            boundingBox.setHeight(1.0e-3)                                       # make it 1 mm high
 
-            if rollStep.steps > 1:
-                seedIter.translate(rollStep.increment.toPointF() * (rollStep.steps - 1))
-                rolledBoundingRect |= seedIter
+        for rollStep in reversed(self.rollList):                                # iterate backwards through all roll steps
+            if rollStep.steps > 1:                                              # need more than one to roll
+                boundingBoxCopy = QRectF(boundingBox)                           # make a copy of the current bounding box
+                move = rollStep.increment.toPointF()                            # get a single move step
+                move *= rollStep.steps - 1                                      # define the total move for this roll step
+                boundingBoxCopy.translate(move)                                 # shift the bounding box with the appropriate amount
+                boundingBox = boundingBox.united(boundingBoxCopy)               # unite the two bounding boxes
 
-        # the following code comes from RollGrid, used as an example, as here the same faster approach was applied earlier
-
-        # # It's quicker NOT to iterate over all growsteps individually, as was done earlier below, but to apply these steps all at once
-        # # for growStep in self.growList:                                          # iterate through all grow steps
-        # #     for _ in range(growStep.steps - 1):                                 # we have to subtract 1 here' to get from deployments to roll steps
-        # #         pointIter += growStep.increment                                 # shift the iteration point with the appropriate amount
-
-        # for growStep in self.growList:                                          # iterate through all grow steps
-        #     if growStep.steps > 1:                                              # need more than one to roll
-        #         pointIter += growStep.increment * (growStep.steps - 1)          # define the new end point, and add this to the previous one
-
-        return rolledBoundingRect
+        return boundingBox
 
     # we're in RollTemplate here
     def calcBoundingRect(self, srcBorder=QRectF(), recBorder=QRectF()):

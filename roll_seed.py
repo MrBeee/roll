@@ -180,7 +180,7 @@ class RollSeed:
                 self.grid.growList.insert(0, RollTranslate())
 
             nSteps = 1
-            for growStep in self.grid.growList:                        # iterate through all grow steps
+            for growStep in self.grid.growList:                                 # iterate through all grow steps
                 nSteps *= growStep.steps                                        # multiply seed's shots at each level
 
             self.pointArray = np.zeros(shape=(nSteps, 3), dtype=np.float32)     # start with empty array of the right size and type
