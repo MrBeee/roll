@@ -1,55 +1,30 @@
 from pyqtgraph.parametertree import registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtGui import QVector3D
-from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
-from .my_preview_label import MyPreviewLabel
-
-
-class NVectorPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-        param.sigValueChanging.connect(self.onVectorChanging)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', None)
-
-        self.onVectorChanging(None, val)
-
-    def onVectorChanging(self, _, val):
-        n = val[0]
-        x = val[1].x()
-        y = val[1].y()
-        z = val[1].z()
-        d = self.decimals
-
-        self.setText(f'{n} : ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})')
-        self.update()
 
 
 class MyNVectorParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = NVectorPreviewLabel(param)
+        self.createAndInitPreviewLabel(param)
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
+    def showPreviewInformation(self, param):
+        val = param.opts.get('value', None)
+        d = param.opts.get('decimals', 3)
+
+        n = val[0]
+        x = val[1].x()
+        y = val[1].y()
+        z = val[1].z()
+        t = f'{n} : ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
+
+        self.previewLabel.setText(t)
+        self.previewLabel.update()
 
 
 class MyNVectorParameter(MyGroupParameter):

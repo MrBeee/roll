@@ -23,9 +23,10 @@ class RollSpiral:
         self.azi0 = 0.0
         self.dist = 50.0
         self.points = 302
+
         # calculated variables
         # spiral drawn when LOD is low
-        self.path = QPainterPath()
+        self.path = None                                                        # QPainterPath() when initialized
 
     def derivative(self, dAngle, a):
         # Note :  Our spiral is defined by R = a x (theta - theta0) (theta in radians). Therefore:
@@ -179,13 +180,13 @@ class RollSpiral:
         oldSlope = np.finfo(np.float64).max
         newSlope = oldSlope
 
-        self.path = QPainterPath()
-
         x = oldR * math.cos(oldTheta)
         # s has vertical mirror function
         y = s * oldR * math.sin(oldTheta)
         newPnt = QPointF(x, y)
         newPnt = t1.map(newPnt)
+
+        self.path = QPainterPath()
         self.path.moveTo(newPnt)
 
         firstSlope = True

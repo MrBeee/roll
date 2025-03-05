@@ -1,58 +1,30 @@
 from pyqtgraph.parametertree import registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtGui import QVector3D
-from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
-from .my_preview_label import MyPreviewLabel
-
-registerParameterType('myGroup', MyGroupParameter, override=True)
-
-
-class RangePreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-        param.sigValueChanging.connect(self.onRangeChanging)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', QVector3D(0.0, 0.0, 0.0))
-
-        self.onRangeChanging(None, val)
-
-    def onRangeChanging(self, _, val):                                         # unused param replaced by _
-        min_ = val.x()
-        max_ = val.y()
-        stp_ = val.z()
-        pnt_ = round((max_ - min_) / stp_) + 1
-
-        d = self.decimals
-
-        self.setText(f'[{min_:.{d}g} to {max_:.{d}g}] {pnt_:.{d}g} steps @ {stp_:.{d}g}')
-        self.update()
 
 
 class MyRangeParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.RangeLabel = RangePreviewLabel(param)
+        self.createAndInitPreviewLabel(param)
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.RangeLabel)
-        self.itemWidget.setLayout(layout)
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
+    def showPreviewInformation(self, param):
+        val = param.opts.get('value', QVector3D(0.0, 0.0, 0.0))
+        d = param.opts.get('decimals', 3)
+
+        min_ = val.x()
+        max_ = val.y()
+        stp_ = val.z()
+        pnt_ = round((max_ - min_) / stp_) + 1
+        t = f'[{min_:.{d}g} to {max_:.{d}g}] {pnt_:.{d}g} steps @ {stp_:.{d}g}'
+
+        self.previewLabel.setText(t)
+        self.previewLabel.update()
 
 
 class MyRangeParameter(MyGroupParameter):
@@ -82,8 +54,8 @@ class MyRangeParameter(MyGroupParameter):
         self.addChild(dict(name='Min', type='myFloat', value=self.range.x(), default=self.range.x(), decimals=d, readonly=r, suffix=s))
         self.addChild(dict(name='Max', type='myFloat', value=self.range.y(), default=self.range.y(), decimals=d, suffix=s))
         self.addChild(dict(name='Step', type='myFloat', value=self.range.z(), default=self.range.z(), decimals=d, suffix=s))
-        self.addChild(dict(name='Points', type='myInt', value=pnt_, enabled=False, readonly=True, suffix='#'))   # set value through setPoints()
-        self.addChild(dict(name='Points 2D', type='myInt', value=pnt_**2, enabled=False, readonly=True, suffix='#'))   # set value through setPoints()
+        self.addChild(dict(name='Points', type='myInt', value=pnt_, default=pnt_, enabled=False, readonly=True, suffix='#'))   # set value through setPoints()
+        self.addChild(dict(name='Points 2D', type='myInt', value=pnt_**2, default=pnt_**2, enabled=False, readonly=True, suffix='#'))   # set value through setPoints()
 
         self.parMin = self.child('Min')
         self.parMax = self.child('Max')

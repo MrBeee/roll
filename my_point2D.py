@@ -1,55 +1,31 @@
 from pyqtgraph.parametertree import registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtCore import QPointF
-from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
-from .my_preview_label import MyPreviewLabel
 
 registerParameterType('myGroup', MyGroupParameter, override=True)
-
-
-class MyPoint2DPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-        param.sigValueChanging.connect(self.onPointChanging)                    # connect signal to slot
-
-        self.decimals = param.opts.get('decimals', 7)                           # get nr of decimals from param and provide default value
-        val = param.opts.get('value', QPointF())                              # get *value*  from param and provide default value
-        self.onPointChanging(None, val)                                         # initialize the label in __init__()
-
-    def onPointChanging(self, _, val):                                          # param unused and eplaced by _
-        point = QPointF(val)                                                    # if needed transform object into point
-
-        x = point.x()                                                          # prepare label text
-        y = point.y()
-        d = self.decimals
-
-        self.setText(f'({x:.{d}g}, {y:.{d}g})')
-        self.update()
 
 
 class MyPoint2DParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
 
-        self.itemWidget = QWidget()
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = MyPoint2DPreviewLabel(param)
+        self.createAndInitPreviewLabel(param)
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
+    def showPreviewInformation(self, param):
+        val = param.opts.get('value', QPointF())                                # get *value*  from param and provide default value
+        d = param.opts.get('decimals', 7)                                      # get nr of decimals from param and provide default value
+
+        point = QPointF(val)                                                    # if needed transform object into point
+        x = point.x()                                                           # prepare label text
+        y = point.y()
+        t = f'({x:.{d}g}, {y:.{d}g})'
+
+        self.previewLabel.setText(t)
+        self.previewLabel.update()
 
 
 class MyPoint2DParameter(MyGroupParameter):

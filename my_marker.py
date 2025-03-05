@@ -56,10 +56,10 @@ class SymbolPreviewLabel(QLabel):
         super().__init__()
         param.sigValueChanging.connect(self.onMarkerChanging)
 
-        opts = param.opts
-        sym = opts.get('symbol', 'o')
-        col = opts.get('color', 'y')
-        siz = opts.get('size', 25)
+        sym = param.opts.get('symbol', 'o')
+        col = param.opts.get('color', 'y')
+        siz = param.opts.get('size', 25)
+
         val = PointMarker(sym, col, siz)
         self.onMarkerChanging(None, val)
 
@@ -86,10 +86,10 @@ class TextPreviewLabel(MyPreviewLabel):
         super().__init__()
         param.sigValueChanging.connect(self.onMarkerChanging)
 
-        opts = param.opts
-        sym = opts.get('symbol', 'o')
-        col = opts.get('color', 'y')
-        siz = opts.get('size', 25)
+        sym = param.opts.get('symbol', 'o')
+        col = param.opts.get('color', 'y')
+        siz = param.opts.get('size', 25)
+
         val = PointMarker(sym, col, siz)
         self.onMarkerChanging(None, val)
 
@@ -105,6 +105,7 @@ class TextPreviewLabel(MyPreviewLabel):
 class MyMarkerParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
+
         self.itemWidget = QWidget()
 
         layout = QHBoxLayout()
@@ -113,20 +114,12 @@ class MyMarkerParameterItem(MyGroupParameterItem):
         spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
         layout.addSpacerItem(spacerItem)
 
-        self.markerLabel = SymbolPreviewLabel(param)
         self.textLabel = TextPreviewLabel(param)
 
+        self.markerLabel = SymbolPreviewLabel(param)
         for child in self.markerLabel, self.textLabel:
             layout.addWidget(child)
         self.itemWidget.setLayout(layout)
-
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        # tw.setItemWidget(self, 1, self.markerLabel)
-        tw.setItemWidget(self, 1, self.itemWidget)
 
 
 class MyMarkerParameter(MyGroupParameter):
@@ -144,8 +137,8 @@ class MyMarkerParameter(MyGroupParameter):
         sym = opts.get('symbol', 'o')
         col = opts.get('color', 'y')
         siz = opts.get('size', 25)
-        self.marker = PointMarker(sym, col, siz)
 
+        self.marker = PointMarker(sym, col, siz)
         self.addChild(dict(name='Symbol', value=self.marker.symbol(), default=self.marker.symbol(), type='mySymbols'))
         self.addChild(dict(name='Color', value=self.marker.color(), default=self.marker.color(), type='color'))
         self.addChild(dict(name='Size', value=self.marker.size(), default=self.marker.size(), type='mySlider', limits=[1, 100]))

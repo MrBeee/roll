@@ -15,10 +15,8 @@ class RollTranslate:
         self.name = name
         self.steps = 1                                                          # Minimum (default) value
         self.increment = QVector3D()                                            # zero x, y, z values
-        self.azim = 0.0                                                         # direction undetermined
-        self.tilt = 0.0                                                         # direction undetermined
-
-        # todo: check if azimuth is needed ###
+        self.azim = None                                                        # direction undetermined
+        self.tilt = None                                                        # direction undetermined
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
 
@@ -35,6 +33,13 @@ class RollTranslate:
         translateElem.setAttribute('dx', str(self.increment.x()))
         translateElem.setAttribute('dy', str(self.increment.y()))
         translateElem.setAttribute('dz', str(self.increment.z()))
+
+        if self.azim is None:
+            self.azim = math.degrees(math.atan2(self.increment.y(), self.increment.x()))
+
+        if self.tilt is None:
+            lengthXY = math.sqrt(self.increment.x() ** 2 + self.increment.y() ** 2)
+            self.tilt = math.degrees(math.atan2(self.increment.z(), lengthXY))
 
         translateElem.setAttribute('azim', str(self.azim))
         translateElem.setAttribute('tilt', str(self.tilt))

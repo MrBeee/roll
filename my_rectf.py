@@ -1,60 +1,36 @@
 from pyqtgraph.parametertree import registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtCore import QRectF
-from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
+from .functions import lineNo
 from .my_group import MyGroupParameter, MyGroupParameterItem
-from .my_preview_label import MyPreviewLabel
-
-registerParameterType('myGroup', MyGroupParameter, override=True)
-
-
-class RectPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-        param.sigValueChanging.connect(self.onRectChanging)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 5)
-        val = opts.get('value', QRectF())
-
-        self.onRectChanging(None, val)
-
-    def onRectChanging(self, _, val):                                           # unused param replaced by _
-        rect = QRectF(val)                                                      # make local copy
-        d = self.decimals
-        if rect.isNull():
-            self.setText('Unrestricted')
-        else:
-            Xmin = rect.left()
-            Xmax = rect.right()
-            Ymin = rect.top()
-            Ymax = rect.bottom()
-            self.setText(f'x:({Xmin:.{d}g}¦{Xmax:.{d}g}), y:({Ymin:.{d}g}¦{Ymax:.{d}g})')
-        self.update()
 
 
 class MyRectParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = RectPreviewLabel(param)
+        self.createAndInitPreviewLabel(param)
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
+    def showPreviewInformation(self, param):
+        val = param.opts.get('value', QRectF())
+        d = param.opts.get('decimals', 5)
+
+        rect = QRectF(val)                                                      # make local copy
+
+        if rect.isNull():
+            t = 'Unrestricted'
+        else:
+            Xmin = rect.left()
+            Xmax = rect.right()
+            Ymin = rect.top()
+            Ymax = rect.bottom()
+            t = f'x:({Xmin:.{d}g}¦{Xmax:.{d}g}), y:({Ymin:.{d}g}¦{Ymax:.{d}g})'
+
+        self.previewLabel.setText(t)
+        self.previewLabel.update()
 
 
 class MyRectParameter(MyGroupParameter):

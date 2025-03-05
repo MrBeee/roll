@@ -22,10 +22,15 @@ class MyPreviewLabel(QLabel):
     def setErrorCondition(self, error=False):
 
         myFont = QFont()
-        myFont.setBold(error)
+        myFont.setBold(error)                                                   # sets and resets "bold", depending on error condition
         self.setFont(myFont)
-        self.errorBox.setVisible(error)
 
-        if error and self.isVisible():
+        self.errorBox.setVisible(error)                                         # hows and hides the errorBoox, depending on error condition
+        if error and self.isVisible():                                          # play a sound when in focus
             winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
-            # SystemAsterisk, SystemExclamation, SystemExit, SystemHand, SystemQuestion are common sounds; use asyync to avoid waiting on sound to finish
+            # > SystemAsterisk;
+            # > SystemExclamation;
+            # > SystemExit;
+            # > SystemHand;
+            # > SystemQuestion;
+            # are common sounds; use asyync to avoid waiting on sound to finish

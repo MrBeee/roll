@@ -265,10 +265,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.antiA = [False for i in range(12)]                                 # anti-alias painting
         self.ruler = False                                                      # show a ruler to measure distances
 
-        # exception handling
-        # self.oldExceptHook = sys.excepthook                                     # make a copy before changing it
-        # sys.excepthook = self.exceptionHook                                     # deal with uncaught exceptions using hook
-
+        # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
         # print handling
         # self.oldPrint = builtins.print                                          # need to be able to get back to 'normal'
 
@@ -685,6 +682,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
         self.survey = RollSurvey()                                              # (re)set the survey object; needed in property pane
+        readSettings(self)                                                      # read settings from QSettings in an early stage
 
         self.mainTabWidget = QTabWidget()
         self.mainTabWidget.setTabPosition(QTabWidget.South)
@@ -987,7 +985,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.plotLayout()
 
-        readSettings(self)
         self.updateRecentFileActions()                                          # update the MRU file menu actions, with info from readSettings()
 
         self.appendLogMessage('Plugin : Started')
@@ -1153,12 +1150,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         brush = '#add8e6'
 
         surveyParams = [
-            dict(brush=brush, name='Survey configuration', type='myConfiguration', value=copy),
-            dict(brush=brush, name='Survey analysis', type='myAnalysis', value=copy),
-            dict(brush=brush, name='Survey reflectors', type='myReflectors', value=copy),
-            dict(brush=brush, name='Survey grid', type='myGrid', value=copy.grid),
-            dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList),
-            dict(brush=brush, name='Pattern list', type='myPatternList', value=copy.patternList),
+            dict(brush=brush, name='Survey configuration', type='myConfiguration', value=copy, default=copy),
+            dict(brush=brush, name='Survey analysis', type='myAnalysis', value=copy, default=copy),
+            dict(brush=brush, name='Survey reflectors', type='myReflectors', value=copy, default=copy),
+            dict(brush=brush, name='Survey grid', type='myGrid', value=copy.grid, default=copy.grid),
+            dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList, default=copy.blockList),
+            dict(brush=brush, name='Pattern list', type='myPatternList', value=copy.patternList, default=copy.patternList),
         ]
 
         time_ = self.survey.elapsedTime(time_, 11)    ###
@@ -1173,10 +1170,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # todo: fix this; this is the most time consuming step, loading a new survey with several blocks,
         # A marine survey contains many templates and many, many more seeds.
-        # Disable signals to speed up setting parameters. Suggestion from GitHub Copilot; does not work !
-        # self.paramTree.blockSignals(True)
+
         self.paramTree.setParameters(self.parameters, showTop=False)
-        # self.paramTree.blockSignals(False)
 
         time_ = self.survey.elapsedTime(time_, 14)    ###
 
@@ -1193,13 +1188,35 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         time_ = self.survey.elapsedTime(time_, 16)    ###
 
         # deal with a bug, not showing tooltip information in the list of parameterItems
+        # make sure the default buttons are greyed out in the parameter tree and count the items
+        nItem = 0
         for item in self.paramTree.listAllItems():                              # Bug. See: https://github.com/pyqtgraph/pyqtgraph/issues/2744
             p = item.param                                                      # get parameter belonging to parameterItem
-            p.setToDefault()                                                    # set all parameters to their default value
-            if hasattr(item, 'updateDefaultBtn'):                               # note: not all parameterItems have this method
-                item.updateDefaultBtn()                                         # reset the default-buttons to their grey value
             if 'tip' in p.opts:                                                 # this solves the above mentioned bug
                 item.setToolTip(0, p.opts['tip'])                               # the widgets now get their tooltips
+            if hasattr(item, 'updateDefaultBtn'):                               # note: not all parameterItems have this method
+                p.setToDefault()                                                # set parameters to its default value
+                item.updateDefaultBtn()                                         # reset the default-button to its grey value
+            nItem += 1
+        print(f'paramTree has {nItem} items')                                   # print the number of parameterItems
+
+        #  this code is here, just to get an idea how to see which information labels are visible
+        # for item in self.paramTree.listAllItems():                              # iterate over all parameterItems
+        #     parent = item.parent()                                              # get original parent of parameterItem
+        #     expanded = True
+        #     while item.parent() is not None:
+        #         item = item.parent()
+        #         if item.isExpanded() is False:                                  # check if the parent is expanded
+        #             expanded = False
+        #             break
+
+        #     if parent is not None:                                              # status original parent
+        #         p = parent.param                                                # get the parameter belonging to the parent parameterItem
+        #         v = p.opts.get('visible', None)                                 # check if the parent parameter is visible
+        #         if p.opts.get('expanded', True):                                # check if the parent has been expanded
+        #             type_ = p.opts.get('type', None)                            # get the type of the parent parameter
+        #             print(f'parent {p.name()} has type {type_}, expanded={expanded}, visible={v}')  # print the name and type of the parent parameter
+
         time_ = self.survey.elapsedTime(time_, 17)    ###
 
     def updatePatternList(self, survey):
@@ -1372,6 +1389,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     ## If anything changes in the tree, print a message
     def propertyTreeStateChanged(self, param, changes):
+
         # self.propertyButtonBox.button(QDialogButtonBox.Apply).setEnabled(True)
 
         print('┌── sigTreeStateChanged --> tree changes:')
@@ -3047,8 +3065,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     file.write(self.logEdit.toPlainText())                      # get text from logEdit
                     file.write('+++\n\n')                                       # closing remarks
 
-            # builtins.print = self.oldPrint                                    # restore builtins.print
-            # sys.excepthook = self.oldExceptHook                               # restore sys.excepthook back to the original
             e.accept()                                                          # finally accep the event
 
             self.killMe = True                                                  # to restart the GUI from scratch when the plugin is activated again

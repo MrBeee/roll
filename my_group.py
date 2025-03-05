@@ -8,8 +8,23 @@ from pyqtgraph.Qt import mkQApp
 from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import QHBoxLayout, QMenu, QSizePolicy, QSpacerItem, QWidget
 
+from . import config  # used to pass initial settings
+from .functions import lineNo
+from .my_preview_label import MyPreviewLabel
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 resource_dir = os.path.join(current_dir, 'resources')
+
+#  helper function to check if all parents have been expanded. In that case the preview label should be shown
+def expandedParents(param):
+    expanded = True
+    parent = param.parent()
+    while parent is not None:
+        if parent.opts.get('expanded', False) is False or parent.opts.get('visible', False) is False:
+            expanded = False
+            break
+        parent = parent.parent()
+    return expanded
 
 
 class MyGroupParameterItem(GroupParameterItem):
@@ -21,24 +36,47 @@ class MyGroupParameterItem(GroupParameterItem):
         self.itemWidget = QWidget()
 
     def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
+        ParameterItem.treeWidgetChanged(self)                                   # call the parent method first
         tw = self.treeWidget()
         if tw is None:
             return
         tw.setItemWidget(self, 1, self.itemWidget)
 
-    def setPreviewLabel(self, label):
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
+    def createAndInitPreviewLabel(self, param):
+        # we can skip creating the preview label if config.showSummaries is False, or param is None
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)    # for improved alignent
-        layout.addSpacerItem(spacerItem)
+        if not config.showSummaries or param is None:                           # no need to do any real work (yet)
+            return
 
-        self.previewLabel = label
-        layout.addWidget(self.previewLabel)
+        # at this point, we know param is valid, and a preview label is needed. Does it exist ?
+        if self.previewLabel is None:                                           # label does not exist yet
+            layout = QHBoxLayout()                                              # do the "initialization work" here
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(2)                                                # spacing between elements
 
-        self.itemWidget.setLayout(layout)
+            spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
+            layout.addSpacerItem(spacerItem)
+
+            self.previewLabel = MyPreviewLabel()
+            layout.addWidget(self.previewLabel)
+            self.itemWidget.setLayout(layout)                                   # ready doing the "initialization work"
+
+        self.showPreviewInformation(param)                                      # show the preview information (subclassed routine)
+
+    def showPreviewInformation(self, param):
+        raise NotImplementedError()
+
+    def onValueChanging(self, param, _):                                        # val unused and replaced  by _
+        if config.showSummaries:
+            self.createAndInitPreviewLabel(param)                             # create the preview label if needed
+            # self.showPreviewInformation(param)
+        print(f'>>>{lineNo():5d} MyGroupParameterItem.ValueChanging <<<')
+
+    def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
+        if config.showSummaries:
+            self.createAndInitPreviewLabel(param)                             # create the preview label if needed
+            # self.showPreviewInformation(param)
+        print(f'>>>{lineNo():5d} MyGroupParameterItem.TreeStateChanged <<<')
 
     def updateDepth(self, depth):
         """Change set the item font to bold and increase the font size on outermost groups if desired."""

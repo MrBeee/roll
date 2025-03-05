@@ -210,6 +210,9 @@ useNumba = False
 # showUnfinished is used to indicate wether or not code "still under construction" is to be shown to end user
 showUnfinished = False
 
+# showSummary is used to indicate wether or not to show summary info of underlying paramaters in the property pane
+showSummaries = False
+
 # debug parameters in settings menu
 debug = False   # show debug messages in Logging pane
 ptvsd = False   # run worker threads in debug mode
@@ -243,8 +246,6 @@ timerFreq = [0 for _ in range(20)]
 def elapsedTime(startTime, index: int) -> None:
     currentTime = perf_counter()
     deltaTime = currentTime - startTime
-    if deltaTime > 10.0:
-        breakpoint()
 
     timerTmin[index] = min(deltaTime, timerTmin[index])
     timerTmax[index] = max(deltaTime, timerTmax[index])

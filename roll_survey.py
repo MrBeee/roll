@@ -2293,6 +2293,7 @@ class RollSurvey(pg.GraphicsObject):
     # See: https://stackoverflow.com/questions/1353823/handling-keyboardinterrupt-in-a-kde-python-application
     # See: https://www.geeksforgeeks.org/how-to-create-a-custom-keyboardinterrupt-in-python/
     # See: https://stackoverflow.com/questions/51485285/stop-a-while-loop-by-escape-key
+    # See: https://pypi.org/project/dvg-pyqtgraph-threadsafe/ for threadsafe plotting with pyqtgraph
 
     def paint(self, painter, option, _):
         # just to check if we can interrupt painting using Ctrl+C
@@ -2320,7 +2321,7 @@ class RollSurvey(pg.GraphicsObject):
             # print(f"VB2 = x0:{vb.left():.2f} y0:{vb.top():.2f}, xmax:{vb.left()+vb.width():.2f} ymax:{vb.top()+vb.height():.2f}")
 
             lod = option.levelOfDetailFromTransform(painter.worldTransform()) * self.lodScale
-            print('LOD = ' + str(lod))
+            # print('LOD = ' + str(lod))
 
             if lod < config.lod0:                                               # so small; just paint the survey outline
                 painter.setPen(pg.mkPen('k'))                                   # use a black pen for borders

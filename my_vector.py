@@ -1,58 +1,32 @@
 import math
 
 from pyqtgraph.parametertree import registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtGui import QVector3D
-from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
-from .my_preview_label import MyPreviewLabel
 
 registerParameterType('myGroup', MyGroupParameter, override=True)
-
-
-class VectorPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-        param.sigValueChanging.connect(self.onVectorChanging)
-
-        opts = param.opts
-        self.decimals = opts.get('decimals', 3)
-        val = opts.get('value', QVector3D(0.0, 0.0, 0.0))
-
-        self.onVectorChanging(None, val)
-
-    def onVectorChanging(self, _, val):                                         # unused param replaced by _
-        x = val.x()
-        y = val.y()
-        z = val.z()
-        d = self.decimals
-
-        self.setText(f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})')
-        self.update()
 
 
 class MyVectorParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-        self.itemWidget = QWidget()
 
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.vectorLabel = VectorPreviewLabel(param)
+        self.createAndInitPreviewLabel(param)
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.vectorLabel)
-        self.itemWidget.setLayout(layout)
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
+    def showPreviewInformation(self, param):
+        val = param.opts.get('value', QVector3D(0.0, 0.0, 0.0))
+        d = param.opts.get('decimals', 3)
+        x = val.x()
+        y = val.y()
+        z = val.z()
+        t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
+
+        self.previewLabel.setText(t)
+        self.previewLabel.update()
 
 
 class MyVectorParameter(MyGroupParameter):
@@ -75,8 +49,8 @@ class MyVectorParameter(MyGroupParameter):
         self.addChild(dict(name='dX', type='float', value=self.vector.x(), default=self.vector.x(), decimals=d, suffix=s))
         self.addChild(dict(name='dY', type='float', value=self.vector.y(), default=self.vector.y(), decimals=d, suffix=s))
         self.addChild(dict(name='dZ', type='float', value=self.vector.z(), default=self.vector.z(), decimals=d, suffix=s))
-        self.addChild(dict(name='azimuth', type='myFloat', value=0.0, enabled=False, readonly=True, decimals=d, suffix='deg'))   # set value through setAzimuth()    # myFloat
-        self.addChild(dict(name='tilt', type='myFloat', value=0.0, enabled=False, readonly=True))                                # set value through setTilt()    # myFloat
+        self.addChild(dict(name='azimuth', type='myFloat', value=0.0, default=0.0, enabled=False, readonly=True, decimals=d, suffix='deg'))   # set value through setAzimuth()    # myFloat
+        self.addChild(dict(name='tilt', type='myFloat', value=0.0, default=0.0, enabled=False, readonly=True))                                # set value through setTilt()    # myFloat
 
         self.parX = self.child('dX')
         self.parY = self.child('dY')

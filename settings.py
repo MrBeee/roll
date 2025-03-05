@@ -108,10 +108,10 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='LOD 0 [survey]   ', type='mySlider', default=config.lod0, value=config.lod0, precision=4, limits=config.lod0Range, step=0.02 * config.lod0),  # config.lod0 = 0.005
-                    dict(name='LOD 1 [templates]', type='mySlider', default=config.lod1, value=config.lod1, precision=4, limits=config.lod1Range, step=0.02 * config.lod1),  # config.lod1 = 0.050
-                    dict(name='LOD 2 [points]   ', type='mySlider', default=config.lod2, value=config.lod2, precision=4, limits=config.lod2Range, step=0.02 * config.lod2),  # config.lod2 = 0.500
-                    dict(name='LOD 3 [patterns] ', type='mySlider', default=config.lod3, value=config.lod3, precision=4, limits=config.lod3Range, step=0.02 * config.lod3),  # config.lod3 = 1.250
+                    dict(name='LOD 0 [survey]   ', type='mySlider', value=config.lod0, default=config.lod0, precision=4, limits=config.lod0Range, step=0.02 * config.lod0),  # config.lod0 = 0.005
+                    dict(name='LOD 1 [templates]', type='mySlider', value=config.lod1, default=config.lod1, precision=4, limits=config.lod1Range, step=0.02 * config.lod1),  # config.lod1 = 0.050
+                    dict(name='LOD 2 [points]   ', type='mySlider', value=config.lod2, default=config.lod2, precision=4, limits=config.lod2Range, step=0.02 * config.lod2),  # config.lod2 = 0.500
+                    dict(name='LOD 3 [patterns] ', type='mySlider', value=config.lod3, default=config.lod3, precision=4, limits=config.lod3Range, step=0.02 * config.lod3),  # config.lod3 = 1.250
                 ],
             )
         ]
@@ -123,7 +123,7 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Local SPS dialect', type='list', limits=spsNames, value=config.spsDialect),  # SPS 'flavor'
+                    dict(name='Local SPS dialect', type='list', limits=spsNames, value=config.spsDialect, default=config.spsDialect),  # SPS 'flavor'
                     dict(name='Rps point marker', type='myMarker', flat=True, expanded=False, symbol=config.rpsPointSymbol, color=QColor(config.rpsBrushColor), size=config.rpsSymbolSize),
                     dict(name='Sps point marker', type='myMarker', flat=True, expanded=False, symbol=config.spsPointSymbol, color=QColor(config.spsBrushColor), size=config.spsSymbolSize),
                 ],
@@ -148,9 +148,9 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Kr  stack response', type='myRange', flat=True, expanded=False, value=config.kr_Stack, suffix=' [1/km]'),  # fixedMin=True,
-                    dict(name='Kxy stack response', type='myRange', flat=True, expanded=False, value=config.kxyStack, suffix=' [1/km]', twoDim=True),
-                    dict(name='Kxy array response', type='myRange', flat=True, expanded=False, value=config.kxyArray, suffix=' [1/km]', twoDim=True),
+                    dict(name='Kr  stack response', type='myRange', flat=True, expanded=False, value=config.kr_Stack, default=config.kr_Stack, suffix=' [1/km]'),  # fixedMin=True,
+                    dict(name='Kxy stack response', type='myRange', flat=True, expanded=False, value=config.kxyStack, default=config.kxyStack, suffix=' [1/km]', twoDim=True),
+                    dict(name='Kxy array response', type='myRange', flat=True, expanded=False, value=config.kxyArray, default=config.kxyArray, suffix=' [1/km]', twoDim=True),
                 ],
             ),
         ]
@@ -180,6 +180,7 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[
                     dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip1),
+                    dict(name='Show summary values', type='bool', value=config.showSummaries, default=config.showSummaries, enabled=haveNumba, tip=tip1),
                     dict(name='Show unfinished code', type='bool', value=config.showUnfinished, default=config.showUnfinished, enabled=True, tip=tip2),
                 ],
             ),
@@ -303,6 +304,7 @@ class SettingsDialog(QDialog):
         if haveNumba:                                                           # can only do this when numba has been installed
             numba.config.DISABLE_JIT = not config.useNumba                      # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
         config.showUnfinished = MIS.child('Show unfinished code').value()       # show/hide "work in progress"
+        config.showSummaries = MIS.child('Show summary values').value()         # show/hide summary information in property pane
 
 
 def readSettings(self):
@@ -380,7 +382,8 @@ def readSettings(self):
     if haveNumba:                                                                       # can only do this when numba has been installed
         numba.config.DISABLE_JIT = not config.useNumba                                  # disable/enable numba pre-compilation in @jit decorator
 
-    config.showUnfinished = self.settings.value('settings/misc/showUnfinished', False, type=bool)
+    config.showUnfinished = self.settings.value('settings/misc/showUnfinished', False, type=bool)   # show unfinished code
+    config.showSummaries = self.settings.value('settings/misc/showSummaries', False, type=bool)     # show/hide summary information in property pane
 
 
 def writeSettings(self):
@@ -432,3 +435,4 @@ def writeSettings(self):
     # miscellaneous information
     self.settings.setValue('settings/misc/useNumba', config.useNumba)
     self.settings.setValue('settings/misc/showUnfinished', config.showUnfinished)
+    self.settings.setValue('settings/misc/showSummaries', config.showSummaries)    # show/hide summary information in property pane

@@ -2,8 +2,7 @@ import os
 
 import numpy as np
 import wellpathpy as wp
-from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
-                       QgsPointXY, QgsProject, QgsVector3D)
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVector3D
 from qgis.PyQt.QtCore import QFileInfo, QPointF
 from qgis.PyQt.QtGui import QPolygonF, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
@@ -36,7 +35,8 @@ class RollWell:
         self.origL = QPointF(-999.0, -999.0)                                    # wellhead location in local project coordinates
 
         # variables, calculated but not serialized
-        self.polygon = QPolygonF()                                              # polygon in local coordinates, to draw well trajectory; start empty
+        # self.polygon = QPolygonF()                                              # polygon in local coordinates, to draw well trajectory; start empty
+        self.polygon = None                                                     # QPolygonF() in local coordinates, to draw well trajectory; start with None
         self.pntList2D = []                                                     # points  in local coordinates, to draw well trajectory; start empty
 
         # please note the seed's origin is hidden in the property editor, when using a well-based seed

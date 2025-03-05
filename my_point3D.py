@@ -1,56 +1,30 @@
 from pyqtgraph.parametertree import registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtGui import QVector3D
-from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
 from .my_group import MyGroupParameter, MyGroupParameterItem
-from .my_preview_label import MyPreviewLabel
-
-registerParameterType('myGroup', MyGroupParameter, override=True)
-
-
-class MyPoint3DPreviewLabel(MyPreviewLabel):
-    def __init__(self, param):
-        super().__init__()
-        param.sigValueChanging.connect(self.onPointChanging)                    # connect signal to slot
-
-        self.decimals = param.opts.get('decimals', 7)                           # get nr of decimals from param and provide default value
-        val = param.opts.get('value', QVector3D())                              # get *value*  from param and provide default value
-        self.onPointChanging(None, val)                                         # initialize the label in __init__()
-
-    def onPointChanging(self, _, val):                                          # param unused and eplaced by _
-        vector = QVector3D(val)                                                 # if needed transform QPointF into vector
-
-        x = vector.x()                                                          # prepare label text
-        y = vector.y()
-        z = vector.z()
-        d = self.decimals
-
-        self.setText(f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})')
-        self.update()
 
 
 class MyPoint3DParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
 
-        self.itemWidget = QWidget()
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.label = MyPoint3DPreviewLabel(param)
+        self.createAndInitPreviewLabel(param)
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        layout.addSpacerItem(spacerItem)
-        layout.addWidget(self.label)
-        self.itemWidget.setLayout(layout)
+        param.sigValueChanging.connect(self.onValueChanging)
+        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-    def treeWidgetChanged(self):
-        ParameterItem.treeWidgetChanged(self)
-        tw = self.treeWidget()
-        if tw is None:
-            return
-        tw.setItemWidget(self, 1, self.itemWidget)
+    def showPreviewInformation(self, param):
+        val = param.opts.get('value', QVector3D())                              # get *value*  from param and provide default value
+        d = param.opts.get('decimals', 7)                                      # get nr of decimals from param and provide default value
+
+        vector = QVector3D(val)                                                 # if needed transform QPointF into vector
+        x = vector.x()                                                          # prepare label text
+        y = vector.y()
+        z = vector.z()
+        t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
+
+        self.previewLabel.setText(t)
+        self.previewLabel.update()
 
 
 class MyPoint3DParameter(MyGroupParameter):
