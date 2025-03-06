@@ -13,20 +13,29 @@ class MyCrs2ParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        param.sigValueChanging.connect(self.onValueChanging)
+        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
-        crs = QgsCoordinateReferenceSystem()                                    # create invalid crs object (defaults to EPSG:4326)
-        val = param.opts.get('value', crs)                                      # get crs from param and give it a default value
+        crs = param.child('CRS').opts['value']
+        t = crs.description()
+        e = not crs.isValid() or crs.isGeographic()
 
-        t = val.description()
-        e = not val.isValid() or val.isGeographic()
-
-        if not val.isValid():
+        if not crs.isValid():
             t = 'Invalid CRS'
-        if val.isGeographic():
+        if crs.isGeographic():
             t = 'Geographic CRS (lat/long)'
+
+        # crs = QgsCoordinateReferenceSystem()                                    # create invalid crs object (defaults to EPSG:4326)
+        # val = param.opts.get('value', crs)                                      # get crs from param and give it a default value
+
+        # t = val.description()
+        # e = not val.isValid() or val.isGeographic()
+
+        # if not val.isValid():
+        #     t = 'Invalid CRS'
+        # if val.isGeographic():
+        #     t = 'Geographic CRS (lat/long)'
 
         self.previewLabel.setErrorCondition(e)
         self.previewLabel.setText(t)
@@ -59,6 +68,7 @@ class MyCrs2Parameter(MyGroupParameter):
         self.parI = self.child('Authority ID')
         self.parP = self.child('Projection type')
 
+        self.sigTreeStateChanged.connect(self.changed)
         self.parC.sigValueChanged.connect(self.changed)
 
     # update the values of the three children
@@ -77,7 +87,7 @@ class MyCrs2Parameter(MyGroupParameter):
         self.parI.setValue(self.crs.authid())
         self.parP.setValue(value=self.crs.projectionAcronym())
 
-        self.sigValueChanging.emit(self, self.crs)
+        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def value(self):
         return self.crs

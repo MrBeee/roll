@@ -28,7 +28,7 @@ from qgis.PyQt.QtCore import QFileInfo, QRectF, QVariant
 from qgis.PyQt.QtGui import QPolygonF, QTransform
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
 
-from .functions import isFileInUse
+from .functions import isFileInUse, myPrint
 from .qgis_layer_dialog import LayerDialog
 from .sps_io_and_qc import pntType1
 
@@ -680,7 +680,7 @@ def readQgisPointLayer(layerId, selectionField=''):
     layer = QgsProject.instance().mapLayer(layerId)
 
     nFeatures = layer.featureCount()
-    print('Nr features: ', nFeatures)
+    myPrint('Nr features: ', nFeatures)
 
     if nFeatures == 0:
         return None
@@ -689,7 +689,7 @@ def readQgisPointLayer(layerId, selectionField=''):
 
     vlMeta = layer.metadata()                                               # get meta data
     parentId = vlMeta.parentIdentifier()                                    # for easy layer verification from plugin
-    print('Parent ID: ', parentId)
+    myPrint('Parent ID: ', parentId)
 
     nRecord = 0
     nErrors = 0
@@ -741,11 +741,11 @@ def readQgisPointLayer(layerId, selectionField=''):
             nRecord += 1
 
         except ValueError:
-            print('Bad Feature ID: ', feature.id())
+            myPrint('Bad Feature ID: ', feature.id())
             nErrors += 1
 
         except KeyError:
-            print('Required fields are missing from layer')
+            myPrint('Required fields are missing from layer')
             return None
 
     if nErrors > 0:

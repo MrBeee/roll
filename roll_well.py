@@ -8,7 +8,7 @@ from qgis.PyQt.QtGui import QPolygonF, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
 from . import config  # used to pass initial settings
-from .functions import toFloat, toInt
+from .functions import myPrint, toFloat, toInt
 from .rdp import filterRdp
 
 
@@ -166,7 +166,7 @@ class RollWell:
                         val = val[1].split('\n')                            # if keyword value followed by \n, get rid of it
                         val = val[0].strip()    	                        # turn list into string, get rid of leading/trailing spaces
 
-                        print('line:', index + 1, 'keyword nr:', i + 1, 'keyword:', k, 'value:', val)
+                        myPrint('line:', index + 1, 'keyword nr:', i + 1, 'keyword:', k, 'value:', val)
 
                         if i == 0:
                             header['elevation_units'] = val.lower()[0]
@@ -206,7 +206,7 @@ class RollWell:
                         else:
                             unit = None
                         val = val[0].strip()    	                            # turn list into string, get rid of leading/trailing spaces
-                        print('line:', index + 1, 'keyword nr:', i + 1, 'keyword:', k, 'value:', val, 'unit:', unit)
+                        myPrint('line:', index + 1, 'keyword nr:', i + 1, 'keyword:', k, 'value:', val, 'unit:', unit)
                         if i == 3:
                             header['surface_northing'] = float(val)
                             header['surface_coordinates_units'] = unit

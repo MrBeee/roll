@@ -7,7 +7,7 @@ import pyqtgraph as pg
 from qgis.PyQt.QtCore import QFile, QIODevice, QTextStream
 from qgis.PyQt.QtWidgets import QFileDialog
 
-from .functions import toFloat, toInt
+from .functions import myPrint, toFloat, toInt
 
 # sps file formats
 # See: https://seg.org/Portals/0/SEG/News%20and%20Resources/Technical%20Standards/seg_sps_rev2.1.pdf
@@ -795,9 +795,9 @@ def calculateLineStakeTransform(spsImport) -> []:
     # ABCDEF = np.linalg.lstsq(M1, M2)[0]                                       # A0_B0_A1_B1_A2_B2 array
     ABCDEF, residuals, *_ = np.linalg.lstsq(M1, M2)                             # unused rank, sing replaced by *_  # A0_B0_A1_B1_A2_B2 array
 
-    print(ABCDEF)
+    myPrint(ABCDEF)
     if residuals:
-        print(residuals[0] / M1.shape[0])
+        myPrint(residuals[0] / M1.shape[0])
 
     return ABCDEF   # type: ignore
 

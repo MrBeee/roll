@@ -1,7 +1,6 @@
 import pyqtgraph as pg
 from pyqtgraph.graphicsItems.ScatterPlotItem import renderSymbol
 from pyqtgraph.parametertree import registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QBrush, QPen, QPixmap
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QWidget
@@ -120,6 +119,9 @@ class MyMarkerParameterItem(MyGroupParameterItem):
         for child in self.markerLabel, self.textLabel:
             layout.addWidget(child)
         self.itemWidget.setLayout(layout)
+
+    def showPreviewInformation(self, param):
+        pass
 
 
 class MyMarkerParameter(MyGroupParameter):

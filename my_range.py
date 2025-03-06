@@ -10,18 +10,24 @@ class MyRangeParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        param.sigValueChanging.connect(self.onValueChanging)
+        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
-        val = param.opts.get('value', QVector3D(0.0, 0.0, 0.0))
         d = param.opts.get('decimals', 3)
-
-        min_ = val.x()
-        max_ = val.y()
-        stp_ = val.z()
+        min_ = param.child('Min').value()
+        max_ = param.child('Max').value()
+        stp_ = param.child('Step').value()
+        pnt_ = param.child('Points').value()
         pnt_ = round((max_ - min_) / stp_) + 1
         t = f'[{min_:.{d}g} to {max_:.{d}g}] {pnt_:.{d}g} steps @ {stp_:.{d}g}'
+
+        # val = param.opts.get('value', QVector3D(0.0, 0.0, 0.0))
+        # min_ = val.x()
+        # max_ = val.y()
+        # stp_ = val.z()
+        # pnt_ = round((max_ - min_) / stp_) + 1
+        # t = f'[{min_:.{d}g} to {max_:.{d}g}] {pnt_:.{d}g} steps @ {stp_:.{d}g}'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -81,20 +87,23 @@ class MyRangeParameter(MyGroupParameter):
         self.range.setX(min_)
         # if the minimum changes; the overall number of points wil change as well
         self.setPoints()
-        self.sigValueChanging.emit(self, self.range)
+
+        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def maxChanged(self):
         max_ = self.parMax.value()
         self.range.setY(max_)
         self.setPoints()
-        self.sigValueChanging.emit(self, self.range)
+
+        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def stpChanged(self):
         stp_ = self.parStp.value()
         self.range.setZ(stp_)
         # if the step size changes; the overall number of points wil change as well
         self.setPoints()
-        self.sigValueChanging.emit(self, self.range)
+
+        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def value(self):
         return self.range

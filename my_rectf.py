@@ -1,7 +1,6 @@
 from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt.QtCore import QRectF
 
-from .functions import lineNo
 from .my_group import MyGroupParameter, MyGroupParameterItem
 
 
@@ -11,23 +10,32 @@ class MyRectParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        param.sigValueChanging.connect(self.onValueChanging)
+        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
-        val = param.opts.get('value', QRectF())
-        d = param.opts.get('decimals', 5)
+        d = param.opts.get('decimals', 7)
+        xMin = param.child('Xmin').opts['value']
+        xMax = param.child('Xmax').opts['value']
+        yMin = param.child('Ymin').opts['value']
+        yMax = param.child('Ymax').opts['value']
 
-        rect = QRectF(val)                                                      # make local copy
-
-        if rect.isNull():
+        if xMin == xMax and yMin == yMax:
             t = 'Unrestricted'
         else:
-            Xmin = rect.left()
-            Xmax = rect.right()
-            Ymin = rect.top()
-            Ymax = rect.bottom()
-            t = f'x:({Xmin:.{d}g}¦{Xmax:.{d}g}), y:({Ymin:.{d}g}¦{Ymax:.{d}g})'
+            t = f'x:({xMin:.{d}g}¦{xMax:.{d}g}), y:({yMin:.{d}g}¦{yMax:.{d}g})'
+
+        # val = param.opts.get('value', QRectF())
+        # d = param.opts.get('decimals', 5)
+        # rect = QRectF(val)                                                      # make local copy
+        # if rect.isNull():
+        #     t = 'Unrestricted'
+        # else:
+        #     Xmin = rect.left()
+        #     Xmax = rect.right()
+        #     Ymin = rect.top()
+        #     Ymax = rect.bottom()
+        #     t = f'x:({Xmin:.{d}g}¦{Xmax:.{d}g}), y:({Ymin:.{d}g}¦{Ymax:.{d}g})'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -83,7 +91,7 @@ class MyRectParameter(MyGroupParameter):
         self.rect.setTop(min(ymin, ymax))                                    # always set first
         self.rect.setBottom(max(ymin, ymax))
 
-        self.sigValueChanging.emit(self, self.rect)
+        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def value(self):
         return self.rect

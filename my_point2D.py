@@ -12,17 +12,22 @@ class MyPoint2DParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        param.sigValueChanging.connect(self.onValueChanging)
+        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
-        val = param.opts.get('value', QPointF())                                # get *value*  from param and provide default value
-        d = param.opts.get('decimals', 7)                                      # get nr of decimals from param and provide default value
-
-        point = QPointF(val)                                                    # if needed transform object into point
-        x = point.x()                                                           # prepare label text
-        y = point.y()
+        d = param.opts.get('decimals', 7)
+        x = param.child('X').opts['value']
+        y = param.child('Y').opts['value']
         t = f'({x:.{d}g}, {y:.{d}g})'
+
+        # val = param.opts.get('value', QPointF())                                # get *value*  from param and provide default value
+        # d = param.opts.get('decimals', 7)                                      # get nr of decimals from param and provide default value
+
+        # point = QPointF(val)                                                    # if needed transform object into point
+        # x = point.x()                                                           # prepare label text
+        # y = point.y()
+        # t = f'({x:.{d}g}, {y:.{d}g})'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -59,7 +64,8 @@ class MyPoint2DParameter(MyGroupParameter):
     def changed(self):
         self.point.setX(self.parX.value())                                     # update the values of the three children
         self.point.setY(self.parY.value())
-        self.sigValueChanging.emit(self, self.value())                          # inform the preview label on the changes
+
+        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def value(self):
         return self.point

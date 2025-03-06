@@ -9,7 +9,7 @@ from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import QHBoxLayout, QMenu, QSizePolicy, QSpacerItem, QWidget
 
 from . import config  # used to pass initial settings
-from .functions import lineNo
+from .functions import lineNo, myPrint
 from .my_preview_label import MyPreviewLabel
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -70,13 +70,13 @@ class MyGroupParameterItem(GroupParameterItem):
         if config.showSummaries:
             self.createAndInitPreviewLabel(param)                             # create the preview label if needed
             # self.showPreviewInformation(param)
-        print(f'>>>{lineNo():5d} MyGroupParameterItem.ValueChanging <<<')
+        myPrint(f'>>>{lineNo():5d} MyGroupParameterItem.ValueChanging <<<')
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
         if config.showSummaries:
             self.createAndInitPreviewLabel(param)                             # create the preview label if needed
             # self.showPreviewInformation(param)
-        print(f'>>>{lineNo():5d} MyGroupParameterItem.TreeStateChanged <<<')
+        myPrint(f'>>>{lineNo():5d} MyGroupParameterItem.TreeStateChanged <<<')
 
     def updateDepth(self, depth):
         """Change set the item font to bold and increase the font size on outermost groups if desired."""

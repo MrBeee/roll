@@ -5,7 +5,9 @@ import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QAbstractTableModel, QEvent, Qt, QVariant
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QKeySequence
-from qgis.PyQt.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QMessageBox, QTableView
+from qgis.PyQt.QtWidgets import QAbstractItemView, QApplication, QMessageBox, QTableView
+
+from .functions import myPrint
 
 # TableModel requires a 2D array to work from
 # this means flattening the 4D analysis array from 4D to 2D, before it can be used:
@@ -178,35 +180,35 @@ class TableView(QTableView):
             return True
 
         if event.type() == QEvent.KeyPress and (event.modifiers() & Qt.ControlModifier):
-            print('The control key is pressed')
+            myPrint('The control key is pressed')
 
             if event.key() == Qt.Key_1:
-                print('Select All')
+                myPrint('Select All')
                 self.clearSelection()
                 self.select_all()
                 return True
 
             if event.key() == Qt.Key_Home:
-                print('Go Home')
+                myPrint('Go Home')
                 index = 0
-                print(f'Row {index} is selected')
+                myPrint(f'Row {index} is selected')
                 self.clearSelection()
                 self.selectRow(index)
                 return True
 
             if event.key() == Qt.Key_End:
-                print('Go to the End')
+                myPrint('Go to the End')
                 index = self.model().rowCount(0) - 1
-                print(f'Row {index} is selected')
+                myPrint(f'Row {index} is selected')
                 self.clearSelection()
                 self.selectRow(index)
                 return True
 
             if event.key() == Qt.Key_PageDown:
-                print('Move to next duplicate')
+                myPrint('Move to next duplicate')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
-                #     print('Row %d is selected' % index.row())
+                #     myPrint('Row %d is selected' % index.row())
                 index = indexes[0].row()
                 goTo = self.model().nextDuplicate(index)
                 self.clearSelection()
@@ -218,10 +220,10 @@ class TableView(QTableView):
                 return True
 
             if event.key() == Qt.Key_PageUp:
-                print('Move to previous duplicate')
+                myPrint('Move to previous duplicate')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
-                #     print('Row %d is selected' % index.row())
+                #     myPrint('Row %d is selected' % index.row())
                 index = indexes[0].row()
                 goTo = self.model().prevDuplicate(index)
                 self.clearSelection()
@@ -233,10 +235,10 @@ class TableView(QTableView):
                 return True
 
             if event.key() == Qt.Key_Down:
-                print('Move to next src orphan')
+                myPrint('Move to next src orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
-                #     print('Row %d is selected' % index.row())
+                #     myPrint('Row %d is selected' % index.row())
                 index = indexes[0].row()
                 goTo = self.model().nextSrcOrphan(index)
                 self.clearSelection()
@@ -248,10 +250,10 @@ class TableView(QTableView):
                 return True
 
             if event.key() == Qt.Key_Up:
-                print('Move to prev src orphan')
+                myPrint('Move to prev src orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
-                #     print('Row %d is selected' % index.row())
+                #     myPrint('Row %d is selected' % index.row())
                 index = indexes[0].row()
                 goTo = self.model().prevSrcOrphan(index)
                 self.clearSelection()
@@ -263,10 +265,10 @@ class TableView(QTableView):
                 return True
 
             if event.key() == Qt.Key_Right:
-                print('Move to next rec orphan')
+                myPrint('Move to next rec orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
-                #     print('Row %d is selected' % index.row())
+                #     myPrint('Row %d is selected' % index.row())
                 index = indexes[0].row()
                 goTo = self.model().nextRecOrphan(index)
                 self.clearSelection()
@@ -278,10 +280,10 @@ class TableView(QTableView):
                 return True
 
             if event.key() == Qt.Key_Left:
-                print('Move to prev rec orphan')
+                myPrint('Move to prev rec orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
-                #     print('Row %d is selected' % index.row())
+                #     myPrint('Row %d is selected' % index.row())
                 index = indexes[0].row()
                 goTo = self.model().prevRecOrphan(index)
                 self.clearSelection()

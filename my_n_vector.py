@@ -10,18 +10,29 @@ class MyNVectorParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        param.sigValueChanging.connect(self.onValueChanging)
+        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
-        val = param.opts.get('value', None)
         d = param.opts.get('decimals', 3)
-
-        n = val[0]
-        x = val[1].x()
-        y = val[1].y()
-        z = val[1].z()
+        n = param.child('count').opts['value']
+        x = param.child('direction').opts['value'].x()
+        y = param.child('direction').opts['value'].y()
+        z = param.child('direction').opts['value'].z()
         t = f'{n} : ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
+
+        # x = param.child('dX').opts['value']
+        # y = param.child('dY').opts['value']
+        # z = param.child('dZ').opts['value']
+        # t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
+        # val = param.opts.get('value', None)
+        # d = param.opts.get('decimals', 3)
+
+        # n = val[0]
+        # x = val[1].x()
+        # y = val[1].y()
+        # z = val[1].z()
+        # t = f'{n} : ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -61,7 +72,8 @@ class MyNVectorParameter(MyGroupParameter):
     def changed(self):
         self.count = self.parN.value()
         self.vector = self.parD.value()
-        self.sigValueChanging.emit(self, self.value())
+
+        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def value(self):
         return [self.count, self.vector]

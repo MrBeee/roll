@@ -32,6 +32,13 @@ import wellpathpy as wp
 from qgis.PyQt.QtCore import PYQT_VERSION_STR, QT_VERSION_STR, QLineF, QPointF, QRectF, Qt
 from qgis.PyQt.QtGui import QColor, QPen, QPolygonF, QVector3D
 
+from . import config  # used to pass initial settings
+
+
+def myPrint(*args, **kwargs):                                                   # print function that can be suppressed
+    if config.debug:
+        print(*args, **kwargs)
+
 
 # See: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch14s08.html for introspective functions
 def whoamI():

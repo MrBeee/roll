@@ -126,7 +126,7 @@ from . import config  # used to pass initial settings
 
 # from .event_lookup import event_lookup
 from .find import Find
-from .functions import aboutText, exampleSurveyXmlText, highDpiText, licenseText, rawcount
+from .functions import aboutText, exampleSurveyXmlText, highDpiText, licenseText, myPrint, rawcount
 from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
 from .land_wizard import LandSurveyWizard
 from .marine_wizard import MarineSurveyWizard
@@ -1198,7 +1198,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 p.setToDefault()                                                # set parameters to its default value
                 item.updateDefaultBtn()                                         # reset the default-button to its grey value
             nItem += 1
-        print(f'paramTree has {nItem} items')                                   # print the number of parameterItems
+        myPrint(f'paramTree has {nItem} items')                                   # print the number of parameterItems
 
         #  this code is here, just to get an idea how to see which information labels are visible
         # for item in self.paramTree.listAllItems():                              # iterate over all parameterItems
@@ -1215,7 +1215,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         #         v = p.opts.get('visible', None)                                 # check if the parent parameter is visible
         #         if p.opts.get('expanded', True):                                # check if the parent has been expanded
         #             type_ = p.opts.get('type', None)                            # get the type of the parent parameter
-        #             print(f'parent {p.name()} has type {type_}, expanded={expanded}, visible={v}')  # print the name and type of the parent parameter
+        #             myPrint(f'parent {p.name()} has type {type_}, expanded={expanded}, visible={v}')  # print the name and type of the parent parameter
 
         time_ = self.survey.elapsedTime(time_, 17)    ###
 
@@ -1392,17 +1392,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # self.propertyButtonBox.button(QDialogButtonBox.Apply).setEnabled(True)
 
-        print('┌── sigTreeStateChanged --> tree changes:')
+        myPrint('┌── sigTreeStateChanged --> tree changes:')
         for param, change, data in changes:
             path = self.parameters.childPath(param)
             if path is not None:
                 childName = '.'.join(path)
             else:
                 childName = param.name()
-            print(f'│     parameter: {childName}')
-            print(f'│     change:    {change}')
-            print(f'│     data:      {str(data)}')
-            print('└───────────────────────────────────────')
+            myPrint(f'│     parameter: {childName}')
+            myPrint(f'│     change:    {change}')
+            myPrint(f'│     data:      {str(data)}')
+            myPrint('└───────────────────────────────────────')
 
     def onMainTabChange(self, index):                                           # manage focus when active tab is changed; doesn't work 100% yet !
         if index == 0:                                                          # main plotting widget
@@ -1417,7 +1417,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         try:
             currentWidget.cut()
         except AttributeError as e:                                             # current widget does not support cut(), so ignore command
-            print('Exception occurred: ', e)
+            myPrint('Exception occurred: ', e)
         self.actionPaste.setEnabled(self.clipboardHasText())
 
     def copy(self):
@@ -1425,7 +1425,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         try:
             currentWidget.copy()
         except AttributeError as e:                                             # current widget does not support copy(), so ignore command
-            print('Exception occurred: ', e)
+            myPrint('Exception occurred: ', e)
         self.actionPaste.setEnabled(self.clipboardHasText())
 
     def paste(self):
@@ -1433,7 +1433,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         try:
             currentWidget.paste()
         except AttributeError as e:                                             # current widget does not support paste(), so ignore command
-            print('Exception occurred: ', e)
+            myPrint('Exception occurred: ', e)
         return
 
     def selectAll(self):
@@ -1441,7 +1441,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         try:
             currentWidget.selectAll()
         except AttributeError as e:                                             # current widget does not support selectAll(), so ignore command
-            print('Exception occurred: ', e)
+            myPrint('Exception occurred: ', e)
         return
 
     def find(self):
@@ -2091,6 +2091,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         """Function handling uncaught exceptions. It is triggered each time an uncaught exception occurs."""
         if issubclass(eType, KeyboardInterrupt):
             # ignore keyboard interrupt to support ctrl+C on console applications
+            myPrint('Keyboard interrupt ignored')
             sys.__excepthook__(eType, eValue, eTraceback)
         else:
 
@@ -4246,12 +4247,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     #             console.show_console()
     #         else:
     #             console._console.setUserVisible(True)                           # pylint: disable=W0212 # unfortunately, need to access protected members
-    #         print('print() to Python console has been enabled; Python console is opened')             # this message should always be printed
+    #         myPrint('print() to Python console has been enabled; Python console is opened')             # this message should always be printed
     #         self.appendLogMessage('Debug&nbsp;&nbsp;: print() to Python console has been enabled')
     #     else:
-    #         print('print() to Python console has been disabled; Python console is closed')            # this message is the last one to be printed
+    #         myPrint('print() to Python console has been disabled; Python console is closed')            # this message is the last one to be printed
     #         # builtins.print = silentPrint                                        # suppress print output by calling 'dummy' routine
-    #         print('this print message should not show')                         # this message is the last one to be printed
+    #         myPrint('this print message should not show')                         # this message is the last one to be printed
 
     #         if console._console is not None:                                    # pylint: disable=W0212 # unfortunately, need to access protected members
     #             console._console.setUserVisible(False)                          # pylint: disable=W0212 # unfortunately, need to access protected members
@@ -4911,5 +4912,5 @@ if __name__ == '__main__':
     sys.path.append(PARENT_DIR)
     os.chdir(PARENT_DIR)
 
-    print('package ' + __package__)
+    myPrint('package ' + __package__)
     main()

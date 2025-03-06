@@ -3,6 +3,7 @@ import time
 from qgis.PyQt.QtCore import QMutex, QObject, QThread, pyqtSignal
 
 from . import config  # used to pass initial settings
+from .functions import myPrint
 from .roll_survey import RollSurvey
 
 # ptvsd  is needed to debug a worker thread.
@@ -42,7 +43,7 @@ class BinningThread(QThread):
 
     def run(self):
         for x in range(5, 101, 2):
-            print(x)
+            myPrint(x)
             time.sleep(0.5)
             self.progress.emit(x)
 
@@ -191,5 +192,5 @@ class Worker(QObject):
         firstname = self.getFirstName()
         for _ in range(10):
             time.sleep(1)
-            print(firstname)
+            myPrint(firstname)
         self.finished.emit()

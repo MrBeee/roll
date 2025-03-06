@@ -18,6 +18,7 @@ from qgis.PyQt.QtGui import QColor, QImage, QPixmap, QTextOption, QTransform
 from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QSizePolicy, QSpinBox, QVBoxLayout, QWizard, QWizardPage
 
 from . import config  # used to pass initial settings
+from .functions import myPrint
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
 from .roll_survey import PaintMode, RollSurvey, SurveyList, SurveyType
@@ -110,7 +111,7 @@ class Page_1(SurveyWizardPage):
         self.setTitle('1. Template Properties')
         self.setSubTitle('Enter survey type and template properties')
 
-        print('page 1 init')
+        myPrint('page 1 init')
 
         # create some widgets
         self.name = QLineEdit()
@@ -362,12 +363,12 @@ class Page_1(SurveyWizardPage):
         self.chkMirrorOddEven.setVisible(Zigzag)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 1')
+        myPrint('initialize page 1')
         self.chkLinePntAlign.setChecked(True)
         self.chkBrickMatchRpi.setChecked(True)
 
     def cleanupPage(self):                                                      # needed to update previous page
-        print('cleanup of page 1')
+        myPrint('cleanup of page 1')
 
     def adjustBingrid(self):
         rpi = self.rpi.value()                                                  # horizontal
@@ -595,7 +596,7 @@ class Page_2(SurveyWizardPage):
         self.setTitle('2. Template Properties')
         self.setSubTitle('Enter Spread and Salvo details')
 
-        print('page 2 init')
+        myPrint('page 2 init')
 
         # to support plotting
         self.rect = False
@@ -741,7 +742,7 @@ class Page_2(SurveyWizardPage):
         self.offXmax.editingFinished.connect(self.evt_offXmax_editingFinished)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 2')
+        myPrint('initialize page 2')
 
         # disable required edit controls
         chkd = self.chkNrecKnown.isChecked()
@@ -809,7 +810,7 @@ class Page_2(SurveyWizardPage):
         self.plot()                                                             # refresh the plot
 
     def cleanupPage(self):                                                      # needed to update previous page
-        print('cleanup of page 2')
+        myPrint('cleanup of page 2')
 
     def updateParentSurvey(self):
         # populate / update the survey skeleton
@@ -1377,7 +1378,7 @@ class Page_3(SurveyWizardPage):
         self.setTitle('3. Template Properties')
         self.setSubTitle('Enter the bin grid properties')
 
-        print('page 3 init')
+        myPrint('page 3 init')
 
         # create some widgets
         self.binI = QDoubleSpinBox()
@@ -1479,7 +1480,7 @@ class Page_3(SurveyWizardPage):
         self.chkBingridAlign.toggled.connect(self.evt_BingridAlign_toggled)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 3')
+        myPrint('initialize page 3')
         self.alignBingrid()
         self.updateParentSurvey()
 
@@ -1515,7 +1516,7 @@ class Page_3(SurveyWizardPage):
     def cleanupPage(self):                                                      # needed to update previous page
         # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
         self.parent.page(1).plot()                                              # needed to update the plot
-        print('cleanup of page 3')
+        myPrint('cleanup of page 3')
 
     def plot(self):
         """plot a template"""
@@ -1632,7 +1633,7 @@ class Page_4(SurveyWizardPage):
         self.setTitle('4. Template Properties')
         self.setSubTitle('Enter Roll Along and Binning Area details')
 
-        print('page 4 init')
+        myPrint('page 4 init')
 
         # create some widgets
         self.slr = QSpinBox()   # src line roll along
@@ -1782,7 +1783,7 @@ class Page_4(SurveyWizardPage):
         self.binXsiz.setValue(config.binXsiz)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 4')
+        myPrint('initialize page 4')
 
         sli = self.field('sli')
         rli = self.field('rli')
@@ -1802,7 +1803,7 @@ class Page_4(SurveyWizardPage):
         self.plot()                                                             # show the plot, center the bin analysis area
 
     def cleanupPage(self):                                                      # needed to update previous page
-        print('cleanup of page 4')
+        myPrint('cleanup of page 4')
 
         # added 19/06/2024
         self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in 'earlier' wizard pages; instead, create empty rect
@@ -2015,7 +2016,7 @@ class Page_5(SurveyWizardPage):
         self.setTitle('5. Template Properties')
         self.setSubTitle('Pattern/array details')
 
-        print('page 5 init')
+        myPrint('page 5 init')
 
         # Add some widgets
         self.recPatName = QLineEdit(config.rNam)
@@ -2155,12 +2156,12 @@ class Page_5(SurveyWizardPage):
         self.srcElemeInt.editingFinished.connect(self.initializePage)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 5')
+        myPrint('initialize page 5')
         self.updateParentSurvey()
         self.plot()
 
     def cleanupPage(self):                                                      # needed to update previous page
-        print('cleanup of page 5')
+        myPrint('cleanup of page 5')
 
     def updateParentSurvey(self):
         # populate / update the survey skeleton
@@ -2298,7 +2299,7 @@ class Page_6(SurveyWizardPage):
         self.setTitle('6. Project Coordinate Reference System (CRS)')
         self.setSubTitle('Select a Projected CRS to ensure valid distance and areal measurements')
 
-        print('page 6 init')
+        myPrint('page 6 init')
 
         # See: https://api.qgis.org/api/3.16/qgscoordinatereferencesystem_8h_source.html#l00668
         # See https://api.qgis.org/api/classQgsProjectionSelectionTreeWidget.html
@@ -2318,11 +2319,11 @@ class Page_6(SurveyWizardPage):
         self.proj_selector.crsSelected.connect(self.crs_selected)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 6')
+        myPrint('initialize page 6')
 
     def cleanupPage(self):                                                      # needed to update previous page
         self.parent.page(4).plot()                                              # needed to update the plot
-        print('cleanup of page 6')
+        myPrint('cleanup of page 6')
 
     def crs_selected(self):
         # See: https://api.qgis.org/api/classQgsCoordinateReferenceSystem.html
@@ -2351,7 +2352,7 @@ class Page_7(SurveyWizardPage):
         self.setTitle('7. Project Coordinate Reference System (CRS)')
         self.setSubTitle("Enter the survey's coordinate transformation details")
 
-        print('page 7 init')
+        myPrint('page 7 init')
 
         # create some widgets
         self.Xt_0 = QDoubleSpinBox()
@@ -2471,11 +2472,11 @@ class Page_7(SurveyWizardPage):
         self.scaY.editingFinished.connect(self.evt_global_editingFinished)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 7')
+        myPrint('initialize page 7')
         self.evt_global_editingFinished()
 
     def cleanupPage(self):                                                      # needed to return to previous pages
-        print('cleanup of page 7')
+        myPrint('cleanup of page 7')
         transform = QTransform()                                                # reset transform
         self.parent.survey.setTransform(transform)                              # back to local survey grid
 
@@ -2502,9 +2503,9 @@ class Page_7(SurveyWizardPage):
 
         # mainWindow = self.parent.parent
         # if mainWindow and mainWindow.debug:
-        # print(f'm11 ={transform.m11():12.6f},   m12 ={transform.m12():12.6f},   m13 ={transform.m13():12.6f} » [A1, B1, ...]')
-        # print(f'm21 ={transform.m21():12.6f},   m22 ={transform.m22():12.6f},   m23 ={transform.m23():12.6f} » [A2, B2, ...]')
-        # print(f'm31 ={transform.m31():12.2f},   m32 ={transform.m32():12.2f},   m33 ={transform.m33():12.6f} » [A0, B0, ...]')
+        # myPrint(f'm11 ={transform.m11():12.6f},   m12 ={transform.m12():12.6f},   m13 ={transform.m13():12.6f} » [A1, B1, ...]')
+        # myPrint(f'm21 ={transform.m21():12.6f},   m22 ={transform.m22():12.6f},   m23 ={transform.m23():12.6f} » [A2, B2, ...]')
+        # myPrint(f'm31 ={transform.m31():12.2f},   m32 ={transform.m32():12.2f},   m33 ={transform.m33():12.6f} » [A0, B0, ...]')
 
         self.parent.survey.setTransform(transform)
         self.plot()
@@ -2554,7 +2555,7 @@ class Page_8(SurveyWizardPage):
         self.setTitle('8. Summary information')
         self.setSubTitle('Survey representation in xml-format')
 
-        print('page 8 init')
+        myPrint('page 8 init')
 
         # Add some widgets
         self.xmlEdit = QPlainTextEdit('Element tree')
@@ -2570,10 +2571,10 @@ class Page_8(SurveyWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
-        print('initialize page 8')
+        myPrint('initialize page 8')
 
         xml = self.parent.survey.toXmlString()                                  # check what's in there
         self.xmlEdit.setPlainText(xml)                                          # now show the xml information in the widget
 
     def cleanupPage(self):                                                      # needed to return to previous pages
-        print('cleanup of page 8')
+        myPrint('cleanup of page 8')

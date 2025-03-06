@@ -20,7 +20,7 @@ except ImportError as ie:
 
 
 from . import config  # used to pass initial settings
-from .functions import makeParmsFromPen, makePenFromParms
+from .functions import makeParmsFromPen, makePenFromParms, myPrint
 from .my_range import MyRangeParameter as rng
 
 
@@ -180,7 +180,7 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[
                     dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip1),
-                    dict(name='Show summary values', type='bool', value=config.showSummaries, default=config.showSummaries, enabled=haveNumba, tip=tip1),
+                    dict(name='Show summary properties', type='bool', value=config.showSummaries, default=config.showSummaries, enabled=haveNumba, tip=tip1),
                     dict(name='Show unfinished code', type='bool', value=config.showUnfinished, default=config.showUnfinished, enabled=True, tip=tip2),
                 ],
             ),
@@ -304,7 +304,7 @@ class SettingsDialog(QDialog):
         if haveNumba:                                                           # can only do this when numba has been installed
             numba.config.DISABLE_JIT = not config.useNumba                      # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
         config.showUnfinished = MIS.child('Show unfinished code').value()       # show/hide "work in progress"
-        config.showSummaries = MIS.child('Show summary values').value()         # show/hide summary information in property pane
+        config.showSummaries = MIS.child('Show summary properties').value()         # show/hide summary information in property pane
 
 
 def readSettings(self):
@@ -372,9 +372,9 @@ def readSettings(self):
             console.show_console()                                                  # opens the console for the first time
         else:
             console._console.setUserVisible(True)                                   # pylint: disable=W0212 # unfortunately need access to protected member
-        print('print() to Python console has been enabled; Python console is opened')   # this message should always be printed
+        myPrint('print() to Python console has been enabled; Python console is opened')   # this message should always be printed
     else:
-        print('print() to Python console has been disabled from now on')            # this message is the last one to be printed
+        myPrint('print() to Python console has been disabled from now on')            # this message is the last one to be printed
         # builtins.print = silentPrint                                              # suppress print, but don't hide Python console, if it would be open
 
     # miscellaneous information

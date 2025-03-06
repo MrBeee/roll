@@ -14,16 +14,21 @@ class MyVectorParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        param.sigValueChanging.connect(self.onValueChanging)
+        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
-        val = param.opts.get('value', QVector3D(0.0, 0.0, 0.0))
         d = param.opts.get('decimals', 3)
-        x = val.x()
-        y = val.y()
-        z = val.z()
+        x = param.child('dX').opts['value']
+        y = param.child('dY').opts['value']
+        z = param.child('dZ').opts['value']
         t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
+
+        # val = param.opts.get('value', QVector3D(0.0, 0.0, 0.0))
+        # x = val.x()
+        # y = val.y()
+        # z = val.z()
+        # t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -81,7 +86,8 @@ class MyVectorParameter(MyGroupParameter):
         self.vector.setZ(self.parZ.value())
         self.setAzimuth()
         self.setTilt()
-        self.sigValueChanging.emit(self, self.vector)
+
+        # self.sigValueChanging.emit(self, self.vector)
 
     def value(self):
         return self.vector
