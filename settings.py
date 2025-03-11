@@ -20,7 +20,7 @@ except ImportError as ie:
 
 
 from . import config  # used to pass initial settings
-from .functions import makeParmsFromPen, makePenFromParms, myPrint
+from .functions import makeParmsFromPen, makePenFromParms
 from .my_range import MyRangeParameter as rng
 
 

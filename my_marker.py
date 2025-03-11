@@ -15,7 +15,7 @@ registerParameterType('mySlider', MySliderParameter, override=True)
 registerParameterType('mySymbols', MySymbolParameter, override=True)
 
 
-class PointMarker:                                                              # class containing all marker setings
+class PointMarker:                                                              # class containing all marker settings
     def __init__(self, sym, col, siz):
 
         self._symbol = sym
