@@ -10,7 +10,6 @@ class MyPoint3DParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -19,14 +18,6 @@ class MyPoint3DParameterItem(MyGroupParameterItem):
         y = param.child('Y').opts['value']
         z = param.child('Z').opts['value']
         t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
-
-        # val = param.opts.get('value', QVector3D())                              # get *value*  from param and provide default value
-        # d = param.opts.get('decimals', 7)                                      # get nr of decimals from param and provide default value
-        # vector = QVector3D(val)                                                 # if needed transform QPointF into vector
-        # x = vector.x()                                                          # prepare label text
-        # y = vector.y()
-        # z = vector.z()
-        # t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()

@@ -13,7 +13,6 @@ class MyCrs2ParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -25,17 +24,6 @@ class MyCrs2ParameterItem(MyGroupParameterItem):
             t = 'Invalid CRS'
         if crs.isGeographic():
             t = 'Geographic CRS (lat/long)'
-
-        # crs = QgsCoordinateReferenceSystem()                                    # create invalid crs object (defaults to EPSG:4326)
-        # val = param.opts.get('value', crs)                                      # get crs from param and give it a default value
-
-        # t = val.description()
-        # e = not val.isValid() or val.isGeographic()
-
-        # if not val.isValid():
-        #     t = 'Invalid CRS'
-        # if val.isGeographic():
-        #     t = 'Geographic CRS (lat/long)'
 
         self.previewLabel.setErrorCondition(e)
         self.previewLabel.setText(t)

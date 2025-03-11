@@ -107,17 +107,11 @@ class MyBinAnglesParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
         maxInc = param.child('Max inclination').opts['value']
         minInc = param.child('Min inclination').opts['value']
-
-        # val is running late; cannot use as such; need to work from param.childs()
-        # val = param.opts.get('value', None)
-        # y = val.reflection.y()
-        # x = val.reflection.x()
 
         d = param.opts.get('decimals', 3)
         if minInc == 0.0:
@@ -166,15 +160,10 @@ class MyBinAnglesParameter(MyGroupParameter):
         qApp.processEvents()
 
     def changed(self):
-
         self.angles.azimuthal.setX(self.parAx.value())
         self.angles.azimuthal.setY(self.parAy.value())
         self.angles.reflection.setX(self.parIx.value())
         self.angles.reflection.setY(self.parIy.value())
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.angles
@@ -189,7 +178,6 @@ class MyBinOffsetParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)    <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -203,12 +191,6 @@ class MyBinOffsetParameterItem(MyGroupParameterItem):
         y = max(abs(yMin), abs(yMax))
         d = math.hypot(x, y)
         r = rMax
-
-        # val = param.opts.get('value', None)
-        # x = max(abs(val.rctOffsets.left()), abs(val.rctOffsets.right()))
-        # y = max(abs(val.rctOffsets.top()), abs(val.rctOffsets.bottom()))
-        # d = math.hypot(x, y)
-        # r = val.radOffsets.y()
 
         if r >= d:
             t = 'rectangular constraints'
@@ -257,11 +239,9 @@ class MyBinOffsetParameter(MyGroupParameter):
         self.parRmax = self.child('Max r-offset')
 
         self.sigTreeStateChanged.connect(self.changed)
-
         qApp.processEvents()
 
     def changed(self):
-
         #  read parameter changes here
         xmin = self.parXmin.value()
         xmax = self.parXmax.value()
@@ -277,10 +257,6 @@ class MyBinOffsetParameter(MyGroupParameter):
         self.offset.radOffsets.setX(min(rmin, rmax))
         self.offset.radOffsets.setY(max(rmin, rmax))
 
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
-
     def value(self):
         return self.offset
 
@@ -294,7 +270,6 @@ class MyUniqOffParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -306,12 +281,6 @@ class MyUniqOffParameterItem(MyGroupParameterItem):
             t = 'Not used'
         else:
             t = f'@ {dOffset}m, {dAzimuth}°'
-
-        # val = param.opts.get('value', None)
-        # if not val.apply:
-        #     t = 'Not used'
-        # else:
-        #     t = f'@ {val.dOffset}m, {val.dAzimuth}°'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -349,19 +318,13 @@ class MyUniqOffParameter(MyGroupParameter):
         self.parA = self.child('Delta azimuth')
 
         self.sigTreeStateChanged.connect(self.changed)
-
         qApp.processEvents()
 
     def changed(self):
-
         self.unique.apply = self.parP.value()
         self.unique.write = self.parR.value()
         self.unique.dOffset = self.parO.value()
         self.unique.dAzimuth = self.parA.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.unique
@@ -376,18 +339,12 @@ class MyBinMethodParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
         binMethod = param.child('Binning method').opts['value']
         vInterval = param.child('Interval velocity').opts['value']
         t = f'{binMethod} @ Vint={vInterval}m/s'
-
-        # val = param.opts.get('value', None)
-        # binningMethod = val.method.value
-        # method = BinningList[binningMethod]
-        # t = f'{method} @ Vint={val.vint}m/s'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -421,18 +378,12 @@ class MyBinMethodParameter(MyGroupParameter):
         self.parV = self.child('Interval velocity')
 
         self.sigTreeStateChanged.connect(self.changed)
-
         qApp.processEvents()
 
     def changed(self):
-
         index = BinningList.index(self.parM.value())
         self.binning.method = BinningType(index)
         self.binning.vint = self.parV.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.binning
@@ -447,7 +398,6 @@ class MyPlaneParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -455,12 +405,6 @@ class MyPlaneParameterItem(MyGroupParameterItem):
         dip = param.child('Plane dip').opts['value']
         azi = param.child('Plane azimuth').opts['value']
         z = param.child('Plane anchor').opts['value'].z()
-
-        # val = param.opts.get('value', None)
-        # d = param.opts.get('decimals', 5)
-        # dip = val.dip
-        # azi = val.azi
-        # z = val.anchor.z()
 
         if dip == 0:
             t = f'horizontal, depth={-z:.{d}g}m'
@@ -501,25 +445,13 @@ class MyPlaneParameter(MyGroupParameter):
         self.parA = self.child('Plane azimuth')
         self.parD = self.child('Plane dip')
 
-        self.parO.sigValueChanged.connect(self.changed)
-        self.parA.sigValueChanged.connect(self.changed)
-        self.parD.sigValueChanged.connect(self.changed)
-
-        # self.sigTreeStateChanged.connect(self.changed)
-
+        self.sigTreeStateChanged.connect(self.changed)
         qApp.processEvents()
 
     def changed(self):
-
-        myPrint(f'>>>{lineNo():5d} MyPlaneParameter.changed <<<')
-
         self.plane.anchor = self.parO.value()
         self.plane.azi = self.parA.value()
         self.plane.dip = self.parD.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.plane
@@ -534,7 +466,6 @@ class MySphereParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -542,12 +473,6 @@ class MySphereParameterItem(MyGroupParameterItem):
         r = param.child('Sphere radius').opts['value']
         z = param.child('Sphere origin').opts['value'].z()
         t = f'r={r:.{d}g}m, depth={-z:.{d}g}m'
-
-        # val = param.opts.get('value', None)
-        # d = param.opts.get('decimals', 5)
-        # r = val.radius
-        # z = val.origin.z()
-        # t = f'r={r:.{d}g}m, depth={-z:.{d}g}m'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -581,17 +506,11 @@ class MySphereParameter(MyGroupParameter):
         self.parR = self.child('Sphere radius')
 
         self.sigTreeStateChanged.connect(self.changed)
-
         qApp.processEvents()
 
     def changed(self):
-
         self.sphere.origin = self.parO.value()
         self.sphere.radius = self.parR.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.sphere
@@ -606,7 +525,6 @@ class MyLocalGridParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -618,14 +536,6 @@ class MyLocalGridParameterItem(MyGroupParameterItem):
             t = f'{xBin} x {yBin}m, fold undefined'
         else:
             t = f'{xBin}x{yBin}m, fold {fold} max'
-
-        # val = param.opts.get('value', None)
-
-        # fold = val.fold
-        # if fold < 0:
-        #     t = f'{val.binSize.x()}x{val.binSize.y()}m, fold undefined'
-        # else:
-        #     t = f'{val.binSize.x()}x{val.binSize.y()}m, fold {fold} max'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -670,15 +580,12 @@ class MyLocalGridParameter(MyGroupParameter):
         self.parLy = self.child('Line nr @ origin')
         self.parSx = self.child('Stake increments')
         self.parSy = self.child('Line increments')
-
         self.parFo = self.child('Max fold')
 
         self.sigTreeStateChanged.connect(self.changed)
-
         qApp.processEvents()
 
     def changed(self):
-
         # local grid
         self.binGrid.binSize.setX(self.parBx.value())
         self.binGrid.binSize.setY(self.parBy.value())
@@ -689,10 +596,6 @@ class MyLocalGridParameter(MyGroupParameter):
         self.binGrid.stakeSize.setX(self.parSx.value())
         self.binGrid.stakeSize.setY(self.parSy.value())
         self.binGrid.fold = self.parFo.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.binGrid
@@ -707,7 +610,6 @@ class MyGlobalGridParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -716,15 +618,6 @@ class MyGlobalGridParameterItem(MyGroupParameterItem):
         n = param.child('Bin origin   [N]').opts['value']
         a = param.child('Azimuth').opts['value']
         t = f'o({e:,}, {n:,}), a={a:.{d}g} deg'
-
-        # val = param.opts.get('value', None)
-        # d = param.opts.get('decimals', 3)
-        # x = val.orig.x()
-        # y = val.orig.y()
-        # a = val.angle
-        # self.setText(f'o({x:.{d}g}, {y:.{d}g}), a={a:.{d}g} deg')
-        # self.setText(f'o({x:,.{d}f}, {y:,.{d}f}), a={a:.{d}g} deg')
-        # t = f'o({x:,}, {y:,}), a={a:.{d}g} deg'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -764,21 +657,15 @@ class MyGlobalGridParameter(MyGroupParameter):
         self.parAz = self.child('Azimuth')
 
         self.sigTreeStateChanged.connect(self.changed)
-
         qApp.processEvents()
 
     def changed(self):
-
         # global grid
         self.binGrid.orig.setX(self.parOx.value())
         self.binGrid.orig.setY(self.parOy.value())
         self.binGrid.scale.setX(self.parSx.value())
         self.binGrid.scale.setY(self.parSy.value())
         self.binGrid.angle = self.parAz.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.binGrid
@@ -793,7 +680,6 @@ class MyBlockParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
         qApp.processEvents()
@@ -873,9 +759,9 @@ class MyBlockParameter(MyGroupParameter):
         self.parR = self.child('Receiver boundary')
         self.parT = self.child('Template list')
 
-        self.parS.sigValueChanged.connect(self.valueChanged)
-        self.parR.sigValueChanged.connect(self.valueChanged)
-        self.parT.sigValueChanged.connect(self.valueChanged)
+        self.parS.sigValueChanged.connect(self.changed)
+        self.parR.sigValueChanged.connect(self.changed)
+        self.parT.sigValueChanged.connect(self.changed)
 
         self.sigNameChanged.connect(self.nameChanged)
         self.sigContextMenu.connect(self.contextMenu)
@@ -885,12 +771,10 @@ class MyBlockParameter(MyGroupParameter):
     def nameChanged(self, _):
         self.block.name = self.name()
 
-    def valueChanged(self):
+    def changed(self):
         self.block.borders.recBorder = self.parR.value()
         self.block.borders.srcBorder = self.parS.value()
         self.block.templateList = self.parT.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def value(self):
         return self.block
@@ -942,12 +826,7 @@ class MyTemplateParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
-
-    def valueChanged(self, param, val):
-        ## called when the parameter's value has changed
-        myPrint(f'>>>{lineNo():5d} MyTemplateParameterItem.valueChanged <<<<<<<<<<<<<<<<<<<<<<<<')
 
     def showPreviewInformation(self, param):
         nSeeds = 0
@@ -1032,13 +911,8 @@ class MyTemplateParameter(MyGroupParameter):
         self.template.name = self.name()
 
     def changed(self):
-
         self.template.rollList = self.parR.value()
         self.template.seedList = self.parS.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.template
@@ -1090,13 +964,9 @@ class MyRollListParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
-        # note; cannot use val = param.opts.get('value', None)
-        # as it lags behind in updated values for grand-children
-
         nPlane = param.child('Planes', 'N').opts['value']
         nLines = param.child('Lines', 'N').opts['value']
         nPoint = param.child('Points', 'N').opts['value']
@@ -1137,21 +1007,15 @@ class MyRollListParameter(MyGroupParameter):
             self.addChild(dict(name='Points', type='myRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[2], default=self.moveList[2]))
 
         self.sigTreeStateChanged.connect(self.changed)
-
         qApp.processEvents()
 
     def changed(self):
-
         # paramList defined here, as the childs may be substituted by different children, due to MyRollParameters moving up/down in the list
         paramList = [self.child('Planes'), self.child('Lines'), self.child('Points')]
 
         self.moveList[0] = paramList[0].value()
         self.moveList[1] = paramList[1].value()
         self.moveList[2] = paramList[2].value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.moveList
@@ -1166,7 +1030,6 @@ class MyRollParameterItem(MyGroupParameterItem):                      # modeled 
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -1176,14 +1039,6 @@ class MyRollParameterItem(MyGroupParameterItem):                      # modeled 
         y = param.child('dY').opts['value']
         z = param.child('dZ').opts['value']
         t = f'{n} x ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
-
-        # val = param.opts.get('value', None)
-        # d = param.opts.get('decimals', 3)
-        # n = val.steps
-        # x = val.increment.x()
-        # y = val.increment.y()
-        # z = val.increment.z()
-        # t = f'{n} x ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -1235,10 +1090,10 @@ class MyRollParameter(MyGroupParameter):
 
         qApp.processEvents()
 
-    def changedA(self):                                                         # not used; readonly parameter
+    def changedA(self):                                                         # not used; readonly parameter to block signal
         pass
 
-    def changedT(self):                                                         # not used; readonly parameter
+    def changedT(self):                                                         # not used; readonly parameter to block signal
         pass
 
     def setAzimuth(self):
@@ -1265,12 +1120,7 @@ class MyRollParameter(MyGroupParameter):
 
         self.setAzimuth()
         self.setTilt()
-
         myPrint(f'>>>{lineNo():5d} MyRollParameter.changedXYZ <<<')
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.row
@@ -1302,10 +1152,7 @@ class MyRollParameter(MyGroupParameter):
                     parent.changed()                                            # update the parent
 
                     value = parent.value()
-
                     myPrint(value)
-
-            # parent.sigValueChanging.emit(self, parent.value())
 
         elif name == 'moveDown':
             n = len(parent.children())
@@ -1329,7 +1176,6 @@ class MyRollParameter(MyGroupParameter):
                     parent.changed()                                            # update the parent
 
                     value = parent.value()
-
                     myPrint(value)
 
                     # self.remove()
@@ -1348,7 +1194,6 @@ class MySeedListParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
         qApp.processEvents()
@@ -1454,7 +1299,6 @@ class MyPatternSeedListParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -1536,7 +1380,6 @@ class MySeedParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -1552,31 +1395,9 @@ class MySeedParameterItem(MyGroupParameterItem):
             nPoint = param.child('Grid grow steps', 'Points', 'N').opts['value']
             nSteps = nPlane * nLines * nPoint
 
+        # todo: check why seed = 0 for circle, spiral and well
         seed = 'src' if bSource else 'rec'
         t = f'{seedType} seed, {nSteps} {seed} points'
-
-        # val = param.opts.get('value', None)
-        # if val.type == 2:
-        #     kind = 'circle'
-        #     nSteps = len(val.pointList)
-        # elif val.type == 3:
-        #     kind = 'spiral'
-        #     nSteps = len(val.pointList)
-        # elif val.type == 4:
-        #     kind = 'well'
-        #     nSteps = len(val.pointList)
-        # else:
-        #     kind = 'grid'
-        #     nSteps = 1
-        #     for growStep in val.grid.growList:                                  # iterate through all grow steps
-        #         nSteps *= growStep.steps                                        # multiply seed's shots at each level
-
-        # if val.bSource:
-        #     seed = 'src'
-        # else:
-        #     seed = 'rec'
-
-        # t = f'{kind} seed, {nSteps} {seed} points'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -1679,7 +1500,6 @@ class MySeedParameter(MyGroupParameter):
         self.parW.show(seedType == 'Well')
 
     def changed(self):
-
         self.seed.bSource = self.parR.value()
         self.seed.color = self.parL.value()
         self.seed.origin = self.parO.value()
@@ -1689,10 +1509,6 @@ class MySeedParameter(MyGroupParameter):
         # self.seed.circle = self.parC.value()
         # self.seed.spiral = self.parS.value()
         # self.seed.well = self.parW.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.seed
@@ -1747,7 +1563,6 @@ class MyPatternSeedParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -1756,12 +1571,6 @@ class MyPatternSeedParameterItem(MyGroupParameterItem):
         nPoint = param.child('Grid grow steps', 'Points', 'N').opts['value']
         nSteps = nPlane * nLines * nPoint
         t = f'{nSteps} points'
-
-        # val = param.opts.get('value', None)
-        # nSteps = 1
-        # for growStep in val.grid.growList:                                  # iterate through all grow steps
-        #     nSteps *= growStep.steps                                        # multiply seed's shots at each level
-        # t = f'{nSteps} points'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -1810,14 +1619,9 @@ class MyPatternSeedParameter(MyGroupParameter):
         self.seed.name = self.name()
 
     def changed(self):
-
         self.seed.color = self.parL.value()
         self.seed.origin = self.parO.value()
         self.seed.grid.growList = self.parG.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.seed
@@ -1873,7 +1677,6 @@ class MyCircleParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -1882,12 +1685,6 @@ class MyCircleParameterItem(MyGroupParameterItem):
         s = param.child('Point interval').opts['value']
         n = param.child('Points').opts['value']
         t = f'{n:.{d}g} points, ø{r:.{d}g}m, d{s:.{d}g}m'
-
-        # val = param.opts.get('value', None)
-        # r = val.radius
-        # s = val.dist
-        # n = val.points
-        # t = f'{n:.{d}g} points, ø{r:.{d}g}m, d{s:.{d}g}m'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -1926,21 +1723,13 @@ class MyCircleParameter(MyGroupParameter):
         self.parN = self.child('Points')
 
         self.sigTreeStateChanged.connect(self.changed)
-
-        # self.changed()
-
         qApp.processEvents()
 
     def changed(self):
-
         self.circle.radius = self.parR.value()
         self.circle.azi0 = self.parA.value()
         self.circle.dist = self.parI.value()
         self.parN.setValue(self.circle.calcNoPoints())
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.circle
@@ -1955,7 +1744,6 @@ class MySpiralParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -1965,14 +1753,6 @@ class MySpiralParameterItem(MyGroupParameterItem):
         s = param.child('Point interval').opts['value']
         n = param.child('Points').opts['value']
         t = f'{n:.{d}g} points, ø{r1:.{d}g}-{r2:.{d}g}m, d{s:.{d}g}m'
-
-        # val = param.opts.get('value', None)
-        # d = param.opts.get('decimals', 5)
-        # r1 = val.radMin * 2
-        # r2 = val.radMax * 2
-        # s = val.dist
-        # n = val.points
-        # t = f'{n:.{d}g} points, ø{r1:.{d}g}-{r2:.{d}g}m, d{s:.{d}g}m'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -2014,23 +1794,15 @@ class MySpiralParameter(MyGroupParameter):
         self.parN = self.child('Points')
 
         self.sigTreeStateChanged.connect(self.changed)
-
-        # self.changed()
-
         qApp.processEvents()
 
     def changed(self):
-
         self.spiral.radMin = self.parR1.value()
         self.spiral.radMax = self.parR2.value()
         self.spiral.radInc = self.parDr.value()
         self.spiral.azi0 = self.parA.value()
         self.spiral.dist = self.parI.value()
         self.parN.setValue(self.spiral.calcNoPoints())
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.spiral
@@ -2045,7 +1817,6 @@ class MyWellParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -2145,7 +1916,6 @@ class MyWellParameter(MyGroupParameter):
         qApp.processEvents()
 
     def changedF(self):
-
         self.well.name = self.parF.value()                                      # file name has changed
 
         if self.well.name is not None and os.path.isfile(self.well.name):       # do we have a valid file name and not 'None'
@@ -2176,7 +1946,6 @@ class MyWellParameter(MyGroupParameter):
         qApp.processEvents()
 
     def changedC(self):
-
         self.well.crs = self.parC.value()
 
         success = self.well.readHeader(config.surveyCrs, config.glbTransform)
@@ -2204,7 +1973,6 @@ class MyWellParameter(MyGroupParameter):
         qApp.processEvents()
 
     def changedA(self):
-
         a = self.well.ahd0 = self.parA.value()
         s = self.well.dAhd = self.parI.value()
         n = self.well.nAhd = self.parN.value()
@@ -2226,13 +1994,8 @@ class MyWellParameter(MyGroupParameter):
             n = min(n, nMax)
             self.well.nAhd = n
             self.parN.setValue(n, blockSignal=self.changedN)
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def changedI(self):
-
         a = self.well.ahd0 = self.parA.value()
         s = self.well.dAhd = self.parI.value()
         n = self.well.nAhd = self.parN.value()
@@ -2255,13 +2018,8 @@ class MyWellParameter(MyGroupParameter):
             n = min(n, nMax)
             self.well.nAhd = n
             self.parN.setValue(n, blockSignal=self.changedN)
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def changedN(self):
-
         a = self.well.ahd0 = self.parA.value()
         s = self.well.dAhd = self.parI.value()
         n = self.well.nAhd = self.parN.value()
@@ -2284,10 +2042,6 @@ class MyWellParameter(MyGroupParameter):
             n = min(n, nMax)
             self.well.nAhd = n
             self.parN.setValue(n, blockSignal=self.changedN)
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return self.well
@@ -2443,7 +2197,6 @@ class MyPatternParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -2635,23 +2388,17 @@ class MyGridParameter(MyGroupParameter):
 
     def changedL(self):
         # local grid
-
         self.binGrid.binSize = self.parL.value().binSize
         self.binGrid.binShift = self.parL.value().binShift
         self.binGrid.stakeOrig = self.parL.value().stakeOrig
         self.binGrid.stakeSize = self.parL.value().stakeSize
         self.binGrid.fold = self.parL.value().fold
 
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
     def changedG(self):
         # global grid
-
         self.binGrid.orig = self.parG.value().orig
         self.binGrid.scale = self.parG.value().scale
         self.binGrid.angle = self.parG.value().angle
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def value(self):
         return self.binGrid
@@ -2700,20 +2447,14 @@ class MyAnalysisParameter(MyGroupParameter):
         self.parM = self.child('Binning method')
 
         self.sigTreeStateChanged.connect(self.changed)
-
         qApp.processEvents()
 
     def changed(self):
-
         self.area = self.parB.value()
         self.angles = self.parA.value()
         self.offset = self.parO.value()
         self.unique = self.parU.value()
         self.binning = self.parM.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return (self.area, self.angles, self.binning, self.offset, self.unique)
@@ -2750,17 +2491,11 @@ class MyReflectorsParameter(MyGroupParameter):
         self.parS = self.child('Buried sphere')
 
         self.sigTreeStateChanged.connect(self.changed)
-
         qApp.processEvents()
 
     def changed(self):
-
         self.plane = self.parP.value()
         self.sphere = self.parS.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return (self.plane, self.sphere)
@@ -2803,18 +2538,12 @@ class MyConfigurationParameter(MyGroupParameter):
         self.parN = self.child('Survey name')
 
         self.sigTreeStateChanged.connect(self.changed)
-
         qApp.processEvents()
 
     def changed(self):
-
         self.crs = self.parC.value()
         self.typ = self.parT.value()
         self.nam = self.parN.value()
-
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        qApp.processEvents()
 
     def value(self):
         return (self.crs, self.typ, self.nam)
@@ -2830,7 +2559,6 @@ class MySurveyParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):

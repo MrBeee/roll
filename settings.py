@@ -296,6 +296,7 @@ class SettingsDialog(QDialog):
         config.kxyArray = KKK.child('Kxy array response').value()
 
         # debug settings
+        # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
         config.debug = DBG.child('Debug logging').value()
         config.ptvsd = DBG.child('Debug worker threads').value()
 
@@ -367,15 +368,13 @@ def readSettings(self):
     config.ptvsd = self.settings.value('settings/debug/ptvsd', False, type=bool)      # assume no debugging in worker threads
 
     if config.debug:
-        # builtins.print = self.oldPrint                                            # use/restore builtins.print
         if console._console is None:                                                # pylint: disable=W0212 # unfortunately need access to protected member
             console.show_console()                                                  # opens the console for the first time
         else:
             console._console.setUserVisible(True)                                   # pylint: disable=W0212 # unfortunately need access to protected member
-        myPrint('print() to Python console has been enabled; Python console is opened')   # this message should always be printed
+        print('print() to Python console has been enabled; Python console is opened')   # this message should always be printed
     else:
-        myPrint('print() to Python console has been disabled from now on')            # this message is the last one to be printed
-        # builtins.print = silentPrint                                              # suppress print, but don't hide Python console, if it would be open
+        print('print() to Python console has been disabled from now on')            # this message is the last one to be printed
 
     # miscellaneous information
     config.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)   # assume Numba not installed (and used) by default

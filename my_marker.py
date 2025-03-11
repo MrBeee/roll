@@ -63,8 +63,7 @@ class SymbolPreviewLabel(QLabel):
         self.onMarkerChanging(None, val)
 
     def onMarkerChanging(self, _, val):
-
-        sym = val.symbol()                                                      # symbol size `val.size()` not used in the SymbolPreviewLabel
+        sym = val.symbol()                                                      # `val.size()` not used in the SymbolPreviewLabel
         col = val.color()
 
         h = self.size().height()                                                # get pixmap size
@@ -74,7 +73,7 @@ class SymbolPreviewLabel(QLabel):
 
         pen = QPen(Qt.black)                                                    # create pen and brush
         pen.setWidthF(0.075)                                                    # need to scale back pen size
-        brush = QBrush(col)                                                     # fill with proper color
+        brush = QBrush(col)                                                     # fill with proper background color
         p = renderSymbol(sym, h * 0.75, pen, brush, pixmap)                     # update pixmap with symbol
         self.setPixmap(p)
         self.update()

@@ -10,7 +10,6 @@ class MyRangeParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -21,13 +20,6 @@ class MyRangeParameterItem(MyGroupParameterItem):
         pnt_ = param.child('Points').value()
         pnt_ = round((max_ - min_) / stp_) + 1
         t = f'[{min_:.{d}g} to {max_:.{d}g}] {pnt_:.{d}g} steps @ {stp_:.{d}g}'
-
-        # val = param.opts.get('value', QVector3D(0.0, 0.0, 0.0))
-        # min_ = val.x()
-        # max_ = val.y()
-        # stp_ = val.z()
-        # pnt_ = round((max_ - min_) / stp_) + 1
-        # t = f'[{min_:.{d}g} to {max_:.{d}g}] {pnt_:.{d}g} steps @ {stp_:.{d}g}'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()

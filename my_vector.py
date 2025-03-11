@@ -14,7 +14,6 @@ class MyVectorParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -23,12 +22,6 @@ class MyVectorParameterItem(MyGroupParameterItem):
         y = param.child('dY').opts['value']
         z = param.child('dZ').opts['value']
         t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
-
-        # val = param.opts.get('value', QVector3D(0.0, 0.0, 0.0))
-        # x = val.x()
-        # y = val.y()
-        # z = val.z()
-        # t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()

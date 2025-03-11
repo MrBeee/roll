@@ -62,16 +62,7 @@ Note: To find out where libraries reside, use 'inspect':
 # 11) You'll be asked to confirm you want to overwrite the *.env file
 # that solved my problems ! I use font size 9.0 and Icon size 24
 
-# Extra toolbars have been added to be able to close the Display pane, use a toolbar instead.
-# But in doing so, I don't want to duplicate all signals and slots !
-# See: https://stackoverflow.com/questions/16703039/pyqt-can-a-qpushbutton-be-assigned-a-qaction
-# See: https://stackoverflow.com/questions/4149117/how-can-i-implement-the-button-that-holds-an-action-qaction-and-can-connect-w
-# See: https://stackoverflow.com/questions/38576380/difference-between-qpushbutton-and-qtoolbutton
-# See: https://stackoverflow.com/questions/10368947/how-to-make-qmenu-item-checkable-pyqt4-python
-# See: https://stackoverflow.com/questions/23388754/two-shortcuts-for-one-action
-# See: https://stackoverflow.com/questions/53936403/two-shortcuts-for-one-button-in-pyqt
-# See: https://doc.qt.io/qtforpython-5/PySide2/QtWidgets/QActionGroup.html#PySide2.QtWidgets.PySide2.QtWidgets.QActionGroup
-
+# last version of >help_stuff.py< can be found here: D:\qGIS\MyPlugins\roll-2024-02-10\help_stuff.py
 
 import contextlib
 import gc
@@ -264,10 +255,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.gridY = True                                                       # use grid lines
         self.antiA = [False for i in range(12)]                                 # anti-alias painting
         self.ruler = False                                                      # show a ruler to measure distances
-
-        # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
-        # print handling
-        # self.oldPrint = builtins.print                                          # need to be able to get back to 'normal'
 
         # list with most recently used [mru] file actions
         self.recentFileActions = []
@@ -1128,20 +1115,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def resetSurveyProperties(self):
 
-        time_ = perf_counter()   ###
-
         self.paramTree.clear()
-
-        time_ = self.survey.elapsedTime(time_, 8)    ###
 
         # set the survey object in the property pane using current survey properties
         copy = self.survey.deepcopy()
 
-        time_ = self.survey.elapsedTime(time_, 9)    ###
-
         self.updatePatternList(copy)                                            # create valid pattern list, before using it in property pane
-
-        time_ = self.survey.elapsedTime(time_, 10)    ###
 
         # first copy the crs for global access (todo: need to fix this later)
         config.surveyCrs = copy.crs
@@ -1158,34 +1137,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             dict(brush=brush, name='Pattern list', type='myPatternList', value=copy.patternList, default=copy.patternList),
         ]
 
-        time_ = self.survey.elapsedTime(time_, 11)    ###
-
         self.parameters = pg.parametertree.Parameter.create(name='Survey Properties', type='group', children=surveyParams)
-
-        time_ = self.survey.elapsedTime(time_, 12)    ###
-
         self.parameters.sigTreeStateChanged.connect(self.propertyTreeStateChanged)
-
-        time_ = self.survey.elapsedTime(time_, 13)    ###
 
         # todo: fix this; this is the most time consuming step, loading a new survey with several blocks,
         # A marine survey contains many templates and many, many more seeds.
-
         self.paramTree.setParameters(self.parameters, showTop=False)
 
-        time_ = self.survey.elapsedTime(time_, 14)    ###
-
         # Make sure we get a notification, when the binning area or the survey grid has changed, to ditch the analysis files
-        self.anaChild = self.parameters.child('Survey analysis')
-        self.binChild = self.anaChild.child('Binning area')
+        self.binChild = self.parameters.child('Survey analysis', 'Binning area')
         self.binChild.sigTreeStateChanged.connect(self.binningSettingsHaveChanged)
-
-        time_ = self.survey.elapsedTime(time_, 15)    ###
 
         self.grdChild = self.parameters.child('Survey grid')
         self.grdChild.sigTreeStateChanged.connect(self.binningSettingsHaveChanged)
-
-        time_ = self.survey.elapsedTime(time_, 16)    ###
 
         # deal with a bug, not showing tooltip information in the list of parameterItems
         # make sure the default buttons are greyed out in the parameter tree and count the items
@@ -1198,26 +1162,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 p.setToDefault()                                                # set parameters to its default value
                 item.updateDefaultBtn()                                         # reset the default-button to its grey value
             nItem += 1
-        myPrint(f'paramTree has {nItem} items')                                   # print the number of parameterItems
-
-        #  this code is here, just to get an idea how to see which information labels are visible
-        # for item in self.paramTree.listAllItems():                              # iterate over all parameterItems
-        #     parent = item.parent()                                              # get original parent of parameterItem
-        #     expanded = True
-        #     while item.parent() is not None:
-        #         item = item.parent()
-        #         if item.isExpanded() is False:                                  # check if the parent is expanded
-        #             expanded = False
-        #             break
-
-        #     if parent is not None:                                              # status original parent
-        #         p = parent.param                                                # get the parameter belonging to the parent parameterItem
-        #         v = p.opts.get('visible', None)                                 # check if the parent parameter is visible
-        #         if p.opts.get('expanded', True):                                # check if the parent has been expanded
-        #             type_ = p.opts.get('type', None)                            # get the type of the parent parameter
-        #             myPrint(f'parent {p.name()} has type {type_}, expanded={expanded}, visible={v}')  # print the name and type of the parent parameter
-
-        time_ = self.survey.elapsedTime(time_, 17)    ###
+        self.appendLogMessage(f'Params : {self.fileName} survey object read, containing {nItem} parameters')
 
     def updatePatternList(self, survey):
 
@@ -1299,6 +1244,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.survey.paintDetails &= ~PaintDetails.recLin
             self.actionShowBlocks.setChecked(True)
             self.survey.paintMode = PaintMode.justBlocks
+            self.updateMenuStatus(False)                                        # used here to update plotting details
 
         plainText = self.survey.toXmlString()                                   # convert the survey object itself to an Xml string
         self.textEdit.setTextViaCursor(plainText)                               # get text into the textEdit, NOT resetting its doc status
@@ -1325,31 +1271,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 self.anaModel.setData(None)                                     # first remove reference to self.output.anaOutput
                 self.output.D2_Output = None                                    # flattened reference to self.output.anaOutput
-
-                # Note  numpy.load can also be used to access a file from disk, in a memory-mapped mode
-                # See: https://numpy.org/doc/stable/reference/generated/numpy.load.html
-
-                # alternatively, use numpy.lib.format.open_memmap
-                # See; https://numpy.org/doc/stable/reference/generated/numpy.lib.format.open_memmap.html#numpy.lib.format.open_memmap
-                # note that this approach is incompatible with using numpy.memmap
-                # the reason is that unlike numpy.memmap, lib.format.open_memmap uses an additional file header
-                # this means that metadata such as the shape of the array is serialized with the data itself
-                # this approach woull be preferred over numpy.memmap, as it is less prone to errors
-                # BUT; it does not allow resizing any already created memory mapped files. So this is a no-go.
-
-                # I had serious difficulties in closing/deleting a memory mapped file
-                # see: https://stackoverflow.com/questions/6481378/cant-delete-file-for-memorymappedfile
-                # see: https://stackoverflow.com/questions/50460461/python-mmap-what-if-i-dont-call-mmap-close-manually
-                # See: https://stackoverflow.com/questions/6397495/unmap-of-numpy-memmap
-                # See: https://stackoverflow.com/questions/39953501/i-cant-remove-file-created-by-memmap
-                # In the end the solution appeared to be:
-                # 1) Flush the data to make sure everything has been copied to disk
-                # 2) remove all references (self.output.D2_Output) to the memory mapped object
-                # 3) delete the self.output.anaOutput object
-                # 4) reinstate the object as 'None'
-                # 5) force the garbage collector to do its thing (probably not equired, but let's get some memory space anyhow)
-                # this removed all references to the memory mapped file, and the file can now be deleted
-
                 self.anaModel.setData(None)                                     # show empty trace table
                 self.output.D2_Output = None                                    # remove reference to self.output.anaOutput
                 del self.output.anaOutput                                       # try to delete the object
@@ -1390,19 +1311,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     ## If anything changes in the tree, print a message
     def propertyTreeStateChanged(self, param, changes):
 
+        # the next line is needed if we disable the 'Apply' button in the property pane, when no changes have been made
         # self.propertyButtonBox.button(QDialogButtonBox.Apply).setEnabled(True)
 
-        myPrint('┌── sigTreeStateChanged --> tree changes:')
+        # Always print the tree changes (don't use myPrint here)
+        # Nomatter whether debug has been set to True or False
+        print('┌── sigTreeStateChanged --> tree changes:')
         for param, change, data in changes:
             path = self.parameters.childPath(param)
             if path is not None:
                 childName = '.'.join(path)
             else:
                 childName = param.name()
-            myPrint(f'│     parameter: {childName}')
-            myPrint(f'│     change:    {change}')
-            myPrint(f'│     data:      {str(data)}')
-            myPrint('└───────────────────────────────────────')
+            print(f'│     parameter: {childName}')
+            print(f'│     change:    {change}')
+            print(f'│     data:      {str(data)}')
+            print('└───────────────────────────────────────')
 
     def onMainTabChange(self, index):                                           # manage focus when active tab is changed; doesn't work 100% yet !
         if index == 0:                                                          # main plotting widget
@@ -2006,7 +1930,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionSpsPoints.setEnabled(self.spsImport is not None)
         self.actionAllPoints.setEnabled(self.recGeom is not None or self.srcGeom is not None or self.rpsImport is not None or self.spsImport is not None)
 
-        if self.survey is None:
+        if self.survey is None:                                                 # can't do the following
             return
 
         self.actionShowSrcPatterns.setChecked(self.survey.paintDetails & PaintDetails.srcPat != PaintDetails.none)
@@ -3363,8 +3287,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         config.resetTimers()    ###                                             # reset timers for debugging code
 
-        time_ = perf_counter()   ###
-
         file = QFile(fileName)
         if not file.open(QFile.ReadOnly | QFile.Text):                          # report status message and return False
             try:                                                                # remove from MRU in case of errors
@@ -3527,8 +3449,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             else:
                 self.output.ofAziHist = None
 
-            time_ = self.survey.elapsedTime(time_, 0)    ###
-
             if self.output.binOutput is not None and os.path.exists(self.fileName + '.ana.npy'):   # only open the analysis file if binning file exists
                 try:
 
@@ -3576,8 +3496,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.output.D2_Output = None
                 self.output.anaOutput = None
 
-            # unfortunately the QTableView widget does not like too large a dataset, so we need to impose a limit to the allowable number of trace records
             if self.output.D2_Output is not None and self.output.D2_Output.shape[0] > config.maxAnalysisRows:
+                # unfortunately the QTableView widget does not like too large a dataset, so we need to impose a limit to the allowable number of trace records
                 self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces; too large to display in Trace Table', MsgType.Error)
                 self.anaModel.setData(None)                                     # we can still use self.output.D2_Output and self.output.anaOutput; we just can't display the trace table
             else:
@@ -3643,8 +3563,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             else:
                 self.relGeom = None
 
-            time_ = self.survey.elapsedTime(time_, 1)    ###
-
             self.rpsModel.setData(self.rpsImport)                               # update the three rps/sps/xps models
             self.spsModel.setData(self.spsImport)
             self.xpsModel.setData(self.xpsImport)
@@ -3655,70 +3573,41 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             self.handleImageSelection()                                         # change selection and plot survey
 
-        time_ = self.survey.elapsedTime(time_, 2)    ###
-
         self.spiderPoint = QPoint(-1, -1)                                       # reset the spider location
         index = self.anaView.model().index(0, 0)                                # turn offset into index
-
-        time_ = self.survey.elapsedTime(time_, 3)    ###
 
         self.anaView.scrollTo(index)                                            # scroll to the first trace in the trace table
         self.anaView.selectRow(0)                                               # for the time being, *only* select first row of traces in a bin
 
-        time_ = self.survey.elapsedTime(time_, 4)    ###
-
-        # self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
         self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
-
-        time_ = self.survey.elapsedTime(time_, 5)    ###
-
         self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
-
-        time_ = self.survey.elapsedTime(time_, 6)    ###
 
         self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
         self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the Layout tab
 
-        time_ = self.survey.elapsedTime(time_, 7)    ###
-
         # self.plotLayout()                                                     # plot the survey object
 
-        ### todo: check the next routine, as this is where the delays occur ###
+        self.resetSurveyProperties()                                            # get the new parameters into the parameter tree. Can be time consuming with many blocks and many seeds
+        self.survey.checkIntegrity()                                            # check for survey integrity after loading; in particular well file validity
 
-        self.resetSurveyProperties()                                            # get the new parameters into the parameter tree
+        # self.appendLogMessage('RollMainWindow.parseText() profiling information', MsgType.Debug)
+        # for i in range(0, 20):
+        #     t = self.survey.timerTmax[i]                             # perf_counter counts in nano seconds, but returns time in [s]
+        #     message = f'Time spent in function call #{i:2d}: {t:11.4f}'
+        #     self.appendLogMessage(message, MsgType.Debug)
 
-        time_ = self.survey.elapsedTime(time_, 17)    ###
-
-        self.survey.checkIntegrity()                                            # check for survey integrity; in particular well file validity
-
-        time_ = self.survey.elapsedTime(time_, 18)    ###
-
-        # profiling showed that parsing & loading the survey object is not the largest bottleneck
-        # loading the analysis files can take a considerable amount of time.
-        # maybe try loading these in parallel using asyncio
-        # See: https://stackoverflow.com/questions/24246734/fetching-data-with-pythons-asyncio-in-a-sequential-order
-        # See: https://stackoverflow.com/questions/50757497/simplest-async-await-example-possible-in-python
-        # See: https://djangostars.com/blog/asynchronous-programming-in-python-asyncio/
-        # See: https://github.com/crazyguitar/pysheeet/blob/master/docs/appendix/python-concurrent.rst
-
-        self.appendLogMessage('RollMainWindow.parseText() profiling information', MsgType.Debug)
-        for i in range(0, 20):
-            t = self.survey.timerTmax[i]                             # perf_counter counts in nano seconds, but returns time in [s]
-            message = f'Time spent in function call #{i:2d}: {t:11.4f}'
-            self.appendLogMessage(message, MsgType.Debug)
-
-        self.appendLogMessage('RollMainWindow.resetSurveyProperties() profiling information', MsgType.Debug)
-        i = 0
-        while i < len(config.timerTmin):                        # log some debug messages
-            tMin = config.timerTmin[i] if config.timerTmin[i] != float('Inf') else 0.0
-            tMax = config.timerTmax[i]
-            tTot = config.timerTtot[i]
-            freq = config.timerFreq[i]
-            tAvr = tTot / freq if freq > 0 else 0.0
-            message = f'Index {i:02d}, min {tMin:011.3f}, max {tMax:011.3f}, tot {tTot:011.3f}, avr {tAvr:011.3f}, freq {freq:07d}'
-            # message = f'{i:02d}: min:{tMin:11.3f}, max:{tMax:11.3f}, tot:{tTot:11.3f}, avr:{tAvr:11.3f}, freq:{freq:7d}'
-            self.appendLogMessage(message, MsgType.Debug)
-            i += 1
+        # self.appendLogMessage('RollMainWindow.resetSurveyProperties() profiling information', MsgType.Debug)
+        # i = 0
+        # while i < len(config.timerTmin):                        # log some debug messages
+        #     tMin = config.timerTmin[i] if config.timerTmin[i] != float('Inf') else 0.0
+        #     tMax = config.timerTmax[i]
+        #     tTot = config.timerTtot[i]
+        #     freq = config.timerFreq[i]
+        #     tAvr = tTot / freq if freq > 0 else 0.0
+        #     message = f'Index {i:02d}, min {tMin:011.3f}, max {tMax:011.3f}, tot {tTot:011.3f}, avr {tAvr:011.3f}, freq {freq:07d}'
+        #     # message = f'{i:02d}: min:{tMin:11.3f}, max:{tMax:11.3f}, tot:{tTot:11.3f}, avr:{tAvr:11.3f}, freq:{freq:7d}'
+        #     self.appendLogMessage(message, MsgType.Debug)
+        #     i += 1
 
         return success
 
@@ -3844,9 +3733,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     self.appendLogMessage(f'Import : . . . read {nXps:,} xps-records')
             else:
                 self.xpsImport = None
-
-        # See: for KAP input: D:\WorkStuff\G\RIJKES-L-84599\APPS\OMNI studies\2015\Kapuni\Kapuni-files\SPS
-        # See: for NAM input: D:\WorkStuff\G\RIJKES-L-84599\APPS\OMNI studies\2015\Dollard\Dollard-files\SPS\Groningen
 
         # sort and analyse imported arrays
         with pg.BusyCursor():
@@ -4237,26 +4123,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             printer.setOutputFormat(QPrinter.PdfFormat)
             printer.setOutputFileName(fn)
             self.textEdit.document().print_(printer)
-
-    # def viewDebug(self):
-    #     config.debug = not config.debug                                             # toggle status
-    #     # See also: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
-    #     if config.debug:
-    #         # builtins.print = self.oldPrint                                    # use/restore builtins.print
-    #         if console._console is None:                                        # pylint: disable=W0212 # unfortunately, need to access protected members
-    #             console.show_console()
-    #         else:
-    #             console._console.setUserVisible(True)                           # pylint: disable=W0212 # unfortunately, need to access protected members
-    #         myPrint('print() to Python console has been enabled; Python console is opened')             # this message should always be printed
-    #         self.appendLogMessage('Debug&nbsp;&nbsp;: print() to Python console has been enabled')
-    #     else:
-    #         myPrint('print() to Python console has been disabled; Python console is closed')            # this message is the last one to be printed
-    #         # builtins.print = silentPrint                                        # suppress print output by calling 'dummy' routine
-    #         myPrint('this print message should not show')                         # this message is the last one to be printed
-
-    #         if console._console is not None:                                    # pylint: disable=W0212 # unfortunately, need to access protected members
-    #             console._console.setUserVisible(False)                          # pylint: disable=W0212 # unfortunately, need to access protected members
-    #         self.appendLogMessage('Debug&nbsp;&nbsp;: print() to Python console has been disabled')
 
     def appendLogMessage(self, message: str = 'test', index: MsgType = MsgType.Info):
         # dateTime = QDateTime.currentDateTime().toString("dd-MM-yyyy hh:mm:ss")
@@ -4809,7 +4675,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             info = ''
             if not self.fileName:
-                # we created an analysis for a yet to be saved file; set modified True, to force saving results when name has been defined
+                # we created an analysis for a yet to be saved file; set modified True, forcing results to be saved when name has been defined
                 self.textEdit.document().setModified(True)
                 info = 'Analysis results are yet to be saved.'
             else:
@@ -4836,81 +4702,3 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.statusbar.removeWidget(self.progressBar)                           # remove widget from statusbar (don't kill it)
         self.progressBar.setValue(0)                                            # reset progressbar to zero, when out of sight
         self.statusbar.removeWidget(self.progressLabel)                         # remove progress label as well
-
-
-###  From the PyQGIS Programmer's Guide
-# CHAPTER 12. WRITING A STANDALONE APPLICATION
-# 12.2 Creating a Minimal PyQGIS Application
-# To begin, we can turn our simple application into a minimal PyQGIS app that displays a shapefile by adding a QGIS map canvas instead of the text editor control:
-
-# def _main_():
-#     # Listing 12.2: interactive_qgis.py
-#     from PyQt4 import QtGui
-#     from qgis.core import *
-#     from qgis.gui import *
-
-#     app = QtGui.QApplication([])
-#     QgsApplication.setPrefixPath("/dev1/apps/qgis", True)
-#     QgsApplication.initQgis()
-
-#     main_win = QtGui.QMainWindow()
-#     frame = QtGui.QFrame(main_win)
-#     main_win.setCentralWidget(frame)
-#     grid_layout= QtGui.QGridLayout(frame)
-
-#     map_canvas = QgsMapCanvas()
-#     grid_layout.addWidget (map_canvas)
-#     map_canvas.setCanvasColor(QtGui.QColor(255, 255, 255))
-#     layer = QgsVectorLayer(
-#         '/dev1/gis_data/qgis_sample_data/shapefiles/alaska.shp',
-#         'alaska',
-#         'ogr')
-#     QgsMapLayerRegistry.instance().addMapLayer(layer)
-#     canvas_layer = QgsMapCanvasLayer(layer)
-#     map_canvas.setLayerSet([canvas_layer])
-#     map_canvas.zoomToFullExtent()
-
-#     main_win.show()
-
-#     # Need the following statement if running as a script
-#     app.exec( )
-
-# This gives us the little application shown in Figure 12.2, on the facing page.
-# It isn't much to look at no toolbars, menus, map controls, or legend, just a map canvas with a single layer.
-# Let's take a deeper look at the code required to get the app up and running.
-# We started out with the basic text editor app and substituted it with a QgsMap- Canvas.
-# To get that to work, we have to do a bit of setup first.
-# (End of page)
-
-# To create standalone applications, see also:
-# See: https://subscription.packtpub.com/book/programming/9781783984985/1/ch01lvl1sec18/creating-a-standalone-application
-
-# See: https://forum.qt.io/topic/84824/accessing-the-main-window-from-python/8
-def findMainWindow() -> typing.Union[RollMainWindow, None]:
-    # Global function to find the (open) RollMainWindow in application
-    app = QApplication.instance()
-    for widget in app.topLevelWidgets():
-        if isinstance(widget, RollMainWindow):
-            return widget
-    return None
-
-
-def main():
-    sys.path.append(PARENT_DIR)
-
-    app = QApplication(sys.argv)
-    window = RollMainWindow()
-    window.show()
-    app.exec_()
-
-
-if __name__ == '__main__':
-    # attempt to run roll outside of QGIS
-    # does not work yet: "Importerror attempted relative import with no known parent package"
-    # See also: https://stackoverflow.com/questions/76262177/packing-qgis-standalone-application-with-qgis-gui
-    PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.append(PARENT_DIR)
-    os.chdir(PARENT_DIR)
-
-    myPrint('package ' + __package__)
-    main()

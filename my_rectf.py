@@ -10,7 +10,6 @@ class MyRectParameterItem(MyGroupParameterItem):
 
         self.createAndInitPreviewLabel(param)
 
-        # param.sigValueChanging.connect(self.onValueChanging)
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
     def showPreviewInformation(self, param):
@@ -24,18 +23,6 @@ class MyRectParameterItem(MyGroupParameterItem):
             t = 'Unrestricted'
         else:
             t = f'x:({xMin:.{d}g}¦{xMax:.{d}g}), y:({yMin:.{d}g}¦{yMax:.{d}g})'
-
-        # val = param.opts.get('value', QRectF())
-        # d = param.opts.get('decimals', 5)
-        # rect = QRectF(val)                                                      # make local copy
-        # if rect.isNull():
-        #     t = 'Unrestricted'
-        # else:
-        #     Xmin = rect.left()
-        #     Xmax = rect.right()
-        #     Ymin = rect.top()
-        #     Ymax = rect.bottom()
-        #     t = f'x:({Xmin:.{d}g}¦{Xmax:.{d}g}), y:({Ymin:.{d}g}¦{Ymax:.{d}g})'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()

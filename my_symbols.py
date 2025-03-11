@@ -7,9 +7,7 @@ from qgis.PyQt.QtWidgets import QComboBox
 
 
 class MySymbolParameterItem(WidgetParameterItem):
-    """
-    Parameter type which displays a ComboBox containing a list of plotting symbols
-    """
+    """Parameter type which displays a ComboBox containing a list of plotting symbols"""
 
     symbolDict = {
         'o': 'circle',

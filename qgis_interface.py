@@ -927,9 +927,9 @@ def readQgisPointLayer(layerId, selectionField=''):
 ############################################## ways to get help when you get lost
 
 # From the console get help by using
-#   print (type(variable))
-#   print(dir(variable))
-#   print (help(variable))
+# print (type(variable))
+# print(dir(variable))
+# print (help(variable))
 
 # See for instance information below on the vector layer and its members
 
