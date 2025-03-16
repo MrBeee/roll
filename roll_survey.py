@@ -100,6 +100,10 @@ from .sps_io_and_qc import pntType1, relType2
 #     name_elem = ET.SubElement(seed_elem, 'name')
 #     name_elem.text = self.name
 
+# The survey object contains several "lower" objects such as blocks, templates and patterns, all defined in separate modules
+# When these need their parent "survey" object in a function, there's a chance of getting circular references
+# See: https://www.mend.io/blog/closing-the-loop-on-python-circular-import-issue/
+
 
 class SurveyType(Enum):
     Orthogonal = 0

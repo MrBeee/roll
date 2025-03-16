@@ -1280,13 +1280,12 @@ class MySeedListParameter(MyGroupParameter):
 
             # using append/addChild instead of insert(0, ...) will add the item at the end of the list
             # self.seedList.insert(0, seed)
-            self.seedList.append(seed)
-
             # self.insertChild(0, dict(name=newName, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+            self.seedList.append(seed)
             self.addChild(dict(name=newName, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
             self.sigAddNew.emit(self, name)
-
             self.sigValueChanging.emit(self, self.value())
 
 
@@ -1360,9 +1359,9 @@ class MyPatternSeedListParameter(MyGroupParameter):
 
             # using append/addChild instead of insert(0, ...) will add the item at the end of the list
             # self.seedList.insert(0, seed)
-            self.seedList.append(seed)
-
             # self.insertChild(0, dict(name=newName, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+
+            self.seedList.append(seed)
             self.addChild(dict(name=newName, type='myPatternSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
             self.sigAddNew.emit(self, name)

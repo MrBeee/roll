@@ -63,6 +63,15 @@ Note: To find out where libraries reside, use 'inspect':
 # that solved my problems ! I use font size 9.0 and Icon size 24
 
 # last version of >help_stuff.py< can be found here: D:\qGIS\MyPlugins\roll-2024-02-10\help_stuff.py
+# In the new Win11 2024H2 version, explorer keeps crashing. possible solutions are shown here:
+# See: https://www.reddit.com/r/Windows11/comments/pu5aa3/howto_disable_new_context_menu_explorer_command/?rdt=56613
+# Disable new context menu:
+# reg.exe add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve
+# Restore new context menu:
+# reg.exe delete "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" /f
+# See also: https://answers.microsoft.com/en-us/windows/forum/all/cannot-open-explorer-after-update-to-24h2-crashes/e149b7b0-2d67-445c-807b-e25d6b87d656
+# Also use: https://lesferch.github.io/WinSetView/ to set specific folder options
+
 
 import contextlib
 import gc
