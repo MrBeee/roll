@@ -247,6 +247,26 @@ def readSPSFiles(filenames, resultArray, fmt) -> int:
     return index
 
 
+def readSpsLine(line_number, line, spsImport, fmt) -> int:
+    if len(line) == 0 or line[0] != fmt['src']:                                 # check if line is empty or not a source line
+        return 0
+
+    # fmt: off
+    lin = toFloat(line[fmt[ 'line'][0] : fmt[' line'][1]].strip())
+    pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
+    idx =   toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
+    cod =         line[fmt[ 'code'][0] : fmt[ 'code'][1]].strip()
+    dep = toFloat(line[fmt['depth'][0] : fmt['depth'][1]].strip())
+    eas = toFloat(line[fmt[ 'east'][0] : fmt[ 'east'][1]].strip())
+    nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
+    ele = toFloat(line[fmt[ 'elev'][0] : fmt[ 'elev'][1]].strip())
+    # fmt: on
+
+    record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
+    spsImport[line_number] = record
+    return 1
+
+
 def readXPSFiles(filenames, resultArray, fmt) -> int:
 
     if not filenames:

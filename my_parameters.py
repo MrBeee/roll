@@ -121,7 +121,7 @@ class MyBinAnglesParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyBinAnglesParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyBinAnglesParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyBinAnglesParameter(MyGroupParameter):
@@ -201,7 +201,7 @@ class MyBinOffsetParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyBinOffsetParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyBinOffsetParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyBinOffsetParameter(MyGroupParameter):
@@ -284,7 +284,7 @@ class MyUniqOffParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyUniqOffParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyUniqOffParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyUniqOffParameter(MyGroupParameter):
@@ -348,7 +348,7 @@ class MyBinMethodParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyBinMethodParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyBinMethodParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyBinMethodParameter(MyGroupParameter):
@@ -413,7 +413,7 @@ class MyPlaneParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyPlaneParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyPlaneParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyPlaneParameter(MyGroupParameter):
@@ -476,7 +476,7 @@ class MySphereParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MySphereParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MySphereParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MySphereParameter(MyGroupParameter):
@@ -539,7 +539,7 @@ class MyLocalGridParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyLocalGridParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyLocalGridParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyLocalGridParameter(MyGroupParameter):
@@ -621,7 +621,7 @@ class MyGlobalGridParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyGlobalGridParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyGlobalGridParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyGlobalGridParameter(MyGroupParameter):
@@ -731,7 +731,7 @@ class MyBlockParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyBlockParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyBlockParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyBlockParameter(MyGroupParameter):
@@ -870,7 +870,7 @@ class MyTemplateParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyTemplateParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyTemplateParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyTemplateParameter(MyGroupParameter):
@@ -976,7 +976,7 @@ class MyRollListParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyRollListParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyRollListParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyRollListParameter(MyGroupParameter):
@@ -1042,7 +1042,7 @@ class MyRollParameterItem(MyGroupParameterItem):                      # modeled 
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyRollParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyRollParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyRollParameter(MyGroupParameter):
@@ -1099,19 +1099,19 @@ class MyRollParameter(MyGroupParameter):
     def setAzimuth(self):
         azimuth = math.degrees(math.atan2(self.row.increment.y(), self.row.increment.x()))
         self.parA.setValue(azimuth, blockSignal=self.changedA)
-        myPrint(f'>>>{lineNo():5d} MyRollParameter.setAzimuth <<<')
+        # myPrint(f'>>>{lineNo():5d} MyRollParameter.setAzimuth <<<')
 
     def setTilt(self):
         lengthXY = math.sqrt(self.row.increment.x() ** 2 + self.row.increment.y() ** 2)
         tilt = math.degrees(math.atan2(self.row.increment.z(), lengthXY))
         self.parT.setValue(tilt, blockSignal=self.changedT)
-        myPrint(f'>>>{lineNo():5d} MyRollParameter.setTilt <<<')
+        # myPrint(f'>>>{lineNo():5d} MyRollParameter.setTilt <<<')
 
     # update the values of the five children
     def changedN(self):
         self.row.steps = self.parN.value()
         self.sigValueChanging.emit(self, self.value())
-        myPrint(f'>>>{lineNo():5d} MyRollParameter.changedN <<<')
+        # myPrint(f'>>>{lineNo():5d} MyRollParameter.changedN <<<')
 
     def changedXYZ(self):
         self.row.increment.setX(self.parX.value())
@@ -1120,7 +1120,7 @@ class MyRollParameter(MyGroupParameter):
 
         self.setAzimuth()
         self.setTilt()
-        myPrint(f'>>>{lineNo():5d} MyRollParameter.changedXYZ <<<')
+        # myPrint(f'>>>{lineNo():5d} MyRollParameter.changedXYZ <<<')
 
     def value(self):
         return self.row
@@ -1217,7 +1217,7 @@ class MySeedListParameterItem(MyGroupParameterItem):
         self.previewLabel.setErrorCondition(nSource == 0 or nChilds == nSource)
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MySeedListParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MySeedListParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MySeedListParameter(MyGroupParameter):
@@ -1309,7 +1309,7 @@ class MyPatternSeedListParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyPatternSeedListParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyPatternSeedListParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyPatternSeedListParameter(MyGroupParameter):
@@ -1400,7 +1400,7 @@ class MySeedParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MySeedParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MySeedParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MySeedParameter(MyGroupParameter):
@@ -1573,7 +1573,7 @@ class MyPatternSeedParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyPatternSeedParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyPatternSeedParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyPatternSeedParameter(MyGroupParameter):
@@ -1687,7 +1687,7 @@ class MyCircleParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyCircleParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyCircleParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyCircleParameter(MyGroupParameter):
@@ -1755,7 +1755,7 @@ class MySpiralParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MySpiralParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MySpiralParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MySpiralParameter(MyGroupParameter):
@@ -1841,7 +1841,7 @@ class MyWellParameterItem(MyGroupParameterItem):
         self.previewLabel.setErrorCondition(e)
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyWellParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyWellParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyWellParameter(MyGroupParameter):
@@ -2182,10 +2182,12 @@ class MyBlockListParameter(MyGroupParameter):
         qApp.processEvents()
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
-        myPrint(f'>>>{lineNo():5d} BlockList.ChildAdded <<<')
+        # myPrint(f'>>>{lineNo():5d} BlockList.ChildAdded <<<')
+        ...
 
     def onChildRemoved(self, _):                                                # child unused and replaced by _
-        myPrint(f'>>>{lineNo():5d} BlockList.ChildRemoved <<<')
+        # myPrint(f'>>>{lineNo():5d} BlockList.ChildRemoved <<<')
+        ...
 
     ### class MyPattern ##########################################################
 
@@ -2215,7 +2217,7 @@ class MyPatternParameterItem(MyGroupParameterItem):
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MyPatternParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MyPatternParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MyPatternParameter(MyGroupParameter):
@@ -2346,10 +2348,12 @@ class MyPatternListParameter(MyGroupParameter):
         qApp.processEvents()
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
-        myPrint(f'>>>{lineNo():5d} PatternList.ChildAdded <<<')
+        # myPrint(f'>>>{lineNo():5d} PatternList.ChildAdded <<<')
+        ...
 
     def onChildRemoved(self, _):                                                # child unused and replaced by _
-        myPrint(f'>>>{lineNo():5d} PatternList.ChildRemoved <<<')
+        # myPrint(f'>>>{lineNo():5d} PatternList.ChildRemoved <<<')
+        ...
 
 
 ### class MyGrid ##############################################################
@@ -2564,7 +2568,7 @@ class MySurveyParameterItem(MyGroupParameterItem):
         t = 'Not yet implemented'
         self.previewLabel.setText(t)
         self.previewLabel.update()
-        myPrint(f'>>>{lineNo():5d} MySurveyParameterItem.showPreviewInformation | t = {t} <<<')
+        # myPrint(f'>>>{lineNo():5d} MySurveyParameterItem.showPreviewInformation | t = {t} <<<')
 
 
 class MySurveyParameter(MyGroupParameter):

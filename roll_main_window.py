@@ -79,12 +79,12 @@ import os
 import os.path
 import sys
 import traceback
-import typing
 import winsound  # make a sound when an exception ocurs
 from datetime import timedelta
 from enum import Enum
 from math import atan2, ceil, degrees
-from time import perf_counter
+
+# from time import perf_counter
 from timeit import default_timer as timer
 
 # PyQtGraph related imports
@@ -142,6 +142,7 @@ from .roll_main_window_create_trace_table_tab import createTraceTableTab
 from .roll_output import RollOutput
 from .roll_survey import PaintDetails, PaintMode, RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
+from .sps_import_dialog import SpsImportDialog
 from .sps_io_and_qc import (
     calcMaxXPStraces,
     calculateLineStakeTransform,
@@ -161,6 +162,7 @@ from .sps_io_and_qc import (
     pntType1,
     readRPSFiles,
     readSPSFiles,
+    readSpsLine,
     readXPSFiles,
     relType2,
 )
@@ -273,6 +275,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.worker = None                                                      # 'moveToThread' object
         self.thread = None                                                      # corresponding worker thread
         self.startTime = None                                                   # thread start time
+        self.interrupted = False                                                # set to True when the main thread is interrupted
 
         # statusbar widgets
         self.posWidgetStatusbar = QLabel('(x, y): (0.00, 0.00)')                # mouse' position label, in bottom right corner
@@ -1114,6 +1117,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 return True
 
         return super().eventFilter(source, event)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:  # Check if the ESC key is pressed
+            self.interrupted = True
+        super().keyPressEvent(event)
 
     def applyPropertyChangesAndHide(self):
         self.applyPropertyChanges()
@@ -3621,6 +3629,119 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         return success
 
     def fileImportSPS(self) -> bool:
+        if config.showUnfinished:
+            dlg = SpsImportDialog(self, self.survey.crs, self.importDirectory)
+            if dlg.exec():                                                      # Run the dialog event loop, and obtain sps information
+                if not dlg.fileNames:                                          # no files selected; return False
+                    self.appendLogMessage('Import : no files selected')
+                    return False
+
+                self.importDirectory = os.path.dirname(dlg.fileNames[0])                # retrieve the directory name from first file found
+
+                SPS = dlg.parameters.child('SPS Import Settings')
+                # sps settings
+                spsCrs = SPS.child('CRS of SPS data').value()
+                spsDialect = SPS.child('Local SPS dialect').value()
+
+                self.appendLogMessage(f"Import : importing SPS-data using the '{spsDialect}' SPS-dialect")
+                self.appendLogMessage(f'Import : importing {len(dlg.rpsFiles)} rps-file(s), {len(dlg.spsFiles)} sps-file(s) and {len(dlg.xpsFiles)} xps-file(s)')
+
+                ### import the SPS data
+
+                if dlg.spsFiles:
+                    self.appendLogMessage(f'Import : importing {len(dlg.spsFiles)} sps-file(s)')
+                    lines = dlg.spsTab.toPlainText().splitlines()
+                    spsLines = len(lines)
+                    self.spsImport = np.zeros(shape=spsLines, dtype=pntType1)
+
+                    self.progressLabel.setText(f'Importing {spsLines} lines of SPS data...')             # Set the text for the progress label
+                    self.showStatusbarWidgets()
+
+                    oldProgress = 0
+                    self.interrupted = False
+                    spsRead = 0
+                    for line_number, line in enumerate(lines):
+                        QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
+                        if self.interrupted is True:
+                            break
+
+                        progress = (100 * line_number) // spsLines
+                        if progress > oldProgress:
+                            oldProgress = progress
+                            self.progressBar.setValue(progress)
+                            QApplication.processEvents()  # Ensure the UI updates in real-time
+
+                        spsRead += readSpsLine(spsRead, line, self.spsImport, spsDialect)
+
+                    self.progressBar.setValue(100)
+
+                    if self.interrupted:
+                        self.appendLogMessage('Import : importing SPS data canceled by user.')
+                        return False
+
+                ### import the XPS data
+
+                if dlg.xpsFiles:
+                    lines = dlg.xpsTab.toPlainText().splitlines()
+                    xpsLines = len(lines)
+                    self.xpsImport = np.zeros(shape=xpsLines, dtype=pntType1)
+
+                    self.progressLabel.setText(f'Importing {xpsLines} lines of XPS data...')             # Set the text for the progress label
+                    self.showStatusbarWidgets()
+
+                    oldProgress = 0
+                    self.interrupted = False
+                    for line_number, line in enumerate(lines):
+                        QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
+                        if self.interrupted is True:
+                            break
+
+                        progress = (100 * line_number) // xpsLines
+                        if progress > oldProgress:
+                            oldProgress = progress
+                            self.progressBar.setValue(progress)
+                            QApplication.processEvents()  # Ensure the UI updates in real-time
+
+                    self.progressBar.setValue(100)
+
+                    if self.interrupted:
+                        self.appendLogMessage('Import : importing XPS data canceled by user.')
+                        return False
+
+                ### import the RPS data
+
+                if dlg.rpsFiles:
+                    lines = dlg.rpsTab.toPlainText().splitlines()
+                    rpsLines = len(lines)
+                    self.rpsImport = np.zeros(shape=rpsLines, dtype=pntType1)
+
+                    self.progressLabel.setText(f'Importing {rpsLines} lines of RPS data...')             # Set the text for the progress label
+                    self.showStatusbarWidgets()
+
+                    oldProgress = 0
+                    self.interrupted = False
+                    for line_number, line in enumerate(lines):
+                        QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
+                        if self.interrupted is True:
+                            break
+
+                        progress = (100 * line_number) // rpsLines
+                        if progress > oldProgress:
+                            oldProgress = progress
+                            self.progressBar.setValue(progress)
+                            QApplication.processEvents()  # Ensure the UI updates in real-time
+
+                    self.progressBar.setValue(100)
+
+                    if self.interrupted:
+                        self.appendLogMessage('Import : importing RPS data canceled by user.')
+                        return False
+
+                self.hideStatusbarWidgets()
+                self.appendLogMessage(f'Import : imported {spsLines} sps-records, {xpsLines} xps-records and {rpsLines} rps-records')
+
+            return False                                                        # Should return True when code is completed and all is okay
+
         if not self.hideSpsCrsWarning:
             mb = QMessageBox()
             mb.setWindowTitle('Please note')

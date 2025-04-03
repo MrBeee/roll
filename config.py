@@ -167,26 +167,54 @@ srcSymbolSize = 25
 # Default spsDialect should equal a name from the spsFormatList dicts
 spsDialect = 'New Zealand'
 
+spsFormatDict = dict(
+    id='Record identification',
+    line='Line',
+    point='Point',
+    index='Point index',
+    code='Point code',
+    depth='Point depth',
+    east='Easting',
+    north='Northing',
+    elev='Elevation',
+)
+
+# fmt: off
 spsFormatList = [
     # configuration settings for locations of fields in SPS data;
     # all indices are 'zero' based and the last number is not included
-    # the first character is therefore [0, 1], the last one is [79, 80]
+    # the first character on a line is therefore [0, 1], the last one is [79, 80]
     # Note: In SEG rev2.1, Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
-    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),
-    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),
-    dict(name='SEG rev2.1', hdr='H', src='S', rec='R', rel='X', line=[1, 12], point=[11, 21], index=[23, 24], code=[24, 25], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),
-    dict(name='Sudan', hdr='H', src='S', rec='R', rel='X', line=[1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),
+    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 11], point=[11, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),
+    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),
 ]
+# fmt: on
 
+xpsFormatDict = dict(
+    id='Record identification',
+    record='Field Record number',
+    srcLin='Source line number',
+    srcPnt='Source point number',
+    srcInd='Source point index',
+    recLin='Receiver line number',
+    recMin='First receiver point',
+    recMax='Last receiver point',
+    recInd='Receiver point index',
+)
+
+# fmt: off
 xpsFormatList = [
     # configuration settings for locations of fields in SPS data;
     # all indices are 'zero' based and the last number is not included
-    # the first character is therefore [0, 1], the last one is [79, 80]
-    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', record=[8, 11], srcLin=[23, 27], srcPnt=[33, 37], srcInd=[37, 38], recLin=[57, 61], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
-    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', record=[8, 15], srcLin=[29, 33], srcPnt=[33, 37], srcInd=[37, 38], recLin=[61, 65], recMin=[65, 69], recMax=[75, 79], recInd=[79, 80]),
-    dict(name='SEG rev2.1', hdr='H', src='S', rec='R', rel='X', record=[7, 15], srcLin=[17, 27], srcPnt=[27, 37], srcInd=[37, 38], recLin=[49, 59], recMin=[59, 69], recMax=[69, 79], recInd=[79, 80]),
-    dict(name='Sudan', hdr='H', src='S', rec='R', rel='X', record=[4, 12], srcLin=[13, 17], srcPnt=[33, 37], srcInd=[37, 38], recLin=[47, 51], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
+    # the first character on a line is therefore [0, 1], the last one is [79, 80]
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], record=[8, 11], srcLin=[23, 27], srcPnt=[33, 37], srcInd=[37, 38], recLin=[57, 61], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], record=[8, 15], srcLin=[29, 33], srcPnt=[33, 37], srcInd=[37, 38], recLin=[61, 65], recMin=[65, 69], recMax=[75, 79], recInd=[79, 80]),
+    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], record=[7, 15], srcLin=[17, 27], srcPnt=[27, 37], srcInd=[37, 38], recLin=[49, 59], recMin=[59, 69], recMax=[69, 79], recInd=[79, 80]),
+    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], record=[4, 12], srcLin=[13, 17], srcPnt=[33, 37], srcInd=[37, 38], recLin=[47, 51], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
 ]
+# fmt: on
 
 # for access to QSettings()
 organization = 'Duijndam.Dev'
