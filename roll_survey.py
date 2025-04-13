@@ -397,7 +397,7 @@ class RollSurvey(pg.GraphicsObject):
         self.cmpTransform.scale(sx, sy)
 
         self.stkTransform = QTransform()
-        self.stkTransform.translate(-ox, -oy)                                   # first shift origin by small offset (usually 1/2 bin size)
+        self.stkTransform.translate(-ds / 2.0, -dl / 2.0)                           # first shift origin by an offset equal to half the stake/line increments
         self.stkTransform.scale(ds, dl)                                         # then scale it according to the stake / line intervals
         self.stkTransform.translate(-s0, -l0)                                   # then shift origin to the (stake, line) origin
         self.stkTransform, _ = self.stkTransform.inverted()                     # invert the transform before applying

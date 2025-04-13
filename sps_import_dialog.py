@@ -1,7 +1,7 @@
 import pyqtgraph as pg
-from qgis.PyQt.QtCore import QFileInfo, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QFileInfo, Qt
 from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QSyntaxHighlighter, QTextCharFormat, QTextOption
-from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QHeaderView, QLabel, QMessageBox, QPlainTextEdit, QSizePolicy, QTabWidget, QVBoxLayout
+from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QHeaderView, QLabel, QMessageBox, QPlainTextEdit, QTabWidget, QVBoxLayout
 
 from . import config  # used to pass initial settings
 
@@ -85,7 +85,7 @@ class SpsImportDialog(QDialog):
         # to access the main window and its components
         self.parent = parent
         self.setWindowTitle('SPS Import Dialog')
-        self.setMinimumWidth(800)
+        self.setMinimumWidth(900)
         self.setMinimumHeight(500)
 
         buttons = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
@@ -144,7 +144,7 @@ class SpsImportDialog(QDialog):
         )  # file extensions
 
         fileName = None  # no file(s) selected yet
-        replaceSps = True  # replace current SPS data
+        # replaceSps = True  # replace current SPS data
 
         spsParams = [
             dict(
@@ -168,7 +168,8 @@ class SpsImportDialog(QDialog):
                     dict(name='Local SPS dialect', type='list', limits=spsNames, value=config.spsDialect, default=config.spsDialect),  # SPS 'flavor'
                     dict(name='SPS item highlight', type='list', limits=spsItems, value=spsItems[0], default=spsItems[0], expanded=False, flat=True),
                     dict(name='XPS item highlight', type='list', limits=xpsItems, value=xpsItems[0], default=xpsItems[0], expanded=False, flat=True),
-                    dict(name='Replace current SPS data', type='bool', value=replaceSps, default=replaceSps),
+                    dict(name='RPS item highlight', type='list', limits=spsItems, value=spsItems[0], default=spsItems[0], expanded=False, flat=True),
+                    # dict(name='Replace current SPS data', type='bool', value=replaceSps, default=replaceSps),
                 ],
             ),
         ]
@@ -194,7 +195,8 @@ class SpsImportDialog(QDialog):
             if 'tip' in p.opts:                                                 # this solves the above mentioned bug
                 item.setToolTip(0, p.opts['tip'])                               # the widgets now get their tooltips
 
-        # Make sure we get a notification, when the SPS dialect has changed, or the SPS files have been altered
+        self.spsCrs = self.parameters.child('SPS Import Settings', 'CRS of SPS data')
+
         self.spsDialect = self.parameters.child('SPS Import Settings', 'Local SPS dialect')
         self.spsDialect.sigTreeStateChanged.connect(self.SpsDialectHasChanged)
 
@@ -206,6 +208,9 @@ class SpsImportDialog(QDialog):
 
         self.showXps = self.parameters.child('SPS Import Settings', 'XPS item highlight')
         self.showXps.sigTreeStateChanged.connect(self.XpsHighlightHasChanged)
+
+        self.showRps = self.parameters.child('SPS Import Settings', 'RPS item highlight')
+        self.showRps.sigTreeStateChanged.connect(self.RpsHighlightHasChanged)
 
         self.layout = QVBoxLayout()
 
@@ -256,22 +261,18 @@ class SpsImportDialog(QDialog):
         # sps settings
         config.spsDialect = SPS.child('Local SPS dialect').value()
 
-    def SpsDialectHasChanged(self, param, _):
+    def SpsDialectHasChanged(self, _, __):
         """
         Called when the SPS dialect has changed.
         """
-        print('SPS dialect changed')
-        # print(param, changes)
-        print(param.value())
         self.SpsHighlightHasChanged(self.showSps, None)  # update the SPS highlight
         self.XpsHighlightHasChanged(self.showXps, None)  # update the XPS highlight
+        self.RpsHighlightHasChanged(self.showRps, None)  # update the SPS highlight
 
     def SpsFilesHaveChanged(self, param, _):
         """
         Called when the SPS files have changed.
         """
-        print('SPS files changed')
-        print(param.value())
         self.fileNames = param.value()
 
         self.spsFiles = []
@@ -316,8 +317,6 @@ class SpsImportDialog(QDialog):
         """
         Called when the SPS highlight has changed.
         """
-        print('SPS highlight changed')
-        print(param.value())
 
         spsKey = next((key for key, value in config.spsFormatDict.items() if value == param.value()), None)
         assert spsKey is not None, f'No valid key with value {param.value()}'
@@ -325,21 +324,17 @@ class SpsImportDialog(QDialog):
         spsFormat = next((item for item in config.spsFormatList if item['name'] == self.spsDialect.value()), None)
         assert spsFormat is not None, f'No valid SPS entry with name {self.spsDialect.value()}'
 
-        print(spsFormat[spsKey][0], spsFormat[spsKey][1])
+        # print(spsFormat[spsKey][0], spsFormat[spsKey][1])
         self.spsTab.line1 = spsFormat[spsKey][0]
         self.spsTab.line2 = spsFormat[spsKey][1]
-        self.rpsTab.line1 = spsFormat[spsKey][0]
-        self.rpsTab.line2 = spsFormat[spsKey][1]
 
+        self.tabWidget.setCurrentIndex(0)
         self.spsTab.update()
-        self.rpsTab.update()
 
     def XpsHighlightHasChanged(self, param, _):
         """
         Called when the XPS highlight has changed.
         """
-        print('XPS highlight changed')
-        print(param.value())
 
         xpsKey = next((key for key, value in config.xpsFormatDict.items() if value == param.value()), None)
         assert xpsKey is not None, f'No valid key with value {param.value()}'
@@ -347,7 +342,39 @@ class SpsImportDialog(QDialog):
         xpsFormat = next((item for item in config.xpsFormatList if item['name'] == self.spsDialect.value()), None)
         assert xpsFormat is not None, f'No valid XPS entry with name {self.spsDialect.value()}'
 
-        print(xpsFormat[xpsKey][0], xpsFormat[xpsKey][1])
         self.xpsTab.line1 = xpsFormat[xpsKey][0]
         self.xpsTab.line2 = xpsFormat[xpsKey][1]
+
+        self.tabWidget.setCurrentIndex(1)
         self.xpsTab.update()
+
+    def RpsHighlightHasChanged(self, param, _):
+        """
+        Called when the RPS highlight has changed.
+        """
+
+        spsKey = next((key for key, value in config.spsFormatDict.items() if value == param.value()), None)
+        assert spsKey is not None, f'No valid key with value {param.value()}'
+
+        spsFormat = next((item for item in config.spsFormatList if item['name'] == self.spsDialect.value()), None)
+        assert spsFormat is not None, f'No valid SPS entry with name {self.spsDialect.value()}'
+
+        # print(spsFormat[spsKey][0], spsFormat[spsKey][1])
+        self.rpsTab.line1 = spsFormat[spsKey][0]
+        self.rpsTab.line2 = spsFormat[spsKey][1]
+
+        self.tabWidget.setCurrentIndex(2)
+        self.rpsTab.update()
+
+    # def eventFilter(self, obj, event):
+    #     if event.type() == QEvent.FocusIn:
+    #         if obj == self.spsTab:
+    #             self.tabWidget.setCurrentIndex(0)
+    #             self.tabWidget.update()
+    #         elif obj == self.xpsTab:
+    #             self.tabWidget.setCurrentIndex(1)
+    #             self.tabWidget.update()
+    #         elif obj == self.rpsTab:
+    #             self.tabWidget.setCurrentIndex(2)
+    #             self.tabWidget.update()
+    #     return super().eventFilter(obj, event)

@@ -12,6 +12,8 @@ def createGeomTab(self):
     self.srcView = TableView()                                              # create src view
     self.srcModel = SpsTableModel(self.srcGeom)                             # create src model
     self.srcView.setModel(self.srcModel)                                    # add the model to the view
+    self.srcHdrView = self.srcView.horizontalHeader()                           # to detect button clicks here
+    self.srcHdrView.sectionClicked.connect(self.sortSrcData)                    # handle the section-clicked signal
     self.srcView.setStyleSheet(table_style)                                 # define selection colors
     self.srcView.resizeColumnsToContents()
     self.srcView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -28,10 +30,13 @@ def createGeomTab(self):
     self.recView = TableView()                                              # create rec view
     self.recModel = RpsTableModel(self.recGeom)                             # create rec model
     self.recView.setModel(self.recModel)                                    # add the model to the view
+    self.recHdrView = self.recView.horizontalHeader()                           # to detect button clicks here
+    self.recHdrView.sectionClicked.connect(self.sortRecData)                    # handle the section-clicked signal
     self.recView.setStyleSheet(table_style)                                 # define selection colors
     self.recView.resizeColumnsToContents()
     self.recView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
+    # add the top labels
     self.srcLabel = QLabel('SRC records')
     self.srcLabel.setAlignment(Qt.AlignCenter)
     self.srcLabel.setStyleSheet(label_style)
@@ -44,33 +49,39 @@ def createGeomTab(self):
     self.recLabel.setAlignment(Qt.AlignCenter)
     self.recLabel.setStyleSheet(label_style)
 
-    # then create widget containers for the layout
+    # then create three containers for the layout of src, rel & rec
     self.srcPane = QWidget()
     self.relPane = QWidget()
     self.recPane = QWidget()
 
-    # then create button layout
+    # then create the buttons for the layout; start with source buttons
     self.btnSrcRemoveDuplicates = QPushButton('Remove &Duplicates')
+    label1 = QLabel('«-Cleanup table-»')
     self.btnSrcRemoveOrphans = QPushButton('Remove &REL-orphins')
-
+    # next line
     self.btnSrcExportToQGIS = QPushButton('Export to QGIS')
+    label3 = QLabel('«- QGIS I/O -»')
     self.btnSrcReadFromQGIS = QPushButton('Read from QGIS')
 
+    # continue with relation buttons
     self.btnRelRemoveSrcOrphans = QPushButton('Remove &SRC-orphins')
     self.btnRelRemoveDuplicates = QPushButton('Remove &Duplicates')
     self.btnRelRemoveRecOrphans = QPushButton('Remove &REC-orphins')
+    # next line
+    self.btnRelExportToQGIS = QPushButton('Export Src, Cmp, Rec && Binning &Boundaries to QGIS')
 
-    self.btnRecRemoveDuplicates = QPushButton('Remove &Duplicates')
+    # lastly create the receiver buttons
     self.btnRecRemoveOrphans = QPushButton('Remove &REL-orphins')
-
+    label2 = QLabel('«-Cleanup table-»')
+    self.btnRecRemoveDuplicates = QPushButton('Remove &Duplicates')
+    # next line
     self.btnRecExportToQGIS = QPushButton('Export to QGIS')
+    label4 = QLabel('«- QGIS I/O -»')
     self.btnRecReadFromQGIS = QPushButton('Read from QGIS')
 
-    self.btnRelExportToQGIS = QPushButton('Export Src, Cmp, Rec && Binning &Boundaries to QGIS')
     self.btnRelExportToQGIS.setToolTip('This button is enabled once you have saved the project')
 
-    # make the buttons stand out a bit
-    # See: https://www.webucator.com/article/python-color-constants-module/
+    # make the buttons stand out a bit. See: https://www.webucator.com/article/python-color-constants-module/
     self.btnSrcRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
     self.btnSrcRemoveOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
 
@@ -81,70 +92,67 @@ def createGeomTab(self):
     self.btnRecRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
     self.btnRecRemoveOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
 
+    # style for the QGIS buttons
     self.btnSrcExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
     self.btnSrcReadFromQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-
     self.btnRecExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
     self.btnRecReadFromQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-
     self.btnRelExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
 
-    # these buttons have signals
-    self.btnSrcRemoveDuplicates.pressed.connect(self.removeSrcDuplicates)   # src buttons & actions
+    # These buttons have signals, start with source buttons
+    self.btnSrcRemoveDuplicates.pressed.connect(self.removeSrcDuplicates)
     self.btnSrcRemoveOrphans.pressed.connect(self.removeSrcOrphans)
-    self.actionExportSrcToQGIS.triggered.connect(self.exportSrcToQgis)      # export src records to QGIS
-    self.btnSrcExportToQGIS.pressed.connect(self.exportSrcToQgis)           # export src records to QGIS
+    self.actionExportSrcToQGIS.triggered.connect(self.exportSrcToQgis)      # action from file menu
+    self.btnSrcExportToQGIS.pressed.connect(self.exportSrcToQgis)
     self.btnSrcReadFromQGIS.pressed.connect(self.importSrcFromQgis)
 
-    self.btnRelRemoveDuplicates.pressed.connect(self.removeRelDuplicates)   # rel buttons & actions
+    # continue with relation buttons
+    self.btnRelRemoveDuplicates.pressed.connect(self.removeRelDuplicates)
     self.btnRelRemoveSrcOrphans.pressed.connect(self.removeRelSrcOrphans)
     self.btnRelRemoveRecOrphans.pressed.connect(self.removeRelRecOrphans)
-    self.actionExportAreasToQGIS.triggered.connect(self.exportOutToQgis)    # export survey outline to QGIS
-    self.btnRelExportToQGIS.pressed.connect(self.exportOutToQgis)           # export survey outline to QGIS
+    self.actionExportAreasToQGIS.triggered.connect(self.exportOutToQgis)    # action from file menu
+    self.btnRelExportToQGIS.pressed.connect(self.exportOutToQgis)           # action from file menu; export survey outlines to QGIS
 
-    self.btnRecRemoveDuplicates.pressed.connect(self.removeRecDuplicates)   # rec buttons & actions
+    # lastly the receiver buttons
+    self.btnRecRemoveDuplicates.pressed.connect(self.removeRecDuplicates)
     self.btnRecRemoveOrphans.pressed.connect(self.removeRecOrphans)
-    self.actionExportRecToQGIS.triggered.connect(self.exportRecToQgis)      # export rec records to QGIS
-    self.btnRecExportToQGIS.pressed.connect(self.exportRecToQgis)           # export rec records to QGIS
+    self.actionExportRecToQGIS.triggered.connect(self.exportRecToQgis)      # action from file menu
+    self.btnRecExportToQGIS.pressed.connect(self.exportRecToQgis)
     self.btnRecReadFromQGIS.pressed.connect(self.importRecFromQgis)
 
-    self.btnBinToQGIS.pressed.connect(self.exportBinToQGIS)                 # figures
+    # todo maybe move these slot connections to main window?
+    self.btnBinToQGIS.pressed.connect(self.exportBinToQGIS)                 # side buttons;
     self.btnMinToQGIS.pressed.connect(self.exportMinToQGIS)
     self.btnMaxToQGIS.pressed.connect(self.exportMaxToQGIS)
     self.btnRmsToQGIS.pressed.connect(self.exportRmsToQGIS)
 
-    label1 = QLabel('«-Cleanup table-»')
     label1.setStyleSheet('border: 1px solid black;background-color:lavender')
     label1.setAlignment(Qt.AlignCenter)
-
-    label2 = QLabel('«-Cleanup table-»')
     label2.setStyleSheet('border: 1px solid black;background-color:lavender')
     label2.setAlignment(Qt.AlignCenter)
-
-    label3 = QLabel('«- QGIS I/O -»')
     label3.setStyleSheet('border: 1px solid black;background-color:lavender')
     label3.setAlignment(Qt.AlignCenter)
-
-    label4 = QLabel('«- QGIS I/O -»')
     label4.setStyleSheet('border: 1px solid black;background-color:lavender')
     label4.setAlignment(Qt.AlignCenter)
 
-    grid1 = QGridLayout()
+    # create the three button layouts
+    grid1 = QGridLayout()                                                   # top row
     grid1.addWidget(self.btnSrcRemoveDuplicates, 0, 0)
     grid1.addWidget(label1, 0, 1)
     grid1.addWidget(self.btnSrcRemoveOrphans, 0, 2)
 
-    grid1.addWidget(self.btnSrcExportToQGIS, 1, 0)
+    grid1.addWidget(self.btnSrcExportToQGIS, 1, 0)                          # second row
     grid1.addWidget(label3, 1, 1)
     grid1.addWidget(self.btnSrcReadFromQGIS, 1, 2)
 
-    grid2 = QGridLayout()
+    grid2 = QGridLayout()                                                   # top row
     grid2.addWidget(self.btnRelRemoveSrcOrphans, 0, 0)
     grid2.addWidget(self.btnRelRemoveDuplicates, 0, 1)
     grid2.addWidget(self.btnRelRemoveRecOrphans, 0, 2)
-    grid2.addWidget(self.btnRelExportToQGIS, 1, 0, 1, 3)
 
-    grid3 = QGridLayout()
+    grid2.addWidget(self.btnRelExportToQGIS, 1, 0, 1, 3)                    # second row
+
+    grid3 = QGridLayout()                                                   # top row
     grid3.addWidget(self.btnRecRemoveOrphans, 0, 0)
     grid3.addWidget(label2, 0, 1)
     grid3.addWidget(self.btnRecRemoveDuplicates, 0, 2)

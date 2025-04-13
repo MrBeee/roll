@@ -615,6 +615,38 @@ def compute_lcm(x, y):
     return lcm
 
 
+def convexHull(x, y):
+    # see: https://stackoverflow.com/questions/1500595/convex-hull-in-python
+    # see: https://bitbucket.org/william_rusnack/minimumboundingbox/src/master/MinimumBoundingBox.py
+    # see: https://github.com/dbworth/minimum-area-bounding-rectangle/tree/master
+    # see: https://gist.github.com/kchr/77a0ee945e581df7ed25
+
+    points = np.column_stack((x, y))
+
+    def link(a, b):
+        return np.concatenate((a, b[1:]))
+
+    def edge(a, b):
+        return np.concatenate(([a], [b]))
+
+    def dome(points, base):
+        h, t = base
+        dists = np.dot(points - h, np.dot(((0, -1), (1, 0)), (t - h)))
+        outer = np.repeat(points, dists > 0, 0)
+        if len(outer):
+            pivot = points[np.argmax(dists)]
+            return link(dome(outer, edge(h, pivot)), dome(outer, edge(pivot, t)))
+        else:
+            return base
+
+    if len(points) > 2:
+        axis = points[:, 0]
+        base = np.take(points, [np.argmin(axis), np.argmax(axis)], 0)
+        return link(dome(points, base), dome(points, base[::-1]))
+    else:
+        return points
+
+
 def numpyToQpolygonF(xdata, ydata):
     # See: https://github.com/PlotPyStack/PythonQwt/blob/master/qwt/plot_curve.py#L63
     """
@@ -725,8 +757,7 @@ def licenseText() -> str:
 
     Neither the name of Mapbox nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL DUIJNDAM.DEV BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-"""
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL DUIJNDAM.DEV BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."""
     return licenseTxt
 
 

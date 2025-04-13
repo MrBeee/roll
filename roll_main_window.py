@@ -126,7 +126,7 @@ from . import config  # used to pass initial settings
 
 # from .event_lookup import event_lookup
 from .find import Find
-from .functions import aboutText, exampleSurveyXmlText, highDpiText, licenseText, myPrint, rawcount
+from .functions import aboutText, convexHull, exampleSurveyXmlText, highDpiText, licenseText, myPrint
 from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
 from .land_wizard import LandSurveyWizard
 from .marine_wizard import MarineSurveyWizard
@@ -146,6 +146,7 @@ from .sps_import_dialog import SpsImportDialog
 from .sps_io_and_qc import (
     calcMaxXPStraces,
     calculateLineStakeTransform,
+    convertCrs,
     deletePntDuplicates,
     deletePntOrphans,
     deleteRelDuplicates,
@@ -160,10 +161,9 @@ from .sps_io_and_qc import (
     markUniqueSPSrecords,
     markUniqueXPSrecords,
     pntType1,
-    readRPSFiles,
-    readSPSFiles,
+    readRpsLine,
     readSpsLine,
-    readXPSFiles,
+    readXpsLine,
     relType2,
 )
 from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
@@ -256,7 +256,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.killMe = False
 
         # GQIS interface
-        self.iface = None                                                       # access to QGis interface
+        self.iface = None                                                       # access to QGis interface; is already initialized in roll.py
 
         # toolbar parameters
         self.XisY = True                                                        # equal x / y scaling
@@ -330,6 +330,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsLiveN = None                                                    # numpy array with list of live SPS coordinates
         self.spsDeadE = None                                                    # numpy array with list of dead SPS coordinates
         self.spsDeadN = None                                                    # numpy array with list of dead SPS coordinates
+
+        self.rpsBound = None                                               # numpy array with list of RPS convex hull coordinates
+        self.spsBound = None                                               # numpy array with list of SPS convex hull coordinates
 
         # rel, src, rel input arrays
         self.recGeom = None                                                     # numpy array with list of REC records
@@ -827,7 +830,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionNewLandSurvey.triggered.connect(self.fileNewLandSurvey)
         self.actionNewMarineSurvey.triggered.connect(self.fileNewMarineSurvey)
         self.actionOpen.triggered.connect(self.fileOpen)
-        self.actionImportSPS.triggered.connect(self.fileImportSPS)
+        self.actionImportSPS.triggered.connect(self.fileImportSpsData)
         self.actionPrint.triggered.connect(self.filePrint)
         self.actionSave.triggered.connect(self.fileSave)
         self.actionSaveAs.triggered.connect(self.fileSaveAs)
@@ -1331,19 +1334,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # the next line is needed if we disable the 'Apply' button in the property pane, when no changes have been made
         # self.propertyButtonBox.button(QDialogButtonBox.Apply).setEnabled(True)
 
-        # Always print the tree changes (don't use myPrint here)
         # Nomatter whether debug has been set to True or False
-        print('┌── sigTreeStateChanged --> tree changes:')
+        myPrint('┌── sigTreeStateChanged --> tree changes:')
         for param, change, data in changes:
             path = self.parameters.childPath(param)
             if path is not None:
                 childName = '.'.join(path)
             else:
                 childName = param.name()
-            print(f'│     parameter: {childName}')
-            print(f'│     change:    {change}')
-            print(f'│     data:      {str(data)}')
-            print('└───────────────────────────────────────')
+            myPrint(f'│     parameter: {childName}')
+            myPrint(f'│     change:    {change}')
+            myPrint(f'│     data:      {str(data)}')
+            myPrint('└───────────────────────────────────────')
 
     def onMainTabChange(self, index):                                           # manage focus when active tab is changed; doesn't work 100% yet !
         if index == 0:                                                          # main plotting widget
@@ -1556,19 +1558,23 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     # define several sps, rps, xps button functions
 
+    def sortSpsData(self, index):
+        if self.spsImport is None:
+            return
+        self.spsModel.applySort(index)
+        self.appendLogMessage(f'Sorting: SPS-data sorted on {self.spsModel.sortColumns()}')
+
+    def sortRpsData(self, index):
+        if self.rpsImport is None:
+            return
+        self.rpsModel.applySort(index)
+        self.appendLogMessage(f'Sorting: RPS-data sorted on {self.rpsModel.sortColumns()}')
+
     def sortXpsData(self, index):
         if self.xpsImport is None:
             return
-
-        self.xpsModel.setSort(index)
-
-        if index < 3:
-            self.xpsImport.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
-        elif index == 3:
-            self.xpsImport.sort(order=['Record', 'SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
-        else:
-            self.xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax'])
-        self.xpsModel.setData(self.xpsImport)
+        self.xpsModel.applySort(index)
+        self.appendLogMessage(f'Sorting: XPS-data sorted on {self.xpsModel.sortColumns()}')
 
     def removeRpsDuplicates(self):
         if self.rpsImport is None:
@@ -1578,6 +1584,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsModel.setData(self.rpsImport)                                   # update the model's data
         if after < before:                                                      # need to update the (x, y) points as well
             self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getGeometry(self.rpsImport)
+            self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)            # get the convex hull of the rps points
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps-duplicates')
@@ -1590,6 +1597,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsModel.setData(self.spsImport)
         if after < before:
             self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getGeometry(self.spsImport)
+            self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)            # get the convex hull of the rps points
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps-duplicates')
@@ -1602,6 +1610,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsModel.setData(self.rpsImport)
         if after < before:
             self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getGeometry(self.rpsImport)
+            self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)            # get the convex hull of the rps points
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps/xps-orphans')
@@ -1614,6 +1623,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsModel.setData(self.spsImport)
         if after < before:
             self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getGeometry(self.spsImport)
+            self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)            # get the convex hull of the rps points
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps/xps-orphans')
@@ -1643,17 +1653,26 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} xps/rps-orphans')
 
     # define src, rec, rel button functions
+    def sortRecData(self, index):
+        if self.recGeom is None:
+            return
+
+        self.recModel.applySort(index)
+        self.appendLogMessage(f'Sorting: REC-data sorted on {self.recModel.sortColumns()}')
+
+    def sortSrcData(self, index):
+        if self.srcGeom is None:
+            return
+
+        self.srcModel.applySort(index)
+        self.appendLogMessage(f'Sorting: SRC-data sorted on {self.srcModel.sortColumns()}')
+
     def sortRelData(self, index):
         if self.relGeom is None:
             return
 
-        if index < 3:
-            self.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
-        elif index == 3:
-            self.relGeom.sort(order=['Record', 'SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
-        else:
-            self.relGeom.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax'])
-        self.relModel.setData(self.relGeom)
+        self.relModel.applySort(index)
+        self.appendLogMessage(f'Sorting: REL-data sorted on {self.relModel.sortColumns()}')
 
     def removeRecDuplicates(self):
         if self.recGeom is None:
@@ -2098,8 +2117,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 bx = 0
                 by = 0
 
-            if self.survey.st2Transform is not None:
-                stkPoint = self.survey.st2Transform.map(localPoint)
+            if self.survey.stkTransform is not None:
+                stkPoint = self.survey.stkTransform.map(localPoint)
                 sx = int(stkPoint.x())
                 sy = int(stkPoint.y())
             else:
@@ -2294,7 +2313,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.rulerState = None
 
-        if config.debug:                                                          # provide some debugging output on the applied transform
+        if False:                                                          # provide some debugging output on the applied transform; use "if self.debug:" to enable
             # Get the transform that maps from local coordinates to the item's ViewBox coordinates
             transform = self.survey.glbTransform                                # GraphicsItem method
             if transform is not None:
@@ -2435,6 +2454,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
             spsLive.setTransform(spsTransform)
 
+            spsBound = self.layoutWidget.plot(self.spsBound, pen=pg.mkPen('r'), symbol=None)
+            spsBound.setTransform(spsTransform)
+
         if self.tbSpsList.isChecked() and self.tbAllList.isChecked() and self.spsDeadE is not None and self.spsDeadN is not None:
             spsTransform = QTransform()                                         # empty (unit) transform
             if not self.glob and self.survey.glbTransform is not None:          # global -> easting & westing
@@ -2470,6 +2492,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 symbolBrush=QColor(config.rpsBrushColor),
             )
             rpsLive.setTransform(rpsTransform)
+
+            rpsBound = self.layoutWidget.plot(self.rpsBound, pen=pg.mkPen('b'), symbol=None)
+            rpsBound.setTransform(rpsTransform)
 
         if self.tbRpsList.isChecked() and self.tbAllList.isChecked() and self.rpsDeadE is not None and self.rpsDeadN is not None:
             rpsTransform = QTransform()                                         # empty (unit) transform
@@ -3523,6 +3548,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if os.path.exists(self.fileName + '.rps.npy'):                      # open the existing rps-file
                 self.rpsImport = np.load(self.fileName + '.rps.npy')
                 self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getGeometry(self.rpsImport)
+                self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)        # get the convex hull of the rps points
 
                 nImport = self.rpsImport.shape[0]
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} rps-records')
@@ -3534,6 +3560,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if os.path.exists(self.fileName + '.sps.npy'):                      # open the existing sps-file
                 self.spsImport = np.load(self.fileName + '.sps.npy')
                 self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getGeometry(self.spsImport)
+                self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the rps points
 
                 nImport = self.spsImport.shape[0]
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} sps-records')
@@ -3628,290 +3655,225 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         return success
 
-    def fileImportSPS(self) -> bool:
-        if config.showUnfinished:
-            dlg = SpsImportDialog(self, self.survey.crs, self.importDirectory)
-            if dlg.exec():                                                      # Run the dialog event loop, and obtain sps information
-                if not dlg.fileNames:                                          # no files selected; return False
-                    self.appendLogMessage('Import : no files selected')
-                    return False
+    def fileImportSpsData(self) -> bool:
+        spsLines = 0
+        xpsLines = 0
+        rpsLines = 0
 
-                self.importDirectory = os.path.dirname(dlg.fileNames[0])                # retrieve the directory name from first file found
+        spsRead = 0
+        xpsRead = 0
+        rpsRead = 0
+        dlg = SpsImportDialog(self, self.survey.crs, self.importDirectory)
 
-                SPS = dlg.parameters.child('SPS Import Settings')
-                # sps settings
-                spsCrs = SPS.child('CRS of SPS data').value()
-                spsDialect = SPS.child('Local SPS dialect').value()
-
-                self.appendLogMessage(f"Import : importing SPS-data using the '{spsDialect}' SPS-dialect")
-                self.appendLogMessage(f'Import : importing {len(dlg.rpsFiles)} rps-file(s), {len(dlg.spsFiles)} sps-file(s) and {len(dlg.xpsFiles)} xps-file(s)')
-
-                ### import the SPS data
-
-                if dlg.spsFiles:
-                    self.appendLogMessage(f'Import : importing {len(dlg.spsFiles)} sps-file(s)')
-                    lines = dlg.spsTab.toPlainText().splitlines()
-                    spsLines = len(lines)
-                    self.spsImport = np.zeros(shape=spsLines, dtype=pntType1)
-
-                    self.progressLabel.setText(f'Importing {spsLines} lines of SPS data...')             # Set the text for the progress label
-                    self.showStatusbarWidgets()
-
-                    oldProgress = 0
-                    self.interrupted = False
-                    spsRead = 0
-                    for line_number, line in enumerate(lines):
-                        QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
-                        if self.interrupted is True:
-                            break
-
-                        progress = (100 * line_number) // spsLines
-                        if progress > oldProgress:
-                            oldProgress = progress
-                            self.progressBar.setValue(progress)
-                            QApplication.processEvents()  # Ensure the UI updates in real-time
-
-                        spsRead += readSpsLine(spsRead, line, self.spsImport, spsDialect)
-
-                    self.progressBar.setValue(100)
-
-                    if self.interrupted:
-                        self.appendLogMessage('Import : importing SPS data canceled by user.')
-                        return False
-
-                ### import the XPS data
-
-                if dlg.xpsFiles:
-                    lines = dlg.xpsTab.toPlainText().splitlines()
-                    xpsLines = len(lines)
-                    self.xpsImport = np.zeros(shape=xpsLines, dtype=pntType1)
-
-                    self.progressLabel.setText(f'Importing {xpsLines} lines of XPS data...')             # Set the text for the progress label
-                    self.showStatusbarWidgets()
-
-                    oldProgress = 0
-                    self.interrupted = False
-                    for line_number, line in enumerate(lines):
-                        QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
-                        if self.interrupted is True:
-                            break
-
-                        progress = (100 * line_number) // xpsLines
-                        if progress > oldProgress:
-                            oldProgress = progress
-                            self.progressBar.setValue(progress)
-                            QApplication.processEvents()  # Ensure the UI updates in real-time
-
-                    self.progressBar.setValue(100)
-
-                    if self.interrupted:
-                        self.appendLogMessage('Import : importing XPS data canceled by user.')
-                        return False
-
-                ### import the RPS data
-
-                if dlg.rpsFiles:
-                    lines = dlg.rpsTab.toPlainText().splitlines()
-                    rpsLines = len(lines)
-                    self.rpsImport = np.zeros(shape=rpsLines, dtype=pntType1)
-
-                    self.progressLabel.setText(f'Importing {rpsLines} lines of RPS data...')             # Set the text for the progress label
-                    self.showStatusbarWidgets()
-
-                    oldProgress = 0
-                    self.interrupted = False
-                    for line_number, line in enumerate(lines):
-                        QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
-                        if self.interrupted is True:
-                            break
-
-                        progress = (100 * line_number) // rpsLines
-                        if progress > oldProgress:
-                            oldProgress = progress
-                            self.progressBar.setValue(progress)
-                            QApplication.processEvents()  # Ensure the UI updates in real-time
-
-                    self.progressBar.setValue(100)
-
-                    if self.interrupted:
-                        self.appendLogMessage('Import : importing RPS data canceled by user.')
-                        return False
-
-                self.hideStatusbarWidgets()
-                self.appendLogMessage(f'Import : imported {spsLines} sps-records, {xpsLines} xps-records and {rpsLines} rps-records')
-
-            return False                                                        # Should return True when code is completed and all is okay
-
-        if not self.hideSpsCrsWarning:
-            mb = QMessageBox()
-            mb.setWindowTitle('Please note')
-            mb.setText(
-                "'SPS Import' requires the SPS data to have the same CRS as the current Roll project.  Continue importing SPS data?\n",
-            )
-            cb = QCheckBox("Don't show this message again")
-            mb.setCheckBox(cb)
-            mb.setStandardButtons(mb.Ok | mb.Cancel)
-            ret = mb.exec()
-            self.hideSpsCrsWarning = cb.isChecked()
-            if ret == mb.Cancel:
-                return False
-
-        if not self.fileName:
-            reply = QMessageBox.question(
-                self,
-                'Please confirm',
-                "'SPS Import' requires saving this file first, to obtain a valid filename in a directory with write access.\n\nSave survey file and continue ?",
-                QMessageBox.Yes,
-                QMessageBox.Cancel,
-            )
-            if reply == QMessageBox.Cancel:
-                return False
-
-            if self.fileSaveAs() is False:
-                return False
-
-        fileNames, _ = QFileDialog.getOpenFileNames(  # filetype variable not used
-            self,  # self; that's me
-            'Import SPS data...',  # caption
-            self.importDirectory,  # start directory + filename
-            'SPS triplets (*.s01 *.r01 *.x01);;'
-            'SPS triplets (*.sps *.rps *.xps);;'
-            'SPS triplets (*.sp1 *.rp1 *.xp1);;'
-            'Source   files (*.sps *.s01 *.sp1);;'
-            'Receiver files (*.rps *.r01 *.rp1);;'
-            'Relation files (*.xps *.x01 *.xp1);;'
-            ' All files (*.*)',
-        )                                             # file extensions
-        # options -> not being used
-        if not fileNames:
+        if not dlg.exec():                                                      # Run the dialog event loop, and obtain sps information
             return False
 
-        self.importDirectory = os.path.dirname(fileNames[0])                # retrieve the directory name from first file found
+        if not dlg.fileNames:                                                   # no files selected; return False
+            self.appendLogMessage('Import : no files selected')
+            return False
 
-        spsFiles = []
-        rpsFiles = []
-        xpsFiles = []
+        self.importDirectory = os.path.dirname(dlg.fileNames[0])            # retrieve the directory name from first file found
 
-        nSps = 0
-        nRps = 0
-        nXps = 0
+        SPS = dlg.parameters.child('SPS Import Settings')                   # sps settings from dialog
+        spsCrs = SPS.child('CRS of SPS data').value()                       # dialog CRS
+        spsDialect = SPS.child('Local SPS dialect').value()                 # dialog SPS dialect
 
-        for fileName in fileNames:
-            suffix = QFileInfo(fileName).suffix().lower()
-            if suffix.startswith('s'):
-                spsFiles.append(fileName)
-                nSps += rawcount(fileName)
-            elif suffix.startswith('r'):
-                rpsFiles.append(fileName)
-                nRps += rawcount(fileName)
-            elif suffix.startswith('x'):
-                xpsFiles.append(fileName)
-                nXps += rawcount(fileName)
-            else:
-                baseName = QFileInfo(fileName).completeBaseName()
-                QMessageBox.information(None, 'Import error', f"Unsupported file extension in selected file(s):\n\n'{baseName}.{suffix}'\n")
+        self.appendLogMessage(f"Import : importing SPS-data using the '{spsDialect}' SPS-dialect")
+        self.appendLogMessage(f'Import : importing {len(dlg.rpsFiles)} rps-file(s), {len(dlg.spsFiles)} sps-file(s) and {len(dlg.xpsFiles)} xps-file(s)')
+
+        spsFormat = next((item for item in config.spsFormatList if item['name'] == spsDialect), None)
+        assert spsFormat is not None, f'No valid SPS dialect with name {spsDialect}'
+
+        xpsFormat = next((item for item in config.xpsFormatList if item['name'] == spsDialect), None)
+        assert xpsFormat is not None, f'No valid XPS dialect with name {spsDialect}'
+
+        if dlg.spsFiles:                                                    # import the SPS data
+            spsData = dlg.spsTab.toPlainText().splitlines()
+            spsLines = len(spsData)
+            self.spsImport = np.zeros(shape=spsLines, dtype=pntType1)
+
+            self.progressLabel.setText(f'Importing {spsLines} lines of SPS data...')
+            self.showStatusbarWidgets()
+
+            oldProgress = 0
+            self.interrupted = False
+            for line_number, line in enumerate(spsData):
+                QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
+                if self.interrupted is True:
+                    break
+
+                progress = (100 * line_number) // spsLines
+                if progress > oldProgress:
+                    oldProgress = progress
+                    self.progressBar.setValue(progress)
+                    QApplication.processEvents()  # Ensure the UI updates in real-time
+
+                spsRead += readSpsLine(spsRead, line, self.spsImport, spsFormat)
+
+            self.progressBar.setValue(100)
+
+            if spsRead < spsLines:
+                self.spsImport.resize(spsRead, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
+
+            if self.interrupted:
+                self.appendLogMessage('Import : importing SPS data canceled by user.')
                 return False
 
-        self.appendLogMessage(f"Import : importing SPS-data using the '{config.spsDialect}' SPS-dialect")
-        self.appendLogMessage(f'Import : importing {len(rpsFiles)} rps-file(s), {len(spsFiles)} sps-file(s) and {len(xpsFiles)} xps-file(s)')
+        if dlg.xpsFiles:                                                    # import the XPS data
+            xpsData = dlg.xpsTab.toPlainText().splitlines()
+            xpsLines = len(xpsData)
+            self.xpsImport = np.zeros(shape=xpsLines, dtype=relType2)
 
-        with pg.BusyCursor():                                               # this may take a while; start wait cursor
-            # get receiver data
-            if rpsFiles:
-                self.rpsImport = np.zeros(shape=nRps, dtype=pntType1)
+            self.progressLabel.setText(f'Importing {xpsLines} lines of XPS data...')
+            self.showStatusbarWidgets()
 
-                spsFormat = next((item for item in config.spsFormatList if item['name'] == config.spsDialect), None)
-                assert spsFormat is not None, f'No valid SPS dialect with name {config.spsDialect}'
-                nRps = readRPSFiles(rpsFiles, self.rpsImport, spsFormat)
+            oldProgress = 0
+            for line_number, line in enumerate(xpsData):
+                QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
+                if self.interrupted is True:
+                    break
 
-                if nRps <= 0:                                              # no records found
-                    self.rpsImport = None
-                    self.appendLogMessage('Import : . . . unexpectedly no rps-records found', MsgType.Error)
-                else:
-                    self.appendLogMessage(f'Import : . . . read {nRps:,} rps-records')
-            else:
-                self.rpsImport = None
+                progress = (100 * line_number) // xpsLines
+                if progress > oldProgress:
+                    oldProgress = progress
+                    self.progressBar.setValue(progress)
+                    QApplication.processEvents()  # Ensure the UI updates in real-time
 
-            # get source data
-            if spsFiles:
-                self.spsImport = np.zeros(shape=nSps, dtype=pntType1)
+                xpsRead += readXpsLine(xpsRead, line, self.xpsImport, xpsFormat)
 
-                spsFormat = next((item for item in config.spsFormatList if item['name'] == config.spsDialect), None)
-                assert spsFormat is not None, f'No valid SPS dialect with name {config.spsDialect}'
-                nSps = readSPSFiles(spsFiles, self.spsImport, spsFormat)
+            self.progressBar.setValue(100)
 
-                if nSps <= 0:                                              # no records found
-                    self.spsImport = None
-                    self.appendLogMessage('Import : . . . unexpectedly no sps-records found', MsgType.Error)
-                else:
-                    self.appendLogMessage(f'Import : . . . read {nSps:,} sps-records ')
-            else:
-                self.spsImport = None
+            if xpsRead < xpsLines:
+                self.xpsImport.resize(xpsRead, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
 
-            # get relational  data
-            if xpsFiles:
-                self.xpsImport = np.zeros(shape=nXps, dtype=relType2)
+            if self.interrupted:
+                self.appendLogMessage('Import : importing XPS data canceled by user.')
+                return False
 
-                xpsFormat = next((item for item in config.xpsFormatList if item['name'] == config.spsDialect), None)
-                assert xpsFormat is not None, f'No valid XPS dialect with name {config.spsDialect}'
-                nXps = readXPSFiles(xpsFiles, self.xpsImport, xpsFormat)
+        if dlg.rpsFiles:                                                    # import the RPS data
+            rpsData = dlg.rpsTab.toPlainText().splitlines()
+            rpsLines = len(rpsData)
+            self.rpsImport = np.zeros(shape=rpsLines, dtype=pntType1)
 
-                if nXps <= 0:                                              # no records found
-                    self.xpsImport = None
-                    self.appendLogMessage('Import : . . . unexpectedly no xps-records found', MsgType.Error)
-                else:
-                    self.appendLogMessage(f'Import : . . . read {nXps:,} xps-records')
-            else:
-                self.xpsImport = None
+            self.progressLabel.setText(f'Importing {rpsLines} lines of RPS data...')
+            self.showStatusbarWidgets()
+
+            oldProgress = 0
+            for line_number, line in enumerate(rpsData):
+                QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
+                if self.interrupted is True:
+                    break
+
+                progress = (100 * line_number) // rpsLines
+                if progress > oldProgress:
+                    oldProgress = progress
+                    self.progressBar.setValue(progress)
+                    QApplication.processEvents()  # Ensure the UI updates in real-time
+
+                rpsRead += readRpsLine(rpsRead, line, self.rpsImport, spsFormat)
+
+            self.progressBar.setValue(100)
+
+            if rpsRead < rpsLines:
+                self.rpsImport.resize(rpsRead, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
+
+            if self.interrupted:
+                self.appendLogMessage('Import : importing RPS data canceled by user.')
+                return False
+
+            self.appendLogMessage(f'Import : imported {spsLines} sps-records, {xpsLines} xps-records and {rpsLines} rps-records')
+            QApplication.processEvents()  # Ensure the UI updates in real-time
+
+        nQcStep = 0
+        nQcSteps = 0
+        if self.rpsImport is not None:
+            nQcSteps += 1
+        if self.spsImport is not None:
+            nQcSteps += 1
+        if self.xpsImport is not None:
+            nQcSteps += 1
+        if spsRead > 0 and xpsRead > 0:
+            nQcSteps += 1
+        if rpsRead > 0 and xpsRead > 0:
+            nQcSteps += 1
+        nQcIncrement = 100 // nQcSteps if nQcSteps > 0 else 0
+
+        if nQcSteps > 0:
+            self.progressBar.setValue(0)                                        # first reset to zero
 
         # sort and analyse imported arrays
         with pg.BusyCursor():
             if self.rpsImport is not None:
+                self.progressLabel.setText(f'Import QC step : ({nQcStep + 1} / {nQcSteps}) analysing rps-records')
+                self.progressBar.setValue(nQcIncrement * nQcStep)
+                nQcStep += 1
                 nImport = self.rpsImport.shape[0]
                 nUnique = markUniqueRPSrecords(self.rpsImport, sort=True)
                 self.appendLogMessage(f'Import : . . . analysed rps-records; found {nUnique:,} unique records and {(nImport - nUnique):,} duplicates')
+                QApplication.processEvents()  # Ensure the UI updates in real-time
 
-                X = calculateLineStakeTransform(self.rpsImport)
-                #               A0                         + A1 * Xs                 + A2 * Ys              = Xt
-                #                               B0                      + B1 * Xs                 + B2 * Ys = Yt  ==>
-                self.appendLogMessage(f'Import : . . . from rps info: X = {X[0]:.2f} + {X[2]:.2f} x Nx + {X[4]:.2f} x Ny')
-                self.appendLogMessage(f'Import : . . . from rps info: Y = {X[1]:.2f} + {X[3]:.2f} x Nx + {X[5]:.2f} x Ny')
+                convertCrs(self.rpsImport, dlg.spsCrs.value(), self.survey.crs)  # convert the coordinates to the survey CRS
+
+                origX, origY, lineMin, pointMin, dL, dP, angle1 = calculateLineStakeTransform(self.rpsImport)
+                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: RPS origin = ({origX:.2f}, {origY:.2f}), azimuth = {angle1:,.3f} deg for rec lines &#8741; x-axis')
+                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Local grid: Stake origin = ({pointMin:.2f}, {lineMin:.2f}), increment = ({dP:,.2f}, {dL:,.2f}) m')
+                QApplication.processEvents()  # Ensure the UI updates in real-time
 
                 self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getGeometry(self.rpsImport)
-                self.tbRpsList.setChecked(True)
+                self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)        # get the convex hull of the rps points
+                self.tbRpsList.setChecked(True)                                 # set the RPS list to be visible
 
             if self.spsImport is not None:
+                self.progressLabel.setText(f'Import QC step : ({nQcStep + 1} / {nQcSteps}) analysing sps-records')
+                self.progressBar.setValue(nQcIncrement * nQcStep)
+                nQcStep += 1
                 nImport = self.spsImport.shape[0]
                 nUnique = markUniqueSPSrecords(self.spsImport, sort=True)
                 self.appendLogMessage(f'Import : . . . analysed sps-records; found {nUnique:,} unique records and {(nImport - nUnique):,} duplicates')
+                QApplication.processEvents()  # Ensure the UI updates in real-time
 
-                X = calculateLineStakeTransform(self.spsImport)
-                #               A0                         + A1 * Xs                 + A2 * Ys              = Xt
-                #                               B0                      + B1 * Xs                 + B2 * Ys = Yt  ==>
-                self.appendLogMessage(f'Import : . . . from sps info: X = {X[0]:.2f} + {X[2]:.2f} x Nx + {X[4]:.2f} x Ny')
-                self.appendLogMessage(f'Import : . . . from sps info: Y = {X[1]:.2f} + {X[3]:.2f} x Nx + {X[5]:.2f} x Ny')
+                convertCrs(self.spsImport, dlg.spsCrs.value(), self.survey.crs)  # convert the coordinates to the survey CRS
+
+                origX, origY, lineMin, pointMin, dL, dP, angle1 = calculateLineStakeTransform(self.spsImport)
+                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: SPS origin = ({origX:.2f}, {origY:.2f}) m, azimuth = {angle1:.3f} deg for src lines &#8741; x-axis')
+                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Local grid: stake origin = ({pointMin:.2f}, {lineMin:.2f}), increment = ({dP:,.2f}, {dL:,.2f}) m')
 
                 self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getGeometry(self.spsImport)
+                self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the rps points
                 self.tbSpsList.setChecked(True)
 
             if self.xpsImport is not None:
+                self.progressLabel.setText(f'Import QC step : ({nQcStep + 1} / {nQcSteps}) analysing xps-records')
+                self.progressBar.setValue(nQcIncrement * nQcStep)
+                nQcStep += 1
                 nImport = self.xpsImport.shape[0]
                 nUnique = markUniqueXPSrecords(self.xpsImport, sort=True)
                 self.appendLogMessage(f'Import : . . . analysed xps-records; found {nUnique:,} unique records and {(nImport - nUnique):,} duplicates')
+                QApplication.processEvents()                                    # Ensure the UI updates in real-time
 
                 traces = calcMaxXPStraces(self.xpsImport)
-                self.appendLogMessage(f'Import : . . . xps-records allow for maximum {traces:,} traces')
+                self.appendLogMessage(f'Import : . . . the xps-records define a maximum of {traces:,} traces')
 
             # handle doublets  of RPS / XPS and SPS / XPS-files
-            if nSps > 0 and nXps > 0:
+            if spsRead > 0 and xpsRead > 0:
+                self.progressLabel.setText(f'Import QC step : ({nQcStep + 1} / {nQcSteps}) analysing sps-xps orphans')
+                self.progressBar.setValue(nQcIncrement * nQcStep)
+                nQcStep += 1
+
                 nSpsOrphans, nXpsOrphans = findSrcOrphans(self.spsImport, self.xpsImport)
                 self.appendLogMessage(f'Import : . . . sps-records contain {nXpsOrphans:,} xps-orphans')
                 self.appendLogMessage(f'Import : . . . xps-records contain {nSpsOrphans:,} sps-orphans')
+                QApplication.processEvents()  # Ensure the UI updates in real-time
 
-            if nRps > 0 and nXps > 0:
+            if rpsRead > 0 and xpsRead > 0:
+                self.progressLabel.setText(f'Import QC step : ({nQcStep + 1} / {nQcSteps}) analysing xps-rps orphans')
+                self.progressBar.setValue(nQcIncrement * nQcStep)
+                nQcStep += 1
+
                 nRpsOrphans, nXpsOrphans = findRecOrphans(self.rpsImport, self.xpsImport)
                 self.appendLogMessage(f'Import : . . . rps-records contain {nXpsOrphans:,} xps-orphans')
                 self.appendLogMessage(f'Import : . . . xps-records contain {nRpsOrphans:,} rps-orphans')
+                QApplication.processEvents()  # Ensure the UI updates in real-time
 
         self.spsModel.setData(self.spsImport)                                   # update the three sps/rps/xps models
         self.xpsModel.setData(self.xpsImport)
@@ -3919,11 +3881,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.mainTabWidget.setCurrentIndex(4)                                   # make sure we display the 'SPS import' tab
 
-        self.actionRpsPoints.setEnabled(nRps > 0)
-        self.actionSpsPoints.setEnabled(nSps > 0)
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
+        # self.actionRpsPoints.setEnabled(rpsRead > 0)
+        # self.actionSpsPoints.setEnabled(spsRead > 0)
 
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save sps data as numpy arrays upon saving the file
-
+        self.hideStatusbarWidgets()
         return True
 
     def fileOpen(self):

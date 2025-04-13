@@ -2,8 +2,7 @@ from datetime import datetime
 
 import numpy as np
 import pyqtgraph as pg
-
-# from numpy.compat import asstr
+from qgis.core import QgsCoordinateTransform, QgsProject, QgsVector3D
 from qgis.PyQt.QtCore import QFile, QIODevice, QTextStream
 from qgis.PyQt.QtWidgets import QFileDialog
 
@@ -18,96 +17,101 @@ from .functions import myPrint, toFloat, toInt
 #################### 'Field'   np.type  Fortran type
 pntType = np.dtype(
     [
+        # fmt : off
         ('RecID', 'U2'),  # A1 ('S' or 'R')
-        ('Line', 'f4'),  # F10.2
+        ('Line',  'f4'),  # F10.2
         ('Point', 'f4'),  # F10.2
         ('Index', 'i4'),  # I1
-        ('Code', 'U2'),  # A2
-        ('Static', 'i4'),  # I4
+        ('Code',  'U2'),  # A2
+        ('Static','i4'),  # I4
         ('Depth', 'f4'),  # I4
         ('Datum', 'i4'),  # I4
         ('Uhole', 'i4'),  # I2
         ('Water', 'f4'),  # F6.1
-        ('East', 'f4'),  # F9.1
+        ('East',  'f4'),  # F9.1
         ('North', 'f4'),  # F10.1
-        ('Elev', 'f4'),  # F6.1
-        ('Day', 'i4'),  # I3
-        ('Time', 'i4'),  # 3I2
+        ('Elev',  'f4'),  # F6.1
+        ('Day',   'i4'),  # I3
+        ('Time',  'i4'),  # 3I2
+        # fmt : on
     ]
 )
 
 # this point-type includes local x, y coordinates
 pntType1 = np.dtype(
     [
-        ('Line', 'f4'),  # F10.2
+        # fmt : off
+        ('Line',  'f4'),  # F10.2
         ('Point', 'f4'),  # F10.2
         ('Index', 'i4'),  # I1
-        ('Code', 'U2'),  # A2
+        ('Code',  'U2'),  # A2
         ('Depth', 'f4'),  # I4
-        ('East', 'f4'),  # F9.1
+        ('East',  'f4'),  # F9.1
         ('North', 'f4'),  # F10.1
-        ('Elev', 'f4'),  # F6.1
-        ('Uniq', 'i4'),  # check if record is unique
+        ('Elev',  'f4'),  # F6.1
+        ('Uniq',  'i4'),  # check if record is unique
         ('InXps', 'i4'),  # check if record is orphan
         ('InUse', 'i4'),  # check if record is in use
-        ('LocX', 'f4'),  # F9.1
-        ('LocY', 'f4'),  # F10.1
+        ('LocX',  'f4'),  # F9.1
+        ('LocY',  'f4'),  # F10.1
+        # fmt : on
     ]
 )
 
 # pntType2 = np.dtype(
 #     [
-#         ('Line', 'f4'),  # F10.2
+#         # fmt : on
+#         ('Line',  'f4'),  # F10.2
 #         ('Point', 'f4'),  # F10.2
 #         ('Index', 'i4'),  # I1
-#         ('Code', 'U2'),  # A2
+#         ('Code',  'U2'),  # A2
 #         ('Depth', 'f4'),  # I4
-#         ('East', 'f4'),  # F9.1
+#         ('East',  'f4'),  # F9.1
 #         ('North', 'f4'),  # F10.1
-#         ('Elev', 'f4'),  # F6.1
-#         ('Uniq', 'i4'),  # check if record is unique
+#         ('Elev',  'f4'),  # F6.1
+#         ('Uniq',  'i4'),  # check if record is unique
 #         ('InXps', 'i4'),  # check if record is orphan
-#     ]
-# )
+#         # fmt : off
+#     ])
 
 # pntType3 is used to shorten the SPS/RPS records to Line-Point-Index records
 pntType3 = np.dtype(
     [
-        ('Line', 'f4'),
-        ('Point', 'f4'),
-        ('Index', 'i4'),
-    ]
-)  # F10.2  # F10.2  # I1
+        ('Line', 'f4'),   # F10.2
+        ('Point', 'f4'),  # F10.2
+        ('Index', 'i4'),  # I1
+    ])
 
 pntType4 = np.dtype(
     [
-        ('Line', 'f4'),  # F10.2
+        # fmt : off
+        ('Line',  'f4'),  # F10.2
         ('Point', 'f4'),  # F10.2
         ('Index', 'i4'),  # I1
-        ('Code', 'U2'),  # A2
+        ('Code',  'U2'),  # A2
         ('Depth', 'f4'),  # I4
-        ('East', 'f4'),  # F9.1
+        ('East',  'f4'),  # F9.1
         ('North', 'f4'),  # F10.1
-        ('Elev', 'f4'),  # F6.1
-        ('Day', 'i4'),  # I3
-        ('Hour', 'i1'),  # I2
-        ('Min', 'i1'),  # I2
-        ('Sec', 'i1'),  # I2
-        ('Stub', 'i1'),  # I2
-    ]
-)
+        ('Elev',  'f4'),  # F6.1
+        ('Day',   'i4'),  # I3
+        ('Hour',  'i1'),  # I2
+        ('Min',   'i1'),  # I2
+        ('Sec',   'i1'),  # I2
+        ('Stub',  'i1'),  # I2
+        # fmt : on
+    ])
 
 pntType5 = np.dtype(
     [
         ('LocX', 'f4'),  # F9.1
         ('LocY', 'f4'),  # F10.1
         ('Elev', 'f4'),  # F6.1
-    ]
-)
+    ])
 
 relType = np.dtype(
     [
-        ('RecID', 'U2'),  # A1 ('X')
+        # fmt : off
+        ('RecID',  'U2'),  # A1 ('X')
         ('TapeNo', 'U8'),  # 3A2
         ('Record', 'i4'),  # I8
         ('RecInc', 'i4'),  # I1
@@ -122,11 +126,12 @@ relType = np.dtype(
         ('RecMin', 'f4'),  # F10.2
         ('RecMax', 'f4'),  # F10.2
         ('RecInd', 'i4'),  # I1
-    ]
-)
+        # fmt : on
+    ])
 
 relType2 = np.dtype(
     [
+        # fmt : off
         ('SrcLin', 'f4'),  # F10.2
         ('SrcPnt', 'f4'),  # F10.2
         ('SrcInd', 'i4'),  # I1
@@ -135,29 +140,35 @@ relType2 = np.dtype(
         ('RecMin', 'f4'),  # F10.2
         ('RecMax', 'f4'),  # F10.2
         ('RecInd', 'i4'),  # I1
-        ('Uniq', 'i4'),  # check if record is unique
-        ('InSps', 'i4'),  # check if record is orphan
-        ('InRps', 'i4'),  # check if record is orphan
-    ]
-)
+        ('Uniq',   'i4'),  # check if record is unique
+        ('InSps',  'i4'),  # check if record is orphan
+        ('InRps',  'i4'),  # check if record is orphan
+        # fmt : on
+    ])
 
-relType3 = np.dtype([('RecLin', 'f4'), ('RecMin', 'f4'), ('RecMax', 'f4'), ('RecInd', 'i4')])  # F10.2  # F10.2  # F10.2  # I1
+relType3 = np.dtype(
+    [
+        ('RecLin', 'f4'),  # F10.2
+        ('RecMin', 'f4'),  # F10.2
+        ('RecMax', 'f4'),  # F10.2
+        ('RecInd', 'i4'),  # I1
+    ])
 
 anaType = np.dtype(
     [
+        # fmt : off
         ('SrcX', np.float32),  # Src (x, y)
         ('SrcY', np.float32),
         ('RecX', np.float32),  # Rec (x, y)
         ('RecY', np.float32),
         ('CmpX', np.float32),  # Cmp (x, y); needed for spider plot when binning against dipping plane
         ('CmpY', np.float32),
-        ('SrcL', np.int32),  # SrcLine, SrcPoint
+        ('SrcL', np.int32),    # SrcLine, SrcPoint
         ('SrcP', np.int32),
-        ('RecL', np.int32),  # RecLine, RecPoint
+        ('RecL', np.int32),    # RecLine, RecPoint
         ('RecP', np.int32),
-    ]
-)
-
+        # fmt : on
+    ])
 
 def readRPSFiles(filenames, resultArray, fmt) -> int:
 
@@ -183,14 +194,16 @@ def readRPSFiles(filenames, resultArray, fmt) -> int:
             if len(line) == 0 or line[0] != fmt['rec']:
                 continue
 
-            lin = toFloat(line[fmt['line'][0] : fmt['line'][1]].strip())
+            # fmt: off
+            lin = toFloat(line[fmt[ 'line'][0] : fmt[ 'line'][1]].strip())
             pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
-            idx = toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
-            cod = line[fmt['code'][0] : fmt['code'][1]].strip()
+            idx =   toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
+            cod =         line[fmt[ 'code'][0] : fmt[ 'code'][1]].strip()
             dep = toFloat(line[fmt['depth'][0] : fmt['depth'][1]].strip())
-            eas = toFloat(line[fmt['east'][0] : fmt['east'][1]].strip())
+            eas = toFloat(line[fmt[ 'east'][0] : fmt[ 'east'][1]].strip())
             nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
-            ele = toFloat(line[fmt['elev'][0] : fmt['elev'][1]].strip())
+            ele = toFloat(line[fmt[ 'elev'][0] : fmt[ 'elev'][1]].strip())
+            # fmt : on
 
             record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
             resultArray[index] = record
@@ -201,7 +214,6 @@ def readRPSFiles(filenames, resultArray, fmt) -> int:
         resultArray.resize(index, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
 
     return index
-
 
 def readSPSFiles(filenames, resultArray, fmt) -> int:
 
@@ -222,19 +234,16 @@ def readSPSFiles(filenames, resultArray, fmt) -> int:
             if len(line) == 0 or line[0] != fmt['src']:
                 continue
 
-            pt0 = fmt['point'][0]
-            pt1 = fmt['point'][1]
-            pnt = line[pt0:pt1]
-            pnt = toFloat(line[pt0:pt1])
-
-            lin = toFloat(line[fmt['line'][0] : fmt['line'][1]].strip())
+            # fmt: off
+            lin = toFloat(line[fmt[ 'line'][0] : fmt[ 'line'][1]].strip())
             pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
-            idx = toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
-            cod = line[fmt['code'][0] : fmt['code'][1]].strip()
+            idx =   toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
+            cod =         line[fmt[ 'code'][0] : fmt[ 'code'][1]].strip()
             dep = toFloat(line[fmt['depth'][0] : fmt['depth'][1]].strip())
-            eas = toFloat(line[fmt['east'][0] : fmt['east'][1]].strip())
+            eas = toFloat(line[fmt[ 'east'][0] : fmt[ 'east'][1]].strip())
             nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
-            ele = toFloat(line[fmt['elev'][0] : fmt['elev'][1]].strip())
+            ele = toFloat(line[fmt[ 'elev'][0] : fmt[ 'elev'][1]].strip())
+            # fmt: off
 
             record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
             resultArray[index] = record
@@ -245,27 +254,6 @@ def readSPSFiles(filenames, resultArray, fmt) -> int:
         resultArray.resize(index, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
 
     return index
-
-
-def readSpsLine(line_number, line, spsImport, fmt) -> int:
-    if len(line) == 0 or line[0] != fmt['src']:                                 # check if line is empty or not a source line
-        return 0
-
-    # fmt: off
-    lin = toFloat(line[fmt[ 'line'][0] : fmt[' line'][1]].strip())
-    pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
-    idx =   toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
-    cod =         line[fmt[ 'code'][0] : fmt[ 'code'][1]].strip()
-    dep = toFloat(line[fmt['depth'][0] : fmt['depth'][1]].strip())
-    eas = toFloat(line[fmt[ 'east'][0] : fmt[ 'east'][1]].strip())
-    nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
-    ele = toFloat(line[fmt[ 'elev'][0] : fmt[ 'elev'][1]].strip())
-    # fmt: on
-
-    record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
-    spsImport[line_number] = record
-    return 1
-
 
 def readXPSFiles(filenames, resultArray, fmt) -> int:
 
@@ -288,16 +276,18 @@ def readXPSFiles(filenames, resultArray, fmt) -> int:
 
             # This is the order that parameters appear on in an xps file
             # However, we move RecNo to the fourth place in the xps record
-            record = toInt(line[fmt['record'][0] : fmt['record'][1]].strip())
+            # fmt: off
+            recNum =   toInt(line[fmt['recNum'][0] : fmt['recNum'][1]].strip())
             srcLin = toFloat(line[fmt['srcLin'][0] : fmt['srcLin'][1]].strip())
             srcPnt = toFloat(line[fmt['srcPnt'][0] : fmt['srcPnt'][1]].strip())
-            srcInd = toInt(line[fmt['srcInd'][0] : fmt['srcInd'][1]].strip())
+            srcInd =   toInt(line[fmt['srcInd'][0] : fmt['srcInd'][1]].strip())
             recLin = toFloat(line[fmt['recLin'][0] : fmt['recLin'][1]].strip())
             recMin = toFloat(line[fmt['recMin'][0] : fmt['recMin'][1]].strip())
             recMax = toFloat(line[fmt['recMax'][0] : fmt['recMax'][1]].strip())
-            recInd = toInt(line[fmt['recInd'][0] : fmt['recInd'][1]].strip())
+            recInd =   toInt(line[fmt['recInd'][0] : fmt['recInd'][1]].strip())
+            # fmt: off
 
-            record = (srcLin, srcPnt, srcInd, record, recLin, recMin, recMax, recInd, 1, 1, 1)
+            record = (srcLin, srcPnt, srcInd, recNum, recLin, recMin, recMax, recInd, 1, 1, 1)
             resultArray[index] = record
             index += 1
         f.close()
@@ -307,20 +297,80 @@ def readXPSFiles(filenames, resultArray, fmt) -> int:
 
     return index
 
+def readRpsLine(line_number, line, rpsImport, fmt) -> int:
+    if len(line) == 0 or line[0] != fmt['rec']:                                 # check if line is empty or not a source line
+        return 0
+
+    # fmt: off
+    lin = toFloat(line[fmt[ 'line'][0] : fmt[ 'line'][1]].strip())
+    pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
+    idx =   toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
+    cod =         line[fmt[ 'code'][0] : fmt[ 'code'][1]].strip()
+    dep = toFloat(line[fmt['depth'][0] : fmt['depth'][1]].strip())
+    eas = toFloat(line[fmt[ 'east'][0] : fmt[ 'east'][1]].strip())
+    nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
+    ele = toFloat(line[fmt[ 'elev'][0] : fmt[ 'elev'][1]].strip())
+    # fmt: on
+
+    record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
+    rpsImport[line_number] = record
+    return 1
+
+def readSpsLine(line_number, line, spsImport, fmt) -> int:
+    if len(line) == 0 or line[0] != fmt['src']:                                 # check if line is empty or not a source line
+        return 0
+
+    # fmt: off
+    lin = toFloat(line[fmt[ 'line'][0] : fmt[ 'line'][1]].strip())
+    pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
+    idx =   toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
+    cod =         line[fmt[ 'code'][0] : fmt[ 'code'][1]].strip()
+    dep = toFloat(line[fmt['depth'][0] : fmt['depth'][1]].strip())
+    eas = toFloat(line[fmt[ 'east'][0] : fmt[ 'east'][1]].strip())
+    nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
+    ele = toFloat(line[fmt[ 'elev'][0] : fmt[ 'elev'][1]].strip())
+    # fmt: on
+
+    record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
+    spsImport[line_number] = record
+    return 1
+
+def readXpsLine(line_number, line, xpsImport, fmt) -> int:
+    if len(line) == 0 or line[0] != fmt['rel']:                                 # check if line is empty or not a relation line
+        return 0
+
+    # This is the order that parameters appear on in an xps file
+    # However, we move RecNo to the fourth place in the xps record
+    # fmt: off
+    recNum =   toInt(line[fmt['recNum'][0] : fmt['recNum'][1]].strip())
+    srcLin = toFloat(line[fmt['srcLin'][0] : fmt['srcLin'][1]].strip())
+    srcPnt = toFloat(line[fmt['srcPnt'][0] : fmt['srcPnt'][1]].strip())
+    srcInd =   toInt(line[fmt['srcInd'][0] : fmt['srcInd'][1]].strip())
+    recLin = toFloat(line[fmt['recLin'][0] : fmt['recLin'][1]].strip())
+    recMin = toFloat(line[fmt['recMin'][0] : fmt['recMin'][1]].strip())
+    recMax = toFloat(line[fmt['recMax'][0] : fmt['recMax'][1]].strip())
+    recInd =   toInt(line[fmt['recInd'][0] : fmt['recInd'][1]].strip())
+    # fmt: off
+
+    record = (srcLin, srcPnt, srcInd, recNum, recLin, recMin, recMax, recInd, 1, 1, 1)
+    xpsImport[line_number] = record
+    return 1
+
 
 def markUniqueRPSrecords(rpsImport, sort=True) -> int:
     # See: https://stackoverflow.com/questions/51933936/python-3-6-type-checking-numpy-arrays-and-use-defined-classes for type checking
     # See: https://stackoverflow.com/questions/12569452/how-to-identify-numpy-types-in-python same thing
     # See: https://stackoverflow.com/questions/11585793/are-numpy-arrays-passed-by-reference for passing a numpy array by reference
     # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.sort.html for sorting in place
-    if rpsImport is None:
+    if rpsImport is None or rpsImport.shape[0] == 0:
         return -1
 
     rpsUnique, rpsIndices = np.unique(rpsImport, return_index=True)
+    rpsImport[rpsIndices]['Uniq'] = 1       # Set 'Uniq' value at the applicable indices using NumPy advanced indexing
 
-    # note, this for-loop is needed to set 'Uniq' value at the applicable indices
-    for index in np.nditer(rpsIndices):
-        rpsImport[index]['Uniq'] = 1
+    # # note, this for-loop is needed to set 'Uniq' value at the applicable indices
+    # for index in np.nditer(rpsIndices):
+    #     rpsImport[index]['Uniq'] = 1
 
     if sort:
         rpsImport.sort(order=['Index', 'Line', 'Point'])
@@ -330,14 +380,15 @@ def markUniqueRPSrecords(rpsImport, sort=True) -> int:
 
 
 def markUniqueSPSrecords(spsImport, sort=True) -> int:
-    if spsImport is None:
+    if spsImport is None or spsImport.shape[0] == 0:
         return -1
 
     spsUnique, spsIndices = np.unique(spsImport, return_index=True)
+    spsImport[spsIndices]['Uniq'] = 1       # Set 'Uniq' value at the applicable indices using NumPy advanced indexing
 
-    # note, this for-loop is needed to set 'Uniq' value at the applicable indices
-    for index in np.nditer(spsIndices):
-        spsImport[index]['Uniq'] = 1
+    # # note, this for-loop is needed to set 'Uniq' value at the applicable indices
+    # for index in np.nditer(spsIndices):
+    #     spsImport[index]['Uniq'] = 1
 
     if sort:
         spsImport.sort(order=['Index', 'Line', 'Point'])
@@ -347,14 +398,15 @@ def markUniqueSPSrecords(spsImport, sort=True) -> int:
 
 
 def markUniqueXPSrecords(xpsImport, sort=True) -> int:
-    if xpsImport is None:
+    if xpsImport is None or xpsImport.shape[0] == 0:
         return -1
 
     xpsUnique, xpsIndices = np.unique(xpsImport, return_index=True)
+    xpsImport[xpsIndices]['Uniq'] = 1       # Set 'Uniq' value at the applicable indices using NumPy advanced indexing
 
-    # note, this for-loop is needed to set 'Uniq' value at the applicable indices
-    for index in np.nditer(xpsIndices):
-        xpsImport[index]['Uniq'] = 1
+    # # note, this for-loop is needed to set 'Uniq' value at the applicable indices
+    # for index in np.nditer(xpsIndices):
+    #     xpsImport[index]['Uniq'] = 1
 
     if sort:
         xpsImport.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
@@ -364,10 +416,10 @@ def markUniqueXPSrecords(xpsImport, sort=True) -> int:
 
 
 def calcMaxXPStraces(xpsImport) -> int:
-    last = xpsImport['RecMax']                                                # get nr of traces from xps data
-    first = xpsImport['RecMin']
+    last = xpsImport['RecMax']                                                  # get vector of last receiver points from xps data
+    first = xpsImport['RecMin']                                                 # get vector of first receiver points from xps data
     total = last - first
-    traces = int(total.sum() + total.shape[0])
+    traces = int(total.sum() + total.shape[0])                                  # add the number of traces to arrive at the total number of receiver points
     return traces
 
 
@@ -378,57 +430,47 @@ def findSrcOrphans(spsImport, xpsImport) -> (int, int):
     # pntType3 = np.dtype([('Line',   'f4'),   # F10.2
     #                      ('Point',  'f4'),   # F10.2
     #                      ('Index',  'i4'),   # I1
-    nSps = spsImport.shape[0]
-    nXps = xpsImport.shape[0]
 
     # shorten the SPS records to Line-Point-Index records
+    nSps = spsImport.shape[0]
     spsShort = np.zeros(shape=nSps, dtype=pntType3)
+    spsShort['Index'] = spsImport['Index']
     spsShort['Line'] = spsImport['Line']
     spsShort['Point'] = spsImport['Point']
-    spsShort['Index'] = spsImport['Index']
 
     # shorten the XPS records to Line-Point-Index records
+    nXps = xpsImport.shape[0]
     xpsShort = np.zeros(shape=nXps, dtype=pntType3)
+    xpsShort['Index'] = xpsImport['SrcInd']
     xpsShort['Line'] = xpsImport['SrcLin']
     xpsShort['Point'] = xpsImport['SrcPnt']
-    xpsShort['Index'] = xpsImport['SrcInd']
 
-    # find unique records in (shorted) xps array
-    xpsUnique = np.unique(xpsShort)
-
-    # find unique records in (shorted) sps array
-    spsUnique = np.unique(spsShort)
-
-    # find unique xps records present in (shorted) sps array
-    spsMask = np.isin(spsShort, xpsUnique, assume_unique=False)
-    intMask = 1 * spsMask
+    xpsUnique = np.unique(xpsShort)                                             # find unique records in (shorted) xps array
+    spsMask = np.isin(spsShort, xpsUnique, assume_unique=False)                 # find unique xps records present in (shorted) sps array
+    intMask = 1 * spsMask                                                       # convert bool to integer
     spsImport['InXps'] = np.asarray(intMask)                                    # Update the sps array with 'unique' mask
+    nXpsOrphans = nSps - intMask.sum()                                          # The sps-records contain 'nXpsOrphans' xps-orphans
 
-    nXpsOrphans = nSps - intMask.sum()                                          # sps-records contain 'nXpsOrphans' xps-orphans
-
-    # find unique sps elements present in (shorted) xps array
-    xpsMask = np.isin(xpsShort, spsUnique, assume_unique=False)
-    intMask = 1 * xpsMask
+    spsUnique = np.unique(spsShort)                                             # find unique records in (shorted) sps array
+    xpsMask = np.isin(xpsShort, spsUnique, assume_unique=False)                 # find unique sps elements present in (shorted) xps array
+    intMask = 1 * xpsMask                                                       # convert bool to integer
     xpsImport['InSps'] = np.asarray(intMask)                                    # Update the xps array with 'unique' mask
-
-    nSpsOrphans = nXps - intMask.sum()                                          # xps-records contain 'nSpsOrphans' sps-orphans
+    nSpsOrphans = nXps - intMask.sum()                                          # The xps-records contain 'nSpsOrphans' sps-orphans
 
     return (nSpsOrphans, nXpsOrphans)
 
 
-def findRecOrphans(rpsImport, xpsImport) -> (int, int):
+def findRecOrphansOld(rpsImport, xpsImport) -> (int, int):
     if rpsImport is None or xpsImport is None:
         return (-1, -1)
 
-    nRps = rpsImport.shape[0]
-    nXps = xpsImport.shape[0]
-
     # find unique rps elements present in (shorted) xps array
+    nXps = xpsImport.shape[0]
     xpsShort = np.zeros(shape=nXps, dtype=relType3)
+    xpsShort['RecInd'] = xpsImport['RecInd']
     xpsShort['RecLin'] = xpsImport['RecLin']
     xpsShort['RecMin'] = xpsImport['RecMin']
     xpsShort['RecMax'] = xpsImport['RecMax']
-    xpsShort['RecInd'] = xpsImport['RecInd']
 
     # delete all duplicate xps-records, resulting in xpsUnique
     xpsUnique = np.unique(xpsShort)
@@ -481,38 +523,110 @@ def findRecOrphans(rpsImport, xpsImport) -> (int, int):
                 break                                                           # break inner loop
 
     # shorten the RPS records to Line-Point-Index records
+    nRps = rpsImport.shape[0]
     rpsShort = np.zeros(shape=nRps, dtype=pntType3)
+    rpsShort['Index'] = rpsImport['Index']
     rpsShort['Line'] = rpsImport['Line']
     rpsShort['Point'] = rpsImport['Point']
-    rpsShort['Index'] = rpsImport['Index']
 
     # shorten the XPS records to Line-Point-Index records
     xpsShortMin = np.zeros(shape=nXps, dtype=pntType3)
+    xpsShortMin['Index'] = xpsImport['RecInd']
     xpsShortMin['Line'] = xpsImport['RecLin']
     xpsShortMin['Point'] = xpsImport['RecMin']
-    xpsShortMin['Index'] = xpsImport['RecInd']
 
     xpsShortMax = np.zeros(shape=nXps, dtype=pntType3)
-    xpsShortMax['Line'] = xpsImport['RecLin']
-    xpsShortMax['Point'] = xpsImport['RecMin']
     xpsShortMax['Index'] = xpsImport['RecInd']
+    xpsShortMax['Line'] = xpsImport['RecLin']
+    xpsShortMax['Point'] = xpsImport['RecMax']
 
     # find unique xps records from (shorted) rps array
     rpsUnique = np.unique(rpsShort)
     xpsMaskMin = np.isin(xpsShortMin, rpsUnique, assume_unique=False)
     xpsMaskMax = np.isin(xpsShortMax, rpsUnique, assume_unique=False)
     xpsMask = np.logical_and(xpsMaskMin, xpsMaskMax)
-    intMask = 1 * xpsMask
+    intMask = 1 * xpsMask                                                       # convert bool to integer
     xpsImport['InRps'] = np.asarray(intMask)                                    # Update the xps array with 'unique' mask
 
     xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax', 'SrcLin', 'SrcPnt', 'SrcInd'])
     rpsImport.sort(order=['Index', 'Line', 'Point'])
 
-    nSpsOrphans = nXps - intMask.sum()                                          # xps-records contain 'nSpsOrphans' sps-orphans
-    nXpsOrphans = rpsImport['InXps'].sum()
+    nRpsOrphans = nXps - intMask.sum()                                          # xps-records contain 'nSpsOrphans' sps-orphans
+    nXpsOrphans = nRps - rpsImport['InXps'].sum()
 
-    return (nSpsOrphans, nXpsOrphans)
+    return (nRpsOrphans, nXpsOrphans)
 
+
+def findRecOrphans(rpsImport, xpsImport) -> (int, int):
+    if rpsImport is None or xpsImport is None:
+        return (-1, -1)
+
+    # Create a structured array for xpsUnique
+    xpsUnique = np.unique(
+        np.array(
+            list(zip(xpsImport['RecInd'], xpsImport['RecLin'], xpsImport['RecMin'], xpsImport['RecMax'])),
+            dtype=[('RecInd', 'i4'), ('RecLin', 'f4'), ('RecMin', 'f4'), ('RecMax', 'f4')],
+        )
+    )
+
+    # Broadcast rpsImport against xpsUnique for vectorized comparison
+    rpsIndex = rpsImport['Index'][:, None]
+    rpsLine = rpsImport['Line'][:, None]
+    rpsPoint = rpsImport['Point'][:, None]
+
+    xpsIndex = xpsUnique['RecInd']
+    xpsLine = xpsUnique['RecLin']
+    xpsMin = xpsUnique['RecMin']
+    xpsMax = xpsUnique['RecMax']
+
+    # Perform vectorized comparisons
+    index_match = rpsIndex == xpsIndex
+    line_match = rpsLine == xpsLine
+    point_match = (rpsPoint >= xpsMin) & (rpsPoint <= xpsMax)
+
+    # Combine all conditions
+    match = index_match & line_match & point_match
+
+    # Determine if each rpsRecord has a match in xpsUnique
+    rpsImport['InXps'] = match.any(axis=1).astype(int)
+
+    # Calculate orphans
+    nXpsOrphans = rpsImport.shape[0] - rpsImport['InXps'].sum()
+
+    # shorten the RPS records to Line-Point-Index records
+    nRps = rpsImport.shape[0]
+    rpsShort = np.zeros(shape=nRps, dtype=pntType3)
+    rpsShort['Index'] = rpsImport['Index']
+    rpsShort['Line'] = rpsImport['Line']
+    rpsShort['Point'] = rpsImport['Point']
+
+    # shorten the XPS records to Line-Point-Index records
+    nXps = xpsImport.shape[0]
+    xpsShortMin = np.zeros(shape=nXps, dtype=pntType3)
+    xpsShortMin['Index'] = xpsImport['RecInd']
+    xpsShortMin['Line'] = xpsImport['RecLin']
+    xpsShortMin['Point'] = xpsImport['RecMin']
+
+    xpsShortMax = np.zeros(shape=nXps, dtype=pntType3)
+    xpsShortMax['Index'] = xpsImport['RecInd']
+    xpsShortMax['Line'] = xpsImport['RecLin']
+    xpsShortMax['Point'] = xpsImport['RecMax']
+
+    # find those unique rps records that are in the xps array with either RecMin or RecMax
+    rpsUnique = np.unique(rpsShort)
+    xpsMaskMin = np.isin(xpsShortMin, rpsUnique, assume_unique=False)
+    xpsMaskMax = np.isin(xpsShortMax, rpsUnique, assume_unique=False)
+    xpsMask = np.logical_and(xpsMaskMin, xpsMaskMax)
+    intMask = 1 * xpsMask                                                       # convert bool to integer
+    xpsImport['InRps'] = np.asarray(intMask)                                    # Update the xps array with 'unique' mask
+
+    xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax', 'SrcLin', 'SrcPnt', 'SrcInd'])
+    rpsImport.sort(order=['Index', 'Line', 'Point'])
+
+    nRpsOrphans = nXps - intMask.sum()                                          # xps-records contain 'nSpsOrphans' sps-orphans
+    nXpsOrphans = nRps - rpsImport['InXps'].sum()
+
+    return (nRpsOrphans, nXpsOrphans)
 
 def deletePntDuplicates(rpsImport):
 
@@ -713,7 +827,7 @@ def fileExportAsX01(parent, fileName, data, crs):
     fmt = '%1s', '%6s', '%8d', '%1d', '%1s', '%10.2f', '%10.2f', '%1d', '%5d', '%5d', '%1d', '%10.2f', '%10.2f', '%10.2f', '%1d'
     # 'RecID', 'TapeNo', 'Record', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'
 
-    # relType2 used in the rel/rps model:
+    # relType2 is used in the rel/rps model:
     # ('SrcLin', 'f4'),   # F10.2
     # ('SrcPnt', 'f4'),   # F10.2
     # ('SrcInd', 'i4'),   # I1
@@ -758,6 +872,7 @@ def fileExportAsX01(parent, fileName, data, crs):
     xpsData['RecMax'] = data['RecMax']
     xpsData['RecInd'] = data['RecInd']
 
+    # from numpy.compat import asstr
     # delimiter = ''                                        # use this elsewhere
     # format = asstr(delimiter).join(map(asstr, fmt))
 
@@ -780,128 +895,93 @@ def calculateLineStakeTransform(spsImport) -> []:
     # See: https://math.stackexchange.com/questions/612006/decomposing-an-affine-transformation as well
     # See: https://stackoverflow.com/questions/70357473/how-to-decompose-a-2x2-affine-matrix-with-sympy
 
-    nRecords = spsImport.shape[0]
+    # see: https://pyqtgraph.readthedocs.io/en/latest/api_reference/functions.html#pyqtgraph.solveBilinearTransform  for a more general solution
 
+
+    nRecords = spsImport.shape[0]
+    assert nRecords > 2, "Not enough records in spsImport"
+
+    spsImport.sort(order=['Line', 'Point', 'Index'])                            # sort the data by line and point
+    pointNumIncrement = spsImport['Point'][1:] - spsImport['Point'][:-1]        # get the point number increment
+    pointNumIncrement = np.median(pointNumIncrement)
+    assert pointNumIncrement > 0, "Point increment is not positive"
+
+    eastIncrement = spsImport['East'][1:] - spsImport['East'][:-1]              # get the east increment
+    northIncrement = spsImport['North'][1:] - spsImport['North'][:-1]           # get the north increment
+    pointDisIncrement = np.sqrt(eastIncrement ** 2 + northIncrement ** 2)       # get the point distance increment
+    pointDisIncrement = np.median(pointDisIncrement)
+    if pointDisIncrement == 0:
+        pointDisIncrement = 1.0                                                  # handle 2D data with no point increment
+    else:
+        pointNumIncrement = pointDisIncrement / pointNumIncrement
+
+    lineMin = spsImport['Line'][0]
+    pointMin = spsImport['Point'][0]
+    origX = spsImport['East'][0]
+    origY = spsImport['North'][0]
+
+    spsImport.sort(order=['Point', 'Line', 'Index'])                            # sort the data by point and line
+    lineNumIncrement = spsImport['Line'][1:] - spsImport['Line'][:-1]           # get the line number increment
+    lineNumIncrement = np.median(lineNumIncrement)
+
+    eastIncrement = spsImport['East'][1:] - spsImport['East'][:-1]              # get the east increment
+    northIncrement = spsImport['North'][1:] - spsImport['North'][:-1]           # get the north increment
+    lineDisIncrement = np.sqrt(eastIncrement ** 2 + northIncrement ** 2)        # get the distance increment
+    # see: https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
+    # distIncrement = np.linalg.norm(eastIncrement - northIncrement)            # get the distance increment
+    lineDisIncrement = np.median(lineDisIncrement)
+    if lineNumIncrement == 0:
+        lineNumIncrement = 1.0                                                  # handle 2D data with no line increment
+    else:
+        lineNumIncrement = lineDisIncrement / lineNumIncrement
+
+    # See: https://stackoverflow.com/questions/47780845/solve-over-determined-system-of-linear-equations
     x1 = np.zeros(shape=nRecords, dtype=np.float32)
     y1 = np.zeros(shape=nRecords, dtype=np.float32)
     x2 = np.zeros(shape=nRecords, dtype=np.float32)
     y2 = np.zeros(shape=nRecords, dtype=np.float32)
 
-    x1 = spsImport['East']
-    y1 = spsImport['North']
-    x2 = spsImport['Point']
-    y2 = spsImport['Line']
-
-    # print (x1)
-    # print (y1)
-    # print (x2)
-    # print (y2)
-
-    # l1 = np.array([np.ones(nRecords),  np.zeros(nRecords), x2, y2])
-    # l2 = np.array([np.zeros(nRecords), np.ones(nRecords),  y2, x2])
+    x1 = spsImport['East'] - origX
+    y1 = spsImport['North'] - origY
+    x2 = (spsImport['Point'] - pointMin) * pointNumIncrement
+    y2 = (spsImport['Line']  - lineMin) * lineNumIncrement
 
     l1 = np.array([np.ones(nRecords), np.zeros(nRecords), x2, np.zeros(nRecords), y2, np.zeros(nRecords)])
     l2 = np.array([np.zeros(nRecords), np.ones(nRecords), np.zeros(nRecords), x2, np.zeros(nRecords), y2])
 
-    # print (l1)
-    # print (l2)
-
     M1 = np.vstack([l1.T, l2.T])
     M2 = np.concatenate([x1, y1])
 
-    # print (M1)
-    # print (M2)
-
-    # ABCDEF = np.linalg.lstsq(M1, M2)[0]                                       # A0_B0_A1_B1_A2_B2 array
-    ABCDEF, residuals, *_ = np.linalg.lstsq(M1, M2)                             # unused rank, sing replaced by *_  # A0_B0_A1_B1_A2_B2 array
-
+    # ABCDEF = np.linalg.lstsq(M1, M2)[0]                                       # the A0_B0_A1_B1_A2_B2 array is first parameter to be returned
+    ABCDEF, residuals, *_ = np.linalg.lstsq(M1, M2)                             # unused rank and sing replaced by *_ to avoid warning
     myPrint(ABCDEF)
-    if residuals:
-        myPrint(residuals[0] / M1.shape[0])
+    myPrint(residuals[0] if residuals.size > 0 else 0 / M1.shape[0])
 
-    return ABCDEF   # type: ignore
+    angle1 = np.arctan2(ABCDEF[3], ABCDEF[2]) * 180.0 / np.pi                   # angle1 and angle2 are identical, providing the correct angle
+    # angle2 = np.arctan2(-ABCDEF[4], ABCDEF[5]) * 180.0 / np.pi
+    # angle3 = np.arctan2(ABCDEF[3], ABCDEF[5]) * 180.0 / np.pi                 # angle 3 and angle4 are NOT identical, and differ from angle1 and angle2
+    # angle4 = np.arctan2(-ABCDEF[4], ABCDEF[2]) * 180.0 / np.pi
 
-    # I have a rather simple system of equations of the form:
+    return (origX, origY, lineMin, pointMin, lineNumIncrement, pointNumIncrement, angle1)
 
-    # 1*A + 0*B + x2*C + y2*D = x1
-    # 0*A + 1*B + y2*C + x2*D = y1
-
-    # where the pairs (x1,y1) and (x2,y2) are known floats of length N (the system is over-determined), and I need to solve for the A, B, C, D parameters.
-    # I've been playing around with numpy.linalg.lstsq but I can't seem to get the shapes of the matrices right. This is what I have
-
-    # import numpy as np
-
-    # N = 10000
-    # x1, y1 = np.random.uniform(0., 5000., (2, N))
-    # x2, y2 = np.random.uniform(0., 5000., (2, N))
-
-    # # 1 * A + 0 * B + x2 * C + y2 * D = x1
-    # # 0 * A + 1 * B + y2 * C + x2 * D = y1
-
-    # l1 = np.array([np.ones(N), np.zeros(N), x2, y2])
-    # l2 = np.array([np.zeros(N), np.ones(N), y2, x2])
-
-    # See: EPSG:9624 (https://epsg.io/9624-method
+    # See also: EPSG:9624 (https://epsg.io/9624-method
     # A0  +  A1 * Xs  +  A2 * Ys = Xt
     # B0  +  B1 * Xs  +  B2 * Ys = Yt  ==>
 
     #               A0                         + A1 * Xs                 + A2 * Ys              = Xt
     #                               B0                      + B1 * Xs                 + B2 * Ys = Yt  ==>
+
     #               1 * A         + 0 * B      + Xs * C     +  0 * D     + Ys * E     +  0 * F  = Xt
     #               0 * A         + 1 * B      +  0 * C     + Xs * D     +  0 * E     + YS * F  = Yt  ==>
+
     # l1 = np.array([np.ones(N),  np.zeros(N), x2,          np.zeros(N), y2,          np.zeros(N)])
-    # l2 = np.array([np.zeros(N), np.ones(N),  np.zeros(N), x2,          np.zeros(N), y2])
+    # l2 = np.array([np.zeros(N), np.ones(N),  np.zeros(N), x2,          np.zeros(N), y2]         )
 
     # M1 = np.array([l1, l2])
     # M2 = np.array([x1, y1])
 
     # ABCD = np.linalg.lstsq(M1, M2)[0]
     # print(ABCD)
-
-    ####################################################
-
-    # Keeping everything else fixed, changing M1 and M2 to
-
-    # M1 = np.vstack([l1.T, l2.T])
-    # M2 = np.concatenate([x1, y1])
-
-    # should do the job.
-
-    ###################################################
-    # See: EPSG:9624 (https://epsg.io/9624-method
-    # Note: These formulas have been transcribed from EPSG Guidance Note #7-2.
-
-    # XT   =  A0  +  A1 * XS  +  A2 * YS
-    # YT   =  B0  +  B1 * XS  +  B2 * YS
-    # where
-    # XT , YT  are the coordinates of a point P in the target coordinate reference system;
-    # XS , YS   are the coordinates of P in the source coordinate reference system.
-
-    # 1*A + 0*B + x2*C + y2*D = x1
-    # 0*A + 1*B + y2*C + x2*D = y1
-
-    #  x1 = 1*A + 0*B + x2*C + y2*D
-    #  y1 = 0*A + 1*B + y2*C + x2*D
-
-    #  x1 = A + C * x2 + D * y2 -> C = A1 = B2
-    #  y1 = B + D * x2 + C * y2 -> D = B1 = A2 This solution is less universe than EPSG:9624 allows
-    #
-    # Reversibility
-    # The reverse transformation is another affine transformation using the same formulas but with different parameter values.
-    # The reverse parameter values, indicated by a prime (’), can be calculated from those of the forward transformation as follows:
-
-    # D    = A1 * B2   –   A2 * B1
-    # A0’ = (A2 * B0   –   B2 * A0) / D
-    # B0’ = (B1 * A0   –   A1 * B0) / D
-    # A1’ = +B2 / D
-    # A2’ = – A2 / D
-    # B1’ = – B1 / D
-    # B2’ = +A1 / D
-
-    # Then
-    # XS =  A0' + A1' * XT  +  A2' * YT
-    # YS =  B0' + B1' * XT  +  B2' * YT
-
 
 def getGeometry(geom):
 
@@ -942,3 +1022,33 @@ def getGeometry(geom):
         pntLiveN = geom['North']
 
     return (pntLiveE, pntLiveN, pntDeadE, pntDeadN)                             # return the 4 arrays
+
+def convertCrs(spsImport, crsFrom: QgsCoordinateTransform, crsTo: QgsCoordinateTransform) -> bool:
+
+    if spsImport is None or not crsFrom.isValid() or not crsTo.isValid():
+        return False
+
+    if not QgsCoordinateTransform.isTransformationPossible(crsFrom, crsTo):
+        return False
+
+    # Convert the coordinates from the source CRS to the target CRS
+    spsToProjectTransform = QgsCoordinateTransform(crsFrom, crsTo, QgsProject.instance())
+
+    if not spsToProjectTransform.isValid():                                 # no valid transform found
+        return False
+
+    if spsToProjectTransform.isShortCircuited():                            # source and destination are equivalent.
+        return True
+
+    for record in spsImport:
+        # Access individual fields of the record
+        x = record['East']
+        y = record['North']
+        z = record['Elev']
+
+        vector = spsToProjectTransform.transform(QgsVector3D(x, y, z))
+        record['East'] = vector.x()                                         # Update the record with the transformed coordinates
+        record['North'] = vector.y()                                        # the CRS transformation is performed in-place on the original record.
+        record['Elev'] = vector.z()
+
+    return True

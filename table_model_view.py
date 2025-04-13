@@ -1,5 +1,6 @@
 import io
 import winsound  # make a sound when a record isn't found
+from collections import deque
 
 import numpy as np
 import pyqtgraph as pg
@@ -41,8 +42,12 @@ class AnaTableModel(QAbstractTableModel):
     def __init__(self, data):
         super().__init__()
         self._data = None
+
+        # todo: get rid of this hardcoded stuff; use the field names instead. See exportDict in TableView above
+        # fmt: off
+        self._format =  '%d',    '%d',   '%d',   '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',     '%.2f',   '%.2f',    '%d'
         self._header = ['stake', 'line', 'fold', 'src-x', 'src-y', 'rec-x', 'rec-y', 'cmp-x', 'cmp-y', 'TWT [ms]', 'offset', 'azimuth', 'unique']
-        self._format = '%d', '%d', '%d', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%d'
+        # fmt: on
 
         self.setData(data)
 
@@ -143,10 +148,41 @@ class TableView(QTableView):
         # self.horizontalHeader().setSectionResizeMode(3, QHeaderView.Fixed)
         self.horizontalHeader().setMinimumSectionSize(0)
         self.horizontalHeader().setDefaultSectionSize(20)
+        self.horizontalHeader().sectionClicked.connect(self.sortData)                    # handle the section-clicked signal
 
         # don't allow selecting columns in a large virtual table; instead, always select a complete row
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.SelectionMode(QAbstractItemView.ContiguousSelection)
+
+        # fmt: off
+        self.exportDict = dict(                                                 # used to format data being copied to clipboard
+            Code   = '%s',
+            Depth  = '%.1f',
+            East   = '%.1f',
+            Elev   = '%.1f',
+            Index  = '%d',
+            InSps  = '%d',
+            InRps  = '%d',
+            InUse  = '%d',
+            InXps  = '%d',
+            Line   = '%.2f',
+            LocX   = '%.1f',
+            LocY   ='%.1f',
+            North  = '%.1f',
+            Point  = '%.2f',
+            Record = '%d',                                                      # record number
+            RecNo  = '%d',                                                      # record number
+            RecNum = '%d',                                                      # record number; different names applied during development
+            RecLin = '%.2f',
+            RecMin = '%.2f',
+            RecMax = '%.2f',
+            RecInd = '%d',
+            SrcLin = '%.2f',
+            SrcPnt = '%.2f',
+            SrcInd = '%d',
+            Uniq   = '%d',
+            )
+        # fmt:on
 
     def eventFilter(self, source, event):
         # See: https://stackoverflow.com/questions/28204043/how-to-handle-keyboard-shortcuts-using-keypressevent-and-should-it-be-used-fo
@@ -306,6 +342,15 @@ class TableView(QTableView):
             winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
             return
 
+        names = data.dtype.names
+        if names is None:                                                       # no field names available; not a record based array
+            names = self.model().getHeader()                                    # use the header names instead
+            fmt = self.model().getFormat()                                      # get the format string from the model
+        else:                                                                   # the numpy array is record based
+            fmt = []
+            for name in names:
+                fmt.append(self.exportDict[name])
+
         with pg.BusyCursor():                                                   # this could take some time. . .
             indices = self.selectionModel().selectedRows()                      # selection list, containing selected rows
             count = len(indices)
@@ -317,40 +362,16 @@ class TableView(QTableView):
             rowMin = indices[0].row()
             rowMax = indices[count - 1].row()                                   # subtract one as count is exclusive
 
-            data = self.model().getData()                                       # get numpy data
             copied = data[rowMin : rowMax + 1]                                  # select records; add 1, as the last nr. is exclusive
 
             memFile = io.BytesIO()                                              # create tempory file in memory
             delimiter = '\t'                                                    # use tab separator, easier for Excel than commas
-            fmt = self.model().getFormat()                                      # the format string resides with the model
 
             np.savetxt(memFile, copied, delimiter=delimiter, fmt=fmt)           # save file as tab seperated ascii data
             outStr = memFile.getvalue().decode('UTF-8')                         # convert bytes to unicode string
-            QApplication.clipboard().setText(outStr)                            # copy the whole lot to the cipboard
 
-            # this was the original slow (list based) approach
-            # selection = self.selectedIndexes()
-            # if selection:
-            #     all_rows = []
-            #     all_columns = []
-            #     for index in selection:
-            #         if not index.row() in all_rows:
-            #             all_rows.append(index.row())
-            #         if not index.column() in all_columns:
-            #             all_columns.append(index.column())
-            #     visible_rows = [row for row in all_rows if not self.isRowHidden(row)]
-            #     visible_columns = [
-            #         col for col in all_columns if not self.isColumnHidden(col)
-            #     ]
-            #     table = [[""] * len(visible_columns) for _ in range(len(visible_rows))]
-            #     for index in selection:
-            #         if index.row() in visible_rows and index.column() in visible_columns:
-            #             selection_row = visible_rows.index(index.row())
-            #             selection_column = visible_columns.index(index.column())
-            #             table[selection_row][selection_column] = index.data()
-            #     stream = io.StringIO()
-            #     csv.writer(stream, delimiter="\t").writerows(table)
-            #     QApplication.clipboard().setText(stream.getvalue())
+            header = delimiter.join(names) + '\n'                               # add header to the string
+            QApplication.clipboard().setText(header + outStr)                   # copy the whole lot to the cipboard
 
     def paste(self):
 
@@ -426,6 +447,9 @@ class TableView(QTableView):
 
         return True
 
+    def sortData(self, index):
+        pass
+
 
 # See: https://stackoverflow.com/questions/64277646/how-do-i-find-the-position-of-the-first-0-looking-backwards-in-a-numpy-array
 
@@ -483,11 +507,17 @@ class RpsTableModel(QAbstractTableModel):
 
     def __init__(self, data):
         super().__init__()
-        self._data = None
-        self._format = '%.2f', '%.2f', '%d', '%s', '%.1f', '%.1f', '%.1f', '%.1f', '%d', '%d', '%.2f', '%.2f'
-        self._header = ['rec line', 'rec point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'unique', 'inXps']
+        self._data = None               # Data is a numpy array of records (structured array)
+        self._names = None              # Ordered list of field names, or None if there are no fields
+        self._qSort = deque(maxlen=3)   # To support sorting on max 3 values
 
-        self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)
+        # todo: get rid of this hardcoded stuff; use the field names instead. See exportDict in TableView above
+        # fmt: off
+        self._format =  '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d',     '%d',                  '%d',   '%.1f', '%.1f'
+        self._header = ['rec line', 'rec point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'unique', 'inXps']  # not shown: 'InUse'	'LocX'	'LocY'
+        # fmt: on
+
+        self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)  # Initial min and max values for each column (field) in the data array
         self.setData(data)
 
     def data(self, index, role):
@@ -545,6 +575,17 @@ class RpsTableModel(QAbstractTableModel):
             else:
                 return f'{section + 1:,}'
 
+        if role == Qt.BackgroundRole:                                           # highlight sorting column(s)
+            if orientation == Qt.Horizontal:
+                if len(self._qSort) > 0 and section == self._qSort[-1]:
+                    return QBrush(QColor(255, 215, 0))                          # gold
+                if len(self._qSort) > 1 and section == self._qSort[-2]:
+                    return QBrush(QColor(255, 255, 160))                        # lightyellow
+                if len(self._qSort) > 2 and section == self._qSort[-3]:
+                    return QBrush(QColor(250, 250, 210))                        # lightgoldenrodyellow
+                else:
+                    return QVariant()
+
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
     def getData(self):
@@ -558,28 +599,47 @@ class RpsTableModel(QAbstractTableModel):
 
     def setData(self, data):
         if data is not None:
-            self._minMax = np.zeros(shape=(2, 8), dtype=np.float32)
+            self._names = data.dtype.names
+            self._minMax = np.zeros(shape=(2, len(self._names)), dtype=np.float32)
 
-            self._minMax[0, 0] = data['Line'].min()
-            self._minMax[0, 1] = data['Point'].min()
-            self._minMax[0, 2] = data['Index'].min()
-            self._minMax[0, 4] = data['Depth'].min()                            # skipped self._minMax[0, 3] = data['Code' ].min()
-            self._minMax[0, 5] = data['East'].min()
-            self._minMax[0, 6] = data['North'].min()
-            self._minMax[0, 7] = data['Elev'].min()
-
-            self._minMax[1, 0] = data['Line'].max()
-            self._minMax[1, 1] = data['Point'].max()
-            self._minMax[1, 2] = data['Index'].max()
-            self._minMax[1, 4] = data['Depth'].max()                            # skipped self._minMax[1, 3] = data['Code' ].max()
-            self._minMax[1, 5] = data['East'].max()
-            self._minMax[1, 6] = data['North'].max()
-            self._minMax[1, 7] = data['Elev'].max()
+            for i, name in enumerate(self._names):
+                if i == 3:                                                      # skip code column
+                    continue
+                self._minMax[0, i] = data[name].min()
+                self._minMax[1, i] = data[name].max()
 
         self._data = data
         self.layoutChanged.emit()
-        self.headerDataChanged.emit(Qt.Horizontal, 0, len(self._header) - 2)    # exclude 'unique', 'inXps'
-        # self.headerDataChanged.emit(Qt.Horizontal, 0, len(self._header) - 4)    # exclude 'unique', 'inXps', 'localX', 'localY'
+        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+
+    def applySort(self, index):
+        if self._data is None:
+            return
+
+        if index not in self._qSort:                                            # check if index is already in the list; must avoid duplicates !
+            self._qSort.append(index)
+        else:
+            self._qSort.remove(index)
+            self._qSort.append(index)
+            self._qSort.popleft()                                               # remove the oldest sort value
+
+        sortList = []
+        for sort in reversed(self._qSort):                                      # Iterate over self._qSort backwards
+            sortList.append(self._names[sort])
+
+        self._data.sort(order=sortList)                                         # Sort the data using the list of sorts
+        self.layoutChanged.emit()
+        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+
+    def sortColumns(self):
+        if self._data is None:
+            return ''
+
+        sortList = []
+        for sort in reversed(self._qSort):  # Iterate over self._qSort backwards
+            sortList.append(self._names[sort])
+
+        return str(sortList)
 
     def rowCount(self, _):
         # required 2nd parameter (index) not being used. See: https://gist.github.com/nbassler/342fc56c42df27239fa5276b79fca8e6
@@ -645,27 +705,33 @@ class SpsTableModel(QAbstractTableModel):
 
     # pntType1 = np.dtype(
     #     [
-    #         ('Line', 'f4'),  # F10.2
+    #         ('Line',  'f4'),  # F10.2
     #         ('Point', 'f4'),  # F10.2
     #         ('Index', 'i4'),  # I1
-    #         ('Code', 'U2'),  # A2
+    #         ('Code',  'U2'),  # A2
     #         ('Depth', 'f4'),  # I4
-    #         ('East', 'f4'),  # F9.1
+    #         ('East',  'f4'),  # F9.1
     #         ('North', 'f4'),  # F10.1
-    #         ('Elev', 'f4'),  # F6.1
-    #         ('Uniq', 'i4'),  # check if record is unique
+    #         ('Elev',  'f4'),  # F6.1
+    #         ('Uniq',  'i4'),  # check if record is unique
     #         ('InXps', 'i4'),  # check if record is orphan
     #         ('InUse', 'i4'),  # check if record is in use
-    #         ('LocX', 'f4'),  # F9.1
-    #         ('LocY', 'f4'),  # F10.1
+    #         ('LocX',  'f4'),  # F9.1
+    #         ('LocY',  'f4'),  # F10.1
     #     ]
     # )
 
     def __init__(self, data):
         super().__init__()
-        self._data = None
-        self._format = '%.2f', '%.2f', '%d', '%s', '%.1f', '%.1f', '%.1f', '%.1f', '%d', '%d', '%.2f', '%.2f'
-        self._header = ['src line', 'src point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'unique', 'inXps']
+        self._data = None               # Data is a numpy array of records (structured array)
+        self._names = None              # Ordered list of field names, or None if there are no fields
+        self._qSort = deque(maxlen=3)   # To support sorting on max 3 values
+
+        # todo: get rid of this hardcoded stuff; use the field names instead. See exportDict in TableView above
+        # fmt: off
+        self._format =  '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d',     '%d',                  '%d',   '%.1f', '%.1f'
+        self._header = ['src line', 'src point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'unique', 'inXps']  # not shown: 'InUse'	'LocX'	'LocY'
+        # fmt: on
 
         self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)
         self.setData(data)
@@ -725,6 +791,17 @@ class SpsTableModel(QAbstractTableModel):
             else:
                 return f'{section + 1:,}'
 
+        if role == Qt.BackgroundRole:                                           # highlight sorting column(s)
+            if orientation == Qt.Horizontal:
+                if len(self._qSort) > 0 and section == self._qSort[-1]:
+                    return QBrush(QColor(255, 215, 0))                          # gold
+                if len(self._qSort) > 1 and section == self._qSort[-2]:
+                    return QBrush(QColor(255, 255, 160))                        # lightyellow
+                if len(self._qSort) > 2 and section == self._qSort[-3]:
+                    return QBrush(QColor(250, 250, 210))                        # lightgoldenrodyellow
+                else:
+                    return QVariant()
+
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
     def getData(self):
@@ -738,28 +815,47 @@ class SpsTableModel(QAbstractTableModel):
 
     def setData(self, data):
         if data is not None:
-            self._minMax = np.zeros(shape=(2, 8), dtype=np.float32)
+            self._names = data.dtype.names
+            self._minMax = np.zeros(shape=(2, len(self._names)), dtype=np.float32)
 
-            self._minMax[0, 0] = data['Line'].min()
-            self._minMax[0, 1] = data['Point'].min()
-            self._minMax[0, 2] = data['Index'].min()
-            self._minMax[0, 4] = data['Depth'].min()                            # skipped: self._minMax[0, 3] = data['Code' ].min()
-            self._minMax[0, 5] = data['East'].min()
-            self._minMax[0, 6] = data['North'].min()
-            self._minMax[0, 7] = data['Elev'].min()
-
-            self._minMax[1, 0] = data['Line'].max()
-            self._minMax[1, 1] = data['Point'].max()
-            self._minMax[1, 2] = data['Index'].max()
-            self._minMax[1, 4] = data['Depth'].max()                            # skipped: self._minMax[1, 3] = data['Code' ].max()
-            self._minMax[1, 5] = data['East'].max()
-            self._minMax[1, 6] = data['North'].max()
-            self._minMax[1, 7] = data['Elev'].max()
+            for i, name in enumerate(self._names):
+                if i == 3:                                                      # skip code column
+                    continue
+                self._minMax[0, i] = data[name].min()
+                self._minMax[1, i] = data[name].max()
 
         self._data = data
         self.layoutChanged.emit()
-        self.headerDataChanged.emit(Qt.Horizontal, 0, len(self._header) - 2)    # exclude 'unique', 'inXps'
-        # self.headerDataChanged.emit(Qt.Horizontal, 0, len(self._header) - 4)    # exclude 'unique', 'inXps', 'localX', 'localY'
+        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+
+    def applySort(self, index):
+        if self._data is None:
+            return
+
+        if index not in self._qSort:                                            # check if index is already in the list; must avoid duplicates !
+            self._qSort.append(index)
+        else:
+            self._qSort.remove(index)
+            self._qSort.append(index)
+            self._qSort.popleft()                                               # remove the oldest sort value
+
+        sortList = []
+        for sort in reversed(self._qSort):                                      # Iterate over self._qSort backwards
+            sortList.append(self._names[sort])
+
+        self._data.sort(order=sortList)                                         # Sort the data using the list of sorts
+        self.layoutChanged.emit()
+        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+
+    def sortColumns(self):
+        if self._data is None:
+            return ''
+
+        sortList = []
+        for sort in reversed(self._qSort):  # Iterate over self._qSort backwards
+            sortList.append(self._names[sort])
+
+        return str(sortList)
 
     def rowCount(self, _):
         # required 2nd parameter (index) not being used. See: https://gist.github.com/nbassler/342fc56c42df27239fa5276b79fca8e6
@@ -836,12 +932,17 @@ class XpsTableModel(QAbstractTableModel):
         #                     ('InRps',  'i4') ]) # check if record is orphan
 
         super().__init__()
-        self._data = None
-        # support sorting on source (SrcInd, SrcLin, SrcPnt), record nr (RecNo) and receiver (RecInd, RecLin, RecMin, RecMax) values
-        self._sort = -1
-        self._minMax = np.zeros(shape=(2, 8), dtype=np.float32)
+        self._data = None               # Data is a numpy array of records (structured array)
+        self._names = None              # Ordered list of field names, or None if there are no fields
+        self._qSort = deque(maxlen=3)   # To support sorting on max 3 values
+
+        # todo: get rid of this hardcoded stuff; use the field names instead. See exportDict in TableView above
+        # fmt: off
+        self._format =  '%.2f',     '%.2f',      '%d',        '%d',       '%.2f',     '%.2f',    '%.2f',    '%d',        '%d',     '%d',           '%d'
         self._header = ['src line', 'src point', 'src index', 'record #', 'rec line', 'rec min', 'rec max', 'rec index', 'unique', 'in sps-table', 'in rps-table']
-        self._format = '%.2f', '%.2f', '%d', '%d', '%.2f', '%.2f', '%.2f', '%d', '%d', '%d', '%d'
+        # fmt: on
+
+        self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)  # Initial min and max values for each column (field) in the data array
         self.setData(data)
 
     def data(self, index, role):
@@ -889,68 +990,68 @@ class XpsTableModel(QAbstractTableModel):
     def getFormat(self):
         return self._format
 
-    def getSort(self):
-        return self._sort
-
     def setData(self, data):
         if data is not None:
-            self._minMax = np.zeros(shape=(2, 8), dtype=np.float32)
+            self._names = data.dtype.names
+            self._minMax = np.zeros(shape=(2, len(self._names)), dtype=np.float32)
 
-            self._minMax[0, 0] = data['SrcLin'].min()
-            self._minMax[1, 0] = data['SrcLin'].max()
-
-            self._minMax[0, 1] = data['SrcPnt'].min()
-            self._minMax[1, 1] = data['SrcPnt'].max()
-
-            self._minMax[0, 2] = data['SrcInd'].min()
-            self._minMax[1, 2] = data['SrcInd'].max()
-
-            try:
-                self._minMax[0, 3] = data['Record'].min()                       # replaced 'RecNo' by 'Record'.
-                self._minMax[1, 3] = data['Record'].max()                       # replaced 'RecNo' by 'Record'.
-            except ValueError:
-                try:
-                    self._minMax[0, 3] = data['RecNo'].min()                    # replaced 'RecNo' by 'Record'.
-                    self._minMax[1, 3] = data['RecNo'].max()                    # replaced 'RecNo' by 'Record'.
-                except ValueError:
-                    return
-
-            self._minMax[0, 4] = data['RecLin'].min()
-            self._minMax[1, 4] = data['RecLin'].max()
-
-            self._minMax[0, 5] = data['RecMin'].min()
-            self._minMax[1, 5] = data['RecMin'].max()
-
-            self._minMax[0, 6] = data['RecMax'].min()
-            self._minMax[1, 6] = data['RecMax'].max()
-
-            self._minMax[0, 7] = data['RecInd'].min()
-            self._minMax[1, 7] = data['RecInd'].max()
+            for i, name in enumerate(self._names):
+                self._minMax[0, i] = data[name].min()
+                self._minMax[1, i] = data[name].max()
 
         self._data = data
         self.layoutChanged.emit()
-        self.headerDataChanged.emit(Qt.Horizontal, 0, len(self._header) - 3)    # exclude 'unique', 'in sps-table', 'in rps-table'
+        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
 
-    def setSort(self, sort):
-        self._sort = sort
+    def applySort(self, index):
+        if self._data is None:
+            return
+
+        if index not in self._qSort:                                            # check if index is already in the list; must avoid duplicates !
+            self._qSort.append(index)
+        else:
+            self._qSort.remove(index)
+            self._qSort.append(index)
+            self._qSort.popleft()                                               # remove the oldest sort value
+
+        sortList = []
+        for sort in reversed(self._qSort):                                      # Iterate over self._qSort backwards
+            sortList.append(self._names[sort])
+
+        self._data.sort(order=sortList)                                         # Sort the data using the list of sorts
+        self.layoutChanged.emit()
+        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+
+    def sortColumns(self):
+        if self._data is None:
+            return ''
+
+        sortList = []
+        for sort in reversed(self._qSort):  # Iterate over self._qSort backwards
+            sortList.append(self._names[sort])
+
+        return str(sortList)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
-                if section in (0, 3, 7):
+                if section in (0, 3, 7):                                        # format depends on column number; int here
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
-                else:
+                else:                                                           # format depends on column number; float here
                     return self._header[section] + f'\n[{ self._minMax[0][section]}]:\n[{self._minMax[1][section]}]'
             else:
-                return f'{section + 1:,}'
+                return f'{section + 1:,}'                                       # 1-based index for columns, using 1000 indicator
 
-        if role == Qt.BackgroundRole and self.getSort() > -1:                   # highlight sorting column(s)
-            if self.getSort() < 3 and section < 3:                              # See: https://www.w3.org/TR/SVG11/types.html#ColorKeywords
-                return QBrush(QColor(250, 250, 210))                            # lightgoldenrodyellow
-            elif self.getSort() == 3 and section == 3:
-                return QBrush(QColor(250, 250, 210))                            # lightgoldenrodyellow
-            elif self.getSort() > 3 and section > 3:
-                return QBrush(QColor(250, 250, 210))                            # lightgoldenrodyellow
+        if role == Qt.BackgroundRole:                                           # highlight sorting column(s)
+            if orientation == Qt.Horizontal:
+                if len(self._qSort) > 0 and section == self._qSort[-1]:
+                    return QBrush(QColor(255, 215, 0))                          # gold
+                if len(self._qSort) > 1 and section == self._qSort[-2]:
+                    return QBrush(QColor(255, 255, 160))                        # lightyellow
+                if len(self._qSort) > 2 and section == self._qSort[-3]:
+                    return QBrush(QColor(250, 250, 210))                        # lightgoldenrodyellow
+                else:
+                    return QVariant()
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
