@@ -43,7 +43,7 @@ class AnaTableModel(QAbstractTableModel):
         super().__init__()
         self._data = None
 
-        # todo: get rid of this hardcoded stuff; use the field names instead. See exportDict in TableView above
+        # the underlying data uses a 2D numpy array without any field names. So it is reliant on the header names and format strings for export to clipboard
         # fmt: off
         self._format =  '%d',    '%d',   '%d',   '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',     '%.2f',   '%.2f',    '%d'
         self._header = ['stake', 'line', 'fold', 'src-x', 'src-y', 'rec-x', 'rec-y', 'cmp-x', 'cmp-y', 'TWT [ms]', 'offset', 'azimuth', 'unique']
@@ -148,14 +148,15 @@ class TableView(QTableView):
         # self.horizontalHeader().setSectionResizeMode(3, QHeaderView.Fixed)
         self.horizontalHeader().setMinimumSectionSize(0)
         self.horizontalHeader().setDefaultSectionSize(20)
-        self.horizontalHeader().sectionClicked.connect(self.sortData)                    # handle the section-clicked signal
 
         # don't allow selecting columns in a large virtual table; instead, always select a complete row
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.SelectionMode(QAbstractItemView.ContiguousSelection)
 
+    @staticmethod
+    def getFormat(entry):
         # fmt: off
-        self.exportDict = dict(                                                 # used to format data being copied to clipboard
+        formatDict = dict(                                                      # used to format data being copied to clipboard
             Code   = '%s',
             Depth  = '%.1f',
             East   = '%.1f',
@@ -183,6 +184,14 @@ class TableView(QTableView):
             Uniq   = '%d',
             )
         # fmt:on
+        return formatDict[entry]
+
+    @staticmethod
+    def getFormats(names):
+        fmt = []
+        for name in names:
+            fmt.append(TableView.getFormat(name))
+        return fmt
 
     def eventFilter(self, source, event):
         # See: https://stackoverflow.com/questions/28204043/how-to-handle-keyboard-shortcuts-using-keypressevent-and-should-it-be-used-fo
@@ -332,26 +341,43 @@ class TableView(QTableView):
 
         return super(TableView, self).eventFilter(source, event)
 
+    def getFormatList(self):
+        data = self.model().getData()                                           # get numpy data from the underlying model
+
+        if data is None:
+            return ''                                                           # no data available; return empty string
+
+        names = data.dtype.names                                                # get the field names from the numpy array
+        if names is None:                                                       # no field names available; not a record based array
+            fmt = self.model().getFormat()                                      # get the format string from the model
+        else:                                                                   # the numpy array is record based
+            fmt = TableView.getFormats(names)                                   # therefore use the field names instead
+
+        return fmt
+
+    def getNameList(self):
+        data = self.model().getData()                                           # get numpy data from the underlying model
+
+        if data is None:
+            return ''                                                           # no data available; return empty string
+
+        names = list(data.dtype.names) if data.dtype.names is not None else self.model().getHeader()
+        return names
+
     def copy(self):
-        # the selected solution copies a contiguous range of rows to the clipboard
+        # the implemented solution copies a contiguous range of rows to the clipboard
         # this is less flexible than using an ExtendedSelection or MultiSelection,
-        # but it is by far the fasted way to copy many rows to the clipboard
+        # but it is by far the fasted way to copy a range of rows to the clipboard
 
         data = self.model().getData()                                           # get numpy data from the underlying model
         if data is None:
             winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
             return
 
-        names = data.dtype.names
-        if names is None:                                                       # no field names available; not a record based array
-            names = self.model().getHeader()                                    # use the header names instead
-            fmt = self.model().getFormat()                                      # get the format string from the model
-        else:                                                                   # the numpy array is record based
-            fmt = []
-            for name in names:
-                fmt.append(self.exportDict[name])
+        fmt = self.getFormatList()                                              # get the format string from the model
+        names = self.getNameList()
 
-        with pg.BusyCursor():                                                   # this could take some time. . .
+        with pg.BusyCursor():                                                   # this operation could take some time. . .
             indices = self.selectionModel().selectedRows()                      # selection list, containing selected rows
             count = len(indices)
 
@@ -367,11 +393,13 @@ class TableView(QTableView):
             memFile = io.BytesIO()                                              # create tempory file in memory
             delimiter = '\t'                                                    # use tab separator, easier for Excel than commas
 
-            np.savetxt(memFile, copied, delimiter=delimiter, fmt=fmt)           # save file as tab seperated ascii data
+            hdr = delimiter.join(names)                                         # define header from names
+            # comments='' to prevent '# ' at the start of a header line
+            # delimiter ='' to prevent tabs, comma's from being inserted
+            # save file as tab seperated ascii data; including header
+            np.savetxt(memFile, copied, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
             outStr = memFile.getvalue().decode('UTF-8')                         # convert bytes to unicode string
-
-            header = delimiter.join(names) + '\n'                               # add header to the string
-            QApplication.clipboard().setText(header + outStr)                   # copy the whole lot to the cipboard
+            QApplication.clipboard().setText(outStr)                            # copy the whole lot to the cipboard
 
     def paste(self):
 
@@ -447,9 +475,6 @@ class TableView(QTableView):
 
         return True
 
-    def sortData(self, index):
-        pass
-
 
 # See: https://stackoverflow.com/questions/64277646/how-do-i-find-the-position-of-the-first-0-looking-backwards-in-a-numpy-array
 
@@ -511,7 +536,7 @@ class RpsTableModel(QAbstractTableModel):
         self._names = None              # Ordered list of field names, or None if there are no fields
         self._qSort = deque(maxlen=3)   # To support sorting on max 3 values
 
-        # todo: get rid of this hardcoded stuff; use the field names instead. See exportDict in TableView above
+        # todo: get rid of this hardcoded stuff; use the field names instead. See formatDict in TableView above
         # fmt: off
         self._format =  '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d',     '%d',                  '%d',   '%.1f', '%.1f'
         self._header = ['rec line', 'rec point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'unique', 'inXps']  # not shown: 'InUse'	'LocX'	'LocY'
@@ -539,8 +564,8 @@ class RpsTableModel(QAbstractTableModel):
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
-            uniq = record[8]
-            inXps = record[9]
+            uniq = record['Uniq']
+            inXps = record['InXps']
             if uniq == 0:
                 if inXps == 0:
                     return QBrush(QColor(255, 200, 200))                        # duplicate AND orphan -> red
@@ -558,7 +583,7 @@ class RpsTableModel(QAbstractTableModel):
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
-            inXps = record[10]
+            inXps = record['InXps']
             if not inXps:
                 return QBrush(QColor(200, 200, 200))                            # inactive -> grey
             return QVariant()
@@ -659,7 +684,7 @@ class RpsTableModel(QAbstractTableModel):
             return None
         for i in range(index + 1, self.rowCount(0)):
             record = self._data[i]
-            uniq = record[8]
+            uniq = record['Uniq']
             if uniq == 0:
                 return i
         return None
@@ -669,7 +694,7 @@ class RpsTableModel(QAbstractTableModel):
             return None
         for i in range(index - 1, -1, -1):
             record = self._data[i]
-            uniq = record[8]
+            uniq = record['Uniq']
             if uniq == 0:
                 return i
         return None
@@ -685,7 +710,7 @@ class RpsTableModel(QAbstractTableModel):
             return None
         for i in range(index + 1, self.rowCount(0)):
             record = self._data[i]
-            inXps = record[9]
+            inXps = record['InXps']
             if inXps == 0:
                 return i
         return None
@@ -695,7 +720,7 @@ class RpsTableModel(QAbstractTableModel):
             return None
         for i in range(index - 1, -1, -1):
             record = self._data[i]
-            inXps = record[9]
+            inXps = record['InXps']
             if inXps == 0:
                 return i
         return None
@@ -727,7 +752,7 @@ class SpsTableModel(QAbstractTableModel):
         self._names = None              # Ordered list of field names, or None if there are no fields
         self._qSort = deque(maxlen=3)   # To support sorting on max 3 values
 
-        # todo: get rid of this hardcoded stuff; use the field names instead. See exportDict in TableView above
+        # todo: get rid of this hardcoded stuff; use the field names instead. See formatDict in TableView above
         # fmt: off
         self._format =  '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d',     '%d',                  '%d',   '%.1f', '%.1f'
         self._header = ['src line', 'src point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'unique', 'inXps']  # not shown: 'InUse'	'LocX'	'LocY'
@@ -755,8 +780,8 @@ class SpsTableModel(QAbstractTableModel):
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
-            uniq = record[8]
-            inXps = record[9]
+            uniq = record['Uniq']
+            inXps = record['InXps']
             if uniq == 0:
                 if inXps == 0:
                     return QBrush(QColor(255, 200, 200))                        # duplicate AND orphan -> red
@@ -774,7 +799,7 @@ class SpsTableModel(QAbstractTableModel):
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
-            inXps = record[10]
+            inXps = record['InXps']
             if not inXps:
                 return QBrush(QColor(200, 200, 200))                            # inactive -> grey
             return QVariant()
@@ -875,7 +900,7 @@ class SpsTableModel(QAbstractTableModel):
             return None
         for i in range(index + 1, self.rowCount(0)):
             record = self._data[i]
-            uniq = record[8]
+            uniq = record['Uniq']
             if uniq == 0:
                 return i
         return None
@@ -885,7 +910,7 @@ class SpsTableModel(QAbstractTableModel):
             return None
         for i in range(index - 1, -1, -1):
             record = self._data[i]
-            uniq = record[8]
+            uniq = record['Uniq']
             if uniq == 0:
                 return i
         return None
@@ -895,7 +920,7 @@ class SpsTableModel(QAbstractTableModel):
             return None
         for i in range(index + 1, self.rowCount(0)):
             record = self._data[i]
-            inXps = record[9]
+            inXps = record['InXps']
             if inXps == 0:
                 return i
         return None
@@ -905,7 +930,7 @@ class SpsTableModel(QAbstractTableModel):
             return None
         for i in range(index - 1, -1, -1):
             record = self._data[i]
-            inXps = record[9]
+            inXps = record['InXps']
             if inXps == 0:
                 return i
         return None
@@ -936,7 +961,7 @@ class XpsTableModel(QAbstractTableModel):
         self._names = None              # Ordered list of field names, or None if there are no fields
         self._qSort = deque(maxlen=3)   # To support sorting on max 3 values
 
-        # todo: get rid of this hardcoded stuff; use the field names instead. See exportDict in TableView above
+        # todo: get rid of this hardcoded stuff; use the field names instead. See formatDict in TableView above
         # fmt: off
         self._format =  '%.2f',     '%.2f',      '%d',        '%d',       '%.2f',     '%.2f',    '%.2f',    '%d',        '%d',     '%d',           '%d'
         self._header = ['src line', 'src point', 'src index', 'record #', 'rec line', 'rec min', 'rec max', 'rec index', 'unique', 'in sps-table', 'in rps-table']
@@ -962,9 +987,9 @@ class XpsTableModel(QAbstractTableModel):
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
-            uniq = record[8]
-            inSps = record[9]
-            inRps = record[10]
+            uniq = record['Uniq']
+            inSps = record['InSps']
+            inRps = record['InRps']
             if uniq == 0:
                 if inSps == 0 or inRps == 0:
                     return QBrush(QColor(255, 200, 200))                        # duplicate AND orphan -> red
@@ -1073,7 +1098,7 @@ class XpsTableModel(QAbstractTableModel):
             return None
         for i in range(index + 1, self.rowCount(0)):
             record = self._data[i]
-            uniq = record[8]
+            uniq = record['Uniq']
             if uniq == 0:
                 return i
         return None
@@ -1083,7 +1108,7 @@ class XpsTableModel(QAbstractTableModel):
             return None
         for i in range(index - 1, -1, -1):
             record = self._data[i]
-            uniq = record[8]
+            uniq = record['Uniq']
             if uniq == 0:
                 return i
         return None
@@ -1093,7 +1118,7 @@ class XpsTableModel(QAbstractTableModel):
             return None
         for i in range(index + 1, self.rowCount(0)):
             record = self._data[i]
-            inSps = record[9]
+            inSps = record['InSps']
             if inSps == 0:
                 return i
         return None
@@ -1103,7 +1128,7 @@ class XpsTableModel(QAbstractTableModel):
             return None
         for i in range(index - 1, -1, -1):
             record = self._data[i]
-            inSps = record[9]
+            inSps = record['InSps']
             if inSps == 0:
                 return i
         return None
@@ -1113,8 +1138,8 @@ class XpsTableModel(QAbstractTableModel):
             return None
         for i in range(index + 1, self.rowCount(0)):
             record = self._data[i]
-            inSps = record[10]
-            if inSps == 0:
+            inRps = record['InRps']
+            if inRps == 0:
                 return i
         return None
 
@@ -1123,8 +1148,8 @@ class XpsTableModel(QAbstractTableModel):
             return None
         for i in range(index - 1, -1, -1):
             record = self._data[i]
-            inSps = record[10]
-            if inSps == 0:
+            inRps = record['InRps']
+            if inRps == 0:
                 return i
         return None
 

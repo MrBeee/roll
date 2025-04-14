@@ -11,9 +11,9 @@ def createGeomTab(self):
     # first create the main widgets
     self.srcView = TableView()                                              # create src view
     self.srcModel = SpsTableModel(self.srcGeom)                             # create src model
-    self.srcView.setModel(self.srcModel)                                    # add the model to the view
-    self.srcHdrView = self.srcView.horizontalHeader()                           # to detect button clicks here
-    self.srcHdrView.sectionClicked.connect(self.sortSrcData)                    # handle the section-clicked signal
+    self.srcView.setModel(self.srcModel)                                    # add the model to the view; see: https://doc.qt.io/qt-6/qtableview.html
+    self.srcHdrView = self.srcView.horizontalHeader()                       # to detect button clicks here
+    self.srcHdrView.sectionClicked.connect(self.sortSrcData)                # handle the section-clicked signal
     self.srcView.setStyleSheet(table_style)                                 # define selection colors
     self.srcView.resizeColumnsToContents()
     self.srcView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -30,8 +30,8 @@ def createGeomTab(self):
     self.recView = TableView()                                              # create rec view
     self.recModel = RpsTableModel(self.recGeom)                             # create rec model
     self.recView.setModel(self.recModel)                                    # add the model to the view
-    self.recHdrView = self.recView.horizontalHeader()                           # to detect button clicks here
-    self.recHdrView.sectionClicked.connect(self.sortRecData)                    # handle the section-clicked signal
+    self.recHdrView = self.recView.horizontalHeader()                       # to detect button clicks here
+    self.recHdrView.sectionClicked.connect(self.sortRecData)                # handle the section-clicked signal
     self.recView.setStyleSheet(table_style)                                 # define selection colors
     self.recView.resizeColumnsToContents()
     self.recView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -110,8 +110,8 @@ def createGeomTab(self):
     self.btnRelRemoveDuplicates.pressed.connect(self.removeRelDuplicates)
     self.btnRelRemoveSrcOrphans.pressed.connect(self.removeRelSrcOrphans)
     self.btnRelRemoveRecOrphans.pressed.connect(self.removeRelRecOrphans)
-    self.actionExportAreasToQGIS.triggered.connect(self.exportOutToQgis)    # action from file menu
-    self.btnRelExportToQGIS.pressed.connect(self.exportOutToQgis)           # action from file menu; export survey outlines to QGIS
+    self.actionExportAreasToQGIS.triggered.connect(self.exportOutlinesToQgis)    # action from file menu
+    self.btnRelExportToQGIS.pressed.connect(self.exportOutlinesToQgis)           # button; export survey outlines to QGIS
 
     # lastly the receiver buttons
     self.btnRecRemoveDuplicates.pressed.connect(self.removeRecDuplicates)

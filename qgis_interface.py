@@ -1220,7 +1220,7 @@ def readQgisPointLayer(layerId, selectionField=''):
 # 'geometryType',
 # 'getFeature',
 # 'getFeatures',
-# 'getGeometry',
+# 'getAliveAndDead',
 # 'getSelectedFeatures',
 # 'getStyleFromDatabase',
 # 'hasAutoRefreshEnabled',

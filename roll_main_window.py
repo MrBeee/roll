@@ -151,12 +151,13 @@ from .sps_io_and_qc import (
     deletePntOrphans,
     deleteRelDuplicates,
     deleteRelOrphans,
+    exportDataAsTxt,
     fileExportAsR01,
     fileExportAsS01,
     fileExportAsX01,
     findRecOrphans,
     findSrcOrphans,
-    getGeometry,
+    getAliveAndDead,
     markUniqueRPSrecords,
     markUniqueSPSrecords,
     markUniqueXPSrecords,
@@ -842,6 +843,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionExportFoldMap.triggered.connect(self.fileExportFoldMap)
         self.actionExportMinOffsets.triggered.connect(self.fileExportMinOffsets)
         self.actionExportMaxOffsets.triggered.connect(self.fileExportMaxOffsets)
+        self.actionExportRmsOffsets.triggered.connect(self.fileExportRmsOffsets)
 
         self.actionExportAnaAsCsv.triggered.connect(self.fileExportAnaAsCsv)
 
@@ -1557,7 +1559,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         sm.select(selection, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
 
     # define several sps, rps, xps button functions
-
     def sortSpsData(self, index):
         if self.spsImport is None:
             return
@@ -1583,7 +1584,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsImport, before, after = deletePntDuplicates(self.rpsImport)
         self.rpsModel.setData(self.rpsImport)                                   # update the model's data
         if after < before:                                                      # need to update the (x, y) points as well
-            self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getGeometry(self.rpsImport)
+            self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
             self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)            # get the convex hull of the rps points
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
@@ -1596,7 +1597,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsImport, before, after = deletePntDuplicates(self.spsImport)
         self.spsModel.setData(self.spsImport)
         if after < before:
-            self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getGeometry(self.spsImport)
+            self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
             self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)            # get the convex hull of the rps points
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
@@ -1609,7 +1610,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.rpsImport, before, after = deletePntOrphans(self.rpsImport)
         self.rpsModel.setData(self.rpsImport)
         if after < before:
-            self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getGeometry(self.rpsImport)
+            self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
             self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)            # get the convex hull of the rps points
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
@@ -1622,7 +1623,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsImport, before, after = deletePntOrphans(self.spsImport)
         self.spsModel.setData(self.spsImport)
         if after < before:
-            self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getGeometry(self.spsImport)
+            self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
             self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)            # get the convex hull of the rps points
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
@@ -1681,7 +1682,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.recGeom, before, after = deletePntDuplicates(self.recGeom)
         self.recModel.setData(self.recGeom)                                     # update the model's data
         if after < before:                                                      # need to update the (x, y) points as well
-            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getGeometry(self.recGeom)
+            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec-duplicates')
@@ -1693,7 +1694,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.srcGeom, before, after = deletePntDuplicates(self.srcGeom)
         self.srcModel.setData(self.srcGeom)
         if after < before:
-            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getGeometry(self.srcGeom)
+            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src-duplicates')
@@ -1705,7 +1706,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.recGeom, before, after = deletePntOrphans(self.recGeom)
         self.recModel.setData(self.recGeom)
         if after < before:
-            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getGeometry(self.recGeom)
+            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec/rel-orphans')
@@ -1717,7 +1718,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.srcGeom, before, after = deletePntOrphans(self.srcGeom)
         self.srcModel.setData(self.srcGeom)
         if after < before:
-            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getGeometry(self.srcGeom)
+            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
             self.plotLayout()
         self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src/rel-orphans')
@@ -1856,7 +1857,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # self.appendLogMessage(f'Import : . . . src-records contain {nRelOrphans:,} xps-orphans')
         # self.appendLogMessage(f'Import : . . . rel-records contain {nSrcOrphans:,} sps-orphans')
 
-        self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getGeometry(self.srcGeom)
+        self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
 
         self.srcModel.setData(self.srcGeom)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save src data as numpy arrays upon saving the file
@@ -1880,14 +1881,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # self.appendLogMessage(f'Import : . . . rps-records contain {nRelOrphans:,} rel-orphans')
         # self.appendLogMessage(f'Import : . . . xps-records contain {nRecOrphans:,} rec-orphans')
 
-        self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getGeometry(self.recGeom)
+        self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
 
         self.recModel.setData(self.recGeom)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save rec data as numpy arrays upon saving the file
         self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
         self.plotLayout()
 
-    def exportOutToQgis(self):
+    def exportOutlinesToQgis(self):
         layerName = QFileInfo(self.fileName).baseName()
         exportSurveyOutlineToQgis(layerName, self.survey)
 
@@ -3547,7 +3548,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if os.path.exists(self.fileName + '.rps.npy'):                      # open the existing rps-file
                 self.rpsImport = np.load(self.fileName + '.rps.npy')
-                self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getGeometry(self.rpsImport)
+                self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
                 self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)        # get the convex hull of the rps points
 
                 nImport = self.rpsImport.shape[0]
@@ -3559,7 +3560,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if os.path.exists(self.fileName + '.sps.npy'):                      # open the existing sps-file
                 self.spsImport = np.load(self.fileName + '.sps.npy')
-                self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getGeometry(self.spsImport)
+                self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
                 self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the rps points
 
                 nImport = self.spsImport.shape[0]
@@ -3579,7 +3580,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if os.path.exists(self.fileName + '.rec.npy'):                      # open the existing rps-file
                 self.recGeom = np.load(self.fileName + '.rec.npy')
-                self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getGeometry(self.recGeom)
+                self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
 
                 nImport = self.recGeom.shape[0]
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} rec-records')
@@ -3590,7 +3591,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if os.path.exists(self.fileName + '.src.npy'):                      # open the existing rps-file
                 self.srcGeom = np.load(self.fileName + '.src.npy')
-                self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getGeometry(self.srcGeom)
+                self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
 
                 nImport = self.srcGeom.shape[0]
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} src-records')
@@ -3819,7 +3820,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Import : . . . . . . Survey grid -> Local grid: Stake origin = ({pointMin:.2f}, {lineMin:.2f}), increment = ({dP:,.2f}, {dL:,.2f}) m')
                 QApplication.processEvents()  # Ensure the UI updates in real-time
 
-                self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getGeometry(self.rpsImport)
+                self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
                 self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)        # get the convex hull of the rps points
                 self.tbRpsList.setChecked(True)                                 # set the RPS list to be visible
 
@@ -3838,7 +3839,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: SPS origin = ({origX:.2f}, {origY:.2f}) m, azimuth = {angle1:.3f} deg for src lines &#8741; x-axis')
                 self.appendLogMessage(f'Import : . . . . . . Survey grid -> Local grid: stake origin = ({pointMin:.2f}, {lineMin:.2f}), increment = ({dP:,.2f}, {dL:,.2f}) m')
 
-                self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getGeometry(self.spsImport)
+                self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
                 self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the rps points
                 self.tbSpsList.setChecked(True)
 
@@ -4000,58 +4001,33 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.handleImageSelection()
         self.plotLayout()
 
-    def fileExportAsCsv(self, fileName, extension):
-        fn, selectedFilter = QFileDialog.getSaveFileName(
-            self,  # that's me
-            'Save as...',  # dialog caption
-            fileName + extension,  # start directory + filename
-            'comma separated file (*.csv);;semicolumn separated file (*.csv);;space separated file (*.csv);;tab separated file (*.csv);;All files (*.*)',  # file extensions
-            # options                                                           # options not used
-        )
-
-        delimiter = ','                                                         # default delimiter value
-        if fn:                                                                  # we have a valid file name
-            if selectedFilter == 'semicolumn separated file (*.csv)':           # select appropriate delimiter
-                delimiter = ';'
-            elif selectedFilter == 'space separated file (*.csv)':
-                delimiter = ' '
-            elif selectedFilter == 'tab separated file (*.csv)':
-                delimiter = '\t'
-
-            if not fn.lower().endswith(extension):                              # make sure file extension is okay
-                fn += extension                                                 # just add the file extension
-
-        return (fn, delimiter)
-
     def fileExportAnaAsCsv(self):
-
-        fn, delimiter = self.fileExportAsCsv(self.fileName, '.ana.csv')
-
-        if not fn:
-            return False
-
-        hdr = asstr(delimiter).join(map(asstr, self.anaModel.getHeader()))     # one-liner (from numpy) to assemble header
-        fmt = self.anaModel.getFormat()
-        data = self.output.D2_Output
-
-        with pg.BusyCursor():
-            np.savetxt(fn, data, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
-            self.appendLogMessage(f"Export : exported {self.output.D2_Output.shape[0]:,} lines to '{fn}'")
+        records, fn = exportDataAsTxt(self, self.fileName, '.ana.csv', self.anaView)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportRecAsCsv(self):
+        records, fn = exportDataAsTxt(self, self.fileName, '.rec.csv', self.recView)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
-        fn, delimiter = self.fileExportAsCsv(self.fileName, '.rec.csv')
+    def fileExportSrcAsCsv(self):
+        records, fn = exportDataAsTxt(self, self.fileName, '.src.csv', self.srcView)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
-        if not fn:
-            return False
+    def fileExportRelAsCsv(self):
+        records, fn = exportDataAsTxt(self, self.fileName, '.rel.csv', self.relView)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
-        hdr = asstr(delimiter).join(map(asstr, self.recModel.getHeader()))     # one-liner (from numpy) to assemble header
-        fmt = self.recModel.getFormat()
-        data = self.recModel.getData()
+    def fileExportRpsAsCsv(self):
+        records, fn = exportDataAsTxt(self, self.fileName, '.rps.csv', self.rpsView)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
-        with pg.BusyCursor():
-            np.savetxt(fn, data, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
-            self.appendLogMessage(f"Export : exported {data.shape[0]:,} lines to '{fn}'")
+    def fileExportSpsAsCsv(self):
+        records, fn = exportDataAsTxt(self, self.fileName, '.sps.csv', self.spsView)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
+
+    def fileExportXpsAsCsv(self):
+        records, fn = exportDataAsTxt(self, self.fileName, '.xps.csv', self.xpsView)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportRpsAsR01(self):
 
@@ -4106,81 +4082,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         fn, records = fileExportAsX01(self, fileName, data, self.survey.crs)
         if records > 0:
             self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
-
-    def fileExportSrcAsCsv(self):
-
-        fn, delimiter = self.fileExportAsCsv(self.fileName, '.src.csv')
-
-        if not fn:
-            return False
-
-        hdr = asstr(delimiter).join(map(asstr, self.srcModel.getHeader()))     # one-liner (from numpy) to assemble header
-        fmt = self.srcModel.getFormat()
-        data = self.srcModel.getData()
-
-        with pg.BusyCursor():
-            np.savetxt(fn, data, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
-            self.appendLogMessage(f"Export : exported {data.shape[0]:,} lines to '{fn}'")
-
-    def fileExportRelAsCsv(self):
-
-        fn, delimiter = self.fileExportAsCsv(self.fileName, '.rel.csv')
-
-        if not fn:
-            return False
-
-        hdr = asstr(delimiter).join(map(asstr, self.relModel.getHeader()))     # one-liner (from numpy) to assemble header
-        fmt = self.relModel.getFormat()
-        data = self.relModel.getData()
-
-        with pg.BusyCursor():
-            np.savetxt(fn, data, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
-            self.appendLogMessage(f"Export : exported {data.shape[0]:,} lines to '{fn}'")
-
-    def fileExportRpsAsCsv(self):
-
-        fn, delimiter = self.fileExportAsCsv(self.fileName, '.rps.csv')
-
-        if not fn:
-            return False
-
-        hdr = asstr(delimiter).join(map(asstr, self.rpsModel.getHeader()))     # one-liner (from numpy) to assemble header
-        fmt = self.rpsModel.getFormat()
-        data = self.rpsModel.getData()
-
-        with pg.BusyCursor():
-            np.savetxt(fn, data, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
-            self.appendLogMessage(f"Export : exported {data.shape[0]:,} lines to '{fn}'")
-
-    def fileExportSpsAsCsv(self):
-
-        fn, delimiter = self.fileExportAsCsv(self.fileName, '.sps.csv')
-
-        if not fn:
-            return False
-
-        hdr = asstr(delimiter).join(map(asstr, self.spsModel.getHeader()))     # one-liner (from numpy) to assemble header
-        fmt = self.spsModel.getFormat()
-        data = self.spsModel.getData()
-
-        with pg.BusyCursor():
-            np.savetxt(fn, data, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
-            self.appendLogMessage(f"Export : exported {data.shape[0]:,} lines to '{fn}'")
-
-    def fileExportXpsAsCsv(self):
-
-        fn, delimiter = self.fileExportAsCsv(self.fileName, '.xps.csv')
-
-        if not fn:
-            return False
-
-        hdr = asstr(delimiter).join(map(asstr, self.xpsModel.getHeader()))     # one-liner (from numpy) to assemble header
-        fmt = self.xpsModel.getFormat()
-        data = self.xpsModel.getData()
-
-        with pg.BusyCursor():
-            np.savetxt(fn, data, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
-            self.appendLogMessage(f"Export : exported {data.shape[0]:,} lines to '{fn}'")
 
     def filePrint(self):
         printer = QPrinter(QPrinter.HighResolution)
@@ -4757,8 +4658,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.relModel.setData(self.relGeom)
             self.srcModel.setData(self.srcGeom)
 
-            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getGeometry(self.recGeom)
-            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getGeometry(self.srcGeom)
+            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
+            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
 
             endTime = timer()
             elapsed = timedelta(seconds=endTime - self.startTime)               # get the elapsed time for geometry creation

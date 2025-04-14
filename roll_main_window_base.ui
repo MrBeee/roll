@@ -109,15 +109,16 @@
       <iconset>
        <normaloff>resources/qgis-icon32.svg</normaloff>resources/qgis-icon32.svg</iconset>
      </property>
+     <addaction name="actionExportSrcToQGIS"/>
+     <addaction name="actionExportRecToQGIS"/>
+     <addaction name="separator"/>
+     <addaction name="actionExportSpsToQGIS"/>
+     <addaction name="actionExportRpsToQGIS"/>
+     <addaction name="separator"/>
      <addaction name="actionExportFoldMapToQGIS"/>
      <addaction name="actionExportMinOffsetsToQGIS"/>
      <addaction name="actionExportMaxOffsetsToQGIS"/>
      <addaction name="actionExportRmsOffsetsToQGIS"/>
-     <addaction name="separator"/>
-     <addaction name="actionExportSrcToQGIS"/>
-     <addaction name="actionExportRecToQGIS"/>
-     <addaction name="actionExportSpsToQGIS"/>
-     <addaction name="actionExportRpsToQGIS"/>
      <addaction name="separator"/>
      <addaction name="actionExportAreasToQGIS"/>
     </widget>
@@ -1250,7 +1251,7 @@
   </action>
   <action name="actionExportAreasToQGIS">
    <property name="text">
-    <string>Export Binning Area to QGIS</string>
+    <string>Export Map Outlines to QGIS</string>
    </property>
    <property name="toolTip">
     <string>Export Src, Rec, CMP  &amp; Binning Area to QGIS</string>

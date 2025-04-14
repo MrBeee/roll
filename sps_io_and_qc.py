@@ -356,7 +356,6 @@ def readXpsLine(line_number, line, xpsImport, fmt) -> int:
     xpsImport[line_number] = record
     return 1
 
-
 def markUniqueRPSrecords(rpsImport, sort=True) -> int:
     # See: https://stackoverflow.com/questions/51933936/python-3-6-type-checking-numpy-arrays-and-use-defined-classes for type checking
     # See: https://stackoverflow.com/questions/12569452/how-to-identify-numpy-types-in-python same thing
@@ -378,7 +377,6 @@ def markUniqueRPSrecords(rpsImport, sort=True) -> int:
     nUnique = rpsUnique.shape[0]
     return nUnique
 
-
 def markUniqueSPSrecords(spsImport, sort=True) -> int:
     if spsImport is None or spsImport.shape[0] == 0:
         return -1
@@ -395,7 +393,6 @@ def markUniqueSPSrecords(spsImport, sort=True) -> int:
 
     nUnique = spsUnique.shape[0]
     return nUnique
-
 
 def markUniqueXPSrecords(xpsImport, sort=True) -> int:
     if xpsImport is None or xpsImport.shape[0] == 0:
@@ -414,14 +411,12 @@ def markUniqueXPSrecords(xpsImport, sort=True) -> int:
     nUnique = xpsUnique.shape[0]
     return nUnique
 
-
 def calcMaxXPStraces(xpsImport) -> int:
     last = xpsImport['RecMax']                                                  # get vector of last receiver points from xps data
     first = xpsImport['RecMin']                                                 # get vector of first receiver points from xps data
     total = last - first
     traces = int(total.sum() + total.shape[0])                                  # add the number of traces to arrive at the total number of receiver points
     return traces
-
 
 def findSrcOrphans(spsImport, xpsImport) -> (int, int):
     if spsImport is None or xpsImport is None:
@@ -458,7 +453,6 @@ def findSrcOrphans(spsImport, xpsImport) -> (int, int):
     nSpsOrphans = nXps - intMask.sum()                                          # The xps-records contain 'nSpsOrphans' sps-orphans
 
     return (nSpsOrphans, nXpsOrphans)
-
 
 def findRecOrphansOld(rpsImport, xpsImport) -> (int, int):
     if rpsImport is None or xpsImport is None:
@@ -556,7 +550,6 @@ def findRecOrphansOld(rpsImport, xpsImport) -> (int, int):
 
     return (nRpsOrphans, nXpsOrphans)
 
-
 def findRecOrphans(rpsImport, xpsImport) -> (int, int):
     if rpsImport is None or xpsImport is None:
         return (-1, -1)
@@ -641,7 +634,6 @@ def deletePntDuplicates(rpsImport):
 
     return (rpsImport, before, after)
 
-
 def deletePntOrphans(rpsImport):
 
     before = rpsImport.shape[0]
@@ -653,7 +645,6 @@ def deletePntOrphans(rpsImport):
         rpsImport.sort(order=['Index', 'Line', 'Point'])
 
     return (rpsImport, before, after)
-
 
 def deleteRelDuplicates(xpsImport):
 
@@ -667,7 +658,6 @@ def deleteRelDuplicates(xpsImport):
         xpsImport.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
 
     return (xpsImport, before, after)
-
 
 def deleteRelOrphans(xpsImport, source=True):
 
@@ -685,7 +675,6 @@ def deleteRelOrphans(xpsImport, source=True):
             xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax', 'SrcInd', 'SrcLin', 'SrcPnt'])
 
     return (xpsImport, before, after)
-
 
 def fileExportAsR01(parent, fileName, data, crs):
 
@@ -748,12 +737,11 @@ def fileExportAsR01(parent, fileName, data, crs):
     hdr = f'H00 SPS format version          SPS V2.1 revised Jan, 2006\n' f'H13 Geodetic Coordinate System  {crs.authid()}'
 
     with pg.BusyCursor():
-        # delimiter ='' to prevent tabs, comma's from occurring
         # comments='' to prevent '# ' at the start of a header line
+        # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, rpsData, delimiter='', fmt=fmt, comments='', header=hdr)
 
     return (fn, size)
-
 
 def fileExportAsS01(parent, fileName, data, crs):
 
@@ -796,11 +784,11 @@ def fileExportAsS01(parent, fileName, data, crs):
     hdr = f'H00 SPS format version          SPS V2.1 revised Jan, 2006\n' f'H13 Geodetic Coordinate System  {crs.authid()}'
 
     with pg.BusyCursor():
-        # delimiter ='' to prevent tabs, comma's from occurring
+        # comments='' to prevent '# ' at the start of a header line
+        # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, spsData, delimiter='', fmt=fmt, comments='', header=hdr)
 
     return (fn, size)
-
 
 def fileExportAsX01(parent, fileName, data, crs):
 
@@ -872,18 +860,48 @@ def fileExportAsX01(parent, fileName, data, crs):
     xpsData['RecMax'] = data['RecMax']
     xpsData['RecInd'] = data['RecInd']
 
-    # from numpy.compat import asstr
-    # delimiter = ''                                        # use this elsewhere
-    # format = asstr(delimiter).join(map(asstr, fmt))
-
     hdr = f'H00 SPS format version          SPS V2.1 revised Jan, 2006\n' f'H13 Geodetic Coordinate System  {crs.authid()}'
 
     with pg.BusyCursor():
-        # delimiter ='' to prevent tabs, comma's from occurring
+        # comments='' to prevent '# ' at the start of a header line
+        # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, xpsData, delimiter='', fmt=fmt, comments='', header=hdr)
 
     return (fn, size)
 
+# add export to flat text files here.
+def exportDataAsTxt(parent, fileName, extension, view) -> int:
+    fn, selectedFilter = QFileDialog.getSaveFileName(
+        parent,  # that's the main window
+        'Save as...',  # dialog caption
+        fileName + extension,  # start directory + filename
+        'comma separated file (*.csv);;semicolumn separated file (*.csv);;space separated file (*.csv);;tab separated file (*.csv);;All files (*.*)',  # file extensions
+        # options                                                               # options not used
+    )
+    if not fn:
+        return (0, '')                                                          # return 0 records, no filename given,
+
+    delimiter = ','                                                             # default delimiter value
+    if selectedFilter == 'semicolumn separated file (*.csv)':                   # select appropriate delimiter
+        delimiter = ';'
+    elif selectedFilter == 'space separated file (*.csv)':
+        delimiter = ' '
+    elif selectedFilter == 'tab separated file (*.csv)':
+        delimiter = '\t'
+
+    if not fn.lower().endswith(extension):                                      # make sure file extension is okay
+        fn += extension                                                         # just add the file extension
+
+    fmt = view.getFormatList()                                                  # get the format string from the model
+    hdr = view.getNameList()                                                    # get the header string from the model
+    hdr = delimiter.join(hdr)                                                   # turn list into string separated by delimiter
+    dat = view.model().getData()                                                # get the data from the model
+
+    with pg.BusyCursor():
+        # comments='' to prevent '# ' at the start of a header line
+        # delimiter ='' to prevent tabs, comma's from being inserted
+        np.savetxt(fn, dat, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
+    return (dat.shape[0], fn)
 
 def calculateLineStakeTransform(spsImport) -> []:
     # See: https://stackoverflow.com/questions/47780845/solve-over-determined-system-of-linear-equations
@@ -894,7 +912,6 @@ def calculateLineStakeTransform(spsImport) -> []:
     # See: https://stackoverflow.com/questions/45159314/decompose-2d-transformation-matrix for Transformation Matrix Decomposition
     # See: https://math.stackexchange.com/questions/612006/decomposing-an-affine-transformation as well
     # See: https://stackoverflow.com/questions/70357473/how-to-decompose-a-2x2-affine-matrix-with-sympy
-
     # see: https://pyqtgraph.readthedocs.io/en/latest/api_reference/functions.html#pyqtgraph.solveBilinearTransform  for a more general solution
 
 
@@ -983,7 +1000,7 @@ def calculateLineStakeTransform(spsImport) -> []:
     # ABCD = np.linalg.lstsq(M1, M2)[0]
     # print(ABCD)
 
-def getGeometry(geom):
+def getAliveAndDead(geom):
 
     if geom is None:
         return (None, None, None, None)
