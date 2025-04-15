@@ -113,7 +113,7 @@ relType = np.dtype(
         # fmt : off
         ('RecID',  'U2'),  # A1 ('X')
         ('TapeNo', 'U8'),  # 3A2
-        ('Record', 'i4'),  # I8
+        ('RecNum', 'i4'),  # I8
         ('RecInc', 'i4'),  # I1
         ('Instru', 'U2'),  # A1
         ('SrcLin', 'f4'),  # F10.2
@@ -135,7 +135,7 @@ relType2 = np.dtype(
         ('SrcLin', 'f4'),  # F10.2
         ('SrcPnt', 'f4'),  # F10.2
         ('SrcInd', 'i4'),  # I1
-        ('Record', 'i4'),  # I8
+        ('RecNum', 'i4'),  # I8
         ('RecLin', 'f4'),  # F10.2
         ('RecMin', 'f4'),  # F10.2
         ('RecMax', 'f4'),  # F10.2
@@ -275,7 +275,7 @@ def readXPSFiles(filenames, resultArray, fmt) -> int:
                 continue
 
             # This is the order that parameters appear on in an xps file
-            # However, we move RecNo to the fourth place in the xps record
+            # However, we move recNum to the fourth place in the xps record
             # fmt: off
             recNum =   toInt(line[fmt['recNum'][0] : fmt['recNum'][1]].strip())
             srcLin = toFloat(line[fmt['srcLin'][0] : fmt['srcLin'][1]].strip())
@@ -340,7 +340,7 @@ def readXpsLine(line_number, line, xpsImport, fmt) -> int:
         return 0
 
     # This is the order that parameters appear on in an xps file
-    # However, we move RecNo to the fourth place in the xps record
+    # However, we move recNum to the fourth place in the xps record
     # fmt: off
     recNum =   toInt(line[fmt['recNum'][0] : fmt['recNum'][1]].strip())
     srcLin = toFloat(line[fmt['srcLin'][0] : fmt['srcLin'][1]].strip())
@@ -676,20 +676,21 @@ def deleteRelOrphans(xpsImport, source=True):
 
     return (xpsImport, before, after)
 
-def fileExportAsR01(parent, fileName, data, crs):
-
+def fileExportAsR01(parent, fileName, extension, view, crs):
+    # fmt: off
     fn, selectedFilter = QFileDialog.getSaveFileName(
-        parent,  # the main window
-        'Save as...',  # caption
-        fileName,  # start directory + filename + extension
-        'sps receiver file format (*.r01);;sps receiver file format (*.rps);;All files (*.*)',
-    )                                                      # file extensions (options -> not used)
+        parent,                                                                 # the main window
+        'Save as...',                                                           # caption
+        fileName + extension,                                                   # start directory + filename + extension
+        'sps receiver file format (*.r01);;sps receiver file format (*.rps);;All files (*.*)' # file extensions
+        # options                                                               # options -> not used)
+    )
+    # fmt: on
 
     if not fn:
-        return (None, 0)
+        return (0, '')                                                          # return 0 records, no filename given,
 
     extension = '.r01'                                                          # default extension value
-
     if selectedFilter == 'sps receiver file format (*.r01)':                    # select appropriate extension
         extension = '.r01'
     elif selectedFilter == 'sps receiver file format (*.rps)':
@@ -698,11 +699,15 @@ def fileExportAsR01(parent, fileName, data, crs):
     if not fn.lower().endswith(extension):                                      # make sure file extension is okay
         fn += extension                                                         # just add the file extension
 
-    fmt = '%1s', '%10.2f', '%10.2f  ', '%1d', '%2s', '%4d', '%4.1f', '%4d', '%2d', '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6d'
-    #     'RecID','Line',   'Point',    'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev', 'Day',  'Time'
+    # fmt: 0ff
+    fmt = '%1s',  '%10.2f', '%10.2f', '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6d'
+    #     'RecID','Line',   'Point',  'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'
     # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
+    # fmt: 0n
 
+    data = view.model().getData()                                               # get the data from the model
     size = data.shape[0]
+
     JulianDay = datetime.now().timetuple().tm_yday                              # returns 1 for January 1st
     timeOfDay = datetime.now().strftime('%H%M%S')
 
@@ -723,16 +728,17 @@ def fileExportAsR01(parent, fileName, data, crs):
     # ('Time',   'i4') ]) # 3I2
 
     rpsData = np.zeros(shape=size, dtype=pntType)
-
+    # fmt: off
     rpsData['RecID'] = 'R'
-    rpsData['Line'] = data['Line']
+    rpsData[ 'Line'] = data['Line']
     rpsData['Point'] = data['Point']
     rpsData['Index'] = data['Index']
-    rpsData['Code'] = data['Code']
-    rpsData['East'] = data['East']
+    rpsData[ 'Code'] = data['Code']
+    rpsData[ 'East'] = data['East']
     rpsData['North'] = data['North']
-    rpsData['Day'] = JulianDay
-    rpsData['Time'] = timeOfDay
+    rpsData[  'Day'] = JulianDay
+    rpsData[ 'Time'] = timeOfDay
+    # fmt: on
 
     hdr = f'H00 SPS format version          SPS V2.1 revised Jan, 2006\n' f'H13 Geodetic Coordinate System  {crs.authid()}'
 
@@ -741,19 +747,23 @@ def fileExportAsR01(parent, fileName, data, crs):
         # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, rpsData, delimiter='', fmt=fmt, comments='', header=hdr)
 
-    return (fn, size)
+    return (size, fn)
 
-def fileExportAsS01(parent, fileName, data, crs):
-
+def fileExportAsS01(parent, fileName, extension, view, crs):
+    # fmt: off
     fn, selectedFilter = QFileDialog.getSaveFileName(
-        parent, 'Save as...', fileName, 'sps source file format (*.s01);;sps source file format (*.sps);;All files (*.*)'  # the main window  # caption  # start directory + filename + extension
-    )                                                      # file extensions (options -> not used)
+        parent,                                                                 # the main window
+        'Save as...',                                                           # caption
+        fileName + extension,                                                   # start directory + filename + extension
+        'sps source file format (*.s01);;sps source file format (*.sps);;All files (*.*)', # file extensions
+        # options                                                               # options -> not used
+    )
+    # fmt: on
 
     if not fn:
-        return (None, 0)
+        return (0, '')                                                          # return 0 records, no filename given,
 
     extension = '.s01'                                                          # default extension value
-
     if selectedFilter == 'sps source file format (*.s01)':                      # select appropriate extension
         extension = '.s01'
     elif selectedFilter == 'sps source file format (*.sps)':
@@ -762,24 +772,29 @@ def fileExportAsS01(parent, fileName, data, crs):
     if not fn.lower().endswith(extension):                                      # make sure file extension is okay
         fn += extension                                                         # just add the file extension
 
-    fmt = '%1s', '%10.2f', '%10.2f  ', '%1d', '%2s', '%4d', '%4.1f', '%4d', '%2d', '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6d'
-    #     'RecID','Line',   'Point',    'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev', 'Day',  'Time'
+    # fmt: off
+    fmt = '%1s',  '%10.2f', '%10.2f', '%1d',  '%2s',   '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6d'
+    #     'RecID','Line',   'Point',  'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'
     # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
+    # fmt: on
 
+    data = view.model().getData()                                               # get the data from the model
     size = data.shape[0]
     JulianDay = datetime.now().timetuple().tm_yday                              # returns 1 for January 1st
     timeOfDay = datetime.now().strftime('%H%M%S')
     spsData = np.zeros(shape=size, dtype=pntType)
 
+    # fmt: off
     spsData['RecID'] = 'S'
-    spsData['Line'] = data['Line']
+    spsData[ 'Line'] = data['Line']
     spsData['Point'] = data['Point']
     spsData['Index'] = data['Index']
-    spsData['Code'] = data['Code']
-    spsData['East'] = data['East']
+    spsData[ 'Code'] = data['Code']
+    spsData[ 'East'] = data['East']
     spsData['North'] = data['North']
-    spsData['Day'] = JulianDay
-    spsData['Time'] = timeOfDay
+    spsData[  'Day'] = JulianDay
+    spsData[ 'Time'] = timeOfDay
+    # fmt: on
 
     hdr = f'H00 SPS format version          SPS V2.1 revised Jan, 2006\n' f'H13 Geodetic Coordinate System  {crs.authid()}'
 
@@ -788,22 +803,23 @@ def fileExportAsS01(parent, fileName, data, crs):
         # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, spsData, delimiter='', fmt=fmt, comments='', header=hdr)
 
-    return (fn, size)
+    return (size, fn)
 
-def fileExportAsX01(parent, fileName, data, crs):
-
+def fileExportAsX01(parent, fileName, extension, view, crs):
+    # fmt: off
     fn, selectedFilter = QFileDialog.getSaveFileName(
-        parent,  # the main window
-        'Save as...',  # caption
-        fileName,  # start directory + filename + extension
+        parent,                                                                 # the main window
+        'Save as...',                                                           # caption
+        fileName + extension,                                                   # start directory + filename + extension
         'sps relation file format (*.x01);;sps relation file format (*.xps);;All files (*.*)',
-    )                                                      # file extensions (options -> not used)
+        # options                                                               # options -> not used)
+    )
+    # fmt: on
 
     if not fn:
-        return (None, 0)
+        return (0, '')                                                          # return 0 records, no filename given,
 
     extension = '.x01'                                                          # default extension value
-
     if selectedFilter == 'sps relation file format (*.x01)':                    # select appropriate extension
         extension = '.x01'
     elif selectedFilter == 'sps relation file format (*.xps)':
@@ -812,14 +828,16 @@ def fileExportAsX01(parent, fileName, data, crs):
     if not fn.lower().endswith(extension):                                      # make sure file extension is okay
         fn += extension                                                         # just add the file extension
 
-    fmt = '%1s', '%6s', '%8d', '%1d', '%1s', '%10.2f', '%10.2f', '%1d', '%5d', '%5d', '%1d', '%10.2f', '%10.2f', '%10.2f', '%1d'
-    # 'RecID', 'TapeNo', 'Record', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'
+    # fmt: off
+    fmt = '%1s',   '%6s',    '%8d',    '%1d',    '%1s',    '%10.2f', '%10.2f', '%1d',    '%5d',    '%5d',    '%1d',    '%10.2f', '%10.2f', '%10.2f', '%1d'
+    #     'RecID', 'TapeNo', 'RecNum', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'
+    # fmt: on
 
     # relType2 is used in the rel/rps model:
     # ('SrcLin', 'f4'),   # F10.2
     # ('SrcPnt', 'f4'),   # F10.2
     # ('SrcInd', 'i4'),   # I1
-    # ('Record',  'i4'),  # I8
+    # ('RecNum',  'i4'),  # I8
     # ('RecLin', 'f4'),   # F10.2
     # ('RecMin', 'f4'),   # F10.2
     # ('RecMax', 'f4'),   # F10.2
@@ -831,7 +849,7 @@ def fileExportAsX01(parent, fileName, data, crs):
     # need relType for export to xps
     # ('RecID',  'U2'),   # A1 ('X')
     # ('TapeNo', 'U8'),   # 3A2
-    # ('Record',  'i4'),  # I8
+    # ('RecNum',  'i4'),  # I8
     # ('RecInc', 'i4'),   # I1
     # ('Instru', 'U2'),   # A1
     # ('SrcLin', 'f4'),   # F10.2
@@ -845,11 +863,12 @@ def fileExportAsX01(parent, fileName, data, crs):
     # ('RecMax', 'f4'),   # F10.2
     # ('RecInd', 'i4') ]) # I1
 
+    data = view.model().getData()                                               # get the data from the model
     size = data.shape[0]
     xpsData = np.zeros(shape=size, dtype=relType)
     xpsData['RecID'] = 'X'
     xpsData['TapeNo'] = ' tape1'
-    xpsData['Record'] = data['Record']
+    xpsData['RecNum'] = data['RecNum']
     xpsData['RecInc'] = 1
     xpsData['Instru'] = '1'
     xpsData['SrcLin'] = data['SrcLin']
@@ -867,10 +886,10 @@ def fileExportAsX01(parent, fileName, data, crs):
         # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, xpsData, delimiter='', fmt=fmt, comments='', header=hdr)
 
-    return (fn, size)
+    return (size, fn)
 
 # add export to flat text files here.
-def exportDataAsTxt(parent, fileName, extension, view) -> int:
+def exportDataAsTxt(parent, fileName, extension, view):
     fn, selectedFilter = QFileDialog.getSaveFileName(
         parent,  # that's the main window
         'Save as...',  # dialog caption

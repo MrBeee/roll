@@ -171,9 +171,8 @@ class TableView(QTableView):
             LocY   ='%.1f',
             North  = '%.1f',
             Point  = '%.2f',
-            Record = '%d',                                                      # record number
-            RecNo  = '%d',                                                      # record number
-            RecNum = '%d',                                                      # record number; different names applied during development
+            Record = '%d',                                                      # record number; ambiguous name superseded by 'RecNum'
+            RecNum = '%d',                                                      # record number; different name used earlier
             RecLin = '%.2f',
             RecMin = '%.2f',
             RecMax = '%.2f',
@@ -947,7 +946,7 @@ class XpsTableModel(QAbstractTableModel):
         # relType2= np.dtype([('SrcLin', 'f4'),   # F10.2
         #                     ('SrcPnt', 'f4'),   # F10.2
         #                     ('SrcInd', 'i4'),   # I1
-        #                     ('Record', 'i4'),   # I8
+        #                     ('RecNum', 'i4'),   # I8
         #                     ('RecLin', 'f4'),   # F10.2
         #                     ('RecMin', 'f4'),   # F10.2
         #                     ('RecMax', 'f4'),   # F10.2

@@ -342,7 +342,7 @@ def numbaSetRelationRecord(array: np.ndarray, index: int, srcLin: float, srcPnt:
     array[index]['SrcLin'] = float(int(srcLin))
     array[index]['SrcPnt'] = float(int(srcPnt))
     array[index]['SrcInd'] = srcInd
-    array[index]['Record'] = shtRec
+    array[index]['RecNum'] = shtRec
     array[index]['RecLin'] = int(recLin)
     array[index]['RecMin'] = float(int(recMin))
     array[index]['RecMax'] = float(int(recMax))

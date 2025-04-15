@@ -90,7 +90,7 @@ from timeit import default_timer as timer
 # PyQtGraph related imports
 import numpy as np  # Numpy functions needed for plot creation
 import pyqtgraph as pg
-from numpy.compat import asstr
+from numpy.lib import recfunctions as rfn
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
@@ -3548,6 +3548,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if os.path.exists(self.fileName + '.rps.npy'):                      # open the existing rps-file
                 self.rpsImport = np.load(self.fileName + '.rps.npy')
+                self.rpsImport = rfn.rename_fields(self.rpsImport, {'Record': 'RecNum'})   # rename 'Record' field to 'RecNum' if found
                 self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
                 self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)        # get the convex hull of the rps points
 
@@ -3602,7 +3603,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if os.path.exists(self.fileName + '.rel.npy'):                      # open the existing xps-file
                 self.relGeom = np.load(self.fileName + '.rel.npy')
-
+                self.relGeom = rfn.rename_fields(self.relGeom, {'Record': 'RecNum'})   # rename 'Record' field to 'RecNum' if found
                 nImport = self.relGeom.shape[0]
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} rel-records')
             else:
@@ -4001,6 +4002,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.handleImageSelection()
         self.plotLayout()
 
+    # export comma separated values
     def fileExportAnaAsCsv(self):
         records, fn = exportDataAsTxt(self, self.fileName, '.ana.csv', self.anaView)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
@@ -4029,59 +4031,30 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         records, fn = exportDataAsTxt(self, self.fileName, '.xps.csv', self.xpsView)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
+    # export SPS formatted values
     def fileExportRpsAsR01(self):
-
-        fileName = self.fileName + '.sps.r01'                                   # start directory + filename
-        data = self.rpsModel.getData()
-
-        fn, records = fileExportAsR01(self, fileName, data, self.survey.crs)
-        if records > 0:
-            self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
+        records, fn = fileExportAsR01(self, self.fileName, '.rps.r01', self.rpsView, self.survey.crs)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportRecAsR01(self):
-
-        fileName = self.fileName + '.rec.r01'                                   # start directory + filename
-        data = self.recModel.getData()
-
-        fn, records = fileExportAsR01(self, fileName, data, self.survey.crs)
-        if records > 0:
-            self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
+        records, fn = fileExportAsR01(self, self.fileName, '.rec.r01', self.recView, self.survey.crs)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportSpsAsS01(self):
-
-        fileName = self.fileName + '.sps.s01'                                   # start directory + filename
-        data = self.spsModel.getData()
-
-        fn, records = fileExportAsS01(self, fileName, data, self.survey.crs)
-        if records > 0:
-            self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
+        records, fn = fileExportAsS01(self, self.fileName, '.sps.s01', self.spsView, self.survey.crs)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportSrcAsS01(self):
-
-        fileName = self.fileName + '.src.s01'                                   # start directory + filename
-        data = self.srcModel.getData()
-
-        fn, records = fileExportAsS01(self, fileName, data, self.survey.crs)
-        if records > 0:
-            self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
+        records, fn = fileExportAsS01(self, self.fileName, '.src.s01', self.srcView, self.survey.crs)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportXpsAsX01(self):
-
-        fileName = self.fileName + '.sps.x01'                                   # start directory + filename
-        data = self.xpsModel.getData()
-
-        fn, records = fileExportAsX01(self, fileName, data, self.survey.crs)
-        if records > 0:
-            self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
+        records, fn = fileExportAsX01(self, self.fileName, '.xps.x01', self.xpsView, self.survey.crs)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportRelAsX01(self):
-
-        fileName = self.fileName + '.rel.x01'                                   # start directory + filename
-        data = self.relModel.getData()
-
-        fn, records = fileExportAsX01(self, fileName, data, self.survey.crs)
-        if records > 0:
-            self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
+        records, fn = fileExportAsX01(self, self.fileName, '.rel.x01', self.relView, self.survey.crs)
+        self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def filePrint(self):
         printer = QPrinter(QPrinter.HighResolution)

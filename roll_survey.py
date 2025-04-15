@@ -715,7 +715,7 @@ class RollSurvey(pg.GraphicsObject):
                                                     self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStake.y())
                                                     self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStake.x())
                                                     self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
-                                                    self.output.relGeom[self.nRelRecord]['Record'] = self.nShotPoint
+                                                    self.output.relGeom[self.nRelRecord]['RecNum'] = self.nShotPoint
                                                     self.output.relGeom[self.nRelRecord]['RecLin'] = int(recStake.y())
                                                     self.output.relGeom[self.nRelRecord]['RecMin'] = self.recMin
                                                     self.output.relGeom[self.nRelRecord]['RecMax'] = self.recMax
@@ -921,7 +921,7 @@ class RollSurvey(pg.GraphicsObject):
                             # self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStkY)
                             # self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStkX)
                             # self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
-                            # self.output.relGeom[self.nRelRecord]['Record'] = self.nShotPoint
+                            # self.output.relGeom[self.nRelRecord]['RecNum'] = self.nShotPoint
                             # self.output.relGeom[self.nRelRecord]['RecLin'] = int(recStkY)
                             # self.output.relGeom[self.nRelRecord]['RecMin'] = int(recStkX)
                             # self.output.relGeom[self.nRelRecord]['RecMax'] = int(recStkX)
