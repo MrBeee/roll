@@ -298,7 +298,7 @@ def readXPSFiles(filenames, resultArray, fmt) -> int:
     return index
 
 def readRpsLine(line_number, line, rpsImport, fmt) -> int:
-    if len(line) == 0 or line[0] != fmt['rec']:                                 # check if line is empty or not a source line
+    if len(line) == 0 or line[0] != fmt['rec']:                                 # check if line is empty or not a receiver line
         return 0
 
     # fmt: off

@@ -79,6 +79,7 @@ import os
 import os.path
 import sys
 import traceback
+import webbrowser
 import winsound  # make a sound when an exception ocurs
 from datetime import timedelta
 from enum import Enum
@@ -126,7 +127,7 @@ from . import config  # used to pass initial settings
 
 # from .event_lookup import event_lookup
 from .find import Find
-from .functions import aboutText, convexHull, exampleSurveyXmlText, highDpiText, licenseText, myPrint
+from .functions import aboutText, convexHull, exampleSurveyXmlText, highDpiText, licenseText, myPrint, qgisCheatSheetText
 from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
 from .land_wizard import LandSurveyWizard
 from .marine_wizard import MarineSurveyWizard
@@ -904,6 +905,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionAbout.triggered.connect(self.OnAbout)
         self.actionLicense.triggered.connect(self.OnLicense)
         self.actionHighDpi.triggered.connect(self.OnHighDpi)
+        self.actionQGisCheatSheet.triggered.connect(self.OnQGisCheatSheet)
+        self.actionQGisRollInterface.triggered.connect(self.OnQGisRollInterface)
 
         self.actionStopThread.triggered.connect(self.stopWorkerThread)
         self.enableProcessingMenuItems()                                        # enables processing menu items except 'stop processing thread'
@@ -1391,7 +1394,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def find(self):
         # find only operates on the xml-text edit
-        self.mainTabWidget.setCurrentIndex(1)                                   # make sure we display the 'xml' tab
+        self.mainTabWidget.setCurrentIndex(2)                                   # make sure we display the 'xml' tab
         Find(self).show()                                                       # show find and replace dialog
 
     def createPlotWidget(self, plotTitle='', xAxisTitle='', yAxisTitle='', unitX='', unitY='', aspectLocked=True):
@@ -4150,6 +4153,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def OnHighDpi(self):
         QMessageBox.about(self, 'High DPI UI scaling issues', highDpiText())
+
+    def OnQGisCheatSheet(self):
+        QMessageBox.about(self, 'QGis Cheat Sheet', qgisCheatSheetText())
+
+    def OnQGisRollInterface(self):
+        # See: https://stackoverflow.com/questions/4216985/call-to-operating-system-to-open-url
+
+        dirName = os.path.dirname(os.path.abspath(__file__))
+        urlName = os.path.join(dirName, 'resources', 'Essential_QGis_operations.html')
+        # urlName = 'file:///D:/qGIS/MyPlugins/roll/resources/Essential_QGis_operations.html'
+        if os.path.exists(urlName):
+            urlName = 'file:///' + urlName.replace('\\', '/')                   # idea from CoPilot: convert to file:///
+            webbrowser.open(urlName, new=0, autoraise=True)
 
     def clipboardHasText(self):
         return len(QApplication.clipboard().text()) != 0

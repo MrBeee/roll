@@ -169,6 +169,8 @@
     <addaction name="actionAbout"/>
     <addaction name="actionLicense"/>
     <addaction name="actionHighDpi"/>
+    <addaction name="actionQGisCheatSheet"/>
+    <addaction name="actionQGisRollInterface"/>
    </widget>
    <widget class="QMenu" name="menu_Processing">
     <property name="title">
@@ -1604,6 +1606,27 @@
    </property>
    <property name="shortcut">
     <string>F5</string>
+   </property>
+  </action>
+  <action name="actionQGisCheatSheet">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/QGIS_logo_2017.svg</normaloff>resources/QGIS_logo_2017.svg</iconset>
+   </property>
+   <property name="text">
+    <string>QGis Cheat Sheet</string>
+   </property>
+  </action>
+  <action name="actionQGisRollInterface">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/QGIS_logo_2017.svg</normaloff>resources/QGIS_logo_2017.svg</iconset>
+   </property>
+   <property name="text">
+    <string>QGis-Roll Interface</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+H</string>
    </property>
   </action>
  </widget>
