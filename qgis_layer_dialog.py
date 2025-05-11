@@ -1,11 +1,11 @@
-from qgis.core import QgsFieldProxyModel, QgsMapLayerProxyModel, QgsProject
+from qgis.core import QgsFieldProxyModel, QgsMapLayerProxyModel
 from qgis.gui import QgsFieldComboBox, QgsMapLayerComboBox
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLabel
 
 
 class LayerDialog(QDialog):
-    def __init__(self, layer=None, field=None, kind: str = '', parent=None):
+    def __init__(self, layer=None, field=None, rollCrs=None, kind: str = '', parent=None):
         super().__init__(parent)
 
         # to access the main window and its components
@@ -14,14 +14,22 @@ class LayerDialog(QDialog):
         self.setMinimumWidth(350)
         self.setWindowModality(Qt.ApplicationModal)
 
-        # get QGIS project information
-        project = QgsProject.instance()
-        crs = project.crs()
-        crsInf = crs.description()
-        crsAut = crs.authid()
+        self.crs = None
 
-        self.layerInf = QLabel('CRS description')
-        self.layerAut = QLabel('CRS authorityID')
+        # get QGIS project information
+        rollInf = 'Description: ' + rollCrs.description()
+        rollAut = 'AuthorityID: ' + rollCrs.authid()
+
+        self.layerInf = QLabel('Description')
+        self.layerAut = QLabel('AuthorityID')
+
+        self.layerTxt = QLabel("\nWhen Roll's CRS and the selected layer CRS are different, \nRoll will reproject the imported points to match Roll's CRS\n")
+        self.filterTxt = QLabel("Applying this filter, will kill unselected points in Roll's analysis\nfor points where the value of this field is zero (or False)")
+
+        # self.layerTxt.setStyleSheet('QLabel { font: italic; color: blue; }')
+        # self.filterTxt.setStyleSheet('QLabel { font: italic; color: blue; }')
+        self.layerTxt.setStyleSheet('QLabel { color: blue; }')
+        self.filterTxt.setStyleSheet('QLabel { color: blue; }')
 
         # Add combobox for layer
         self.lcb = QgsMapLayerComboBox()                                        # create map layer combo box
@@ -47,18 +55,18 @@ class LayerDialog(QDialog):
 
         # now put everything together in a form layout
         self.layout = QFormLayout()                                             # Create a form layout and add the two comboboxes
-        self.layout.addWidget(QLabel('<b>QGIS project CRS</b>'))
-        self.layout.addWidget(QLabel(crsInf))
-        self.layout.addWidget(QLabel(crsAut))
+        self.layout.addWidget(QLabel('<b>Roll project CRS</b>'))
+        self.layout.addWidget(QLabel(rollInf))
+        self.layout.addWidget(QLabel(rollAut))
         self.layout.addWidget(QLabel(''))
         self.layout.addWidget(QLabel(f'<b>{kind} point layer and layer CRS details</b>'))
         self.layout.addWidget(self.lcb)
         self.layout.addWidget(self.layerInf)
         self.layout.addWidget(self.layerAut)
-        self.layout.addWidget(QLabel(''))
+        self.layout.addWidget(self.layerTxt)
         self.layout.addWidget(QLabel('<b>Selection field code</b>'))
         self.layout.addWidget(self.fcb)
-        self.layout.addWidget(QLabel('<i>Using this, will kill unselected points in Roll analysis </i>'))
+        self.layout.addWidget(self.filterTxt)
         self.layout.addWidget(QLabel(''))
         self.layout.addWidget(self.btn)
 
@@ -69,8 +77,8 @@ class LayerDialog(QDialog):
 
     def layerChanged(self):
         crs = self.lcb.currentLayer().dataProvider().crs()
-        self.layerInf.setText(crs.description())
-        self.layerAut.setText(crs.authid())
+        self.layerInf.setText('Description: ' + crs.description())
+        self.layerAut.setText('AuthorityID: ' + crs.authid())
 
     # def accept(self):                                                         # don't need to subclass
     #     QDialog.accept(self)
@@ -80,8 +88,8 @@ class LayerDialog(QDialog):
 
     # static method to create the dialog and return (success, point layer, field code)
     @staticmethod
-    def getPointLayer(layer=None, field=None, kind: str = '', parent=None):
-        dialog = LayerDialog(layer, field, kind, parent)
+    def getPointLayer(layer=None, field=None, rollCrs=None, kind: str = '', parent=None):
+        dialog = LayerDialog(layer, field, rollCrs, kind, parent)
         result = dialog.exec_()
         success = result == QDialog.Accepted
         layer = dialog.lcb.currentLayer()

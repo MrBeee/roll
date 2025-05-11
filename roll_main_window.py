@@ -132,7 +132,7 @@ from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D,
 from .land_wizard import LandSurveyWizard
 from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSurveyOutlineToQgis, identifyQgisPointLayer, readQgisPointLayer
+from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSpsOutlinesToQgis, exportSurveyOutlinesToQgis, identifyQgisPointLayer, readQgisPointLayer
 from .roll_binning import BinningType
 from .roll_main_window_create_geom_tab import createGeomTab
 from .roll_main_window_create_layout_tab import createLayoutTab
@@ -333,8 +333,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spsDeadE = None                                                    # numpy array with list of dead SPS coordinates
         self.spsDeadN = None                                                    # numpy array with list of dead SPS coordinates
 
-        self.rpsBound = None                                               # numpy array with list of RPS convex hull coordinates
-        self.spsBound = None                                               # numpy array with list of SPS convex hull coordinates
+        self.rpsBound = None                                                    # numpy array with list of RPS convex hull coordinates
+        self.spsBound = None                                                    # numpy array with list of SPS convex hull coordinates
 
         # rel, src, rel input arrays
         self.recGeom = None                                                     # numpy array with list of REC records
@@ -1843,24 +1843,77 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             layerName += '-src-data'
             self.srcLayer = exportPointLayerToQgis(layerName, self.srcGeom, self.survey.crs, source=True)
 
+    def importSpsFromQgis(self):
+        self.spsLayer, self.spsField = identifyQgisPointLayer(self.iface, self.spsLayer, self.spsField, self.survey.crs, 'Sps')
+
+        if self.spsLayer is None:
+            return
+
+        with pg.BusyCursor():
+            self.spsImport = readQgisPointLayer(self.spsLayer.id(), self.spsField)
+            if self.spsImport is not None:
+                convertCrs(self.spsImport, self.spsLayer.crs(), self.survey.crs)
+
+        if self.spsImport is None:
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.Cancel)
+            return
+
+        self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
+        self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)            # get the convex hull of the sps points
+
+        self.appendLogMessage(f'Import : SPS-records containing {self.spsLiveE.size:,} live records')
+        self.appendLogMessage(f'Import : SPS-records containing {self.spsDeadE.size:,} dead records')
+
+        self.spsModel.setData(self.spsImport)
+        self.textEdit.document().setModified(True)                              # set modified flag; so we'll save src data as numpy arrays upon saving the file
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
+        self.plotLayout()
+
+    def importRpsFromQgis(self):
+        self.rpsLayer, self.rpsField = identifyQgisPointLayer(self.iface, self.rpsLayer, self.rpsField, self.survey.crs, 'Rps')
+
+        if self.rpsLayer is None:
+            return
+
+        with pg.BusyCursor():
+            self.rpsImport = readQgisPointLayer(self.rpsLayer.id(), self.rpsField)
+            if self.rpsImport is not None:
+                convertCrs(self.rpsImport, self.rpsLayer.crs(), self.survey.crs)
+
+        if self.rpsImport is None:
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.Cancel)
+            return
+
+        self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
+        self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)            # get the convex hull of the rps points
+
+        self.appendLogMessage(f'Import : RPS-records containing {self.rpsLiveE.size:,} live records')
+        self.appendLogMessage(f'Import : RPS-records containing {self.rpsDeadE.size:,} dead records')
+
+        self.rpsModel.setData(self.rpsImport)
+        self.textEdit.document().setModified(True)                              # set modified flag; so we'll save src data as numpy arrays upon saving the file
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
+        self.plotLayout()
+
     def importSrcFromQgis(self):
-        self.srcLayer, self.srcField = identifyQgisPointLayer(self.iface, self.srcLayer, self.srcField, 'Src')
+        self.srcLayer, self.srcField = identifyQgisPointLayer(self.iface, self.srcLayer, self.srcField, self.survey.crs, 'Src')
 
         if self.srcLayer is None:
             return
 
         with pg.BusyCursor():
             self.srcGeom = readQgisPointLayer(self.srcLayer.id(), self.srcField)
+            if self.srcGeom is not None:
+                convertCrs(self.srcGeom, self.srcLayer.crs(), self.survey.crs)
 
         if self.srcGeom is None:
-            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS layer', QMessageBox.Cancel)
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.Cancel)
             return
 
-        # nSrcOrphans, nRelOrphans = findSrcOrphans(self.srcGeom, self.relGeom)
-        # self.appendLogMessage(f'Import : . . . src-records contain {nRelOrphans:,} xps-orphans')
-        # self.appendLogMessage(f'Import : . . . rel-records contain {nSrcOrphans:,} sps-orphans')
-
         self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
+
+        self.appendLogMessage(f'Import : SRC-records containing {self.srcLiveE.size:,} live records')
+        self.appendLogMessage(f'Import : SRC-records containing {self.srcDeadE.size:,} dead records')
 
         self.srcModel.setData(self.srcGeom)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save src data as numpy arrays upon saving the file
@@ -1868,23 +1921,24 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.plotLayout()
 
     def importRecFromQgis(self):
-        self.recLayer, self.recField = identifyQgisPointLayer(self.iface, self.recLayer, self.recField, 'Rec')
+        self.recLayer, self.recField = identifyQgisPointLayer(self.iface, self.recLayer, self.recField, self.survey.crs, 'Rec')
 
         if self.recLayer is None:
             return
 
         with pg.BusyCursor():
             self.recGeom = readQgisPointLayer(self.recLayer.id(), self.recField)
+            if self.recGeom is not None:
+                convertCrs(self.recGeom, self.recLayer.crs(), self.survey.crs)
 
         if self.recGeom is None:
-            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS layer', QMessageBox.Cancel)
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.Cancel)
             return
 
-        # nRecOrphans, nRelOrphans = findRecOrphans(self.recGeom, self.relGeom)
-        # self.appendLogMessage(f'Import : . . . rps-records contain {nRelOrphans:,} rel-orphans')
-        # self.appendLogMessage(f'Import : . . . xps-records contain {nRecOrphans:,} rec-orphans')
-
         self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
+
+        self.appendLogMessage(f'Import : REC-records containing {self.recLiveE.size:,} live records')
+        self.appendLogMessage(f'Import : REC-records containing {self.recDeadE.size:,} dead records')
 
         self.recModel.setData(self.recGeom)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save rec data as numpy arrays upon saving the file
@@ -1893,7 +1947,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def exportOutlinesToQgis(self):
         layerName = QFileInfo(self.fileName).baseName()
-        exportSurveyOutlineToQgis(layerName, self.survey)
+        exportSurveyOutlinesToQgis(layerName, self.survey)
+
+    def exportSpsBoundariesToQgis(self):
+        layerName = QFileInfo(self.fileName).baseName()
+        exportSpsOutlinesToQgis(layerName, self.survey, self.rpsBound, self.spsBound)
 
     def updateMenuStatus(self, resetAnalysis=True):
         if resetAnalysis:
@@ -3565,7 +3623,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             if os.path.exists(self.fileName + '.sps.npy'):                      # open the existing sps-file
                 self.spsImport = np.load(self.fileName + '.sps.npy')
                 self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
-                self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the rps points
+                self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the sps points
 
                 nImport = self.spsImport.shape[0]
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} sps-records')

@@ -29,8 +29,9 @@ import numpy as np
 import pyqtgraph as pg
 import rasterio as rio
 import wellpathpy as wp
+from qgis.core import QgsGeometry, QgsPointXY
 from qgis.PyQt.QtCore import PYQT_VERSION_STR, QT_VERSION_STR, QLineF, QPointF, QRectF, Qt
-from qgis.PyQt.QtGui import QColor, QPen, QPolygonF, QVector3D
+from qgis.PyQt.QtGui import QColor, QPen, QPolygonF, QTransform, QVector3D
 
 from . import config  # used to pass initial settings
 
@@ -645,6 +646,51 @@ def convexHull(x, y):
         return link(dome(points, base), dome(points, base[::-1]))
     else:
         return points
+
+
+def transformConvexHull(hull_points, transform):
+    """
+    Transforms the output of convexHull(x, y) using QTransform.map().
+
+    :param hull_points: A NumPy array of points (x, y) representing the convex hull.
+                        Expected shape: (n, 2), where n is the number of vertices.
+    :param transform: A QTransform object to apply the transformation.
+    :return: A transformed NumPy array of points (x, y).
+    """
+    if hull_points is None or len(hull_points) < 1:
+        raise ValueError('Invalid convex hull points. At least 1 point is required.')
+
+    if not isinstance(transform, QTransform):
+        raise TypeError('The transform parameter must be a QTransform object.')
+
+    # Apply the transformation to each point
+    transformed_points = np.array([transform.map(x, y) for x, y in hull_points])
+
+    return transformed_points
+
+
+def convexHullToQgisPolygon(hull_points):
+    """
+    Converts the output of convexHull(x, y) to a QGIS polygon.
+
+    :param hull_points: A NumPy array of points (x, y) representing the convex hull.
+                        Expected shape: (n, 2), where n is the number of vertices.
+    :return: A QGIS polygon geometry (QgsGeometry).
+    """
+    if hull_points is None or len(hull_points) < 3:
+        raise ValueError('Invalid convex hull points. At least 3 points are required to form a polygon.')
+
+    # Convert the NumPy array of points to a list of QgsPointXY
+    vertices = [QgsPointXY(x, y) for x, y in hull_points]
+
+    # Ensure the polygon is closed by appending the first point to the end
+    if vertices[0] != vertices[-1]:
+        vertices.append(vertices[0])
+
+    # Create a QGIS polygon geometry
+    polygon = QgsGeometry.fromPolygonXY([vertices])
+
+    return polygon
 
 
 def numpyToQpolygonF(xdata, ydata):

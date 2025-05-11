@@ -63,13 +63,15 @@ def createSpsTab(self):
     self.btnSpsExportToQGIS = QPushButton('Export to QGIS')
     label3 = QLabel('«- QGIS I/O -»')
     self.btnSpsReadFromQGIS = QPushButton('Read from QGIS')
+    self.btnSpsReadFromQGIS.pressed.connect(self.importSpsFromQgis)
 
     # continue with relation buttons
     self.btnXpsRemoveSpsOrphans = QPushButton('Remove SPS-orphins')
     self.btnXpsRemoveDuplicates = QPushButton('Remove Duplicates')
     self.btnXpsRemoveRpsOrphans = QPushButton('Remove RPS-orphins')
     # next line
-    self.btnXpsExportToQGIS = QPushButton('Export Sps, Rps && Binning &Boundaries to QGIS')
+    self.btnXpsExportToQGIS = QPushButton('Export concave Sps, and Rps &Boundaries to QGIS')
+    self.btnXpsExportToQGIS.pressed.connect(self.exportSpsBoundariesToQgis)           # button; export SPS outlines to QGIS
 
     # lastly create the receiver buttons
     self.btnRpsRemoveOrphans = QPushButton('Remove &XPS-orphins')
@@ -79,6 +81,7 @@ def createSpsTab(self):
     self.btnRpsExportToQGIS = QPushButton('Export to QGIS')
     label4 = QLabel('«- QGIS I/O -»')
     self.btnRpsReadFromQGIS = QPushButton('Read from QGIS')
+    self.btnRpsReadFromQGIS.pressed.connect(self.importRpsFromQgis)
 
     # make the buttons stand out a bit. See: https://www.webucator.com/article/python-color-constants-module/
     self.btnSpsRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')

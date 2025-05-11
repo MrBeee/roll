@@ -28,7 +28,7 @@ from qgis.PyQt.QtCore import QFileInfo, QRectF, QVariant
 from qgis.PyQt.QtGui import QPolygonF, QTransform
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
 
-from .functions import isFileInUse, myPrint
+from .functions import convexHullToQgisPolygon, isFileInUse, myPrint, transformConvexHull
 from .qgis_layer_dialog import LayerDialog
 from .sps_io_and_qc import pntType1
 
@@ -39,15 +39,15 @@ from .sps_io_and_qc import pntType1
 # See: https://webgeodatavore.github.io/pyqgis-samples/gui-group/QgsMapLayerComboBox.html
 
 
-def identifyQgisPointLayer(iface, layer, field, kind):
+def identifyQgisPointLayer(iface, layer, field, rollCrs, kind):
     # See: https://gis.stackexchange.com/questions/412684/retrieving-qgsmaplayercomboboxs-currently-selected-layer-to-get-its-name-for-ed
 
     # to create a modal dialog, see here:
     # See: https://stackoverflow.com/questions/18196799/how-can-i-show-a-pyqt-modal-dialog-and-get-data-out-of-its-controls-once-its-clo
-    success, layer, field = LayerDialog.getPointLayer(layer, field, kind)
+    success, layer, field = LayerDialog.getPointLayer(layer, field, rollCrs, kind)
 
     if not success or layer is None:
-        QMessageBox.information(None, 'No layer selected', 'No point layer has been selected in QGIS', QMessageBox.Cancel)
+        QMessageBox.information(None, 'No layer selected', 'No valid point layer has been selected in QGIS', QMessageBox.Cancel)
         return (None, None)
 
     vlMeta = layer.metadata()                                                   # get meta data
@@ -402,7 +402,7 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> QgsV
     # vl.triggerRepaint()
 
 
-def exportSurveyOutlineToQgis(layerName, survey) -> bool:
+def exportSurveyOutlinesToQgis(layerName, survey) -> bool:
     # See: https://gis.stackexchange.com/questions/373393/creating-polygon-and-adding-it-as-new-layer-with-pyqgis
     # See: https://gis.stackexchange.com/questions/396505/creating-rectangles-from-csv-coordinates-via-python-console-in-qgis
 
@@ -468,14 +468,14 @@ def exportSurveyOutlineToQgis(layerName, survey) -> bool:
                 ]
             )
             vl.updateFields()
-            vl.setCrs(survey.crs)
+            vl.setCrs(survey.crs)                                               # set CRS of layer
 
             symbol = QgsFillSymbol.createSimple(props)
             symbol.setOpacity(0.35)                                             # opacity not allowed in constructor properties ?!
             vl.renderer().setSymbol(symbol)
 
             polygon = QPolygonF(rect)
-            polygon = transform.map(polygon)
+            polygon = transform.map(polygon)                                    # get global coordinates
             polyQgs = QgsGeometry.fromQPolygonF(polygon)
 
             feature = QgsFeature()
@@ -500,7 +500,7 @@ def exportSurveyOutlineToQgis(layerName, survey) -> bool:
             vl.setLabeling(labels)
             vl.updateExtents()
             vl.triggerRepaint()
-            QgsProject.instance().addMapLayer(vl)
+            QgsProject.instance().addMapLayer(vl)                               # finally, add the vector layer to QGIS project
 
     if survey.output.rctOutput.isValid():                                       # do the bin extent last
         name = f'{layerName}-bin-edge-all'
@@ -530,6 +530,127 @@ def exportSurveyOutlineToQgis(layerName, survey) -> bool:
         feature = QgsFeature()
         feature.setGeometry(polyQgs)
         feature.setAttributes(['Binning boundary', 'all blocks'])
+
+        pr.addFeature(feature)
+
+        # update meta data through metadata() object
+        metaId = uuid.uuid4()                                                   # create a UUID object
+        vlMeta = vl.metadata()                                                  # derive object from layer
+        vlMeta.setIdentifier(str(metaId))                                       # turn UUID into string, to make it our ID string
+        vlMeta.setParentIdentifier('Roll')                                      # for easy layer verification from plugin
+        vlMeta.setTitle(layerName)                                              # in case layer is renamed
+        vlMeta.setType('edge of dataset')                                       # this is the default value, if you don't update the metadata
+        vlMeta.setLanguage('Python')                                            # not very relevant
+        vlMeta.setAbstract("Polygon vector-layer created by the 'Roll' plugin in QGIS")
+        vl.setMetadata(vlMeta)                                                  # insert object into layer
+
+        labelsBin = QgsVectorLayerSimpleLabeling(settings)                      # add labels to vector layer
+        vl.setLabelsEnabled(True)
+        vl.setLabeling(labelsBin)
+        vl.updateExtents()
+        vl.triggerRepaint()
+        QgsProject.instance().addMapLayer(vl)
+
+    return True
+
+
+def exportSpsOutlinesToQgis(layerName, survey, rpsBound, spsBound) -> bool:
+    # See: https://gis.stackexchange.com/questions/373393/creating-polygon-and-adding-it-as-new-layer-with-pyqgis
+    # See: https://gis.stackexchange.com/questions/396505/creating-rectangles-from-csv-coordinates-via-python-console-in-qgis
+
+    if survey.crs is None:
+        return False
+
+    if not layerName:
+        QMessageBox.warning(None, "Can't export polygons to QGIS", 'Please save survey first, to get a valid name for vector layers')
+        return False
+
+    # Configure label settings; start with the label expression
+    settings = QgsPalLayerSettings()                                            # See: https://qgis.org/pyqgis/3.22/core/QgsPalLayerSettings.html#qgis.core.QgsPalLayerSettings.minimumScale
+    settings.fieldName = """("name" || '\n' || "block")"""
+    settings.isExpression = True
+
+    # define minimum/maximum scale for labels
+    settings.minimumScale = 200000
+    settings.maximumScale = 50
+    settings.scaleVisibility = True
+
+    # configure label placement
+    # See:https://api.qgis.org/api/3.14/classQgsPalLayerSettings.html#a893793dc9760fd026d22e9d83f96c109a676921ebac6f80a2d7805e7c04876993
+    settings.placement = QgsPalLayerSettings.Placement.Free
+
+    # create a new text format
+    textFormat = QgsTextFormat()
+    textFormat.setSize(10)
+    settings.setFormat(textFormat)
+
+    if rpsBound is not None:                                             # do the rps boundary first
+        name = f'{layerName}-rps-boundary'
+
+        vl = QgsVectorLayer('Polygon', name, 'memory')
+        pr = vl.dataProvider()
+        pr.addAttributes(
+            [
+                QgsField('name', QVariant.String, len=32),
+                QgsField('block', QVariant.String, len=32),
+            ]
+        )
+        vl.updateFields()
+        vl.setCrs(survey.crs)
+
+        symbol = QgsFillSymbol.createSimple({'color': 'blue', 'outline_color': 'black'})
+        symbol.setOpacity(0.20)                                                 # opacity not allowed in constructor properties ?!
+        vl.renderer().setSymbol(symbol)
+
+        polyQgs = convexHullToQgisPolygon(rpsBound)                             # convert to QGIS geometry (points already in global coords)
+
+        feature = QgsFeature()
+        feature.setGeometry(polyQgs)
+        feature.setAttributes(['Concave boundary', 'rps-dataset'])
+
+        pr.addFeature(feature)
+
+        # update meta data through metadata() object
+        metaId = uuid.uuid4()                                                   # create a UUID object
+        vlMeta = vl.metadata()                                                  # derive object from layer
+        vlMeta.setIdentifier(str(metaId))                                       # turn UUID into string, to make it our ID string
+        vlMeta.setParentIdentifier('Roll')                                      # for easy layer verification from plugin
+        vlMeta.setTitle(layerName)                                              # in case layer is renamed
+        vlMeta.setType('edge of dataset')                                       # this is the default value, if you don't update the metadata
+        vlMeta.setLanguage('Python')                                            # not very relevant
+        vlMeta.setAbstract("Polygon vector-layer created by the 'Roll' plugin in QGIS")
+        vl.setMetadata(vlMeta)                                                  # insert object into layer
+
+        labelsBin = QgsVectorLayerSimpleLabeling(settings)                      # add labels to vector layer
+        vl.setLabelsEnabled(True)
+        vl.setLabeling(labelsBin)
+        vl.updateExtents()
+        vl.triggerRepaint()
+        QgsProject.instance().addMapLayer(vl)
+
+    if spsBound is not None:                                             # do the rps boundary first
+        name = f'{layerName}-sps-boundary'
+
+        vl = QgsVectorLayer('Polygon', name, 'memory')
+        pr = vl.dataProvider()
+        pr.addAttributes(
+            [
+                QgsField('name', QVariant.String, len=32),
+                QgsField('block', QVariant.String, len=32),
+            ]
+        )
+        vl.updateFields()
+        vl.setCrs(survey.crs)
+
+        symbol = QgsFillSymbol.createSimple({'color': 'red', 'outline_color': 'black'})
+        symbol.setOpacity(0.20)                                                 # opacity not allowed in constructor properties ?!
+        vl.renderer().setSymbol(symbol)
+
+        polyQgs = convexHullToQgisPolygon(spsBound)                             # convert to QGIS geometry (points already in global coords)
+
+        feature = QgsFeature()
+        feature.setGeometry(polyQgs)
+        feature.setAttributes(['Concave boundary', 'sps-dataset'])
 
         pr.addFeature(feature)
 
