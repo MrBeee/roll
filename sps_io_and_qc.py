@@ -74,8 +74,8 @@ pntType1 = np.dtype(
 #         # fmt : off
 #     ])
 
-# pntType3 is used to shorten the SPS/RPS records to Line-Point-Index records
 pntType3 = np.dtype(
+    # pntType3 is used to shorten the SPS/RPS records to Line-Point-Index records
     [
         ('Line', 'f4'),   # F10.2
         ('Point', 'f4'),  # F10.2

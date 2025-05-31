@@ -4729,7 +4729,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
         self.enableProcessingMenuItems()                                        # enable processing menu items (again)
-        self.mainTabWidget.setCurrentIndex(2)                                   # make sure we display the 'Geometry' tab
+        self.mainTabWidget.setCurrentIndex(3)                                   # make sure we display the 'Geometry' tab
         self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
 
     def showStatusbarWidgets(self):

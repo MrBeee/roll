@@ -75,63 +75,11 @@ To make the exported source and receiver data permanent, and available when you 
 7. Paste the “filename” from clipboard in the dialog’s `File name` field
 8. Select ok. The layer is now permanent, and will be restored if the project is opened again.
 
-## 6. Move src/rec and sps/rps points around in QGIS
-
-To make changes to any of the layers you need to enable editing. To do so:
-
-1. in Layers Panel → context menu of the layer with point data from Roll → Toggle editing
-2. A pencil icon will appear left of the layer name.
-3. The pencil on the digitizing toolbar will also be highlighted.
-4. In the digitizing toolbar select the Vertex tool for the current layer. This allows you to manipulate vertices on the active layer using one of the following methods:
-
-​	·    Right click to lock on a feature
-
-​	·    Click and drag to select vertices by rectangle
-
-​	·    Alt+click to select vertices by polygon
-
-​	·    Shift+click/drag to add vertices to selection
-
-​	·    Ctrl+click/drag to remove vertices from selection
-
-​	·    Shift+R to enable range selection
-
-## 7. Read src/rec and sps/rps points from QGIS back into Roll
-
-Once changes have been made to point locations in QGis (*or when points have been made inactive, or have been deleted*) it can be useful to read these points back into Roll, to rerun analysis for Binning of Geometry data, or binning of imported SPS data. To lod modified point data back into Roll:
-
-1. In Roll: Geometry tab → `Read from QGIS` buttons (for SRC and REC data separately)
-2. In Roll: SPS import tab → `Read from QGIS` buttons (for SPS and RPS data separately)
-3. In the layer dialog that pops up:
-
-​	a.   Select the correct point layer from QGis, containing SPS/RPS and SRC/REC data
-
-​	b.   Check that the CRS of the selected point layer matches that of the Roll project
-
-​	c.   Decide whether (or not) to use a selection field code. Normally this is the `inuse` field.
-
-​	d.   To see what fields are available in a point layer in QGis, you can:
-
-​                i.   In Layers panel → Select the appropriate layer
-
-​                ii.   In context menu → Open Attribute Table (Shift+F6)
-
-​               iii.   Check column headers. Roll expects the following fields:
-​			`line`, `stake`,`index`, `code`, `depth`, `elev` and `inuse`
-
-​               iv.   `inuse` = 0 is used to deselect a point for analysis in Roll
-
-​                v.   Integer fields other than `inuse` may also be used to select active/passive points in Roll. See next paragraph
-
-To update the analysis results in Roll:
-
-4. In Roll’s processing menu → Binning from Geometry or Binning from Imported SPS
-
-## 8. Bulk edit src/rec and sps/rps points in QGIS
+## 6. Truncate src/rec and sps/rps point areas in QGIS
 
 In Roll, survey geometry created is created using one or more rectangular blocks. In reality, a survey rarely consists of one or more rectangular shapes, but its outline is truncated according to the concession boundary, or impacted by features such as cities, lakes, etcetera. So, it will be necessary to cut (completely remove) or to switch off (mute) points in certain areas. In QGis this can be done by checking if points fall inside a polygon. There are two obvious solutions:
 
-#### 8.a. Clipping: the easy way out
+#### 6.a. Clipping: the easy way out
 
 Clipping will remove all points outside a selected polygonal area. It is quick and easy, but won’t allow for points to be reinstated at a later stage; gone-is-gone. This can be cumbersome when the survey area is being finetuned over several iterations. Steps are straightforward:
 
@@ -141,7 +89,7 @@ Clipping will remove all points outside a selected polygonal area. It is quick a
 4. Select Run
 5. The clipped point layer is now created as a scratch layer.
 
-#### 8.b. Clipping: future proofing your edits
+#### 6.b. Clipping: future proofing your edits
 
 This approach first selects all points that lay inside a polygon, and is followed by turning the selection flag into a permanent attribute value (normally applied to `inuse`)
 
@@ -167,6 +115,71 @@ This function returns true (=1), when a point record has been selected, and fals
 
 13. Press **`OK`** and let the operation run on all point records of the active layer.
 14. Upon completion, check that everything went according to plan in the Attribute Table (F6)
-15. Now the point layer is ready to be read back into Roll (See par above).
+15. Now the point layer is ready to be read back into Roll (See par above). 
 
- 
+## 7. Move src/rec and sps/rps points around in QGIS
+
+To make changes to any of the layers you need to enable editing. To do so:
+
+1. in Layers Panel → context menu of the layer with point data from Roll → Toggle editing
+2. A pencil icon will appear left of the layer name.
+3. The pencil on the digitizing toolbar will also be highlighted.
+4. In the digitizing toolbar select the Vertex tool for the current layer. This allows you to manipulate vertices on the active layer using one of the following methods:
+
+​	·    Right click to lock on a feature
+
+​	·    Click and drag to select vertices by rectangle
+
+​	·    Alt+click to select vertices by polygon
+
+​	·    Shift+click/drag to add vertices to selection
+
+​	·    Ctrl+click/drag to remove vertices from selection
+
+​	·    Shift+R to enable range selection
+
+## 8. Read src/rec and sps/rps points from QGIS back into Roll
+
+Once changes have been made to overall source/receiver areas and individual point locations in QGis (*or when points have been deleted*) it can be useful to read these points back into Roll, to run the analysis `Binning from Geometry`, or alternatively `binning from imported SPS' in the processing menu. To load modified point data back into Roll:
+
+1. In Roll: Geometry tab → `Read from QGIS` buttons (for SRC and REC data separately)
+2. In Roll: SPS import tab → `Read from QGIS` buttons (for SPS and RPS data separately)
+3. In the layer dialog that pops up:
+
+​	a.   Select the correct point layer from QGis, containing SPS/RPS and SRC/REC data
+
+​	b.   Check that the CRS of the selected point layer matches that of the Roll project
+
+​	c.   Decide whether (or not) to use a selection field code. Normally this is the `inuse` field.
+
+​	d.   To see what fields are available in a point layer in QGis, you can:
+
+​                i.   In Layers panel → Select the appropriate layer
+
+​                ii.   In context menu → Open Attribute Table (Shift+F6)
+
+​               iii.   Check column headers. Roll expects the following fields:
+​			`line`, `stake`,`index`, `code`, `depth`, `elev` and `inuse`
+
+​               iv.   `inuse` = 0 is used to deselect a point for analysis in Roll
+
+​                v.   Integer fields other than `inuse` may also be used to select active/passive points in Roll. See next paragraph
+
+### 9. Process data - *edited in QGIS* - back in Roll & show results in QGIS
+
+Now that the edited Geometry/SPS data has been copied back to Roll:
+
+1. In Roll’s processing menu → Binning from Geometry or Binning from Imported SPS
+
+2. It is essential to make a well-considered decision whether to use the **Full** or **Basic** binning options
+
+   1. **Full binning** creates the `Rms Offset map`, as well as `|offset|` and `Offset/Azimuth` diagrams and it shows the traces that belong to each bin in the `trace table`, thereby facilitating the `spider plot` in the Layout pane. In order to do full binning, a large array is required that is maintained in a memory mapped file (`*.roll.ana.npy`). If this file becomes too large to keep in random memory, it will result in a lot of swapping to disk, seriously degrading binning performance. So use it wisely, preferably over small areas of interest
+
+   1. **Basic binning** creates the `fold map`, and `min- & max-offsets` 'on the fly' whilst processing source and receiver points. It is relatively fast, but it lacks the above mentioned features.
+
+3. Once binning is completed, you can export the `fold map`, and `min- & max-offsets` to QGIS, using the buttons in the `Display pane`, or using the export options in the `file menu`. 
+4. First you need to select the appropriate folder, and then give the file a name (*a name is already suggested*) .
+5. Then, automatically, the georeferenced tiff-file will  be imported into the QGIS project
+6. Areas where there is no data in the `fold map` or the `min- & max-offset` plots will be fully transparent in QGIS
+7. Now you can check ***from within QGIS***, whether the edits, or deleted points, still result in acceptable coverage plots 
+

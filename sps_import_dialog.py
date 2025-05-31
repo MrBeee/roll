@@ -185,7 +185,7 @@ class SpsImportDialog(QDialog):
 
         font_metrics = QFontMetrics(self.paramTree.font())                      # Get font metrics for the current font
         line_height = font_metrics.height()                                     # Height of a single line
-        self.paramTree.setFixedHeight(line_height * 10)                         # Set the height to 10 lines
+        self.paramTree.setFixedHeight(line_height * 12)                         # Set the height to 12 lines
 
         for item in self.paramTree.listAllItems():                              # Bug. See: https://github.com/pyqtgraph/pyqtgraph/issues/2744
             p = item.param                                                      # get parameter belonging to parameterItem

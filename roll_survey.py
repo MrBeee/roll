@@ -1406,10 +1406,15 @@ class RollSurvey(pg.GraphicsObject):
             del (fileName, funcName, lineNo)
             return False
 
-        self.calcRmsOffsetValues()
-        self.calcUniqueFoldValues()
         self.calcFoldAndOffsetEssentials()
-        self.calcOffsetAndAzimuthDistribution()
+
+        if fullAnalysis:
+            self.calcRmsOffsetValues()
+            self.calcUniqueFoldValues()
+            self.calcOffsetAndAzimuthDistribution()
+        else:
+            self.output.anaOutput = None
+
         return True
 
     def setupBinFromTemplates(self, fullAnalysis) -> bool:
@@ -1489,10 +1494,14 @@ class RollSurvey(pg.GraphicsObject):
             del (fileName, funcName, lineNo)
             return False
 
-        self.calcRmsOffsetValues()
-        self.calcUniqueFoldValues()
         self.calcFoldAndOffsetEssentials()
-        self.calcOffsetAndAzimuthDistribution()
+
+        if fullAnalysis:
+            self.calcRmsOffsetValues()
+            self.calcUniqueFoldValues()
+            self.calcOffsetAndAzimuthDistribution()
+        else:
+            self.output.anaOutput = None
         return True
 
     def binTemplate6(self, block, template, templateOffset, fullAnalysis):
@@ -1809,7 +1818,7 @@ class RollSurvey(pg.GraphicsObject):
     def calcRmsOffsetValues(self) -> bool:
         """code to calculate RMS offset increments as a post-processing step"""
 
-        if self.output.anaOutput is None:                                       # this array is essential to calculate unique fold
+        if self.output.anaOutput is None:                                       # this array is essential to calculate rms offsets
             return False
 
         self.message.emit('Calc RMS offset increments')

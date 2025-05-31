@@ -164,6 +164,9 @@ srcBrushColor = '#77FF2929'                                                     
 srcPointSymbol = 'o'
 srcSymbolSize = 25
 
+# select true, in case you have parallel or zigzag geometries, where source lines follow the direction of the receiver lines
+spsParallel = False
+
 # Default spsDialect should equal a name from the spsFormatList dicts
 spsDialect = 'New Zealand'
 
@@ -232,13 +235,13 @@ kr_Stack = QVector3D(0.0, 20.0, 0.10)   # settings for k_r plots (min, max, step
 kxyStack = QVector3D(-5.0, 5.0, 0.05)   # settings for kxy plots (min, max, step size)
 kxyArray = QVector3D(-50.0, 50.0, 0.5)  # settings for pattern kxy plots (min, max, step size)
 
-# useNumba is used to indicate wether or not to use numba (IF it has been installed)
+# useNumba is used to indicate whether or not to use numba (IF it has been installed)
 useNumba = False
 
-# showUnfinished is used to indicate wether or not code "still under construction" is to be shown to end user
+# showUnfinished is used to indicate whether or not code "still under construction" is to be shown to end user
 showUnfinished = False
 
-# showSummary is used to indicate wether or not to show summary info of underlying paramaters in the property pane
+# showSummary is used to indicate whether or not to show summary info of underlying parameters in the property pane
 showSummaries = False
 
 # debug parameters in settings menu

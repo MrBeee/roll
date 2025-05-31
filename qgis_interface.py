@@ -28,7 +28,7 @@ from qgis.PyQt.QtCore import QFileInfo, QRectF, QVariant
 from qgis.PyQt.QtGui import QPolygonF, QTransform
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
 
-from .functions import convexHullToQgisPolygon, isFileInUse, myPrint, transformConvexHull
+from .functions import convexHullToQgisPolygon, isFileInUse, myPrint
 from .qgis_layer_dialog import LayerDialog
 from .sps_io_and_qc import pntType1
 
@@ -334,7 +334,10 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> QgsV
 
     # Configure label settings; start with the label expression
     settings = QgsPalLayerSettings()                                            # See: https://qgis.org/pyqgis/3.22/core/QgsPalLayerSettings.html#qgis.core.QgsPalLayerSettings.minimumScale
-    settings.fieldName = """("line" || '\n' || "stake")"""
+    if source:
+        settings.fieldName = """("stake" || '\n' || "line")"""
+    else:
+        settings.fieldName = """("line" || '\n' || "stake")"""
     settings.isExpression = True
 
     # define minimum/maximum scale for labels

@@ -117,6 +117,12 @@ class SettingsDialog(QDialog):
         ]
 
         # Note: QColor uses 'argb' in hex format, whereas pyqtgraph uses 'rgba' so first need to convert #hex value to a QColor()
+        tip0 = (
+            'In parallel/NAZ geometries, the source lines run parallel to the receiver lines.\n'
+            'In other geometries, the source lines run perpendicular to the receiver lines.\n'
+            'This setting only determines how source line- and point-numbers are displayed in QGIS.\n'
+            '(Line, Point) or (Point, Line). It has no effect on the actual processing of the data.'
+        )
         spsParams = [
             dict(
                 name='SPS Settings',
@@ -124,6 +130,7 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[
                     dict(name='Local SPS dialect', type='list', limits=spsNames, value=config.spsDialect, default=config.spsDialect),  # SPS 'flavor'
+                    dict(name='Parallel/NAZ geometry', type='bool', value=config.spsParallel, default=config.spsParallel, tip=tip0),
                     dict(name='Rps point marker', type='myMarker', flat=True, expanded=False, symbol=config.rpsPointSymbol, color=QColor(config.rpsBrushColor), size=config.rpsSymbolSize),
                     dict(name='Sps point marker', type='myMarker', flat=True, expanded=False, symbol=config.spsPointSymbol, color=QColor(config.spsBrushColor), size=config.spsSymbolSize),
                 ],
@@ -170,8 +177,9 @@ class SettingsDialog(QDialog):
         ]
 
         useNumba = config.useNumba if haveNumba else False
-        tip1 = 'This is an experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
-        tip2 = "This shows functionality that hasn't been completed yet.\nWork in progress !"
+        tip1 = 'Experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
+        tip2 = 'Show summary informtion of underlying parameters in the property pane'
+        tip3 = "Show functionality that hasn't been completed yet.\nWork in progress for the developer to finish !"
 
         misParams = [
             dict(
@@ -180,8 +188,8 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[
                     dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip1),
-                    dict(name='Show summary properties', type='bool', value=config.showSummaries, default=config.showSummaries, enabled=haveNumba, tip=tip1),
-                    dict(name='Show unfinished code', type='bool', value=config.showUnfinished, default=config.showUnfinished, enabled=True, tip=tip2),
+                    dict(name='Show summary properties', type='bool', value=config.showSummaries, default=config.showSummaries, enabled=haveNumba, tip=tip2),
+                    dict(name='Show unfinished code', type='bool', value=config.showUnfinished, default=config.showUnfinished, enabled=True, tip=tip3),
                 ],
             ),
         ]
@@ -239,6 +247,7 @@ class SettingsDialog(QDialog):
 
         # sps settings
         config.spsDialect = SPS.child('Local SPS dialect').value()
+        config.spsParallel = SPS.child('Parallel/NAZ geometry').value()
 
         rpsMarker = SPS.child('Rps point marker')
         config.rpsPointSymbol = rpsMarker.marker.symbol()
@@ -342,6 +351,7 @@ def readSettings(self):
 
     # sps information
     config.spsDialect = self.settings.value('settings/sps/spsDialect', 'NL')
+    config.spsParallel = self.settings.value('settings/sps/spsParallel', False, type=bool)
     config.rpsBrushColor = self.settings.value('settings/sps/rpsBrushColor', '#772929FF')
     config.rpsPointSymbol = self.settings.value('settings/sps/rpsPointSymbol', 'o')
     config.rpsSymbolSize = self.settings.value('settings/sps/rpsSymbolSize', 25)
@@ -407,6 +417,8 @@ def writeSettings(self):
 
     # sps information
     self.settings.setValue('settings/sps/spsDialect', config.spsDialect)
+    self.settings.setValue('settings/sps/spsParallel', config.spsParallel)
+
     self.settings.setValue('settings/sps/rpsBrushColor', config.rpsBrushColor)
     self.settings.setValue('settings/sps/rpsPointSymbol', config.rpsPointSymbol)
     self.settings.setValue('settings/sps/rpsSymbolSize', config.rpsSymbolSize)
