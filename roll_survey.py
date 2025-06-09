@@ -438,6 +438,7 @@ class RollSurvey(pg.GraphicsObject):
     def calcNoTemplates(self) -> int:
         self.nTemplates = 0
         for block in self.blockList:
+            nTemplates = 0                                                      # reset for each block in case there no templates in a block
             for template in block.templateList:
                 nTemplates = 1
                 for roll in template.rollList:
@@ -1961,22 +1962,29 @@ class RollSurvey(pg.GraphicsObject):
 
     def checkIntegrity(self):
         """this routine checks survey integrity, after edits have been made"""
-        # todo: check that rollList and growList have a length of 3
 
         e = 'Survey format error'
-        if len(self.blockList) == 0:
-            QMessageBox.warning(None, e, 'A survey needs at least one block')
-            return False
+        # if len(self.blockList) == 0:
+        #     QMessageBox.warning(None, e, 'A survey needs at least one block')
+        #     return False
 
-        for block in self.blockList:
-            if len(block.templateList) == 0:
-                QMessageBox.warning(None, e, 'Each block needs at least one template')
-                return False
+        # for block in self.blockList:
+        #     if len(block.templateList) == 0:
+        #         QMessageBox.warning(None, e, 'Each block needs at least one template')
+        #         return False
 
         for block in self.blockList:
             for template in block.templateList:
+
+                while len(template.rollList) < 3:                               # make sure there are always 3 roll steps in the list
+                    template.rollList.insert(0, RollTranslate())
+
                 for seed in template.seedList:
-                    if seed.type == SeedType.well:                              # well site; check for errors
+                    if seed.type == SeedType.rollingGrid or seed.type == SeedType.fixedGrid:    # rolling or fixed grid
+                        while len(seed.grid.growList) < 3:                      # make sure there are three grow steps for every grid seed
+                            seed.grid.growList.insert(0, RollTranslate())
+
+                    elif seed.type == SeedType.well:                            # well site; check for errors
                         f = seed.well.name                                      # check if well-file exists
                         if f is None or not os.path.exists(f):
                             QMessageBox.warning(None, e, f'A well-seed should point to an existing well-file\nRemove seed or adjust name in well-seed "{seed.name}"')
@@ -2044,7 +2052,7 @@ class RollSurvey(pg.GraphicsObject):
         # Only for patterns create a pointlist in the grid-seed; don't use it for normal 'rolling' or 'fixed' seeds
         for pattern in self.patternList:
             for seed in pattern.seedList:
-                seed.pointList = seed.grid.calcPointList(seed.origin)   # calculate the point list for all seeds
+                seed.pointList = seed.grid.calcPointList(seed.origin)           # calculate the point list for all seeds
 
     def createBasicSkeleton(self, nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=2):
 

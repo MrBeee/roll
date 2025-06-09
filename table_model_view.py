@@ -622,8 +622,8 @@ class RpsTableModel(QAbstractTableModel):
         return self._format
 
     def setData(self, data):
-        if data is not None:
-            self._names = data.dtype.names
+        if data is not None and data.shape[0] > 0:
+            self._names = data.dtype.names                                      # get the field names from the numpy array
             self._minMax = np.zeros(shape=(2, len(self._names)), dtype=np.float32)
 
             for i, name in enumerate(self._names):
@@ -632,7 +632,11 @@ class RpsTableModel(QAbstractTableModel):
                 self._minMax[0, i] = data[name].min()
                 self._minMax[1, i] = data[name].max()
 
-        self._data = data
+            self._data = data
+        else:
+            self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)  # Initial min and max values for each column (field) in the data array
+            self._data = None
+
         self.layoutChanged.emit()
         self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
 
@@ -838,8 +842,8 @@ class SpsTableModel(QAbstractTableModel):
         return self._format
 
     def setData(self, data):
-        if data is not None:
-            self._names = data.dtype.names
+        if data is not None and data.shape[0] > 0:
+            self._names = data.dtype.names                                      # get the field names from the numpy array
             self._minMax = np.zeros(shape=(2, len(self._names)), dtype=np.float32)
 
             for i, name in enumerate(self._names):
@@ -848,7 +852,11 @@ class SpsTableModel(QAbstractTableModel):
                 self._minMax[0, i] = data[name].min()
                 self._minMax[1, i] = data[name].max()
 
-        self._data = data
+            self._data = data
+        else:
+            self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)  # Initial min and max values for each column (field) in the data array
+            self._data = None
+
         self.layoutChanged.emit()
         self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
 
@@ -1015,15 +1023,19 @@ class XpsTableModel(QAbstractTableModel):
         return self._format
 
     def setData(self, data):
-        if data is not None:
-            self._names = data.dtype.names
+        if data is not None and data.shape[0] > 0:
+            self._names = data.dtype.names                                      # get the field names from the numpy array
             self._minMax = np.zeros(shape=(2, len(self._names)), dtype=np.float32)
 
             for i, name in enumerate(self._names):
                 self._minMax[0, i] = data[name].min()
                 self._minMax[1, i] = data[name].max()
 
-        self._data = data
+            self._data = data
+        else:
+            self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)  # Initial min and max values for each column (field) in the data array
+            self._data = None
+
         self.layoutChanged.emit()
         self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
 

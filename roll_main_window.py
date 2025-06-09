@@ -909,7 +909,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionQGisRollInterface.triggered.connect(self.OnQGisRollInterface)
 
         self.actionStopThread.triggered.connect(self.stopWorkerThread)
-        self.enableProcessingMenuItems()                                        # enables processing menu items except 'stop processing thread'
 
         # actions related to geometry items to be displayed
         self.actionTemplates.triggered.connect(self.plotLayout)
@@ -932,6 +931,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionPaste.setEnabled(self.clipboardHasText())
 
         self.updateMenuStatus(True)                                             # keep menu status in sync with program's state
+        # self.enableProcessingMenuItems(True)                                    # enables processing menu items except 'stop processing thread'; done in resetSurveyProperties()
 
         # make the main tab widget the central widget
         self.setCentralWidget(self.mainTabWidget)
@@ -1188,6 +1188,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 item.updateDefaultBtn()                                         # reset the default-button to its grey value
             nItem += 1
         self.appendLogMessage(f'Params : {self.fileName} survey object read, containing {nItem} parameters')
+        self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
 
     def updatePatternList(self, survey):
 
@@ -1324,6 +1325,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.updateMenuStatus(True)                                         # keep menu status in sync with program's state; analysis files have been deleted !
         else:
             self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; analysis files have not been deleted
+        self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
 
         self.appendLogMessage(f'Edited : {self.fileName} survey object updated')
 
@@ -3945,6 +3947,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.mainTabWidget.setCurrentIndex(4)                                   # make sure we display the 'SPS import' tab
 
         self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
+        self.enableProcessingMenuItems(True)                                    # enable processing menu items, including binning from SPS data
         # self.actionRpsPoints.setEnabled(rpsRead > 0)
         # self.actionSpsPoints.setEnabled(spsRead > 0)
 
@@ -4229,8 +4232,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         return len(QApplication.clipboard().text()) != 0
 
     def enableProcessingMenuItems(self, enable=True):
-        self.actionBasicBinFromTemplates.setEnabled(enable)
-        self.actionFullBinFromTemplates.setEnabled(enable)
+        """Enable or disable the processing menu items, depending on the state of the survey object."""
+
+        nTemplates = self.survey.calcNoTemplates() if self.survey is not None else 0
+        if nTemplates > 0:
+            self.actionBasicBinFromTemplates.setEnabled(enable)
+            self.actionFullBinFromTemplates.setEnabled(enable)
+            self.actionGeometryFromTemplates.setEnabled(enable)
+        else:
+            self.actionBasicBinFromTemplates.setEnabled(False)
+            self.actionFullBinFromTemplates.setEnabled(False)
+            self.actionGeometryFromTemplates.setEnabled(False)
+
         if enable is True and self.srcGeom is not None and self.relGeom is not None and self.recGeom is not None:
             self.actionBasicBinFromGeometry.setEnabled(enable)
             self.actionFullBinFromGeometry.setEnabled(enable)
@@ -4245,7 +4258,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.actionBasicBinFromSps.setEnabled(False)
             self.actionFullBinFromSps.setEnabled(False)
 
-        self.actionGeometryFromTemplates.setEnabled(enable)
         self.actionStopThread.setEnabled(not enable)
 
     def testBasicBinningConditions(self) -> bool:

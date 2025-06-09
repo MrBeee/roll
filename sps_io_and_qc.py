@@ -940,7 +940,9 @@ def calculateLineStakeTransform(spsImport) -> []:
     spsImport.sort(order=['Line', 'Point', 'Index'])                            # sort the data by line and point
     pointNumIncrement = spsImport['Point'][1:] - spsImport['Point'][:-1]        # get the point number increment
     pointNumIncrement = np.median(pointNumIncrement)
-    assert pointNumIncrement > 0, "Point increment is not positive"
+    assert pointNumIncrement >= 0, "Point increment is not positive"
+    if pointNumIncrement == 0:
+        pointNumIncrement = 1.0                                                  # handle 2D data with no point increment
 
     eastIncrement = spsImport['East'][1:] - spsImport['East'][:-1]              # get the east increment
     northIncrement = spsImport['North'][1:] - spsImport['North'][:-1]           # get the north increment
@@ -1021,7 +1023,7 @@ def calculateLineStakeTransform(spsImport) -> []:
 
 def getAliveAndDead(geom):
 
-    if geom is None:
+    if geom is None or geom.shape[0] == 0:                                      # no geometry data
         return (None, None, None, None)
 
     try:

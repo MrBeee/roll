@@ -2135,8 +2135,9 @@ class MyBlockListParameter(MyGroupParameter):
             raise ValueError("Need 'BlockList' instance at this point")
 
         nBlocks = len(self.blockList)
-        if nBlocks == 0:
-            raise ValueError('Need at least one block at this point')
+        # allow for empty blockList, in case the user has not yet created any blocks
+        # if nBlocks == 0:
+        #     raise ValueError('Need at least one block at this point')
 
         with self.treeChangeBlocker():
             for block in self.blockList:

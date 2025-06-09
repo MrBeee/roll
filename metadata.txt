@@ -6,7 +6,7 @@
 name=Roll
 qgisMinimumVersion=3.28
 description=Design and analysis of 3D seismic survey geometries
-version=0.4.3
+version=0.4.4
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is for creating and analyzing 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -39,7 +39,9 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog: <p>2025-05-11 (0.4.3) several improvements in transferring data from Roll to QGis and vice versa. Created html help page in help menu
+changelog: <p>2025-06-09 (0.4.5) Accept projects that are created from SPS-data only (i.e. projects that are not template-based)
+  <p>2025-06-01 (0.4.4) changed the way SPS source points are shown in QGIS: (point, line) has become (line, point) except for parallel/NAZ surveys
+  <p>2025-05-11 (0.4.3) several improvements in transferring data from Roll to QGis and vice versa. Created html help page in help menu
   <p>2025-03-05 (0.4.2) refactoring of parameter management code, speeding up display in property pane of surveys with many blocks & seed points
   <p>2025-02-22 (0.4.1) implemented feathering in Marine Wizard; enabled selective drawing of survey details (lines and/or points and/or patterns)
   <p>2025-02-15 (0.4.0) updated Marine Wizard; simplifying data structure in case there's no streamer fanning, significantly speeding up property editing
