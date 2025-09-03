@@ -101,7 +101,6 @@ from qgis.PyQt.QtWidgets import (
     QActionGroup,
     QApplication,
     QButtonGroup,
-    QCheckBox,
     QDialogButtonBox,
     QDockWidget,
     QFileDialog,
@@ -3740,8 +3739,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.importDirectory = os.path.dirname(dlg.fileNames[0])            # retrieve the directory name from first file found
 
         SPS = dlg.parameters.child('SPS Import Settings')                   # sps settings from dialog
-        spsCrs = SPS.child('CRS of SPS data').value()                       # dialog CRS
         spsDialect = SPS.child('Local SPS dialect').value()                 # dialog SPS dialect
+        # spsCrs = SPS.child('CRS of SPS data').value()                       # dialog CRS
 
         self.appendLogMessage(f"Import : importing SPS-data using the '{spsDialect}' SPS-dialect")
         self.appendLogMessage(f'Import : importing {len(dlg.rpsFiles)} rps-file(s), {len(dlg.spsFiles)} sps-file(s) and {len(dlg.xpsFiles)} xps-file(s)')

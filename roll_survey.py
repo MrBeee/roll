@@ -364,8 +364,8 @@ class RollSurvey(pg.GraphicsObject):
 
         dx = self.grid.binSize.x()
         dy = self.grid.binSize.y()
-        ox = self.grid.binShift.x()
-        oy = self.grid.binShift.y()
+        # ox = self.grid.binShift.x()
+        # oy = self.grid.binShift.y()
 
         s0 = self.grid.stakeOrig.x()
         l0 = self.grid.stakeOrig.y()

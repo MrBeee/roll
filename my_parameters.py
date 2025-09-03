@@ -7,7 +7,7 @@ from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QMessageBox, qApp
 
 from . import config  # used to pass initial settings
-from .functions import lineNo, myPrint
+from .functions import myPrint
 from .my_cmap import MyCmapParameter
 from .my_crs import MyCrsParameter
 from .my_crs2 import MyCrs2Parameter
