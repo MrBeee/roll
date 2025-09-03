@@ -3091,7 +3091,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             if self.workingDirectory:                                           # append information to log file in working directory
                 logFile = os.path.join(self.workingDirectory, '.roll.log')      # join directory & log file name
-                with open(logFile, 'a', encoding='utf-8') as file:              # append information to logfile
+                with open(logFile, 'a+', encoding='utf-8') as file:             # append (a) information to a logfile, or create a new logfile (a+) if it does not yet exist
                     file.write(self.logEdit.toPlainText())                      # get text from logEdit
                     file.write('+++\n\n')                                       # closing remarks
 
