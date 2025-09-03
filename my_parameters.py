@@ -1385,7 +1385,7 @@ class MySeedParameterItem(MyGroupParameterItem):
         bSource = param.child('Source seed').opts['value']
         seedType = param.child('Seed type').opts['value']
         if seedType == 'Circle' or seedType == 'Spiral' or seedType == 'Well':
-            pointList = param.opts.get('value', None).pointList
+            pointList = param.opts.get('value', None).pointList                 # at some point we need to get rid of the pointList -> pointArray
             nSteps = len(pointList)
         else:
             # grid stationary or rolling
