@@ -85,7 +85,7 @@ class RollSeed:
         self.type = SeedType(self.type)                                         # ugly
 
         seedElem.setAttribute('typno', str(self.type.value))                    # make sure we save the **value** of the IntFlag (i.e. an integer number)
-        seedElem.setAttribute('argb', str(self.color.name(QColor.HexArgb)))
+        seedElem.setAttribute('argb', str(self.color.name(QColor.NameFormat.HexArgb)))
 
         if self.type < SeedType.circle:
             self.grid.writeXml(seedElem, doc)

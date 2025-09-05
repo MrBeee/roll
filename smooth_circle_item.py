@@ -12,9 +12,9 @@ class SmoothCircleItem(QGraphicsEllipseItem):
 
     def __init__(self, x=0, y=0, radius=1, colors=None, angle=0):
         super().__init__(x - radius, y - radius, radius * 2, radius * 2)
-        self.setPen(QPen(Qt.red, 2))
+        self.setPen(QPen(Qt.GlobalColor.red, 2))
         if colors is None:
-            colors = (Qt.blue, Qt.transparent, Qt.red, Qt.transparent)
+            colors = (Qt.GlobalColor.blue, Qt.GlobalColor.transparent, Qt.GlobalColor.red, Qt.GlobalColor.transparent)
         self.setColors(colors, angle)
 
     def setColors(self, colors, angle=None):
@@ -80,7 +80,7 @@ class SmoothCircleItem(QGraphicsEllipseItem):
     def paint(self, qp, opt, widget=None):
         rect = self.rect()
         qp.save()
-        qp.setPen(Qt.NoPen)
+        qp.setPen(Qt.PenStyle.NoPen)
         for color, start, extent in self._colorRanges:
             qp.setBrush(color)
             qp.drawPie(rect, start, extent)

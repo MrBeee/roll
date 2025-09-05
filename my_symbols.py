@@ -49,11 +49,11 @@ class MySymbolParameterItem(WidgetParameterItem):
 
         for key in self.symbolKeys:
             pixmap = QPixmap(self.symbolWidth, self.symbolWidth)                # create a pixmap as starting point for a QIcon
-            pixmap.fill(Qt.white)                                               # create white background
+            pixmap.fill(Qt.GlobalColor.white)                                               # create white background
 
-            pen = QPen(Qt.black)                                                # create pen and brush
+            pen = QPen(Qt.GlobalColor.black)                                                # create pen and brush
             pen.setWidthF(0.075)
-            brush = QBrush(Qt.white)
+            brush = QBrush(Qt.GlobalColor.white)
 
             p = renderSymbol(key, self.symbolWidth * 0.75, pen, brush, pixmap)  # update pixmap with symbol
             icon = QIcon(p)                                                     # create the required icon

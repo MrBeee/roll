@@ -54,7 +54,7 @@ class MyGroupParameterItem(GroupParameterItem):
             layout.setContentsMargins(0, 0, 0, 0)
             layout.setSpacing(2)                                                # spacing between elements
 
-            spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
+            spacerItem = QSpacerItem(5, 5, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             layout.addSpacerItem(spacerItem)
 
             self.previewLabel = MyPreviewLabel()

@@ -13,7 +13,7 @@ import pyqtgraph as pg
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QMarginsF, QRectF, QThread, pyqtSignal
 from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPicture, QTransform, QVector3D
-from qgis.PyQt.QtWidgets import QMessageBox, qApp
+from qgis.PyQt.QtWidgets import QMessageBox, QApplication
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
@@ -593,7 +593,7 @@ class RollSurvey(pg.GraphicsObject):
         self.timerTmax[index] = max(deltaTime, self.timerTmax[index])
         self.timerTtot[index] = self.timerTtot[index] + deltaTime
         self.timerFreq[index] = self.timerFreq[index] + 1
-        qApp.processEvents()
+        QApplication.instance().processEvents()
         return perf_counter()  # call again; to ignore any time spent in this funtion
 
     def geomTemplate(self, nBlock, block, template, templateOffset):

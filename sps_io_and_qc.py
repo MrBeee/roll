@@ -183,7 +183,7 @@ def readRPSFiles(filenames, resultArray, fmt) -> int:
     index = 0
     for filename in filenames:
         f = QFile(filename)
-        if f.open(QIODevice.ReadOnly | QFile.Text):
+        if f.open(QIODevice.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):
             text = QTextStream(f)
         else:
             return -1
@@ -223,7 +223,7 @@ def readSPSFiles(filenames, resultArray, fmt) -> int:
     index = 0
     for filename in filenames:
         f = QFile(filename)
-        if f.open(QIODevice.ReadOnly | QFile.Text):
+        if f.open(QIODevice.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):
             text = QTextStream(f)
         else:
             return -1
@@ -263,7 +263,7 @@ def readXPSFiles(filenames, resultArray, fmt) -> int:
     index = 0
     for filename in filenames:
         f = QFile(filename)
-        if f.open(QIODevice.ReadOnly | QFile.Text):
+        if f.open(QIODevice.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):
             text = QTextStream(f)
         else:
             return -1

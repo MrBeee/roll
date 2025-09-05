@@ -38,12 +38,12 @@ class SettingsDialog(QDialog):
         self.setMinimumHeight(500)
         # self.setMaximumHeight(1200)
 
-        buttons = QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.Apply
+        buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Apply
         self.buttonBox = QDialogButtonBox(buttons)
-        self.buttonBox.button(QDialogButtonBox.Apply).setEnabled(False)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Apply).setEnabled(False)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.apply)
 
         # We create the ParameterTree for the settings dialog
         # See: https://www.programcreek.com/python/example/114819/pyqtgraph.parametertree.ParameterTree
@@ -224,11 +224,11 @@ class SettingsDialog(QDialog):
         self.setLayout(self.layout)
 
     def updateSettings(self):
-        self.buttonBox.button(QDialogButtonBox.Apply).setEnabled(True)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Apply).setEnabled(True)
 
     def apply(self):
         self.accepted()
-        self.buttonBox.button(QDialogButtonBox.Apply).setEnabled(False)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Apply).setEnabled(False)
         self.appliedSignal.emit()
 
     def accept(self):
@@ -251,22 +251,22 @@ class SettingsDialog(QDialog):
 
         rpsMarker = SPS.child('Rps point marker')
         config.rpsPointSymbol = rpsMarker.marker.symbol()
-        config.rpsBrushColor = rpsMarker.marker.color().name(QColor.HexArgb)
+        config.rpsBrushColor = rpsMarker.marker.color().name(QColor.NameFormat.HexArgb)
         config.rpsSymbolSize = rpsMarker.marker.size()
 
         spsMarker = SPS.child('Sps point marker')
         config.spsPointSymbol = spsMarker.marker.symbol()
-        config.spsBrushColor = spsMarker.marker.color().name(QColor.HexArgb)
+        config.spsBrushColor = spsMarker.marker.color().name(QColor.NameFormat.HexArgb)
         config.spsSymbolSize = spsMarker.marker.size()
 
         # color (map) settings
         config.analysisCmap = COL.child('Analysis color map').value()
         config.fold_OffCmap = COL.child('Fold/offset color map').value()
 
-        config.binAreaColor = COL.child('Bin area color').value().name(QColor.HexArgb)
-        config.cmpAreaColor = COL.child('Cmp area color').value().name(QColor.HexArgb)
-        config.recAreaColor = COL.child('Rec area color').value().name(QColor.HexArgb)
-        config.srcAreaColor = COL.child('Src area color').value().name(QColor.HexArgb)
+        config.binAreaColor = COL.child('Bin area color').value().name(QColor.NameFormat.HexArgb)
+        config.cmpAreaColor = COL.child('Cmp area color').value().name(QColor.NameFormat.HexArgb)
+        config.recAreaColor = COL.child('Rec area color').value().name(QColor.NameFormat.HexArgb)
+        config.srcAreaColor = COL.child('Src area color').value().name(QColor.NameFormat.HexArgb)
 
         # config.binAreaPen = COL.child('Bin area pen').value()                 # the pen value isn't properly updated
         # config.cmpAreaPen = COL.child('Cmp area pen').value()                 # use saveState()['value'] instead
@@ -291,12 +291,12 @@ class SettingsDialog(QDialog):
         # geometry settings
         recValue = GEO.child('Rec point marker').value()
         config.recPointSymbol = recValue.symbol()
-        config.recBrushColor = recValue.color().name(QColor.HexArgb)
+        config.recBrushColor = recValue.color().name(QColor.NameFormat.HexArgb)
         config.recSymbolSize = recValue.size()
 
         srcValue = GEO.child('Src point marker').value()
         config.srcPointSymbol = srcValue.symbol()
-        config.srcBrushColor = srcValue.color().name(QColor.HexArgb)
+        config.srcBrushColor = srcValue.color().name(QColor.NameFormat.HexArgb)
         config.srcSymbolSize = srcValue.size()
 
         # k-plot settings
@@ -325,7 +325,7 @@ def readSettings(self):
     state = self.settings.value('mainWindow/state', bytes('', 'utf-8'))         # , bytes('', 'utf-8') prevents receiving a 'None' object
     self.restoreGeometry(state)                                                 # No longer needed to test: if geometry != None:
 
-    path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
+    path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
     self.workingDirectory = self.settings.value('settings/workingDirectory', path)   # start folder for SaveAs
     self.importDirectory = self.settings.value('settings/importDirectory', path)   # start folder for reading SPS files
     self.recentFileList = self.settings.value('settings/recentFileList', [])

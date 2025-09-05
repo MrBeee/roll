@@ -11,9 +11,9 @@ def createPatternTab(self):
     self.patNr1Choice.setMinimumWidth(140)
     self.patNr2Choice.setMinimumWidth(140)
 
-    self.patInfChoice.setAlignment(Qt.AlignHCenter)
-    self.patNr1Choice.setAlignment(Qt.AlignHCenter)
-    self.patNr2Choice.setAlignment(Qt.AlignHCenter)
+    self.patInfChoice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+    self.patNr1Choice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+    self.patNr2Choice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
     vbox0 = QVBoxLayout()
     vbox0.addStretch(2)                                                         # add some stretch to main center widget(s)
@@ -80,12 +80,12 @@ def createPatternTab(self):
     hbox0.addStretch()                                             # add some stretch to main center widget(s)
 
     leftSide = QFrame()
-    leftSide.setFrameShape(QFrame.StyledPanel)
+    leftSide.setFrameShape(QFrame.Shape.StyledPanel)
     leftSide.setLayout(hbox0)
     leftSide.setMaximumWidth(180)
     rightSide = self.arraysWidget
 
-    splitter1 = QSplitter(Qt.Horizontal)
+    splitter1 = QSplitter(Qt.Orientation.Horizontal)
     splitter1.addWidget(leftSide)
     splitter1.addWidget(rightSide)
     splitter1.setSizes([100, 500])

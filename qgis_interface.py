@@ -48,7 +48,7 @@ def identifyQgisPointLayer(iface, layer, field, rollCrs, kind):
     success, layer, field = LayerDialog.getPointLayer(layer, field, rollCrs, kind)
 
     if not success or layer is None:
-        QMessageBox.information(None, 'No layer selected', 'No valid point layer has been selected in QGIS', QMessageBox.Cancel)
+        QMessageBox.information(None, 'No layer selected', 'No valid point layer has been selected in QGIS', QMessageBox.StandardButton.Cancel)
         return (None, None)
 
     vlMeta = layer.metadata()                                                   # get meta data
@@ -57,7 +57,7 @@ def identifyQgisPointLayer(iface, layer, field, rollCrs, kind):
     if isinstance(layer, QgsVectorLayer) and parentId.startswith('Roll'):       # we have the right one
         return (layer, field)
     else:
-        QMessageBox.information(None, 'Please update metadata', "Please ensure the Parent Identifier in the metadata of the selected layer starts with 'Roll'", QMessageBox.Cancel)
+        QMessageBox.information(None, 'Please update metadata', "Please ensure the Parent Identifier in the metadata of the selected layer starts with 'Roll'", QMessageBox.StandardButton.Cancel)
         return (None, None)
 
 

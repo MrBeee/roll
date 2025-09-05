@@ -52,7 +52,7 @@ class AnaTableModel(QAbstractTableModel):
         self.setData(data)
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             if self._data is not None:
                 if index.column() < 3:                                          # Show int values for first three columns
                     value = str(int(self._data[index.row(), index.column()]))
@@ -64,12 +64,12 @@ class AnaTableModel(QAbstractTableModel):
             else:
                 value = '  n/a  '
             return value
-        elif role == Qt.TextAlignmentRole:
-            return Qt.AlignCenter
-        elif role == Qt.FontRole:
+        elif role == Qt.ItemDataRole.TextAlignmentRole:
+            return Qt.AlignmentFlag.AlignCenter
+        elif role == Qt.ItemDataRole.FontRole:
             # return QFont("Courier New", 10, QFont.Bold)
             # return QFont('Courier New', 8, QFont.Normal)
-            return QFont('Arial', 8, QFont.Normal)
+            return QFont('Arial', 8, QFont.Weight.Normal)
 
     def setData(self, data):
         # self.beginResetModel()                                                  # https://doc.qt.io/qt-6/qabstractitemmodel.html#beginResetModel
@@ -89,17 +89,17 @@ class AnaTableModel(QAbstractTableModel):
     def getFormat(self):
         return self._format
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
-            if orientation == Qt.Horizontal:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
                 return self._header[section]
             else:
                 return f'{section + 1:,}'
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
-    def setHeaderData(self, section, orientation, data, role=Qt.EditRole):
-        if orientation == Qt.Horizontal and role in (Qt.DisplayRole, Qt.EditRole):
+    def setHeaderData(self, section, orientation, data, role=Qt.ItemDataRole.EditRole):
+        if orientation == Qt.Orientation.Horizontal and role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             return self._header[section]
         return super().setHeaderData(section, orientation, data, role)
 
@@ -150,8 +150,8 @@ class TableView(QTableView):
         self.horizontalHeader().setDefaultSectionSize(20)
 
         # don't allow selecting columns in a large virtual table; instead, always select a complete row
-        self.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.SelectionMode(QAbstractItemView.ContiguousSelection)
+        self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.SelectionMode(QAbstractItemView.SelectionMode.ContiguousSelection)
 
     @staticmethod
     def getFormat(entry):
@@ -207,11 +207,11 @@ class TableView(QTableView):
         # See: https://www.xingyulei.com/post/qt-detect-click/index.html
         # See: https://pythonqwt.readthedocs.io/en/stable/examples/eventfilter.html
 
-        if event.type() == QEvent.KeyPress and event.matches(QKeySequence.Copy):
+        if event.type() == QEvent.Type.KeyPress and event.matches(QKeySequence.StandardKey.Copy):
             self.copy()
             return True
 
-        if event.type() == QEvent.KeyPress and event.matches(QKeySequence.Paste):
+        if event.type() == QEvent.Type.KeyPress and event.matches(QKeySequence.StandardKey.Paste):
             self.paste()
             return True
 
@@ -219,20 +219,20 @@ class TableView(QTableView):
         # maybe it helps to reroute these key events to the active widget.
         # See: https://stackoverflow.com/questions/9442165/pyqt-mouse-events-for-qtabwidget
         # See: https://stackoverflow.com/questions/20420072/use-keypressevent-to-catch-enter-or-return
-        if event.type() == QEvent.KeyPress and event.matches(QKeySequence.SelectAll):
+        if event.type() == QEvent.Type.KeyPress and event.matches(QKeySequence.StandardKey.SelectAll):
             self.select_all()
             return True
 
-        if event.type() == QEvent.KeyPress and (event.modifiers() & Qt.ControlModifier):
+        if event.type() == QEvent.Type.KeyPress and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
             myPrint('The control key is pressed')
 
-            if event.key() == Qt.Key_1:
+            if event.key() == Qt.Key.Key_1:
                 myPrint('Select All')
                 self.clearSelection()
                 self.select_all()
                 return True
 
-            if event.key() == Qt.Key_Home:
+            if event.key() == Qt.Key.Key_Home:
                 myPrint('Go Home')
                 index = 0
                 myPrint(f'Row {index} is selected')
@@ -240,7 +240,7 @@ class TableView(QTableView):
                 self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_End:
+            if event.key() == Qt.Key.Key_End:
                 myPrint('Go to the End')
                 index = self.model().rowCount(0) - 1
                 myPrint(f'Row {index} is selected')
@@ -248,7 +248,7 @@ class TableView(QTableView):
                 self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_PageDown:
+            if event.key() == Qt.Key.Key_PageDown:
                 myPrint('Move to next duplicate')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -263,7 +263,7 @@ class TableView(QTableView):
                     self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_PageUp:
+            if event.key() == Qt.Key.Key_PageUp:
                 myPrint('Move to previous duplicate')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -278,7 +278,7 @@ class TableView(QTableView):
                     self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_Down:
+            if event.key() == Qt.Key.Key_Down:
                 myPrint('Move to next src orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -293,7 +293,7 @@ class TableView(QTableView):
                     self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_Up:
+            if event.key() == Qt.Key.Key_Up:
                 myPrint('Move to prev src orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -308,7 +308,7 @@ class TableView(QTableView):
                     self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_Right:
+            if event.key() == Qt.Key.Key_Right:
                 myPrint('Move to next rec orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -323,7 +323,7 @@ class TableView(QTableView):
                     self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_Left:
+            if event.key() == Qt.Key.Key_Left:
                 myPrint('Move to prev rec orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -465,7 +465,7 @@ class TableView(QTableView):
             return
 
         if self.model().rowCount(0) > 100000:
-            QMessageBox.warning(self, 'Select all', 'You want to select more than 100,000 records\nPlease use File->Export to export all records and make your selection in a text editor', QMessageBox.Close)
+            QMessageBox.warning(self, 'Select all', 'You want to select more than 100,000 records\nPlease use File->Export to export all records and make your selection in a text editor', QMessageBox.StandardButton.Close)
             return True
 
         # See: https://github.com/NextSaturday/myQT/blob/main/tSelection/tSelection/tSelection.cpp for alternative solution
@@ -545,7 +545,7 @@ class RpsTableModel(QAbstractTableModel):
         self.setData(data)
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             if self._data is not None:
                 record = self._data[index.row()]
                 if index.column() == 2:                                         # format depends on column
@@ -557,11 +557,11 @@ class RpsTableModel(QAbstractTableModel):
             else:
                 value = 'n/a'
             return value
-        elif role == Qt.TextAlignmentRole:
-            return Qt.AlignCenter
-        elif role == Qt.BackgroundRole:
+        elif role == Qt.ItemDataRole.TextAlignmentRole:
+            return Qt.AlignmentFlag.AlignCenter
+        elif role == Qt.ItemDataRole.BackgroundRole:
             if self._data is None:
-                return QVariant()
+                return NULL
             record = self._data[index.row()]
             uniq = record['Uniq']
             inXps = record['InXps']
@@ -573,23 +573,23 @@ class RpsTableModel(QAbstractTableModel):
             elif inXps == 0:
                 return QBrush(QColor(155, 200, 255))                            # orphan -> blue-ish
             else:
-                return QVariant()
-        elif role == Qt.FontRole:
+                return NULL
+        elif role == Qt.ItemDataRole.FontRole:
             # return QFont("Courier New", 10, QFont.Bold)
             # return QFont('Courier New', 8, QFont.Normal)
-            return QFont('Arial', 8, QFont.Normal)
-        elif role == Qt.ForegroundRole:
+            return QFont('Arial', 8, QFont.Weight.Normal)
+        elif role == Qt.ItemDataRole.ForegroundRole:
             if self._data is None:
-                return QVariant()
+                return NULL
             record = self._data[index.row()]
             inXps = record['InXps']
             if not inXps:
                 return QBrush(QColor(200, 200, 200))                            # inactive -> grey
-            return QVariant()
+            return NULL
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
-            if orientation == Qt.Horizontal:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
                 if section == 2:
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
                 elif section != 3:
@@ -599,8 +599,8 @@ class RpsTableModel(QAbstractTableModel):
             else:
                 return f'{section + 1:,}'
 
-        if role == Qt.BackgroundRole:                                           # highlight sorting column(s)
-            if orientation == Qt.Horizontal:
+        if role == Qt.ItemDataRole.BackgroundRole:                                           # highlight sorting column(s)
+            if orientation == Qt.Orientation.Horizontal:
                 if len(self._qSort) > 0 and section == self._qSort[-1]:
                     return QBrush(QColor(255, 215, 0))                          # gold
                 if len(self._qSort) > 1 and section == self._qSort[-2]:
@@ -608,7 +608,7 @@ class RpsTableModel(QAbstractTableModel):
                 if len(self._qSort) > 2 and section == self._qSort[-3]:
                     return QBrush(QColor(250, 250, 210))                        # lightgoldenrodyellow
                 else:
-                    return QVariant()
+                    return NULL
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
@@ -638,7 +638,7 @@ class RpsTableModel(QAbstractTableModel):
             self._data = None
 
         self.layoutChanged.emit()
-        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+        self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
 
     def applySort(self, index):
         if self._data is None:
@@ -657,7 +657,7 @@ class RpsTableModel(QAbstractTableModel):
 
         self._data.sort(order=sortList)                                         # Sort the data using the list of sorts
         self.layoutChanged.emit()
-        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+        self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
 
     def sortColumns(self):
         if self._data is None:
@@ -765,7 +765,7 @@ class SpsTableModel(QAbstractTableModel):
         self.setData(data)
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             if self._data is not None:
                 record = self._data[index.row()]
                 if index.column() == 2:                                         # format depends on column
@@ -777,11 +777,11 @@ class SpsTableModel(QAbstractTableModel):
             else:
                 value = 'n/a'
             return value
-        elif role == Qt.TextAlignmentRole:
-            return Qt.AlignCenter
-        elif role == Qt.BackgroundRole:
+        elif role == Qt.ItemDataRole.TextAlignmentRole:
+            return Qt.AlignmentFlag.AlignCenter
+        elif role == Qt.ItemDataRole.BackgroundRole:
             if self._data is None:
-                return QVariant()
+                return NULL
             record = self._data[index.row()]
             uniq = record['Uniq']
             inXps = record['InXps']
@@ -793,23 +793,23 @@ class SpsTableModel(QAbstractTableModel):
             elif inXps == 0:
                 return QBrush(QColor(200, 200, 255))                            # orphan -> blue
             else:
-                return QVariant()
-        elif role == Qt.FontRole:
+                return NULL
+        elif role == Qt.ItemDataRole.FontRole:
             # return QFont("Courier New", 10, QFont.Bold)
             # return QFont('Courier New', 8, QFont.Normal)
-            return QFont('Arial', 8, QFont.Normal)
-        elif role == Qt.ForegroundRole:
+            return QFont('Arial', 8, QFont.Weight.Normal)
+        elif role == Qt.ItemDataRole.ForegroundRole:
             if self._data is None:
-                return QVariant()
+                return NULL
             record = self._data[index.row()]
             inXps = record['InXps']
             if not inXps:
                 return QBrush(QColor(200, 200, 200))                            # inactive -> grey
-            return QVariant()
+            return NULL
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
-            if orientation == Qt.Horizontal:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
                 if section == 2:
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
                 elif section != 3:
@@ -819,8 +819,8 @@ class SpsTableModel(QAbstractTableModel):
             else:
                 return f'{section + 1:,}'
 
-        if role == Qt.BackgroundRole:                                           # highlight sorting column(s)
-            if orientation == Qt.Horizontal:
+        if role == Qt.ItemDataRole.BackgroundRole:                                           # highlight sorting column(s)
+            if orientation == Qt.Orientation.Horizontal:
                 if len(self._qSort) > 0 and section == self._qSort[-1]:
                     return QBrush(QColor(255, 215, 0))                          # gold
                 if len(self._qSort) > 1 and section == self._qSort[-2]:
@@ -828,7 +828,7 @@ class SpsTableModel(QAbstractTableModel):
                 if len(self._qSort) > 2 and section == self._qSort[-3]:
                     return QBrush(QColor(250, 250, 210))                        # lightgoldenrodyellow
                 else:
-                    return QVariant()
+                    return NULL
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
@@ -858,7 +858,7 @@ class SpsTableModel(QAbstractTableModel):
             self._data = None
 
         self.layoutChanged.emit()
-        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+        self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
 
     def applySort(self, index):
         if self._data is None:
@@ -877,7 +877,7 @@ class SpsTableModel(QAbstractTableModel):
 
         self._data.sort(order=sortList)                                         # Sort the data using the list of sorts
         self.layoutChanged.emit()
-        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+        self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
 
     def sortColumns(self):
         if self._data is None:
@@ -978,7 +978,7 @@ class XpsTableModel(QAbstractTableModel):
         self.setData(data)
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             if self._data is not None:
                 record = self._data[index.row()]
                 if index.column() in [2, 3, 7]:                                 # format depends on column number
@@ -988,11 +988,11 @@ class XpsTableModel(QAbstractTableModel):
             else:
                 value = 'n/a'
             return value
-        elif role == Qt.TextAlignmentRole:
-            return Qt.AlignCenter
-        elif role == Qt.BackgroundRole:
+        elif role == Qt.ItemDataRole.TextAlignmentRole:
+            return Qt.AlignmentFlag.AlignCenter
+        elif role == Qt.ItemDataRole.BackgroundRole:
             if self._data is None:
-                return QVariant()
+                return NULL
             record = self._data[index.row()]
             uniq = record['Uniq']
             inSps = record['InSps']
@@ -1007,11 +1007,11 @@ class XpsTableModel(QAbstractTableModel):
             elif inRps == 0 and index.column() > 3:
                 return QBrush(QColor(155, 200, 255))                            # orphan -> blue-ish
             else:
-                return QVariant()
-        elif role == Qt.FontRole:
+                return NULL
+        elif role == Qt.ItemDataRole.FontRole:
             # return QFont("Courier New", 10, QFont.Bold)
             # return QFont('Courier New', 8, QFont.Normal)
-            return QFont('Arial', 8, QFont.Normal)
+            return QFont('Arial', 8, QFont.Weight.Normal)
 
     def getData(self):
         return self._data
@@ -1037,7 +1037,7 @@ class XpsTableModel(QAbstractTableModel):
             self._data = None
 
         self.layoutChanged.emit()
-        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+        self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
 
     def applySort(self, index):
         if self._data is None:
@@ -1056,7 +1056,7 @@ class XpsTableModel(QAbstractTableModel):
 
         self._data.sort(order=sortList)                                         # Sort the data using the list of sorts
         self.layoutChanged.emit()
-        self.headerDataChanged.emit(Qt.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+        self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
 
     def sortColumns(self):
         if self._data is None:
@@ -1068,9 +1068,9 @@ class XpsTableModel(QAbstractTableModel):
 
         return str(sortList)
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
-            if orientation == Qt.Horizontal:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
                 if section in (0, 3, 7):                                        # format depends on column number; int here
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
                 else:                                                           # format depends on column number; float here
@@ -1078,8 +1078,8 @@ class XpsTableModel(QAbstractTableModel):
             else:
                 return f'{section + 1:,}'                                       # 1-based index for columns, using 1000 indicator
 
-        if role == Qt.BackgroundRole:                                           # highlight sorting column(s)
-            if orientation == Qt.Horizontal:
+        if role == Qt.ItemDataRole.BackgroundRole:                                           # highlight sorting column(s)
+            if orientation == Qt.Orientation.Horizontal:
                 if len(self._qSort) > 0 and section == self._qSort[-1]:
                     return QBrush(QColor(255, 215, 0))                          # gold
                 if len(self._qSort) > 1 and section == self._qSort[-2]:
@@ -1087,7 +1087,7 @@ class XpsTableModel(QAbstractTableModel):
                 if len(self._qSort) > 2 and section == self._qSort[-3]:
                     return QBrush(QColor(250, 250, 210))                        # lightgoldenrodyellow
                 else:
-                    return QVariant()
+                    return NULL
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
@@ -1180,8 +1180,8 @@ class ResizeTable(QTableView):
         self.setColumnWidth(1, width * 0.25)   # 25% Width Column
         self.setColumnWidth(2, width * 0.75)   # 75% Width Column
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
             return self._header[section]
         return QAbstractTableModel.headerData(self, section, orientation, role)
 

@@ -64,10 +64,10 @@ class MyCrs2Parameter(MyGroupParameter):
         crs = self.parC.value()
 
         if not crs.isValid():
-            QMessageBox.warning(None, 'Invalid CRS', 'An invalid coordinate system has been selected', QMessageBox.Ok)
+            QMessageBox.warning(None, 'Invalid CRS', 'An invalid coordinate system has been selected', QMessageBox.StandardButton.Ok)
 
         if crs.isGeographic():
-            QMessageBox.warning(None, 'Invalid CRS', 'An invalid coordinate system has been selected\nGeographic (using lat/lon coordinates)', QMessageBox.Ok)
+            QMessageBox.warning(None, 'Invalid CRS', 'An invalid coordinate system has been selected\nGeographic (using lat/lon coordinates)', QMessageBox.StandardButton.Ok)
 
         self.crs = crs
 

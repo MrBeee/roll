@@ -50,8 +50,8 @@ class CustomPlainTextEdit(QPlainTextEdit):
     def __init__(self, parent=None):
         super(CustomPlainTextEdit, self).__init__(parent)
         self.setFont(QFont('Courier New', 10))  # Monospaced font for all text
-        self.setLineWrapMode(QPlainTextEdit.NoWrap)
-        self.setWordWrapMode(QTextOption.NoWrap)
+        self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.setWordWrapMode(QTextOption.WrapMode.NoWrap)
         self.setStyleSheet('background-color: #FFFFE0; color: #000000;')  # Light yellow background, black text
 
     def paintEvent(self, event):
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     print(f'Available: {rect.width()} x {rect.height()}')
 
     font = QFont('Courier New', 10)
-    font.setStyleHint(QFont.Monospace)
+    font.setStyleHint(QFont.StyleHint.Monospace)
 
     fontMetrics = QFontMetrics(font)   # Get the font metrics for the monospaced font
     print(f'Font metrics h: {fontMetrics.height()}')
@@ -128,4 +128,4 @@ if __name__ == '__main__':
     highlighter = LineHighlighter(editor.document())
 
     editor.show()
-    app.exec_()
+    app.exec()

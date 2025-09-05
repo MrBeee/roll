@@ -2,8 +2,7 @@ from time import perf_counter
 
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QPen, QVector3D
-from qgis.PyQt.QtWidgets import qApp
-
+, QApplication
 # This module provides some default settings for variables used in Roll
 
 # for the use of this file
@@ -132,10 +131,10 @@ recAreaColor = '#080000ff'                                                      
 srcAreaColor = '#08ff0000'                                                      # argb - light red
 
 # Default pen parameters for analysis areas, these can be altered in the settings dialog
-binAreaPen = QPen(Qt.black, 2, Qt.DashLine, Qt.RoundCap, Qt.RoundJoin)
-cmpAreaPen = QPen(Qt.green, 1, Qt.DashDotLine, Qt.RoundCap, Qt.RoundJoin)
-recAreaPen = QPen(Qt.blue, 1, Qt.DashDotLine, Qt.RoundCap, Qt.RoundJoin)
-srcAreaPen = QPen(Qt.red, 1, Qt.DashDotLine, Qt.RoundCap, Qt.RoundJoin)
+binAreaPen = QPen(Qt.GlobalColor.black, 2, Qt.PenStyle.DashLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+cmpAreaPen = QPen(Qt.GlobalColor.green, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+recAreaPen = QPen(Qt.GlobalColor.blue, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+srcAreaPen = QPen(Qt.GlobalColor.red, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
 
 # Default colormaps, used to display images
 fold_OffCmap = 'CET-L4'                                                         # used for fold/offset map (layout tab)
@@ -283,7 +282,7 @@ def elapsedTime(startTime, index: int) -> None:
     timerTmax[index] = max(deltaTime, timerTmax[index])
     timerTtot[index] = timerTtot[index] + deltaTime
     timerFreq[index] = timerFreq[index] + 1
-    qApp.processEvents()
+    QApplication.instance().processEvents()
     return perf_counter()  # call again; to ignore any time spent in this funtion
 
 

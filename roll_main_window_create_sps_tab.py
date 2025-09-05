@@ -16,7 +16,7 @@ def createSpsTab(self):
     self.spsHdrView.sectionClicked.connect(self.sortSpsData)                    # handle the section-clicked signal
     self.spsView.setStyleSheet(table_style)                                     # define selection colors
     self.spsView.resizeColumnsToContents()
-    self.spsView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    self.spsView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
     self.xpsView = TableView()                                                  # create xps view
     self.xpsModel = XpsTableModel(self.xpsImport)                               # create xps model
@@ -25,7 +25,7 @@ def createSpsTab(self):
     self.xpsHdrView.sectionClicked.connect(self.sortXpsData)                    # handle the section-clicked signal
     self.xpsView.setStyleSheet(table_style)                                     # define selection colors
     self.xpsView.resizeColumnsToContents()
-    self.xpsView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    self.xpsView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
     self.rpsView = TableView()                                                  # create rps view
     self.rpsModel = RpsTableModel(self.rpsImport)                               # create xps model
@@ -34,19 +34,19 @@ def createSpsTab(self):
     self.rpsHdrView.sectionClicked.connect(self.sortRpsData)                    # handle the section-clicked signal
     self.rpsView.setStyleSheet(table_style)                                     # define selection colors
     self.rpsView.resizeColumnsToContents()
-    self.rpsView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    self.rpsView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
     # add the top labels
     self.spsLabel = QLabel('SPS records')
-    self.spsLabel.setAlignment(Qt.AlignCenter)
+    self.spsLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.spsLabel.setStyleSheet(label_style)
 
     self.xpsLabel = QLabel('XPS records')
-    self.xpsLabel.setAlignment(Qt.AlignCenter)
+    self.xpsLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.xpsLabel.setStyleSheet(label_style)
 
     self.rpsLabel = QLabel('RPS records')
-    self.rpsLabel.setAlignment(Qt.AlignCenter)
+    self.rpsLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.rpsLabel.setStyleSheet(label_style)
 
     # then create widget containers for the sps, xps and rps layout
@@ -118,13 +118,13 @@ def createSpsTab(self):
     self.btnRpsRemoveOrphans.pressed.connect(self.removeRpsOrphans)
 
     label1.setStyleSheet('border: 1px solid black;background-color:lavender')
-    label1.setAlignment(Qt.AlignCenter)
+    label1.setAlignment(Qt.AlignmentFlag.AlignCenter)
     label2.setStyleSheet('border: 1px solid black;background-color:lavender')
-    label2.setAlignment(Qt.AlignCenter)
+    label2.setAlignment(Qt.AlignmentFlag.AlignCenter)
     label3.setStyleSheet('border: 1px solid black;background-color:lavender')
-    label3.setAlignment(Qt.AlignCenter)
+    label3.setAlignment(Qt.AlignmentFlag.AlignCenter)
     label4.setStyleSheet('border: 1px solid black;background-color:lavender')
-    label4.setAlignment(Qt.AlignCenter)
+    label4.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     # create the three button layouts
     grid1 = QGridLayout()                                                       # top row
@@ -182,17 +182,17 @@ def createSpsTab(self):
     self.spsBottom.appendHtml('The <b>XPS records</b> are only tested for valid rec-station values in the <b>rec min</b> and <b>rec max</b> columns (and not for any stations in between).')
     self.spsBottom.setReadOnly(True)                                        # if we set this 'True' the context menu no longer allows 'delete', just 'select all' and 'copy'
 
-    self.spsBottom.setFrameShape(QFrame.StyledPanel)
+    self.spsBottom.setFrameShape(QFrame.Shape.StyledPanel)
     self.spsBottom.setStyleSheet('background-color:lightgoldenrodyellow')   # See: https://www.w3.org/TR/SVG11/types.html#ColorKeywords
 
     # use splitters to be able to rearrange the layout
-    splitter1 = QSplitter(Qt.Horizontal)
+    splitter1 = QSplitter(Qt.Orientation.Horizontal)
     splitter1.addWidget(self.spsPane)
     splitter1.addWidget(self.xpsPane)
     splitter1.addWidget(self.rpsPane)
     splitter1.setSizes([200, 200, 200])
 
-    splitter2 = QSplitter(Qt.Vertical)
+    splitter2 = QSplitter(Qt.Orientation.Vertical)
     splitter2.addWidget(splitter1)
     splitter2.addWidget(self.spsBottom)
     splitter2.setSizes([900, 100])
