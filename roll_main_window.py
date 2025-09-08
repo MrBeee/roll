@@ -257,7 +257,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.killMe = False
 
         # GQIS interface
-        self.iface = None                                                       # access to QGis interface; is already initialized in roll.py
+        self.iface = None                                                       # for access to QGis interface; declared here, and initialized in roll.py
 
         # toolbar parameters
         self.XisY = True                                                        # equal x / y scaling
@@ -3089,7 +3089,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             # self.writeSettings()                                              # save geometry and state of window(s)
             writeSettings(self)                                                 # save geometry and state of window(s)
 
-            if self.workingDirectory:                                           # append information to log file in working directory
+            if self.workingDirectory and os.path.isdir(self.workingDirectory):  # append information to log file in working directory
                 logFile = os.path.join(self.workingDirectory, '.roll.log')      # join directory & log file name
                 with open(logFile, 'a+', encoding='utf-8') as file:             # append (a) information to a logfile, or create a new logfile (a+) if it does not yet exist
                     file.write(self.logEdit.toPlainText())                      # get text from logEdit

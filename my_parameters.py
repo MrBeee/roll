@@ -4,7 +4,7 @@ import os
 from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt.QtCore import QFileInfo, QPointF, QSettings
 from qgis.PyQt.QtGui import QColor, QVector3D
-from qgis.PyQt.QtWidgets import QMessageBox, qApp
+from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
 from . import config  # used to pass initial settings
 from .functions import myPrint
@@ -157,7 +157,7 @@ class MyBinAnglesParameter(MyGroupParameter):
         self.parIy = self.child('Max inclination')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         self.angles.azimuthal.setX(self.parAx.value())
@@ -239,7 +239,7 @@ class MyBinOffsetParameter(MyGroupParameter):
         self.parRmax = self.child('Max r-offset')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         #  read parameter changes here
@@ -318,7 +318,7 @@ class MyUniqOffParameter(MyGroupParameter):
         self.parA = self.child('Delta azimuth')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         self.unique.apply = self.parP.value()
@@ -378,7 +378,7 @@ class MyBinMethodParameter(MyGroupParameter):
         self.parV = self.child('Interval velocity')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         index = BinningList.index(self.parM.value())
@@ -446,7 +446,7 @@ class MyPlaneParameter(MyGroupParameter):
         self.parD = self.child('Plane dip')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         self.plane.anchor = self.parO.value()
@@ -506,7 +506,7 @@ class MySphereParameter(MyGroupParameter):
         self.parR = self.child('Sphere radius')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         self.sphere.origin = self.parO.value()
@@ -583,7 +583,7 @@ class MyLocalGridParameter(MyGroupParameter):
         self.parFo = self.child('Max fold')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         # local grid
@@ -657,7 +657,7 @@ class MyGlobalGridParameter(MyGroupParameter):
         self.parAz = self.child('Azimuth')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         # global grid
@@ -682,7 +682,7 @@ class MyBlockParameterItem(MyGroupParameterItem):
 
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def showPreviewInformation(self, param):
         templates = param.child('Template list')
@@ -727,7 +727,7 @@ class MyBlockParameterItem(MyGroupParameterItem):
 
         t = f'{nTemplates} template(s), {int(nBlockShots + 0.5)} src points'
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -766,7 +766,7 @@ class MyBlockParameter(MyGroupParameter):
         self.sigNameChanged.connect(self.nameChanged)
         self.sigContextMenu.connect(self.contextMenu)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def nameChanged(self, _):
         self.block.name = self.name()
@@ -904,7 +904,7 @@ class MyTemplateParameter(MyGroupParameter):
         self.sigNameChanged.connect(self.nameChanged)
         self.sigContextMenu.connect(self.contextMenu)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def nameChanged(self, _):
 
@@ -1007,7 +1007,7 @@ class MyRollListParameter(MyGroupParameter):
             self.addChild(dict(name='Points', type='myRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[2], default=self.moveList[2]))
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         # paramList defined here, as the childs may be substituted by different children, due to MyRollParameters moving up/down in the list
@@ -1088,7 +1088,7 @@ class MyRollParameter(MyGroupParameter):
         self.parA.sigValueChanged.connect(self.changedA)
         self.parT.sigValueChanged.connect(self.changedT)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changedA(self):                                                         # not used; readonly parameter to block signal
         pass
@@ -1196,7 +1196,7 @@ class MySeedListParameterItem(MyGroupParameterItem):
 
         param.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def showPreviewInformation(self, param):
         nChilds = len(param.childs)
@@ -1249,7 +1249,7 @@ class MySeedListParameter(MyGroupParameter):
 
         self.sigContextMenu.connect(self.contextMenu)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def value(self):
         return self.seedList
@@ -1337,7 +1337,7 @@ class MyPatternSeedListParameter(MyGroupParameter):
 
         self.sigContextMenu.connect(self.contextMenu)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def value(self):
         return self.seedList
@@ -1367,7 +1367,7 @@ class MyPatternSeedListParameter(MyGroupParameter):
             self.sigAddNew.emit(self, name)
             self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
 
 ### class MySeed ##############################################################
@@ -1477,7 +1477,7 @@ class MySeedParameter(MyGroupParameter):
 
         self.typeChanged()
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def nameChanged(self, _):
         self.seed.name = self.name()
@@ -1550,7 +1550,7 @@ class MySeedParameter(MyGroupParameter):
             ...
         elif name == 'export':
             ...
-        qApp.processEvents()
+        QApplication.processEvents()
 
 
 ### class MyPatternSeed ##############################################################
@@ -1612,7 +1612,7 @@ class MyPatternSeedParameter(MyGroupParameter):
         self.sigContextMenu.connect(self.contextMenu)
         self.sigNameChanged.connect(self.nameChanged)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def nameChanged(self, _):
         self.seed.name = self.name()
@@ -1664,7 +1664,7 @@ class MyPatternSeedParameter(MyGroupParameter):
         elif name == 'export':
             ...
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
 
 ### class MyCircle ############################################################
@@ -1722,7 +1722,7 @@ class MyCircleParameter(MyGroupParameter):
         self.parN = self.child('Points')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         self.circle.radius = self.parR.value()
@@ -1793,7 +1793,7 @@ class MySpiralParameter(MyGroupParameter):
         self.parN = self.child('Points')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         self.spiral.radMin = self.parR1.value()
@@ -1912,7 +1912,7 @@ class MyWellParameter(MyGroupParameter):
         # todo improve well management; right now an error occurs during initialisation, resulting in a messagebeep
         # self.changedF()                                                         # this will initialise 'value'
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changedF(self):
         self.well.name = self.parF.value()                                      # file name has changed
@@ -1942,7 +1942,7 @@ class MyWellParameter(MyGroupParameter):
         else:
             self.sigValueChanging.emit(self, self.value())                      # todo: check necessity of this statement
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changedC(self):
         self.well.crs = self.parC.value()
@@ -1969,7 +1969,7 @@ class MyWellParameter(MyGroupParameter):
         else:
             self.sigValueChanging.emit(self, self.value())                      # todo: check necessity of this statement
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changedA(self):
         a = self.well.ahd0 = self.parA.value()
@@ -2078,7 +2078,7 @@ class MyTemplateListParameter(MyGroupParameter):
 
         self.sigContextMenu.connect(self.contextMenu)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def value(self):
         return self.childs
@@ -2109,7 +2109,7 @@ class MyTemplateListParameter(MyGroupParameter):
 
             self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
 
 ### class MyBlockList #########################################################
@@ -2147,7 +2147,7 @@ class MyBlockListParameter(MyGroupParameter):
         self.sigChildAdded.connect(self.onChildAdded)
         self.sigChildRemoved.connect(self.onChildRemoved)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def value(self):
         return self.blockList
@@ -2180,7 +2180,7 @@ class MyBlockListParameter(MyGroupParameter):
 
             self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
         # myPrint(f'>>>{lineNo():5d} BlockList.ChildAdded <<<')
@@ -2244,7 +2244,7 @@ class MyPatternParameter(MyGroupParameter):
         self.sigContextMenu.connect(self.contextMenu)
         self.sigNameChanged.connect(self.nameChanged)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def nameChanged(self, _):
         self.pattern.name = self.name()
@@ -2291,7 +2291,7 @@ class MyPatternParameter(MyGroupParameter):
         elif name == 'export':
             ...
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
 
 ### class MyPatternList #######################################################
@@ -2324,7 +2324,7 @@ class MyPatternListParameter(MyGroupParameter):
         self.sigChildAdded.connect(self.onChildAdded)
         self.sigChildRemoved.connect(self.onChildRemoved)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def value(self):
         return self.patternList
@@ -2346,7 +2346,7 @@ class MyPatternListParameter(MyGroupParameter):
 
             self.sigValueChanging.emit(self, self.value())
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
         # myPrint(f'>>>{lineNo():5d} PatternList.ChildAdded <<<')
@@ -2388,7 +2388,7 @@ class MyGridParameter(MyGroupParameter):
         self.parL.sigTreeStateChanged.connect(self.changedL)
         self.parG.sigTreeStateChanged.connect(self.changedG)
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changedL(self):
         # local grid
@@ -2451,7 +2451,7 @@ class MyAnalysisParameter(MyGroupParameter):
         self.parM = self.child('Binning method')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         self.area = self.parB.value()
@@ -2495,7 +2495,7 @@ class MyReflectorsParameter(MyGroupParameter):
         self.parS = self.child('Buried sphere')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         self.plane = self.parP.value()
@@ -2542,7 +2542,7 @@ class MyConfigurationParameter(MyGroupParameter):
         self.parN = self.child('Survey name')
 
         self.sigTreeStateChanged.connect(self.changed)
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         self.crs = self.parC.value()
@@ -2598,7 +2598,7 @@ class MySurveyParameter(MyGroupParameter):
             self.addChild(dict(brush=brush, name='Block list', type='myBlockList', value=self.survey.blockList, default=self.survey.blockList))
             self.addChild(dict(brush=brush, name='Pattern list', type='myPatternList', value=self.survey.patternList, default=self.survey.patternList))
 
-        qApp.processEvents()
+        QApplication.processEvents()
 
     def value(self):
         return self.survey

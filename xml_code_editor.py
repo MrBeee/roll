@@ -30,6 +30,13 @@ To add find and replace dialog, see: https://github.com/goldsborough/Writer-Tuto
 And in particular: https://web.archive.org/web/20170515141231/http://www.binpress.com/tutorial/building-a-text-editor-with-pyqt-part-3/147
 """
 
+# QRegExp is obsolete as of Qt 5.15
+# See: https://doc.qt.io/qt-5/qregexp.html
+# See: https://github.com/Komet/MediaElch/issues/1086
+# See:https://doc.qt.io/archives/qt-5.15/qregularexpression.html#notes-for-qregexp-users
+# See: https://qxmledit.org/
+
+
 from qgis.PyQt.QtCore import QRect, QRegExp, Qt
 from qgis.PyQt.QtGui import QColor, QFont, QPainter, QSyntaxHighlighter, QTextCharFormat, QTextCursor, QTextFormat, QTextOption
 from qgis.PyQt.QtWidgets import QApplication, QPlainTextEdit, QTextEdit, QWidget

@@ -27,16 +27,21 @@ from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-# Initialize Qt resources from file resources.py
-from .resources import qCleanupResources, qInitResources, qt_resource_data, qt_resource_name, qt_resource_struct, qt_resource_struct_v1, qt_resource_struct_v2, qt_version, rcc_version
-
 # Import the code for the main window
 from .roll_main_window import RollMainWindow
+
+# Initialize Qt resources from file resources.py
+# from .resources import qCleanupResources, qInitResources, qt_resource_data, qt_resource_name, qt_resource_struct, qt_resource_struct_v1, qt_resource_struct_v2, qt_version, rcc_version
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+resource_dir = os.path.join(current_dir, 'resources')
 
 
 class Roll:
     """QGIS Plugin Implementation."""
 
+    # required for a minimal QGIS plugin
+    # See: https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/plugins/plugins.html
     def __init__(self, iface):
         """Constructor.
 
@@ -159,12 +164,15 @@ class Roll:
 
         return action
 
+    # required for a minimal QGIS plugin
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
         icon_path = ':/plugins/roll/icon.png'
+        iconFile = os.path.join(resource_dir, 'icon.png')
+
         self.add_action(
-            icon_path,
+            iconFile,
             text=self.tr('Roll 3D survey design'),
             callback=self.run,
             parent=self.iface.mainWindow(),
@@ -173,6 +181,7 @@ class Roll:
         # will be set False in run()
         self.first_start = True
 
+    # required for a minimal QGIS plugin
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
@@ -181,6 +190,7 @@ class Roll:
 
     # See: https://gis.stackexchange.com/questions/354346/qgis-plugin-with-dockwidget-and-mainwindow
 
+    # required for a minimal QGIS plugin
     def run(self):
         """Run method that performs all the real work"""
 

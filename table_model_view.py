@@ -52,7 +52,7 @@ class AnaTableModel(QAbstractTableModel):
         self.setData(data)
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             if self._data is not None:
                 if index.column() < 3:                                          # Show int values for first three columns
                     value = str(int(self._data[index.row(), index.column()]))
@@ -89,8 +89,8 @@ class AnaTableModel(QAbstractTableModel):
     def getFormat(self):
         return self._format
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Horizontal:
                 return self._header[section]
             else:
@@ -98,8 +98,8 @@ class AnaTableModel(QAbstractTableModel):
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
-    def setHeaderData(self, section, orientation, data, role=Qt.EditRole):
-        if orientation == Qt.Horizontal and role in (Qt.DisplayRole, Qt.EditRole):
+    def setHeaderData(self, section, orientation, data, role=Qt.ItemDataRole.EditRole):
+        if orientation == Qt.Horizontal and role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             return self._header[section]
         return super().setHeaderData(section, orientation, data, role)
 
@@ -545,7 +545,7 @@ class RpsTableModel(QAbstractTableModel):
         self.setData(data)
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             if self._data is not None:
                 record = self._data[index.row()]
                 if index.column() == 2:                                         # format depends on column
@@ -587,8 +587,8 @@ class RpsTableModel(QAbstractTableModel):
                 return QBrush(QColor(200, 200, 200))                            # inactive -> grey
             return QVariant()
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Horizontal:
                 if section == 2:
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
@@ -765,7 +765,7 @@ class SpsTableModel(QAbstractTableModel):
         self.setData(data)
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             if self._data is not None:
                 record = self._data[index.row()]
                 if index.column() == 2:                                         # format depends on column
@@ -807,8 +807,8 @@ class SpsTableModel(QAbstractTableModel):
                 return QBrush(QColor(200, 200, 200))                            # inactive -> grey
             return QVariant()
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Horizontal:
                 if section == 2:
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
@@ -978,7 +978,7 @@ class XpsTableModel(QAbstractTableModel):
         self.setData(data)
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             if self._data is not None:
                 record = self._data[index.row()]
                 if index.column() in [2, 3, 7]:                                 # format depends on column number
@@ -1068,8 +1068,8 @@ class XpsTableModel(QAbstractTableModel):
 
         return str(sortList)
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Horizontal:
                 if section in (0, 3, 7):                                        # format depends on column number; int here
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
@@ -1180,8 +1180,8 @@ class ResizeTable(QTableView):
         self.setColumnWidth(1, width * 0.25)   # 25% Width Column
         self.setColumnWidth(2, width * 0.75)   # 75% Width Column
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Horizontal:
             return self._header[section]
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
@@ -1226,7 +1226,7 @@ class ResizeTable(QTableView):
 
 # def data(self, index, role):
 #         if index.isValid() or (0 <= index.row() < len(self.ListItemData)):
-#             if role == Qt.DisplayRole:
+#             if role == Qt.ItemDataRole.DisplayRole:
 #                 return QVariant(self.ListItemData[index.row()]['name'])
 #             elif role == Qt.DecorationRole:
 #                 return QVariant(QIcon(self.ListItemData[index.row()]['iconPath']))

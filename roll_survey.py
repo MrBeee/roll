@@ -13,7 +13,7 @@ import pyqtgraph as pg
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QMarginsF, QRectF, QThread, pyqtSignal
 from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPicture, QTransform, QVector3D
-from qgis.PyQt.QtWidgets import QMessageBox, qApp
+from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
@@ -593,7 +593,7 @@ class RollSurvey(pg.GraphicsObject):
         self.timerTmax[index] = max(deltaTime, self.timerTmax[index])
         self.timerTtot[index] = self.timerTtot[index] + deltaTime
         self.timerFreq[index] = self.timerFreq[index] + 1
-        qApp.processEvents()
+        QApplication.processEvents()
         return perf_counter()  # call again; to ignore any time spent in this funtion
 
     def geomTemplate(self, nBlock, block, template, templateOffset):
@@ -2309,7 +2309,7 @@ class RollSurvey(pg.GraphicsObject):
 
     # painting can take a long time. Sometimes you may want to kill painting by interupting a half complete paint call.
     # this can be done by processing a keyboardInterrupt. I think (right now) you need to have the message pump working, for this to have any effect.
-    # QtGui.qApp.processEvents() - called at certain points in the paint() call
+    # QtGui.QApplication.processEvents() - called at certain points in the paint() call
     # See: https://stackoverflow.com/questions/23027447/how-to-set-push-button-to-keyboard-interrupt-in-pyqt
     # See: https://stackoverflow.com/questions/1353823/handling-keyboardinterrupt-in-a-kde-python-application
     # See: https://www.geeksforgeeks.org/how-to-create-a-custom-keyboardinterrupt-in-python/
