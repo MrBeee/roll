@@ -399,7 +399,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # first docking pane, used to display geometry and analysis results
         self.dockDisplay = QDockWidget('Display pane')
-        self.dockDisplay.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.dockDisplay.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
 
         # See: https://www.geeksforgeeks.org/pyqt5-qdockwidget-setting-style-sheet/ for styling
         self.dockDisplay.setStyleSheet('QDockWidget::title {background : lightblue;}')
@@ -412,9 +412,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.analysisChoice.setMinimumWidth(140)
         self.analysisToQgis.setMinimumWidth(140)
 
-        self.geometryChoice.setAlignment(Qt.AlignHCenter)
-        self.analysisChoice.setAlignment(Qt.AlignHCenter)
-        self.analysisToQgis.setAlignment(Qt.AlignHCenter)
+        self.geometryChoice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.analysisChoice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.analysisToQgis.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         # display pane
         vbox0 = QVBoxLayout()
@@ -650,7 +650,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.displayWidget.setLayout(self.displayLayout)                        # add layout to widget
         self.dockDisplay.setWidget(self.displayWidget)                          # set widget as main widget in docking panel
 
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.dockDisplay)             # add docking panel to main window
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dockDisplay)             # add docking panel to main window
         self.dockDisplay.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+d'))
         self.menu_View.addAction(self.dockDisplay.toggleViewAction())           # show/hide as requested
 
@@ -658,7 +658,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # second docking pane
         self.dockLogging = QDockWidget('Logging pane')
-        self.dockLogging.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
+        self.dockLogging.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
 
         # See: https://www.geeksforgeeks.org/pyqt5-qdockwidget-setting-style-sheet/ for styling
         self.dockLogging.setStyleSheet('QDockWidget::title {background : lightblue;}')
@@ -678,7 +678,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # self.logEdit.setFont(QFont("Ubuntu Mono", 8, QFont.Normal))           # Does not line up columns properly !
 
         self.dockLogging.setWidget(self.logEdit)
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.dockLogging)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.dockLogging)
         self.dockLogging.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+l'))
         self.menu_View.addAction(self.dockLogging.toggleViewAction())
 
@@ -947,7 +947,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # third docking pane, used to display survey properties
         # defined late, as it needs access the loaded survey object
         self.dockProperty = QDockWidget('Property pane')
-        self.dockProperty.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.dockProperty.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         self.dockProperty.setStyleSheet('QDockWidget::title {background : lightblue;}')
 
         # setup the ParameterTree object
@@ -975,7 +975,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.propertyWidget.setLayout(self.propertyLayout)                      # add layout to widget
         self.dockProperty.setWidget(self.propertyWidget)
 
-        self.addDockWidget(Qt.RightDockWidgetArea, self.dockProperty)           # add docking panel to main window
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockProperty)           # add docking panel to main window
 
         self.dockProperty.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+p'))
         self.menu_View.addAction(self.dockProperty.toggleViewAction())          # show/hide as requested

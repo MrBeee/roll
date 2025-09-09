@@ -11,9 +11,9 @@ def createStackResponseTab(self):
     self.stackNr1Choice.setMinimumWidth(140)
     self.stackNr2Choice.setMinimumWidth(140)
 
-    self.stackInfChoice.setAlignment(Qt.AlignHCenter)
-    self.stackNr1Choice.setAlignment(Qt.AlignHCenter)
-    self.stackNr2Choice.setAlignment(Qt.AlignHCenter)
+    self.stackInfChoice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+    self.stackNr1Choice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+    self.stackNr2Choice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
     vbox0 = QVBoxLayout()
     vbox0.addStretch(2)                                                         # add some stretch to main center widget(s)

@@ -37,7 +37,7 @@ And in particular: https://web.archive.org/web/20170515141231/http://www.binpres
 # See: https://qxmledit.org/
 
 
-from qgis.PyQt.QtCore import QRect, QRegularExpression, Qt
+from qgis.PyQt.QtCore import QRect, QRegExp, Qt
 from qgis.PyQt.QtGui import QColor, QFont, QPainter, QSyntaxHighlighter, QTextCharFormat, QTextCursor, QTextFormat, QTextOption
 from qgis.PyQt.QtWidgets import QApplication, QPlainTextEdit, QTextEdit, QWidget
 
@@ -62,78 +62,83 @@ class XMLHighlighter(QSyntaxHighlighter):
         xmlElementFormat = QTextCharFormat()
         xmlElementFormat.setForeground(QColor('#0070C0'))   # blue-ish
         # xmlElementFormat.setForeground(QColor("#000070")) # blue
-        self.highlightingRules.append((QRegularExpression(r'\b[A-Za-z0-9_]+(?=[\s/>])'), xmlElementFormat))
+        self.highlightingRules.append((QRegExp('\\b[A-Za-z0-9_]+(?=[\s/>])'), xmlElementFormat))    # pylint: disable=W1401 # need anomalous-backslash-in-string with regexp
 
         xmlAttributeFormat = QTextCharFormat()
         xmlAttributeFormat.setFontItalic(True)
         xmlAttributeFormat.setForeground(QColor('#177317'))   # green
-        self.highlightingRules.append((QRegularExpression(r'\b[A-Za-z0-9_]+(?==)'), xmlAttributeFormat))
-        self.highlightingRules.append((QRegularExpression(r'='), xmlAttributeFormat))
+        self.highlightingRules.append((QRegExp('\\b[A-Za-z0-9_]+(?=\\=)'), xmlAttributeFormat))     # pylint: disable=W1401 # need anomalous-backslash-in-string with regexp
+        self.highlightingRules.append((QRegExp('='), xmlAttributeFormat))
 
         self.valueFormat = QTextCharFormat()
         self.valueFormat.setForeground(QColor('#e35e00'))   # orange
 
+        # self.valueStartExpression = QRegExp("\"")
         # CORRECTION: the '"' caracter needs to be preceeded by a '=' character !
         # to highlight an attribute that follows an '=' sign use: (?<=\=)\"([^"]*?)\"
-        self.valueStartExpression = QRegularExpression(r'(?<=\=)"')
-        self.valueEndExpression = QRegularExpression(r'"(?=[\s></])')
+        # Test this at: https://extendsclass.com/regex-tester.html#python
+        # For more info see: https://www.regular-expressions.info/tutorial.html
+
+        self.valueStartExpression = QRegExp('(?<=\=)"')                                             # pylint: disable=W1401 # need anomalous-backslash-in-string with regexp
+        self.valueEndExpression = QRegExp('"(?=[\s></])')                                           # pylint: disable=W1401 # need anomalous-backslash-in-string with regexp
 
         singleLineCommentFormat = QTextCharFormat()
         singleLineCommentFormat.setForeground(QColor('#a0a0a4'))   # grey
-        self.highlightingRules.append((QRegularExpression(r'<!--[^\n]*-->'), singleLineCommentFormat))
+        self.highlightingRules.append((QRegExp('<!--[^\n]*-->'), singleLineCommentFormat))
 
         textFormat = QTextCharFormat()
         textFormat.setForeground(QColor('#000000'))   # black
-        self.highlightingRules.append((QRegularExpression(r'>(.+)(?=</)'), textFormat))
+        # (?<=...)  - lookbehind is not supported
+        self.highlightingRules.append((QRegExp('>(.+)(?=</)'), textFormat))
 
         keywordFormat = QTextCharFormat()
         keywordFormat.setForeground(QColor('#000070'))   # blue
         keywordFormat.setFontWeight(QFont.Bold)
         keywordPatterns = [
-            r'/>',
-            r'>',
-            r'<',
-            r'</',
-            r'\b?(spatialrefsys|wkt|proj4|srsid|srid|authid|description|projectionacronym|ellipsoidacronym|geographicflag)\b',
-            r'\b?(survey|type|name|surveyCrs|limits|angles|binning|offset|output|unique|well|spiral|circle)\b',
-            r'\b?(grid|b?local|global|block_list|block|borders|plane|sphere|reflectors|rec_border|src_border)\b',
-            r'\b?(template_list|template|roll_list|translate|seed_list|seed|grow_list|pattern_list|pattern|wellCrs|xml)\b',
+            '/>',
+            '>',
+            '<',
+            '</',
+            '\\b?(spatialrefsys|wkt|proj4|srsid|srid|authid|description|projectionacronym|ellipsoidacronym|geographicflag)\\b',
+            '\\b?(survey|type|name|surveyCrs|limits|angles|binning|offset|output|unique|well|spiral|circle)\\b',
+            '\\b?(grid|b?local|global|block_list|block|borders|plane|sphere|reflectors|rec_border|src_border)\\b',
+            '\\b?(template_list|template|roll_list|translate|seed_list|seed|grow_list|pattern_list|pattern|wellCrs|xml)\\b',
         ]
 
-        self.highlightingRules += [(QRegularExpression(pattern), keywordFormat) for pattern in keywordPatterns]
+        self.highlightingRules += [(QRegExp(pattern), keywordFormat) for pattern in keywordPatterns]
 
     # VIRTUAL FUNCTION WE OVERRIDE THAT DOES ALL THE COLLORING
 
     def highlightBlock(self, text):
         # for every pattern
         for pattern, form in self.highlightingRules:
-            # pattern is now a QRegularExpression
-            it = pattern.globalMatch(text)
-            while it.hasNext():
-                match = it.next()
-                index = match.capturedStart()
-                length = match.capturedLength()
+            # Create a regular expression from the retrieved pattern
+            expression = QRegExp(pattern)
+            # Check what index that expression occurs at with the ENTIRE text
+            index = expression.indexIn(text)
+            # While the index is greater than 0
+            while index >= 0:
+                # Get the length of how long the expression is true, set the format from the start to the length with the text format
+                length = expression.matchedLength()
                 self.setFormat(index, length, form)
+                # Set index to where the expression ends in the text
+                index = expression.indexIn(text, index + length)
 
         # HANDLE QUOTATION MARKS NOW.. WE WANT TO START WITH " AND END WITH ".. A THIRD " SHOULD NOT CAUSE THE WORDS INBETWEEN SECOND AND THIRD TO BE COLORED
 
         self.setCurrentBlockState(0)
         startIndex = 0
         if self.previousBlockState() != 1:
-            match = self.valueStartExpression.match(text)
-            startIndex = match.capturedStart() if match.hasMatch() else -1
+            startIndex = self.valueStartExpression.indexIn(text)
         while startIndex >= 0:
-            endMatch = self.valueEndExpression.match(text, startIndex + 1)
-            endIndex = endMatch.capturedStart() if endMatch.hasMatch() else -1
+            endIndex = self.valueEndExpression.indexIn(text, startIndex)
             if endIndex == -1:
                 self.setCurrentBlockState(1)
                 commentLength = len(text) - startIndex
             else:
-                commentLength = endIndex - startIndex + endMatch.capturedLength()
+                commentLength = endIndex - startIndex + self.valueEndExpression.matchedLength()
             self.setFormat(startIndex, commentLength, self.valueFormat)
-            # Find next start
-            match = self.valueStartExpression.match(text, startIndex + commentLength)
-            startIndex = match.capturedStart() if match.hasMatch() else -1
+            startIndex = self.valueStartExpression.indexIn(text, startIndex + commentLength)
 
 
 class QCodeEditor(QPlainTextEdit):

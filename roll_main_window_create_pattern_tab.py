@@ -11,9 +11,9 @@ def createPatternTab(self):
     self.patNr1Choice.setMinimumWidth(140)
     self.patNr2Choice.setMinimumWidth(140)
 
-    self.patInfChoice.setAlignment(Qt.AlignHCenter)
-    self.patNr1Choice.setAlignment(Qt.AlignHCenter)
-    self.patNr2Choice.setAlignment(Qt.AlignHCenter)
+    self.patInfChoice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+    self.patNr1Choice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+    self.patNr2Choice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
     vbox0 = QVBoxLayout()
     vbox0.addStretch(2)                                                         # add some stretch to main center widget(s)
