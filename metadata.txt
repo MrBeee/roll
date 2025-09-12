@@ -13,10 +13,10 @@ email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
   <li><b>numba</b> (version 0.60.0) Not strictly required, but it <i><b>significantly</b></i> speeds up calculations</li>
   <li><b>numpy</b> (version 1.26.4) <i>should already be installed</i> </li>
+  <li><b>ptvsd</b> (version 4.3.2) <i>if you want to debug worker threads</i> </li></ul>
   <li><b>pyqtgraph</b> (version 0.13.7) </li>
   <li><b>rasterio</b> (version 1.4.1) </li>
   <li><b>wellpathpy</b> (version 0.5.0) </li>
-  <li><b>ptvsd</b> (version 4.3.3) <i>if you want to debug worker threads</i> </li></ul>
   <p>Please install these packages <b>first</b>, using pip from the OSGeo4W command prompt (on Windows)
   <p>Use <b>pip list</b> to detect which packages and versions have already been installed. (E.g. numpy should already be installed)
   <p>Start with installing rasterio (it has quite a few dependencies), followed by numba, pyqtgraph and wellpathpy in that order
@@ -44,8 +44,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog: <p>2025-06-09 (0.4.6) The code has been reformatted to be compatible with Qt6. It should be backwards compatible with Qt5
-  <p>(0.4.5) Accept projects that are created from SPS-data only (i.e. projects that are not template-based)
+changelog: <p>2025-09-12 (0.4.6) The code has been reformatted to be compatible with Qt6. It should be backwards compatible with Qt5
+  <p>2025-06-09 (0.4.5) Accept projects that are created from SPS-data only (i.e. projects that are not template-based)
   <p>2025-06-01 (0.4.4) changed the way SPS source points are shown in QGIS: (point, line) has become (line, point) except for parallel/NAZ surveys
   <p>2025-05-11 (0.4.3) several improvements in transferring data from Roll to QGis and vice versa. Created html help page in help menu
   <p>2025-03-05 (0.4.2) refactoring of parameter management code, speeding up display in property pane of surveys with many blocks & seed points
