@@ -3602,8 +3602,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                         )
 
                     self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces (reserved space)')
-                except ValueError:
-                    self.appendLogMessage(f"Loaded : . . . Analysis &nbsp;: read error {self.fileName + '.ana.npy'}")
+                except (ValueError, PermissionError) as error:
+                    self.appendLogMessage(f"Loaded : . . . Analysis &nbsp;: read error {self.fileName + '.ana.npy'}. A {type(error).__name__} has occurred ")
                     self.anaModel.setData(None)
                     self.output.D2_Output = None
                     self.output.anaOutput = None
@@ -4139,7 +4139,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         dlg.setWindowTitle('Print Document')
 
-        if dlg.exec_() == QPrintDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             self.textEdit.print_(printer)
 
         del dlg
@@ -4148,7 +4148,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         printer = QPrinter(QPrinter.HighResolution)
         preview = QPrintPreviewDialog(printer, self)
         preview.paintRequested.connect(self.printPreview)
-        preview.exec_()
+        preview.exec()
 
     def printPreview(self, printer):
         self.textEdit.print_(printer)

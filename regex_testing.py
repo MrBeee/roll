@@ -128,4 +128,4 @@ if __name__ == '__main__':
     highlighter = LineHighlighter(editor.document())
 
     editor.show()
-    app.exec_()
+    app.exec()

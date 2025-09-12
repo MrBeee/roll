@@ -2,7 +2,7 @@
 
 This brief document describes the various steps required for the Roll-plugin to work together with the main QGIS application in transferring data across, calculating attributes in Roll, and rendering the results in QGIS. 
 
-*The document has been created as a mark-down file (.md) using Typora and is subsequently exported as an html file that preserves the various chapter styles*
+*The document has been created as a mark-down file (.md) using Typora and has been exported as an html file that preserves the various chapter styles.*
 
 ## 1. Add a Point Layer
 
@@ -119,7 +119,7 @@ This function returns true (=1), when a point record has been selected, and fals
 
 13. Press **`OK`** and let the operation run on all point records of the active layer.
 14. Upon completion, check that everything went according to plan in the Attribute Table (F6)
-15. Now the point layer is ready to be read back into Roll (See par above). 
+15. Now the modified point layer is ready to be read back into Roll (See par 8). 
 
 ## 7. Move src/rec and sps/rps points around in QGIS
 

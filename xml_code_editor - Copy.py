@@ -346,7 +346,7 @@ if __name__ == '__main__':
         editor.resize(400, 250)
         editor.show()
 
-        sys.exit(app.exec_())
+        sys.exit(app.exec())
 
     run_test()
 

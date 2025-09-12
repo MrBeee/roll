@@ -12,7 +12,7 @@ class LayerDialog(QDialog):
         self.parent = parent
         self.setWindowTitle(f'Select {kind} layer')
         self.setMinimumWidth(350)
-        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         self.crs = None
 
@@ -90,8 +90,8 @@ class LayerDialog(QDialog):
     @staticmethod
     def getPointLayer(layer=None, field=None, rollCrs=None, kind: str = '', parent=None):
         dialog = LayerDialog(layer, field, rollCrs, kind, parent)
-        result = dialog.exec_()
-        success = result == QDialog.Accepted
+        result = dialog.exec()
+        success = result == QDialog.DialogCode.Accepted
         layer = dialog.lcb.currentLayer()
         field = dialog.fcb.currentField()
         return (success, layer, field)
