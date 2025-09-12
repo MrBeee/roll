@@ -91,7 +91,7 @@ class Find(QDialog):
             else:
                 # Make the next search start from the begining again
                 self.lastStart = 0
-                self.parent.textEdit.moveCursor(QTextCursor.End)
+                self.parent.textEdit.moveCursor(QTextCursor.MoveOperation.End)
 
         else:
             # Compile the pattern
@@ -107,7 +107,7 @@ class Find(QDialog):
                 self.lastStart = 0
 
                 # We set the cursor to the end if the search was unsuccessful
-                self.parent.textEdit.moveCursor(QTextCursor.End)
+                self.parent.textEdit.moveCursor(QTextCursor.MoveOperation.End)
 
     def replace(self):
         # Grab the text cursor

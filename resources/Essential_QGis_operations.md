@@ -1,10 +1,14 @@
-# Essential QGis operations with 'Roll'
+# Essential QGIS operations with 'Roll'
+
+This brief document describes the various steps required for the Roll-plugin to work together with the main QGIS application in transferring data across, calculating attributes in Roll, and rendering the results in QGIS. 
+
+*The document has been created as a mark-down file (.md) using Typora and is subsequently exported as an html file that preserves the various chapter styles*
 
 ## 1. Add a Point Layer
 
 Adding a point layer may be needed to show the requested survey outline from a client (Area of interest), or a prospect outline from the geologist
 
-1. In QGis: Layer → Add delimited text layer
+1. In QGIS: Layer → Add layer → Add delimited text layer
 
 2. Select filename
 3. Optionally, give it a layer name that is different from the file name
@@ -12,13 +16,13 @@ Adding a point layer may be needed to show the requested survey outline from a c
 5. Check Record and Field Options (For header lines etc.)
 6. Define columns that represent X, Y and optionally Z values
 7. Finally, select `Add`
-8. Using Full Zoom <img src="mActionZoomFullExtent.svg" alt="mActionZoomFullExtent" style="zoom:100%;" /> (Ctrl+Shift+F) in QGis, you can now zoom to these points on the map
+8. Using Full Zoom <img src="mActionZoomFullExtent.svg" alt="mActionZoomFullExtent" style="zoom:100%;" /> (Ctrl+Shift+F) in QGIS, you can now zoom to these points on the map
 
 ## 2. Create a Line layer from Points (Vertices)
 
-Once a point layer has been created, you can find them as a series of “small dots” in QGis. But these “dots” are hard to spot once you zoom out. It is therefore useful to turn these points into lines.
+Once a point layer has been created, you can find them as a series of “small dots” in QGIS. But these “dots” are hard to spot once you zoom out. It is therefore useful to turn these points into connected lines. It is also a step that is required to create (filled) polygons from (*the next step*).
 
-1. In QGis: Processing → Toolbox will show (or hide) the Processing Toolbox
+1. In QGIS: Processing → Toolbox will show (or hide) the Processing Toolbox
 
 2. Processing Toolbox **→** Vector creation → Points to path
 
@@ -28,9 +32,9 @@ Once a point layer has been created, you can find them as a series of “small d
 
 ## 3. Create a (filled) Polygon Layer from Lines
 
-The lines are much better visible than points, but you cannot fill a line layer. To do so, you need to convert the lines to a polygon.
+The lines are much better visible than individual points, but you cannot *fill* a line layer, and more importantly you cannot *clip* against a line layer; for this we need ***polygons***. Therefore we need to convert the lines to a polygon.
 
-1. In QGis: Processing → Toolbox will show (or hide) the Processing Toolbox
+1. In QGIS: Processing → Toolbox will show (or hide) the Processing Toolbox
 
 2. Processing Toolbox → Vector geometry → Lines to polygons
 
@@ -50,11 +54,11 @@ The lines are much better visible than points, but you cannot fill a line layer.
 ​	d.   Select **`OK`**
 
 9. Finally, in Layers Panel → context menu of the created layer → Make permanent
-10. When an outline has been added to the polygon; you may delete the line layer. The line layer served its purpose (creating a polygon) and is no longer needed for the following steps, where we edit the exported src/rec and sps/rps data in QGis.
+10. When an outline has been added to the polygon; you may delete the line layer. The line layer served its purpose (creating a polygon) and is no longer needed for the following steps, where we edit the exported src/rec and sps/rps data in QGIS.
 
 ## 4. Export src/rec and sps/rps data from Roll to QGIS
 
-1.   In Roll: File → Export to QGis → Export Geometry → Export xxx Records to QGis
+1.   In Roll: File → Export to QGIS→ Export Geometry → Export xxx Records to QGIS
 
 2. Alternatively: SPS import tab → Export to QGIS buttons for SPS and RPS records
 
@@ -64,7 +68,7 @@ The lines are much better visible than points, but you cannot fill a line layer.
 
 ## 5. Make scratch src/rec and sps/rps layers permanent
 
-To make the exported source and receiver data permanent, and available when you open the QGis project the next time, follow the steps below
+To make the exported source and receiver data permanent, and available when you open the QGISproject the next time, follow the steps below
 
 1. in Layers Panel → context menu of the scratch layer → Rename layer
 2. Use Ctrl+C to copy the layer name. Hit escape, and do not rename
@@ -77,7 +81,7 @@ To make the exported source and receiver data permanent, and available when you 
 
 ## 6. Truncate src/rec and sps/rps point areas in QGIS
 
-In Roll, survey geometry created is created using one or more rectangular blocks. In reality, a survey rarely consists of one or more rectangular shapes, but its outline is truncated according to the concession boundary, or impacted by features such as cities, lakes, etcetera. So, it will be necessary to cut (completely remove) or to switch off (mute) points in certain areas. In QGis this can be done by checking if points fall inside a polygon. There are two obvious solutions:
+In Roll, survey geometry created is created using one or more rectangular blocks. In reality, a survey rarely consists of one or more rectangular shapes, but its outline is truncated according to the concession boundary, or impacted by features such as cities, lakes, etcetera. So, it will be necessary to cut (completely remove) or to switch off (mute) points in certain areas. In QGISthis can be done by checking if points fall inside a polygon. There are two obvious solutions:
 
 #### 6.a. Clipping: the easy way out
 
@@ -140,19 +144,19 @@ To make changes to any of the layers you need to enable editing. To do so:
 
 ## 8. Read src/rec and sps/rps points from QGIS back into Roll
 
-Once changes have been made to overall source/receiver areas and individual point locations in QGis (*or when points have been deleted*) it can be useful to read these points back into Roll, to run the analysis `Binning from Geometry`, or alternatively `binning from imported SPS' in the processing menu. To load modified point data back into Roll:
+Once changes have been made to overall source/receiver areas and individual point locations in QGIS(*or when points have been deleted*) it can be useful to read these points back into Roll, to run the analysis `Binning from Geometry`, or alternatively `binning from imported SPS' in the processing menu. To load modified point data back into Roll:
 
 1. In Roll: Geometry tab → `Read from QGIS` buttons (for SRC and REC data separately)
 2. In Roll: SPS import tab → `Read from QGIS` buttons (for SPS and RPS data separately)
 3. In the layer dialog that pops up:
 
-​	a.   Select the correct point layer from QGis, containing SPS/RPS and SRC/REC data
+​	a.   Select the correct point layer from QGIS, containing SPS/RPS and SRC/REC data
 
 ​	b.   Check that the CRS of the selected point layer matches that of the Roll project
 
 ​	c.   Decide whether (or not) to use a selection field code. Normally this is the `inuse` field.
 
-​	d.   To see what fields are available in a point layer in QGis, you can:
+​	d.   To see what fields are available in a point layer in QGIS, you can:
 
 ​                i.   In Layers panel → Select the appropriate layer
 

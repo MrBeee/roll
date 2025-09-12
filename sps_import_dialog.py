@@ -54,8 +54,8 @@ class CustomPlainTextEdit(QPlainTextEdit):
     def __init__(self, parent=None):
         super(CustomPlainTextEdit, self).__init__(parent)
         self.setFont(QFont('Courier New', 10))  # Monospaced font for all text
-        self.setLineWrapMode(QPlainTextEdit.NoWrap)
-        self.setWordWrapMode(QTextOption.NoWrap)
+        self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.setWordWrapMode(QTextOption.WrapMode.NoWrap)
         self.setStyleSheet('background-color: #FFFFF2; color: #000000;')  # Light yellow background, black text
 
         self.line1 = 0
@@ -88,9 +88,9 @@ class SpsImportDialog(QDialog):
         self.setMinimumWidth(900)
         self.setMinimumHeight(500)
 
-        buttons = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         self.buttonBox = QDialogButtonBox(buttons)
-        self.buttonBox.button(QDialogButtonBox.Ok).setText('Import')  # Change "OK" to "Import"
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setText('Import')  # Change "OK" to "Import"
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 
@@ -181,7 +181,7 @@ class SpsImportDialog(QDialog):
         self.paramTree.setParameters(self.parameters, showTop=False)
         self.paramTree.header().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         self.paramTree.header().resizeSection(0, 275)
-        # self.paramTree.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        # self.paramTree.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
 
         font_metrics = QFontMetrics(self.paramTree.font())                      # Get font metrics for the current font
         line_height = font_metrics.height()                                     # Height of a single line
@@ -217,15 +217,15 @@ class SpsImportDialog(QDialog):
         label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
         title = QLabel('SPS Import Settings')
         title.setStyleSheet(label_style)    # Set the style for the title label
-        title.setAlignment(Qt.AlignCenter)  # Align center
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Align center
 
         imported = QLabel('SPS - XPS - RPS data')
         imported.setStyleSheet(label_style)    # Set the style for the title label
-        imported.setAlignment(Qt.AlignCenter)  # Align center
+        imported.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Align center
 
         self.tabWidget = QTabWidget()
-        self.tabWidget.setTabPosition(QTabWidget.South)
-        self.tabWidget.setTabShape(QTabWidget.Rounded)
+        self.tabWidget.setTabPosition(QTabWidget.TabPosition.South)
+        self.tabWidget.setTabShape(QTabWidget.TabShape.Rounded)
         self.tabWidget.setDocumentMode(False)                               # has only effect on OSX ?!
         self.tabWidget.resize(300, 300)
 
@@ -242,7 +242,7 @@ class SpsImportDialog(QDialog):
         self.tabWidget.addTab(self.rpsTab, 'RPS')
 
         self.layout.addWidget(title)
-        self.layout.addWidget(QLabel('Please select the CRS, the local SPS dialect and the SPS data file(s).'), 0, alignment=Qt.AlignCenter)
+        self.layout.addWidget(QLabel('Please select the CRS, the local SPS dialect and the SPS data file(s).'), 0, alignment=Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.paramTree)
         self.layout.addWidget(imported)
         self.layout.addWidget(self.tabWidget)

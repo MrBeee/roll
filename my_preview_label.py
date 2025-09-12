@@ -11,11 +11,11 @@ class MyPreviewLabel(QLabel):
 
     def __init__(self):
         super().__init__()
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         font = self.font()
         font.setPointSizeF(font.pointSize() - 0.5)
         self.setFont(font)
-        self.setAlignment(Qt.AlignVCenter)
+        self.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         self.errorBox = ErrorBox(self)
 

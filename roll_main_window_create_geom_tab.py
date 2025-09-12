@@ -16,7 +16,7 @@ def createGeomTab(self):
     self.srcHdrView.sectionClicked.connect(self.sortSrcData)                # handle the section-clicked signal
     self.srcView.setStyleSheet(table_style)                                 # define selection colors
     self.srcView.resizeColumnsToContents()
-    self.srcView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    self.srcView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
     self.relView = TableView()                                              # create rel view
     self.relModel = XpsTableModel(self.relGeom)                             # create rel model
@@ -25,7 +25,7 @@ def createGeomTab(self):
     self.relHdrView.sectionClicked.connect(self.sortRelData)                # handle the section-clicked signal
     self.relView.setStyleSheet(table_style)                                 # define selection colors
     self.relView.resizeColumnsToContents()
-    self.relView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    self.relView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
     self.recView = TableView()                                              # create rec view
     self.recModel = RpsTableModel(self.recGeom)                             # create rec model
@@ -34,19 +34,19 @@ def createGeomTab(self):
     self.recHdrView.sectionClicked.connect(self.sortRecData)                # handle the section-clicked signal
     self.recView.setStyleSheet(table_style)                                 # define selection colors
     self.recView.resizeColumnsToContents()
-    self.recView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    self.recView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
     # add the top labels
     self.srcLabel = QLabel('SRC records')
-    self.srcLabel.setAlignment(Qt.AlignCenter)
+    self.srcLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.srcLabel.setStyleSheet(label_style)
 
     self.relLabel = QLabel('REL records')
-    self.relLabel.setAlignment(Qt.AlignCenter)
+    self.relLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.relLabel.setStyleSheet(label_style)
 
     self.recLabel = QLabel('REC records')
-    self.recLabel.setAlignment(Qt.AlignCenter)
+    self.recLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.recLabel.setStyleSheet(label_style)
 
     # then create three containers for the layout of src, rel & rec
@@ -127,13 +127,13 @@ def createGeomTab(self):
     self.btnRmsToQGIS.pressed.connect(self.exportRmsToQGIS)
 
     label1.setStyleSheet('border: 1px solid black;background-color:lavender')
-    label1.setAlignment(Qt.AlignCenter)
+    label1.setAlignment(Qt.AlignmentFlag.AlignCenter)
     label2.setStyleSheet('border: 1px solid black;background-color:lavender')
-    label2.setAlignment(Qt.AlignCenter)
+    label2.setAlignment(Qt.AlignmentFlag.AlignCenter)
     label3.setStyleSheet('border: 1px solid black;background-color:lavender')
-    label3.setAlignment(Qt.AlignCenter)
+    label3.setAlignment(Qt.AlignmentFlag.AlignCenter)
     label4.setStyleSheet('border: 1px solid black;background-color:lavender')
-    label4.setAlignment(Qt.AlignCenter)
+    label4.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     # create the three button layouts
     grid1 = QGridLayout()                                                   # top row
@@ -191,17 +191,17 @@ def createGeomTab(self):
     self.geomBottom.appendHtml('The <b>XPS records</b> are only tested for valid rec-station values in the <b>rec min</b> and <b>rec max</b> columns (and not for any stations in between).')
     self.geomBottom.setReadOnly(True)                                        # if we set this 'True' the context menu no longer allows 'delete', just 'select all' and 'copy'
 
-    self.geomBottom.setFrameShape(QFrame.StyledPanel)
+    self.geomBottom.setFrameShape(QFrame.Shape.StyledPanel)
     self.geomBottom.setStyleSheet('background-color:lavender')   # See: https://www.w3.org/TR/SVG11/types.html#ColorKeywords
 
     # use splitters to be able to rearrange the layout
-    splitter1 = QSplitter(Qt.Horizontal)
+    splitter1 = QSplitter(Qt.Orientation.Horizontal)
     splitter1.addWidget(self.srcPane)
     splitter1.addWidget(self.relPane)
     splitter1.addWidget(self.recPane)
     splitter1.setSizes([200, 200, 200])
 
-    splitter2 = QSplitter(Qt.Vertical)
+    splitter2 = QSplitter(Qt.Orientation.Vertical)
     splitter2.addWidget(splitter1)
     splitter2.addWidget(self.geomBottom)
     splitter2.setSizes([900, 100])

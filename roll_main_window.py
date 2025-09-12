@@ -72,6 +72,9 @@ Note: To find out where libraries reside, use 'inspect':
 # See also: https://answers.microsoft.com/en-us/windows/forum/all/cannot-open-explorer-after-update-to-24h2-crashes/e149b7b0-2d67-445c-807b-e25d6b87d656
 # Also use: https://lesferch.github.io/WinSetView/ to set specific folder options
 
+# related to the conversion from PyQt5 to PyQt6 (see https://www.riverbankcomputing.com/static/Docs/PyQt6/migration.html)
+# see also: https://stackoverflow.com/questions/70399219/pyqt6-qtdesigner-compatibility-with-pyqt5
+# see also: https://stackoverflow.com/questions/72086632/migrating-to-qt6-pyqt6-what-are-all-the-deprecated-short-form-names-in-qt5
 
 import contextlib
 import gc
@@ -230,8 +233,8 @@ class LineROI(pg.LineSegmentROI):
 class QHLine(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFrameShape(QFrame.HLine)
-        self.setFrameShadow(QFrame.Sunken)
+        self.setFrameShape(QFrame.Shape.HLine)
+        self.setFrameShadow(QFrame.Shadow.Sunken)
 
     def generateSvg(self, nodes):
         pass                                                                    # for the time being don't do anything; just to keep PyLint happy
@@ -239,6 +242,10 @@ class QHLine(QFrame):
 
 def silentPrint(*_, **__):
     pass
+
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+resource_dir = os.path.join(current_dir, 'resources')
 
 
 class RollMainWindow(QMainWindow, FORM_CLASS):
@@ -380,8 +387,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # pattern information plotting parameters
         self.patternLayout = True                                               # True shows geometry (layout). False shows kxky response
 
-        icon_path = ':/plugins/roll/icon.png'
-        icon = QIcon(icon_path)
+        # icon_path = ':/plugins/roll/resources/icon.png'
+        iconFile = os.path.join(resource_dir, 'icon.png')
+
+        icon = QIcon(iconFile)
         self.setWindowIcon(icon)
 
         # See: https://gist.github.com/dgovil/d83e7ddc8f3fb4a28832ccc6f9c7f07b dealing with settings
@@ -439,7 +448,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbSpsList = QToolButton()
         self.tbAllList = QToolButton()
 
-        self.tbTemplat.setToolButtonStyle(Qt.ToolButtonTextOnly)
+        self.tbTemplat.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
         self.tbTemplat.setMinimumWidth(110)
         self.tbRecList.setMinimumWidth(110)
@@ -567,7 +576,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbSpider = QToolButton()
         self.tbSpider.setMinimumWidth(110)
         self.tbSpider.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
-        self.tbSpider.setToolButtonStyle(Qt.ToolButtonTextOnly)
+        self.tbSpider.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         self.tbSpider.setDefaultAction(self.actionSpider)
 
         vbox2.addWidget(self.tbSpider)
@@ -672,10 +681,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.logEdit.clear()                                                    # Should not be necessary between sessions
         self.logEdit.setUndoRedoEnabled(False)                                  # Don't allow undo on the logging pane
         # self.logEdit.setReadOnly(True)                                        # if we set this 'True' the context menu no longer allows 'delete', just 'select all' and 'copy'
-        self.logEdit.setLineWrapMode(QPlainTextEdit.NoWrap)
-        self.logEdit.setWordWrapMode(QTextOption.NoWrap)
+        self.logEdit.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.logEdit.setWordWrapMode(QTextOption.WrapMode.NoWrap)
         self.logEdit.setStyleSheet('QPlainTextEdit { font-family: Courier New; font-weight: bold; font-size: 12px;}')
-        # self.logEdit.setFont(QFont("Ubuntu Mono", 8, QFont.Normal))           # Does not line up columns properly !
+        # self.logEdit.setFont(QFont("Ubuntu Mono", 8, QFont.Weight.Normal))           # Does not line up columns properly !
 
         self.dockLogging.setWidget(self.logEdit)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.dockLogging)
@@ -688,14 +697,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         readSettings(self)                                                      # read settings from QSettings in an early stage
 
         self.mainTabWidget = QTabWidget()
-        self.mainTabWidget.setTabPosition(QTabWidget.South)
-        self.mainTabWidget.setTabShape(QTabWidget.Rounded)
+        self.mainTabWidget.setTabPosition(QTabWidget.TabPosition.South)
+        self.mainTabWidget.setTabShape(QTabWidget.TabShape.Rounded)
         self.mainTabWidget.setDocumentMode(False)                               # has only effect on OSX ?!
         self.mainTabWidget.resize(300, 200)
 
         self.analysisTabWidget = QTabWidget()
-        self.analysisTabWidget.setTabPosition(QTabWidget.South)
-        self.analysisTabWidget.setTabShape(QTabWidget.Rounded)
+        self.analysisTabWidget.setTabPosition(QTabWidget.TabPosition.South)
+        self.analysisTabWidget.setTabShape(QTabWidget.TabShape.Rounded)
         self.analysisTabWidget.setDocumentMode(False)                           # has only effect on OSX ?!
         self.analysisTabWidget.resize(300, 200)
 
@@ -940,7 +949,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.parseText(exampleSurveyXmlText())
         self.textEdit.setPlainText(exampleSurveyXmlText())
-        self.textEdit.moveCursor(QTextCursor.Start)
+        self.textEdit.moveCursor(QTextCursor.MoveOperation.Start)
 
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -960,13 +969,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.propertyWidget = QWidget()                                         # placeholder widget to generate a layout
         self.propertyLayout = QVBoxLayout()                                     # required vertical layout
 
-        buttons = QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.Apply
+        buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Apply
         self.propertyButtonBox = QDialogButtonBox(buttons)                      # define 3 buttons to handle property changes
 
         # connect 3 buttons (signals) to their event handlers (slots)
         self.propertyButtonBox.accepted.connect(self.applyPropertyChangesAndHide)
         self.propertyButtonBox.rejected.connect(self.resetSurveyProperties)
-        self.propertyButtonBox.button(QDialogButtonBox.Apply).clicked.connect(self.applyPropertyChanges)
+        self.propertyButtonBox.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.applyPropertyChanges)
 
         self.propertyLayout.addWidget(self.paramTree)                           # add parameter tree to layout
         self.propertyLayout.addStretch()                                        # add some stretch towards 3 buttons
@@ -1081,7 +1090,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.plotStkCel(nX, nY, stkX, stkY)
 
     def eventFilter(self, source, event):
-        if event.type() == QEvent.Show:                                             # do 'cheap' test first
+        if event.type() == QEvent.Type.Show:                                             # do 'cheap' test first
             if isinstance(source, pg.PlotWidget):                                   # do 'expensive' test next
 
                 with contextlib.suppress(RuntimeError):                             # rewire zoomAll button
@@ -1126,7 +1135,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         return super().eventFilter(source, event)
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:  # Check if the ESC key is pressed
+        if event.key() == Qt.Key.Key_Escape:  # Check if the ESC key is pressed
             self.interrupted = True
         super().keyPressEvent(event)
 
@@ -1338,7 +1347,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def propertyTreeStateChanged(self, param, changes):
 
         # the next line is needed if we disable the 'Apply' button in the property pane, when no changes have been made
-        # self.propertyButtonBox.button(QDialogButtonBox.Apply).setEnabled(True)
+        # self.propertyButtonBox.button(QDialogButtonBox.StandardButton.Apply).setEnabled(True)
 
         # Nomatter whether debug has been set to True or False
         myPrint('┌── sigTreeStateChanged --> tree changes:')
@@ -1462,9 +1471,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         step = 1
         # See: https://doc.qt.io/archives/qt-4.8/qapplication.html#queryKeyboardModifiers
         modifierPressed = QApplication.keyboardModifiers()
-        if (modifierPressed & Qt.ControlModifier) == Qt.ControlModifier:
+        if (modifierPressed & Qt.KeyboardModifier.ControlModifier) == Qt.KeyboardModifier.ControlModifier:
             step = 10
-        if (modifierPressed & Qt.ShiftModifier) == Qt.ShiftModifier:
+        if (modifierPressed & Qt.KeyboardModifier.ShiftModifier) == Qt.KeyboardModifier.ShiftModifier:
             step *= 5
 
         xAnaSize = self.output.anaOutput.shape[0]                        # spider only available when anaOutput is available
@@ -1560,7 +1569,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         selection = QItemSelection(TL, BR)
 
         sm = self.anaView.selectionModel()                                      # select corresponding rows in self.anaView table
-        sm.select(selection, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
+        sm.select(selection, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
 
     # define several sps, rps, xps button functions
     def sortSpsData(self, index):
@@ -1856,7 +1865,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 convertCrs(self.spsImport, self.spsLayer.crs(), self.survey.crs)
 
         if self.spsImport is None:
-            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.Cancel)
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
             return
 
         self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
@@ -1882,7 +1891,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 convertCrs(self.rpsImport, self.rpsLayer.crs(), self.survey.crs)
 
         if self.rpsImport is None:
-            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.Cancel)
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
             return
 
         self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
@@ -1908,7 +1917,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 convertCrs(self.srcGeom, self.srcLayer.crs(), self.survey.crs)
 
         if self.srcGeom is None:
-            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.Cancel)
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
             return
 
         self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
@@ -1933,7 +1942,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 convertCrs(self.recGeom, self.recLayer.crs(), self.survey.crs)
 
         if self.recGeom is None:
-            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.Cancel)
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
             return
 
         self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
@@ -2689,8 +2698,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         if self.ruler:
             # add ruler if required
-            p1 = pg.mkPen('r', style=Qt.DashLine)
-            p2 = pg.mkPen('r', style=Qt.DashLine, width=2)
+            p1 = pg.mkPen('r', style=Qt.PenStyle.DashLine)
+            p2 = pg.mkPen('r', style=Qt.PenStyle.DashLine, width=2)
             p3 = pg.mkPen('b')
             p4 = pg.mkPen('b', width=3)
 
@@ -3109,7 +3118,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # if self.thread is not None and self.thread.isRunning():
         #     reply = QMessageBox.question(self, 'Please confirm',
         #         "Cancel work in progress and close Roll ?",
-        #         QMessageBox.Yes, QMessageBox.Cancel)
+        #         QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.Cancel)
 
         #     if reply == QMessageBox.Yes:
         #         self.thread.requestInterruption()
@@ -3254,7 +3263,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.parseText(exampleSurveyXmlText())                              # read & parse xml string and create new survey object
             self.textEdit.setPlainText(exampleSurveyXmlText())                  # copy xml content to text edit control
             self.resetSurveyProperties()                                        # get the new parameters into the parameter tree
-            self.textEdit.moveCursor(QTextCursor.Start)                         # move cursor to front
+            self.textEdit.moveCursor(QTextCursor.MoveOperation.Start)           # move cursor to front
             self.survey.calcTransforms()                                        # (re)calculate the transforms being used
             self.survey.calcSeedData()                                          # needed for circles, spirals & well-seeds; may affect bounding box
             self.survey.calcBoundingRect()                                      # (re)calculate the boundingBox as part of parsing the data
@@ -3280,7 +3289,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             plainText = self.survey.toXmlString()                               # convert the survey object to an Xml string
             self.textEdit.highlighter = XMLHighlighter(self.textEdit.document())  # we want some color highlighteded text
-            self.textEdit.setFont(QFont('Ubuntu Mono', 9, QFont.Normal))        # the font may have been messed up by the initial html text
+            self.textEdit.setFont(QFont('Ubuntu Mono', 9, QFont.Weight.Normal))        # the font may have been messed up by the initial html text
 
             self.textEdit.setTextViaCursor(plainText)                           # get text into the textEdit, NOT resetting its doc status
             self.UpdateAllViews()                                               # parse the textEdit; show the corresponding plot
@@ -3299,7 +3308,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             plainText = self.survey.toXmlString()                               # convert the survey object to an Xml string
             self.textEdit.highlighter = XMLHighlighter(self.textEdit.document())  # we want some color highlighteded text
-            self.textEdit.setFont(QFont('Ubuntu Mono', 9, QFont.Normal))        # the font may have been messed up by the initial html text
+            self.textEdit.setFont(QFont('Ubuntu Mono', 9, QFont.Weight.Normal))        # the font may have been messed up by the initial html text
 
             self.textEdit.setTextViaCursor(plainText)                           # get text into the textEdit, NOT resetting its doc status
 
@@ -3316,21 +3325,23 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if not self.textEdit.document().isModified():                           # no need to do anything, as the doc wasn't modified
             return True
 
-        ret = QMessageBox.warning(self, 'Roll', 'The document has been modified.\nDo you want to save your changes?', QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)        # want to save changes ?
+        ret = QMessageBox.warning(
+            self, 'Roll', 'The document has been modified.\nDo you want to save your changes?', QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel
+        )        # want to save changes ?
 
-        if ret == QMessageBox.Save:                                             # yes please; try to save changes
+        if ret == QMessageBox.StandardButton.Save:                                             # yes please; try to save changes
             return self.fileSave()                                              # if not succesfull, return False
 
-        if ret == QMessageBox.Cancel:                                           # user 2nd thoughts ? return False
+        if ret == QMessageBox.StandardButton.Cancel:                                           # user 2nd thoughts ? return False
             return False
 
         return True                                                             # we're done dealing with the current document
 
     def maybeKillThread(self) -> bool:
         if self.thread is not None and self.thread.isRunning():
-            reply = QMessageBox.question(self, 'Please confirm', 'Cancel work in progress and lose results ?', QMessageBox.Yes, QMessageBox.Cancel)
+            reply = QMessageBox.question(self, 'Please confirm', 'Cancel work in progress and lose results ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.Cancel)
 
-            if reply == QMessageBox.Cancel:
+            if reply == QMessageBox.StandardButton.Cancel:
                 return False
             else:
                 self.thread.requestInterruption()
@@ -3393,7 +3404,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         config.resetTimers()    ###                                             # reset timers for debugging code
 
         file = QFile(fileName)
-        if not file.open(QFile.ReadOnly | QFile.Text):                          # report status message and return False
+        if not file.open(QFile.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):   # report status message and return False
             try:                                                                # remove from MRU in case of errors
                 self.recentFileList.remove(fileName)
             except ValueError:
@@ -3984,7 +3995,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         plainText = plainText.replace('\t', '    ')                             # replace any tabs (that might be caused by editing) by 4 spaces
 
         file = QFile(self.fileName)
-        success = file.open(QIODevice.WriteOnly | QIODevice.Truncate)
+        success = file.open(QIODevice.OpenModeFlag.WriteOnly | QIODevice.OpenModeFlag.Truncate)
 
         if success:
             _ = QTextStream(file) << plainText                                  # unused stream replaced by _ to make PyLint happy
@@ -4172,7 +4183,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         }
 
         self.logEdit.appendHtml(switch.get(index, 'Unknown Message type'))      # Adds the message to the widget
-        self.logEdit.moveCursor(QTextCursor.End)                                # scroll the edit control
+        self.logEdit.moveCursor(QTextCursor.MoveOperation.End)                                # scroll the edit control
 
         if index == MsgType.Exception:                                          # play a sound to notify end user of exception
             # SystemAsterisk, SystemExclamation, SystemExit, SystemHand, SystemQuestion are common sounds; use asyync to avoid waiting on sound to finish
@@ -4265,7 +4276,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self,
                 'Please adjust',
                 "Applying 'Unique offsets' requires using a 'Full Binning' process, as it is implemented as a post-processing step on the trace table",
-                QMessageBox.Cancel,
+                QMessageBox.StandardButton.Cancel,
             )
             return False
         else:
@@ -4278,12 +4289,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 'Please adjust',
                 "'Full Binning' requires selecting a max fold value > 0 in the 'local grid' settings, to allocate space for a memory mapped file.\n\n"
                 "You can determine the required max fold value by first running 'Basic Binning'",
-                QMessageBox.Cancel,
+                QMessageBox.StandardButton.Cancel,
             )
             return False
 
         if not self.fileName:
-            QMessageBox.information(self, 'Please adjust', "'Full Binning' requires saving this file first, to obtain a valid filename in a directory with write access.", QMessageBox.Cancel)
+            QMessageBox.information(self, 'Please adjust', "'Full Binning' requires saving this file first, to obtain a valid filename in a directory with write access.", QMessageBox.StandardButton.Cancel)
             return False
 
         return True
@@ -4409,7 +4420,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # Step 6: Start the thread
         self.startTime = timer()
-        self.thread.start(QThread.NormalPriority)
+        self.thread.start(QThread.Priority.NormalPriority)
 
     def binFromGeometry(self, fullAnalysis):
         if self.srcGeom is None or self.relGeom is None or self.recGeom is None:
@@ -4461,7 +4472,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # Step 6: Start the thread
         self.startTime = timer()
-        self.thread.start(QThread.NormalPriority)
+        self.thread.start(QThread.Priority.NormalPriority)
 
     def binFromSps(self, fullAnalysis):
         if self.spsImport is None or self.xpsImport is None or self.rpsImport is None:
@@ -4513,7 +4524,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # Step 6: Start the thread
         self.startTime = timer()
-        self.thread.start(QThread.NormalPriority)
+        self.thread.start(QThread.Priority.NormalPriority)
 
     def createGeometryFromTemplates(self):
         self.progressLabel.setText('Create Geometry from Templates')
@@ -4546,7 +4557,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # Step 6: Start the thread
         self.startTime = timer()
-        self.thread.start(QThread.NormalPriority)
+        self.thread.start(QThread.Priority.NormalPriority)
 
     def threadProgress(self, val):
         if self.progressBar is not None:                                        # in case thread is rumming before GUI set up

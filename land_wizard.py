@@ -29,15 +29,15 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 class QHLine(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFrameShape(QFrame.HLine)
-        self.setFrameShadow(QFrame.Sunken)
+        self.setFrameShape(QFrame.Shape.HLine)
+        self.setFrameShadow(QFrame.Shadow.Sunken)
 
 
 class QVLine(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.VLine)
-        self.setFrameShadow(QFrame.Sunken)
+        self.setFrameShadow(QFrame.Shadow.Sunken)
 
 
 # WIZARD  =======================================================================
@@ -85,11 +85,11 @@ class LandSurveyWizard(SurveyWizard):
         self.addPage(Page_8(self))
 
         self.setWindowTitle('Land & OBN Seismic Survey Wizard')
-        self.setWizardStyle(QWizard.ClassicStyle)
+        self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
 
         # self.setOption(QWizard.IndependentPages , True) # Don't use this option as fields are no longer updated !!! Make dummy cleanupPage(self) instead
         logo_image = QImage(os.path.join(current_dir, 'icon.png'))
-        self.setPixmap(QWizard.LogoPixmap, QPixmap.fromImage(logo_image))
+        self.setPixmap(QWizard.WizardPixmap.LogoPixmap, QPixmap.fromImage(logo_image))
 
 
 #        self.setOption(QWizard.NoCancelButton, True)
@@ -2559,12 +2559,12 @@ class Page_8(SurveyWizardPage):
 
         # Add some widgets
         self.xmlEdit = QPlainTextEdit('Element tree')
-        self.xmlEdit.setLineWrapMode(QPlainTextEdit.NoWrap)
-        self.xmlEdit.setWordWrapMode(QTextOption.NoWrap)
+        self.xmlEdit.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.xmlEdit.setWordWrapMode(QTextOption.WrapMode.NoWrap)
 
         self.xmlEdit.setPlainText('show xml data here...')
         self.xmlEdit.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
-        self.xmlEdit.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        self.xmlEdit.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
 
         layout = QVBoxLayout()
         layout.addWidget(self.xmlEdit)

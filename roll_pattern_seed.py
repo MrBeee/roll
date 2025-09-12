@@ -44,7 +44,7 @@ class RollPatternSeed:
         seedElem.setAttribute('z0', str(round(self.origin.z(), 2)))
 
         seedElem.setAttribute('azi', str(self.bAzimuth))
-        seedElem.setAttribute('argb', str(self.color.name(QColor.HexArgb)))
+        seedElem.setAttribute('argb', str(self.color.name(QColor.NameFormat.HexArgb)))
 
         self.grid.writeXml(seedElem, doc)
 

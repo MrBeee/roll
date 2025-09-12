@@ -80,12 +80,12 @@ def createPatternTab(self):
     hbox0.addStretch()                                             # add some stretch to main center widget(s)
 
     leftSide = QFrame()
-    leftSide.setFrameShape(QFrame.StyledPanel)
+    leftSide.setFrameShape(QFrame.Shape.StyledPanel)
     leftSide.setLayout(hbox0)
     leftSide.setMaximumWidth(180)
     rightSide = self.arraysWidget
 
-    splitter1 = QSplitter(Qt.Horizontal)
+    splitter1 = QSplitter(Qt.Orientation.Horizontal)
     splitter1.addWidget(leftSide)
     splitter1.addWidget(rightSide)
     splitter1.setSizes([100, 500])

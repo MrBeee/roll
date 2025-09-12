@@ -88,7 +88,7 @@ class XMLHighlighter(QSyntaxHighlighter):
 
         keywordFormat = QTextCharFormat()
         keywordFormat.setForeground(QColor('#000070'))   # blue
-        keywordFormat.setFontWeight(QFont.Bold)
+        keywordFormat.setFontWeight(QFont.Weight.Bold)
         keywordPatterns = [
             r'/>',
             r'>',
@@ -191,7 +191,7 @@ class QCodeEditor(QPlainTextEdit):
 
                 # Draw the line number right justified at the position of the line.
                 paint_rect = QRect(0, block_top, self.width(), self.editor.fontMetrics().height())
-                painter.drawText(paint_rect, Qt.AlignRight, str(blockNumber + 1))
+                painter.drawText(paint_rect, Qt.AlignmentFlag.AlignRight, str(blockNumber + 1))
 
                 block = block.next()
 
@@ -201,7 +201,8 @@ class QCodeEditor(QPlainTextEdit):
 
         def getWidth(self):
             count = self.editor.blockCount()
-            width = self.fontMetrics().width(str(count)) + 10
+            # width = self.fontMetrics().width(str(count)) + 10 Note: width() is deprecated !
+            width = self.fontMetrics().horizontalAdvance(str(count)) + 10
             return width
 
         def updateWidth(self):
@@ -219,7 +220,7 @@ class QCodeEditor(QPlainTextEdit):
             if rect.contains(self.editor.viewport().rect()):
                 fontSize = self.editor.currentCharFormat().font().pointSize()
                 self.font.setPointSize(fontSize)
-                self.font.setStyle(QFont.StyleNormal)
+                self.font.setStyle(QFont.Style.StyleNormal)
                 self.updateWidth()
 
     def __init__(self, DISPLAY_LINE_NUMBERS=True, HIGHLIGHT_CURRENT_LINE=True, SyntaxHighlighter=None):
@@ -236,8 +237,8 @@ class QCodeEditor(QPlainTextEdit):
         super(QCodeEditor, self).__init__()
 
         self.setFont(QFont('Ubuntu Mono', 9))
-        self.setLineWrapMode(QPlainTextEdit.NoWrap)
-        self.setWordWrapMode(QTextOption.NoWrap)
+        self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.setWordWrapMode(QTextOption.WrapMode.NoWrap)
 
         self.DISPLAY_LINE_NUMBERS = DISPLAY_LINE_NUMBERS
 
@@ -269,7 +270,7 @@ class QCodeEditor(QPlainTextEdit):
             self.currentLineNumber = newCurrentLineNumber
             hi_selection = QTextEdit.ExtraSelection()
             hi_selection.format.setBackground(self.currentLineColor)
-            hi_selection.format.setProperty(QTextFormat.FullWidthSelection, True)
+            hi_selection.format.setProperty(QTextFormat.Property.FullWidthSelection, True)
             hi_selection.cursor = self.textCursor()
             hi_selection.cursor.clearSelection()
             self.setExtraSelections([hi_selection])
@@ -295,7 +296,7 @@ class QCodeEditor(QPlainTextEdit):
 
     def getTextViaCursor(self):
         cursor = self.textCursor()                                              # get a cursor
-        cursor.select(QTextCursor.Document)                                     # select the whole document
+        cursor.select(QTextCursor.SelectionType.Document)                                     # select the whole document
         plainText = cursor.selectedText()                                       # the plainText contains unicode paragraph separators
         plainText = plainText.replace('\u2029', '\n')                          # here we replace the Paragraph Separator by a New Line character
 
@@ -303,7 +304,7 @@ class QCodeEditor(QPlainTextEdit):
 
     def setTextViaCursor(self, plainText):
         cursor = self.textCursor()                                              # get a cursor
-        cursor.select(QTextCursor.Document)                                     # select the whole document
+        cursor.select(QTextCursor.SelectionType.Document)                                     # select the whole document
         cursor.insertText(plainText)                                            # replace selection by provided text
 
     # See: https://stackoverflow.com/questions/45880941/replace-all-tab-operations-with-inserting-four-spaces-in-qplaintextedit-widget

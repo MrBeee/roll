@@ -29,6 +29,7 @@ import numpy as np
 import pyqtgraph as pg
 import rasterio as rio
 import wellpathpy as wp
+from pyqtgraph.parametertree.parameterTypes import QtEnumParameter
 from qgis.core import QgsGeometry, QgsPointXY
 from qgis.PyQt.QtCore import PYQT_VERSION_STR, QT_VERSION_STR, QLineF, QPointF, QRectF, Qt
 from qgis.PyQt.QtGui import QColor, QPen, QPolygonF, QTransform, QVector3D
@@ -217,18 +218,55 @@ def makePenFromParms(parms):
     return pen
 
 
+# def getNameFromQtEnum(enum, value):
+#     # See: _getAllowedEnums(self, enum), defined in pyqtgraph; qtenum.py.
+#     # References to PySide have been removed. QGIS uses PyQt5 only...
+#     searchObj = Qt
+#     vals = {}
+#     for key in dir(searchObj):
+#         val = getattr(searchObj, key)
+#         if isinstance(val, enum):
+#             vals[key] = val
+
+#     result = [k for k, v in vals.items() if v == value][0]
+#     return result
+
+
 def getNameFromQtEnum(enum, value):
-    # See: _getAllowedEnums(self, enum), defined in pyqtgraph; qtenum.py.
-    # References to PySide have been removed. QGIS uses PyQt5 only...
+    """
+    Returns the name of the enum member in Qt (PyQt5 or PyQt6) that matches the given value.
+    Compatible with both PyQt5 and PyQt6.
+    """
+    # PyQt6 enums are subclasses of enum.Enum, PyQt5 are not
+    import enum as std_enum
+
+    # Handle PyQt6 enums (subclass of enum.Enum)
+    if isinstance(enum, type) and issubclass(enum, std_enum.Enum):
+        for member in enum:
+            if member.value == value or member == value:
+                return member.name
+        # Try matching by int value if value is int and member.value is enum
+        for member in enum:
+            if hasattr(member.value, 'value') and member.value.value == value:
+                return member.name
+        raise ValueError(f'Value {value} not found in enum {enum}')
+
+    # Handle PyQt5 enums (not subclass of enum.Enum)
     searchObj = Qt
     vals = {}
     for key in dir(searchObj):
         val = getattr(searchObj, key)
         if isinstance(val, enum):
             vals[key] = val
-
-    result = [k for k, v in vals.items() if v == value][0]
-    return result
+    # Try direct match
+    for k, v in vals.items():
+        if v == value:
+            return k
+    # Try int value match
+    for k, v in vals.items():
+        if hasattr(v, 'value') and v.value == value:
+            return k
+    raise ValueError(f'Value {value} not found in enum {enum}')
 
 
 def getMethodFromModule(pmm: str):

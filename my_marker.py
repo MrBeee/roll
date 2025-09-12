@@ -69,9 +69,9 @@ class SymbolPreviewLabel(QLabel):
         h = self.size().height()                                                # get pixmap size
         h = min(h, 20)
         pixmap = QPixmap(h, h)                                                  # create a pixmap to be added to QLabel
-        pixmap.fill(Qt.white)                                                   # create white background
+        pixmap.fill(Qt.GlobalColor.white)                                       # create white background
 
-        pen = QPen(Qt.black)                                                    # create pen and brush
+        pen = QPen(Qt.GlobalColor.black)                                        # create pen and brush
         pen.setWidthF(0.075)                                                    # need to scale back pen size
         brush = QBrush(col)                                                     # fill with proper background color
         p = renderSymbol(sym, h * 0.75, pen, brush, pixmap)                     # update pixmap with symbol
@@ -109,7 +109,7 @@ class MyMarkerParameterItem(MyGroupParameterItem):
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)                                                    # spacing between elements
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Fixed, QSizePolicy.Fixed)
+        spacerItem = QSpacerItem(5, 5, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         layout.addSpacerItem(spacerItem)
 
         self.textLabel = TextPreviewLabel(param)

@@ -49,7 +49,7 @@ class LayerDialog(QDialog):
             self.fcb.setField(field)
 
         # need cancel & ok buttons
-        self.btn = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)  # create standard button box
+        self.btn = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)  # create standard button box
         self.btn.accepted.connect(self.accept)
         self.btn.rejected.connect(self.reject)
 

@@ -43,7 +43,7 @@ class PgToolBar(QToolBar):
 
         # add widget(s) to show mouse position in toolbar
         self.emptyWidget = QWidget()
-        self.emptyWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.emptyWidget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.addWidget(self.emptyWidget)
 
         self.posWidget = QLabel('(x, y): (0.00, 0.00)')

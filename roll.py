@@ -22,19 +22,50 @@
 """
 
 import os.path
+import sys
+import traceback
 
+from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-# Import the code for the main window
-from .roll_main_window import RollMainWindow
+from . import config  # used to set up QSettings
 
-# Initialize Qt resources from file resources.py
-# from .resources import qCleanupResources, qInitResources, qt_resource_data, qt_resource_name, qt_resource_struct, qt_resource_struct_v1, qt_resource_struct_v2, qt_version, rcc_version
+try:
+    havePtvsd = True
+    import ptvsd
+except ImportError as ie:
+    havePtvsd = False
+
+# Import statement to acces the main window
+from .roll_main_window import RollMainWindow
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 resource_dir = os.path.join(current_dir, 'resources')
+
+MESSAGE_CATEGORY = 'Messages'
+
+
+def enable_remote_debugging():
+
+    settings = QSettings(config.organization, config.application)               # needed here to access debug settings
+    config.ptvsd = settings.value('settings/debug/ptvsd', False, type=bool)     # default = False; assume no debugging in main/worker threads
+
+    if havePtvsd is True and config.ptvsd is True:
+
+        try:
+            if ptvsd.is_attached():
+                QgsMessageLog.logMessage('Remote Debug for Visual Studio is already active', MESSAGE_CATEGORY, Qgis.Info)
+                return
+            ptvsd.enable_attach(address=('localhost', 5678))
+            QgsMessageLog.logMessage('Attached remote Debug for Visual Studio', MESSAGE_CATEGORY, Qgis.Info)
+        except Exception as _:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            format_exception = traceback.format_exception(exc_type, exc_value, exc_traceback)
+            QgsMessageLog.logMessage(repr(format_exception[0]), MESSAGE_CATEGORY, Qgis.Critical)
+            QgsMessageLog.logMessage(repr(format_exception[1]), MESSAGE_CATEGORY, Qgis.Critical)
+            QgsMessageLog.logMessage(repr(format_exception[2]), MESSAGE_CATEGORY, Qgis.Critical)
 
 
 class Roll:
@@ -50,6 +81,10 @@ class Roll:
             application at run time.
         :type iface: QgsInterface
         """
+
+        # enable debugging
+        enable_remote_debugging()
+
         # Save reference to the QGIS interface
         self.iface = iface
 
@@ -168,7 +203,7 @@ class Roll:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ':/plugins/roll/icon.png'
+        # icon_path = ':/plugins/roll/resources/icon.png'
         iconFile = os.path.join(resource_dir, 'icon.png')
 
         self.add_action(

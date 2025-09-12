@@ -74,7 +74,7 @@ class RollPattern(pg.GraphicsObject):
         # seedElem.setAttribute('x0', str(self.origin.x()))
         # seedElem.setAttribute('y0', str(self.origin.y()))
         # seedElem.setAttribute('z0', str(self.origin.z()))
-        # seedElem.setAttribute('argb', str(self.color.name(QColor.HexArgb)))
+        # seedElem.setAttribute('argb', str(self.color.name(QColor.NameFormat.HexArgb)))
         growListElem = doc.createElement('grow_list')
         seedElem.appendChild(growListElem)
 

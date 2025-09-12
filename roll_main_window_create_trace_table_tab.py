@@ -25,15 +25,15 @@ def createTraceTableTab(self):
     self.anaView.horizontalHeader().setDefaultSectionSize(100)
 
     self.anaView.verticalHeader().setDefaultSectionSize(24)
-    self.anaView.verticalHeader().sectionResizeMode(QHeaderView.Fixed)
-    self.anaView.verticalHeader().setFont(QFont('Arial', 8, QFont.Normal))
+    self.anaView.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+    self.anaView.verticalHeader().setFont(QFont('Arial', 8, QFont.Weight.Normal))
     self.anaView.verticalHeader().setFixedWidth(95)
 
     self.anaView.setStyleSheet(table_style)                                 # define selection colors
 
     label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
     self.anaLabel = QLabel('\nANALYSIS records')
-    self.anaLabel.setAlignment(Qt.AlignCenter)
+    self.anaLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.anaLabel.setStyleSheet(label_style)
 
     # then create the layout

@@ -38,12 +38,12 @@ class SettingsDialog(QDialog):
         self.setMinimumHeight(500)
         # self.setMaximumHeight(1200)
 
-        buttons = QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.Apply
+        buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Apply
         self.buttonBox = QDialogButtonBox(buttons)
-        self.buttonBox.button(QDialogButtonBox.Apply).setEnabled(False)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Apply).setEnabled(False)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.apply)
 
         # We create the ParameterTree for the settings dialog
         # See: https://www.programcreek.com/python/example/114819/pyqtgraph.parametertree.ParameterTree
@@ -171,14 +171,14 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[  # Qt light blue background
                     dict(name='Debug logging', type='bool', value=config.debug, default=config.debug, enabled=True, tip='show debug messages in Logging pane'),
-                    dict(name='Debug worker threads', type='bool', value=usePtvsd, default=usePtvsd, enabled=havePtvsd, tip='run worker threads in debug mode using ptvsd'),
+                    dict(name='Debug plugin threads', type='bool', value=usePtvsd, default=usePtvsd, enabled=havePtvsd, tip='run plugin threads in debug mode using ptvsd'),
                 ],
             ),
         ]
 
         useNumba = config.useNumba if haveNumba else False
         tip1 = 'Experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
-        tip2 = 'Show summary informtion of underlying parameters in the property pane'
+        tip2 = 'Show summary information of underlying parameters in the property pane'
         tip3 = "Show functionality that hasn't been completed yet.\nWork in progress for the developer to finish !"
 
         misParams = [
@@ -224,11 +224,11 @@ class SettingsDialog(QDialog):
         self.setLayout(self.layout)
 
     def updateSettings(self):
-        self.buttonBox.button(QDialogButtonBox.Apply).setEnabled(True)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Apply).setEnabled(True)
 
     def apply(self):
         self.accepted()
-        self.buttonBox.button(QDialogButtonBox.Apply).setEnabled(False)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Apply).setEnabled(False)
         self.appliedSignal.emit()
 
     def accept(self):
@@ -251,22 +251,22 @@ class SettingsDialog(QDialog):
 
         rpsMarker = SPS.child('Rps point marker')
         config.rpsPointSymbol = rpsMarker.marker.symbol()
-        config.rpsBrushColor = rpsMarker.marker.color().name(QColor.HexArgb)
+        config.rpsBrushColor = rpsMarker.marker.color().name(QColor.NameFormat.HexArgb)
         config.rpsSymbolSize = rpsMarker.marker.size()
 
         spsMarker = SPS.child('Sps point marker')
         config.spsPointSymbol = spsMarker.marker.symbol()
-        config.spsBrushColor = spsMarker.marker.color().name(QColor.HexArgb)
+        config.spsBrushColor = spsMarker.marker.color().name(QColor.NameFormat.HexArgb)
         config.spsSymbolSize = spsMarker.marker.size()
 
         # color (map) settings
         config.analysisCmap = COL.child('Analysis color map').value()
         config.fold_OffCmap = COL.child('Fold/offset color map').value()
 
-        config.binAreaColor = COL.child('Bin area color').value().name(QColor.HexArgb)
-        config.cmpAreaColor = COL.child('Cmp area color').value().name(QColor.HexArgb)
-        config.recAreaColor = COL.child('Rec area color').value().name(QColor.HexArgb)
-        config.srcAreaColor = COL.child('Src area color').value().name(QColor.HexArgb)
+        config.binAreaColor = COL.child('Bin area color').value().name(QColor.NameFormat.HexArgb)
+        config.cmpAreaColor = COL.child('Cmp area color').value().name(QColor.NameFormat.HexArgb)
+        config.recAreaColor = COL.child('Rec area color').value().name(QColor.NameFormat.HexArgb)
+        config.srcAreaColor = COL.child('Src area color').value().name(QColor.NameFormat.HexArgb)
 
         # config.binAreaPen = COL.child('Bin area pen').value()                 # the pen value isn't properly updated
         # config.cmpAreaPen = COL.child('Cmp area pen').value()                 # use saveState()['value'] instead
@@ -291,12 +291,12 @@ class SettingsDialog(QDialog):
         # geometry settings
         recValue = GEO.child('Rec point marker').value()
         config.recPointSymbol = recValue.symbol()
-        config.recBrushColor = recValue.color().name(QColor.HexArgb)
+        config.recBrushColor = recValue.color().name(QColor.NameFormat.HexArgb)
         config.recSymbolSize = recValue.size()
 
         srcValue = GEO.child('Src point marker').value()
         config.srcPointSymbol = srcValue.symbol()
-        config.srcBrushColor = srcValue.color().name(QColor.HexArgb)
+        config.srcBrushColor = srcValue.color().name(QColor.NameFormat.HexArgb)
         config.srcSymbolSize = srcValue.size()
 
         # k-plot settings
@@ -307,7 +307,7 @@ class SettingsDialog(QDialog):
         # debug settings
         # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
         config.debug = DBG.child('Debug logging').value()
-        config.ptvsd = DBG.child('Debug worker threads').value()
+        config.ptvsd = DBG.child('Debug plugin threads').value()
 
         # miscellaneous settings
         config.useNumba = MIS.child('Use Numba').value()
@@ -325,7 +325,7 @@ def readSettings(self):
     state = self.settings.value('mainWindow/state', bytes('', 'utf-8'))         # , bytes('', 'utf-8') prevents receiving a 'None' object
     self.restoreGeometry(state)                                                 # No longer needed to test: if geometry != None:
 
-    path = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
+    path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
     self.workingDirectory = self.settings.value('settings/workingDirectory', path)   # start folder for SaveAs
     self.importDirectory = self.settings.value('settings/importDirectory', path)   # start folder for reading SPS files
     self.recentFileList = self.settings.value('settings/recentFileList', [])
@@ -375,7 +375,7 @@ def readSettings(self):
     # debug information
     # See: https://forum.qt.io/topic/108622/how-to-get-a-boolean-value-from-qsettings-correctly/8
     config.debug = self.settings.value('settings/debug/logging', False, type=bool)    # assume no debugging messages required
-    config.ptvsd = self.settings.value('settings/debug/ptvsd', False, type=bool)      # assume no debugging in worker threads
+    config.ptvsd = self.settings.value('settings/debug/ptvsd', False, type=bool)      # assume no debugging in main/worker threads
 
     if config.debug:
         if console._console is None:                                                # pylint: disable=W0212 # unfortunately need access to protected member

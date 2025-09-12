@@ -9,11 +9,11 @@ from .roll_survey import RollSurvey
 # ptvsd  is needed to debug a worker thread.
 # See: https://github.com/microsoft/ptvsd/issues/1189
 
-try:                                                                            # uncomment to debug thread
-    havePtvsd = True                                                            # uncomment to debug thread
-    import ptvsd  # uncomment to debug thread
-except ImportError as ie:                                                       # uncomment to debug thread
-    havePtvsd = False                                                           # uncomment to debug thread
+try:
+    havePtvsd = True
+    import ptvsd
+except ImportError as ie:
+    havePtvsd = False
 
 # See: https://stackoverflow.com/questions/20324804/how-to-use-qthread-correctly-in-pyqt-with-movetothread
 # See: https://realpython.com/python-pyqt-qthread/#using-qthread-vs-pythons-threading
@@ -87,7 +87,7 @@ class BinFromGeometryWorker(QObject):
             # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
             # Please comment the next two lines when you are not debugging, as it will cause an exception (ConnectionRefusedError)
             if havePtvsd and config.ptvsd:
-                ptvsd.debug_this_thread()                                       # uncomment to debug thread
+                ptvsd.debug_this_thread()
 
             success = self.survey.setupBinFromGeometry(self.extended)           # calculate fold map and min/max offsets
         except BaseException as e:
@@ -125,7 +125,7 @@ class BinningWorker(QObject):
             # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
             # Please comment the next two lines when you are not debugging, as it will cause an exception (ConnectionRefusedError)
             if havePtvsd and config.ptvsd:
-                ptvsd.debug_this_thread()                                       # uncomment to debug thread
+                ptvsd.debug_this_thread()
 
             success = self.survey.setupBinFromTemplates(self.extended)          # calculate fold map and min/max offsets
         except BaseException as e:

@@ -5,7 +5,6 @@
      it under the terms of the GNU General Public License as published by
      the Free Software Foundation; either version 2 of the License, or
      (at your option) any later version.
-
 """
 
 __author__ = 'Bart.Duijndam@ziggo.nl'
@@ -14,11 +13,10 @@ __copyright__ = 'Copyright 2022, Duijndam.Dev'
 
 import unittest
 
-from qgis.PyQt.QtGui import QDialogButtonBox, QDialog
-
+from qgis.PyQt.QtGui import QDialog, QDialogButtonBox
 from roll_dialog import RollDialog
-
 from utilities import get_qgis_app
+
 QGIS_APP = get_qgis_app()
 
 
@@ -36,20 +34,20 @@ class RollDialogTest(unittest.TestCase):
     def test_dialog_ok(self):
         """Test we can click OK."""
 
-        button = self.dialog.button_box.button(QDialogButtonBox.Ok)
+        button = self.dialog.button_box.button(QDialogButtonBox.StandardButton.Ok)
         button.click()
         result = self.dialog.result()
         self.assertEqual(result, QDialog.Accepted)
 
     def test_dialog_cancel(self):
         """Test we can click cancel."""
-        button = self.dialog.button_box.button(QDialogButtonBox.Cancel)
+        button = self.dialog.button_box.button(QDialogButtonBox.StandardButton.Cancel)
         button.click()
         result = self.dialog.result()
         self.assertEqual(result, QDialog.Rejected)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     suite = unittest.makeSuite(RollDialogTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
-
