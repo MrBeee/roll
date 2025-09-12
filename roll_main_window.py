@@ -97,7 +97,7 @@ import numpy as np  # Numpy functions needed for plot creation
 import pyqtgraph as pg
 from numpy.lib import recfunctions as rfn
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, Qt, QTextStream, QThread
+from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, QSize, Qt, QTextStream, QThread
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
 from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
 from qgis.PyQt.QtWidgets import (
@@ -275,6 +275,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.gridY = True                                                       # use grid lines
         self.antiA = [False for i in range(12)]                                 # anti-alias painting
         self.ruler = False                                                      # show a ruler to measure distances
+
+        self.fileBar.setIconSize(QSize(24, 24))                                 # set icon size for toolbar
+        self.editBar.setIconSize(QSize(24, 24))                                 # set icon size for toolbar
+        self.graphBar.setIconSize(QSize(24, 24))                                # set icon size for toolbar
+        self.moveBar.setIconSize(QSize(24, 24))                                 # set icon size for toolbar
+        self.paintBar.setIconSize(QSize(24, 24))                                # set icon size for toolbar
 
         # list with most recently used [mru] file actions
         self.recentFileActions = []
