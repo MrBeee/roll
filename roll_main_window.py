@@ -80,6 +80,7 @@ import contextlib
 import gc
 import os
 import os.path
+import platform
 import sys
 import traceback
 import webbrowser
@@ -1002,7 +1003,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.updateRecentFileActions()                                          # update the MRU file menu actions, with info from readSettings()
 
-        self.appendLogMessage('Plugin : Started')
+        self.appendLogMessage(f'Plugin : Started on {platform.system()} {platform.release()} v({platform.version()})')  # log program start
         self.statusbar.showMessage('Ready', 3000)
 
     def updatePaintDetails(self):
