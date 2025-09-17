@@ -12,13 +12,16 @@ import numpy as np
 import pyqtgraph as pg
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QMarginsF, QRectF, QThread, pyqtSignal
-from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPicture, QTransform, QVector3D
+from qgis.PyQt.QtGui import (QBrush, QColor, QPainter, QPicture, QTransform,
+                             QVector3D)
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .functions import containsPoint3D
-from .functions_numba import clipLineF, numbaFixRelationRecord, numbaSetPointRecord, numbaSetRelationRecord, numbaSliceStats, pointsInRect
+from .functions_numba import (clipLineF, numbaFixRelationRecord,
+                              numbaSetPointRecord, numbaSetRelationRecord,
+                              numbaSliceStats, pointsInRect)
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -1109,11 +1112,11 @@ class RollSurvey(pg.GraphicsObject):
 
         # Now do the binning
         if fullAnalysis:
-            success = self.binFromGeometry4(True)
+            success = self.binFromGeometry6(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
             return success
         else:
-            return self.binFromGeometry4(False)
+            return self.binFromGeometry6(False)
 
     def binFromGeometry4(self, fullAnalysis) -> bool:
         """
@@ -1415,6 +1418,256 @@ class RollSurvey(pg.GraphicsObject):
             self.calcOffsetAndAzimuthDistribution()
         else:
             self.output.anaOutput = None
+
+        return True
+
+    def binFromGeometry5(self, fullAnalysis) -> bool:
+        """
+        Optimized version of binFromGeometry4 by Gemini 2.5 Pro
+        - Vectorized receiver selection.
+        - Vectorized bin assignment using np.add.at.
+        """
+        if self.output is None or self.output.srcGeom is None or self.output.relData is None or self.output.recGeom is None:
+            return False
+
+        # Reset output arrays
+        self.output.resetBinning()
+        maxFld = self.output.maxFold
+        sizeX, sizeY = self.output.binOutput.shape
+
+        # Loop through each source point
+        for srcIndex, srcRecord in enumerate(self.output.srcGeom):
+            if self.stopProcessing:
+                return False
+            if srcRecord['InUse'] == 0:
+                continue
+
+            # Find all relation records for the current source
+            I = self.output.relData['SrcLin'] == srcRecord['Line']
+            J = self.output.relData['SrcPnt'] == srcRecord['Point']
+            relSlice = self.output.relData[I & J]
+            if relSlice.shape[0] == 0:
+                continue
+
+            # --- OPTIMIZATION 1: Vectorized Receiver Selection ---
+            # Build a boolean mask for all required receivers at once
+            rec_mask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
+            for relRecord in relSlice:
+                rec_line_num = relRecord['RecLin']
+                rec_min = relRecord['RecMin']
+                rec_max = relRecord['RecMax']
+
+                # Create a mask for the receivers matching the criteria for this relation record
+                current_mask = (self.output.recGeom['Line'] == rec_line_num) & (self.output.recGeom['Point'] >= rec_min) & (self.output.recGeom['Point'] <= rec_max)
+                rec_mask |= current_mask   # Combine masks with a logical OR
+
+            # Select all receivers for this source in one go
+            recArray = self.output.recGeom[rec_mask]
+
+            # Filter for 'InUse' receivers
+            recArray = recArray[recArray['InUse'] > 0]
+            if recArray.shape[0] == 0:
+                continue
+
+            # Prepare source and receiver points for vectorized calculations
+            src_point = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32)
+            rec_points = np.vstack((recArray['LocX'], recArray['LocY'], recArray['Elev'])).T
+
+            # Calculate CMPs and offsets for all pairs at once
+            if self.binning.method == BinningType.cmp:
+                cmp_points = (rec_points + src_point) * 0.5
+                off_array = rec_points - src_point
+            # Add other binning methods (rcv, src) here if needed
+
+            # Filter CMPs that are outside the geometry
+            I = pointsInRect(cmp_points, self.output.rctOutput)
+            if np.all(~I):
+                continue
+
+            cmp_points = cmp_points[I]
+            off_array = off_array[I]
+
+            # Calculate hypotenuse (offset distance) and azimuth
+            hyp_array = np.hypot(off_array[:, 0], off_array[:, 1])
+            azi_array = np.rad2deg(np.arctan2(off_array[:, 0], off_array[:, 1]))
+            azi_array[azi_array < 0] += 360
+
+            # --- OPTIMIZATION 2: Vectorized Bin Assignment ---
+            # Map all CMP points to bin grid coordinates at once
+            # Assuming self.binTransform.map is not vectorized, we use a fast list comprehension
+            mapped_coords = np.array([self.binTransform.map(pt[0], pt[1]) for pt in cmp_points])
+            nx = mapped_coords[:, 0].astype(int)
+            ny = mapped_coords[:, 1].astype(int)
+
+            # Create a mask for valid bins that are inside the grid
+            valid_bins_mask = (nx >= 0) & (ny >= 0) & (nx < sizeX) & (ny < sizeY)
+
+            # Filter all arrays to only include traces falling in valid bins
+            nx = nx[valid_bins_mask]
+            ny = ny[valid_bins_mask]
+            hyp_array = hyp_array[valid_bins_mask]
+            azi_array = azi_array[valid_bins_mask]
+
+            if nx.shape[0] == 0:
+                continue
+
+            # Use np.add.at for efficient, unbuffered, in-place updates
+            np.add.at(self.output.binOutput, (nx, ny), 1)
+            np.minimum.at(self.output.minOffset, (nx, ny), hyp_array)
+            np.maximum.at(self.output.maxOffset, (nx, ny), hyp_array)
+
+            if fullAnalysis:
+                np.minimum.at(self.output.minAzimuth, (nx, ny), azi_array)
+                np.maximum.at(self.output.maxAzimuth, (nx, ny), azi_array)
+
+                # For fold analysis, we need to handle the 3D array
+                # Clamp offset to be within the bounds of the D2_Output array's fold dimension
+                off_indices = (hyp_array / self.output.binSize).astype(int)
+                off_indices = np.clip(off_indices, 0, maxFld - 1)
+
+                np.add.at(self.output.D2_Output, (nx, ny, off_indices), 1)
+
+        self.output.binOutput = np.minimum(self.output.binOutput, maxFld)
+        return True
+
+    def binFromGeometry6(self, fullAnalysis) -> bool:
+        """
+        Optimized version of binFromGeometry4 by GPT-4o
+        - Vectorized receiver selection.
+        - Vectorized CMP and offset calculations.
+        - Efficient bin assignment using np.add.at.
+        """
+        self.threadProgress = 0  # Always start at zero
+
+        # Transform to local survey coordinates
+        toLocalTransform, _ = self.glbTransform.inverted()
+
+        # Fill source and receiver arrays with local coordinates if needed
+        if np.all(self.output.srcGeom['LocX'] == 0.0) and np.all(self.output.srcGeom['LocY'] == 0.0):
+            self.output.srcGeom['LocX'], self.output.srcGeom['LocY'] = toLocalTransform.map(self.output.srcGeom['East'], self.output.srcGeom['North'])
+
+        if np.all(self.output.recGeom['LocX'] == 0.0) and np.all(self.output.recGeom['LocY'] == 0.0):
+            self.output.recGeom['LocX'], self.output.recGeom['LocY'] = toLocalTransform.map(self.output.recGeom['East'], self.output.recGeom['North'])
+
+        # Sort geometry arrays to ensure proper order
+        self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
+        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
+        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+
+        # Create reference to relation file
+        relFileIndices = np.zeros((self.output.srcGeom.shape[0], 2), dtype=np.int32)
+
+        # Find relevant relation records for each shot point
+        marker = 0
+        for index, srcRecord in enumerate(self.output.srcGeom):
+            relFileIndices[index][0] = marker
+            for j in range(marker, self.output.relGeom.shape[0]):
+                if self.output.relGeom[j]['SrcPnt'] == srcRecord['Point'] and self.output.relGeom[j]['SrcLin'] == srcRecord['Line'] and self.output.relGeom[j]['SrcInd'] == srcRecord['Index']:
+                    relFileIndices[index][1] = j + 1
+                else:
+                    marker = j
+                    break
+
+        # Iterate over shot points
+        self.nShotPoint = 0
+        self.nShotPoints = self.output.srcGeom.shape[0]
+
+        try:
+            for index, srcRecord in enumerate(self.output.srcGeom):
+                if srcRecord['InUse'] == 0:
+                    continue
+
+                # Convert source record to a single [x, y, z] value
+                src = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32)
+
+                # Thread progress
+                if QThread.currentThread().isInterruptionRequested():
+                    raise StopIteration
+
+                self.nShotPoint += 1
+                threadProgress = (100 * self.nShotPoint) // self.nShotPoints
+                if threadProgress > self.threadProgress:
+                    self.threadProgress = threadProgress
+                    self.progress.emit(threadProgress + 1)
+
+                # Get range of relevant relation records
+                minRecord, maxRecord = relFileIndices[index]
+                if maxRecord <= minRecord:
+                    continue
+
+                relSlice = self.output.relGeom[minRecord:maxRecord]
+
+                # Vectorized receiver selection
+                rec_mask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
+                for relRecord in relSlice:
+                    rec_mask |= (
+                        (self.output.recGeom['Index'] == relRecord['RecInd'])
+                        & (self.output.recGeom['Line'] == relRecord['RecLin'])
+                        & (self.output.recGeom['Point'] >= relRecord['RecMin'])
+                        & (self.output.recGeom['Point'] <= relRecord['RecMax'])
+                    )
+
+                recArray = self.output.recGeom[rec_mask]
+                recArray = recArray[recArray['InUse'] > 0]
+                if recArray.shape[0] == 0:
+                    continue
+
+                # Prepare source and receiver points for vectorized calculations
+                recPoints = np.vstack((recArray['LocX'], recArray['LocY'], recArray['Elev'])).T
+
+                # Calculate CMPs and offsets for all pairs at once
+                if self.binning.method == BinningType.cmp:
+                    cmpPoints = (recPoints + src) * 0.5
+                    offArray = recPoints - src
+
+                # Filter CMPs that are outside the geometry
+                I = pointsInRect(cmpPoints, self.output.rctOutput)
+                if np.all(~I):
+                    continue
+
+                cmpPoints = cmpPoints[I]
+                offArray = offArray[I]
+
+                # Calculate hypotenuse (offset distance) and azimuth
+                hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
+                aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
+                aziArray[aziArray < 0] += 360
+
+                # Map CMP points to bin grid coordinates
+                mapped_coords = np.array([self.binTransform.map(pt[0], pt[1]) for pt in cmpPoints])
+                nx = mapped_coords[:, 0].astype(int)
+                ny = mapped_coords[:, 1].astype(int)
+
+                # Create a mask for valid bins
+                valid_bins_mask = (nx >= 0) & (ny >= 0) & (nx < self.output.binOutput.shape[0]) & (ny < self.output.binOutput.shape[1])
+
+                # Filter arrays to include only valid bins
+                nx = nx[valid_bins_mask]
+                ny = ny[valid_bins_mask]
+                hypArray = hypArray[valid_bins_mask]
+                aziArray = aziArray[valid_bins_mask]
+
+                if nx.shape[0] == 0:
+                    continue
+
+                # Efficient bin assignment
+                np.add.at(self.output.binOutput, (nx, ny), 1)
+                np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
+                np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
+
+                if fullAnalysis:
+                    np.minimum.at(self.output.minAzimuth, (nx, ny), aziArray)
+                    np.maximum.at(self.output.maxAzimuth, (nx, ny), aziArray)
+
+        except StopIteration:
+            self.errorText = 'binning from geometry cancelled by user'
+            return False
+        except BaseException as e:
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            return False
 
         return True
 
@@ -1730,7 +1983,8 @@ class RollSurvey(pg.GraphicsObject):
         return True
 
     def calcUniqueFoldValues(self) -> bool:
-        """code to calculate unique offsets as a post-processing step"""
+        """code to calculate unique offsets as a post-processing step
+           it prunes the data in the fold array using offset and azimuth slots"""
         if self.unique.apply is False:                                          # slot offsets and azimuths and prune data
             return False
 

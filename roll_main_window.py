@@ -954,6 +954,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.posWidgetStatusbar = QLabel('(x, y): (0.00, 0.00)')
         self.statusbar.addPermanentWidget(self.posWidgetStatusbar, stretch=0)   # widget in bottomright corner of statusbar
 
+        self.appendLogMessage(f'Plugin : Started on {platform.system()} {platform.release()} v({platform.version()})')  # log program start
+
         self.parseText(exampleSurveyXmlText())
         self.textEdit.setPlainText(exampleSurveyXmlText())
         self.textEdit.moveCursor(QTextCursor.MoveOperation.Start)
@@ -1009,7 +1011,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.updateRecentFileActions()                                          # update the MRU file menu actions, with info from readSettings()
 
-        self.appendLogMessage(f'Plugin : Started on {platform.system()} {platform.release()} v({platform.version()})')  # log program start
         self.statusbar.showMessage('Ready', 3000)
 
     def updatePaintDetails(self):
@@ -1312,8 +1313,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 self.anaModel.setData(None)                                     # first remove reference to self.output.anaOutput
                 self.output.D2_Output = None                                    # flattened reference to self.output.anaOutput
-                self.anaModel.setData(None)                                     # show empty trace table
-                self.output.D2_Output = None                                    # remove reference to self.output.anaOutput
                 del self.output.anaOutput                                       # try to delete the object
                 self.output.anaOutput = None                                    # the object was deleted; reinstate the None version
                 gc.collect()                                                    # get the garbage collector going
@@ -3406,6 +3405,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         for j in range(numRecentFiles, config.maxRecentFiles):
             self.recentFileActions[j].setVisible(False)
 
+    def setDataAnaModel(self):
+        if self.output.D2_Output is not None and self.output.D2_Output.shape[0] > config.maxAnalysisRows:
+            # unfortunately the QTableView widget does not like too large a dataset, so we need to impose a limit to the allowable number of trace records
+            self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces; too large to display in Trace Table', MsgType.Error)
+            self.anaModel.setData(None)                                     # we can still use self.output.D2_Output and self.output.anaOutput; we just can't display the trace table
+        else:
+            self.anaModel.setData(self.output.D2_Output)                    # use this as the model data
+
     def fileLoad(self, fileName):
 
         config.resetTimers()    ###                                             # reset timers for debugging code
@@ -3601,7 +3608,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                         self.anaModel.setData(None)                             # use this as the model data
                     else:
                         self.output.D2_Output = self.output.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
-                        self.anaModel.setData(self.output.D2_Output)                    # use this as the model data
 
                     if self.output.maximumFold > fold:
                         self.appendLogMessage(
@@ -3619,12 +3625,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.output.D2_Output = None
                 self.output.anaOutput = None
 
-            if self.output.D2_Output is not None and self.output.D2_Output.shape[0] > config.maxAnalysisRows:
-                # unfortunately the QTableView widget does not like too large a dataset, so we need to impose a limit to the allowable number of trace records
-                self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces; too large to display in Trace Table', MsgType.Error)
-                self.anaModel.setData(None)                                     # we can still use self.output.D2_Output and self.output.anaOutput; we just can't display the trace table
-            else:
-                self.anaModel.setData(self.output.D2_Output)                    # use this as the model data
+            self.setDataAnaModel()                                              # sets model data if file not too big
 
             if os.path.exists(self.fileName + '.rps.npy'):                      # open the existing rps-file
                 self.rpsImport = np.load(self.fileName + '.rps.npy')
@@ -4595,15 +4596,20 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.output.maxOffset = self.worker.survey.output.maxOffset.copy()
 
             if self.worker.survey.output.anaOutput is not None:                             # extended binning
-                self.output.rmsOffset = self.worker.survey.output.rmsOffset.copy()   # only defined in extended binning
-                self.output.anaOutput = self.worker.survey.output.anaOutput.copy()   # results from full binning analysis
+                self.output.rmsOffset = self.worker.survey.output.rmsOffset.copy()          # only defined in extended binning
                 self.output.ofAziHist = self.worker.survey.output.ofAziHist.copy()
                 self.output.offstHist = self.worker.survey.output.offstHist.copy()
 
+                # Re-open the memory-mapped file in the main thread to ensure safe access
+                anaFileName = self.fileName + '.ana.npy'
+                shape = self.worker.survey.output.anaOutput.shape
+
+                self.output.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=shape)
                 shape = self.output.anaOutput.shape
+
+                # create a 2D view on the 4D memory mapped array, to be used in the anaView table
                 self.output.D2_Output = self.output.anaOutput.reshape(shape[0] * shape[1] * shape[2], shape[3])
-                self.anaModel.setData(self.output.D2_Output)
-                # self.anaView.resizeColumnsToContents()
+                self.setDataAnaModel()                                              # sets model data if file not too big
 
             # copy limits from worker; avoid -inf values
             self.output.minimumFold = max(self.worker.survey.output.minimumFold, 0)

@@ -29,7 +29,6 @@ import numpy as np
 import pyqtgraph as pg
 import rasterio as rio
 import wellpathpy as wp
-from pyqtgraph.parametertree.parameterTypes import QtEnumParameter
 from qgis.core import QgsGeometry, QgsPointXY
 from qgis.PyQt.QtCore import PYQT_VERSION_STR, QT_VERSION_STR, QLineF, QPointF, QRectF, Qt
 from qgis.PyQt.QtGui import QColor, QPen, QPolygonF, QTransform, QVector3D

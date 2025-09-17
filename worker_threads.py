@@ -1,3 +1,5 @@
+import os
+import sys
 import time
 
 from qgis.PyQt.QtCore import QMutex, QObject, QThread, pyqtSignal
@@ -91,7 +93,13 @@ class BinFromGeometryWorker(QObject):
 
             success = self.survey.setupBinFromGeometry(self.extended)           # calculate fold map and min/max offsets
         except BaseException as e:
-            self.survey.errorText = str(e)
+            # self.errorText = str(e)
+            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.survey.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            del (fileName, funcName, lineNo)
             success = False
 
         self.finished.emit(success)
@@ -129,7 +137,13 @@ class BinningWorker(QObject):
 
             success = self.survey.setupBinFromTemplates(self.extended)          # calculate fold map and min/max offsets
         except BaseException as e:
-            self.survey.errorText = str(e)
+            # self.errorText = str(e)
+            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.survey.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            del (fileName, funcName, lineNo)
             success = False
 
         self.finished.emit(success)
@@ -160,7 +174,13 @@ class GeometryWorker(QObject):
 
             success = self.survey.setupGeometryFromTemplates()                  # calculate src, rel, rec geometry arrays
         except BaseException as e:
-            self.survey.errorText = str(e)
+            # self.errorText = str(e)
+            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.survey.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            del (fileName, funcName, lineNo)
             success = False
 
         self.finished.emit(success)
