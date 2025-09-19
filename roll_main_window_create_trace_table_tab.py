@@ -55,7 +55,7 @@ def createTraceTableTab(self):
     self.gotoEdit = QLineEdit('1')
     self.gotoEdit.setFixedWidth(100)
     self.gotoEdit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    self.gotoBtn = QPushButton('Go ->')
+    self.btnGoto = QPushButton('Go ->')
 
     # Style the pagination controls
     self.btnFirstPage.setStyleSheet('background-color:lavender; font-weight:bold;')
@@ -66,7 +66,7 @@ def createTraceTableTab(self):
 
     self.gotoLabel.setStyleSheet('border: 1px solid black;background-color:lavender')
     self.gotoEdit.setStyleSheet('background-color:lavender')
-    self.gotoBtn.setStyleSheet('background-color:lavender; font-weight:bold;')
+    self.btnGoto.setStyleSheet('background-color:lavender; font-weight:bold;')
 
     hbox.addWidget(self.btnFirstPage)
     hbox.addWidget(self.btnPrevPage)
@@ -76,14 +76,14 @@ def createTraceTableTab(self):
     hbox.addStretch()
     hbox.addWidget(self.gotoLabel)
     hbox.addWidget(self.gotoEdit)
-    hbox.addWidget(self.gotoBtn)
+    hbox.addWidget(self.btnGoto)
 
     # Connect signals
     self.btnFirstPage.clicked.connect(self._goToFirstPage)
     self.btnPrevPage.clicked.connect(self._goToPrevPage)
     self.btnNextPage.clicked.connect(self._goToNextPage)
     self.btnLastPage.clicked.connect(self._goToLastPage)
-    self.gotoBtn.clicked.connect(self._goToSpecificRow)
+    self.btnGoto.clicked.connect(self._goToSpecificRow)
 
     # then create the layout
     self.tabTraces.layout = QVBoxLayout(self)

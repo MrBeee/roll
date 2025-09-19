@@ -1559,18 +1559,60 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # now sync the trace table selection with the spider position
         sizeY = self.output.anaOutput.shape[1]                                  # x-line size of analysis array
         maxFld = self.output.anaOutput.shape[2]                                 # max fold from analysis file
-        offset = (nX * sizeY + nY) * maxFld                                     # calculate offset for self.output.D2_Output array
-        index = self.anaView.model().index(offset, 0)                           # turn offset into index object
-        self.anaView.scrollTo(index)                                            # scroll to index
-        self.anaView.selectRow(offset)                                          # for the time being, *only* select first row of traces in a bin
+        global_offset = (nX * sizeY + nY) * maxFld                              # calculate offset for self.output.D2_Output array
 
-        fold = max(fold, 1)                                                     # only highlight one line when fold = 0
-        TL = QModelIndex(self.anaView.model().index(offset, 0))
-        BR = QModelIndex(self.anaView.model().index(offset + fold - 1, 0))
-        selection = QItemSelection(TL, BR)
+        # Check if we're using chunked data
+        is_chunked = hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data is not None
 
-        sm = self.anaView.selectionModel()                                      # select corresponding rows in self.anaView table
-        sm.select(selection, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
+        if is_chunked:
+            # Navigate to the chunk containing our target bin
+            chunk_size = self.anaModel._chunked_data.chunk_size
+            target_chunk = global_offset // chunk_size
+
+            # Navigate to the correct chunk if needed
+            if self.anaModel._chunked_data.current_chunk != target_chunk:
+                if self.anaModel._chunked_data.goto_chunk(target_chunk):
+                    # Update model with new chunk data
+                    self.anaModel.layoutAboutToBeChanged.emit()
+                    current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                    self.anaModel._data = np.copy(current_chunk)
+                    self.anaModel.layoutChanged.emit()
+                    self._updatePageInfo()  # Update pagination info
+
+            # Convert global offset to local offset within the current chunk
+            local_offset = global_offset % chunk_size
+
+            # Make sure we don't try to select more rows than available in this chunk
+            available_rows = min(fold, chunk_size - local_offset)
+
+            # Select and scroll to the correct rows
+            if available_rows > 0 and local_offset < self.anaModel.rowCount():
+                # Create selection for the visible rows
+                selection = QItemSelection(self.anaModel.index(local_offset, 0), self.anaModel.index(min(local_offset + available_rows - 1, self.anaModel.rowCount() - 1), 0))
+
+                # Scroll to the first row
+                self.anaView.scrollTo(self.anaModel.index(local_offset, 0))
+
+                # Apply selection
+                sm = self.anaView.selectionModel()
+                sm.select(selection, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
+
+                # Inform user if not all traces for this bin are visible
+                if available_rows < fold:
+                    self.appendLogMessage(f'Note&nbsp;&nbsp;: Only {available_rows} of {fold} traces for this bin are visible in the current chunk', MsgType.Error)
+
+        else:    # Original non-chunked behavior
+            index = self.anaView.model().index(global_offset, 0)                # turn offset into index object
+            self.anaView.scrollTo(index)                                        # scroll to index
+            self.anaView.selectRow(global_offset)                               # for the time being, *only* select first row of traces in a bin
+
+            fold = max(fold, 1)                                                 # only highlight one line when fold = 0
+            TL = QModelIndex(self.anaView.model().index(global_offset, 0))
+            BR = QModelIndex(self.anaView.model().index(global_offset + fold - 1, 0))
+            selection = QItemSelection(TL, BR)
+
+            sm = self.anaView.selectionModel()                                  # select corresponding rows in self.anaView table
+            sm.select(selection, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
 
     # define several sps, rps, xps button functions
     def sortSpsData(self, index):
@@ -3421,6 +3463,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.anaModel.setChunkedData(chunked_data)
             self._goToFirstPage()
             self.appendLogMessage(f'Loaded : . . . Analysis: {total_rows:,} traces available (showing {chunk_size:,} at a time)')
+        self._updatePageInfo()
 
     def resetAnaTableModel(self):
         if self.output.anaOutput is not None:                                   # get rid of current memory mapped array first
@@ -4237,10 +4280,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 return True
         else:  # an error occurred
-            self.appendLogMessage(
-                f'Parse&nbsp;&nbsp;: {errorMsg}, at line: {errorLine} col:{errorColumn}; survey object not updated',
-                MsgType.Error,
-            )
+            self.appendLogMessage(f'Parse&nbsp;&nbsp;: {errorMsg}, at line: {errorLine} col:{errorColumn}; survey object not updated', MsgType.Error)
             return False
 
     def OnAbout(self):
@@ -4801,6 +4841,24 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 f'{min((cd.current_chunk + 1) * cd.chunk_size, cd.get_total_rows()):,} '
                 f'of {cd.get_total_rows():,})'
             )
+
+            # Enable/disable navigation buttons
+            self.btnfirstPageBtn.setEnabled(cd.current_chunk > 1)
+            self.btnprevPageBtn.setEnabled(cd.current_chunk > 1)
+            self.btnnextPageBtn.setEnabled(cd.current_chunk < cd.total_chunks)
+            self.btnlastPageBtn.setEnabled(cd.current_chunk < cd.total_chunks)
+            self.btnGotoEdit.setEnabled(cd.get_total_rows() > 0)
+            self.btnGoto.setEnabled(cd.get_total_rows() > 0)
+        else:
+            self.lblPageInfo.setText('No paging')
+
+            # Enable/disable navigation buttons
+            self.btnfirstPageBtn.setEnabled(False)
+            self.btnprevPageBtn.setEnabled(False)
+            self.btnnextPageBtn.setEnabled(False)
+            self.btnlastPageBtn.setEnabled(False)
+            self.btnGotoEdit.setEnabled(False)
+            self.btnGoto.setEnabled(False)
 
     def _goToFirstPage(self):
         """Navigate to the first chunk of data"""
