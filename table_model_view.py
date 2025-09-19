@@ -42,6 +42,7 @@ class AnaTableModel(QAbstractTableModel):
     def __init__(self, data):
         super().__init__()
         self._data = None
+        self._chunked_data = None
 
         # the underlying data uses a 2D numpy array without any field names. So it is reliant on the header names and format strings for export to clipboard
         # fmt: off
@@ -72,13 +73,21 @@ class AnaTableModel(QAbstractTableModel):
             return QFont('Arial', 8, QFont.Weight.Normal)
 
     def setData(self, data):
+        """Modified to reset chunked data when direct data is set"""
         # self.beginResetModel()                                                  # https://doc.qt.io/qt-6/qabstractitemmodel.html#beginResetModel
+        self._chunked_data = None
         self._data = data
         self.layoutChanged.emit()                                               # needed to indicate that 'model' has changed
 
         # TL = QModelIndex(self.anaView.model().index(0, 0))
         # BR = QModelIndex(self.anaView.model().index(offset + fold - 1, 0))
         # self.dataChanged.emit(TL, BR)                                                 # needed to indicate that 'model' has changed
+
+    def setChunkedData(self, chunked_data):
+        """Set the model to use chunked data instead of a direct data reference"""
+        self._data = None
+        self._chunked_data = chunked_data
+        self.layoutChanged.emit()
 
     def getData(self):
         return self._data
@@ -94,7 +103,10 @@ class AnaTableModel(QAbstractTableModel):
             if orientation == Qt.Orientation.Horizontal:
                 return self._header[section]
             else:
-                return f'{section + 1:,}'
+                if self._chunked_data is not None:
+                    return f'{(self._chunked_data.current_chunk * self._chunked_data.chunk_size) + section + 1:,}'
+                else:
+                    return f'{section + 1:,}'
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
@@ -103,9 +115,11 @@ class AnaTableModel(QAbstractTableModel):
             return self._header[section]
         return super().setHeaderData(section, orientation, data, role)
 
-    # required 2nd parameter (index) not being used. See: https://gist.github.com/nbassler/342fc56c42df27239fa5276b79fca8e6
-    def rowCount(self, _):
-        if self._data is not None:
+    def rowCount(self, parent=None):
+        """Return row count based on whether we're using chunked data or not"""
+        if self._chunked_data is not None:
+            return self._chunked_data.get_row_count()
+        elif self._data is not None:
             return self._data.shape[0]
         return 20
 

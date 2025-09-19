@@ -7,7 +7,7 @@ name=Roll
 qgisMinimumVersion=3.28
 supportsQt6=True
 description=Design and analysis of 3D seismic survey geometries
-version=0.4.6
+version=0.4.7
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -44,7 +44,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog: <p>2025-09-12 (0.4.6) The code has been reformatted to be compatible with Qt6. It should be backwards compatible with Qt5
+changelog: <p>2025-09-17 (0.4.7) Removed a bug that caused QGIS to crash, when using very large memory-mapped analysis files in Roll
+  <p>2025-09-12 (0.4.6) The code has been reformatted to be compatible with Qt6. It should still be backwards compatible with Qt5
   <p>2025-06-09 (0.4.5) Accept projects that are created from SPS-data only (i.e. projects that are not template-based)
   <p>2025-06-01 (0.4.4) changed the way SPS source points are shown in QGIS: (point, line) has become (line, point) except for parallel/NAZ surveys
   <p>2025-05-11 (0.4.3) several improvements in transferring data from Roll to QGis and vice versa. Created html help page in help menu

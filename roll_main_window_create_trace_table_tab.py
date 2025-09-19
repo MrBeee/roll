@@ -1,7 +1,8 @@
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QFont
-from qgis.PyQt.QtWidgets import QHeaderView, QLabel, QVBoxLayout
+from qgis.PyQt.QtWidgets import QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
+from . import config  # used to pass initial settings
 from .table_model_view import AnaTableModel, TableView
 
 
@@ -19,8 +20,6 @@ def createTraceTableTab(self):
     # first create the widget(s)
     self.anaView = TableView()
     self.anaView.setModel(self.anaModel)
-    # self.anaView.setResizeContentsPrecision(0)
-    # self.anaView.resizeColumnsToContents()                                # takes WAY too much time for large tables
     self.anaView.horizontalHeader().setMinimumSectionSize(10)
     self.anaView.horizontalHeader().setDefaultSectionSize(100)
 
@@ -36,11 +35,65 @@ def createTraceTableTab(self):
     self.anaLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.anaLabel.setStyleSheet(label_style)
 
+    # Create a widget to hold pagination controls
+    self.paginationWidget = QWidget()
+    hbox = QHBoxLayout(self.paginationWidget)
+
+    # Add buttons and information label
+    self.btnFirstPage = QPushButton('<<')
+    self.btnPrevPage = QPushButton('<')
+    self.lblPageInfo = QLabel('Page 1 of 1')
+    self.lblPageInfo.setMinimumWidth(150)
+    self.lblPageInfo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    self.btnNextPage = QPushButton('>')
+    self.btnLastPage = QPushButton('>>')
+
+    # Add goto page controls
+    self.gotoLabel = QLabel('Go to trace:')
+    self.gotoLabel.setMinimumWidth(100)
+    self.gotoLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    self.gotoEdit = QLineEdit('1')
+    self.gotoEdit.setFixedWidth(100)
+    self.gotoEdit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    self.gotoBtn = QPushButton('Go ->')
+
+    # Style the pagination controls
+    self.btnFirstPage.setStyleSheet('background-color:lavender; font-weight:bold;')
+    self.btnPrevPage.setStyleSheet('background-color:lavender; font-weight:bold;')
+    self.lblPageInfo.setStyleSheet('border: 1px solid black;background-color:lavender')
+    self.btnNextPage.setStyleSheet('background-color:lavender; font-weight:bold;')
+    self.btnLastPage.setStyleSheet('background-color:lavender; font-weight:bold;')
+
+    self.gotoLabel.setStyleSheet('border: 1px solid black;background-color:lavender')
+    self.gotoEdit.setStyleSheet('background-color:lavender')
+    self.gotoBtn.setStyleSheet('background-color:lavender; font-weight:bold;')
+
+    hbox.addWidget(self.btnFirstPage)
+    hbox.addWidget(self.btnPrevPage)
+    hbox.addWidget(self.lblPageInfo)
+    hbox.addWidget(self.btnNextPage)
+    hbox.addWidget(self.btnLastPage)
+    hbox.addStretch()
+    hbox.addWidget(self.gotoLabel)
+    hbox.addWidget(self.gotoEdit)
+    hbox.addWidget(self.gotoBtn)
+
+    # Connect signals
+    self.btnFirstPage.clicked.connect(self._goToFirstPage)
+    self.btnPrevPage.clicked.connect(self._goToPrevPage)
+    self.btnNextPage.clicked.connect(self._goToNextPage)
+    self.btnLastPage.clicked.connect(self._goToLastPage)
+    self.gotoBtn.clicked.connect(self._goToSpecificRow)
+
     # then create the layout
     self.tabTraces.layout = QVBoxLayout(self)
     self.tabTraces.layout.setContentsMargins(1, 1, 1, 1)
     self.tabTraces.layout.addWidget(self.anaLabel)
     self.tabTraces.layout.addWidget(self.anaView)
+
+    if config.showUnfinished is True:
+        # Add the pagination widget to the layout near the trace table
+        self.tabTraces.layout.addWidget(self.paginationWidget)
 
     # put table on traces tab
     self.tabTraces.setLayout(self.tabTraces.layout)

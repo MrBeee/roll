@@ -129,6 +129,7 @@ from qgis.PyQt.QtXml import QDomDocument
 from . import config  # used to pass initial settings
 
 # from .event_lookup import event_lookup
+from .chunked_data import ChunkedData
 from .find import Find
 from .functions import aboutText, convexHull, exampleSurveyXmlText, highDpiText, licenseText, myPrint, qgisCheatSheetText
 from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
@@ -1308,14 +1309,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.output.ofAziHist = None                                        # numpy array with offset/azimuth distribution
             self.output.offstHist = None                                        # numpy array with offset distribution
 
-            if self.output.anaOutput is not None:                               # close memory mapped file, as well
+            if self.resetAnaTableModel():
                 self.appendLogMessage(f"Edited : Closing memory mapped file {self.fileName + '.ana.npy'}")
-
-                self.anaModel.setData(None)                                     # first remove reference to self.output.anaOutput
-                self.output.D2_Output = None                                    # flattened reference to self.output.anaOutput
-                del self.output.anaOutput                                       # try to delete the object
-                self.output.anaOutput = None                                    # the object was deleted; reinstate the None version
-                gc.collect()                                                    # get the garbage collector going
 
             binFileName = self.fileName + '.bin.npy'                            # file names for analysis files
             minFileName = self.fileName + '.min.npy'
@@ -1482,10 +1477,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if (modifierPressed & Qt.KeyboardModifier.ShiftModifier) == Qt.KeyboardModifier.ShiftModifier:
             step *= 5
 
-        xAnaSize = self.output.anaOutput.shape[0]                        # spider only available when anaOutput is available
+        xAnaSize = self.output.anaOutput.shape[0]                               # spider only available when anaOutput is available
         yAnaSize = self.output.anaOutput.shape[1]
-        zAnaFold = self.output.anaOutput.shape[2]                        # max allowable fold
-        wAnaCols = self.output.anaOutput.shape[3]                        # need 13 columns here
+        zAnaFold = self.output.anaOutput.shape[2]                               # max allowable fold
+        wAnaCols = self.output.anaOutput.shape[3]                               # need 13 columns here
 
         assert wAnaCols == 13, 'there need to be 13 fields in the analysis array'
 
@@ -1562,8 +1557,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.updateVisiblePlotWidget(plotIndex)                             # update one of the analysis plots
 
         # now sync the trace table selection with the spider position
-        sizeY = self.output.anaOutput.shape[1]                           # x-line size of analysis array
-        maxFld = self.output.anaOutput.shape[2]                          # max fold from analysis file
+        sizeY = self.output.anaOutput.shape[1]                                  # x-line size of analysis array
+        maxFld = self.output.anaOutput.shape[2]                                 # max fold from analysis file
         offset = (nX * sizeY + nY) * maxFld                                     # calculate offset for self.output.D2_Output array
         index = self.anaView.model().index(offset, 0)                           # turn offset into index object
         self.anaView.scrollTo(index)                                            # scroll to index
@@ -3240,13 +3235,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.output.ofAziHist = None
         self.output.offstHist = None
 
-        if self.output.anaOutput is not None:                                   # remove memory mapped file, as well
-            self.output.D2_Output = None                                        # flattened reference to self.output.anaOutput
-
-            self.output.anaOutput.flush()                                       # make sure all data is written to disk
-            del self.output.anaOutput                                           # try to delete the object
-            self.output.anaOutput = None                                        # the object was deleted; reinstate the None version
-            gc.collect()                                                        # get the garbage collector going
+        self.resetAnaTableModel()
 
         self.resetPlotWidget(self.offTrkWidget, self.plotTitles[1])             # clear all analysis plots
         self.resetPlotWidget(self.offBinWidget, self.plotTitles[2])
@@ -3405,13 +3394,47 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         for j in range(numRecentFiles, config.maxRecentFiles):
             self.recentFileActions[j].setVisible(False)
 
-    def setDataAnaModel(self):
-        if self.output.D2_Output is not None and self.output.D2_Output.shape[0] > config.maxAnalysisRows:
-            # unfortunately the QTableView widget does not like too large a dataset, so we need to impose a limit to the allowable number of trace records
-            self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces; too large to display in Trace Table', MsgType.Error)
-            self.anaModel.setData(None)                                     # we can still use self.output.D2_Output and self.output.anaOutput; we just can't display the trace table
+    # SOFAR NOW; uopdate setDataAnaTableModel with chunking code
+    # def setDataAnaTableModel(self):
+    #     if self.output.D2_Output is not None and self.output.D2_Output.shape[0] > config.maxAnalysisRows:
+    #         # unfortunately the QTableView widget does not like too large a dataset, so we need to impose a limit to the allowable number of trace records
+    #         self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces; too large to display in Trace Table', MsgType.Error)
+    #         self.anaModel.setData(None)                                     # we can still use self.output.D2_Output and self.output.anaOutput; we just can't display the trace table
+    #     else:
+    #         self.anaModel.setData(self.output.D2_Output)                    # use this as the model data
+
+    def setDataAnaTableModel(self):
+        if self.output.D2_Output is None:
+            self.anaModel.setData(None)
+            return
+
+        total_rows = self.output.D2_Output.shape[0]
+        chunk_size = min(config.maxAnalysisRows, 1_000_000)                       # Default chunk size or from config
+
+        if total_rows <= chunk_size:
+            # Dataset is small enough to display directly
+            self.anaModel.setData(self.output.D2_Output)
+            self.appendLogMessage(f'Loaded : . . . Analysis: {total_rows:,} traces displayed in Trace Table')
         else:
-            self.anaModel.setData(self.output.D2_Output)                    # use this as the model data
+            # Create a ChunkedData view object that will handle paging
+            chunked_data = ChunkedData(self.output.D2_Output, chunk_size)
+            self.anaModel.setChunkedData(chunked_data)
+            self._goToFirstPage()
+            self.appendLogMessage(f'Loaded : . . . Analysis: {total_rows:,} traces available (showing {chunk_size:,} at a time)')
+
+    def resetAnaTableModel(self):
+        if self.output.anaOutput is not None:                                   # get rid of current memory mapped array first
+            self.anaModel.setData(None)                                         # first remove reference to self.output.anaOutput
+            self.output.D2_Output = None                                        # flattened reference to self.output.anaOutput
+
+            self.output.anaOutput.flush()                                       # make sure all data is written to disk
+            del self.output.anaOutput                                           # try to delete the object
+            self.output.anaOutput = None                                        # the object was deleted; reinstate the None version
+
+            gc.collect()                                                        # get the garbage collector going
+            return True                                                         # we emptied the document, and reset the survey object
+        else:
+            return False                                                        # nothing to reset
 
     def fileLoad(self, fileName):
 
@@ -3585,14 +3608,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     if self.survey.grid.fold > 0:
                         fold = self.survey.grid.fold                            # fold is defined by the grid's fold (preferred)
                     else:
-                        fold = self.output.maximumFold                                 # fold is defined by observed maxfold in bin file
+                        fold = self.output.maximumFold                          # fold is defined by observed maxfold in bin file
 
-                    ### if we had a large memmap file open earlier; close it and call the garbage collector
-                    if self.output.anaOutput is not None:
-                        self.output.D2_Output = None                            # remove reference to self.output.anaOutput
-                        del self.output.anaOutput                               # delete self.output.anaOutput array with detailed results
-                        self.output.anaOutput = None                            # remove self.output.anaOutput itself
-                        gc.collect()                                            # start the garbage collector to free up some space
+                    # if we had a large memmap file open earlier; close it and call the garbage collector
+                    self.resetAnaTableModel()
 
                     # self.output.anaOutput = np.lib.format.open_memmap(self.fileName + '.ana.npy', mode='r+', dtype=np.float32, shape=None)
                     self.output.anaOutput = np.memmap(self.fileName + '.ana.npy', dtype=np.float32, mode='r+', shape=(nx, ny, fold, 13))
@@ -3625,7 +3644,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.output.D2_Output = None
                 self.output.anaOutput = None
 
-            self.setDataAnaModel()                                              # sets model data if file not too big
+            self.setDataAnaTableModel()                                              # sets model data if file not too big
 
             if os.path.exists(self.fileName + '.rps.npy'):                      # open the existing rps-file
                 self.rpsImport = np.load(self.fileName + '.rps.npy')
@@ -4308,14 +4327,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         return True
 
     def prepFullBinningConditions(self):
-        if self.output.anaOutput is not None:                                   # get rid of current memory mapped array first
-            self.anaModel.setData(None)                                         # first remove reference to self.output.anaOutput
-            self.output.D2_Output = None                                        # flattened reference to self.output.anaOutput
-
-            self.output.anaOutput.flush()                                       # make sure all data is written to disk
-            del self.output.anaOutput                                           # try to delete the object
-            self.output.anaOutput = None                                        # the object was deleted; reinstate the None version
-            gc.collect()                                                        # get the garbage collector going
+        self.resetAnaTableModel()
 
         # prepare for a new memory mapped object; calculate memmap size
         w = self.survey.output.rctOutput.width()
@@ -4609,7 +4621,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 # create a 2D view on the 4D memory mapped array, to be used in the anaView table
                 self.output.D2_Output = self.output.anaOutput.reshape(shape[0] * shape[1] * shape[2], shape[3])
-                self.setDataAnaModel()                                              # sets model data if file not too big
+                self.setDataAnaTableModel()                                              # sets model data if file not too big
 
             # copy limits from worker; avoid -inf values
             self.output.minimumFold = max(self.worker.survey.output.minimumFold, 0)
@@ -4778,3 +4790,106 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.statusbar.removeWidget(self.progressBar)                           # remove widget from statusbar (don't kill it)
         self.progressBar.setValue(0)                                            # reset progressbar to zero, when out of sight
         self.statusbar.removeWidget(self.progressLabel)                         # remove progress label as well
+
+    def _updatePageInfo(self):
+        """Update the page information label"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            cd = self.anaModel._chunked_data
+            self.lblPageInfo.setText(
+                f'Page {cd.current_chunk + 1:,} of {cd.total_chunks:,} '
+                f'(Rows {cd.current_chunk * cd.chunk_size + 1:,}-'
+                f'{min((cd.current_chunk + 1) * cd.chunk_size, cd.get_total_rows()):,} '
+                f'of {cd.get_total_rows():,})'
+            )
+
+    def _goToFirstPage(self):
+        """Navigate to the first chunk of data"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            if self.anaModel._chunked_data.goto_chunk(0):
+                # Update model with new chunk data
+                self.anaModel.layoutAboutToBeChanged.emit()
+                current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+                self.anaModel.layoutChanged.emit()
+                # Update page info
+                self._updatePageInfo()
+                # Reset selection
+                self.anaView.clearSelection()
+
+    def _goToPrevPage(self):
+        """Navigate to the previous chunk of data"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            if self.anaModel._chunked_data.previous_chunk():
+                # Update model with new chunk data
+                self.anaModel.layoutAboutToBeChanged.emit()
+                current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+                self.anaModel.layoutChanged.emit()
+                # Update page info
+                self._updatePageInfo()
+                # Reset selection
+                self.anaView.clearSelection()
+
+    def _goToNextPage(self):
+        """Navigate to the next chunk of data"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            if self.anaModel._chunked_data.next_chunk():
+                # Update model with new chunk data
+                self.anaModel.layoutAboutToBeChanged.emit()
+                current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+                self.anaModel.layoutChanged.emit()
+                # Update page info
+                self._updatePageInfo()
+                # Reset selection
+                self.anaView.clearSelection()
+
+    def _goToLastPage(self):
+        """Navigate to the last chunk of data"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            last_chunk = self.anaModel._chunked_data.total_chunks - 1
+            if self.anaModel._chunked_data.goto_chunk(last_chunk):
+                # Update model with new chunk data
+                self.anaModel.layoutAboutToBeChanged.emit()
+                current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+                self.anaModel.layoutChanged.emit()
+                # Update page info
+                self._updatePageInfo()
+                # Reset selection
+                self.anaView.clearSelection()
+
+    def _goToSpecificRow(self):
+        """Navigate to a specific row in the dataset"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            try:
+                # Get row number from the input field
+                row_number = int(self.gotoEdit.text()) - 1  # Convert to 0-based index
+                total_rows = self.anaModel._chunked_data.get_total_rows()
+
+                if 0 <= row_number < total_rows:
+                    # Calculate which chunk contains this row
+                    chunk_size = self.anaModel._chunked_data.chunk_size
+                    target_chunk = row_number // chunk_size
+
+                    # Go to that chunk
+                    if self.anaModel._chunked_data.goto_chunk(target_chunk):
+                        # Update model with new chunk data
+                        self.anaModel.layoutAboutToBeChanged.emit()
+                        current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                        self.anaModel._data = np.copy(current_chunk)
+                        self.anaModel.layoutChanged.emit()
+
+                        # Calculate the local row index within the chunk
+                        local_row = row_number % chunk_size
+
+                        # Select and scroll to the row
+                        self.anaView.selectRow(local_row)
+                        self.anaView.scrollTo(self.anaModel.index(local_row, 0))
+
+                        # Update page info
+                        self._updatePageInfo()
+                else:
+                    self.appendLogMessage(f'Input&nbsp;&nbsp;: Trace number out of range (1-{total_rows})', MsgType.Error)
+            except ValueError:
+                self.appendLogMessage('Input&nbsp;&nbsp;: Please enter a valid trace number', MsgType.Error)

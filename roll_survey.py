@@ -12,16 +12,13 @@ import numpy as np
 import pyqtgraph as pg
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QMarginsF, QRectF, QThread, pyqtSignal
-from qgis.PyQt.QtGui import (QBrush, QColor, QPainter, QPicture, QTransform,
-                             QVector3D)
+from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPicture, QTransform, QVector3D
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .functions import containsPoint3D
-from .functions_numba import (clipLineF, numbaFixRelationRecord,
-                              numbaSetPointRecord, numbaSetRelationRecord,
-                              numbaSliceStats, pointsInRect)
+from .functions_numba import clipLineF, numbaFixRelationRecord, numbaSetPointRecord, numbaSetRelationRecord, numbaSliceStats, pointsInRect
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -1112,11 +1109,11 @@ class RollSurvey(pg.GraphicsObject):
 
         # Now do the binning
         if fullAnalysis:
-            success = self.binFromGeometry6(True)
+            success = self.binFromGeometry4(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
             return success
         else:
-            return self.binFromGeometry6(False)
+            return self.binFromGeometry4(False)
 
     def binFromGeometry4(self, fullAnalysis) -> bool:
         """
@@ -1984,7 +1981,7 @@ class RollSurvey(pg.GraphicsObject):
 
     def calcUniqueFoldValues(self) -> bool:
         """code to calculate unique offsets as a post-processing step
-           it prunes the data in the fold array using offset and azimuth slots"""
+        it prunes the data in the fold array using offset and azimuth slots"""
         if self.unique.apply is False:                                          # slot offsets and azimuths and prune data
             return False
 
