@@ -42,7 +42,7 @@ def createTraceTableTab(self):
     # Add buttons and information label
     self.btnFirstPage = QPushButton('<<')
     self.btnPrevPage = QPushButton('<')
-    self.lblPageInfo = QLabel('Page 1 of 1')
+    self.lblPageInfo = QLabel('No paging')
     self.lblPageInfo.setMinimumWidth(150)
     self.lblPageInfo.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.btnNextPage = QPushButton('>')
@@ -91,9 +91,11 @@ def createTraceTableTab(self):
     self.tabTraces.layout.addWidget(self.anaLabel)
     self.tabTraces.layout.addWidget(self.anaView)
 
-    if config.showUnfinished is True:
-        # Add the pagination widget to the layout near the trace table
-        self.tabTraces.layout.addWidget(self.paginationWidget)
+    # Add the pagination widget to the layout near the trace table
+    self.tabTraces.layout.addWidget(self.paginationWidget)
 
     # put table on traces tab
     self.tabTraces.setLayout(self.tabTraces.layout)
+
+    # initialize page info
+    self._updatePageInfo()

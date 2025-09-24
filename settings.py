@@ -1,3 +1,5 @@
+import importlib
+import sys
 from ast import literal_eval
 
 import pyqtgraph as pg
@@ -313,8 +315,10 @@ class SettingsDialog(QDialog):
         config.useNumba = MIS.child('Use Numba').value()
         if haveNumba:                                                           # can only do this when numba has been installed
             numba.config.DISABLE_JIT = not config.useNumba                      # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
+            importlib.reload(sys.modules['roll.functions_numba'])               # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
+
         config.showUnfinished = MIS.child('Show unfinished code').value()       # show/hide "work in progress"
-        config.showSummaries = MIS.child('Show summary properties').value()         # show/hide summary information in property pane
+        config.showSummaries = MIS.child('Show summary properties').value()     # show/hide summary information in property pane
 
 
 def readSettings(self):
@@ -378,18 +382,22 @@ def readSettings(self):
     config.ptvsd = self.settings.value('settings/debug/ptvsd', False, type=bool)      # assume no debugging in main/worker threads
 
     if config.debug:
-        if console._console is None:                                                # pylint: disable=W0212 # unfortunately need access to protected member
-            console.show_console()                                                  # opens the console for the first time
+        if console._console is None:                                            # pylint: disable=W0212 # unfortunately need access to protected member
+            console.show_console()                                              # opens the console for the first time
         else:
-            console._console.setUserVisible(True)                                   # pylint: disable=W0212 # unfortunately need access to protected member
+            console._console.setUserVisible(True)                               # pylint: disable=W0212 # unfortunately need access to protected member
         print('print() to Python console has been enabled; Python console is opened')   # this message should always be printed
     else:
-        print('print() to Python console has been disabled from now on')            # this message is the last one to be printed
+        print('print() to Python console has been disabled from now on')        # this message is the last one to be printed
 
     # miscellaneous information
     config.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)   # assume Numba not installed (and used) by default
-    if haveNumba:                                                                       # can only do this when numba has been installed
-        numba.config.DISABLE_JIT = not config.useNumba                                  # disable/enable numba pre-compilation in @jit decorator
+    if haveNumba:                                                               # can only do this when numba has been installed
+        numba.config.DISABLE_JIT = not config.useNumba                          # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
+        if 'roll.functions_numba' in sys.modules:                               # If already imported, reload; otherwise, import
+            importlib.reload(sys.modules['roll.functions_numba'])               # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
+        else:
+            from roll import functions_numba  # pylint: disable=C0415, W0611 # load it for the first time
 
     config.showUnfinished = self.settings.value('settings/misc/showUnfinished', False, type=bool)   # show unfinished code
     config.showSummaries = self.settings.value('settings/misc/showSummaries', False, type=bool)     # show/hide summary information in property pane

@@ -221,11 +221,11 @@ class TableView(QTableView):
         # See: https://www.xingyulei.com/post/qt-detect-click/index.html
         # See: https://pythonqwt.readthedocs.io/en/stable/examples/eventfilter.html
 
-        if event.type() == QEvent.Type.KeyPress and event.matches(QKeySequence.Copy):
+        if event.type() == QEvent.Type.KeyPress and event.matches(QKeySequence.StandardKey.Copy):
             self.copy()
             return True
 
-        if event.type() == QEvent.Type.KeyPress and event.matches(QKeySequence.Paste):
+        if event.type() == QEvent.Type.KeyPress and event.matches(QKeySequence.StandardKey.Paste):
             self.paste()
             return True
 
@@ -233,20 +233,20 @@ class TableView(QTableView):
         # maybe it helps to reroute these key events to the active widget.
         # See: https://stackoverflow.com/questions/9442165/pyqt-mouse-events-for-qtabwidget
         # See: https://stackoverflow.com/questions/20420072/use-keypressevent-to-catch-enter-or-return
-        if event.type() == QEvent.Type.KeyPress and event.matches(QKeySequence.SelectAll):
+        if event.type() == QEvent.Type.KeyPress and event.matches(QKeySequence.StandardKey.SelectAll):
             self.select_all()
             return True
 
         if event.type() == QEvent.Type.KeyPress and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
             myPrint('The control key is pressed')
 
-            if event.key() == Qt.Key_1:
+            if event.key() == Qt.Key.Key_1:
                 myPrint('Select All')
                 self.clearSelection()
                 self.select_all()
                 return True
 
-            if event.key() == Qt.Key_Home:
+            if event.key() == Qt.Key.Key_Home:
                 myPrint('Go Home')
                 index = 0
                 myPrint(f'Row {index} is selected')
@@ -254,7 +254,7 @@ class TableView(QTableView):
                 self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_End:
+            if event.key() == Qt.Key.Key_End:
                 myPrint('Go to the End')
                 index = self.model().rowCount(0) - 1
                 myPrint(f'Row {index} is selected')
@@ -262,7 +262,7 @@ class TableView(QTableView):
                 self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_PageDown:
+            if event.key() == Qt.Key.Key_PageDown:
                 myPrint('Move to next duplicate')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -277,7 +277,7 @@ class TableView(QTableView):
                     self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_PageUp:
+            if event.key() == Qt.Key.Key_PageUp:
                 myPrint('Move to previous duplicate')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -292,7 +292,7 @@ class TableView(QTableView):
                     self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_Down:
+            if event.key() == Qt.Key.Key_Down:
                 myPrint('Move to next src orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -307,7 +307,7 @@ class TableView(QTableView):
                     self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_Up:
+            if event.key() == Qt.Key.Key_Up:
                 myPrint('Move to prev src orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -322,7 +322,7 @@ class TableView(QTableView):
                     self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_Right:
+            if event.key() == Qt.Key.Key_Right:
                 myPrint('Move to next rec orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -337,7 +337,7 @@ class TableView(QTableView):
                     self.selectRow(index)
                 return True
 
-            if event.key() == Qt.Key_Left:
+            if event.key() == Qt.Key.Key_Left:
                 myPrint('Move to prev rec orphan')
                 indexes = self.selectionModel().selectedRows()
                 # for index in sorted(indexes):
@@ -478,7 +478,7 @@ class TableView(QTableView):
             winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
             return
 
-        if self.model().rowCount(0) > 100000:
+        if self.model().rowCount(0) > 100_000:
             QMessageBox.warning(self, 'Select all', 'You want to select more than 100,000 records\nPlease use File->Export to export all records and make your selection in a text editor', QMessageBox.Close)
             return True
 

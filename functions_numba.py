@@ -20,6 +20,9 @@ except ImportError:
     nb = importlib.import_module('.nonumba', package='roll')                    # relative import requires package name
 
 
+# rather than importing nonumba, try this: https://stackoverflow.com/questions/10724854/how-to-do-a-conditional-decorator-in-python
+
+
 # @nb.jit((nb.types.Array(nb.float32, 3, 'C'), nb.boolean), nopython=True)      # numba needs array specs to work properly
 @nb.jit(nopython=True)
 def numbaFilterSlice2D(slice2D: np.ndarray, unique=False):

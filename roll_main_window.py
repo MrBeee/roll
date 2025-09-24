@@ -105,6 +105,7 @@ from qgis.PyQt.QtWidgets import (
     QActionGroup,
     QApplication,
     QButtonGroup,
+    QDialog,
     QDialogButtonBox,
     QDockWidget,
     QFileDialog,
@@ -4843,21 +4844,25 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             )
 
             # Enable/disable navigation buttons
-            self.btnfirstPageBtn.setEnabled(cd.current_chunk > 1)
-            self.btnprevPageBtn.setEnabled(cd.current_chunk > 1)
-            self.btnnextPageBtn.setEnabled(cd.current_chunk < cd.total_chunks)
-            self.btnlastPageBtn.setEnabled(cd.current_chunk < cd.total_chunks)
-            self.btnGotoEdit.setEnabled(cd.get_total_rows() > 0)
+            self.btnFirstPage.setEnabled(cd.current_chunk > 0)
+            self.btnPrevPage.setEnabled(cd.current_chunk > 0)
+            self.btnNextPage.setEnabled(cd.current_chunk < cd.total_chunks - 1)
+            self.btnLastPage.setEnabled(cd.current_chunk < cd.total_chunks - 1)
+
+            self.gotoLabel.setEnabled(cd.get_total_rows() > 0)
+            self.gotoEdit.setEnabled(cd.get_total_rows() > 0)
             self.btnGoto.setEnabled(cd.get_total_rows() > 0)
         else:
             self.lblPageInfo.setText('No paging')
 
             # Enable/disable navigation buttons
-            self.btnfirstPageBtn.setEnabled(False)
-            self.btnprevPageBtn.setEnabled(False)
-            self.btnnextPageBtn.setEnabled(False)
-            self.btnlastPageBtn.setEnabled(False)
-            self.btnGotoEdit.setEnabled(False)
+            self.btnFirstPage.setEnabled(False)
+            self.btnPrevPage.setEnabled(False)
+            self.btnNextPage.setEnabled(False)
+            self.btnLastPage.setEnabled(False)
+
+            self.gotoLabel.setEnabled(False)
+            self.gotoEdit.setEnabled(False)
             self.btnGoto.setEnabled(False)
 
     def _goToFirstPage(self):
