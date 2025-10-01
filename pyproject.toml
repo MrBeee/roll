@@ -1,8 +1,11 @@
 [tool.black]
 line-length = 210
+skip-string-normalization = true
 
 [tool.ruff]
 line-length = 210
+skip-string-normalization = true
 
 [tool.blue]
 line-length = 210
+skip-string-normalization = true
