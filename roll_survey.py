@@ -12,13 +12,16 @@ import numpy as np
 import pyqtgraph as pg
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QMarginsF, QRectF, QThread, pyqtSignal
-from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPicture, QTransform, QVector3D
+from qgis.PyQt.QtGui import (QBrush, QColor, QPainter, QPicture, QTransform,
+                             QVector3D)
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .functions import containsPoint3D
-from .functions_numba import clipLineF, numbaFixRelationRecord, numbaSetPointRecord, numbaSetRelationRecord, numbaSliceStats, pointsInRect
+from .functions_numba import (clipLineF, numbaFixRelationRecord,
+                              numbaSetPointRecord, numbaSetRelationRecord,
+                              numbaSliceStats, pointsInRect)
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -125,7 +128,7 @@ SurveyList = [
 ]
 
 
-class PaintMode(IntFlag):
+class PaintMode(Enum):
     none = 0            # reset the whole lot
     justBlocks = 1      # just src, rec & cmp block outlines
     justTemplates = 2   # just template rect boundaries

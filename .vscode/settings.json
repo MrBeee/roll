@@ -4,6 +4,7 @@
 // For help on how to use 'blue' with VS Code, see: https://github.com/grantjenks/blue/issues/95
 // To use 'blue' instead of 'black' set "C:\Users\BartD\AppData\Roaming\Python\Python312\Scripts\blue.exe" as black's formatter path. Sneaky !
 // See also: https://unbiased-coder.com/python-code-format-black-vs-blue/
+// to install blue, use "pip install blue". This also installs its dependencies such as black !
 {
     "[python]": {
         // "editor.defaultFormatter": "ms-python.autopep8",        // this cut my lines really short, and it moved comments all over the place; very annoying !
@@ -38,6 +39,9 @@
     ],
     "python.analysis.typeCheckingMode": "basic",
     "python.defaultInterpreterPath": "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\python",
+    // The following error appears in the "Python" output panel, but everything seems to work fine.
+    // [error] Active interpreter type is detected as Unknown {"id":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\python.exe","sysPrefix":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312","envType":"Unknown","envName":"","envPath":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\python.exe","path":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\python.exe","architecture":3,"sysVersion":"","version":{"raw":"3.12.7","major":3,"minor":12,"patch":7,"build":[],"prerelease":[]},"displayName":"Python 3.12.7","detailedDisplayName":"Python 3.12.7"}
+    // According toChatGpt 4.1 this is because the Python interpreter being used is not part of a recognized virtual environment or conda environment. Since you are using the Python interpreter that comes bundled with QGIS, it may not be recognized by VS Code as a standard Python environment. If everything is working fine despite the error message, you can likely ignore it. However, if you want to get rid of the error message, you might consider creating a virtual environment specifically for your project and configuring VS Code to use that environment instead.
     "python.languageServer": "Jedi",
     "pylint.args": [
         "--max-line-length=210",
