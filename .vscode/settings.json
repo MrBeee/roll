@@ -61,6 +61,7 @@
         // "--reportMissingImports=false"
     ],
     "workbench.colorCustomizations": {
-        "statusBar.background": "#f8ecf9"
+        "statusBar.background": "#f8ecf9",
+        "statusBar.debuggingBackground": "#d7b64c"
     }
 }
