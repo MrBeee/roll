@@ -27,7 +27,7 @@
      <x>0</x>
      <y>0</y>
      <width>1784</width>
-     <height>26</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -361,6 +361,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionTemplates"/>
+   <addaction name="actionStopPainting"/>
    <addaction name="actionRefreshPlot"/>
    <addaction name="separator"/>
    <addaction name="actionShowBlocks"/>
@@ -1627,6 +1628,21 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+H</string>
+   </property>
+  </action>
+  <action name="actionStopPainting">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionStopPaint.svg</normaloff>resources/mActionStopPaint.svg</iconset>
+   </property>
+   <property name="text">
+    <string>actionStopPainting</string>
+   </property>
+   <property name="toolTip">
+    <string>Interrupt painting operation</string>
+   </property>
+   <property name="shortcut">
+    <string>Esc</string>
    </property>
   </action>
  </widget>

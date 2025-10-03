@@ -88,7 +88,6 @@ import winsound  # make a sound when an exception ocurs
 from datetime import timedelta
 from enum import Enum
 from math import atan2, ceil, degrees
-
 # from time import perf_counter
 from timeit import default_timer as timer
 
@@ -97,47 +96,40 @@ import numpy as np  # Numpy functions needed for plot creation
 import pyqtgraph as pg
 from numpy.lib import recfunctions as rfn
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QDateTime, QEvent, QFile, QFileInfo, QIODevice, QItemSelection, QItemSelectionModel, QModelIndex, QPoint, QSettings, QSize, Qt, QTextStream, QThread
-from qgis.PyQt.QtGui import QBrush, QColor, QFont, QIcon, QKeySequence, QTextCursor, QTextOption, QTransform
-from qgis.PyQt.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
-from qgis.PyQt.QtWidgets import (
-    QAction,
-    QActionGroup,
-    QApplication,
-    QButtonGroup,
-    QDialog,
-    QDialogButtonBox,
-    QDockWidget,
-    QFileDialog,
-    QFrame,
-    QGraphicsEllipseItem,
-    QGroupBox,
-    QHBoxLayout,
-    QHeaderView,
-    QLabel,
-    QMainWindow,
-    QMessageBox,
-    QPlainTextEdit,
-    QProgressBar,
-    QPushButton,
-    QTabWidget,
-    QToolButton,
-    QVBoxLayout,
-    QWidget,
-)
+from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
+                              QItemSelection, QItemSelectionModel, QModelIndex,
+                              QPoint, QSettings, QSize, Qt, QTextStream,
+                              QThread)
+from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
+                             QTextCursor, QTextOption, QTransform)
+from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
+                                      QPrintPreviewDialog)
+from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QApplication,
+                                 QButtonGroup, QDialog, QDialogButtonBox,
+                                 QDockWidget, QFileDialog, QFrame,
+                                 QGraphicsEllipseItem, QGroupBox, QHBoxLayout,
+                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
+                                 QPlainTextEdit, QProgressBar, QPushButton,
+                                 QTabWidget, QToolButton, QVBoxLayout, QWidget)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
-
 # from .event_lookup import event_lookup
 from .chunked_data import ChunkedData
 from .find import Find
-from .functions import aboutText, convexHull, exampleSurveyXmlText, highDpiText, licenseText, myPrint, qgisCheatSheetText
-from .functions_numba import numbaAziInline, numbaAziX_line, numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D, numbaOffInline, numbaOffsetBin, numbaOffX_line, numbaSlice3D, numbaSliceStats, numbaSpiderBin
+from .functions import (aboutText, convexHull, exampleSurveyXmlText,
+                        highDpiText, licenseText, myPrint, qgisCheatSheetText)
+from .functions_numba import (numbaAziInline, numbaAziX_line,
+                              numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D,
+                              numbaOffInline, numbaOffsetBin, numbaOffX_line,
+                              numbaSlice3D, numbaSliceStats, numbaSpiderBin)
 from .land_wizard import LandSurveyWizard
 from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .qgis_interface import CreateQgisRasterLayer, ExportRasterLayerToQgis, exportPointLayerToQgis, exportSpsOutlinesToQgis, exportSurveyOutlinesToQgis, identifyQgisPointLayer, readQgisPointLayer
+from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
+                             exportPointLayerToQgis, exportSpsOutlinesToQgis,
+                             exportSurveyOutlinesToQgis,
+                             identifyQgisPointLayer, readQgisPointLayer)
 from .roll_binning import BinningType
 from .roll_main_window_create_geom_tab import createGeomTab
 from .roll_main_window_create_layout_tab import createLayoutTab
@@ -149,31 +141,17 @@ from .roll_output import RollOutput
 from .roll_survey import PaintDetails, PaintMode, RollSurvey, SurveyType
 from .settings import SettingsDialog, readSettings, writeSettings
 from .sps_import_dialog import SpsImportDialog
-from .sps_io_and_qc import (
-    calcMaxXPStraces,
-    calculateLineStakeTransform,
-    convertCrs,
-    deletePntDuplicates,
-    deletePntOrphans,
-    deleteRelDuplicates,
-    deleteRelOrphans,
-    exportDataAsTxt,
-    fileExportAsR01,
-    fileExportAsS01,
-    fileExportAsX01,
-    findRecOrphans,
-    findSrcOrphans,
-    getAliveAndDead,
-    markUniqueRPSrecords,
-    markUniqueSPSrecords,
-    markUniqueXPSrecords,
-    pntType1,
-    readRpsLine,
-    readSpsLine,
-    readXpsLine,
-    relType2,
-)
-from .worker_threads import BinFromGeometryWorker, BinningWorker, GeometryWorker
+from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
+                            convertCrs, deletePntDuplicates, deletePntOrphans,
+                            deleteRelDuplicates, deleteRelOrphans,
+                            exportDataAsTxt, fileExportAsR01, fileExportAsS01,
+                            fileExportAsX01, findRecOrphans, findSrcOrphans,
+                            getAliveAndDead, markUniqueRPSrecords,
+                            markUniqueSPSrecords, markUniqueXPSrecords,
+                            pntType1, readRpsLine, readSpsLine, readXpsLine,
+                            relType2)
+from .worker_threads import (BinFromGeometryWorker, BinningWorker,
+                             GeometryWorker)
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 
@@ -908,6 +886,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # actions related to the view menu
         self.actionRefreshPlot.triggered.connect(self.plotLayout)               # hooked up with F5
         self.actionReparseDocument.triggered.connect(self.UpdateAllViews)       # hooked up with Ctrl+F5
+        self.actionStopPainting.triggered.connect(self.stopPainting)            # hooked up with Esc
 
         # actions related to the processing menu
         self.actionBasicBinFromTemplates.triggered.connect(self.basicBinFromTemplates)
@@ -1185,7 +1164,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # todo: fix this; this is the most time consuming step, loading a new survey with several blocks,
         # A marine survey contains many templates and many, many more seeds.
+        # self.paramTree.setParameters(self.parameters, showTop=False)
+
+        # Block signals to speed up parameter tree setup
+        self.paramTree.blockSignals(True)
         self.paramTree.setParameters(self.parameters, showTop=False)
+        self.paramTree.blockSignals(False)
 
         # Make sure we get a notification, when the binning area or the survey grid has changed, to ditch the analysis files
         self.binChild = self.parameters.child('Survey analysis', 'Binning area')
@@ -2473,6 +2457,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.plotLayout()
         # self.layoutWidget.enableAutoRange()                                     # makes the plot 'fit' the survey outline.
+
+    def stopPainting(self):
+        if self.survey is not None:
+            self.survey.interruptedPainting = True
 
     def layoutRangeChanged(self):
         """handle resizing of plot in view of bin-aligned gridlines"""
