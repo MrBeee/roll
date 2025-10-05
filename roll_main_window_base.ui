@@ -361,8 +361,8 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionTemplates"/>
-   <addaction name="actionStopPainting"/>
    <addaction name="actionRefreshPlot"/>
+   <addaction name="actionStopPainting"/>
    <addaction name="separator"/>
    <addaction name="actionShowBlocks"/>
    <addaction name="actionShowTemplates"/>
@@ -1633,7 +1633,7 @@
   <action name="actionStopPainting">
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionStopPaint.svg</normaloff>resources/mActionStopPaint.svg</iconset>
+     <normaloff>resources/mActionStopPainting.svg</normaloff>resources/mActionStopPainting.svg</iconset>
    </property>
    <property name="text">
     <string>actionStopPainting</string>

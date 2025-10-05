@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   width="800px"
+   height="800px"
+   viewBox="0 0 24 24"
+   fill="none"
+   version="1.1"
+   id="svg2"
+   sodipodi:docname="mActionStopPainting.svg"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="namedview2"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="2.26875"
+     inkscape:cx="399.77961"
+     inkscape:cy="400"
+     inkscape:window-width="3840"
+     inkscape:window-height="2054"
+     inkscape:window-x="3829"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2" />
+  <path
+     opacity="0.15"
+     d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+     fill="#000000"
+     id="path1" />
+  <path
+     d="M7.83331 13.6C8.258 14.4031 8.97942 15.0676 9.88885 15.4934C10.7983 15.9191 11.8465 16.083 12.8755 15.9604C13.9045 15.8378 14.8586 15.4353 15.594 14.8136L17 13.7451M17 16V13.6H14.5M16.1667 10.4C15.742 9.59687 15.0206 8.93238 14.1111 8.50664C13.2017 8.08091 12.1535 7.91699 11.1245 8.03959C10.0955 8.16219 9.1414 8.56467 8.40599 9.18637L7 10.2549M7 8V10.4H9.5M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+     stroke="#000000"
+     stroke-width="1.5"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="path2" />
+  <g
+     id="g10683"
+     transform="matrix(0.98345395,0,0,0.96862495,11.349546,0.65030989)"
+     style="fill:#d40000">
+    <g
+       id="g10675"
+       style="fill:#d40000">
+      <g
+         stroke-linejoin="round"
+         transform="translate(0,-20)"
+         id="g10182"
+         style="fill:#d40000">
+        <rect
+           fill="#f05050"
+           height="11.780038"
+           rx="1.0709128"
+           stroke="#000000"
+           stroke-width="0.199666"
+           width="11.780038"
+           x="0.12001011"
+           y="20.12001"
+           id="rect10174"
+           style="fill:#d40000" />
+        <g
+           fill="#fcffff"
+           fill-rule="evenodd"
+           stroke="#ffffff"
+           stroke-linecap="round"
+           stroke-width="2"
+           id="g10180"
+           style="fill:#d40000">
+          <path
+             d="m 9.5,22.5 -7,7"
+             id="path10176"
+             style="fill:#d40000" />
+          <path
+             d="m 9.5,29.5 -7,-7"
+             id="path10178"
+             style="fill:#d40000" />
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

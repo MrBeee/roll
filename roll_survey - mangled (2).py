@@ -12,7 +12,7 @@ import numpy as np
 import pyqtgraph as pg
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QMarginsF, QRectF, Qt, QThread, pyqtSignal
-from qgis.PyQt.QtGui import (QBrush, QColor, QGuiApplication, QPainter,
+from qgis.PyQt.QtGui import (QBrush, QColor, QGuiApplication, QImage, QPainter,
                              QPicture, QTransform, QVector3D)
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
@@ -128,7 +128,7 @@ SurveyList = [
 ]
 
 
-class PaintMode(Enum):
+class PaintMode(IntFlag):
     none = 0            # reset the whole lot
     justBlocks = 1      # just src, rec & cmp block outlines
     justTemplates = 2   # just template rect boundaries
@@ -291,12 +291,13 @@ class RollSurvey(pg.GraphicsObject):
         self.timerTtot = [0.0 for _ in range(20)]
         self.timerFreq = [0 for _ in range(20)]
 
-        # painting state variables
-        self._painting = False
-        self._paintBudgetMs = 100.0     # adjust to taste
-        self._ps = None                 # paint state (None means “no in-progress work”)
-        self._cancelPaint = False       # to cancel painting in progress
-        self._paintStart = None         # to track when painting started
+        # Progressive painting members
+        self._fb: QImage | None = None       # framebuffer image (device-space)
+        self._fbKey: tuple | None = None     # cache key for fb validity
+        self._paintEpoch: int = 0            # bump this to invalidate cache externally
+        self._ps: dict | None = None         # resumable paint state: {"b":..., "t":..., "i":..., "j":..., "k":...}
+        self._paintBudgetMs: float = 20.0    # ~1 frame budget (~50 FPS). Tune to taste.
+        self._paintStart: float = 0.0        # timer per pass
 
     def calcTransforms(self, createArrays=False):
         """(re)calculate the transforms being used, and optionally initialize fold & offset arrays"""
@@ -785,6 +786,8 @@ class RollSurvey(pg.GraphicsObject):
         if self.nRelRecord >= 0:                        # we need at least one record
             self.output.relGeom[self.nRelRecord]['RecMin'] = self.recMin
             self.output.relGeom[self.nRelRecord]['RecMax'] = self.recMax
+        return
+
 
     def geomTemplate2(self, nBlock, block, template, templateOffset):
         """Use numpy arrays instead of iterating over the growList.
@@ -2444,6 +2447,282 @@ class RollSurvey(pg.GraphicsObject):
                             painter.end()
                         else:
                             seed.patternPicture = self.patternList[seed.patternNo].patternPicture
+               
+    # ---------- Public: call this when visuals changed (binning, layout, styles, etc.) ----------
+    def invalidatePaintCache(self) -> None:
+        """Invalidate the progressive paint buffer and state, then request a repaint."""
+        self._paintEpoch += 1
+        self._fb = None
+        self._fbKey = None
+        self._ps = None
+        self.update()
+
+    # ---------- Framebuffer/key management ----------
+    def _make_fb_key(self, painter: QPainter, option) -> tuple:
+        dev = painter.device()
+        # Logical size of the paint device
+        dev_w = getattr(dev, "width", lambda: 0)()
+        dev_h = getattr(dev, "height", lambda: 0)()
+
+        # Transform matrix (pan/zoom) and LOD factor
+        T: QTransform = painter.worldTransform()
+        m = (T.m11(), T.m12(), T.m13(),
+             T.m21(), T.m22(), T.m23(),
+             T.m31(), T.m32(), T.m33())
+        lod = option.levelOfDetailFromTransform(T) * self.lodScale
+
+        # Include paint flags and an epoch that you can bump when data changes
+        return (
+            dev_w, dev_h,
+            m,
+            round(lod, 3),
+            int(self.paintMode),
+            int(self.paintDetails),
+            self._paintEpoch,
+        )
+            
+    def _ensure_fb(self, painter: QPainter, option) -> None:
+        key = self._make_fb_key(painter, option)
+        if key != self._fbKey or self._fb is None:
+            dev = painter.device()
+            # Device pixel ratio for crisp output on high-DPI monitors
+            try:
+                dpr = dev.devicePixelRatioF()  # PyQt6
+            except Exception:
+                # Fallback; most devices expose devicePixelRatio()/devicePixelRatioF()
+                dpr = getattr(dev, "devicePixelRatio", lambda: 1.0)()
+
+            w_log = getattr(dev, "width", lambda: 0)()
+            h_log = getattr(dev, "height", lambda: 0)()
+            w_px = max(1, int(round(w_log * dpr)))
+            h_px = max(1, int(round(h_log * dpr)))
+
+            img = QImage(w_px, h_px, QImage.Format.Format_ARGB32_Premultiplied)
+            img.setDevicePixelRatio(float(dpr))
+            img.fill(0)  # transparent
+
+            self._fb = img
+            self._fbKey = key
+            self._initPaintState()  # restart progressive drawing for new view
+
+    # ---------- Progressive pass state/time budget ----------
+    def _initPaintState(self) -> None:
+        # Indices over your nested loops (blocks/templates/roll steps)
+        self._ps = {"b": 0, "t": 0, "i": 0, "j": 0, "k": 0}
+
+    def _time_budget_exceeded(self) -> bool:
+        return (perf_counter() - self._paintStart) * 1    
+        
+    # ---------- One time-budgeted pass into the framebuffer ----------
+
+    # ---------- One time-budgeted pass into the framebuffer ----------
+    def _paint_pass_into(self, p: QPainter, option) -> bool:
+        """
+        Draw a chunk of content into self._fb using painter p.
+        Resume from self._ps; return True when fully done, False to continue next frame.
+        """
+        if self._ps is None:
+            self._initPaintState()
+
+        vb: QRectF = self.viewRect()
+        lod = option.levelOfDetailFromTransform(p.worldTransform()) * self.lodScale
+
+        b = self._ps["b"]; t = self._ps["t"]; i = self._ps["i"]; j = self._ps["j"]; k = self._ps["k"]
+
+        # Example: walk blocks -> templates -> roll steps (0..3 deep)
+        while b < len(self.blockList):
+            block = self.blockList[b]
+
+            # Cull by view box; skip non-visible blocks
+            if not block.boundingBox.intersects(vb):
+                b += 1
+                t = i = j = k = 0
+                if self._time_budget_exceeded():
+                    self._ps.update({"b": b, "t": 0, "i": 0, "j": 0, "k": 0})
+                    return False
+                continue
+
+            templates = block.templateList
+            while t < len(templates):
+                template = templates[t]
+                length = len(template.rollList) if template.rollList else 0
+
+                # Decide how detailed to paint based on LOD/flags
+                # You can keep your simplified logic in here.
+                if length == 0:
+                    # Draw a single instance at template.totTemplateRect
+                    # (Example) outline-only at low LOD
+                    if lod < 1.0 or self.paintMode == PaintMode.justTemplates:
+                        r = template.totTemplateRect & self.boundingRect()  # clamp
+                        if r.intersects(vb):
+                            p.drawRect(r)
+                    else:
+                        # Call your simplified template renderer
+                        # self.paintTemplate(p, vb, lod, template, QVector3D())
+                        pass
+
+                    t += 1
+                    if self._time_budget_exceeded():
+                        self._ps.update({"b": b, "t": t, "i": 0, "j": 0, "k": 0})
+                        return False
+
+                elif length == 1:
+                    steps0 = template.rollList[0].steps
+                    while i < steps0:
+                        if self._time_budget_exceeded():
+                            self._ps.update({"b": b, "t": t, "i": i, "j": 0, "k": 0})
+                            return False
+
+                        offset = template.rollList[0].increment * i
+                        rect = template.totTemplateRect.translated(offset.toPointF())
+                        if rect.intersects(vb):
+                            if lod < 1.0 or self.paintMode == PaintMode.justTemplates:
+                                r = rect & self.boundingRect()
+                                p.drawRect(r)
+                            else:
+                                # self.paintTemplate(p, vb, lod, template, offset)
+                                pass
+                        i += 1
+                    i = 0; t += 1
+
+                elif length == 2:
+                    s0 = template.rollList[0].steps
+                    s1 = template.rollList[1].steps
+                    while i < s0:
+                        while j < s1:
+                            if self._time_budget_exceeded():
+                                self._ps.update({"b": b, "t": t, "i": i, "j": j, "k": 0})
+                                return False
+                            offset = (template.rollList[0].increment * i) + (template.rollList[1].increment * j)
+                            rect = template.totTemplateRect.translated(offset.toPointF())
+                            if rect.intersects(vb):
+                                if lod < 1.0 or self.paintMode == PaintMode.justTemplates:
+                                    r = rect & self.boundingRect()
+                                    p.drawRect(r)
+                                else:
+                                    # self.paintTemplate(p, vb, lod, template, offset)
+                                    pass
+                            j += 1
+                        j = 0; i += 1
+                    i = 0; t += 1
+
+                elif length == 3:
+                    s0 = template.rollList[0].steps
+                    s1 = template.rollList[1].steps
+                    s2 = template.rollList[2].steps
+                    while i < s0:
+                        while j < s1:
+                            while k < s2:
+                                if self._time_budget_exceeded():
+                                    self._ps.update({"b": b, "t": t, "i": i, "j": j, "k": k})
+                                    return False
+                                offset = (template.rollList[0].increment * i) + \
+                                         (template.rollList[1].increment * j) + \
+                                         (template.rollList[2].increment * k)
+                                rect = template.totTemplateRect.translated(offset.toPointF())
+                                if rect.intersects(vb):
+                                    if lod < 1.0 or self.paintMode == PaintMode.justTemplates:
+                                        r = rect & self.boundingRect()
+                                        p.drawRect(r)
+                                    else:
+                                        # self.paintTemplate(p, vb, lod, template, offset)
+                                        pass
+                                k += 1
+                            k = 0; j += 1
+                        j = 0; i += 1
+                    i = 0; t += 1
+
+                else:
+                    # Unsupported depth
+                    t += 1
+                    if self._time_budget_exceeded():
+                        self._ps.update({"b": b, "t": t, "i": 0, "j": 0, "k": 0})
+                        return False
+
+            # Next block
+            b += 1
+            t = i = j = k = 0
+            if self._time_budget_exceeded():
+                self._ps.update({"b": b, "t": 0, "i": 0, "j": 0, "k": 0})
+                return False
+
+        # All done
+        self._ps = {"b": b, "t": 0, "i": 0, "j": 0, "k": 0}
+        return True
+
+
+    # ---------- Paint override: blit accumulated buffer, then add next chunk ----------
+    def paint(self, painter: QPainter, option, widget):
+        # Ensure framebuffer matches the current device/transform/LOD
+        self._ensure_fb(painter, option)
+
+        # 1) Always blit what we already drew to the screen first (fast)
+        painter.save()
+        try:
+            # Draw in device coordinates so pixels align 1:1 with the viewport
+            painter.setWorldTransform(QTransform())
+            if self._fb is not None:
+                painter.drawImage(0, 0, self._fb)
+        finally:
+            painter.restore()
+
+        # 2) If there's more to draw, paint the next chunk into the framebuffer
+        if self._ps is not None:
+            self._paintStart = perf_counter()
+
+            # Use SAME world transform and a tight clip to match your normal drawing path
+            fbp = QPainter(self._fb)
+            try:
+                fbp.setWorldTransform(painter.worldTransform())
+                fbp.setClipRect(self.viewRect())  # only paint what’s visible
+                fbp.setRenderHints(painter.renderHints())
+
+                finished = self._paint_pass_into(fbp, option)
+            finally:
+                fbp.end()
+
+            # 3) If not finished, schedule another frame; else clear state
+            if not finished:
+                self.update()
+            else:
+                self._ps = None
+
+    def calcBoundingRect(self):
+        """Calculate RollSurvey boundaries"""
+
+        # reset survey spatial extent
+        self.srcBoundingRect = QRectF()                                         # source extent
+        self.recBoundingRect = QRectF()                                         # receiver extent
+        self.cmpBoundingRect = QRectF()                                         # cmp extent
+        self.boundingBox = QRectF()                                             # src|rec extent
+
+        # initialise pattern figures; usually there are only a few different patterns, so this is very quick
+        for pattern in self.patternList:
+            pattern.calcPatternPicture()
+
+        # we also need to update the template-seeds giving them the right pattern type
+        # here we need to make some uptimizations; with a marine survey you can easily get 16,000 templates, or 16,000 SPs, as there is one shot per template
+        # But each shot comes with some 11 seeds; one for the source and 10 for 10 streamers. This results in 176,000 seeds.
+        # only a few seeds are shown at the same time, as it requires a signficant zoom to show individual seeds
+        # todo: initialize the seed's point figures and pattern figures just before they are painted (and NOT here).
+        # this should significantly speed up initial loading of an existing survey.
+        # Start with a None object, take it from there.
+
+        for block in self.blockList:
+            for template in block.templateList:
+                for seed in template.seedList:
+                    if seed.type < SeedType.circle and seed.patternNo > -1 and seed.patternNo < len(self.patternList):
+                        growStep = seed.grid.growList[-1]
+                        if growStep is not None and seed.bAzimuth:
+                            # need to reorient the pattern; get the slant angle (deviation from orthogonal)
+                            angle = math.degrees(math.atan2(growStep.increment.x(), growStep.increment.y()))
+                            seed.patternPicture = QPicture()                    # create initial picture object
+                            painter = QPainter(seed.patternPicture)             # create painter object to draw against
+                            painter.rotate(-angle)                              # rotate painter in opposite direction before drawing
+                            painter.drawPicture(0, 0, self.patternList[seed.patternNo].patternPicture)
+                            painter.end()
+                        else:
+                            seed.patternPicture = self.patternList[seed.patternNo].patternPicture
                     else:
                         seed.patternPicture = None
 
@@ -2510,169 +2789,7 @@ class RollSurvey(pg.GraphicsObject):
         elapsed_ms = (perf_counter() - getattr(self, "_paintStart", perf_counter())) * 1000.0
         return self._cancelPaint or elapsed_ms > self._paintBudgetMs
 
-    def paint(self, painter, option, widget):
-        if self._painting:
-            return
-        self._painting = True
-
-        # Determine the screen the viewport lives on. 'widget' is typically the QGraphicsView's viewport; get its screen
-        screen = None
-        try:
-            wh = widget.windowHandle() if widget is not None else None
-            screen = wh.screen() if wh is not None else QGuiApplication.primaryScreen()
-        except Exception:
-            screen = QGuiApplication.primaryScreen()
-
-        penWidth = self.lineWidthForScreen(screen)
-
-        # first paint the all stuff outside the template loops
-        vb = self.viewRect()
-        painter.setClipRect(vb)                                             # Clip to the visible area to avoid off-screen work
-        lod = option.levelOfDetailFromTransform(painter.worldTransform()) * self.lodScale
-
-        if lod < config.lod0:                                               # so small; just paint the survey outline
-            painter.setPen(pg.mkPen('k', width=penWidth))                   # use a black pen for borders
-            painter.setBrush(pg.mkBrush((64, 64, 64, 255)))                 # dark grey solid brush
-            painter.drawRect(self.boundingRect())                           # that's all that needs to be painted
-            return
-
-        # a survey has only one binning output area; show this in black if the PaintDetails.binArea flag has been set accordingly
-        if self.output.rctOutput.isValid() and self.paintDetails & PaintDetails.binArea:
-            painter.setPen(config.binAreaPen)
-            painter.setBrush(QBrush(QColor(config.binAreaColor)))
-            painter.drawRect(self.output.rctOutput)
-
-        # now do the chunked/resumable work
-        self._cancelPaint = False
-
-        try:
-            if self._ps is None:
-                self._initPaintState()
-            self._paintStartNow()
-
-            print(f"\nStart paint pass at b={self._ps['b']}, t={self._ps['t']}, i={self._ps['i']}, j={self._ps['j']}, k={self._ps['k']}, lod={lod:.2f}")
-            self._paintPass(painter, lod, penWidth)  # your chunked/resumable work
-        finally:
-            self._painting = False
-
-
-    def _paintPass(self, painter, lod, penWidth):
-        vb = self.viewRect()
-        painter.setClipRect(vb)
-
-        b = self._ps["b"]; t = self._ps["t"]; i = self._ps["i"]; j = self._ps["j"]; k = self._ps["k"]
-
-        print(f"Paint pass at b={b}, t={t}, i={i}, j={j}, k={k}, lod={lod:.2f}")
-
-        while b < len(self.blockList):
-            block = self.blockList[b]
-            if block.boundingBox.intersects(vb):
-
-                # a survey may have more than a single block; therefore do this for each block
-                if self.paintDetails & PaintDetails.recArea:
-                    painter.setPen(config.recAreaPen)
-                    painter.setBrush(QBrush(QColor(config.recAreaColor)))
-                    painter.drawRect(block.recBoundingRect)
-
-                if self.paintDetails & PaintDetails.srcArea:
-                    painter.setPen(config.srcAreaPen)
-                    painter.setBrush(QBrush(QColor(config.srcAreaColor)))
-                    painter.drawRect(block.srcBoundingRect)
-
-                if self.paintDetails & PaintDetails.cmpArea:
-                    painter.setPen(config.cmpAreaPen)
-                    painter.setBrush(QBrush(QColor(config.cmpAreaColor)))
-                    painter.drawRect(block.cmpBoundingRect)
-
-                painter.setPen(pg.mkPen(0.5))                               # use a grey pen for template borders
-                painter.setBrush(pg.mkBrush((192, 192, 192, 32)))           # grey & semi-transparent, use for all templates
-
-                if self.paintMode == PaintMode.justBlocks:                  # just paint the blocks bounding box, irrespective of LOD
-                    painter.drawRect(block.boundingBox)                     # draw block's rectangle
-
-                    # next block
-                    b += 1; t = i = j = k = 0
-                    continue
-
-                painter.setBrush(pg.mkBrush((192, 192, 192, 3)))            # grey & semi-transparent, use for all templates
-
-                templates = block.templateList
-                while t < len(templates):
-                    template = templates[t]
-                    length = len(template.rollList) if template.rollList else 0
-
-                    if length == 0:
-                        # draw once
-                        # ... draw ...
-                        t += 1
-
-                    elif length == 1:
-                        steps0 = template.rollList[0].steps
-                        while i < steps0:
-                            if self._shouldAbortPaint():
-                                self._savePaintState(b=b, t=t, i=i, j=0, k=0)
-                                self.update()
-                                return
-                            # ... compute offset for i and draw ...
-                            i += 1
-                        i = 0; t += 1
-
-                    elif length == 2:
-                        s0 = template.rollList[0].steps; s1 = template.rollList[1].steps
-                        while i < s0:
-                            while j < s1:
-                                if self._shouldAbortPaint():
-                                    self._savePaintState(b=b, t=t, i=i, j=j, k=0)
-                                    self.update()
-                                    return
-                                # ... compute offset for (i, j) and draw ...
-                                j += 1
-                            j = 0; i += 1
-                        i = 0; t += 1
-
-                    elif length == 3:
-                        s0, s1, s2 = (template.rollList[0].steps, template.rollList[1].steps, template.rollList[2].steps)
-                        while i < s0:
-                            while j < s1:
-                                while k < s2:
-                                    if self._shouldAbortPaint():
-                                        self._savePaintState(b=b, t=t, i=i, j=j, k=k)
-                                        # self.update()
-                                        return
-                                    # ... compute offset for (i, j, k) and draw ...
-                                    offset = QVector3D()                    # always start at (0, 0, 0)
-                                    offset += template.rollList[0].increment * i
-                                    offset += template.rollList[1].increment * j
-                                    offset += template.rollList[2].increment * k
-                                    templt = template.totTemplateRect.translated(offset.toPointF())  # we now have the correct location
-                                    if not templt.intersects(vb):
-                                        continue                            # outside viewbox; skip it
-
-                                    if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:  # so small; just paint the template outline
-                                        templt &= self.boundingBox          # we need to restrict it
-                                        painter.drawRect(templt)            # draw template rectangle
-                                    else:
-                                        self.paintTemplate(painter, vb, lod, template, offset, penWidth)
-
-                                    k += 1
-                                k = 0; j += 1
-                            j = 0; i += 1
-                        i = 0; t += 1
-                    else:
-                        t += 1  # skip unsupported
-
-            # next block
-            b += 1
-            t = i = j = k = 0
-
-        # finished everything
-        self._clearPaintState()
-
-
-
-
-
-    def paintOld(self, painter, option, widget=None):
+    def paint(self, painter, option, widget=None):
         # Determine the screen the viewport lives on. 'widget' is typically the QGraphicsView's viewport; get its screen
         screen = None
         try:
@@ -2691,22 +2808,12 @@ class RollSurvey(pg.GraphicsObject):
         # painter.setPen(pen)
 
         with pg.BusyCursor():
-            # See: https://doc.qt.io/qt-6/qgraphicsitem.html#paint and for QGraphicsItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr)
-            # See: https://doc.qt.io/qt-6/qstyleoptiongraphicsitem.html for LOD painting using QStyleOptionGraphicsItem
-            # the 'option' can be used to access LOD directly by using:
-            # lod = option.levelOfDetailFromTransform(painter.worldTransform())
-
-            # vb = self.getViewBox().viewRect()
-            # print("\n\n\nVB  = " + "x0:{:.2f} y0:{:.2f}, xmax:{:.2f} ymax:{:.2f}".format(vb.left(), vb.top(), vb.left()+vb.width(), vb.top()+vb.height()))
-            # # print ("Painting - Mouse grabbed: " + str(self.mouseGrabbed))
-
-            # vb = self.getViewBox().itemBoundingRect(self)
-            # print("VB1 = " + "x0:{:.2f} y0:{:.2f}, xmax:{:.2f} ymax:{:.2f}".format(vb.left(), vb.top(), vb.left()+vb.width(), vb.top()+vb.height()))
-
             vb = self.viewRect()
             # print(f"VB2 = x0:{vb.left():.2f} y0:{vb.top():.2f}, xmax:{vb.left()+vb.width():.2f} ymax:{vb.top()+vb.height():.2f}")
             painter.setClipRect(vb)                                             # Clip to the visible area to avoid off-screen work
 
+            # See: https://doc.qt.io/qt-6/qstyleoptiongraphicsitem.html for LOD painting using QStyleOptionGraphicsItem
+            # the 'option' can be used to access LOD directly by using: lod = option.levelOfDetailFromTransform(painter.worldTransform())
             lod = option.levelOfDetailFromTransform(painter.worldTransform()) * self.lodScale
             # print('LOD = ' + str(lod))
 
@@ -2757,73 +2864,24 @@ class RollSurvey(pg.GraphicsObject):
 
                     for template in block.templateList:                         # get all templates
                         length = len(template.rollList)                         # how deep is the list ?
+                        assert length == 3, 'there must always be 3 roll steps / grow steps in each template'
 
-                        ### todo; fix this later in land wizard
-                        #   assert length == 3, 'there must always be 3 roll steps / grow steps in each template'
-
-                        if length == 0:
-                            offset = QVector3D()                                # always start at (0, 0, 0)
-                            templt = template.totTemplateRect                   # no translation required
-                            if not templt.intersects(vb):
-                                continue                                        # outside viewbox; skip it
-
-                            if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:  # so small; just paint the template outline
-                                templt &= self.boundingBox                      # we need to restrict it
-                                painter.drawRect(templt)                        # draw template rectangle
-                            else:
-                                self.paintTemplate(painter, vb, lod, template, offset, penWidth)
-
-                        elif length == 1:
-                            # get the template boundaries
-                            for i in range(template.rollList[0].steps):
-                                offset = QVector3D()                            # always start at (0, 0, 0)
-                                offset += template.rollList[0].increment * i
-                                templt = template.totTemplateRect.translated(offset.toPointF())  # we now have the correct location
-                                if not templt.intersects(vb):
-                                    continue                                    # outside viewbox; skip it
-
-                                if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:  # so small; just paint the template outline
-                                    templt &= self.boundingBox                  # we need to restrict it
-                                    painter.drawRect(templt)                    # draw template rectangle
-                                else:
-                                    self.paintTemplate(painter, vb, lod, template, offset, penWidth)
-
-                        elif length == 2:
-                            for i in range(template.rollList[0].steps):
-                                for j in range(template.rollList[1].steps):
-                                    offset = QVector3D()                        # always start at (0, 0, 0)
+                        for i in range(template.rollList[0].steps):
+                            for j in range(template.rollList[1].steps):
+                                for k in range(template.rollList[2].steps):
+                                    offset = QVector3D()                    # always start at (0, 0, 0)
                                     offset += template.rollList[0].increment * i
                                     offset += template.rollList[1].increment * j
+                                    offset += template.rollList[2].increment * k
                                     templt = template.totTemplateRect.translated(offset.toPointF())  # we now have the correct location
                                     if not templt.intersects(vb):
-                                        continue                                # outside viewbox; skip it
+                                        continue                            # outside viewbox; skip it
 
                                     if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:  # so small; just paint the template outline
-                                        templt &= self.boundingBox              # we need to restrict it
-                                        painter.drawRect(templt)                # draw template rectangle
+                                        templt &= self.boundingBox          # we need to restrict it
+                                        painter.drawRect(templt)            # draw template rectangle
                                     else:
                                         self.paintTemplate(painter, vb, lod, template, offset, penWidth)
-
-                        elif length == 3:
-                            for i in range(template.rollList[0].steps):
-                                for j in range(template.rollList[1].steps):
-                                    for k in range(template.rollList[2].steps):
-                                        offset = QVector3D()                    # always start at (0, 0, 0)
-                                        offset += template.rollList[0].increment * i
-                                        offset += template.rollList[1].increment * j
-                                        offset += template.rollList[2].increment * k
-                                        templt = template.totTemplateRect.translated(offset.toPointF())  # we now have the correct location
-                                        if not templt.intersects(vb):
-                                            continue                            # outside viewbox; skip it
-
-                                        if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:  # so small; just paint the template outline
-                                            templt &= self.boundingBox          # we need to restrict it
-                                            painter.drawRect(templt)            # draw template rectangle
-                                        else:
-                                            self.paintTemplate(painter, vb, lod, template, offset, penWidth)
-                        else:
-                            # do something recursively; not  implemented yet
-                            raise NotImplementedError('More than three roll steps currently not allowed.')
 
             # done painting; next time maybe more details required
             self.mouseGrabbed = False
@@ -2856,141 +2914,46 @@ class RollSurvey(pg.GraphicsObject):
                     seed.rendered = True                                        # paint fixed grid only once
 
                 length = len(seed.grid.growList)                                # how deep is the grow list ?
+                assert length == 3, 'there must always be 3 roll steps / grow steps in each template'
 
-                assert length == 3, 'there must always be 3 roll steps / grow steps'
-
-                if length == 0:
-                    offset = QVector3D()                                        # always start at (0, 0, 0)
-                    offset += templateOffset                                    # start here
-                    salvo = seed.grid.salvo.translated(offset.toPointF())       # move the line into place
-                    salvo = clipLineF(salvo, seed.blockBorder)                  # check line against block's src/rec border
-                    salvo = clipLineF(salvo, viewbox)                           # check line against viewbox
-
-                    if salvo.isNull():
-                        return
-
-                    if self.mouseGrabbed:                                       # just draw lines
-                        if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                            painter.drawLine(salvo)
-                        return
-
-                    if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
-                        if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                            painter.drawLine(salvo)
-                    else:
-                        seedOrigin = offset + seed.origin                       # start at templateOffset and add seed's origin
-                        if containsPoint3D(seed.blockBorder, seedOrigin):       # is it within block limits ?
-                            if containsPoint3D(viewbox, seedOrigin):            # is it within the viewbox ?
-                                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                    painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
-                                if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
-                                    if paintDetail & PaintDetails.recPat != PaintDetails.none:
-                                        painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
-
-                elif length == 1:
-                    offset = QVector3D()                                        # always start at (0, 0, 0)
-                    offset += templateOffset                                    # start here
-                    salvo = seed.salvo.grid.translated(offset.toPointF())       # move the line into place
-                    salvo = clipLineF(salvo, seed.blockBorder)                  # check line against block's src/rec border
-                    salvo = clipLineF(salvo, viewbox)                           # check line against viewbox
-
-                    if salvo.isNull():
-                        return
-
-                    if self.mouseGrabbed:                                       # just draw lines
-                        if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                            painter.drawLine(salvo)
-                        return
-
-                    if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
-                        if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                            painter.drawLine(salvo)
-                    else:
-                        for i in range(seed.grid.growList[0].steps):            # iterate over 1st step
-                            seedOrigin = offset + seed.origin                   # start at templateOffset and add seed's origin
-                            seedOrigin += seed.grid.growList[0].increment * i   # we now have the correct location
-                            if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
-                                if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
-                                    if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                        painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())  # paint seed picture
-                                    if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
-                                        if paintDetail & PaintDetails.recPat != PaintDetails.none:
-                                            painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
-
-                elif length == 2:
-                    for i in range(seed.grid.growList[0].steps):                # iterate over 1st step
-                        offset = QVector3D()                                    # always start at (0, 0, 0)
-                        offset += templateOffset                                # start here
-                        offset += seed.grid.growList[0].increment * i           # we now have the correct location
+                for i in range(seed.grid.growList[0].steps):
+                    for j in range(seed.grid.growList[1].steps):
+                        offset = QVector3D()                                # always start at (0, 0)
+                        offset += templateOffset                            # start here
+                        offset += seed.grid.growList[0].increment * i       # we now have the correct location
+                        offset += seed.grid.growList[1].increment * j       # we now have the correct location
                         salvo = seed.grid.salvo.translated(offset.toPointF())   # move the line into place
-                        salvo = clipLineF(salvo, seed.blockBorder)              # check line against block's src/rec border
-                        salvo = clipLineF(salvo, viewbox)                       # check line against viewbox
+                        salvo = clipLineF(salvo, seed.blockBorder)          # check line against block's src/rec border
+                        salvo = clipLineF(salvo, viewbox)                   # check line against viewbox
 
                         if salvo.isNull():
                             continue
 
-                        if self.mouseGrabbed:                                   # just draw lines
+                        if self.mouseGrabbed:                               # just draw lines
                             if paintDetail & PaintDetails.recLin != PaintDetails.none:
                                 painter.drawLine(salvo)
-                                continue
+                            continue
 
-                        if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
-                            if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                                painter.drawLine(salvo)
-                        else:
-                            for j in range(seed.grid.growList[1].steps):
-                                seedOrigin = offset + seed.origin               # start at templateOffset and add seed's origin
-                                seedOrigin += seed.grid.growList[1].increment * j   # we now have the correct location
-                                if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
-                                    if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
-                                        if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                            painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
-                                        if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
-                                            if paintDetail & PaintDetails.recPat != PaintDetails.none:
-                                                painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)   # paint pattern picture
+                        if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                            painter.drawLine(salvo)                         # always draw a line, if the PaintDetails flag allow for this
 
-                elif length == 3:
-                    for i in range(seed.grid.growList[0].steps):
-                        for j in range(seed.grid.growList[1].steps):
-                            offset = QVector3D()                                # always start at (0, 0)
-                            offset += templateOffset                            # start here
-                            offset += seed.grid.growList[0].increment * i       # we now have the correct location
-                            offset += seed.grid.growList[1].increment * j       # we now have the correct location
-                            salvo = seed.grid.salvo.translated(offset.toPointF())   # move the line into place
-                            salvo = clipLineF(salvo, seed.blockBorder)          # check line against block's src/rec border
-                            salvo = clipLineF(salvo, viewbox)                   # check line against viewbox
+                        if lod < config.lod2 or self.paintMode == PaintMode.justLines:   # nothing else to do
+                            continue
 
-                            if salvo.isNull():
-                                continue
+                        for k in range(seed.grid.growList[2].steps):            # we are about to draw the points now
+                            seedOrigin = offset + seed.origin                   # start at template offset and add seed's origin
+                            seedOrigin += seed.grid.growList[2].increment * k   # we now have the correct location
 
-                            if self.mouseGrabbed:                               # just draw lines
-                                if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                                    painter.drawLine(salvo)
-                                continue
+                            if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
+                                if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
+                                    if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                                        painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
 
-                            if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                                painter.drawLine(salvo)                         # always draw a line, if the PaintDetails flag allow for this
+                                    if lod < config.lod3 or self.paintMode == PaintMode.justPoints:   # nothing else to do
+                                        continue
 
-                            if lod < config.lod2 or self.paintMode == PaintMode.justLines:   # nothing else to do
-                                continue
-
-                            for k in range(seed.grid.growList[2].steps):            # we are about to draw the points now
-                                seedOrigin = offset + seed.origin                   # start at template offset and add seed's origin
-                                seedOrigin += seed.grid.growList[2].increment * k   # we now have the correct location
-
-                                if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
-                                    if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
-                                        if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                            painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
-
-                                        if lod < config.lod3 or self.paintMode == PaintMode.justPoints:   # nothing else to do
-                                            continue
-
-                                        if seed.patternPicture is not None and paintDetail & PaintDetails.recPat != PaintDetails.none:
-                                            painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)   # paint pattern picture
-                else:
-                    # do something recursively; not  implemented yet
-                    raise NotImplementedError('More than three grow steps currently not allowed.')
+                                    if seed.patternPicture is not None and paintDetail & PaintDetails.recPat != PaintDetails.none:
+                                        painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)   # paint pattern picture
 
             # should we move this out of paintTemplate() into paint() ?
             # In order to do this, these seeds would not sit under Survey --> Block --> template
@@ -3019,6 +2982,154 @@ class RollSurvey(pg.GraphicsObject):
 
                 if paintDetail & PaintDetails.recPnt != PaintDetails.none:
                     length = len(seed.pointList)
+                    for i in range(length):
+                        p = seed.pointList[i].toPointF()
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
+
+            if seed.type == SeedType.spiral and seed.rendered is False:         # spiral seed
+                seed.rendered = True
+
+                if self.mouseGrabbed:                                           # just draw a spiral and return
+                    if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                        painter.setBrush(QBrush())                                  # empty brush
+                        painter.drawPath(seed.spiral.path)
+                    continue
+
+                if paintDetail & PaintDetails.recLin != PaintDetails.none:      # start drawing the spiral
+                    painter.setBrush(QBrush())                                  # empty brush
+                    painter.drawPath(seed.spiral.path)
+
+                if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # nothing else to do
+                    continue
+
+                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                    length = len(seed.pointList)
+                    for i in range(length):
+                        p = seed.pointList[i].toPointF()
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
+
+            if seed.type == SeedType.well and seed.rendered is False:           # well seed
+                seed.rendered = True
+
+                if self.mouseGrabbed:                                           # just draw a circle and return
+                    if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                        painter.drawPolyline(seed.well.polygon)                 # draw well trajectory as part of this template
+                        painter.drawEllipse(seed.well.origL, 5.0, 5.0)          # draw small circle where well surfaces
+                    continue
+
+                if paintDetail & PaintDetails.recLin != PaintDetails.none:      # start drawing the well trajectory
+                    painter.drawPolyline(seed.well.polygon)                     # draw well trajectory as part of this template
+                    painter.drawEllipse(seed.well.origL, 5.0, 5.0)              # draw small circle where well surfaces
+
+                if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # nothing else to do
+                    continue
+
+                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                    for i in range(length):
+                        p = seed.pointList[i].toPointF()
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
+
+    def generateSvg(self, nodes):
+        pass                                                                    # for the time being don't do anything; just to keep PyLint happy
+     if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                    length = len(seed.pointList)
+                    for i in range(length):
+                        p = seed.pointList[i].toPointF()
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
+
+            if seed.type == SeedType.spiral and seed.rendered is False:         # spiral seed
+                seed.rendered = True
+
+                if self.mouseGrabbed:                                           # just draw a spiral and return
+                    if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                        painter.setBrush(QBrush())                                  # empty brush
+                        painter.drawPath(seed.spiral.path)
+                    continue
+
+                if paintDetail & PaintDetails.recLin != PaintDetails.none:      # start drawing the spiral
+                    painter.setBrush(QBrush())                                  # empty brush
+                    painter.drawPath(seed.spiral.path)
+
+                if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # nothing else to do
+                    continue
+
+                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                    length = len(seed.pointList)
+                    for i in range(length):
+                        p = seed.pointList[i].toPointF()
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
+
+            if seed.type == SeedType.well and seed.rendered is False:           # well seed
+                seed.rendered = True
+
+                if self.mouseGrabbed:                                           # just draw a circle and return
+                    if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                        painter.drawPolyline(seed.well.polygon)                 # draw well trajectory as part of this template
+                        painter.drawEllipse(seed.well.origL, 5.0, 5.0)          # draw small circle where well surfaces
+                    continue
+
+                if paintDetail & PaintDetails.recLin != PaintDetails.none:      # start drawing the well trajectory
+                    painter.drawPolyline(seed.well.polygon)                     # draw well trajectory as part of this template
+                    painter.drawEllipse(seed.well.origL, 5.0, 5.0)              # draw small circle where well surfaces
+
+                if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # nothing else to do
+                    continue
+
+                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                    for i in range(length):
+                        p = seed.pointList[i].toPointF()
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
+
+    def generateSvg(self, nodes):
+        pass                                                                    # for the time being don't do anything; just to keep PyLint happy
+wPicture(p, seed.getPointPicture())          # paint seed picture
+
+            if seed.type == SeedType.spiral and seed.rendered is False:         # spiral seed
+                seed.rendered = True
+
+                if self.mouseGrabbed:                                           # just draw a spiral and return
+                    if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                        painter.setBrush(QBrush())                                  # empty brush
+                        painter.drawPath(seed.spiral.path)
+                    continue
+
+                if paintDetail & PaintDetails.recLin != PaintDetails.none:      # start drawing the spiral
+                    painter.setBrush(QBrush())                                  # empty brush
+                    painter.drawPath(seed.spiral.path)
+
+                if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # nothing else to do
+                    continue
+
+                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                    length = len(seed.pointList)
+                    for i in range(length):
+                        p = seed.pointList[i].toPointF()
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
+
+            if seed.type == SeedType.well and seed.rendered is False:           # well seed
+                seed.rendered = True
+
+                if self.mouseGrabbed:                                           # just draw a circle and return
+                    if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                        painter.drawPolyline(seed.well.polygon)                 # draw well trajectory as part of this template
+                        painter.drawEllipse(seed.well.origL, 5.0, 5.0)          # draw small circle where well surfaces
+                    continue
+
+                if paintDetail & PaintDetails.recLin != PaintDetails.none:      # start drawing the well trajectory
+                    painter.drawPolyline(seed.well.polygon)                     # draw well trajectory as part of this template
+                    painter.drawEllipse(seed.well.origL, 5.0, 5.0)              # draw small circle where well surfaces
+
+                if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # nothing else to do
+                    continue
+
+                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                    for i in range(length):
+                        p = seed.pointList[i].toPointF()
+                        painter.drawPicture(p, seed.getPointPicture())          # paint seed picture
+
+    def generateSvg(self, nodes):
+        pass                                                                    # for the time being don't do anything; just to keep PyLint happy
+ist)
                     for i in range(length):
                         p = seed.pointList[i].toPointF()
                         painter.drawPicture(p, seed.getPointPicture())          # paint seed picture

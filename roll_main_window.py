@@ -1268,11 +1268,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.survey.calcNoShotPoints()                                          # (re)calculate nr of shot points
 
         # check if it is a marine survey; set seed plotting details accordingly
-        if self.survey.type == SurveyType.Streamer:
-            self.survey.paintDetails &= ~PaintDetails.recLin
-            self.actionShowBlocks.setChecked(True)
-            self.survey.paintMode = PaintMode.justBlocks
-            self.updateMenuStatus(False)                                        # used here to update plotting details
+        self.setPlottingDetails()
 
         plainText = self.survey.toXmlString()                                   # convert the survey object itself to an Xml string
         self.textEdit.setTextViaCursor(plainText)                               # get text into the textEdit, NOT resetting its doc status
@@ -3468,6 +3464,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         else:
             return False                                                        # nothing to reset
 
+    def setPlottingDetails(self):
+        # check if it is a marine survey; set seed plotting details accordingly
+        if self.survey.type == SurveyType.Streamer:
+            self.survey.paintDetails &= ~PaintDetails.recPnt
+            self.survey.paintDetails &= ~PaintDetails.recPat
+
+            self.survey.paintDetails &= ~PaintDetails.srcPnt
+            self.survey.paintDetails &= ~PaintDetails.srcPat
+
+            self.actionShowBlocks.setChecked(True)
+            self.survey.paintMode = PaintMode.justBlocks
+
     def fileLoad(self, fileName):
 
         config.resetTimers()    ###                                             # reset timers for debugging code
@@ -3503,10 +3511,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.appendLogMessage(f'Loading: {fileName} analysis files')        # send status message
 
             # check if it is a marine survey; set seed plotting details accordingly
-            if self.survey.type == SurveyType.Streamer:
-                self.survey.paintDetails &= ~PaintDetails.recLin
-                self.actionShowBlocks.setChecked(True)
-                self.survey.paintMode = PaintMode.justBlocks
+            self.setPlottingDetails()
 
             # continue loading the anaysis files that belong to this project
             w = self.survey.output.rctOutput.width()                            # expected dimensions of analysis files
