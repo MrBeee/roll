@@ -2090,6 +2090,8 @@ class RollSurvey(pg.GraphicsObject):
         return plainText
 
     def fromXmlString(self, xmlString, createArrays=False) -> bool:
+
+        # allow for surveys without any blocks or templates; useful when using SPS data only, so comment the following out
         # first get a QDomDocument to work with
         doc = QDomDocument()
         # errorMsg, errorLine, errorColumn not being used
@@ -2124,10 +2126,11 @@ class RollSurvey(pg.GraphicsObject):
         else:
             return None
 
-    def checkIntegrity(self):
+    def checkIntegrity(self, workingDirectory = None) -> bool:
         """this routine checks survey integrity, after edits have been made"""
 
         e = 'Survey format error'
+        # allow for surveys without any blocks or templates; useful when using SPS data only, so comment the following out
         # if len(self.blockList) == 0:
         #     QMessageBox.warning(None, e, 'A survey needs at least one block')
         #     return False
@@ -2150,6 +2153,39 @@ class RollSurvey(pg.GraphicsObject):
 
                     elif seed.type == SeedType.well:                            # well site; check for errors
                         f = seed.well.name                                      # check if well-file exists
+
+                        # If a working directory is provided, store a relative path in the seed and
+                        # validate existence using a full (absolute) path.
+                        try:
+                            wd = workingDirectory
+                            if wd is not None:
+                                wd = os.path.abspath(wd)
+
+                                # Resolve to absolute path: if f is relative, make it relative to workingDirectory
+                                if f is not None:
+                                    abs_f = f if os.path.isabs(f) else os.path.abspath(os.path.join(wd, f))
+                                else:
+                                    abs_f = None
+
+                                # Store a relative path back into the seed when possible (keeps files portable)
+                                if abs_f is not None:
+                                    try:
+                                        rel_f = os.path.relpath(abs_f, start=wd)
+                                        seed.well.name = rel_f
+                                    except Exception:
+                                        # Different drive on Windows or other relpath failure; keep original name
+                                        pass
+
+                                # Use absolute path for existence check
+                                f = abs_f
+                            else:
+                                # No working directory: if f is relative, resolve against current process cwd
+                                if f is not None and not os.path.isabs(f):
+                                    f = os.path.abspath(f)
+                        except Exception:
+                            # Do not fail integrity check due to path manipulations; fall back to original f
+                            pass
+
                         if f is None or not os.path.exists(f):
                             QMessageBox.warning(None, e, f'A well-seed should point to an existing well-file\nRemove seed or adjust name in well-seed "{seed.name}"')
                             return False
@@ -2485,14 +2521,10 @@ class RollSurvey(pg.GraphicsObject):
             return 2.0
         return 1.5                                  # fallback for FHD/others
 
-    # painting can take a long time. Sometimes you may want to kill painting by interupting a half complete paint call.
-    # this can be done by processing a keyboardInterrupt. I think (right now) you need to have the message pump working, for this to have any effect.
-    # QtGui.QApplication.processEvents() - called at certain points in the paint() call
-    # See: https://stackoverflow.com/questions/23027447/how-to-set-push-button-to-keyboard-interrupt-in-pyqt
-    # See: https://stackoverflow.com/questions/1353823/handling-keyboardinterrupt-in-a-kde-python-application
-    # See: https://www.geeksforgeeks.org/how-to-create-a-custom-keyboardinterrupt-in-python/
-    # See: https://stackoverflow.com/questions/51485285/stop-a-while-loop-by-escape-key
-    # See: https://pypi.org/project/dvg-pyqtgraph-threadsafe/ for threadsafe plotting with pyqtgraph
+    # painting can take a long time. This has now been optimized by using two framebuffers; one for invariant layers (bin/src/rec/cmp rectangles)
+    # and one for progressive layers (templates/seeds). The invariant layers are drawn once per framebuffer, the progressive layers are drawn repeatedly until the time budget is exhausted.
+    # The time budget is set to 50ms by default, which should be ok for 20fps. You can adjust this value using setPaintBudget()
+    # See: https://pypi.org/project/dvg-pyqtgraph-threadsafe/ for threadsafe plotting with pyqtgraph as an alternative to this approach.    
 
     def _paintStartNow(self):
         self._paintStart = perf_counter()
@@ -2674,7 +2706,6 @@ class RollSurvey(pg.GraphicsObject):
         Keep this separate from any legacy _init_paint_state you may have. """
 
         self._ps = {"b": 0, "t": 0, "i": 0, "j": 0, "k": 0}
-
 
     def _paint_pass_into_progressive(self, p: QPainter, option, penWidth=2) -> bool:
         """ Draw a time-budgeted chunk of template content into self._fbProg using painter p.

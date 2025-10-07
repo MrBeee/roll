@@ -89,6 +89,7 @@ class BinFromGeometryWorker(QObject):
             # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
             # Please comment the next two lines when you are not debugging, as it will cause an exception (ConnectionRefusedError)
             # Things have changed a bit; see https://stackoverflow.com/questions/71834240/how-to-debug-pyqt5-threads-in-visual-studio-code
+            # See also:https://code.visualstudio.com/docs/python/debugging#_troubleshooting
             # todo: ptvsd is no longer required; use debugpy instead and replace all occurrences of 'ptvsd' by 'debugpy'.
             if havePtvsd and config.ptvsd:
                 ptvsd.debug_this_thread()
