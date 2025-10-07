@@ -2545,7 +2545,7 @@ class RollSurvey(pg.GraphicsObject):
         h_px = max(1, int(round(h_log * dpr)))
 
         def new_img():
-            img = QImage(w_px, h_px, QImage.Format_ARGB32_Premultiplied)
+            img = QImage(w_px, h_px, QImage.Format.Format_ARGB32_Premultiplied)
             img.setDevicePixelRatio(dpr)
             img.fill(0)  # fully transparent
             return img
