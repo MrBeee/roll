@@ -884,7 +884,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.textEdit.copyAvailable.connect(self.actionCopy.setEnabled)
 
         # actions related to the view menu
-        self.actionRefreshPlot.triggered.connect(self.plotLayout)               # hooked up with F5
+        self.actionRefreshPlot.triggered.connect(self.replotLayout)             # hooked up with F5
         self.actionReparseDocument.triggered.connect(self.UpdateAllViews)       # hooked up with Ctrl+F5
         self.actionStopPainting.triggered.connect(self.stopPainting)            # hooked up with Esc
 
@@ -907,12 +907,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionStopThread.triggered.connect(self.stopWorkerThread)
 
         # actions related to geometry items to be displayed
-        self.actionTemplates.triggered.connect(self.plotLayout)
-        self.actionRecPoints.triggered.connect(self.plotLayout)
-        self.actionSrcPoints.triggered.connect(self.plotLayout)
-        self.actionRpsPoints.triggered.connect(self.plotLayout)
-        self.actionSpsPoints.triggered.connect(self.plotLayout)
-        self.actionAllPoints.triggered.connect(self.plotLayout)
+        self.actionTemplates.triggered.connect(self.replotLayout)
+        self.actionRecPoints.triggered.connect(self.replotLayout)
+        self.actionSrcPoints.triggered.connect(self.replotLayout)
+        self.actionRpsPoints.triggered.connect(self.replotLayout)
+        self.actionSpsPoints.triggered.connect(self.replotLayout)
+        self.actionAllPoints.triggered.connect(self.replotLayout)
 
         # enable/disable various actions
         self.actionClose.setEnabled(False)
@@ -2456,7 +2456,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def stopPainting(self):
         if self.survey is not None:
-            self.survey.interruptedPainting = True
+            self.survey._cancelPaint = True                                     # to cancel painting in progress
 
     def layoutRangeChanged(self):
         """handle resizing of plot in view of bin-aligned gridlines"""
@@ -2486,6 +2486,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 axLft.setTickSpacing()                                          # set to default values
                 axTop.setTickSpacing()                                          # set to default values
                 axRht.setTickSpacing()                                          # set to default values
+
+    def replotLayout(self):
+        self.survey.invalidatePaintCache()                                      # make sure we repaint everything
+        self.survey.update()
+        self.plotLayout()
 
     def plotLayout(self):
         # first we are going to see how large the survey area is, to establish a boundingbox

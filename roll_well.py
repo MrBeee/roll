@@ -2,8 +2,9 @@ import os
 
 import numpy as np
 import wellpathpy as wp
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVector3D
-from qgis.PyQt.QtCore import QFileInfo, QPointF
+from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
+                       QgsPointXY, QgsProject, QgsVector3D)
+from qgis.PyQt.QtCore import QFileInfo, QPointF, QRectF
 from qgis.PyQt.QtGui import QPolygonF, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
@@ -423,6 +424,9 @@ class RollWell:
 
         # return list and well origin in local coordinates; borrow z from well coords
         return pointList, QVector3D(self.origL.x(), self.origL.y(), self.origW.z())
+
+    def calcBoundingRect(self):
+        return QRectF() if self.polygon is None or self.polygon.isEmpty() else self.polygon.boundingRect()
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
         wellElem = doc.createElement('well')

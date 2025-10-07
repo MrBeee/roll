@@ -10,6 +10,9 @@
     <height>581</height>
    </rect>
   </property>
+  <property name="contextMenuPolicy">
+   <enum>Qt::PreventContextMenu</enum>
+  </property>
   <property name="windowTitle">
    <string>Roll - 3D Seismic Survey Design</string>
   </property>
@@ -146,6 +149,7 @@
     </property>
     <addaction name="actionReparseDocument"/>
     <addaction name="actionRefreshPlot"/>
+    <addaction name="actionStopPainting"/>
     <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
@@ -1608,6 +1612,9 @@
    <property name="shortcut">
     <string>F5</string>
    </property>
+   <property name="shortcutContext">
+    <enum>Qt::WindowShortcut</enum>
+   </property>
   </action>
   <action name="actionQGisCheatSheet">
    <property name="icon">
@@ -1636,7 +1643,7 @@
      <normaloff>resources/mActionStopPainting.svg</normaloff>resources/mActionStopPainting.svg</iconset>
    </property>
    <property name="text">
-    <string>actionStopPainting</string>
+    <string>Interrupt plotting</string>
    </property>
    <property name="toolTip">
     <string>Interrupt painting operation</string>

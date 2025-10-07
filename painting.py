@@ -1,7 +1,9 @@
 # Add near the top of the file
 from time import perf_counter
-from PyQt6.QtGui import QImage, QPainter, QTransform
+
 from PyQt6.QtCore import QRectF
+from PyQt6.QtGui import QImage, QPainter, QTransform
+
 
 class RollSurvey(pg.GraphicsObject):
     # ... existing code ...
@@ -255,3 +257,125 @@ class RollSurvey(pg.GraphicsObject):
         return True
 
     # ... rest of your class ...
+
+
+    def paint_progressive_incomplete_templates(self, painter, option, widget):
+        """ Progressive, two-layer paint:
+        - Base buffer (_fbBase): invariant layers (bin/src/rec/cmp) drawn once per view.
+        - Progressive buffer (_fbProg): templates/seeds drawn incrementally over multiple passes.
+        """
+
+        # Determine the screen the viewport lives on. 'widget' is typically the QGraphicsView's viewport; get its screen
+        screen = None
+        try:
+            wh = widget.windowHandle() if widget is not None else None
+            screen = wh.screen() if wh is not None else QGuiApplication.primaryScreen()
+        except Exception:
+            screen = QGuiApplication.primaryScreen()
+
+        penWidth = self.lineWidthForScreen(screen)
+
+        # Ensure buffers for current view/transform/flags/epoch
+        self._ensure_buffers(painter, option)
+
+        # Blit base + progressive buffers in device coordinates for crisp pixels
+        painter.save()
+        try:
+            painter.setWorldTransform(QTransform())
+            if getattr(self, "_fbBase", None) is not None:
+                painter.drawImage(0, 0, self._fbBase)
+            if getattr(self, "_fbProg", None) is not None:
+                painter.drawImage(0, 0, self._fbProg)
+        finally:
+            painter.restore()
+
+        if self.paintMode == PaintMode.justBlocks:            # just paint the blocks bounding box, irrespective of LOD
+            return
+
+        # If there’s more to draw, render the next chunk into the progressive buffer
+        if getattr(self, "_ps", None) is not None:
+            # Reset cancel flag and use a sane time budget default
+            self._cancelPaint = False
+            if not hasattr(self, "_paintBudgetMs"):
+                self._paintBudgetMs = 20.0  # default ~20ms per frame
+
+            fbp = QPainter(self._fbProg)
+            try:
+                fbp.setWorldTransform(painter.worldTransform())
+                fbp.setClipRect(self.viewRect())
+                fbp.setRenderHints(painter.renderHints())
+                finished = self._paint_pass_into_progressive(fbp, option, penWidth=penWidth)
+            finally:
+                fbp.end()
+
+            # Schedule another frame if not finished yet
+            if not finished:
+                self.update()
+
+
+
+    def paint_newly_proposed(self, painter, option, widget):
+        """
+        Progressive, two-layer paint:
+        - Base buffer (_fbBase): invariant layers (bin/src/rec/cmp) drawn once per view.
+        - Progressive buffer (_fbProg): templates/seeds drawn incrementally over multiple passes.
+
+        This version renders one progressive pass BEFORE blitting so the frame always
+        shows the latest content (no need to call plotLayout()) and schedules more
+        repaints until the progressive stage is complete.
+        """
+        # Choose a sensible cosmetic pen width per screen (if your progressive passes use it)
+        try:
+            wh = widget.windowHandle() if widget is not None else None
+            screen = wh.screen() if wh is not None else QGuiApplication.primaryScreen()
+        except Exception:
+            screen = QGuiApplication.primaryScreen()
+        penWidth = self.lineWidthForScreen(screen)
+
+        # Ensure buffers and rebuild base if the view/LOD/flags/epoch changed
+        self._ensure_buffers(painter, option)
+
+        # If the user only wants block outlines/areas, no progressive work is needed
+        if self.paintMode == PaintMode.justBlocks:
+            painter.save()
+            try:
+                painter.setWorldTransform(QTransform())  # blit in device coords
+                if getattr(self, "_fbBase", None) is not None:
+                    painter.drawImage(0, 0, self._fbBase)
+            finally:
+                painter.restore()
+            return
+
+        # 1) Do one progressive pass FIRST so the newly drawn chunk is visible in this frame
+        finished = True
+        if getattr(self, "_ps", None) is not None and getattr(self, "_fbProg", None) is not None:
+            # time budget default
+            if not hasattr(self, "_paintBudgetMs"):
+                self._paintBudgetMs = 20.0
+            self._cancelPaint = False
+
+            fbp = QPainter(self._fbProg)
+            try:
+                # Match the on-screen transform and clip to the visible area
+                fbp.setWorldTransform(painter.worldTransform())
+                fbp.setClipRect(self.viewRect())
+                fbp.setRenderHints(painter.renderHints())
+                finished = self._paint_pass_into_progressive(fbp, option, penWidth=penWidth)
+            finally:
+                fbp.end()
+
+        # 2) Blit the latest buffers now (base first, then progressive)
+        painter.save()
+        try:
+            painter.setWorldTransform(QTransform())  # draw images in device coords
+            if getattr(self, "_fbBase", None) is not None:
+                painter.drawImage(0, 0, self._fbBase)
+            if getattr(self, "_fbProg", None) is not None:
+                painter.drawImage(0, 0, self._fbProg)
+        finally:
+            painter.restore()
+
+        # 3) If progressive is not finished, schedule another frame; otherwise we’re done
+        if getattr(self, "_ps", None) is not None and not finished:
+            self.update()
+

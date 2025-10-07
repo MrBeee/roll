@@ -156,7 +156,7 @@ class RollSeed:
             self.boundingBox = self.spiral.calcBoundingRect(self.origin)
 
         elif self.type == SeedType.well:
-            self.boundingBox = self.well.polygon.boundingRect()
+            self.boundingBox = self.well.calcBoundingRect()
             # can be more precise by only using the list of in-well points instead of the whole well trajectory
 
         # normalize this rectangle
