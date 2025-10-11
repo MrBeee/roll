@@ -183,6 +183,7 @@ class SettingsDialog(QDialog):
         tip1 = 'Experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
         tip2 = 'Show summary information of underlying parameters in the property pane'
         tip3 = "Show functionality that hasn't been completed yet.\nWork in progress for the developer to finish !"
+        tip4 = 'Save well file names relative to .roll project file.\nThis makes moving the project folder easier.'
 
         misParams = [
             dict(
@@ -191,6 +192,7 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[
                     dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip1),
+                    dict(name='Use relative paths', type='bool', value=config.useRelativePaths, default=config.useRelativePaths, enabled=True, tip=tip4),
                     dict(name='Show summary properties', type='bool', value=config.showSummaries, default=config.showSummaries, enabled=haveNumba, tip=tip2),
                     dict(name='Show unfinished code', type='bool', value=config.showUnfinished, default=config.showUnfinished, enabled=True, tip=tip3),
                 ],
@@ -318,9 +320,9 @@ class SettingsDialog(QDialog):
             numba.config.DISABLE_JIT = not config.useNumba                      # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
             importlib.reload(sys.modules['roll.functions_numba'])               # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
 
+        config.useRelativePaths = MIS.child('Use relative paths').value()       # save well file names relative to .roll project file
         config.showUnfinished = MIS.child('Show unfinished code').value()       # show/hide "work in progress"
         config.showSummaries = MIS.child('Show summary properties').value()     # show/hide summary information in property pane
-
 
 def readSettings(self):
     # main window information
@@ -401,9 +403,9 @@ def readSettings(self):
             from roll import \
                 functions_numba  # pylint: disable=C0415, W0611 # load it for the first time
 
-    config.showUnfinished = self.settings.value('settings/misc/showUnfinished', False, type=bool)   # show unfinished code
-    config.showSummaries = self.settings.value('settings/misc/showSummaries', False, type=bool)     # show/hide summary information in property pane
-
+    config.useRelativePaths = self.settings.value('settings/misc/useRelativePaths', True, type=bool)    # save well file names relative to .roll project file
+    config.showUnfinished = self.settings.value('settings/misc/showUnfinished', False, type=bool)       # show unfinished code
+    config.showSummaries = self.settings.value('settings/misc/showSummaries', False, type=bool)         # show/hide summary information in property pane
 
 def writeSettings(self):
     # main window information

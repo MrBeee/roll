@@ -3427,22 +3427,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         for j in range(numRecentFiles, config.maxRecentFiles):
             self.recentFileActions[j].setVisible(False)
 
-    # SOFAR NOW; uopdate setDataAnaTableModel with chunking code
-    # def setDataAnaTableModel(self):
-    #     if self.output.D2_Output is not None and self.output.D2_Output.shape[0] > config.maxAnalysisRows:
-    #         # unfortunately the QTableView widget does not like too large a dataset, so we need to impose a limit to the allowable number of trace records
-    #         self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces; too large to display in Trace Table', MsgType.Error)
-    #         self.anaModel.setData(None)                                     # we can still use self.output.D2_Output and self.output.anaOutput; we just can't display the trace table
-    #     else:
-    #         self.anaModel.setData(self.output.D2_Output)                    # use this as the model data
-
     def setDataAnaTableModel(self):
         if self.output.D2_Output is None:
             self.anaModel.setData(None)
             return
 
         total_rows = self.output.D2_Output.shape[0]
-        chunk_size = min(config.maxAnalysisRows, 1_000_000)                       # Default chunk size or from config
+        chunk_size = config.maxRowsPerChunk                                     # Default chunk size from config
 
         if total_rows <= chunk_size:
             # Dataset is small enough to display directly
@@ -4063,12 +4054,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if not self.fileName:                                                   # need to have a valid filename first, and set the workingDirectory
             return self.fileSaveAs()
 
-        # DO NOT get the text from the textEdit widget, but from the survey object
-        # This allows for making the well file paths relative to the working directory
-        # plainText = self.textEdit.toPlainText()
-        # plainText = plainText.replace('\t', '    ')                             # replace any tabs (that might be caused by editing) by 4 spaces
-
-        self.survey.makeWellPathsRelative(self.workingDirectory)                # make well paths relative to working directory
+        if config.useRelativePaths:
+            self.survey.makeWellPathsRelative(self.workingDirectory)            # make well paths relative to working directory
 
         xml_text = self.survey.toXmlString(4)
 
