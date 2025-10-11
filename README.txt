@@ -11,8 +11,6 @@ What's Next:
   * Copy the entire directory containing your new plugin to the QGIS plugin
     directory
 
-  * Compile the resources file using pyrcc5
-
   * Run the tests (``make test``)
 
   * Test the plugin by enabling it in the QGIS plugin manager

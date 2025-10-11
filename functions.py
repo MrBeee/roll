@@ -9,11 +9,11 @@ try:    # need to TRY importing numba, only to see if it is available
 except ImportError:
     haveNumba = False
 
-try:    # need to TRY importing ptvsd, only to see if it is available
-    havePtvsd = True
-    import ptvsd  # pylint: disable=W0611
+try:    # need to TRY importing debugpy, only to see if it is available
+    haveDebugpy = True
+    import debugpy  # pylint: disable=W0611
 except ImportError as ie:
-    havePtvsd = False
+    haveDebugpy = False
 
 
 import configparser
@@ -30,7 +30,8 @@ import pyqtgraph as pg
 import rasterio as rio
 import wellpathpy as wp
 from qgis.core import QgsGeometry, QgsPointXY
-from qgis.PyQt.QtCore import PYQT_VERSION_STR, QT_VERSION_STR, QLineF, QPointF, QRectF, Qt
+from qgis.PyQt.QtCore import (PYQT_VERSION_STR, QT_VERSION_STR, QLineF,
+                              QPointF, QRectF, Qt)
 from qgis.PyQt.QtGui import QColor, QPen, QPolygonF, QTransform, QVector3D
 
 from . import config  # used to pass initial settings
@@ -773,7 +774,7 @@ def aboutText() -> str:
     pythonVersion = pythonVersionList[0]
 
     numbaVersion = numba.__version__ if haveNumba else 'not installed'
-    ptvsdVersion = ptvsd.__version__ if havePtvsd else 'not installed'
+    debugVersion = debugpy.__version__ if haveDebugpy else 'not installed'
 
     sourceUrl = "<a href='https://github.com/MrBeee/roll'>here</a>"
     sampleUrl = "<a href='https://github.com/MrBeee/roll_samples'>here</a>"
@@ -787,9 +788,9 @@ def aboutText() -> str:
         f'<li>Qt version: {QT_VERSION_STR} </li>'
         f'<li>PyQt version: {PYQT_VERSION_STR} </li></ul>'
         f'The following libraries are used: <ul>'
+        f'<li>Debugpy version: {debugVersion} </li>'
         f'<li>Numba version: {numbaVersion} </li>'
         f'<li>Numpy version: {np.__version__} </li>'
-        f'<li>Ptvsd version: {ptvsdVersion} </li>'
         f'<li>PyQtGraph version: {pg.__version__} </li>'
         f'<li>Rasterio version: {rio.__version__} </li>'
         f'<li>Wellpathpy version: {wp.__version__} </li></ul>'

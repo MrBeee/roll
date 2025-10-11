@@ -247,7 +247,7 @@ showSummaries = False
 # debug parameters in settings menu
 # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
 debug = False   # show debug messages in Logging pane
-ptvsd = False   # run worker threads in debug mode
+debugpy = False   # run worker threads in debug mode
 
 # max nr. rows QTableView can handle without 'hanging' QGIS
 # beyond this number the trace table model is reset to None

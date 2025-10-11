@@ -6,7 +6,8 @@ import pyqtgraph as pg
 from console import console
 from qgis.PyQt.QtCore import QStandardPaths, pyqtSignal
 from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QHeaderView, QVBoxLayout
+from qgis.PyQt.QtWidgets import (QDialog, QDialogButtonBox, QHeaderView,
+                                 QVBoxLayout)
 
 try:    # need to TRY importing numba, only to see if it is available
     haveNumba = True
@@ -14,11 +15,11 @@ try:    # need to TRY importing numba, only to see if it is available
 except ImportError:
     haveNumba = False
 
-try:    # need to TRY importing ptvsd, only to see if it is available
-    havePtvsd = True
-    import ptvsd  # pylint: disable=W0611
+try:    # need to TRY importing debugpy, only to see if it is available
+    haveDebugpy = True
+    import debugpy  # pylint: disable=W0611
 except ImportError as ie:
-    havePtvsd = False
+    haveDebugpy = False
 
 
 from . import config  # used to pass initial settings
@@ -164,7 +165,7 @@ class SettingsDialog(QDialog):
             ),
         ]
 
-        usePtvsd = config.ptvsd if havePtvsd else False
+        usePtvsd = config.debugpy if haveDebugpy else False
 
         dbgParams = [
             dict(
@@ -173,7 +174,7 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[  # Qt light blue background
                     dict(name='Debug logging', type='bool', value=config.debug, default=config.debug, enabled=True, tip='show debug messages in Logging pane'),
-                    dict(name='Debug plugin threads', type='bool', value=usePtvsd, default=usePtvsd, enabled=havePtvsd, tip='run plugin threads in debug mode using ptvsd'),
+                    dict(name='Debug plugin threads', type='bool', value=usePtvsd, default=usePtvsd, enabled=haveDebugpy, tip='run plugin threads in debug mode using debugpy'),
                 ],
             ),
         ]
@@ -309,7 +310,7 @@ class SettingsDialog(QDialog):
         # debug settings
         # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
         config.debug = DBG.child('Debug logging').value()
-        config.ptvsd = DBG.child('Debug plugin threads').value()
+        config.debugpy = DBG.child('Debug plugin threads').value()
 
         # miscellaneous settings
         config.useNumba = MIS.child('Use Numba').value()
@@ -379,7 +380,7 @@ def readSettings(self):
     # debug information
     # See: https://forum.qt.io/topic/108622/how-to-get-a-boolean-value-from-qsettings-correctly/8
     config.debug = self.settings.value('settings/debug/logging', False, type=bool)    # assume no debugging messages required
-    config.ptvsd = self.settings.value('settings/debug/ptvsd', False, type=bool)      # assume no debugging in main/worker threads
+    config.debugpy = self.settings.value('settings/debug/debugpy', False, type=bool)      # assume no debugging in main/worker threads
 
     if config.debug:
         if console._console is None:                                            # pylint: disable=W0212 # unfortunately need access to protected member
@@ -397,7 +398,8 @@ def readSettings(self):
         if 'roll.functions_numba' in sys.modules:                               # If already imported, reload; otherwise, import
             importlib.reload(sys.modules['roll.functions_numba'])               # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
         else:
-            from roll import functions_numba  # pylint: disable=C0415, W0611 # load it for the first time
+            from roll import \
+                functions_numba  # pylint: disable=C0415, W0611 # load it for the first time
 
     config.showUnfinished = self.settings.value('settings/misc/showUnfinished', False, type=bool)   # show unfinished code
     config.showSummaries = self.settings.value('settings/misc/showSummaries', False, type=bool)     # show/hide summary information in property pane
@@ -449,7 +451,7 @@ def writeSettings(self):
 
     # debug information
     self.settings.setValue('settings/debug/logging', config.debug)
-    self.settings.setValue('settings/debug/ptvsd', config.ptvsd)
+    self.settings.setValue('settings/debug/debugpy', config.debugpy)
 
     # miscellaneous information
     self.settings.setValue('settings/misc/useNumba', config.useNumba)

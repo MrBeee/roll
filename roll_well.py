@@ -17,7 +17,7 @@ class RollWell:
     # assign default name
     def __init__(self, name: str = '') -> None:
         # input variables
-        self.name = name                                                        # path to well file
+        self.name = name                                                        # (relative) path to well file
         self.errorText = None                                                   # text explaining which error occurred
 
         if config.surveyCrs is not None and config.surveyCrs.isValid():         # copy crs from project
@@ -45,6 +45,53 @@ class RollWell:
         # in the xml file, the seed origin is shown in the local survey coordinates
 
         # for self.lod0 See: https://python.hotexamples.com/examples/PyQt5.QtGui/QPainter/drawPolyline/python-qpainter-drawpolyline-method-examples.html
+
+    def makePathRelative(self, basePath: str):
+        """ convert self.name to a relative path upon saving the project """
+
+        try:
+            # Validate basePath
+            if not basePath:
+                return
+            basePath = os.path.normpath(os.path.abspath(basePath))
+            if not os.path.isdir(basePath):
+                return
+
+            if self.name is not None and os.path.exists(self.name):
+                self.name = os.path.relpath(self.name, basePath)
+            else:
+                self.name = None
+
+            # Validate current fileName
+            f = self.name
+            if not f:
+                self.name = None
+                return
+
+        except Exception:
+            # Be conservative on unexpected errors
+            self.name = None
+
+    def makePathAbsolute(self, basePath: str):
+        """ convert self.name to an absolute path upon loading the project """
+
+        try:
+            # Validate basePath
+            if not basePath:
+                return
+
+            basePath = os.path.normpath(os.path.abspath(basePath))
+            if not os.path.isdir(basePath):
+                return
+
+            if self.name is not None:
+                self.name = os.path.abspath(os.path.join(basePath, self.name))
+            else:
+                self.name = None
+
+        except Exception:
+            # Be conservative on unexpected errors
+            self.name = None
 
     def readHeader(self, surveyCrs, glbTransform):
         header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}

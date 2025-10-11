@@ -749,11 +749,13 @@ class MyBlockParameter(MyGroupParameter):
 
         self.block = RollBlock()
         self.block = opts.get('value', self.block)
+        directory = opts.get('directory', None)
+
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Source boundary', type='myRectF', value=self.block.borders.srcBorder, default=self.block.borders.srcBorder, flat=True, expanded=False))
             self.addChild(dict(name='Receiver boundary', type='myRectF', value=self.block.borders.recBorder, default=self.block.borders.recBorder, flat=True, expanded=False))
-            self.addChild(dict(name='Template list', type='myTemplateList', value=self.block.templateList, default=self.block.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m'))
+            self.addChild(dict(name='Template list', type='myTemplateList', value=self.block.templateList, default=self.block.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m', directory=directory))
 
         self.parS = self.child('Source boundary')
         self.parR = self.child('Receiver boundary')
@@ -891,10 +893,11 @@ class MyTemplateParameter(MyGroupParameter):
 
         template = RollTemplate()
         self.template = opts.get('value', template)
+        directory = opts.get('directory', None)
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Roll steps', type='myRollList', value=self.template.rollList, default=self.template.rollList, expanded=True, flat=True, decimals=d, suffix=s))
-            self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.template.seedList, default=self.template.seedList, brush='#add8e6', flat=True))
+            self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.template.seedList, default=self.template.seedList, brush='#add8e6', flat=True, directory=directory))
 
         self.parR = self.child('Roll steps')
         self.parS = self.child('Seed list')
@@ -1235,6 +1238,7 @@ class MySeedListParameter(MyGroupParameter):
 
         self.seedList = [RollSeed()]
         self.seedList = opts.get('value', self.seedList)
+        self.directory = opts.get('directory', None)
 
         if not isinstance(self.seedList, list):
             raise ValueError("Need 'list' instance at this point")
@@ -1245,7 +1249,7 @@ class MySeedListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for n, seed in enumerate(self.seedList):
-                self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m'))
+                self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory))
 
         self.sigContextMenu.connect(self.contextMenu)
 
@@ -1283,7 +1287,7 @@ class MySeedListParameter(MyGroupParameter):
             # self.insertChild(0, dict(name=newName, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
             self.seedList.append(seed)
-            self.addChild(dict(name=newName, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+            self.addChild(dict(name=newName, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory))
 
             self.sigAddNew.emit(self, name)
             self.sigValueChanging.emit(self, self.value())
@@ -1420,6 +1424,8 @@ class MySeedParameter(MyGroupParameter):
 
         self.seed = RollSeed()
         self.seed = opts.get('value', self.seed)
+        directory = opts.get('directory', None)
+
 
         d = opts.get('decimals', 7)
 
@@ -1444,7 +1450,7 @@ class MySeedParameter(MyGroupParameter):
 
             self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
             self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
-            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
+            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', directory=directory))   # , brush='#add8e6'
 
         self.parT = self.child('Seed type')
         self.parR = self.child('Source seed')
@@ -1859,31 +1865,20 @@ class MyWellParameter(MyGroupParameter):
 
         self.well = RollWell()
         self.well = opts.get('value', self.well)
+        directory = opts.get('directory', None)
 
         d = opts.get('decimals', 7)
 
-        self.settings = QSettings(config.organization, config.application)
-        directory = self.settings.value('settings/importDirectory', '')         # start folder for well selection
-
         nameFilter = 'Well files (*.wws *.well);;Deviation files [md,inc,azi] (*.wws);;OpendTect files [n,e,z,md] (*.well);;All files (*.*)'
         tip = 'SRD = Seismic Reference Datum; the horizontal surface at which TWT is assumed to be zero'
-        fileName = self.well.name if self.well.name is not None and os.path.exists(self.well.name) else None
+
+        #  don't do the following time-consuming check here, it is done in changedF()
+        # name = self.well.name if self.well.name is not None and os.path.exists(self.well.name) else None
+        f = self.well.name
 
         with self.treeChangeBlocker():
-            self.addChild(
-                dict(
-                    name='Well file',
-                    type='file',
-                    value=fileName,
-                    default=fileName,
-                    selectFile=fileName,
-                    acceptMode='AcceptOpen',
-                    fileMode='ExistingFile',
-                    viewMode='Detail',
-                    directory=directory,
-                    nameFilter=nameFilter,
-                )
-            )
+            self.addChild(dict(name='Well file', type='file', value=f, default=f, selectFile=f, acceptMode='AcceptOpen', directory=directory,
+                fileMode='ExistingFile', viewMode='Detail', nameFilter=nameFilter, tip='Select well file (wws or well format)'))
             self.addChild(dict(name='Well CRS', type='myCrs', value=self.well.crs, default=self.well.crs, expanded=False, flat=True))
             self.addChild(dict(name='Origin [well]', type='myPoint3D', value=self.well.origW, default=self.well.origW, decimals=d, expanded=False, flat=True, enabled=False, readonly=True))
             self.addChild(dict(name='Origin [global]', type='myPoint2D', value=self.well.origG, default=self.well.origG, decimals=d, expanded=False, flat=True, enabled=False, readonly=True))
@@ -1908,18 +1903,14 @@ class MyWellParameter(MyGroupParameter):
         self.parA.sigValueChanged.connect(self.changedA)
         self.parI.sigValueChanged.connect(self.changedI)
         self.parN.sigValueChanged.connect(self.changedN)
-
-        # todo improve well management; right now an error occurs during initialisation, resulting in a messagebeep
-        # self.changedF()                                                         # this will initialise 'value'
-
         QApplication.processEvents()
 
     def changedF(self):
         self.well.name = self.parF.value()                                      # file name has changed
 
-        if self.well.name is not None and os.path.isfile(self.well.name):       # do we have a valid file name and not 'None'
-            importDirectory = os.path.dirname(self.well.name)                   # retrieve the directory name from the well file
-            self.settings.setValue('settings/importDirectory', importDirectory)   # update the settings accordingly
+        # if self.well.name is not None and os.path.isfile(self.well.name):   # do we have a valid file name and not 'None'
+        #     importDirectory = os.path.dirname(self.well.name)                   # retrieve the directory name from the well file
+        #     self.settings.setValue('settings/importDirectory', importDirectory)     # update the settings accordingly
 
         success = self.well.readHeader(config.surveyCrs, config.glbTransform)
         if not success:
@@ -2131,6 +2122,8 @@ class MyBlockListParameter(MyGroupParameter):
         self.blockList = [RollBlock()]
         self.blockList = opts.get('value', self.blockList)
 
+        directory = opts.get('directory', None)
+
         if not isinstance(self.blockList, list):
             raise ValueError("Need 'BlockList' instance at this point")
 
@@ -2141,7 +2134,7 @@ class MyBlockListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for block in self.blockList:
-                self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(nBlocks == 1), renamable=True, flat=True, decimals=5, suffix='m'))
+                self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(nBlocks == 1), renamable=True, flat=True, decimals=5, suffix='m', directory=directory))
 
         self.sigContextMenu.connect(self.contextMenu)
         self.sigChildAdded.connect(self.onChildAdded)

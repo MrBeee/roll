@@ -11,9 +11,9 @@ version=0.4.9
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
+  <li><b>debugpy</b> (version 1.8.17) <i>if you want to debug worker threads</i> </li></ul>
   <li><b>numba</b> (version 0.60.0) Not strictly required, but it <i><b>significantly</b></i> speeds up calculations</li>
   <li><b>numpy</b> (version 1.26.4) <i>should already be installed</i> </li>
-  <li><b>ptvsd</b> (version 4.3.2) <i>if you want to debug worker threads</i> </li></ul>
   <li><b>pyqtgraph</b> (version 0.13.7) </li>
   <li><b>rasterio</b> (version 1.4.1) </li>
   <li><b>wellpathpy</b> (version 0.5.0) </li>

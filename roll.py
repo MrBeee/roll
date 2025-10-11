@@ -22,6 +22,8 @@
 """
 
 import os.path
+import re
+import shutil
 import sys
 import traceback
 
@@ -33,10 +35,10 @@ from qgis.PyQt.QtWidgets import QAction
 from . import config  # used to set up QSettings
 
 try:
-    havePtvsd = True
-    import ptvsd
+    haveDebugpy = True
+    import debugpy
 except ImportError as ie:
-    havePtvsd = False
+    haveDebugpy = False
 
 # Import statement to acces the main window
 from .roll_main_window import RollMainWindow
@@ -46,27 +48,79 @@ resource_dir = os.path.join(current_dir, 'resources')
 
 MESSAGE_CATEGORY = 'Messages'
 
-
 def enable_remote_debugging():
 
-    settings = QSettings(config.organization, config.application)               # needed here to access debug settings
-    config.ptvsd = settings.value('settings/debug/ptvsd', False, type=bool)     # default = False; assume no debugging in main/worker threads
+    # See: https://medium.com/@45364/debugging-qgis-plugin-using-vs-code-33319de9d638
+    # See: https://duijndam.dev/debugging-qgis-python-plugins/
+    # See: https://gist.github.com/AsgerPetersen/9ea79ae4139f4977c31dd6ede2297f90?permalink_comment_id=3482053
 
-    if havePtvsd is True and config.ptvsd is True:
+    # I don't know if you were able to solve this. But here is how I did it:
+
+    # Find your QGIS plugins folder, it generally is somewhere like:
+    # C:\Users\user\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins
+    # Look for debug_vs and open it's init.py file.
+    # Where debugpy is imported, add the line: self.debugpy.configure(python = 'python3')
+    # The result should look something like this:
+    #         import debugpy
+
+    #         self.debugpy = debugpy
+    #         self.debugpy.configure(python = 'python3')
+    # Reload the plugin (or QGIS altogether), it should work now.
+
+
+    settings = QSettings(config.organization, config.application)               # needed here to access debug settings
+    config.debugpy = settings.value('settings/debug/debugpy', False, type=bool)     # default = False; assume no debugging in main/worker threads
+
+    if not (haveDebugpy and config.debugpy):
+        return
+
+    # Configure Python interpreter
+    python_path = shutil.which("python")
+    if not python_path:
+        python_path = re.sub(r'[^/\\]+(?:\.exe)?$', 'python', sys.executable)
+
+    # Print current environment for debugging
+    print(f"Current directory   : {os.getcwd()}")
+    print(f"Module path         : {__file__}")
+    print(f"sys.executable      : {sys.executable}")
+    print(f"devised python path : {python_path}")
+    print(f"Python on PATH      : {shutil.which("python")}")
+    print(f"Python on PATH      : {shutil.which("python3")}")
+
+    try:
+        # This can help if you're running different Python versions
+        # Cross-platform method to replace executable with python
+
+        QgsMessageLog.logMessage(f"Configure debugpy with python path: {python_path}", MESSAGE_CATEGORY, Qgis.Info)
+        print(f"Configure debugpy with python path: {python_path}")
+
+        debugpy.configure(python=python_path)
 
         try:
-            if ptvsd.is_attached():
-                QgsMessageLog.logMessage('Remote Debug for Visual Studio is already active', MESSAGE_CATEGORY, Qgis.Info)
-                return
-            ptvsd.enable_attach(address=('localhost', 5678))
-            QgsMessageLog.logMessage('Attached remote Debug for Visual Studio', MESSAGE_CATEGORY, Qgis.Info)
-        except Exception as _:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            format_exception = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            QgsMessageLog.logMessage(repr(format_exception[0]), MESSAGE_CATEGORY, Qgis.Critical)
-            QgsMessageLog.logMessage(repr(format_exception[1]), MESSAGE_CATEGORY, Qgis.Critical)
-            QgsMessageLog.logMessage(repr(format_exception[2]), MESSAGE_CATEGORY, Qgis.Critical)
+            QgsMessageLog.logMessage("try to listen", MESSAGE_CATEGORY, Qgis.Info)
+            print("try to listen")
 
+            debugpy.listen(("localhost", 5678))
+
+            print("Debugpy server started, waiting for connection...")
+            # debugpy.wait_for_client()
+            # print("Debugger connected!")
+        except Exception as e:
+            # If listening fails, try to connect (client mode)
+            QgsMessageLog.logMessage(f"Couldn't start debugpy server: {e}", MESSAGE_CATEGORY, Qgis.Info)
+            print(f"Couldn't start debugpy server: {e}")
+
+            QgsMessageLog.logMessage("Trying to connect as client...", MESSAGE_CATEGORY, Qgis.Info)
+            print("Trying to connect as client...")
+
+            debugpy.connect(("localhost", 5678))
+
+            QgsMessageLog.logMessage("Connected to debugpy server!", MESSAGE_CATEGORY, Qgis.Info)
+            print("Connected to debugpy server!")
+    except Exception as e:
+        QgsMessageLog.logMessage(f"Could not configure debugpy: {e}", MESSAGE_CATEGORY, Qgis.Info)
+        print(f"Could not configure debugpy: {e}")
+    return
 
 class Roll:
     """QGIS Plugin Implementation."""

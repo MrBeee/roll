@@ -18,6 +18,13 @@
         }
     },
     "python.autoComplete.extraPaths": [
+        // extra stuff; not sure I need it. See: https://duijndam.dev/debugging-qgis-python-plugins/
+        "C:\\ProgramData\\QGIS\\QGIS3",
+        "C:\\Program Files\\QGIS 3.34.13\\bin",
+        "C:\\Program Files\\QGIS 3.34.13\\bin\\data",
+        "C:\\Program Files\\QGIS 3.34.13\\bin\\data\\QGIS\\QGIS3",
+        "C:\\Users\\BartD\\AppData\\Roaming\\QGIS\\QGIS3",
+
         "C:\\Program Files\\QGIS 3.34.13\\apps\\qgis-ltr\\python",
         "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312",
         "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\DLLs",
@@ -28,6 +35,13 @@
         "C:\\Users\\BartD\\AppData\\Roaming\\Python\\Python312\\site-packages"
     ],
     "python.analysis.extraPaths": [
+        // extra stuff; not sure I need it. See: https://duijndam.dev/debugging-qgis-python-plugins/
+        "C:\\ProgramData\\QGIS\\QGIS3",
+        "C:\\Program Files\\QGIS 3.34.13\\bin",
+        "C:\\Program Files\\QGIS 3.34.13\\bin\\data",
+        "C:\\Program Files\\QGIS 3.34.13\\bin\\data\\QGIS\\QGIS3",
+        "C:\\Users\\BartD\\AppData\\Roaming\\QGIS\\QGIS3",
+
         "C:\\Program Files\\QGIS 3.34.13\\apps\\qgis-ltr\\python",
         "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312",
         "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\DLLs",

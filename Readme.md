@@ -176,7 +176,7 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 | pyqtgraph  | 0.13.4          | Plotting of vector and raster data                           |
 | rasterio   | 1.3.9           | Export of figures as GeoTiff  files                          |
 | wellpathpy | 0.5.0           | Handle sensors  & sources in a well trajectory (VSPs etc.)   |
-| ptvsd      | 4.3.3           | Needed if you want to debug routines that run in a worker thread |
+| debugpy    | 1.8.7           | Needed if you want to debug routines that run in a worker thread |
 
 
 

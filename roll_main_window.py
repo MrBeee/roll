@@ -927,7 +927,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.actionPaste.setEnabled(self.clipboardHasText())
 
         self.updateMenuStatus(True)                                             # keep menu status in sync with program's state
-        # self.enableProcessingMenuItems(True)                                    # enables processing menu items except 'stop processing thread'; done in resetSurveyProperties()
+        # self.enableProcessingMenuItems(True)                                  # enables processing menu items except 'stop processing thread'; done in resetSurveyProperties()
 
         # make the main tab widget the central widget
         self.setCentralWidget(self.mainTabWidget)
@@ -937,7 +937,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.appendLogMessage(f'Plugin : Started on {platform.system()} {platform.release()} v({platform.version()})')  # log program start
 
-        self.parseText(exampleSurveyXmlText())
+        self.parseText(exampleSurveyXmlText())                                  # load an example survey in the textEdit
         self.textEdit.setPlainText(exampleSurveyXmlText())
         self.textEdit.moveCursor(QTextCursor.MoveOperation.Start)
 
@@ -1155,7 +1155,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             dict(brush=brush, name='Survey analysis', type='myAnalysis', value=copy, default=copy),
             dict(brush=brush, name='Survey reflectors', type='myReflectors', value=copy, default=copy),
             dict(brush=brush, name='Survey grid', type='myGrid', value=copy.grid, default=copy.grid),
-            dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList, default=copy.blockList),
+            dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList, default=copy.blockList, directory=self.workingDirectory),
+            # dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList, default=copy.blockList, directory=None),
             dict(brush=brush, name='Pattern list', type='myPatternList', value=copy.patternList, default=copy.patternList),
         ]
 
@@ -1256,7 +1257,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         copy.patternList = PAT.value()
 
         # first check survey integrity before committing to it.
-        if copy.checkIntegrity() is False:
+        if copy.checkIntegrity(self.workingDirectory) is False:
             return
 
         self.survey = copy.deepcopy()                                           # start using the updated survey object
@@ -2441,7 +2442,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.ruler = checked
         self.plotLayout()
 
-    def UpdateAllViews(self):
+    def UpdateAllViews(self):                                                   # re-parse the text in the textEdit, update the survey object, and replot the layout    
         plainText = self.textEdit.getTextViaCursor()                            # read complete file content, not affecting doc status
         success = self.parseText(plainText)                                     # parse the string & check if it went okay...
 
@@ -3287,7 +3288,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.resetNumpyArraysAndModels()                                    # empty all arrays and reset plot titles
 
             # start defining new survey
-            self.parseText(exampleSurveyXmlText())                              # read & parse xml string and create new survey object
+            self.parseText(exampleSurveyXmlText())                              # read & parse xml string and create new survey object (that does not contain well-seeds)
             self.textEdit.setPlainText(exampleSurveyXmlText())                  # copy xml content to text edit control
             self.resetSurveyProperties()                                        # get the new parameters into the parameter tree
             self.textEdit.moveCursor(QTextCursor.MoveOperation.Start)           # move cursor to front
@@ -3508,7 +3509,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.appendLogMessage(f'Parsing: {fileName}')                           # send status message
         success = self.parseText(plainText)                                     # parse the string; load the textEdit even if parsing fails !
 
-        self.appendLogMessage(f'Reading: {fileName}')                           # send status message
+        self.appendLogMessage(f'Reading: {fileName}, success: {success}', MsgType.Info if success else MsgType.Error)        # send status message
+
+        # in case the xml file was not succesfully parsed, we still load the text into the textEdit, to check its content
         self.textEdit.setPlainText(plainText)                                   # update plainText widget, and reset undo/redo & modified status
         self.resetNumpyArraysAndModels()                                        # empty all arrays and reset plot titles
 
@@ -3776,7 +3779,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # self.plotLayout()                                                     # plot the survey object
 
         self.resetSurveyProperties()                                            # get the new parameters into the parameter tree. Can be time consuming with many blocks and many seeds
-        self.survey.checkIntegrity()                                            # check for survey integrity after loading; in particular well file validity
+        self.survey.checkIntegrity(self.workingDirectory)                       # check for survey integrity after loading; in particular well file validity
 
         # self.appendLogMessage('RollMainWindow.parseText() profiling information', MsgType.Debug)
         # for i in range(0, 20):
@@ -4060,14 +4063,20 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if not self.fileName:                                                   # need to have a valid filename first, and set the workingDirectory
             return self.fileSaveAs()
 
-        plainText = self.textEdit.toPlainText()
-        plainText = plainText.replace('\t', '    ')                             # replace any tabs (that might be caused by editing) by 4 spaces
+        # DO NOT get the text from the textEdit widget, but from the survey object
+        # This allows for making the well file paths relative to the working directory
+        # plainText = self.textEdit.toPlainText()
+        # plainText = plainText.replace('\t', '    ')                             # replace any tabs (that might be caused by editing) by 4 spaces
+
+        self.survey.makeWellPathsRelative(self.workingDirectory)                # make well paths relative to working directory
+
+        xml_text = self.survey.toXmlString(4)
 
         file = QFile(self.fileName)
         success = file.open(QIODevice.OpenModeFlag.WriteOnly | QIODevice.OpenModeFlag.Truncate)
 
         if success:
-            _ = QTextStream(file) << plainText                                  # unused stream replaced by _ to make PyLint happy
+            _ = QTextStream(file) << xml_text                                  # unused stream replaced by _ to make PyLint happy
             self.appendLogMessage(f'Saved&nbsp;&nbsp;: {self.fileName}')
             self.textEdit.document().setModified(False)
             file.close()
@@ -4272,6 +4281,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.survey = RollSurvey()                                      # only reset the survey object upon succesful parse
                 self.survey.readXml(doc)                                        # build the RollSurvey object tree; no heavy lifting takes place here
                 self.survey.calcTransforms()                                    # (re)calculate the transforms being used; some work to to set up the plane using three points in the global space
+                self.survey.makeWellPathsAbsolute(self.workingDirectory)        # make well paths absolute, if they are not already. Used when loading a survey
                 self.survey.calcSeedData()                                      # needed for circles, spirals & well-seeds; may affect bounding box
                 self.survey.calcBoundingRect()                                  # (re)calculate the boundingBox as part of parsing the data
                 self.survey.calcNoShotPoints()                                  # (re)calculate nr of SPs

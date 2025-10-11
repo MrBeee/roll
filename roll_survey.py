@@ -2152,46 +2152,14 @@ class RollSurvey(pg.GraphicsObject):
                             seed.grid.growList.insert(0, RollTranslate())
 
                     elif seed.type == SeedType.well:                            # well site; check for errors
-                        f = seed.well.name                                      # check if well-file exists
+                        f_name = seed.well.name                                 # may be relative to workingDirectory
 
-                        # If a working directory is provided, store a relative path in the seed and
-                        # validate existence using a full (absolute) path.
-                        try:
-                            wd = workingDirectory
-                            if wd is not None:
-                                wd = os.path.abspath(wd)
-
-                                # Resolve to absolute path: if f is relative, make it relative to workingDirectory
-                                if f is not None:
-                                    abs_f = f if os.path.isabs(f) else os.path.abspath(os.path.join(wd, f))
-                                else:
-                                    abs_f = None
-
-                                # Store a relative path back into the seed when possible (keeps files portable)
-                                if abs_f is not None:
-                                    try:
-                                        rel_f = os.path.relpath(abs_f, start=wd)
-                                        seed.well.name = rel_f
-                                    except Exception:
-                                        # Different drive on Windows or other relpath failure; keep original name
-                                        pass
-
-                                # Use absolute path for existence check
-                                f = abs_f
-                            else:
-                                # No working directory: if f is relative, resolve against current process cwd
-                                if f is not None and not os.path.isabs(f):
-                                    f = os.path.abspath(f)
-                        except Exception:
-                            # Do not fail integrity check due to path manipulations; fall back to original f
-                            pass
-
-                        if f is None or not os.path.exists(f):
+                        if f_name is None or not os.path.exists(f_name):  # check if well file exists
                             QMessageBox.warning(None, e, f'A well-seed should point to an existing well-file\nRemove seed or adjust name in well-seed "{seed.name}"')
                             return False
 
                         if seed.well.errorText is not None:
-                            QMessageBox.warning(None, e, f'{seed.well.errorText} in well file:\n{f}\nRemove seed or correct error in well-seed "{seed.name}"')
+                            QMessageBox.warning(None, e, f'{seed.well.errorText} in well file:\n{f_name}\nRemove seed or correct error in well-seed "{seed.name}"')
                             return False
 
                         c = seed.well.crs                                       # check if crs is valid; not really needed already checked in RollWell
@@ -2253,6 +2221,22 @@ class RollSurvey(pg.GraphicsObject):
         for pattern in self.patternList:
             for seed in pattern.seedList:
                 seed.pointList = seed.grid.calcPointList(seed.origin)           # calculate the point list for all seeds
+
+    def makeWellPathsAbsolute(self, workingDirectory = None):
+        """ make well paths absolute, if they are not already. Used when loading a survey """
+        for block in self.blockList:
+            for template in block.templateList:
+                for seed in template.seedList:
+                    if seed.type == SeedType.well:
+                        seed.well.makePathAbsolute(workingDirectory)
+
+    def makeWellPathsRelative(self, workingDirectory = None):
+        """ make well paths relative, if possible. Used when saving a survey """
+        for block in self.blockList:
+            for template in block.templateList:
+                for seed in template.seedList:
+                    if seed.type == SeedType.well:
+                        seed.well.makePathRelative(workingDirectory)
 
     def createBasicSkeleton(self, nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=2):
 
