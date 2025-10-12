@@ -2696,6 +2696,9 @@ class RollSurvey(pg.GraphicsObject):
         Honors current LOD and PaintMode for deciding between outlines vs. detailed template painting.
         Returns True when fully done; False when more passes are needed. """
 
+        if self.paintMode == PaintMode.justBlocks: # nothing to do here
+            return True
+
         vb: QRectF = self.viewRect()
         lod = option.levelOfDetailFromTransform(p.worldTransform()) * self.lodScale
 

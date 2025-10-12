@@ -774,7 +774,7 @@ def aboutText() -> str:
     pythonVersion = pythonVersionList[0]
 
     numbaVersion = numba.__version__ if haveNumba else 'not installed'
-    debugVersion = debugpy.__version__ if haveDebugpy else 'not installed'
+    dbgPyVersion = debugpy.__version__ if haveDebugpy else 'not installed'
 
     sourceUrl = "<a href='https://github.com/MrBeee/roll'>here</a>"
     sampleUrl = "<a href='https://github.com/MrBeee/roll_samples'>here</a>"
@@ -788,7 +788,7 @@ def aboutText() -> str:
         f'<li>Qt version: {QT_VERSION_STR} </li>'
         f'<li>PyQt version: {PYQT_VERSION_STR} </li></ul>'
         f'The following libraries are used: <ul>'
-        f'<li>Debugpy version: {debugVersion} </li>'
+        f'<li>Debugpy version: {dbgPyVersion} </li>'
         f'<li>Numba version: {numbaVersion} </li>'
         f'<li>Numpy version: {np.__version__} </li>'
         f'<li>PyQtGraph version: {pg.__version__} </li>'

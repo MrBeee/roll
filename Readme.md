@@ -2,7 +2,23 @@
 
 ### Seismic survey design plugin for QGIS
 
-#### 1	Introduction
+#### 1	Preamble, external dependencies
+
+Roll depends on the following Python libraries that need to be installed separately 
+In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'```,  where --upgrade forces the installation of the latest version
+
+| Library    | Minimum Version | Description (purpose)                                        |
+| :--------- | :-------------- | :----------------------------------------------------------- |
+| debugpy    | 1.8.17          | Needed if you want to debug routines that run in a worker thread |
+| numba      | 0.62.1          | ***Significantly*** speed up some numpy calculations         |
+| numpy      | 1.26.24         | Array and matrix manipulation                                |
+| pyqtgraph  | 0.13.7          | Plotting of vector and raster data                           |
+| rasterio   | 1.4.1           | Export of figures as GeoTiff  files                          |
+| wellpathpy | 0.5.0           | Handle sensors  & sources in a well trajectory (VSPs etc.)   |
+
+
+
+#### 2	Introduction
 
 **Roll** is a plugin aimed at designing 3D seismic survey geometries, using a template based approach.
 
@@ -118,7 +134,7 @@ The interface still requires a few tweaks, but as of version 3.3.3 Roll is no lo
 
 
 
-#### 2	Import of SPS data
+#### 3	Import of SPS data
 
 If (legacy) SPS data is available, this can be imported from the file menu, and is treated the same as the internally generated geometry files. This makes it handy to analyze survey performance based solely on SPS-data. This SPS data can also be exported as shapefiles to the current QGIS project.
 
@@ -153,7 +169,9 @@ The user can expand this list with new SPS 'flavors', by defining new 'point' an
 
 **Currently**, it is also possible to start a new (blank) project by ***importing SPS data***, thereby selecting the correct CRS, and defining the local survey grid, before source and receiver points are exported to QGIS, in the same way as is done with the geometry files. This means you can work from ***standalone SPS data***, import this into Roll for analysis, and visualize the point locations in QGIS. Hopefully this makes the plugin more versatile.
 
-#### 3	Editing a survey file
+
+
+#### 4	Editing a survey file
 
 As it is cumbersome to manipulate xml-data directly, the user is helped at two levels:
 
@@ -164,23 +182,13 @@ But in case you get very familiar with the xml-structure, you could also edit th
 
 
 
-#### 4	External dependencies
+#### 5	Interaction with QGIS
 
-Roll depends on the following Python libraries that need to be installed separately 
-In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'```,  where --upgrade forces the installation of the latest version
-
-| Library    | Minimum Version | Description (purpose)                                        |
-| :--------- | :-------------- | :----------------------------------------------------------- |
-| numba      | 0.59.1          | ***Significantly*** speed up some numpy calculations         |
-| numpy      | 1.26.24         | Array and matrix manipulation                                |
-| pyqtgraph  | 0.13.4          | Plotting of vector and raster data                           |
-| rasterio   | 1.3.9           | Export of figures as GeoTiff  files                          |
-| wellpathpy | 0.5.0           | Handle sensors  & sources in a well trajectory (VSPs etc.)   |
-| debugpy    | 1.8.7           | Needed if you want to debug routines that run in a worker thread |
+The generated Geometry points, the imported SPS data, as well as the analysis plots can all be exported to QGIS. In QGIS, source- and receiver points can be moved, deleted, or marked as 'inactive'. These modifications can be loaded back into Roll, for a renewed analysis.   This process is described in much more detail in an html file, accessible from the Help menu in Roll.
 
 
 
-#### 5	Status
+#### 6	Status
 
 On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll). Initial release on the QGIS plugin website occurred on 13 March 2024.
 
@@ -190,8 +198,17 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 
 
-#### 6	Changelog
+#### 7	Changelog
 
+- 2025-09-22 (0.5.0) Some significant changes; 
+  - progressive painting, keeps user interface alive while painting large survey objects; 
+  - debugging uses Debugpy instead of Debugvs; 
+  - well files accessed through relative paths
+
+- 2025-09-22 (0.4.9) Small bug fixes related to using - *or not using* - numba
+- 2025-09-19 (0.4.8) Use chunked data-access when using very large memory-mapped analysis files
+- 2025-09-17 (0.4.7) Removed a bug that caused QGIS to crash, when using very large memory-mapped analysis files
+- 2025-09-12 (0.4.6) The code has been reformatted to be compatible with Qt6. It should still be backwards compatible with Qt5  
 - 2025-06-09 (0.4.5) Accept projects that are created from SPS-data only (i.e. projects that are not template-based)
 - 2025-06-01 (0.4.4) changed the way SPS source points are shown in QGIS: (point, line) has become (line, point) except for parallel/NAZ surveys
 - 2025-05-11 (0.4.3) several improvements in transferring data from Roll to QGis and vice versa. Created html help page in help menu
@@ -224,13 +241,12 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 
 
-#### 7	To Do
+#### 8	To Do
 
 - Improve handling of SPS data
 - Related to this, improve the interface with QGIS to manipulate SPS data
 - Make processing of Geometry & SPS data more robust
-- Improve speed of loading large parameter sets in the Property pane (*mainly affecting streamer surveys, using fanning*)
 - Improve Roll's analysis capabilities
-- Use multiprocessing instead of a worker thread to speed up background tasks
+- Use multiprocessing instead of a single worker thread to speed up background tasks
 - Consider using a relational database instead of numpy arrays for geometry tables
 

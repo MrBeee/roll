@@ -76,6 +76,12 @@ Note: To find out where libraries reside, use 'inspect':
 # see also: https://stackoverflow.com/questions/70399219/pyqt6-qtdesigner-compatibility-with-pyqt5
 # see also: https://stackoverflow.com/questions/72086632/migrating-to-qt6-pyqt6-what-are-all-the-deprecated-short-form-names-in-qt5
 
+try:    # need to TRY importing numba, only to see if it is available
+    haveNumba = True
+    import numba  # pylint: disable=W0611
+except ImportError:
+    haveNumba = False
+
 import contextlib
 import gc
 import os
@@ -167,8 +173,9 @@ class MsgType(Enum):
     Binning = 1
     Geometry = 2
     Debug = 3
-    Error = 4
-    Exception = 5
+    Warning = 4
+    Error = 5
+    Exception = 6   
 
 
 class Direction(Enum):
@@ -936,6 +943,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.statusbar.addPermanentWidget(self.posWidgetStatusbar, stretch=0)   # widget in bottomright corner of statusbar
 
         self.appendLogMessage(f'Plugin : Started on {platform.system()} {platform.release()} v({platform.version()})')  # log program start
+        if haveNumba:
+            self.appendLogMessage(f'Library: Numba version {numba.__version__} available for JIT acceleration')
+            if numba.__version__ < '0.62.1':
+                self.appendLogMessage('Library: Numba version is not the latest version, consider upgrading to v0.62.1', MsgType.Warning)
+            if config.useNumba:
+                self.appendLogMessage('Library: Numba is enabled, running in JIT mode')
+        else:
+            self.appendLogMessage('Library: Numba not available, running pure Python code only', MsgType.Warning)
+
+        if pg.__version__ < '0.13.7':
+            self.appendLogMessage(f'Library: Pyqtgraph version {pg.__version__} detected, consider upgrading to the latest version', MsgType.Warning)
 
         self.parseText(exampleSurveyXmlText())                                  # load an example survey in the textEdit
         self.textEdit.setPlainText(exampleSurveyXmlText())
@@ -1581,7 +1599,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
                 # Inform user if not all traces for this bin are visible
                 if available_rows < fold:
-                    self.appendLogMessage(f'Note&nbsp;&nbsp;: Only {available_rows} of {fold} traces for this bin are visible in the current chunk', MsgType.Error)
+                    self.appendLogMessage(f'Note&nbsp;&nbsp;: Only {available_rows} of {fold} traces for this bin are visible in the current chunk', MsgType.Warning)
 
         else:    # Original non-chunked behavior
             index = self.anaView.model().index(global_offset, 0)                # turn offset into index object
@@ -4239,12 +4257,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # use &nbsp; (non-breaking-space) to prevent html eating up subsequent spaces !
         switch = {  # see: https://doc.qt.io/qt-6/qcolor.html
-            MsgType.Info: f'<p>{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;info&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',  # info     = black
-            MsgType.Binning: f'<p style="color:blue" >{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binning&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',  # Binning  = blue
-            MsgType.Geometry: f'<p style="color:green">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;geometry&nbsp;&nbsp;&nbsp;{message}</p>',  # Geometry = green
-            MsgType.Debug: f'<p style="color:darkCyan">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;debug&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Called : {message}</p>',  # Debug    = darkCyan
-            MsgType.Error: f'<p style="color:red">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',  # eRror    = red
-            MsgType.Exception: f'<p style="color:red">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception&nbsp;&nbsp;{message}</p>',  # exception= bold red
+            MsgType.Info:       f'<p>{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;info&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',            # info     = black
+            MsgType.Binning:    f'<p style="color:blue" >{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binning&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',    # Binning  = blue
+            MsgType.Geometry:   f'<p style="color:green">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;geometry&nbsp;&nbsp;&nbsp;{message}</p>',        # Geometry = green
+            MsgType.Debug:      f'<p style="color:darkCyan">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;debug&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Called : {message}</p>',  # Debug    = darkCyan
+            MsgType.Warning:    f'<p style="color:magenta">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;warning&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',  # Warning  = magenta
+            MsgType.Error:      f'<p style="color:red">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',  # Error     = red
+            MsgType.Exception:  f'<p style="color:red">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception&nbsp;&nbsp;{message}</p>',                  # exception = bold red
         }
 
         self.logEdit.appendHtml(switch.get(index, 'Unknown Message type'))      # Adds the message to the widget

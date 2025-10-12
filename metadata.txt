@@ -7,14 +7,14 @@ name=Roll
 qgisMinimumVersion=3.28
 supportsQt6=True
 description=Design and analysis of 3D seismic survey geometries
-version=0.4.9
+version=0.5.0
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
-  <li><b>debugpy</b> (version 1.8.17) <i>if you want to debug worker threads</i> </li></ul>
-  <li><b>numba</b> (version 0.60.0) Not strictly required, but it <i><b>significantly</b></i> speeds up calculations</li>
-  <li><b>numpy</b> (version 1.26.4) <i>should already be installed</i> </li>
-  <li><b>pyqtgraph</b> (version 0.13.7) </li>
+  <li><b>debugpy</b> (version 1.8.17) <i>if you want to debug GUI- and worker threads</i> </li></ul>
+  <li><b>numba</b> (version 0.62.1) Not strictly required, but it <i><b>significantly</b></i> speeds up calculations</li>
+  <li><b>numpy</b> (version 1.26.4) <i>should already be installed by QGIS installation</i> </li>
+  <li><b>pyqtgraph</b> (version 0.13.7) or higher</li>
   <li><b>rasterio</b> (version 1.4.1) </li>
   <li><b>wellpathpy</b> (version 0.5.0) </li>
   <p>Please install these packages <b>first</b>, using pip from the OSGeo4W command prompt (on Windows)
@@ -29,12 +29,12 @@ about:<p>This plugin is intended to create and analyze 3D seismic survey geometr
   <li>Packages newer than those listed above may have bug fixes (nice) or incompatibilities (not so nice) </li>
   <li>The plugin has not (yet) been tested on Linux or macOS </li>
   <li>The plugin works best on a QHD Screen (2560 x 1440 pixels) or larger </li>
-  <li>As of V3.32 High DPI UI scaling issues have arisen in QGIS. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a> </li> 
-  <li>As of version 3.34.6, QGIS upgraded Python from v3.9 to to v3.12 This speeds up calculations and solves some security issues. </li>
+  <li>As of QGIS v3.32, High-DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a> </li> 
+  <li>As of version 3.34.6, QGIS upgraded Python from v3.9 to to v3.12 This speeds up calculations and solves some security issues.
   But when <i>upgrading</i> from an earlier QGIS version, it requires installing the above listed packages <b><i>again.</b></i> </li></ul>
   <p>
   <p>As of version 0.4.6 the plugin is <i>(well, should be)</i> compatible with Qt6. Tests are ongoing.
-  <p>Therefore the plugin should function with QGIS v3.40 onwards, linked with Qt6 (<i>experimental</i>)
+  <p>Therefore the plugin should function with QGIS v3.40 onwards, linked with Qt6 (<i>experimental</i>) and with Qt6 the High DPI scaling issues have been resolved
 
 
 tracker=https://github.com/MrBeee/roll/issues
@@ -44,7 +44,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:  <p>2025-09-22 (0.4.9) Small bug fixes related to using - or not using - numba
+changelog:  <p>2025-09-22 (0.5.0) Some significant changes; progressive painting, keeps UI alive with large survey objects; debugging with Debugpy instead of Debugvs; Well files accessed through relative paths
+  <p>2025-09-22 (0.4.9) Small bug fixes related to using - or not using - numba
   <p>2025-09-19 (0.4.8) Use chunked data-access when using very large memory-mapped analysis files
   <p>2025-09-17 (0.4.7) Removed a bug that caused QGIS to crash, when using very large memory-mapped analysis files
   <p>2025-09-12 (0.4.6) The code has been reformatted to be compatible with Qt6. It should still be backwards compatible with Qt5

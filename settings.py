@@ -165,7 +165,7 @@ class SettingsDialog(QDialog):
             ),
         ]
 
-        usePtvsd = config.debugpy if haveDebugpy else False
+        useDebugpy = config.debugpy if haveDebugpy else False
 
         dbgParams = [
             dict(
@@ -174,7 +174,7 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[  # Qt light blue background
                     dict(name='Debug logging', type='bool', value=config.debug, default=config.debug, enabled=True, tip='show debug messages in Logging pane'),
-                    dict(name='Debug plugin threads', type='bool', value=usePtvsd, default=usePtvsd, enabled=haveDebugpy, tip='run plugin threads in debug mode using debugpy'),
+                    dict(name='Debug plugin threads', type='bool', value=useDebugpy, default=useDebugpy, enabled=haveDebugpy, tip='run plugin threads in debug mode using debugpy'),
                 ],
             ),
         ]
