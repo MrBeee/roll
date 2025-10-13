@@ -395,7 +395,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.settings = QSettings(config.organization, config.application)
         self.fileName = ''
-        self.workingDirectory = ''
+        self.projectDirectory = ''
         self.importDirectory = ''
 
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -1173,8 +1173,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             dict(brush=brush, name='Survey analysis', type='myAnalysis', value=copy, default=copy),
             dict(brush=brush, name='Survey reflectors', type='myReflectors', value=copy, default=copy),
             dict(brush=brush, name='Survey grid', type='myGrid', value=copy.grid, default=copy.grid),
-            dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList, default=copy.blockList, directory=self.workingDirectory),
-            # dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList, default=copy.blockList, directory=None),
+            dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList, default=copy.blockList, directory=self.projectDirectory),
             dict(brush=brush, name='Pattern list', type='myPatternList', value=copy.patternList, default=copy.patternList),
         ]
 
@@ -1275,7 +1274,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         copy.patternList = PAT.value()
 
         # first check survey integrity before committing to it.
-        if copy.checkIntegrity(self.workingDirectory) is False:
+        if copy.checkIntegrity(self.projectDirectory) is False:
             return
 
         self.survey = copy.deepcopy()                                           # start using the updated survey object
@@ -3150,8 +3149,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             # self.writeSettings()                                              # save geometry and state of window(s)
             writeSettings(self)                                                 # save geometry and state of window(s)
 
-            if self.workingDirectory and os.path.isdir(self.workingDirectory):  # append information to log file in working directory
-                logFile = os.path.join(self.workingDirectory, '.roll.log')      # join directory & log file name
+            if self.projectDirectory and os.path.isdir(self.projectDirectory):  # append information to log file in working directory
+                logFile = os.path.join(self.projectDirectory, '.roll.log')      # join directory & log file name
                 with open(logFile, 'a+', encoding='utf-8') as file:             # append (a) information to a logfile, or create a new logfile (a+) if it does not yet exist
                     file.write(self.logEdit.toPlainText())                      # get text from logEdit
                     file.write('+++\n\n')                                       # closing remarks
@@ -3788,7 +3787,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # self.plotLayout()                                                     # plot the survey object
 
         self.resetSurveyProperties()                                            # get the new parameters into the parameter tree. Can be time consuming with many blocks and many seeds
-        self.survey.checkIntegrity(self.workingDirectory)                       # check for survey integrity after loading; in particular well file validity
+        self.survey.checkIntegrity(self.projectDirectory)                       # check for survey integrity after loading; in particular well file validity
 
         # self.appendLogMessage('RollMainWindow.parseText() profiling information', MsgType.Debug)
         # for i in range(0, 20):
@@ -4051,15 +4050,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             fn, _ = QFileDialog.getOpenFileName(
                 self,  # self; that's me
                 'Open File...',  # caption
-                self.workingDirectory,  # start directory + filename
+                self.projectDirectory,  # start directory + filename
                 'Survey files (*.roll);; All files (*.*)'  # file extensions
                 # options                                                       # not being used
             )
             if fn:
-                self.workingDirectory = os.path.dirname(fn)                     # retrieve the directory name
+                self.projectDirectory = os.path.dirname(fn)                     # retrieve the directory name
 
-                # sync workingDirectory to settings, so it is available outside of RollMainWindow
-                self.settings.setValue('settings/workingDirectory', self.workingDirectory)
+                # sync projectDirectory to settings, so it is available outside of RollMainWindow
+                self.settings.setValue('settings/projectDirectory', self.projectDirectory)
 
                 self.fileLoad(fn)                                               # load() does all the hard work
 
@@ -4069,11 +4068,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.fileLoad(action.data())
 
     def fileSave(self):
-        if not self.fileName:                                                   # need to have a valid filename first, and set the workingDirectory
+        if not self.fileName:                                                   # need to have a valid filename first, and set the projectDirectory
             return self.fileSaveAs()
 
         if config.useRelativePaths:
-            self.survey.makeWellPathsRelative(self.workingDirectory)            # make well paths relative to working directory
+            self.survey.makeWellPathsRelative(self.projectDirectory)            # make well paths relative to working directory
 
         xml_text = self.survey.toXmlString(4)
 
@@ -4131,7 +4130,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         return success
 
     def fileSaveAs(self):
-        fileName = os.path.join(self.workingDirectory, self.survey.name)        # join dir & survey name, as proposed file path
+        fileName = os.path.join(self.projectDirectory, self.survey.name)        # join dir & survey name, as proposed file path
         fn, _ = QFileDialog.getSaveFileName(
             self,  # that's me
             'Save as...',  # dialog caption
@@ -4287,7 +4286,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.survey = RollSurvey()                                      # only reset the survey object upon succesful parse
                 self.survey.readXml(doc)                                        # build the RollSurvey object tree; no heavy lifting takes place here
                 self.survey.calcTransforms()                                    # (re)calculate the transforms being used; some work to to set up the plane using three points in the global space
-                self.survey.makeWellPathsAbsolute(self.workingDirectory)        # make well paths absolute, if they are not already. Used when loading a survey
+                self.survey.makeWellPathsAbsolute(self.projectDirectory)        # make well paths absolute, if they are not already. Used when loading a survey
                 self.survey.calcSeedData()                                      # needed for circles, spirals & well-seeds; may affect bounding box
                 self.survey.calcBoundingRect()                                  # (re)calculate the boundingBox as part of parsing the data
                 self.survey.calcNoShotPoints()                                  # (re)calculate nr of SPs

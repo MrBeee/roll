@@ -1,0 +1,25 @@
+<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
+<li><b>debugpy</b> (version 1.8.17) <i>if you want to debug GUI- and worker threads</i> </li>
+<li><b>numba</b> (version 0.62.1) Not strictly required, but it <i><b>significantly</b></i> speeds up calculations</li>
+<li><b>numpy</b> (version 1.26.4) <i>should already be installed by QGIS installation</i> </li>
+<li><b>pyqtgraph</b> (version 0.13.7) or higher</li>
+<li><b>rasterio</b> (version 1.4.1) </li>
+<li><b>wellpathpy</b> (version 0.5.0) </li></ul>
+<p>Please install these packages <b>first</b>, using pip from the OSGeo4W command prompt (on Windows)
+<p>Use <b>pip list</b> to detect which packages and versions have already been installed. (E.g. numpy should already be installed)
+<p>Start with installing rasterio (it has quite a few dependencies), followed by numba, pyqtgraph and wellpathpy in that order
+<p>Usage: <b> python -m pip install {package_name}=={package_version}</b>
+<p>
+<p>Whereby rasterio will install (requires) affine, attrs, certifi, chardet, charset-normalizer, click, click-plugins, cligj, and colorama
+<p>And numba will install the llvmlite bindings for the llvm JIT compiler
+<p>
+<p>Please take note:<ul>
+<li>Packages newer than those listed above may have bug fixes (nice) or incompatibilities (not so nice) </li>
+<li>The plugin has not (yet) been tested on Linux or macOS </li>
+<li>The plugin works best on a QHD Screen (2560 x 1440 pixels) or larger </li>
+<li>As of QGIS v3.32, High-DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a> </li>
+<li>As of version 3.34.6, QGIS upgraded Python from v3.9 to to v3.12 This speeds up calculations and solves some security issues.
+But when <i>upgrading</i> from an earlier QGIS version, it requires installing the above listed packages <b><i>again.</b></i> </li></ul>
+<p>
+<p>As of version 0.4.6 the plugin is <i>(well, should be)</i> compatible with Qt6. Tests are ongoing.
+<p>Therefore the plugin should function with QGIS v3.40 onwards, linked with Qt6 (<i>experimental</i>) and with Qt6 the High DPI scaling issues have been resolved
