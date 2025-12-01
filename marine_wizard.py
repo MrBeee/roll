@@ -14,16 +14,26 @@ import numpy as np
 import pyqtgraph as pg
 from qgis.gui import QgsProjectionSelectionTreeWidget
 from qgis.PyQt.QtCore import QRectF, QRegularExpression
-from qgis.PyQt.QtGui import QColor, QImage, QPixmap, QRegularExpressionValidator, QTextOption, QTransform
-from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QSizePolicy, QSpinBox, QVBoxLayout, QWizard, QWizardPage
+from qgis.PyQt.QtGui import (QColor, QImage, QPixmap,
+                             QRegularExpressionValidator, QTextOption,
+                             QTransform)
+from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QFrame,
+                                 QGridLayout, QLabel, QLineEdit, QMessageBox,
+                                 QPlainTextEdit, QSizePolicy, QSpinBox,
+                                 QVBoxLayout, QWizard, QWizardPage)
 
 from . import config  # used to pass initial settings
-from .functions import even, intListToString, knotToMeterperSec, lineturnDetour, maxCableLengthVsTurnSpeed, maxTurnSpeedVsCableLength, myPrint, newtonToTonForce, rotatePoint2D, stringToIntList, tonForceToNewton
+from .functions import (even, intListToString, knotToMeterperSec,
+                        lineturnDetour, maxCableLengthVsTurnSpeed,
+                        maxTurnSpeedVsCableLength, myPrint, newtonToTonForce,
+                        rotatePoint2D, stringToIntList, tonForceToNewton)
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
-from .roll_survey import PaintDetails, PaintMode, RollSurvey, SurveyList, SurveyType
+from .roll_survey import (PaintDetails, PaintMode, RollSurvey, SurveyList,
+                          SurveyType)
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
+resource_dir = os.path.join(current_dir, 'resources')
 
 
 class QHLine(QFrame):
@@ -83,7 +93,7 @@ class MarineSurveyWizard(SurveyWizard):
         self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
 
         # self.setOption(QWizard.IndependentPages , True) # Don't use this option as fields are no longer updated !!! Make dummy cleanupPage(self) instead
-        logo_image = QImage(os.path.join(current_dir, 'icon.png'))
+        logo_image = QImage(os.path.join(resource_dir, 'icon.png'))
         self.setPixmap(QWizard.WizardPixmap.LogoPixmap, QPixmap.fromImage(logo_image))
 
 
@@ -579,9 +589,6 @@ class Page_2(SurveyWizardPage):
         self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
         self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
         self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
-
-        # self.plotWidget.getViewBox().sigRangeChangedManually.connect(
-        #     self.mouseBeingDragged)                                             # essential to find plotting state for LOD plotting
 
         self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
         self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
@@ -1774,9 +1781,6 @@ class Page_5(SurveyWizardPage):
         self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
         self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
 
-        # self.plotWidget.getViewBox().sigRangeChangedManually.connect(
-        #     self.mouseBeingDragged)                                             # essential to find plotting state for LOD plotting
-
         self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
         self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
 
@@ -2283,9 +2287,6 @@ class Page_6(SurveyWizardPage):
         self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
         self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
 
-        # self.plotWidget.getViewBox().sigRangeChangedManually.connect(
-        #     self.mouseBeingDragged)                                             # essential to find plotting state for LOD plotting
-
         self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
         self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
 
@@ -2617,9 +2618,6 @@ class Page_8(SurveyWizardPage):
         self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
         self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
         self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
-
-        # self.plotWidget.getViewBox().sigRangeChangedManually.connect(
-        #     self.mouseBeingDragged)                                             # essential to find plotting state for LOD plotting
 
         self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
         self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on

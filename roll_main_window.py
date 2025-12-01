@@ -82,6 +82,12 @@ try:    # need to TRY importing numba, only to see if it is available
 except ImportError:
     haveNumba = False
 
+try:    # need to TRY importing debugpy, only to see if it is available
+    haveDebugpy = True
+    import debugpy  # pylint: disable=W0611
+except ImportError as ie:
+    haveDebugpy = False
+
 import contextlib
 import gc
 import os
@@ -175,7 +181,7 @@ class MsgType(Enum):
     Debug = 3
     Warning = 4
     Error = 5
-    Exception = 6   
+    Exception = 6
 
 
 class Direction(Enum):
@@ -454,7 +460,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.tbTemplat.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbRecList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbSrcList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
-        self.tbTemplat.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbRpsList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbSpsList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbAllList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
@@ -792,7 +797,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.textEdit.cursorPositionChanged.connect(self.cursorPositionChanged)         # to show cursor position in statusbar
 
         self.layoutWidget.scene().sigMouseMoved.connect(self.MouseMovedInPlot)
-        self.layoutWidget.getViewBox().sigRangeChangedManually.connect(self.mouseBeingDragged)  # essential to find plotting state for LOD plotting
         self.layoutWidget.plotItem.sigRangeChanged.connect(self.layoutRangeChanged)     # to handle changes in tickmarks when zooming
 
         # the following actions are related to the plotWidget
@@ -951,6 +955,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage('Library: Numba is enabled, running in JIT mode')
         else:
             self.appendLogMessage('Library: Numba not available, running pure Python code only', MsgType.Warning)
+
+        if not haveDebugpy:
+            self.appendLogMessage('Library: Debugpy not available, (remote) debugging will not work', MsgType.Warning)
 
         if pg.__version__ < '0.13.7':
             self.appendLogMessage(f'Library: Pyqtgraph version {pg.__version__} detected, consider upgrading to the latest version', MsgType.Warning)
@@ -1179,10 +1186,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.parameters = pg.parametertree.Parameter.create(name='Survey Properties', type='group', children=surveyParams)
         self.parameters.sigTreeStateChanged.connect(self.propertyTreeStateChanged)
-
-        # todo: fix this; this is the most time consuming step, loading a new survey with several blocks,
-        # A marine survey contains many templates and many, many more seeds.
-        # self.paramTree.setParameters(self.parameters, showTop=False)
 
         # Block signals to speed up parameter tree setup
         self.paramTree.blockSignals(True)
@@ -2158,9 +2161,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.plotLayout()
 
-    def mouseBeingDragged(self):                                                # essential for LOD plotting whilst moving the survey object around
-        self.survey.mouseGrabbed = True
-
     def exceptionHook(self, eType, eValue, eTraceback):
         """Function handling uncaught exceptions. It is triggered each time an uncaught exception occurs."""
         if issubclass(eType, KeyboardInterrupt):
@@ -2427,29 +2427,29 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.rulerState = None
 
-        if False:                                                          # provide some debugging output on the applied transform; use "if self.debug:" to enable
-            # Get the transform that maps from local coordinates to the item's ViewBox coordinates
-            transform = self.survey.glbTransform                                # GraphicsItem method
-            if transform is not None:
-                s1 = f'm11 ={transform.m11():12.6f},   m12 ={transform.m12():12.6f},   m13 ={transform.m13():12.6f} » [A1, B1, ...]'
-                s2 = f'm21 ={transform.m21():12.6f},   m22 ={transform.m22():12.6f},   m23 ={transform.m23():12.6f} » [A2, B2, ...]'
-                s3 = f'm31 ={transform.m31():12.6f},   m32 ={transform.m32():12.6f},   m33 ={transform.m33():12.6f} » [A0, B0, ...]<br>'
+        # if False:                                                          # provide some debugging output on the applied transform; use "if self.debug:" to enable
+        #     # Get the transform that maps from local coordinates to the item's ViewBox coordinates
+        #     transform = self.survey.glbTransform                                # GraphicsItem method
+        #     if transform is not None:
+        #         s1 = f'm11 ={transform.m11():12.6f},   m12 ={transform.m12():12.6f},   m13 ={transform.m13():12.6f} » [A1, B1, ...]'
+        #         s2 = f'm21 ={transform.m21():12.6f},   m22 ={transform.m22():12.6f},   m23 ={transform.m23():12.6f} » [A2, B2, ...]'
+        #         s3 = f'm31 ={transform.m31():12.6f},   m32 ={transform.m32():12.6f},   m33 ={transform.m33():12.6f} » [A0, B0, ...]<br>'
 
-                self.appendLogMessage('plotProjected(). Showing transform parameters before changing view', MsgType.Debug)
-                self.appendLogMessage(s1, MsgType.Debug)
-                self.appendLogMessage(s2, MsgType.Debug)
-                self.appendLogMessage(s3, MsgType.Debug)
+        #         self.appendLogMessage('plotProjected(). Showing transform parameters before changing view', MsgType.Debug)
+        #         self.appendLogMessage(s1, MsgType.Debug)
+        #         self.appendLogMessage(s2, MsgType.Debug)
+        #         self.appendLogMessage(s3, MsgType.Debug)
 
-                if not transform.isIdentity():
-                    i_trans, _ = transform.inverted()                           # inverted_transform, invertable = transform.inverted()
-                    s1 = f'm11 ={i_trans.m11():12.6f},   m12 ={i_trans.m12():12.6f},   m13 ={i_trans.m13():12.6f} » [A1, B1, ...]'
-                    s2 = f'm21 ={i_trans.m21():12.6f},   m22 ={i_trans.m22():12.6f},   m23 ={i_trans.m23():12.6f} » [A2, B2, ...]'
-                    s3 = f'm31 ={i_trans.m31():12.6f},   m32 ={i_trans.m32():12.6f},   m33 ={i_trans.m33():12.6f} » [A0, B0, ...]<br>'
+        #         if not transform.isIdentity():
+        #             i_trans, _ = transform.inverted()                           # inverted_transform, invertable = transform.inverted()
+        #             s1 = f'm11 ={i_trans.m11():12.6f},   m12 ={i_trans.m12():12.6f},   m13 ={i_trans.m13():12.6f} » [A1, B1, ...]'
+        #             s2 = f'm21 ={i_trans.m21():12.6f},   m22 ={i_trans.m22():12.6f},   m23 ={i_trans.m23():12.6f} » [A2, B2, ...]'
+        #             s3 = f'm31 ={i_trans.m31():12.6f},   m32 ={i_trans.m32():12.6f},   m33 ={i_trans.m33():12.6f} » [A0, B0, ...]<br>'
 
-                    self.appendLogMessage('plotProjected(). Showing inverted-transform parameters before changing view', MsgType.Debug)
-                    self.appendLogMessage(s1, MsgType.Debug)
-                    self.appendLogMessage(s2, MsgType.Debug)
-                    self.appendLogMessage(s3, MsgType.Debug)
+        #             self.appendLogMessage('plotProjected(). Showing inverted-transform parameters before changing view', MsgType.Debug)
+        #             self.appendLogMessage(s1, MsgType.Debug)
+        #             self.appendLogMessage(s2, MsgType.Debug)
+        #             self.appendLogMessage(s3, MsgType.Debug)
 
         self.handleSpiderPlot()                                                 # spider label should move depending on local/global coords
         self.layoutWidget.autoRange()                                           # show the full range of objects when changing local vs global coordinates
@@ -2459,7 +2459,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.ruler = checked
         self.plotLayout()
 
-    def UpdateAllViews(self):                                                   # re-parse the text in the textEdit, update the survey object, and replot the layout    
+    def UpdateAllViews(self):                                                   # re-parse the text in the textEdit, update the survey object, and replot the layout
         plainText = self.textEdit.getTextViaCursor()                            # read complete file content, not affecting doc status
         success = self.parseText(plainText)                                     # parse the string & check if it went okay...
 
@@ -3479,6 +3479,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return False                                                        # nothing to reset
 
     def setPlottingDetails(self):
+        # check if there's at least one block defined
+        if len(self.survey.blockList) == 0:
+            self.actionTemplates.setChecked(False)
+
         # check if it is a marine survey; set seed plotting details accordingly
         if self.survey.type == SurveyType.Streamer:
             self.survey.paintDetails &= ~PaintDetails.recPnt
@@ -3491,6 +3495,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.survey.paintMode = PaintMode.justBlocks
 
     def fileLoad(self, fileName):
+
+        self.projectDirectory = os.path.dirname(fileName)                       # retrieve the directory name
+
+        # make projectDirectory available outside of RollMainWindow
+        self.settings.setValue('settings/projectDirectory', self.projectDirectory)
 
         config.resetTimers()    ###                                             # reset timers for debugging code
 
@@ -3525,9 +3534,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         if success:                                                             # read the corresponding analysis files
             self.appendLogMessage(f'Loading: {fileName} analysis files')        # send status message
-
-            # check if it is a marine survey; set seed plotting details accordingly
-            self.setPlottingDetails()
+            self.setPlottingDetails()                                           # check if it is a marine survey; set seed plotting details accordingly
 
             # continue loading the anaysis files that belong to this project
             w = self.survey.output.rctOutput.width()                            # expected dimensions of analysis files
@@ -3552,7 +3559,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     # todo: clean this up, so image handling isn't required here !
                     self.actionFold.setChecked(True)
 
-                    self.imageType = 1                                              # set analysis type to one (fold)
+                    self.imageType = 1                                              # set analysis type to one (fold map)
                     self.layoutImg = self.survey.output.binOutput                   # use fold map for image data np-array
                     self.layoutMax = self.output.maximumFold                        # use appropriate maximum
                     self.layoutImItem = pg.ImageItem()                              # create PyqtGraph image item
@@ -3570,7 +3577,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ')
             else:
                 self.output.binOutput = None
-                # todo: cleanup next 2 lines as well
                 self.actionNone.setChecked(True)
                 self.imageType = 0                                              # set analysis type to zero (no analysis)
 
@@ -3697,7 +3703,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.output.D2_Output = None
                 self.output.anaOutput = None
 
-            self.setDataAnaTableModel()                                              # sets model data if file not too big
+            self.setDataAnaTableModel()                                         # sets model data, in a trunked manner if needed
 
             if os.path.exists(self.fileName + '.rps.npy'):                      # open the existing rps-file
                 self.rpsImport = np.load(self.fileName + '.rps.npy')
@@ -3706,6 +3712,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)        # get the convex hull of the rps points
 
                 nImport = self.rpsImport.shape[0]
+                self.actionRpsPoints.setChecked(nImport > 0)
+                self.actionRpsPoints.setEnabled(nImport > 0)
+
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} rps-records')
             else:
                 self.rpsImport = None
@@ -3718,6 +3727,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the sps points
 
                 nImport = self.spsImport.shape[0]
+                self.actionSpsPoints.setChecked(nImport > 0)
+                self.actionSpsPoints.setEnabled(nImport > 0)
+
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} sps-records')
             else:
                 self.spsImport = None
@@ -3737,6 +3749,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
 
                 nImport = self.recGeom.shape[0]
+                self.actionRecPoints.setChecked(nImport > 0)
+                self.actionRecPoints.setEnabled(nImport > 0)
+
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} rec-records')
             else:
                 self.recGeom = None
@@ -3748,6 +3763,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
 
                 nImport = self.srcGeom.shape[0]
+                self.actionSrcPoints.setChecked(nImport > 0)
+                self.actionSrcPoints.setEnabled(nImport > 0)
+
                 self.appendLogMessage(f'Loaded : . . . read {nImport:,} src-records')
             else:
                 self.srcGeom = None
@@ -3818,6 +3836,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         spsRead = 0
         xpsRead = 0
         rpsRead = 0
+
+        # create the dialog to select SPS/RPS/XPS files to import, with dialog parent, current CRS and last used import directory
         dlg = SpsImportDialog(self, self.survey.crs, self.importDirectory)
 
         if not dlg.exec():                                                      # Run the dialog event loop, and obtain sps information
@@ -3827,11 +3847,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.appendLogMessage('Import : no files selected')
             return False
 
-        self.importDirectory = os.path.dirname(dlg.fileNames[0])            # retrieve the directory name from first file found
+        self.importDirectory = os.path.dirname(dlg.fileNames[0])                # retrieve the directory name from first file found
 
-        SPS = dlg.parameters.child('SPS Import Settings')                   # sps settings from dialog
-        spsDialect = SPS.child('Local SPS dialect').value()                 # dialog SPS dialect
-        # spsCrs = SPS.child('CRS of SPS data').value()                       # dialog CRS
+        spsDialect = dlg.spsListWidget.currentItem().text()                     # selected SPS dialect from dialog
 
         self.appendLogMessage(f"Import : importing SPS-data using the '{spsDialect}' SPS-dialect")
         self.appendLogMessage(f'Import : importing {len(dlg.rpsFiles)} rps-file(s), {len(dlg.spsFiles)} sps-file(s) and {len(dlg.xpsFiles)} xps-file(s)')
@@ -3842,7 +3860,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         xpsFormat = next((item for item in config.xpsFormatList if item['name'] == spsDialect), None)
         assert xpsFormat is not None, f'No valid XPS dialect with name {spsDialect}'
 
-        if dlg.spsFiles:                                                    # import the SPS data
+        xpsFormat = next((item for item in config.xpsFormatList if item['name'] == spsDialect), None)
+        assert xpsFormat is not None, f'No valid XPS dialect with name {spsDialect}'
+
+        rpsFormat = next((item for item in config.rpsFormatList if item['name'] == spsDialect), None)
+        assert rpsFormat is not None, f'No valid RPS dialect with name {spsDialect}'
+
+        if dlg.spsFiles:                                                        # import the SPS data
             spsData = dlg.spsTab.toPlainText().splitlines()
             spsLines = len(spsData)
             self.spsImport = np.zeros(shape=spsLines, dtype=pntType1)
@@ -3868,13 +3892,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.progressBar.setValue(100)
 
             if spsRead < spsLines:
-                self.spsImport.resize(spsRead, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
+                self.spsImport.resize(spsRead, refcheck=False)                  # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
 
             if self.interrupted:
                 self.appendLogMessage('Import : importing SPS data canceled by user.')
                 return False
 
-        if dlg.xpsFiles:                                                    # import the XPS data
+        if dlg.xpsFiles:                                                        # import the XPS data
             xpsData = dlg.xpsTab.toPlainText().splitlines()
             xpsLines = len(xpsData)
             self.xpsImport = np.zeros(shape=xpsLines, dtype=relType2)
@@ -3899,13 +3923,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.progressBar.setValue(100)
 
             if xpsRead < xpsLines:
-                self.xpsImport.resize(xpsRead, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
+                self.xpsImport.resize(xpsRead, refcheck=False)                  # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
 
             if self.interrupted:
                 self.appendLogMessage('Import : importing XPS data canceled by user.')
                 return False
 
-        if dlg.rpsFiles:                                                    # import the RPS data
+        if dlg.rpsFiles:                                                        # import the RPS data
             rpsData = dlg.rpsTab.toPlainText().splitlines()
             rpsLines = len(rpsData)
             self.rpsImport = np.zeros(shape=rpsLines, dtype=pntType1)
@@ -3925,7 +3949,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     self.progressBar.setValue(progress)
                     QApplication.processEvents()  # Ensure the UI updates in real-time
 
-                rpsRead += readRpsLine(rpsRead, line, self.rpsImport, spsFormat)
+                rpsRead += readRpsLine(rpsRead, line, self.rpsImport, rpsFormat)
 
             self.progressBar.setValue(100)
 
@@ -3967,7 +3991,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Import : . . . analysed rps-records; found {nUnique:,} unique records and {(nImport - nUnique):,} duplicates')
                 QApplication.processEvents()  # Ensure the UI updates in real-time
 
-                convertCrs(self.rpsImport, dlg.spsCrs.value(), self.survey.crs)  # convert the coordinates to the survey CRS
+                convertCrs(self.rpsImport, dlg.crs, self.survey.crs)  # convert the coordinates to the survey CRS
 
                 origX, origY, lineMin, pointMin, dL, dP, angle1 = calculateLineStakeTransform(self.rpsImport)
                 self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: RPS origin = ({origX:.2f}, {origY:.2f}), azimuth = {angle1:,.3f} deg for rec lines &#8741; x-axis')
@@ -3987,7 +4011,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.appendLogMessage(f'Import : . . . analysed sps-records; found {nUnique:,} unique records and {(nImport - nUnique):,} duplicates')
                 QApplication.processEvents()  # Ensure the UI updates in real-time
 
-                convertCrs(self.spsImport, dlg.spsCrs.value(), self.survey.crs)  # convert the coordinates to the survey CRS
+                convertCrs(self.spsImport, dlg.crs, self.survey.crs)  # convert the coordinates to the survey CRS
 
                 origX, origY, lineMin, pointMin, dL, dP, angle1 = calculateLineStakeTransform(self.spsImport)
                 self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: SPS origin = ({origX:.2f}, {origY:.2f}) m, azimuth = {angle1:.3f} deg for src lines &#8741; x-axis')
@@ -4055,11 +4079,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 # options                                                       # not being used
             )
             if fn:
-                self.projectDirectory = os.path.dirname(fn)                     # retrieve the directory name
-
-                # sync projectDirectory to settings, so it is available outside of RollMainWindow
-                self.settings.setValue('settings/projectDirectory', self.projectDirectory)
-
                 self.fileLoad(fn)                                               # load() does all the hard work
 
     def fileOpenRecent(self):

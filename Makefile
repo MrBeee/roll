@@ -48,7 +48,7 @@ PY_FILES = \
 
 UI_FILES = roll_dialog_base.ui
 
-EXTRAS = metadata.txt icon.png
+EXTRAS = metadata.txt
 
 EXTRA_DIRS =
 

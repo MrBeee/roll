@@ -1908,10 +1908,6 @@ class MyWellParameter(MyGroupParameter):
     def changedF(self):
         self.well.name = self.parF.value()                                      # file name has changed
 
-        # if self.well.name is not None and os.path.isfile(self.well.name):   # do we have a valid file name and not 'None'
-        #     importDirectory = os.path.dirname(self.well.name)                   # retrieve the directory name from the well file
-        #     self.settings.setValue('settings/importDirectory', importDirectory)     # update the settings accordingly
-
         success = self.well.readHeader(config.surveyCrs, config.glbTransform)
         if not success:
             self.well.origW = QVector3D(-999.0, -999.0, -999.0)

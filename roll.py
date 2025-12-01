@@ -25,7 +25,6 @@ import os.path
 import re
 import shutil
 import sys
-import traceback
 
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
@@ -84,8 +83,8 @@ def enable_remote_debugging():
     print(f"Module path         : {__file__}")
     print(f"sys.executable      : {sys.executable}")
     print(f"devised python path : {python_path}")
-    print(f"Python on PATH      : {shutil.which("python")}")
-    print(f"Python on PATH      : {shutil.which("python3")}")
+    print(f"Python  on PATH      : {shutil.which("python")}")
+    print(f"Python3 on PATH      : {shutil.which("python3")}")
 
     try:
         # This can help if you're running different Python versions
@@ -97,8 +96,8 @@ def enable_remote_debugging():
         debugpy.configure(python=python_path)
 
         try:
-            QgsMessageLog.logMessage("try to listen", MESSAGE_CATEGORY, Qgis.Info)
-            print("try to listen")
+            QgsMessageLog.logMessage("Try to listen", MESSAGE_CATEGORY, Qgis.Info)
+            print("Try to listen")
 
             debugpy.listen(("localhost", 5678))
 
@@ -107,6 +106,7 @@ def enable_remote_debugging():
             # print("Debugger connected!")
         except Exception as e:
             # If listening fails, try to connect (client mode)
+
             QgsMessageLog.logMessage(f"Couldn't start debugpy server: {e}", MESSAGE_CATEGORY, Qgis.Info)
             print(f"Couldn't start debugpy server: {e}")
 
@@ -115,8 +115,8 @@ def enable_remote_debugging():
 
             debugpy.connect(("localhost", 5678))
 
-            QgsMessageLog.logMessage("Connected to debugpy server!", MESSAGE_CATEGORY, Qgis.Info)
-            print("Connected to debugpy server!")
+            QgsMessageLog.logMessage("Connected to debugpy server", MESSAGE_CATEGORY, Qgis.Info)
+            print("Connected to debugpy server")
     except Exception as e:
         QgsMessageLog.logMessage(f"Could not configure debugpy: {e}", MESSAGE_CATEGORY, Qgis.Info)
         print(f"Could not configure debugpy: {e}")

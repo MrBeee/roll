@@ -170,7 +170,8 @@ spsParallel = False
 # Default spsDialect should equal a name from the spsFormatList dicts
 spsDialect = 'New Zealand'
 
-spsFormatDict = dict(
+# used in sps_import_dialog.py for human readable input
+spsPointFormatDict = dict(
     id='Record identification',
     line='Line',
     point='Point',
@@ -182,20 +183,7 @@ spsFormatDict = dict(
     elev='Elevation',
 )
 
-# fmt: off
-spsFormatList = [
-    # configuration settings for locations of fields in SPS data;
-    # all indices are 'zero' based and the last number is not included
-    # the first character on a line is therefore [0, 1], the last one is [79, 80]
-    # Note: In SEG rev2.1, Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
-    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),
-    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),
-    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 11], point=[11, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),
-    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),
-]
-# fmt: on
-
-xpsFormatDict = dict(  # used in sps_import_dialog.py for human readable input list
+spsRelationFormatDict = dict(
     id='Record identification',
     recNum='Field Record number',
     srcLin='Source line number',
@@ -206,6 +194,32 @@ xpsFormatDict = dict(  # used in sps_import_dialog.py for human readable input l
     recMax='Last receiver point',
     recInd='Receiver point index',
 )
+
+# fmt: off
+spsFormatList = [
+    # configuration settings for locations of point fields in SPS files;
+    # all indices are 'zero' based and the last number is not included
+    # the first character on a line is therefore [0, 1], the last one is [79, 80]
+    # Note: In SEG rev2.1, Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),
+    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 11], point=[11, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),
+    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),
+]
+# fmt: on
+
+# fmt: off
+rpsFormatList = [
+    # configuration settings for locations of point fields in RPS files;
+    # all indices are 'zero' based and the last number is not included
+    # the first character on a line is therefore [0, 1], the last one is [79, 80]
+    # Note: In SEG rev2.1, Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),
+    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 11], point=[11, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),
+    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),
+]
+# fmt: on
 
 # fmt: off
 xpsFormatList = [
@@ -296,7 +310,7 @@ def resetTimers(timers=20) -> None:
 #
 # x = 100
 #
-# B) in module.py, import and change value of x:
+# B) in my_module.py, import and change value of x:
 #
 # from . import config
 # parameter1 = config.x
@@ -304,6 +318,6 @@ def resetTimers(timers=20) -> None:
 #
 # C) in main.py, print the value of x:
 #
+# import my_module
 # from . import config
-# import module
 # print(config.x)

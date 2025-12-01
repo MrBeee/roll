@@ -9,12 +9,12 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 | Library    | Minimum Version | Description (purpose)                                        |
 | :--------- | :-------------- | :----------------------------------------------------------- |
-| debugpy    | 1.8.17          | Needed if you want to debug routines that run in a worker thread |
-| numba      | 0.62.1          | ***Significantly*** speed up some numpy calculations         |
+| debugpy    | 1.8.17          | Needed if you want to debug code that runs in GUI- and worker threads |
+| numba      | 0.62.1          | ***Significantly*** speeds up some numpy calculations        |
 | numpy      | 1.26.24         | Array and matrix manipulation                                |
 | pyqtgraph  | 0.13.7          | Plotting of vector and raster data                           |
 | rasterio   | 1.4.1           | Export of figures as GeoTiff  files                          |
-| wellpathpy | 0.5.0           | Handle sensors  & sources in a well trajectory (VSPs etc.)   |
+| wellpathpy | 0.5.0           | Position sensors  & sources in a well trajectory (VSPs etc.) |
 
 
 

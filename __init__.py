@@ -22,7 +22,7 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
-# import statement moved to top of file as Pylint was complaining. 
+# import statement moved to top of file as Pylint was complaining
 # Compare with older versions of __init__.py to see the change...
 from .roll import Roll
 

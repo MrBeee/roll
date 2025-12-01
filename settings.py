@@ -1,4 +1,5 @@
 import importlib
+import json
 import sys
 from ast import literal_eval
 
@@ -132,7 +133,7 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Local SPS dialect', type='list', limits=spsNames, value=config.spsDialect, default=config.spsDialect),  # SPS 'flavor'
+                    dict(name='SPS implementation', type='list', limits=spsNames, value=config.spsDialect, default=config.spsDialect),  # SPS 'flavor'
                     dict(name='Parallel/NAZ geometry', type='bool', value=config.spsParallel, default=config.spsParallel, tip=tip0),
                     dict(name='Rps point marker', type='myMarker', flat=True, expanded=False, symbol=config.rpsPointSymbol, color=QColor(config.rpsBrushColor), size=config.rpsSymbolSize),
                     dict(name='Sps point marker', type='myMarker', flat=True, expanded=False, symbol=config.spsPointSymbol, color=QColor(config.spsBrushColor), size=config.spsSymbolSize),
@@ -181,9 +182,9 @@ class SettingsDialog(QDialog):
 
         useNumba = config.useNumba if haveNumba else False
         tip1 = 'Experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
-        tip2 = 'Show summary information of underlying parameters in the property pane'
-        tip3 = "Show functionality that hasn't been completed yet.\nWork in progress for the developer to finish !"
-        tip4 = 'Save well file names relative to .roll project file.\nThis makes moving the project folder easier.'
+        tip2 = 'Save well file names relative to .roll project file.\nThis makes moving the project folder easier.'
+        tip3 = 'Show summary information of underlying parameters in the property pane'
+        tip4 = "Show functionality that hasn't been completed yet.\nWork in progress for the developer to finish !"
 
         misParams = [
             dict(
@@ -192,9 +193,9 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[
                     dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip1),
-                    dict(name='Use relative paths', type='bool', value=config.useRelativePaths, default=config.useRelativePaths, enabled=True, tip=tip4),
-                    dict(name='Show summary properties', type='bool', value=config.showSummaries, default=config.showSummaries, enabled=haveNumba, tip=tip2),
-                    dict(name='Show unfinished code', type='bool', value=config.showUnfinished, default=config.showUnfinished, enabled=True, tip=tip3),
+                    dict(name='Use relative paths', type='bool', value=config.useRelativePaths, default=config.useRelativePaths, enabled=True, tip=tip2),
+                    dict(name='Show summary properties', type='bool', value=config.showSummaries, default=config.showSummaries, enabled=True, tip=tip3),
+                    dict(name='Show unfinished code', type='bool', value=config.showUnfinished, default=config.showUnfinished, enabled=True, tip=tip4),
                 ],
             ),
         ]
@@ -251,7 +252,7 @@ class SettingsDialog(QDialog):
         MIS = self.parameters.child('Miscellaneous Settings')
 
         # sps settings
-        config.spsDialect = SPS.child('Local SPS dialect').value()
+        config.spsDialect = SPS.child('SPS implementation').value()
         config.spsParallel = SPS.child('Parallel/NAZ geometry').value()
 
         rpsMarker = SPS.child('Rps point marker')
@@ -333,7 +334,7 @@ def readSettings(self):
     self.restoreGeometry(state)                                                 # No longer needed to test: if geometry != None:
 
     path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
-    self.workingDirectory = self.settings.value('settings/workingDirectory', path)   # start folder for SaveAs
+    self.projectDirectory = self.settings.value('settings/projectDirectory', path)   # start folder for SaveAs
     self.importDirectory = self.settings.value('settings/importDirectory', path)   # start folder for reading SPS files
     self.recentFileList = self.settings.value('settings/recentFileList', [])
 
@@ -357,14 +358,76 @@ def readSettings(self):
     config.fold_OffCmap = self.settings.value('settings/colors/fold_OffCmap', 'CET-L4')     # from pg.colormap.listMaps()
 
     # sps information
-    config.spsDialect = self.settings.value('settings/sps/spsDialect', 'NL')
-    config.spsParallel = self.settings.value('settings/sps/spsParallel', False, type=bool)
     config.rpsBrushColor = self.settings.value('settings/sps/rpsBrushColor', '#772929FF')
     config.rpsPointSymbol = self.settings.value('settings/sps/rpsPointSymbol', 'o')
     config.rpsSymbolSize = self.settings.value('settings/sps/rpsSymbolSize', 25)
+
     config.spsBrushColor = self.settings.value('settings/sps/spsBrushColor', '#77FF2929')
     config.spsPointSymbol = self.settings.value('settings/sps/spsPointSymbol', 'o')
     config.spsSymbolSize = self.settings.value('settings/sps/spsSymbolSize', 25)
+
+    config.spsParallel = self.settings.value('settings/sps/spsParallel', False, type=bool)
+    config.spsDialect = self.settings.value('settings/sps/spsDialect', 'SEG rev2.1')
+
+    self.settings.beginGroup('settings/sps/spsFormatList')              # read custom SPS formats
+    spsKeys = self.settings.childKeys()
+    customSpsFormats = []
+
+    for key in spsKeys:
+        raw = self.settings.value(key)
+        if raw is None:
+            continue
+        try:
+            entry = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            continue
+        if isinstance(entry, dict):
+            entry.setdefault('name', key)
+            customSpsFormats.append(entry)
+
+    self.settings.endGroup()
+    if customSpsFormats:
+        config.spsFormatList = customSpsFormats
+
+    self.settings.beginGroup('settings/sps/xpsFormatList')              # read custom XPS formats
+    xpsKeys = self.settings.childKeys()
+    customXpsFormats = []
+
+    for key in xpsKeys:
+        raw = self.settings.value(key)
+        if raw is None:
+            continue
+        try:
+            entry = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            continue
+        if isinstance(entry, dict):
+            entry.setdefault('name', key)
+            customXpsFormats.append(entry)
+
+    self.settings.endGroup()
+    if customXpsFormats:
+        config.xpsFormatList = customXpsFormats
+
+    self.settings.beginGroup('settings/sps/rpsFormatList')              # read custom RPS formats
+    rpsKeys = self.settings.childKeys()
+    customRpsFormats = []
+
+    for key in rpsKeys:
+        raw = self.settings.value(key)
+        if raw is None:
+            continue
+        try:
+            entry = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            continue
+        if isinstance(entry, dict):
+            entry.setdefault('name', key)
+            customRpsFormats.append(entry)
+
+    self.settings.endGroup()
+    if customRpsFormats:
+        config.rpsFormatList = customRpsFormats
 
     # geometry information
     config.recBrushColor = self.settings.value('settings/geo/recBrushColor', '#772929FF')
@@ -411,7 +474,7 @@ def writeSettings(self):
     # main window information
     self.settings.setValue('mainWindow/geometry', self.saveGeometry())          # save the main window geometry
     self.settings.setValue('mainWindow/state', self.saveState())                # and the window state too
-    self.settings.setValue('settings/workingDirectory', self.workingDirectory)
+    self.settings.setValue('settings/projectDirectory', self.projectDirectory)
     self.settings.setValue('settings/importDirectory', self.importDirectory)
     self.settings.setValue('settings/recentFileList', self.recentFileList)      # store list in settings
 
@@ -428,15 +491,36 @@ def writeSettings(self):
     self.settings.setValue('settings/colors/fold_OffCmap', config.fold_OffCmap)
 
     # sps information
-    self.settings.setValue('settings/sps/spsDialect', config.spsDialect)
-    self.settings.setValue('settings/sps/spsParallel', config.spsParallel)
-
     self.settings.setValue('settings/sps/rpsBrushColor', config.rpsBrushColor)
     self.settings.setValue('settings/sps/rpsPointSymbol', config.rpsPointSymbol)
     self.settings.setValue('settings/sps/rpsSymbolSize', config.rpsSymbolSize)
+
     self.settings.setValue('settings/sps/spsBrushColor', config.spsBrushColor)
     self.settings.setValue('settings/sps/spsPointSymbol', config.spsPointSymbol)
     self.settings.setValue('settings/sps/spsSymbolSize', config.spsSymbolSize)
+
+    self.settings.setValue('settings/sps/spsParallel', config.spsParallel)
+    self.settings.setValue('settings/sps/spsDialect', config.spsDialect)
+
+    self.settings.beginGroup('settings/sps/spsFormatList')
+    self.settings.remove('')                                                    # clear existing entries
+    for entry in config.spsFormatList:
+        name = entry.get('name', 'Unnamed')
+        self.settings.setValue(name, json.dumps(entry))
+    self.settings.endGroup()
+
+    self.settings.beginGroup('settings/sps/xpsFormatList')
+    self.settings.remove('')                                                    # clear existing entries
+    for entry in config.xpsFormatList:
+        name = entry.get('name', 'Unnamed')
+        self.settings.setValue(name, json.dumps(entry))
+    self.settings.endGroup()
+    self.settings.beginGroup('settings/sps/rpsFormatList')
+    self.settings.remove('')                                                    # clear existing entries
+    for entry in config.rpsFormatList:
+        name = entry.get('name', 'Unnamed')
+        self.settings.setValue(name, json.dumps(entry))
+    self.settings.endGroup()
 
     # geometry information
     self.settings.setValue('settings/geo/recBrushColor', config.recBrushColor)
@@ -459,3 +543,6 @@ def writeSettings(self):
     self.settings.setValue('settings/misc/useNumba', config.useNumba)
     self.settings.setValue('settings/misc/showUnfinished', config.showUnfinished)
     self.settings.setValue('settings/misc/showSummaries', config.showSummaries)    # show/hide summary information in property pane
+
+    self.settings.sync()
+

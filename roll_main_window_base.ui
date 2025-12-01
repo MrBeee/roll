@@ -366,7 +366,6 @@
    </attribute>
    <addaction name="actionTemplates"/>
    <addaction name="actionRefreshPlot"/>
-   <addaction name="actionStopPainting"/>
    <addaction name="separator"/>
    <addaction name="actionShowBlocks"/>
    <addaction name="actionShowTemplates"/>
@@ -1601,7 +1600,7 @@
   <action name="actionRefreshPlot">
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionRefreshPlot.svg</normaloff>resources/mActionRefreshPlot.svg</iconset>
+     <normaloff>resources/mActionRepaint.svg</normaloff>resources/mActionRepaint.svg</iconset>
    </property>
    <property name="text">
     <string>Refresh plot</string>

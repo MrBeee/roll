@@ -1,4 +1,5 @@
-from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QSyntaxHighlighter, QTextCharFormat, QTextOption
+from qgis.PyQt.QtGui import (QColor, QFont, QFontMetrics, QPainter,
+                             QSyntaxHighlighter, QTextCharFormat, QTextOption)
 from qgis.PyQt.QtWidgets import QApplication, QFileDialog, QPlainTextEdit
 
 
@@ -16,19 +17,19 @@ class LineHighlighter(QSyntaxHighlighter):
         # Define formats for each line type
         self.greyFormat = QTextCharFormat()
         self.greyFormat.setForeground(QColor('#7a7a7a'))  # Dark Grey
-        # self.greyFormat.setFont(QFont('Courier New', 10))  # Monospaced font
+        self.greyFormat.setFont(QFont('Courier New', 10))  # Monospaced font
 
         self.darkRedFormat = QTextCharFormat()
         self.darkRedFormat.setForeground(QColor('#8B0000'))  # Dark Red
-        # self.darkRedFormat.setFont(QFont('Courier New', 10))  # Monospaced font
+        self.darkRedFormat.setFont(QFont('Courier New', 10))  # Monospaced font
 
         self.darkBlueFormat = QTextCharFormat()
         self.darkBlueFormat.setForeground(QColor('#00008B'))  # Dark Blue
-        # self.darkBlueFormat.setFont(QFont('Courier New', 10))  # Monospaced font
+        self.darkBlueFormat.setFont(QFont('Courier New', 10))  # Monospaced font
 
         self.darkGreenFormat = QTextCharFormat()
         self.darkGreenFormat.setForeground(QColor('#006400'))  # Dark Green
-        # self.darkGreenFormat.setFont(QFont('Courier New', 10))  # Monospaced font
+        self.darkGreenFormat.setFont(QFont('Courier New', 10))  # Monospaced font
 
     def highlightBlock(self, text):
         # Check the starting character of the line and apply the corresponding format
