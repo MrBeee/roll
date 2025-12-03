@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 import re
 import shlex
@@ -27,8 +28,6 @@ class BlackLine(QFrame):
         self.setFrameShape(QFrame.Shape.HLine)
         self.setStyleSheet("background-color: black;")
         self.setFixedHeight(width)  # 1px thick
-
-
 
 class LineHighlighter(QSyntaxHighlighter):
     """
@@ -254,8 +253,24 @@ class SpsImportDialog(QDialog):
         list_height = int(item_height * visible_rows) + 4                       # Add 4 for widget borders
         self.spsFormatList.setFixedHeight(list_height)
 
-        ###
-        self.populateSpsFormatList()
+        # Populate from spsNames
+        spsNames = []                                                           # create list of sps names from config.spsFormatList
+        for n in config.spsFormatList:
+            spsNames.append(n['name'])
+
+        for i, name in enumerate(spsNames):
+            self.spsFormatList.addItem(name)                                    # Add each name as an item
+            item = self.spsFormatList.item(i)                                   # Make items editable
+            item.setFlags(item.flags() | Qt.ItemIsEditable)
+
+        items = self.spsFormatList.findItems(config.spsDialect, Qt.MatchExactly)   # select default SPS formatitem
+        if items:
+            item = items[0]
+            self.spsFormatList.setCurrentItem(item)
+            self.spsFormatList.scrollToItem(item)
+        else:
+            self.spsFormatList.setCurrentRow(0)                                 # select first item by default
+        self.spsFormatListInitializing = False                                  # finished initializing list widget
 
         formatLayout = QHBoxLayout()
         formatLayout.setAlignment(Qt.AlignmentFlag.AlignTop)                    # Force top alignment
@@ -293,11 +308,12 @@ class SpsImportDialog(QDialog):
         formatLayout.addStretch()
 
         self.databaseButton = QPushButton('  Reset SPS database  ')
-        self.databaseButton.setToolTip("Reset the SPS implementation database to to the built-in defaults")
+        self.databaseButton.setToolTip("Reset the SPS implementation database to its original values")
+        self.databaseButton.setEnabled(False)                                   # nothing has changed yet
         self.databaseButton.setStyleSheet(label_style)
         self.databaseButton.setMinimumHeight(28)
         self.databaseButton.setMaximumWidth(220)
-        self.databaseButton.clicked.connect(self.onResetSpsDatabase)
+        self.databaseButton.clicked.connect(self.onUpdateSpsDatabase)
 
         dbButtonLayout = QVBoxLayout()
         dbButtonLayout.addStretch()                     # push the button to the bottom
@@ -465,55 +481,32 @@ class SpsImportDialog(QDialog):
 
         self.setLayout(selectorLayout)
 
-    def populateSpsFormatList(self):
-        self.spsFormatListInitializing = True
-        prev_blocked = self.spsFormatList.blockSignals(True)
-        self.spsFormatList.clear()
-        for fmt in config.spsFormatList:
-            item = QListWidgetItem(fmt['name'])
-            item.setFlags(item.flags() | Qt.ItemIsEditable)
-            self.spsFormatList.addItem(item)
-        self.spsFormatList.blockSignals(prev_blocked)
-
-        target_row = 0
-        if config.spsDialect:
-            matches = self.spsFormatList.findItems(config.spsDialect, Qt.MatchExactly)
-            if matches:
-                target_row = self.spsFormatList.row(matches[0])
-
-        if self.spsFormatList.count():
-            self.spsFormatList.setCurrentRow(target_row)
-
-        self.spsFormatListInitializing = False
-
-    def onResetSpsDatabase(self):
-        """Reset the SPS implementation database to the built-in defaults."""
-        reply = QMessageBox.question(
-            self,
-            'Reset SPS database',
-            'Reset all SPS, XPS and RPS format definitions to the built-in defaults?',
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
-            return
-
-        config.reset_sps_database()
-
+    def onUpdateSpsDatabase(self):
         settings = QSettings(config.organization, config.application)
-        for group in (
-            'settings/sps/spsFormatList',
-            'settings/sps/xpsFormatList',
-            'settings/sps/rpsFormatList',
-        ):
-            settings.beginGroup(group)
-            settings.remove('')
-            settings.endGroup()
+        settings.setValue('settings/sps/spsDialect', config.spsDialect)         # save current SPS dialect
+
+        settings.beginGroup('settings/sps/spsFormatList')
+        settings.remove('')                                                     # clear existing entries
+        for entry in config.spsFormatList:
+            name = entry.get('name', 'Unnamed')
+            settings.setValue(name, json.dumps(entry))
+        settings.endGroup()
+
+        settings.beginGroup('settings/sps/xpsFormatList')
+        settings.remove('')                                                     # clear existing entries
+        for entry in config.xpsFormatList:
+            name = entry.get('name', 'Unnamed')
+            settings.setValue(name, json.dumps(entry))
+        settings.endGroup()
+
+        settings.beginGroup('settings/sps/rpsFormatList')
+        settings.remove('')                                                     # clear existing entries
+        for entry in config.rpsFormatList:
+            name = entry.get('name', 'Unnamed')
+            settings.setValue(name, json.dumps(entry))
+        settings.endGroup()
+
         settings.sync()
-
-        self.populateSpsFormatList()
-        self.onSpsFormatChanged(self.spsFormatList.currentRow())
-
 
     def onSpsComboHighlighted(self, index):
         print("SPS item highlighted:", index)
@@ -742,6 +735,7 @@ class SpsImportDialog(QDialog):
         self.spsTab.line2 = config.spsFormatList[spsFormatIndex][spsKey][1]
 
         self.tabWidget.setCurrentIndex(0)                                       # select SPS Tab
+        self.databaseButton.setEnabled(True)                                    # enable "Update SPS database" button
         self.spsTab.update()
 
     def onXpsSpinboxValueChanged(self, bound: ColumnBound):
@@ -773,6 +767,7 @@ class SpsImportDialog(QDialog):
         self.spsTab.line2 = config.xpsFormatList[spsFormatIndex][spsKey][1]
 
         self.tabWidget.setCurrentIndex(1)                                       # select XPS Tab
+        self.databaseButton.setEnabled(True)                                    # enable "Update SPS database" button
         self.xpsTab.update()
 
     def onRpsSpinboxValueChanged(self, bound: ColumnBound):
@@ -804,6 +799,7 @@ class SpsImportDialog(QDialog):
         self.rpsTab.line2 = config.rpsFormatList[spsFormatIndex][rpsKey][1]
 
         self.tabWidget.setCurrentIndex(2)                                       # select RPS Tab
+        self.databaseButton.setEnabled(True)                                    # enable "Update SPS database" button
         self.rpsTab.update()
 
     def onAddSpsName(self):
@@ -858,29 +854,22 @@ class SpsImportDialog(QDialog):
         self.spsFormatList.blockSignals(prevBlocked)
 
         self.onSpsFormatChanged(insertRow)
+        self.databaseButton.setEnabled(True)                                    # maybe update database now
 
     def onRemoveSpsName(self):
         """Remove the currently selected entry from the list."""
         currentRow = self.spsFormatList.currentRow()
-        if currentRow < 0:
-            QMessageBox.information(self, 'Remove SPS format', 'Please select an item to remove.')
-            return
+        if currentRow >= 0:
+            self.spsFormatList.takeItem(currentRow)                             # remove from the list widget
+            if 0 <= currentRow < len(config.spsFormatList):                     # remove from the config list
+                del config.spsFormatList[currentRow]
 
-        self.spsFormatList.takeItem(currentRow)
+            if 0 <= currentRow < len(config.xpsFormatList):                     # remove from the config list
+                del config.xpsFormatList[currentRow]
 
-        if 0 <= currentRow < len(config.spsFormatList):
-            del config.spsFormatList[currentRow]
-        if 0 <= currentRow < len(config.xpsFormatList):
-            del config.xpsFormatList[currentRow]
-        if 0 <= currentRow < len(config.rpsFormatList):
-            del config.rpsFormatList[currentRow]
-
-        nextRow = min(currentRow, self.spsFormatList.count() - 1)
-        if nextRow >= 0:
-            prev_blocked = self.spsFormatList.blockSignals(True)
-            self.spsFormatList.setCurrentRow(nextRow)
-            self.spsFormatList.blockSignals(prev_blocked)
-            self.onSpsFormatChanged(nextRow)
+            self.databaseButton.setEnabled(True)                                # maybe update database now
+        else:
+            QMessageBox.information(self, 'Remove', 'Please select an item to remove.')
 
     def ensureUniqueSpsName(self, item: QListWidgetItem):
         if not self.enforceUniqueName or item is None:

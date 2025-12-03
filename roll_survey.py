@@ -1119,13 +1119,238 @@ class RollSurvey(pg.GraphicsObject):
 
         self.binning.slowness = (1000.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
 
-        # Now do the binning
+        # Now do the binning; check if we haave a relation file or not
+        if self.output.relGeom is not None:                                     # we have a relation file
+            if fullAnalysis:
+                success = self.binFromGeometry4(True)
+                self.output.anaOutput.flush()                                   # flush results to hard disk
+                return success
+            else:
+                return self.binFromGeometry4(False)
+        else:                                                                  # no relation file available
+            if fullAnalysis:
+                success = self.binFromGeometryNoRel(True)
+                self.output.anaOutput.flush()                                   # flush results to hard disk
+                return success
+            else:
+                return self.binFromGeometryNoRel(False)
+
+    def binFromGeometryNoRel(self, fullAnalysis) -> bool:
+        """
+        all binning methods (cmp, plane, sphere) implemented, using numpy arrays, rather than a for-loop.
+        On 09/04/2024 the earlier implementations of binFromGeometry v1 to v3 have been removed.
+        They are still available in the roll-2024-08-04 folder in classes.py
+        """
+        self.threadProgress = 0                                                 # always start at zero
+
+        toLocalTransform = QTransform()                                         # setup empty (unit) transform
+        toLocalTransform, _ = self.glbTransform.inverted()                      # transform to local survey coordinates
+
+        # if needed, fill the source and receiver arrays with local coordinates
+        minLocX = np.min(self.output.srcGeom['LocX'])                           # determine if there's any data there...
+        maxLocX = np.max(self.output.srcGeom['LocY'])                           # determine if there's any data there...
+        if minLocX == 0.0 and maxLocX == 0.0:
+            for record in self.output.srcGeom:
+                srcX = record['East']
+                srcY = record['North']
+                x, y = toLocalTransform.map(srcX, srcY)
+                record['LocX'] = x
+                record['LocY'] = y
+
+        minLocX = np.min(self.output.recGeom['LocX'])                           # determine if there's any data there...
+        maxLocX = np.max(self.output.recGeom['LocY'])                           # determine if there's any data there...
+        if minLocX == 0.0 and maxLocX == 0.0:
+            for record in self.output.recGeom:
+                recX = record['East']
+                recY = record['North']
+                x, y = toLocalTransform.map(recX, recY)
+                record['LocX'] = x
+                record['LocY'] = y
+
+        # There is no relation file in this binning approach; iterate over all shots and find receivers based on proximity
+
+        self.nShotPoint = 0
+        self.nShotPoints = self.output.srcGeom.shape[0]
+
+        recGeom = self.output.recGeom
+        recMask = recGeom['InUse'] > 0
+        if not np.any(recMask):
+            return True  # nothing to bin
+
+        # it is ESSENTIAL that any orphans & duplicates in recPoints have been removed at this stage
+        baseRecArray = recGeom[recMask]
+
+        # for cmp and offset calcuations, we need numpy arrays in the form of local (x, y, z) coordinates
+        baseRecPoints = np.column_stack((baseRecArray['LocX'], baseRecArray['LocY'], baseRecArray['Elev'])).astype(np.float32)
+
+        # we are NOT DEALING with the block's src border; this should have been done while generating geometry
+        # we are NOT DEALING with the block's rec border; this should have been done while generating geometry
+        # but we are dealing with the "InUse" attribute, that allows for killing a point in QGIS
+
+        try:
+            for index, srcRecord in enumerate(self.output.srcGeom):
+
+                if srcRecord['InUse'] == 0:                                     # this record has been disabled
+                    continue
+
+                # convert the source record to a single [x, y, z] value
+                src = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32)
+
+                # begin thread progress code
+                if QThread.currentThread().isInterruptionRequested():           # maybe stop at each shot...
+                    raise StopIteration
+
+                self.nShotPoint += 1
+                threadProgress = (100 * self.nShotPoint) // self.nShotPoints    # apply integer divide
+                if threadProgress > self.threadProgress:
+                    self.threadProgress = threadProgress
+                    self.progress.emit(threadProgress + 1)
+                # end thread progress code
+
+                # at this stage we have recPoints defined. We can now use the same approach as used in template based binning.
+                # we combine recPoints with a source point to create cmp array, define offsets, etc...
+                recPoints = baseRecPoints
+
+                # setup a cmp array with the same size as recPoints
+                cmpPoints = np.zeros(shape=(recPoints.shape[0], 3), dtype=np.float32)
+
+                if self.binning.method == BinningType.cmp:
+                    # create all cmp-locations for this shot point, by simply taking the average from src and rec locations
+                    cmpPoints = (recPoints + src) * 0.5
+                elif self.binning.method == BinningType.plane:
+                    # create all cmp-locations using the following steps:
+                    # 1. mirror the source location against the plane
+                    # 2. find out where/if the lines defined by the source-mirror to the receivers cut through the plane
+                    # 3. these locations are the cmp locations for binning against a dipping plane
+                    srcMirrorNp = self.localPlane.mirrorPointNp(src)
+
+                    # now find all intersection points with the dipping plane, and prune any non-contributing receivers
+                    cmpPoints, recPoints = self.localPlane.IntersectLinesAtPointNp(srcMirrorNp, recPoints, self.angles.reflection.x(), self.angles.reflection.y())
+
+                    if cmpPoints is None:
+                        continue
+                elif self.binning.method == BinningType.sphere:
+
+                    # now find all intersection points with the sphere, and prune any non-contributing receivers
+                    cmpPoints, recPoints = self.localSphere.ReflectSphereAtPointsNp(src, recPoints, self.angles.reflection.x(), self.angles.reflection.y())
+
+                    if cmpPoints is None:
+                        continue
+
+                I = pointsInRect(cmpPoints, self.output.rctOutput)              # find the cmp locations that contribute to the output area
+                if I.shape[0] == 0:
+                    continue
+
+                cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array
+                recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this for offsets
+
+                size = recPoints.shape[0]
+                offArray = np.zeros(shape=(size, 3), dtype=np.float32)          # allocate the offset array according to rec array
+                offArray = recPoints - src                                      # define the offset array
+
+                I = pointsInRect(offArray, self.offset.rctOffsets)
+                if I.shape[0] == 0:
+                    continue
+
+                offArray = offArray[I, :]                                       # filter the offset-array
+                cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array too, as we still need this
+                recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this
+
+                size = recPoints.shape[0]
+                hypArray = np.zeros(shape=(size, 1), dtype=np.float32)          # allocate the radius array according to rec array
+                hypArray = np.hypot(offArray[:, 0], offArray[:, 1])             # calculate radial offset size
+                aziArray = np.arctan2(offArray[:, 0], offArray[:, 1])           # calculate offset angles
+                aziArray = np.rad2deg(aziArray)                                 # get angles in degrees instead of radians
+
+                r1 = self.offset.radOffsets.x()                                 # r1 = minimum radius
+                r2 = self.offset.radOffsets.y()                                 # r2 = maximum radius
+                if r2 > 0:                                                      # we need to apply the radial offset selection criteria
+                    I = (hypArray[:] >= r1) & (hypArray[:] <= r2)
+                    if np.count_nonzero(I) == 0:
+                        continue                                                # continue with next recSeed
+                    # print(I)
+                    hypArray = hypArray[I]                                      # filter the radial offset-array
+                    aziArray = aziArray[I]                                      # filter the offset-angle array too
+                    offArray = offArray[I, :]                                   # filter the off-array too, as we still need this
+                    cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array too, as we still need this
+                    recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this
+
+                # now work on the TWT aspect of the src, cmp & rec positions
+                if self.binning.method == BinningType.cmp:
+                    upDnArray = recPoints - src                                 # straigth rays; total length of both legs
+                    totalTime = np.linalg.norm(upDnArray, axis=1)               # get length of the rays
+                else:
+                    downArray = cmpPoints - src                                 # 1st leg of the rays
+                    up__Array = cmpPoints - recPoints                           # 2nd leg of the rays
+                    downTime = np.linalg.norm(downArray, axis=1)                # get length of the 1st leg
+                    up__Time = np.linalg.norm(up__Array, axis=1)                # get length of the 2nd leg
+                    totalTime = downTime + up__Time                             # total length of both legs
+
+                totalTime *= self.binning.slowness                              # convert distance into travel time
+
+                #  we have applied all filters now; time to save the traces that 'pass' all selection criteria
+                for count, cmp in enumerate(cmpPoints):                         # process all traces
+                    try:
+                        cmpX = cmp[0]
+                        cmpY = cmp[1]
+
+                        x, y = self.binTransform.map(cmpX, cmpY)                # local position in bin area
+                        nx = int(x)
+                        ny = int(y)
+
+                        if fullAnalysis:
+                            fold = self.output.binOutput[nx, ny]
+                            if fold < self.grid.fold:                           # prevent overwriting next bin
+                                # self.output.anaOutput[nx, ny, fold] = ( srcLoc.x(), srcLoc.y(), recLoc.x(), recLoc.y(), cmpLoc.x(), cmpLoc.y(), 0, 0, 0, 0)
+
+                                # line & stake nrs for reporting in extended np-array
+                                stkX, stkY = self.st2Transform.map(cmpX, cmpY)
+                                self.output.anaOutput[nx, ny, fold, 0] = int(stkX)
+                                self.output.anaOutput[nx, ny, fold, 1] = int(stkY)
+                                self.output.anaOutput[nx, ny, fold, 2] = fold + 1       # to make fold run from 1 to N
+                                self.output.anaOutput[nx, ny, fold, 3] = src[0]
+                                self.output.anaOutput[nx, ny, fold, 4] = src[1]
+                                self.output.anaOutput[nx, ny, fold, 5] = recPoints[count, 0]
+                                self.output.anaOutput[nx, ny, fold, 6] = recPoints[count, 1]
+                                self.output.anaOutput[nx, ny, fold, 7] = cmpPoints[count, 0]
+                                self.output.anaOutput[nx, ny, fold, 8] = cmpPoints[count, 1]
+                                self.output.anaOutput[nx, ny, fold, 9] = totalTime[count]
+                                self.output.anaOutput[nx, ny, fold, 10] = hypArray[count]
+                                self.output.anaOutput[nx, ny, fold, 11] = aziArray[count]
+                                # self.output.anaOutput[nx, ny, fold, 12] = -1
+
+                        # all selection criteria have been fullfilled; use the trace
+                        self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
+                        self.output.minOffset[nx, ny] = min(self.output.minOffset[nx, ny], hypArray[count])
+                        self.output.maxOffset[nx, ny] = max(self.output.maxOffset[nx, ny], hypArray[count])
+
+                    # rather than checking nx, ny & fold, use exception handling to deal with index errors
+                    except IndexError:
+                        continue
+
+        except StopIteration:
+            self.errorText = 'binning from geometry cancelled by user'
+            return False
+        except BaseException as e:
+            # self.errorText = str(e)
+            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            del (fileName, funcName, lineNo)
+            return False
+
+        self.calcFoldAndOffsetEssentials()
+
         if fullAnalysis:
-            success = self.binFromGeometry4(True)
-            self.output.anaOutput.flush()                                       # flush results to hard disk
-            return success
+            self.calcRmsOffsetValues()
+            self.calcUniqueFoldValues()
+            self.calcOffsetAndAzimuthDistribution()
         else:
-            return self.binFromGeometry4(False)
+            self.output.anaOutput = None
+
+        return True
 
     def binFromGeometry4(self, fullAnalysis) -> bool:
         """
@@ -2519,7 +2744,7 @@ class RollSurvey(pg.GraphicsObject):
         return self._cancelPaint or elapsed_ms > self._paintBudgetMs
 
     def invalidatePaintCache(self) -> None:
-        """Call thiswhenever data, transforms, colors/pens, or PaintDetails/PaintMode affecting areas change."""
+        """Call this whenever data, transforms, colors/pens, or PaintDetails/PaintMode affecting areas change."""
 
         self._paintEpoch += 1
         self._fbBase = None

@@ -3849,7 +3849,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.importDirectory = os.path.dirname(dlg.fileNames[0])                # retrieve the directory name from first file found
 
-        spsDialect = dlg.spsListWidget.currentItem().text()                     # selected SPS dialect from dialog
+        spsDialect = dlg.spsFormatList.currentItem().text()                     # selected SPS dialect from dialog
 
         self.appendLogMessage(f"Import : importing SPS-data using the '{spsDialect}' SPS-dialect")
         self.appendLogMessage(f'Import : importing {len(dlg.rpsFiles)} rps-file(s), {len(dlg.spsFiles)} sps-file(s) and {len(dlg.xpsFiles)} xps-file(s)')
@@ -4354,14 +4354,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.actionFullBinFromTemplates.setEnabled(False)
             self.actionGeometryFromTemplates.setEnabled(False)
 
-        if enable is True and self.srcGeom is not None and self.relGeom is not None and self.recGeom is not None:
+        if enable is True and self.srcGeom is not None and self.recGeom is not None:
+        # if enable is True and self.srcGeom is not None and self.relGeom is not None and self.recGeom is not None:
             self.actionBasicBinFromGeometry.setEnabled(enable)
             self.actionFullBinFromGeometry.setEnabled(enable)
         else:
             self.actionBasicBinFromGeometry.setEnabled(False)
             self.actionFullBinFromGeometry.setEnabled(False)
 
-        if enable is True and self.spsImport is not None and self.xpsImport is not None and self.rpsImport is not None:
+        if enable is True and self.spsImport is not None and self.rpsImport is not None:
+        # if enable is True and self.spsImport is not None and self.xpsImport is not None and self.rpsImport is not None:
             self.actionBasicBinFromSps.setEnabled(enable)
             self.actionFullBinFromSps.setEnabled(enable)
         else:
@@ -4411,7 +4413,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         ny = ceil(h / dy)
         fold = self.survey.grid.fold
         n = nx * ny * fold
-        self.appendLogMessage(f'Thread : prepare memory mapped file for {n:,} traces, with nx={nx}, ny={ny}, fold={fold:,}', MsgType.Binning)
+        self.appendLogMessage(f'Thread : Prepare memory mapped file for {n:,} traces, with nx={nx}, ny={ny}, fold={fold:,}', MsgType.Binning)
         # See: https://stackoverflow.com/questions/22385801/best-practices-with-reading-and-operating-on-fortran-ordered-arrays-with-numpy
         # The order='F' in the allocation of the array could impact reading/writing data to the mmap array
         # This depends on how he binning process traverses through the binning area
@@ -4433,14 +4435,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             nC = self.output.anaOutput.shape[3]                             # columns
 
             if nx != nX or ny != nY or nZ != fold or nC != 13:
-                self.appendLogMessage('Thread : memory mapped file size error while allocating memory', MsgType.Error)
+                self.appendLogMessage('Thread : Memory mapped file size error while allocating memory', MsgType.Error)
                 return False
 
             # self.D2_output = self.output.anaOutput.reshape(nx * ny * fold, 13)
             # self.D2_output[:,:] = 0.0
 
         except MemoryError as e:
-            self.appendLogMessage(f'Thread : memory error {e}', MsgType.Error)
+            self.appendLogMessage(f'Thread : Memory error {e}', MsgType.Error)
             return False
 
         return True
@@ -4482,7 +4484,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
         self.enableProcessingMenuItems(False)                                   # disable processing menu items
 
-        self.appendLogMessage(f"Thread : started 'Bin from templates', using {self.survey.nShotPoints:,} shot points", MsgType.Binning)
+        self.appendLogMessage(f"Thread : Started 'Bin from templates', using {self.survey.nShotPoints:,} shot points", MsgType.Binning)
 
         # Step 1: Create a worker class
         # done in file 'worker_threads.py'
@@ -4517,7 +4519,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def binFromGeometry(self, fullAnalysis):
         if self.srcGeom is None or self.relGeom is None or self.recGeom is None:
-            self.appendLogMessage('Thread : one or more of the geometry files have not been defined', MsgType.Error)
+            self.appendLogMessage('Thread : One or more of the geometry files have not been defined', MsgType.Error)
             return
 
         if fullAnalysis:
@@ -4531,7 +4533,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
         self.enableProcessingMenuItems(False)                                   # disable processing menu items
 
-        self.appendLogMessage(f"Thread : started 'Bin from geometry', using {self.srcGeom.shape[0]:,} shot points", MsgType.Binning)
+        self.appendLogMessage(f"Thread : Started 'Bin from geometry', using {self.srcGeom.shape[0]:,} shot points", MsgType.Binning)
 
         # Step 1: Create a worker class
         # done in file 'worker_threads.py'
@@ -4568,8 +4570,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.thread.start(QThread.Priority.NormalPriority)
 
     def binFromSps(self, fullAnalysis):
-        if self.spsImport is None or self.xpsImport is None or self.rpsImport is None:
-            self.appendLogMessage('Thread : one or more of the sps files have not been defined', MsgType.Error)
+        if self.spsImport is None or self.rpsImport is None:
+        # if self.spsImport is None or self.xpsImport is None or self.rpsImport is None:
+            self.appendLogMessage('Thread : One or more of the sps files have not been defined', MsgType.Error)
             return
 
         if fullAnalysis:
@@ -4583,7 +4586,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
         self.enableProcessingMenuItems(False)                                   # disable processing menu items
 
-        self.appendLogMessage(f"Thread : started 'Bin from Imported SPS', using {self.spsImport.shape[0]:,} shot points", MsgType.Binning)
+        self.appendLogMessage(f"Thread : Started 'Bin from Imported SPS', using {self.spsImport.shape[0]:,} shot points", MsgType.Binning)
+        if self.xpsImport is None:
+            self.appendLogMessage('Thread : Relation file has not been defined; using all available receivers for each shot', MsgType.Binning)
 
         # Step 1: Create a worker class
         # done in file 'worker_threads.py'
@@ -4625,7 +4630,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.showStatusbarWidgets()                                             # show two temporary progress widgets
         self.enableProcessingMenuItems(False)                                   # disable processing menu items
 
-        self.appendLogMessage(f"Thread : started 'Create Geometry from Templates', from {self.survey.nShotPoints:,} shot points", MsgType.Geometry)
+        self.appendLogMessage(f"Thread : Started 'Create Geometry from Templates', from {self.survey.nShotPoints:,} shot points", MsgType.Geometry)
 
         # Step 1: Create a worker class
         # done in file 'worker_threads.py'
@@ -4679,6 +4684,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             self.output.binOutput = self.worker.survey.output.binOutput.copy()  # create a copy; not a view of the array(s)
             self.output.minOffset = self.worker.survey.output.minOffset.copy()
             self.output.maxOffset = self.worker.survey.output.maxOffset.copy()
+
+            endTime = timer()
+            elapsed = timedelta(seconds=endTime - self.startTime)               # get the elapsed time for binning
+            elapsed = timedelta(seconds=ceil(elapsed.total_seconds()))          # round up to nearest second
+
+            self.appendLogMessage(f'Thread : Binning completed. Elapsed time:{elapsed} ', MsgType.Binning)
+            self.appendLogMessage(f'Thread : . . . Fold&nbsp; &nbsp; &nbsp; &nbsp;: Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ', MsgType.Binning)
+            self.appendLogMessage(f'Thread : . . . Min-offsets: Min:{self.output.minMinOffset:.2f}m - Max:{self.output.maxMinOffset:.2f}m ', MsgType.Binning)
+            self.appendLogMessage(f'Thread : . . . Max-offsets: Min:{self.output.minMaxOffset:.2f}m - Max:{self.output.maxMaxOffset:.2f}m ', MsgType.Binning)
+            if self.output.rmsOffset is not None:                        # only do this for "Full binning"
+                self.appendLogMessage(f'Thread : . . . Rms-offsets: Min:{self.output.minRmsOffset:.2f}m - Max:{self.output.maxRmsOffset:.2f}m ', MsgType.Binning)
 
             if self.worker.survey.output.anaOutput is not None:                             # extended binning
                 self.output.rmsOffset = self.worker.survey.output.rmsOffset.copy()          # only defined in extended binning
@@ -4753,18 +4769,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
             self.plotLayout()                                                   # plot survey with colorbar
 
-            endTime = timer()
-            elapsed = timedelta(seconds=endTime - self.startTime)               # get the elapsed time for binning
-            elapsed = timedelta(seconds=ceil(elapsed.total_seconds()))          # round up to nearest second
-
-            self.appendLogMessage(f'Thread : Binning completed. Elapsed time:{elapsed} ', MsgType.Binning)
-            self.appendLogMessage(f'Thread : . . . Fold&nbsp; &nbsp; &nbsp; &nbsp;: Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ', MsgType.Binning)
-            self.appendLogMessage(f'Thread : . . . Min-offsets: Min:{self.output.minMinOffset:.2f}m - Max:{self.output.maxMinOffset:.2f}m ', MsgType.Binning)
-            self.appendLogMessage(f'Thread : . . . Max-offsets: Min:{self.output.minMaxOffset:.2f}m - Max:{self.output.maxMaxOffset:.2f}m ', MsgType.Binning)
-
-            if self.output.rmsOffset is not None:                        # only do this for "Full binning"
-                self.appendLogMessage(f'Thread : . . . Rms-offsets: Min:{self.output.minRmsOffset:.2f}m - Max:{self.output.maxRmsOffset:.2f}m ', MsgType.Binning)
-
             info = ''
             if not self.fileName:
                 # we created an analysis for a yet to be saved file; set modified True, to force saving results when name has been defined
@@ -4832,7 +4836,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             elapsed = timedelta(seconds=endTime - self.startTime)               # get the elapsed time for geometry creation
             elapsed = timedelta(seconds=ceil(elapsed.total_seconds()))          # round up to nearest second
 
-            self.appendLogMessage(f"Thread : completed 'Create Geometry from Templates'. Elapsed time:{elapsed} ", MsgType.Geometry)
+            self.appendLogMessage(f"Thread : Completed 'Create Geometry from Templates'. Elapsed time:{elapsed} ", MsgType.Geometry)
 
             info = ''
             if not self.fileName:

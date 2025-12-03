@@ -1,3 +1,4 @@
+import copy
 from time import perf_counter
 
 from qgis.PyQt.QtCore import Qt
@@ -232,6 +233,17 @@ xpsFormatList = [
     dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[4, 12], srcLin=[13, 17], srcPnt=[33, 37], srcInd=[37, 38], recLin=[47, 51], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
 ]
 # fmt: on
+
+_spsFormatDefaults = copy.deepcopy(spsFormatList)
+_rpsFormatDefaults = copy.deepcopy(rpsFormatList)
+_xpsFormatDefaults = copy.deepcopy(xpsFormatList)
+
+def reset_sps_database():
+    global spsFormatList, rpsFormatList, xpsFormatList                      # pylint: disable=W0603; need to update global variables
+    spsFormatList = copy.deepcopy(_spsFormatDefaults)
+    rpsFormatList = copy.deepcopy(_rpsFormatDefaults)
+    xpsFormatList = copy.deepcopy(_xpsFormatDefaults)
+
 
 # for access to QSettings()
 organization = 'Duijndam.Dev'
