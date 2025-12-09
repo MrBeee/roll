@@ -4,7 +4,7 @@ from qgis.PyQt.QtCore import QRectF
 from qgis.PyQt.QtGui import QColor, QPainter, QPicture, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .functions import toFloat
+from .aux_functions import toFloat
 from .roll_pattern_seed import RollPatternSeed
 from .roll_translate import RollTranslate
 

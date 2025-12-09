@@ -116,21 +116,22 @@ from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
                              QTextCursor, QTextOption, QTransform)
 from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
                                       QPrintPreviewDialog)
-from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QApplication,
-                                 QButtonGroup, QDialog, QDialogButtonBox,
-                                 QDockWidget, QFileDialog, QFrame,
-                                 QGraphicsEllipseItem, QGroupBox, QHBoxLayout,
-                                 QHeaderView, QLabel, QMainWindow, QMessageBox,
-                                 QPlainTextEdit, QProgressBar, QPushButton,
-                                 QTabWidget, QToolButton, QVBoxLayout, QWidget)
+from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QApplication, QDialog,
+                                 QDialogButtonBox, QDockWidget, QFileDialog,
+                                 QGraphicsEllipseItem, QGraphicsRectItem,
+                                 QGroupBox, QHBoxLayout, QHeaderView, QLabel,
+                                 QMainWindow, QMessageBox, QPlainTextEdit,
+                                 QProgressBar, QPushButton, QTabWidget,
+                                 QToolButton, QVBoxLayout, QWidget)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
-# from .event_lookup import event_lookup
+from .aux_classes import LineROI, QHLine
+from .aux_functions import (aboutText, convexHull, exampleSurveyXmlText,
+                            highDpiText, licenseText, myPrint,
+                            qgisCheatSheetText)
 from .chunked_data import ChunkedData
 from .find import Find
-from .functions import (aboutText, convexHull, exampleSurveyXmlText,
-                        highDpiText, licenseText, myPrint, qgisCheatSheetText)
 from .functions_numba import (numbaAziInline, numbaAziX_line,
                               numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D,
                               numbaOffInline, numbaOffsetBin, numbaOffX_line,
@@ -192,55 +193,11 @@ class Direction(Enum):
     Rt = 4
 
 
-# This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
-FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'roll_main_window_base.ui'))
-
-# See: https://gist.github.com/mistic100/dcbffbd9e9c15271dd14
-class QButtonGroupEx(QButtonGroup):
-    def setCheckedId(self, id_) -> int:
-        for button in self.buttons():
-            if self.id(button) == id_:
-                button.setChecked(True)
-                return id_
-        return None
-
-
-# See: https://groups.google.com/g/pyqtgraph/c/V01QJKvrUio/m/iUBp5NePCQAJ
-class LineROI(pg.LineSegmentROI):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def addHandle(self, *args, **kwargs):
-        # Larger handle for improved visibility
-        self.handleSize = 8
-        super().addHandle(*args, **kwargs)
-
-    def checkPointMove(self, handle, pos, modifiers):
-        # needed to prevent 'eternal' range-jitter preventing the plot to complete
-        self.getViewBox().disableAutoRange(axis='xy')
-        return True
-
-    def generateSvg(self, nodes):
-        pass                                                                    # for the time being don't do anything; just to keep PyLint happy
-
-
-class QHLine(QFrame):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFrameShape(QFrame.Shape.HLine)
-        self.setFrameShadow(QFrame.Shadow.Sunken)
-
-    def generateSvg(self, nodes):
-        pass                                                                    # for the time being don't do anything; just to keep PyLint happy
-
-
-def silentPrint(*_, **__):
-    pass
-
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
 resource_dir = os.path.join(current_dir, 'resources')
 
+# This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'roll_main_window_base.ui'))
 
 class RollMainWindow(QMainWindow, FORM_CLASS):
     def __init__(self, parent=None):
@@ -478,7 +435,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # by default show source AND receiver lines, points and patterns
         self.actionShowCmpArea.setChecked(True)
-        self.actionShowBinArea.setChecked(True)
 
         self.actionShowSrcArea.setChecked(True)
         self.actionShowSrcLines.setChecked(True)
@@ -492,7 +448,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         # hook up the signals to the slots
         self.actionShowCmpArea.triggered.connect(self.updatePaintDetails)
-        self.actionShowBinArea.triggered.connect(self.updatePaintDetails)
 
         self.actionShowSrcArea.triggered.connect(self.updatePaintDetails)
         self.actionShowSrcLines.triggered.connect(self.updatePaintDetails)
@@ -537,25 +492,29 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.geometryChoice.setLayout(vbox1)
 
         self.tbNone = QToolButton()
+        self.tbArea = QToolButton()
         self.tbFold = QToolButton()
         self.tbMinO = QToolButton()
         self.tbMaxO = QToolButton()
         self.tbRmsO = QToolButton()
 
         self.tbNone.setMinimumWidth(110)
+        self.tbArea.setMinimumWidth(110)
         self.tbFold.setMinimumWidth(110)
         self.tbMinO.setMinimumWidth(110)
         self.tbMaxO.setMinimumWidth(110)
         self.tbRmsO.setMinimumWidth(110)
 
         self.tbNone.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbArea.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbFold.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbMinO.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbMaxO.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.tbRmsO.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
 
-        self.actionNone.setChecked(True)                                        # action coupled to tbNone
+        self.actionArea.setChecked(True)                                        # action coupled to tbNone
         self.tbNone.setDefaultAction(self.actionNone)                           # coupling done here
+        self.tbArea.setDefaultAction(self.actionArea)
         self.tbFold.setDefaultAction(self.actionFold)
         self.tbMinO.setDefaultAction(self.actionMinO)
         self.tbMaxO.setDefaultAction(self.actionMaxO)
@@ -563,6 +522,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         vbox2 = QVBoxLayout()
         vbox2.addWidget(self.tbNone)
+        vbox2.addWidget(self.tbArea)
         vbox2.addWidget(self.tbFold)
         vbox2.addWidget(self.tbMinO)
         vbox2.addWidget(self.tbMaxO)
@@ -620,13 +580,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
         self.analysisActionGroup = QActionGroup(self)
         self.analysisActionGroup.addAction(self.actionNone)
+        self.analysisActionGroup.addAction(self.actionArea)
         self.analysisActionGroup.addAction(self.actionFold)
         self.analysisActionGroup.addAction(self.actionMinO)
         self.analysisActionGroup.addAction(self.actionMaxO)
         self.analysisActionGroup.addAction(self.actionRmsO)
-        self.actionNone.setChecked(True)
+        self.actionArea.setChecked(True)
 
         self.actionNone.triggered.connect(self.onActionNoneTriggered)
+        self.actionArea.triggered.connect(self.onActionAreaTriggered)
         self.actionFold.triggered.connect(self.onActionFoldTriggered)
         self.actionMinO.triggered.connect(self.onActionMinOTriggered)
         self.actionMaxO.triggered.connect(self.onActionMaxOTriggered)
@@ -1044,8 +1006,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # now start adding flags; start with various areas
         if self.actionShowCmpArea.isChecked():
             self.survey.paintDetails |= PaintDetails.cmpArea
-        if self.actionShowBinArea.isChecked():
-            self.survey.paintDetails |= PaintDetails.binArea
         if self.actionShowSrcArea.isChecked():
             self.survey.paintDetails |= PaintDetails.srcArea
         if self.actionShowRecArea.isChecked():
@@ -1167,7 +1127,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         # set the survey object in the property pane using current survey properties
         copy = self.survey.deepcopy()
 
-        self.updatePatternList(copy)                                            # create valid pattern list, before using it in property pane
+        # create valid pattern list, before using it in property panel
+        self.updatePatternList(copy)
 
         # first copy the crs for global access (todo: need to fix this later)
         config.surveyCrs = copy.crs
@@ -1349,7 +1310,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     ## If anything changes in the tree, print a message
     def propertyTreeStateChanged(self, param, changes):
 
-        # the next line is needed if we disable the 'Apply' button in the property pane, when no changes have been made
+        # the next line is needed in case we would disable the 'Apply' button in the property pane, when no changes have been made
         # self.propertyButtonBox.button(QDialogButtonBox.StandardButton.Apply).setEnabled(True)
 
         # Nomatter whether debug has been set to True or False
@@ -2010,7 +1971,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
 
     def updateMenuStatus(self, resetAnalysis=True):
         if resetAnalysis:
-            self.actionNone.setChecked(True)                                    # coupled with tbNone; reset analysis figure
+            self.actionArea.setChecked(True)                                    # coupled with tbNone; reset analysis figure
             self.imageType = 0                                                  # reset analysis type to zero
             self.handleImageSelection()                                         # change image (if available) and finally plot survey layout
 
@@ -2101,6 +2062,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                 self.layoutColorBar.getAxis('left').setLabel(label)
 
     def onActionNoneTriggered(self):
+        self.imageType = 0
+        self.handleImageSelection()
+
+    def onActionAreaTriggered(self):
         self.imageType = 0
         self.handleImageSelection()
 
@@ -2542,6 +2507,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         if self.layoutImItem is not None and self.imageType > 0:
             self.layoutImItem.setTransform(self.survey.cmpTransform * transform)   # combine two transforms
             self.layoutWidget.plotItem.addItem(self.layoutImItem)
+
+        # Show binning area (if checked and available)
+        if self.tbArea.isChecked():
+            if self.survey.output.rctOutput.isValid():
+                binRect = QGraphicsRectItem(self.survey.output.rctOutput)
+                binRect.setOpacity(1.0)
+                binRect.setPen(config.binAreaPen)
+                binRect.setBrush(QBrush(QColor(config.binAreaColor)))
+                binRect.setTransform(transform)  # keeps the bin in the right coordinate space
+                self.layoutWidget.plotItem.addItem(binRect)
 
         # add survey geometry if templates are to be displayed (controlled by checkbox)
         if self.tbTemplat.isChecked():
@@ -3479,9 +3454,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
             return False                                                        # nothing to reset
 
     def setPlottingDetails(self):
-        # check if there's at least one block defined
-        if len(self.survey.blockList) == 0:
-            self.actionTemplates.setChecked(False)
+        # actionTemplates is still handy to show the survey's origin, so don't disable it
+        # # check if there's at least one block defined
+        # if len(self.survey.blockList) == 0:
+        #     self.actionTemplates.setChecked(False)
 
         # check if it is a marine survey; set seed plotting details accordingly
         if self.survey.type == SurveyType.Streamer:
@@ -3577,7 +3553,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
                     self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ')
             else:
                 self.output.binOutput = None
-                self.actionNone.setChecked(True)
+                self.actionArea.setChecked(True)
                 self.imageType = 0                                              # set analysis type to zero (no analysis)
 
             if os.path.exists(self.fileName + '.min.npy'):                      # load the existing min-offsets file
@@ -4177,8 +4153,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.handleImageSelection()
         self.plotLayout()
 
-    # export comma separated values
     def fileExportAnaAsCsv(self):
+        # export comma separated values
         records, fn = exportDataAsTxt(self, self.fileName, '.ana.csv', self.anaView)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
@@ -4206,28 +4182,33 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         records, fn = exportDataAsTxt(self, self.fileName, '.xps.csv', self.xpsView)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
-    # export SPS formatted values
     def fileExportRpsAsR01(self):
+        # export SPS formatted values
         records, fn = fileExportAsR01(self, self.fileName, '.rps.r01', self.rpsView, self.survey.crs)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportRecAsR01(self):
+        # export SPS formatted values
         records, fn = fileExportAsR01(self, self.fileName, '.rec.r01', self.recView, self.survey.crs)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportSpsAsS01(self):
+        # export SPS formatted values
         records, fn = fileExportAsS01(self, self.fileName, '.sps.s01', self.spsView, self.survey.crs)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportSrcAsS01(self):
+        # export SPS formatted values
         records, fn = fileExportAsS01(self, self.fileName, '.src.s01', self.srcView, self.survey.crs)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportXpsAsX01(self):
+        # export SPS formatted values
         records, fn = fileExportAsX01(self, self.fileName, '.xps.x01', self.xpsView, self.survey.crs)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def fileExportRelAsX01(self):
+        # export SPS formatted values
         records, fn = fileExportAsX01(self, self.fileName, '.rel.x01', self.relView, self.survey.crs)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 

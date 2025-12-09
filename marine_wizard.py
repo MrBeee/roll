@@ -17,16 +17,18 @@ from qgis.PyQt.QtCore import QRectF, QRegularExpression
 from qgis.PyQt.QtGui import (QColor, QImage, QPixmap,
                              QRegularExpressionValidator, QTextOption,
                              QTransform)
-from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QFrame,
+from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox,
                                  QGridLayout, QLabel, QLineEdit, QMessageBox,
                                  QPlainTextEdit, QSizePolicy, QSpinBox,
-                                 QVBoxLayout, QWizard, QWizardPage)
+                                 QVBoxLayout, QWizard)
 
 from . import config  # used to pass initial settings
-from .functions import (even, intListToString, knotToMeterperSec,
-                        lineturnDetour, maxCableLengthVsTurnSpeed,
-                        maxTurnSpeedVsCableLength, myPrint, newtonToTonForce,
-                        rotatePoint2D, stringToIntList, tonForceToNewton)
+from .aux_classes import QHLine, SurveyWizard, SurveyWizardPage
+from .aux_functions import (even, intListToString, knotToMeterperSec,
+                            lineturnDetour, maxCableLengthVsTurnSpeed,
+                            maxTurnSpeedVsCableLength, myPrint,
+                            newtonToTonForce, rotatePoint2D, stringToIntList,
+                            tonForceToNewton)
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
 from .roll_survey import (PaintDetails, PaintMode, RollSurvey, SurveyList,
@@ -35,45 +37,7 @@ from .roll_survey import (PaintDetails, PaintMode, RollSurvey, SurveyList,
 current_dir = os.path.dirname(os.path.abspath(__file__))
 resource_dir = os.path.join(current_dir, 'resources')
 
-
-class QHLine(QFrame):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFrameShape(QFrame.Shape.HLine)
-        self.setFrameShadow(QFrame.Shadow.Sunken)
-
-
-class QVLine(QFrame):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFrameShape(QFrame.VLine)
-        self.setFrameShadow(QFrame.Shadow.Sunken)
-
-
 # WIZARD  =======================================================================
-
-# this derived wizard class contains a survey object, that is passed to the wizard pages
-class SurveyWizard(QWizard):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        # to access the main window and its components
-        self.parent = parent
-
-        # in the wizard constructor, first create the survey object for use in subsequent wizard pages
-        self.survey = RollSurvey()
-
-
-class SurveyWizardPage(QWizardPage):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.parent = parent                                                    # to access parent's parameters in the wizard pages (this will crash if parent is None)
-
-    def cleanupPage(self):                                                      # is called to reset the page’s contents when the user clicks the wizard’s Back button.
-        # The default implementation resets the page’s fields to their original values
-        # To prevent initializePage() being called when browsing backwards,
-        pass                                                                    # the default is now to do absolutely nothing !
-
 
 class MarineSurveyWizard(SurveyWizard):
     def __init__(self, parent=None):
@@ -2180,8 +2144,6 @@ class Page_5(SurveyWizardPage):
             self.parent.survey.paintDetails |= PaintDetails.recArea
         if self.chkShowCmp.isChecked():
             self.parent.survey.paintDetails |= PaintDetails.cmpArea
-        if self.chkShowBin.isChecked():
-            self.parent.survey.paintDetails |= PaintDetails.binArea
         self.plot()
 
 

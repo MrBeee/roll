@@ -1,7 +1,8 @@
 import math
 
 from . import config  # used to pass initial settings
-from .functions import knotToMeterperSec, newtonToTonForce, tonForceToNewton
+from .aux_functions import (knotToMeterperSec, newtonToTonForce,
+                            tonForceToNewton)
 
 
 class RollStreamerConfiguration:

@@ -4,7 +4,7 @@ This module provides the RollBlock Class that describes a block in a survey
 from qgis.PyQt.QtCore import QRectF
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .functions import clipRectF
+from .aux_functions import clipRectF
 from .roll_seed import RollSeed, SeedType
 from .roll_translate import RollTranslate
 

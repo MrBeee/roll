@@ -5,7 +5,7 @@ import time
 from qgis.PyQt.QtCore import QMutex, QObject, QThread, pyqtSignal
 
 from . import config  # used to pass initial settings
-from .functions import myPrint
+from .aux_functions import myPrint
 from .roll_survey import RollSurvey
 
 # debugpy  is needed to debug a worker thread.

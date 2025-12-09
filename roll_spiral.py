@@ -8,7 +8,7 @@ from qgis.PyQt.QtCore import QPointF, QRectF
 from qgis.PyQt.QtGui import QPainterPath, QTransform, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .functions import toFloat, toInt
+from .aux_functions import toFloat, toInt
 
 
 class RollSpiral:

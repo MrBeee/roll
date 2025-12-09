@@ -1,11 +1,12 @@
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import WidgetParameterItem
+from pyqtgraph.parametertree.parameterTypes.basetypes import \
+    WidgetParameterItem
 from qgis.PyQt.QtCore import QSize, Qt
 from qgis.PyQt.QtGui import QIcon, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import QComboBox
 
-from .functions import natural_sort
+from .aux_functions import natural_sort
 
 # See: https://github.com/pyqtgraph/pyqtgraph/issues/1407
 # See: https://docs.bokeh.org/en/latest/docs/reference/colors.html

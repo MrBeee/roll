@@ -5,7 +5,7 @@ from qgis.PyQt.QtCore import QPointF
 from qgis.PyQt.QtGui import QTransform
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .functions import toFloat, toInt
+from .aux_functions import toFloat, toInt
 
 
 class RollBinGrid:

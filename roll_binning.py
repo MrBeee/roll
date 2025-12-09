@@ -5,7 +5,7 @@ from enum import Enum
 
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .functions import toFloat
+from .aux_functions import toFloat
 
 
 class BinningType(Enum):

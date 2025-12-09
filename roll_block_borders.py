@@ -4,7 +4,7 @@ This module provides the borders of a survey block"""
 from qgis.PyQt.QtCore import QRectF
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .functions import toFloat
+from .aux_functions import toFloat
 
 
 class BlockBorders:

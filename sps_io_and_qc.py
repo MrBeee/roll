@@ -6,7 +6,7 @@ from qgis.core import QgsCoordinateTransform, QgsProject, QgsVector3D
 from qgis.PyQt.QtCore import QFile, QIODevice, QTextStream
 from qgis.PyQt.QtWidgets import QFileDialog
 
-from .functions import myPrint, toFloat, toInt
+from .aux_functions import myPrint, toFloat, toInt
 
 # sps file formats
 # See: https://seg.org/Portals/0/SEG/News%20and%20Resources/Technical%20Standards/seg_sps_rev2.1.pdf

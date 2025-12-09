@@ -9,7 +9,7 @@ from qgis.PyQt.QtGui import QPolygonF, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
 from . import config  # used to pass initial settings
-from .functions import myPrint, toFloat, toInt
+from .aux_functions import myPrint, toFloat, toInt
 from .rdp import filterRdp
 
 

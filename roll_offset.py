@@ -5,7 +5,7 @@ This module provides the Roll Offset class
 from qgis.PyQt.QtCore import QPointF, QRectF
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .functions import toFloat
+from .aux_functions import toFloat
 
 
 class RollOffset:

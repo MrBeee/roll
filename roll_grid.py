@@ -6,7 +6,7 @@ from qgis.PyQt.QtCore import QLineF, QRectF
 from qgis.PyQt.QtGui import QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .functions import toFloat, toInt
+from .aux_functions import toFloat, toInt
 from .roll_translate import RollTranslate
 
 

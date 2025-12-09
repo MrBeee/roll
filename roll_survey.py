@@ -18,7 +18,7 @@ from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
-from .functions import containsPoint3D
+from .aux_functions import containsPoint3D
 from .functions_numba import (clipLineF, numbaFixRelationRecord,
                               numbaSetPointRecord, numbaSetRelationRecord,
                               numbaSliceStats, pointsInRect)
@@ -162,12 +162,11 @@ class PaintDetails(IntFlag):
     srcArea = 128   # just src area
     recArea = 256   # just rec area
     cmpArea = 512   # just cmp area
-    binArea = 1024  # just binning area
 
     # show all above listed areas
-    allArea = 1984  # show all areas
+    allArea = 896  # show all areas
 
-    all = 2047      # all bits defined sofar are set
+    all = 1023      # all bits defined sofar are set
 
     # note: clearing a flag works with flag &= ~flagToClear
 
@@ -2825,12 +2824,13 @@ class RollSurvey(pg.GraphicsObject):
             p.drawRect(self.boundingRect())                                     # draw survey bounding box
             return
 
+        # Moved to roll_main_window.py to be drawn independent of survey object
         # Bin area (if enabled)
-        if self.output.rctOutput.isValid() and (self.paintDetails & PaintDetails.binArea):
-            p.setOpacity(1.0)
-            p.setPen(config.binAreaPen)
-            p.setBrush(QBrush(QColor(config.binAreaColor)))
-            p.drawRect(self.output.rctOutput)
+        # if self.output.rctOutput.isValid():
+        #     p.setOpacity(1.0)
+        #     p.setPen(config.binAreaPen)
+        #     p.setBrush(QBrush(QColor(config.binAreaColor)))
+        #     p.drawRect(self.output.rctOutput)
 
         # Per-block outlines (if enabled); culled by viewRect
         for block in self.blockList:

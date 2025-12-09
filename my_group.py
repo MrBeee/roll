@@ -2,14 +2,16 @@ import os
 
 from pyqtgraph import functions as fn
 from pyqtgraph.parametertree import registerParameterType
-from pyqtgraph.parametertree.parameterTypes import GroupParameter, GroupParameterItem
+from pyqtgraph.parametertree.parameterTypes import (GroupParameter,
+                                                    GroupParameterItem)
 from pyqtgraph.parametertree.parameterTypes.basetypes import ParameterItem
 from pyqtgraph.Qt import mkQApp
 from qgis.PyQt.QtGui import QColor, QIcon
-from qgis.PyQt.QtWidgets import QHBoxLayout, QMenu, QSizePolicy, QSpacerItem, QWidget
+from qgis.PyQt.QtWidgets import (QHBoxLayout, QMenu, QSizePolicy, QSpacerItem,
+                                 QWidget)
 
 from . import config  # used to pass initial settings
-from .functions import lineNo, myPrint
+from .aux_functions import lineNo, myPrint
 from .my_preview_label import MyPreviewLabel
 
 current_dir = os.path.dirname(os.path.abspath(__file__))

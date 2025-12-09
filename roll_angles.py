@@ -4,7 +4,7 @@ This module provides the RollAngles Class to (dis-) allow certain angles during 
 from qgis.PyQt.QtCore import QPointF
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .functions import toFloat
+from .aux_functions import toFloat
 
 
 class RollAngles:

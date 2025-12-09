@@ -4,32 +4,19 @@ import uuid
 # import matplotlib.pyplot as plt  # to create a png file
 import numpy as np
 import rasterio as rio
-from qgis.core import (
-    QgsCategorizedSymbolRenderer,
-    QgsColorRampShader,
-    QgsFeature,
-    QgsField,
-    QgsFillSymbol,
-    QgsGeometry,
-    QgsMarkerSymbol,
-    QgsPalLayerSettings,
-    QgsPointXY,
-    QgsProject,
-    QgsRasterLayer,
-    QgsRasterShader,
-    QgsRendererCategory,
-    QgsSingleBandPseudoColorRenderer,
-    QgsStyle,
-    QgsTextFormat,
-    QgsVectorLayer,
-    QgsVectorLayerSimpleLabeling,
-)
+from qgis.core import (QgsCategorizedSymbolRenderer, QgsColorRampShader,
+                       QgsFeature, QgsField, QgsFillSymbol, QgsGeometry,
+                       QgsMarkerSymbol, QgsPalLayerSettings, QgsPointXY,
+                       QgsProject, QgsRasterLayer, QgsRasterShader,
+                       QgsRendererCategory, QgsSingleBandPseudoColorRenderer,
+                       QgsStyle, QgsTextFormat, QgsVectorLayer,
+                       QgsVectorLayerSimpleLabeling)
 from qgis.PyQt.QtCore import QFileInfo, QRectF, QVariant
 from qgis.PyQt.QtGui import QPolygonF, QTransform
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
 
 from . import config  # used to pass initial settings
-from .functions import convexHullToQgisPolygon, isFileInUse, myPrint
+from .aux_functions import convexHullToQgisPolygon, isFileInUse, myPrint
 from .qgis_layer_dialog import LayerDialog
 from .sps_io_and_qc import pntType1
 

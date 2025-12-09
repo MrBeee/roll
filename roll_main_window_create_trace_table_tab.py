@@ -1,8 +1,8 @@
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QFont
-from qgis.PyQt.QtWidgets import QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import (QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+                                 QPushButton, QVBoxLayout, QWidget)
 
-from . import config  # used to pass initial settings
 from .table_model_view import AnaTableModel, TableView
 
 

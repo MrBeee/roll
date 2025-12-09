@@ -231,7 +231,6 @@
      <property name="title">
       <string>Show areas</string>
      </property>
-     <addaction name="actionShowBinArea"/>
      <addaction name="actionShowCmpArea"/>
      <addaction name="actionShowSrcArea"/>
      <addaction name="actionShowRecArea"/>
@@ -260,6 +259,7 @@
     <addaction name="separator"/>
     <addaction name="actionAnalysisDetails"/>
     <addaction name="actionNone"/>
+    <addaction name="actionArea"/>
     <addaction name="actionFold"/>
     <addaction name="actionMinO"/>
     <addaction name="actionMaxO"/>
@@ -373,7 +373,6 @@
    <addaction name="actionShowPoints"/>
    <addaction name="actionShowPatterns"/>
    <addaction name="separator"/>
-   <addaction name="actionShowBinArea"/>
    <addaction name="actionShowCmpArea"/>
    <addaction name="actionShowSrcArea"/>
    <addaction name="actionShowRecArea"/>
@@ -1190,7 +1189,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>No Analysis</string>
+    <string>None</string>
    </property>
    <property name="toolTip">
     <string>Don't show an analysis figure</string>
@@ -1477,21 +1476,6 @@
     <string>receiver areas</string>
    </property>
   </action>
-  <action name="actionShowBinArea">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionBinArea.svg</normaloff>resources/mActionBinArea.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Show binning area</string>
-   </property>
-   <property name="toolTip">
-    <string>Show binning analysis area</string>
-   </property>
-  </action>
   <action name="actionShowCmpArea">
    <property name="checkable">
     <bool>true</bool>
@@ -1649,6 +1633,14 @@
    </property>
    <property name="shortcut">
     <string>Esc</string>
+   </property>
+  </action>
+  <action name="actionArea">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Analysis Area</string>
    </property>
   </action>
  </widget>
