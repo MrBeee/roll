@@ -2504,15 +2504,15 @@ class Page_8(SurveyWizardPage):
         self.scaY = QDoubleSpinBox()
 
         # set ranges
-        self.Xt_0.setRange(-500000, 500000)
-        self.Yt_0.setRange(-500000, 500000)
+        self.Xt_0.setRange(-999_000, 999_000)
+        self.Yt_0.setRange(-999_000, 999_000)
 
         self.azim.setRange(0, 360)
         self.azim.setWrapping(True)
         self.azim.setDecimals(6)
 
-        self.scaX.setRange(-10000, 10000)
-        self.scaY.setRange(-10000, 10000)
+        self.scaX.setRange(-10_000, 10_000)
+        self.scaY.setRange(-10_000, 10_000)
         self.scaX.setDecimals(6)
         self.scaY.setDecimals(6)
 
