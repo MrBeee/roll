@@ -8,6 +8,7 @@ from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
 from . import config  # used to pass initial settings
 from .aux_functions import myPrint
+from .enums_and_int_flags import SeedType, SurveyType
 from .my_cmap import MyCmapParameter
 from .my_crs import MyCrsParameter
 from .my_crs2 import MyCrs2Parameter
@@ -33,10 +34,10 @@ from .roll_offset import RollOffset
 from .roll_pattern import RollPattern
 from .roll_pattern_seed import RollPatternSeed
 from .roll_plane import RollPlane
-from .roll_seed import RollSeed, SeedType
+from .roll_seed import RollSeed
 from .roll_sphere import RollSphere
 from .roll_spiral import RollSpiral
-from .roll_survey import RollSurvey, SurveyType
+from .roll_survey import RollSurvey
 from .roll_template import RollTemplate
 from .roll_translate import RollTranslate
 from .roll_well import RollWell

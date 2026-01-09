@@ -72,7 +72,8 @@
         "--disable=W0213",
         "--enable=W0611",
         "--enable=W0614",
-        "--disable=E1137"
+        "--disable=E1137",
+        "--disable=W0212"
         // "--reportMissingImports=false"
     ],
     "workbench.colorCustomizations": {

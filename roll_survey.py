@@ -5,7 +5,6 @@ import math
 import os
 import sys
 from collections import defaultdict
-from enum import Enum, IntFlag
 from time import perf_counter
 
 import numpy as np
@@ -19,6 +18,7 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .aux_functions import containsPoint3D
+from .enums_and_int_flags import PaintDetails, PaintMode, SeedType, SurveyType
 from .functions_numba import (clipLineF, numbaFixRelationRecord,
                               numbaSetPointRecord, numbaSetRelationRecord,
                               numbaSliceStats, pointsInRect)
@@ -31,7 +31,7 @@ from .roll_output import RollOutput
 from .roll_pattern import RollPattern
 from .roll_pattern_seed import RollPatternSeed
 from .roll_plane import RollPlane
-from .roll_seed import RollSeed, SeedType
+from .roll_seed import RollSeed
 from .roll_sphere import RollSphere
 from .roll_template import RollTemplate
 from .roll_translate import RollTranslate
@@ -108,14 +108,6 @@ from .sps_io_and_qc import pntType1, relType2
 # See: https://www.mend.io/blog/closing-the-loop-on-python-circular-import-issue/
 
 
-class SurveyType(Enum):
-    Orthogonal = 0
-    Parallel = 1
-    Slanted = 2
-    Brick = 3
-    Zigzag = 4
-    Streamer = 5
-
 
 # Note: we need to keep SurveyType and SurveyList in sync; maybe combine in a dictionary ?!
 SurveyList = [
@@ -126,49 +118,6 @@ SurveyList = [
     'zigzag - legacy manner acquiring narrrow azimuth vibroseis data',
     'streamer - towed streamer marine survey',
 ]
-
-
-class PaintMode(IntFlag):
-    none = 0            # reset the whole lot
-    justBlocks = 1      # just src, rec & cmp block outlines
-    justTemplates = 2   # just template rect boundaries
-    justLines = 3       # just lines
-    justPoints = 4      # just points
-    all = 5             # down to patterns
-
-
-class PaintDetails(IntFlag):
-    none = 0        # reset the whole lot
-
-    # receiver details
-    recPat = 1      # show rec patterns
-    recPnt = 2      # show rec points
-    recLin = 4      # show rec lines
-    recAll = 7      # show all rec details
-
-    # source details
-    srcPat = 8      # show src patterns
-    srcPnt = 16     # show src points
-    srcLin = 32     # show src lines
-    srcAll = 56     # show all source details
-
-    # show all receiver and source details
-    srcAndRec = 63  # show all src and rec details
-
-    # show templates ... or not
-    templat = 64    # complete templates
-
-    # show relevant areas
-    srcArea = 128   # just src area
-    recArea = 256   # just rec area
-    cmpArea = 512   # just cmp area
-
-    # show all above listed areas
-    allArea = 896  # show all areas
-
-    all = 1023      # all bits defined sofar are set
-
-    # note: clearing a flag works with flag &= ~flagToClear
 
 
 # See: https://docs.python.org/3/howto/enum.html

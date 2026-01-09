@@ -29,10 +29,10 @@ from .aux_functions import (even, intListToString, knotToMeterperSec,
                             maxTurnSpeedVsCableLength, myPrint,
                             newtonToTonForce, rotatePoint2D, stringToIntList,
                             tonForceToNewton)
+from .enums_and_int_flags import PaintDetails, PaintMode, SurveyType
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
-from .roll_survey import (PaintDetails, PaintMode, RollSurvey, SurveyList,
-                          SurveyType)
+from .roll_survey import RollSurvey, SurveyList
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 resource_dir = os.path.join(current_dir, 'resources')
@@ -727,12 +727,17 @@ class Page_2(SurveyWizardPage):
             # Add a marker for the origin
             oriX = [0.0]
             oriY = [0.0]
-            orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
-            src = self.plotWidget.plot(x=spiderSrcX, y=spiderSrcZ, connect='pairs', pen=pg.mkPen('r', width=2), symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='r')
-            rec = self.plotWidget.plot(x=spiderRecX, y=spiderRecZ, connect='pairs', pen=pg.mkPen('b', width=2), symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='b')
-            nom = self.plotWidget.plot(x=cmpNomX, y=cmpNomZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
-            act = self.plotWidget.plot(x=cmpActX, y=cmpActZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='g')
+            # origin marker; grey hexagon; 'orig' return value not used
+            _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+            # source spider; 'src' return value not used
+            _ = self.plotWidget.plot(x=spiderSrcX, y=spiderSrcZ, connect='pairs', pen=pg.mkPen('r', width=2), symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='r')
+            # receiver spider; 'rec' return value not used
+            _ = self.plotWidget.plot(x=spiderRecX, y=spiderRecZ, connect='pairs', pen=pg.mkPen('b', width=2), symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='b')
+            # nominal cmp locations; 'cmpNom' return value not used
+            _ = self.plotWidget.plot(x=cmpNomX, y=cmpNomZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+            # actual cmp locations; 'cmpAct' return value not used
+            _ = self.plotWidget.plot(x=cmpActX, y=cmpActZ, symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='g')
 
         else:                                                      # top view forwards on race track
             # On this wizard page only forward OR backwards sailing templates are shown at once, determined by the plotIndex
@@ -753,7 +758,7 @@ class Page_2(SurveyWizardPage):
             # Add a marker for the origin
             oriX = [0.0]
             oriY = [0.0]
-            orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+            _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker; grey hexagon; 'orig' return value not used
 
     def updateParentSurvey(self, plotIndex):
         # create / update the survey skeleton - Page_2
@@ -1071,7 +1076,7 @@ class Page_3(SurveyWizardPage):
         # Add a marker for the origin
         oriX = [0.0]
         oriY = [0.0]
-        orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+        _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker; 'orig' return value not used
 
     def updateParameters(self):
         # from other pages
@@ -2094,7 +2099,7 @@ class Page_5(SurveyWizardPage):
         # Add a marker for the origin
         oriX = [0.0]
         oriY = [0.0]
-        orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+        _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker; semi-transparent grey; 'orig' return value not used
 
     def evt_binImin_editingFinished(self, plot=True):
         binI = self.field('binI')

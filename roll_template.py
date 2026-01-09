@@ -5,7 +5,8 @@ from qgis.PyQt.QtCore import QRectF
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
 from .aux_functions import clipRectF
-from .roll_seed import RollSeed, SeedType
+from .enums_and_int_flags import SeedType
+from .roll_seed import RollSeed
 from .roll_translate import RollTranslate
 
 

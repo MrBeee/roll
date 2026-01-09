@@ -98,7 +98,6 @@ import traceback
 import webbrowser
 import winsound  # make a sound when an exception ocurs
 from datetime import timedelta
-from enum import Enum
 from math import atan2, ceil, degrees
 # from time import perf_counter
 from timeit import default_timer as timer
@@ -109,7 +108,6 @@ import pyqtgraph as pg
 from numpy.lib import recfunctions as rfn
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
-                              QItemSelection, QItemSelectionModel, QModelIndex,
                               QPoint, QSettings, QSize, Qt, QTextStream,
                               QThread)
 from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
@@ -131,11 +129,13 @@ from .aux_functions import (aboutText, convexHull, exampleSurveyXmlText,
                             highDpiText, licenseText, myPrint,
                             qgisCheatSheetText)
 from .chunked_data import ChunkedData
+from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
+                                  SurveyType)
 from .find import Find
 from .functions_numba import (numbaAziInline, numbaAziX_line,
                               numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D,
                               numbaOffInline, numbaOffsetBin, numbaOffX_line,
-                              numbaSlice3D, numbaSliceStats, numbaSpiderBin)
+                              numbaSlice3D, numbaSliceStats)
 from .land_wizard import LandSurveyWizard
 from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
@@ -151,8 +151,9 @@ from .roll_main_window_create_sps_tab import createSpsTab
 from .roll_main_window_create_stack_response_tab import createStackResponseTab
 from .roll_main_window_create_trace_table_tab import createTraceTableTab
 from .roll_output import RollOutput
-from .roll_survey import PaintDetails, PaintMode, RollSurvey, SurveyType
+from .roll_survey import RollSurvey
 from .settings import SettingsDialog, readSettings, writeSettings
+from .spider_navigation_mixin import SpiderNavigationMixin
 from .sps_import_dialog import SpsImportDialog
 from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
                             convertCrs, deletePntDuplicates, deletePntOrphans,
@@ -167,39 +168,18 @@ from .worker_threads import (BinFromGeometryWorker, BinningWorker,
                              GeometryWorker)
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
-
-class ImagType(Enum):
-    NoIm = 0
-    Fold = 1
-    MinO = 2
-    MaxO = 3
-
-
-class MsgType(Enum):
-    Info = 0
-    Binning = 1
-    Geometry = 2
-    Debug = 3
-    Warning = 4
-    Error = 5
-    Exception = 6
-
-
-class Direction(Enum):
-    NA = 0
-    Up = 1
-    Dn = 2
-    Lt = 3
-    Rt = 4
-
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
 resource_dir = os.path.join(current_dir, 'resources')
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'roll_main_window_base.ui'))
 
-class RollMainWindow(QMainWindow, FORM_CLASS):
+class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin):
+    """Main window for the Roll plugin, uses multiple inheritance.
+    * It is first of all derived from QMainWindow.
+    * FORM_CLASS is generated from the Qt Designer .ui file.
+    * SpiderNavigationMixin provides reusable spider-navigation behaviour.
+    """
     def __init__(self, parent=None):
         """Constructor."""
         super(RollMainWindow, self).__init__(parent)
@@ -322,6 +302,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.spiderRecY = None                                                  # numpy array with list of REC part of spider plot
         self.spiderText = None                                                  # text label describing spider bin, stake, fold
         self.actionSpider.setChecked(False)                                     # reset spider plot to 'off'
+        self.actionSpider.setEnabled(False)
+        self.spiderMode = Direction.NA                                          # current spider navigation mode
 
         # export layers to QGIS
         self.spsLayer = None                                                    # QGIS layer for sps point I/O
@@ -527,10 +509,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         vbox2.addWidget(self.tbMinO)
         vbox2.addWidget(self.tbMaxO)
         vbox2.addWidget(self.tbRmsO)
-
         vbox2.addWidget(QHLine())
-        self.actionSpider.triggered.connect(self.handleSpiderPlot)
-        self.actionSpider.setEnabled(False)
 
         self.tbSpider = QToolButton()
         self.tbSpider.setMinimumWidth(110)
@@ -545,11 +524,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnSpiderUp = QToolButton()
         self.btnSpiderDn = QToolButton()
 
-        self.btnSpiderLt.setDefaultAction(self.actionMoveLt)
-        self.btnSpiderRt.setDefaultAction(self.actionMoveRt)
-        self.btnSpiderUp.setDefaultAction(self.actionMoveUp)
-        self.btnSpiderDn.setDefaultAction(self.actionMoveDn)
-
         # Note: to use a stylesheet on buttons (=actions) in a toolbar, you needt to use the toolbar's stylesheet and select individual actions to 'style'
         # See: https://stackoverflow.com/questions/32460193/how-to-change-qaction-background-color-using-stylesheets-css
         self.btnSpiderLt.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
@@ -557,15 +531,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
         self.btnSpiderUp.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
         self.btnSpiderDn.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
 
-        self.actionMoveLt.triggered.connect(self.spiderGoLt)
-        self.actionMoveRt.triggered.connect(self.spiderGoRt)
-        self.actionMoveUp.triggered.connect(self.spiderGoUp)
-        self.actionMoveDn.triggered.connect(self.spiderGoDn)
+        self.btnSpiderLt.setDefaultAction(self.actionMoveLt)
+        self.btnSpiderRt.setDefaultAction(self.actionMoveRt)
+        self.btnSpiderUp.setDefaultAction(self.actionMoveUp)
+        self.btnSpiderDn.setDefaultAction(self.actionMoveDn)
 
         self.actionMoveLt.setShortcuts(['Alt+Left', 'Alt+Shift+Left', 'Alt+Ctrl+Left', 'Alt+Shift+Ctrl+Left'])
         self.actionMoveRt.setShortcuts(['Alt+Right', 'Alt+Shift+Right', 'Alt+Ctrl+Right', 'Alt+Shift+Ctrl+Right'])
         self.actionMoveUp.setShortcuts(['Alt+Up', 'Alt+Shift+Up', 'Alt+Ctrl+Up', 'Alt+Shift+Ctrl+Up'])
         self.actionMoveDn.setShortcuts(['Alt+Down', 'Alt+Shift+Down', 'Alt+Ctrl+Down', 'Alt+Shift+Ctrl+Down'])
+
+        # from SpiderNavigationMixin.py; setup the spider action shortcuts
+        self.setup_spider_actions()
 
         hbox1 = QHBoxLayout()
         hbox1.addStretch()
@@ -1406,176 +1383,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS):
     def resetPlotWidget(self, w, plotTitle):
         w.plotItem.clear()
         w.setTitle(plotTitle, color='b', size='16pt')
-
-    # deal with the spider navigation
-    # See: https://stackoverflow.com/questions/49316067/how-get-pressed-keys-in-mousepressevent-method-with-qt
-    def spiderGoRt(self, *_, direction=Direction.Rt):
-        self.navigateSpider(direction=direction)
-
-    def spiderGoLt(self, *_, direction=Direction.Lt):
-        self.navigateSpider(direction=direction)
-
-    def spiderGoUp(self, *_, direction=Direction.Up):
-        self.navigateSpider(direction=direction)
-
-    def spiderGoDn(self, *_, direction=Direction.Dn):
-        self.navigateSpider(direction=direction)
-
-    # See: https://groups.google.com/g/pyqtgraph/c/kewFL4LkoYE?pli=1 to add pg.TextItem to indicate fold & location
-    def handleSpiderPlot(self):
-        if self.tbSpider.isChecked():
-            self.navigateSpider(Direction.NA)
-        else:
-            self.plotLayout()
-
-    def navigateSpider(self, direction):
-        if self.output.anaOutput is None or self.output.binOutput is None:
-            return
-
-        step = 1
-        # See: https://doc.qt.io/archives/qt-4.8/qapplication.html#queryKeyboardModifiers
-        modifierPressed = QApplication.keyboardModifiers()
-        if (modifierPressed & Qt.KeyboardModifier.ControlModifier) == Qt.KeyboardModifier.ControlModifier:
-            step = 10
-        if (modifierPressed & Qt.KeyboardModifier.ShiftModifier) == Qt.KeyboardModifier.ShiftModifier:
-            step *= 5
-
-        xAnaSize = self.output.anaOutput.shape[0]                               # spider only available when anaOutput is available
-        yAnaSize = self.output.anaOutput.shape[1]
-        zAnaFold = self.output.anaOutput.shape[2]                               # max allowable fold
-        wAnaCols = self.output.anaOutput.shape[3]                               # need 13 columns here
-
-        assert wAnaCols == 13, 'there need to be 13 fields in the analysis array'
-
-        xBinSize = self.output.binOutput.shape[0]                               # The x, y sizes need to match
-        yBinSize = self.output.binOutput.shape[1]
-
-        if xAnaSize != xBinSize or yAnaSize != yBinSize:
-            QMessageBox.warning(self, 'Misaligned analysis arrays', 'Binning file and extended analysis file have dissimilar sizes. Please rerun analysis')
-            return
-
-        if self.spiderPoint == QPoint(-1, -1):                                  # no valid position yet; move to center
-            self.spiderPoint = QPoint(xAnaSize // 2, yAnaSize // 2)
-        elif direction == Direction.Rt:                                         # valid position, so move spider around
-            self.spiderPoint += QPoint(1, 0) * step
-        elif direction == Direction.Lt:
-            self.spiderPoint -= QPoint(1, 0) * step
-        elif direction == Direction.Up:
-            self.spiderPoint += QPoint(0, 1) * step
-        elif direction == Direction.Dn:
-            self.spiderPoint -= QPoint(0, 1) * step
-
-        if self.spiderPoint.x() < 0:
-            self.spiderPoint.setX(0)
-
-        if self.spiderPoint.y() < 0:
-            self.spiderPoint.setY(0)
-
-        if self.spiderPoint.x() >= xAnaSize:
-            self.spiderPoint.setX(xAnaSize - 1)
-
-        if self.spiderPoint.y() >= yAnaSize:
-            self.spiderPoint.setY(yAnaSize - 1)
-
-        nX = self.spiderPoint.x()                                               # get x, y indices into bin array
-        nY = self.spiderPoint.y()
-
-        try:                                                                    # protect against potential index errors
-            fold = self.output.binOutput[nX, nY]                         # max fold; accounting for unique fold
-            fold = min(fold, zAnaFold)                                          # 3rd dimension in analysis file reflects available records per cmp
-        except IndexError:                                                      # in case array is resized during FileNew()
-            return                                                              # something went wrong accessing binning array
-
-        plotIndex = self.getVisiblePlotWidget()[1]                              # get the active plot widget nr
-        if plotIndex == 0:                                                      # update the layout plot
-
-            if fold > 0:                                                        # create the spider legs
-                self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = numbaSpiderBin(self.output.anaOutput[nX, nY, 0:fold, :])
-            else:                                                               # nothing to show
-                self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = (None, None, None, None)
-
-            invBinTransform, _ = self.survey.binTransform.inverted()            # need to go from bin nr's to cmp(x, y)
-            cmpX, cmpY = invBinTransform.map(nX, nY)                            # get local coordinates from line and point indices
-            stkX, stkY = self.survey.st2Transform.map(cmpX, cmpY)               # get the corresponding bin and stake numbers
-
-            if fold > 0:
-                labelX = cmpX
-                labelY = max(self.spiderRecY.max(), self.spiderSrcY.max())
-            else:
-                labelX = cmpX
-                labelY = cmpY
-
-            if self.glob:                                                       # we need to convert local to global coords
-                labelX, labelY = self.survey.glbTransform.map(labelX, labelY)   # get global position from local version
-
-            if self.spiderText is None:                                         # first time around
-                self.spiderText = pg.TextItem(anchor=(0.5, 1.3), border='b', color='b', fill=(130, 255, 255, 200), text='spiderLabel')
-                self.spiderText.setZValue(1000)                                 # make sure it is visible
-
-            self.spiderText.setPos(labelX, labelY)                                  # move the label above spider's cmp position
-            self.spiderText.setText(f'S({int(stkX)},{int(stkY)}), fold = {fold}')   # update the label text accordingly
-            self.plotLayout()
-
-        else:
-            self.updateVisiblePlotWidget(plotIndex)                             # update one of the analysis plots
-
-        # now sync the trace table selection with the spider position
-        sizeY = self.output.anaOutput.shape[1]                                  # x-line size of analysis array
-        maxFld = self.output.anaOutput.shape[2]                                 # max fold from analysis file
-        global_offset = (nX * sizeY + nY) * maxFld                              # calculate offset for self.output.D2_Output array
-
-        # Check if we're using chunked data
-        is_chunked = hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data is not None
-
-        if is_chunked:
-            # Navigate to the chunk containing our target bin
-            chunk_size = self.anaModel._chunked_data.chunk_size
-            target_chunk = global_offset // chunk_size
-
-            # Navigate to the correct chunk if needed
-            if self.anaModel._chunked_data.current_chunk != target_chunk:
-                if self.anaModel._chunked_data.goto_chunk(target_chunk):
-                    # Update model with new chunk data
-                    self.anaModel.layoutAboutToBeChanged.emit()
-                    current_chunk = self.anaModel._chunked_data.get_current_chunk()
-                    self.anaModel._data = np.copy(current_chunk)
-                    self.anaModel.layoutChanged.emit()
-                    self._updatePageInfo()  # Update pagination info
-
-            # Convert global offset to local offset within the current chunk
-            local_offset = global_offset % chunk_size
-
-            # Make sure we don't try to select more rows than available in this chunk
-            available_rows = min(fold, chunk_size - local_offset)
-
-            # Select and scroll to the correct rows
-            if available_rows > 0 and local_offset < self.anaModel.rowCount():
-                # Create selection for the visible rows
-                selection = QItemSelection(self.anaModel.index(local_offset, 0), self.anaModel.index(min(local_offset + available_rows - 1, self.anaModel.rowCount() - 1), 0))
-
-                # Scroll to the first row
-                self.anaView.scrollTo(self.anaModel.index(local_offset, 0))
-
-                # Apply selection
-                sm = self.anaView.selectionModel()
-                sm.select(selection, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
-
-                # Inform user if not all traces for this bin are visible
-                if available_rows < fold:
-                    self.appendLogMessage(f'Note&nbsp;&nbsp;: Only {available_rows} of {fold} traces for this bin are visible in the current chunk', MsgType.Warning)
-
-        else:    # Original non-chunked behavior
-            index = self.anaView.model().index(global_offset, 0)                # turn offset into index object
-            self.anaView.scrollTo(index)                                        # scroll to index
-            self.anaView.selectRow(global_offset)                               # for the time being, *only* select first row of traces in a bin
-
-            fold = max(fold, 1)                                                 # only highlight one line when fold = 0
-            TL = QModelIndex(self.anaView.model().index(global_offset, 0))
-            BR = QModelIndex(self.anaView.model().index(global_offset + fold - 1, 0))
-            selection = QItemSelection(TL, BR)
-
-            sm = self.anaView.selectionModel()                                  # select corresponding rows in self.anaView table
-            sm.select(selection, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
 
     # define several sps, rps, xps button functions
     def sortSpsData(self, index):

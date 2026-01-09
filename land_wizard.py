@@ -23,9 +23,10 @@ from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox,
 from . import config  # used to pass initial settings
 from .aux_classes import QHLine, SurveyWizard, SurveyWizardPage
 from .aux_functions import myPrint
+from .enums_and_int_flags import PaintMode, SurveyType
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
-from .roll_survey import PaintMode, RollSurvey, SurveyList, SurveyType
+from .roll_survey import RollSurvey, SurveyList
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 resource_dir = os.path.join(current_dir, 'resources')
@@ -1904,7 +1905,7 @@ class Page_4(SurveyWizardPage):
         # Add a marker for the origin
         oriX = [0.0]
         oriY = [0.0]
-        orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
+        _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker 'orig' not used further
 
     def evt_chkShiftSpread_toggled(self, chkd):
         offImin = self.field('offImin')

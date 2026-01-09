@@ -2,8 +2,6 @@
 This module provides Seed Class, core of the placement of src & rec points in a survey area
 """
 
-from enum import IntFlag
-
 import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QRectF
@@ -11,21 +9,12 @@ from qgis.PyQt.QtGui import QColor, QPainter, QPicture, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
 from .aux_functions import toFloat
+from .enums_and_int_flags import SeedType
 from .roll_circle import RollCircle
 from .roll_grid import RollGrid
 from .roll_spiral import RollSpiral
 from .roll_translate import RollTranslate
 from .roll_well import RollWell
-
-# todo: replace integers by class SeedType for seed type indication
-
-
-class SeedType(IntFlag):
-    rollingGrid = 0
-    fixedGrid = 1
-    circle = 2
-    spiral = 3
-    well = 4
 
 
 class RollSeed:
