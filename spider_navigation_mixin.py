@@ -125,11 +125,19 @@ class SpiderNavigationMixin:
         self.spiderPoint.setY(min(max(self.spiderPoint.y(), 0), y_max - 1))
 
     def _updateLayoutSpiderOverlay(self, n_x: int, n_y: int, fold: int) -> None:
+
         if fold > 0:
-            legs = numbaSpiderBin(self.output.anaOutput[n_x, n_y, 0:fold, :])
+            slice2d = self.output.anaOutput[n_x, n_y, 0:fold, :]
+            legs = self._spider_leg_arrays(slice2d)
             self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = legs
         else:
             self.spiderSrcX = self.spiderSrcY = self.spiderRecX = self.spiderRecY = None
+
+        # if fold > 0:
+        #     legs = numbaSpiderBin(self.output.anaOutput[n_x, n_y, 0:fold, :])
+        #     self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = legs
+        # else:
+        #     self.spiderSrcX = self.spiderSrcY = self.spiderRecX = self.spiderRecY = None
 
         inv_bin, _ = self.survey.binTransform.inverted()
         cmp_x, cmp_y = inv_bin.map(n_x, n_y)
@@ -153,6 +161,38 @@ class SpiderNavigationMixin:
         self.spiderText.setPos(label_x, label_y)
         self.spiderText.setText(f'S({int(stk_x)},{int(stk_y)}), fold = {fold}')
         self.plotLayout()
+
+    def _spider_leg_arrays(self, slice2d: np.ndarray):
+        try:
+            return numbaSpiderBin(slice2d)
+        except Exception as exc:
+            module = exc.__class__.__module__
+            is_numba_exc = module.startswith('numba')
+            is_known_attr = isinstance(exc, AttributeError) and 'get_call_template' in str(exc)
+            if not (is_numba_exc or is_known_attr):
+                raise
+            self._warn_spider_fallback(exc)
+            return self._spider_leg_arrays_python(slice2d)
+
+    def _warn_spider_fallback(self, exc: Exception) -> None:
+        if getattr(self, '_spider_fallback_warned', False):
+            return
+        self.appendLogMessage(f'Warning&nbsp;&nbsp;: Falling back to Python spider plotting because Numba failed ({exc}).', MsgType.Warning    )
+        self._spider_fallback_warned = True
+
+    @staticmethod
+    def _spider_leg_arrays_python(slice2d: np.ndarray):
+        fold_x2 = slice2d.shape[0] * 2
+        spiderSrcX = np.zeros(fold_x2, dtype=np.float32)
+        spiderSrcY = np.zeros_like(spiderSrcX)
+        spiderRecX = np.zeros_like(spiderSrcX)
+        spiderRecY = np.zeros_like(spiderSrcX)
+        spiderSrcX[0::2] = slice2d[:, 3]; spiderSrcX[1::2] = slice2d[:, 7]
+        spiderSrcY[0::2] = slice2d[:, 4]; spiderSrcY[1::2] = slice2d[:, 8]
+        spiderRecX[0::2] = slice2d[:, 5]; spiderRecX[1::2] = slice2d[:, 7]
+        spiderRecY[0::2] = slice2d[:, 6]; spiderRecY[1::2] = slice2d[:, 8]
+        return spiderSrcX, spiderSrcY, spiderRecX, spiderRecY
+
 
     def _syncTraceTableSelection(self, n_x: int, n_y: int, fold: int) -> None:
         size_y = self.output.anaOutput.shape[1]

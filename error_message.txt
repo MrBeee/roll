@@ -1,0 +1,26 @@
+2026-01-12T21:42:58     WARNING    Traceback (most recent call last):
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll.py", line 297, in run
+              self.mainWindow = RollMainWindow()
+              ^^^^^^^^^^^^^^^^
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 130, in __init__
+              create_property_dock(self)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\property_dock.py", line 15, in create_property_dock
+              return _PropertyDockBuilder(window).build()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\property_dock.py", line 24, in build
+              self._init_parameter_tree()
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\property_dock.py", line 48, in _init_parameter_tree
+              w.resetSurveyProperties()
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 706, in resetSurveyProperties
+              copy = self.survey.deepcopy()
+              ^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_survey.py", line 2294, in deepcopy
+              succes = surveyCopy.fromXmlString(plainText)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_survey.py", line 2275, in fromXmlString
+              self.calcTransforms(createArrays) # calculate transforms to plot items at the right location
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_survey.py", line 338, in calcTransforms
+              sx = w / nx
+              ~~^~~~
+             ZeroDivisionError: float division by zero

@@ -36,23 +36,25 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
                               QPoint, QSettings, QSize, Qt, QTextStream,
                               QThread)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QTextCursor,
-                             QTransform)
+from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QKeySequence,
+                             QTextCursor, QTextOption, QTransform)
 from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
                                       QPrintPreviewDialog)
-from qgis.PyQt.QtWidgets import (QAction, QApplication, QDialog, QFileDialog,
+from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QApplication, QDialog,
+                                 QDialogButtonBox, QDockWidget, QFileDialog,
                                  QGraphicsEllipseItem, QGraphicsRectItem,
-                                 QLabel, QMainWindow, QMessageBox,
-                                 QProgressBar, QTabWidget, QWidget)
+                                 QGroupBox, QHBoxLayout, QHeaderView, QLabel,
+                                 QMainWindow, QMessageBox, QPlainTextEdit,
+                                 QProgressBar, QPushButton, QTabWidget,
+                                 QToolButton, QVBoxLayout, QWidget)
 from qgis.PyQt.QtXml import QDomDocument
 
 from . import config  # used to pass initial settings
-from .aux_classes import LineROI
+from .aux_classes import LineROI, QHLine
 from .aux_functions import (aboutText, convexHull, exampleSurveyXmlText,
                             highDpiText, licenseText, myPrint,
                             qgisCheatSheetText)
 from .chunked_data import ChunkedData
-from .display_dock import create_display_dock
 from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
                                   SurveyType)
 from .find import Find
@@ -61,10 +63,8 @@ from .functions_numba import (numbaAziInline, numbaAziX_line,
                               numbaOffInline, numbaOffsetBin, numbaOffX_line,
                               numbaSlice3D, numbaSliceStats)
 from .land_wizard import LandSurveyWizard
-from .logging_dock import create_logging_dock
 from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .property_dock import create_property_dock
 from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
                              exportPointLayerToQgis, exportSpsOutlinesToQgis,
                              exportSurveyOutlinesToQgis,
@@ -119,8 +119,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # See also: https://doc.qt.io/qt-6/designer-using-a-ui-file-python.html
         # See: https://docs.qgis.org/3.22/en/docs/documentation_guidelines/substitutions.html#toolbar-button-icons for QGIS Icons
         self.setupUi(self)
-        create_display_dock(self)
-        create_logging_dock(self)
 
         # reset GUI when the plugin is restarted (not when restarted from minimized state on windows)
         self.killMe = False
@@ -273,6 +271,278 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.fileName = ''
         self.projectDirectory = ''
         self.importDirectory = ''
+
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+        # first docking pane, used to display geometry and analysis results
+        self.dockDisplay = QDockWidget('Display pane')
+        self.dockDisplay.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+
+        # See: https://www.geeksforgeeks.org/pyqt5-qdockwidget-setting-style-sheet/ for styling
+        self.dockDisplay.setStyleSheet('QDockWidget::title {background : lightblue;}')
+
+        self.geometryChoice = QGroupBox('Geometry to display')                  # create display widget(s)
+        self.analysisChoice = QGroupBox('Analysis to display')                  # create display widget(s)
+        self.analysisToQgis = QGroupBox('Export to QGIS')                       # create display widget(s)
+
+        self.geometryChoice.setMinimumWidth(140)
+        self.analysisChoice.setMinimumWidth(140)
+        self.analysisToQgis.setMinimumWidth(140)
+
+        self.geometryChoice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.analysisChoice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.analysisToQgis.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+        # display pane
+        vbox0 = QVBoxLayout()
+        self.displayLayout = QHBoxLayout()                                      # required layout
+
+        self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
+        self.displayLayout.addLayout(vbox0)
+        self.displayLayout.addStretch()                                         # add some stretch to main center widget(s)
+
+        vbox0.addStretch()                                                      # add some stretch to main center widget(s)
+        vbox0.addWidget(self.geometryChoice)                                    # add main widget(s)
+        vbox0.addStretch()                                                      # add some stretch to main center widget(s)
+        vbox0.addWidget(self.analysisChoice)                                    # add main widget(s)
+        vbox0.addStretch()                                                      # add some stretch to main center widget(s)
+        vbox0.addWidget(self.analysisToQgis)                                    # add main widget(s)
+        vbox0.addStretch()                                                      # add some stretch to main center widget(s)
+
+        self.tbTemplat = QToolButton()
+        self.tbRecList = QToolButton()
+        self.tbSrcList = QToolButton()
+        self.tbRpsList = QToolButton()
+        self.tbSpsList = QToolButton()
+        self.tbAllList = QToolButton()
+
+        self.tbTemplat.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+
+        self.tbTemplat.setMinimumWidth(110)
+        self.tbRecList.setMinimumWidth(110)
+        self.tbSrcList.setMinimumWidth(110)
+        self.tbRpsList.setMinimumWidth(110)
+        self.tbSpsList.setMinimumWidth(110)
+        self.tbAllList.setMinimumWidth(110)
+
+        self.tbTemplat.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbRecList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbSrcList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbRpsList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbSpsList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbAllList.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+
+        self.tbTemplat.setDefaultAction(self.actionTemplates)
+        self.tbRecList.setDefaultAction(self.actionRecPoints)
+        self.tbSrcList.setDefaultAction(self.actionSrcPoints)
+        self.tbRpsList.setDefaultAction(self.actionRpsPoints)
+        self.tbSpsList.setDefaultAction(self.actionSpsPoints)
+        self.tbAllList.setDefaultAction(self.actionAllPoints)
+
+        self.actionTemplates.setChecked(True)
+
+        # control the maximum allowed details in plot
+        self.actionShowPatterns.setChecked(True)
+
+        # by default show source AND receiver lines, points and patterns
+        self.actionShowCmpArea.setChecked(True)
+
+        self.actionShowSrcArea.setChecked(True)
+        self.actionShowSrcLines.setChecked(True)
+        self.actionShowSrcPoints.setChecked(True)
+        self.actionShowSrcPatterns.setChecked(True)
+
+        self.actionShowRecArea.setChecked(True)
+        self.actionShowRecLines.setChecked(True)
+        self.actionShowRecPoints.setChecked(True)
+        self.actionShowRecPatterns.setChecked(True)
+
+        # hook up the signals to the slots
+        self.setup_paint_actions()                                    # initialize paint mode actions. From SurveyPaintMixin class
+
+        # make these buttons mutually exclusive using a QActionGroup
+        self.paintMode = QActionGroup(self)
+        self.paintMode.addAction(self.actionShowBlocks)
+        self.paintMode.addAction(self.actionShowTemplates)
+        self.paintMode.addAction(self.actionShowLines)
+        self.paintMode.addAction(self.actionShowPoints)
+        self.paintMode.addAction(self.actionShowPatterns)
+
+        self.actionRecPoints.setEnabled(False)
+        self.actionSrcPoints.setEnabled(False)
+        self.actionRpsPoints.setEnabled(False)
+        self.actionSpsPoints.setEnabled(False)
+        self.actionAllPoints.setEnabled(False)
+        self.actionAllPoints.setChecked(True)
+
+        vbox1 = QVBoxLayout()
+        vbox1.addWidget(self.tbTemplat)
+        vbox1.addWidget(self.tbRecList)
+        vbox1.addWidget(self.tbSrcList)
+        vbox1.addWidget(self.tbRpsList)
+        vbox1.addWidget(self.tbSpsList)
+        vbox1.addWidget(QHLine())
+        vbox1.addWidget(self.tbAllList)
+
+        self.geometryChoice.setLayout(vbox1)
+
+        self.tbNone = QToolButton()
+        self.tbArea = QToolButton()
+        self.tbFold = QToolButton()
+        self.tbMinO = QToolButton()
+        self.tbMaxO = QToolButton()
+        self.tbRmsO = QToolButton()
+
+        self.tbNone.setMinimumWidth(110)
+        self.tbArea.setMinimumWidth(110)
+        self.tbFold.setMinimumWidth(110)
+        self.tbMinO.setMinimumWidth(110)
+        self.tbMaxO.setMinimumWidth(110)
+        self.tbRmsO.setMinimumWidth(110)
+
+        self.tbNone.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbArea.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbFold.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbMinO.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbMaxO.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbRmsO.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+
+        self.actionArea.setChecked(True)                                        # action coupled to tbNone
+        self.tbNone.setDefaultAction(self.actionNone)                           # coupling done here
+        self.tbArea.setDefaultAction(self.actionArea)
+        self.tbFold.setDefaultAction(self.actionFold)
+        self.tbMinO.setDefaultAction(self.actionMinO)
+        self.tbMaxO.setDefaultAction(self.actionMaxO)
+        self.tbRmsO.setDefaultAction(self.actionRmsO)
+
+        vbox2 = QVBoxLayout()
+        vbox2.addWidget(self.tbNone)
+        vbox2.addWidget(self.tbArea)
+        vbox2.addWidget(self.tbFold)
+        vbox2.addWidget(self.tbMinO)
+        vbox2.addWidget(self.tbMaxO)
+        vbox2.addWidget(self.tbRmsO)
+        vbox2.addWidget(QHLine())
+
+        self.tbSpider = QToolButton()
+        self.tbSpider.setMinimumWidth(110)
+        self.tbSpider.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.tbSpider.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self.tbSpider.setDefaultAction(self.actionSpider)
+
+        vbox2.addWidget(self.tbSpider)
+
+        self.btnSpiderLt = QToolButton()
+        self.btnSpiderRt = QToolButton()
+        self.btnSpiderUp = QToolButton()
+        self.btnSpiderDn = QToolButton()
+
+        # Note: to use a stylesheet on buttons (=actions) in a toolbar, you needt to use the toolbar's stylesheet and select individual actions to 'style'
+        # See: https://stackoverflow.com/questions/32460193/how-to-change-qaction-background-color-using-stylesheets-css
+        self.btnSpiderLt.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.btnSpiderRt.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.btnSpiderUp.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+        self.btnSpiderDn.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+
+        self.btnSpiderLt.setDefaultAction(self.actionMoveLt)
+        self.btnSpiderRt.setDefaultAction(self.actionMoveRt)
+        self.btnSpiderUp.setDefaultAction(self.actionMoveUp)
+        self.btnSpiderDn.setDefaultAction(self.actionMoveDn)
+
+        self.actionMoveLt.setShortcuts(['Alt+Left', 'Alt+Shift+Left', 'Alt+Ctrl+Left', 'Alt+Shift+Ctrl+Left'])
+        self.actionMoveRt.setShortcuts(['Alt+Right', 'Alt+Shift+Right', 'Alt+Ctrl+Right', 'Alt+Shift+Ctrl+Right'])
+        self.actionMoveUp.setShortcuts(['Alt+Up', 'Alt+Shift+Up', 'Alt+Ctrl+Up', 'Alt+Shift+Ctrl+Up'])
+        self.actionMoveDn.setShortcuts(['Alt+Down', 'Alt+Shift+Down', 'Alt+Ctrl+Down', 'Alt+Shift+Ctrl+Down'])
+
+        # from SpiderNavigationMixin.py; setup the spider action shortcuts
+        self.setup_spider_actions()
+
+        hbox1 = QHBoxLayout()
+        hbox1.addStretch()
+        hbox1.addWidget(self.btnSpiderLt)
+        hbox1.addWidget(self.btnSpiderRt)
+        hbox1.addWidget(self.btnSpiderUp)
+        hbox1.addWidget(self.btnSpiderDn)
+        hbox1.addStretch()
+        vbox2.addLayout(hbox1)
+
+        self.analysisChoice.setLayout(vbox2)
+
+        self.analysisActionGroup = QActionGroup(self)
+        self.analysisActionGroup.addAction(self.actionNone)
+        self.analysisActionGroup.addAction(self.actionArea)
+        self.analysisActionGroup.addAction(self.actionFold)
+        self.analysisActionGroup.addAction(self.actionMinO)
+        self.analysisActionGroup.addAction(self.actionMaxO)
+        self.analysisActionGroup.addAction(self.actionRmsO)
+        self.actionArea.setChecked(True)
+
+        self.actionNone.triggered.connect(self.onActionNoneTriggered)
+        self.actionArea.triggered.connect(self.onActionAreaTriggered)
+        self.actionFold.triggered.connect(self.onActionFoldTriggered)
+        self.actionMinO.triggered.connect(self.onActionMinOTriggered)
+        self.actionMaxO.triggered.connect(self.onActionMaxOTriggered)
+        self.actionRmsO.triggered.connect(self.onActionRmsOTriggered)
+
+        self.btnBinToQGIS = QPushButton('Fold Map')
+        self.btnMinToQGIS = QPushButton('Min Offset')
+        self.btnMaxToQGIS = QPushButton('Max Offset')
+        self.btnRmsToQGIS = QPushButton('Rms Offset')
+
+        self.btnBinToQGIS.setMinimumWidth(110)
+        self.btnMinToQGIS.setMinimumWidth(110)
+        self.btnMaxToQGIS.setMinimumWidth(110)
+        self.btnRmsToQGIS.setMinimumWidth(110)
+
+        self.btnBinToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
+        self.btnMinToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
+        self.btnMaxToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
+        self.btnRmsToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
+
+        vbox3 = QVBoxLayout()
+        vbox3.addWidget(self.btnBinToQGIS)
+        vbox3.addWidget(self.btnMinToQGIS)
+        vbox3.addWidget(self.btnMaxToQGIS)
+        vbox3.addWidget(self.btnRmsToQGIS)
+        self.analysisToQgis.setLayout(vbox3)
+
+        self.displayWidget = QWidget()                                          # placeholder widget to generate a layout
+        self.displayWidget.setLayout(self.displayLayout)                        # add layout to widget
+        self.dockDisplay.setWidget(self.displayWidget)                          # set widget as main widget in docking panel
+
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dockDisplay)             # add docking panel to main window
+        self.dockDisplay.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+d'))
+        self.menu_View.addAction(self.dockDisplay.toggleViewAction())           # show/hide as requested
+
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+        # second docking pane
+        self.dockLogging = QDockWidget('Logging pane')
+        self.dockLogging.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
+
+        # See: https://www.geeksforgeeks.org/pyqt5-qdockwidget-setting-style-sheet/ for styling
+        self.dockLogging.setStyleSheet('QDockWidget::title {background : lightblue;}')
+
+        # See: https://wiki.python.org/moin/PyQt/Handling%20context%20menus to change context menu, very informative
+        # See: https://stackoverflow.com/questions/32053072/pyqt-extend-existing-contextual-menu-when-editing-qstandarditems-text-in-a-qtr
+        # See: https://stackoverflow.com/questions/8676597/customising-location-sensitive-context-menu-in-qtextedit
+        # See: https://forum.qt.io/topic/60790/add-actions-from-qtextedit-to-edit-menu/10
+
+        self.logEdit = QPlainTextEdit()
+        self.logEdit.clear()                                                    # Should not be necessary between sessions
+        self.logEdit.setUndoRedoEnabled(False)                                  # Don't allow undo on the logging pane
+        # self.logEdit.setReadOnly(True)                                        # if we set this 'True' the context menu no longer allows 'delete', just 'select all' and 'copy'
+        self.logEdit.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.logEdit.setWordWrapMode(QTextOption.WrapMode.NoWrap)
+        self.logEdit.setStyleSheet('QPlainTextEdit { font-family: Courier New; font-weight: bold; font-size: 12px;}')
+        # self.logEdit.setFont(QFont("Ubuntu Mono", 8, QFont.Weight.Normal))           # Does not line up columns properly !
+
+        self.dockLogging.setWidget(self.logEdit)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.dockLogging)
+        self.dockLogging.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+l'))
+        self.menu_View.addAction(self.dockLogging.toggleViewAction())
+
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
         self.survey = RollSurvey()                                              # (re)set the survey object; needed in property pane
         readSettings(self)                                                      # read settings from QSettings in an early stage
@@ -548,47 +818,43 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.textEdit.setPlainText(exampleSurveyXmlText())
         self.textEdit.moveCursor(QTextCursor.MoveOperation.Start)
 
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
         # third docking pane, used to display survey properties
-        self.parameters = None
-        self.binChild   = None
-        self.grdChild   = None
-        create_property_dock(self)                                              # defined late, as it needs access the loaded survey object
+        # defined late, as it needs access the loaded survey object
+        self.dockProperty = QDockWidget('Property pane')
+        self.dockProperty.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.dockProperty.setStyleSheet('QDockWidget::title {background : lightblue;}')
 
-        # self.dockProperty = QDockWidget('Property pane')
-        # self.dockProperty.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
-        # self.dockProperty.setStyleSheet('QDockWidget::title {background : lightblue;}')
+        # setup the ParameterTree object
+        self.paramTree = pg.parametertree.ParameterTree(showHeader=True)        # define parameter tree widget
+        self.paramTree.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.paramTree.header().resizeSection(0, 280)
+        self.registerParameters()
+        self.resetSurveyProperties()                                            # get the parameters into the parameter tree
 
-        # # setup the ParameterTree object
-        # self.paramTree = pg.parametertree.ParameterTree(showHeader=True)        # define parameter tree widget
-        # self.paramTree.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        # self.paramTree.header().resizeSection(0, 280)
-        # self.registerParameters()
-        # self.resetSurveyProperties()                                            # get the parameters into the parameter tree
+        self.propertyWidget = QWidget()                                         # placeholder widget to generate a layout
+        self.propertyLayout = QVBoxLayout()                                     # required vertical layout
 
-        # self.propertyWidget = QWidget()                                         # placeholder widget to generate a layout
-        # self.propertyLayout = QVBoxLayout()                                     # required vertical layout
+        buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Apply
+        self.propertyButtonBox = QDialogButtonBox(buttons)                      # define 3 buttons to handle property changes
 
-        # buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Apply
-        # self.propertyButtonBox = QDialogButtonBox(buttons)                      # define 3 buttons to handle property changes
+        # connect 3 buttons (signals) to their event handlers (slots)
+        self.propertyButtonBox.accepted.connect(self.applyPropertyChangesAndHide)
+        self.propertyButtonBox.rejected.connect(self.resetSurveyProperties)
+        self.propertyButtonBox.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.applyPropertyChanges)
 
-        # # connect 3 buttons (signals) to their event handlers (slots)
-        # self.propertyButtonBox.accepted.connect(self.applyPropertyChangesAndHide)
-        # self.propertyButtonBox.rejected.connect(self.resetSurveyProperties)
-        # self.propertyButtonBox.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.applyPropertyChanges)
+        self.propertyLayout.addWidget(self.paramTree)                           # add parameter tree to layout
+        self.propertyLayout.addStretch()                                        # add some stretch towards 3 buttons
+        self.propertyLayout.addWidget(self.propertyButtonBox)                   # add 3 buttons
 
-        # self.propertyLayout.addWidget(self.paramTree)                           # add parameter tree to layout
-        # self.propertyLayout.addStretch()                                        # add some stretch towards 3 buttons
-        # self.propertyLayout.addWidget(self.propertyButtonBox)                   # add 3 buttons
+        self.propertyWidget.setLayout(self.propertyLayout)                      # add layout to widget
+        self.dockProperty.setWidget(self.propertyWidget)
 
-        # self.propertyWidget.setLayout(self.propertyLayout)                      # add layout to widget
-        # self.dockProperty.setWidget(self.propertyWidget)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockProperty)           # add docking panel to main window
 
-        # self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockProperty)           # add docking panel to main window
-
-        # self.dockProperty.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+p'))
-        # self.menu_View.addAction(self.dockProperty.toggleViewAction())          # show/hide as requested
-
-        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+        self.dockProperty.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+p'))
+        self.menu_View.addAction(self.dockProperty.toggleViewAction())          # show/hide as requested
 
         self.menu_View.addSeparator()
         self.menu_View.addAction(self.fileBar.toggleViewAction())
@@ -596,6 +862,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.menu_View.addAction(self.graphBar.toggleViewAction())
         self.menu_View.addAction(self.moveBar.toggleViewAction())
         self.menu_View.addAction(self.paintBar.toggleViewAction())
+
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
         self.plotLayout()
 
@@ -4253,3 +4521,128 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.statusbar.removeWidget(self.progressBar)                           # remove widget from statusbar (don't kill it)
         self.progressBar.setValue(0)                                            # reset progressbar to zero, when out of sight
         self.statusbar.removeWidget(self.progressLabel)                         # remove progress label as well
+
+    def _updatePageInfo(self):
+        """Update the page information label"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            cd = self.anaModel._chunked_data
+            self.lblPageInfo.setText(
+                f'Page {cd.current_chunk + 1:,} of {cd.total_chunks:,} '
+                f'(Rows {cd.current_chunk * cd.chunk_size + 1:,}-'
+                f'{min((cd.current_chunk + 1) * cd.chunk_size, cd.get_total_rows()):,} '
+                f'of {cd.get_total_rows():,})'
+            )
+
+            # Enable/disable navigation buttons
+            self.btnFirstPage.setEnabled(cd.current_chunk > 0)
+            self.btnPrevPage.setEnabled(cd.current_chunk > 0)
+            self.btnNextPage.setEnabled(cd.current_chunk < cd.total_chunks - 1)
+            self.btnLastPage.setEnabled(cd.current_chunk < cd.total_chunks - 1)
+
+            self.gotoLabel.setEnabled(cd.get_total_rows() > 0)
+            self.gotoEdit.setEnabled(cd.get_total_rows() > 0)
+            self.btnGoto.setEnabled(cd.get_total_rows() > 0)
+        else:
+            self.lblPageInfo.setText('No paging')
+
+            # Enable/disable navigation buttons
+            self.btnFirstPage.setEnabled(False)
+            self.btnPrevPage.setEnabled(False)
+            self.btnNextPage.setEnabled(False)
+            self.btnLastPage.setEnabled(False)
+
+            self.gotoLabel.setEnabled(False)
+            self.gotoEdit.setEnabled(False)
+            self.btnGoto.setEnabled(False)
+
+    def _goToFirstPage(self):
+        """Navigate to the first chunk of data"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            if self.anaModel._chunked_data.goto_chunk(0):
+                # Update model with new chunk data
+                self.anaModel.layoutAboutToBeChanged.emit()
+                current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+                self.anaModel.layoutChanged.emit()
+                # Update page info
+                self._updatePageInfo()
+                # Reset selection
+                self.anaView.clearSelection()
+
+    def _goToPrevPage(self):
+        """Navigate to the previous chunk of data"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            if self.anaModel._chunked_data.previous_chunk():
+                # Update model with new chunk data
+                self.anaModel.layoutAboutToBeChanged.emit()
+                current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+                self.anaModel.layoutChanged.emit()
+                # Update page info
+                self._updatePageInfo()
+                # Reset selection
+                self.anaView.clearSelection()
+
+    def _goToNextPage(self):
+        """Navigate to the next chunk of data"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            if self.anaModel._chunked_data.next_chunk():
+                # Update model with new chunk data
+                self.anaModel.layoutAboutToBeChanged.emit()
+                current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+                self.anaModel.layoutChanged.emit()
+                # Update page info
+                self._updatePageInfo()
+                # Reset selection
+                self.anaView.clearSelection()
+
+    def _goToLastPage(self):
+        """Navigate to the last chunk of data"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            last_chunk = self.anaModel._chunked_data.total_chunks - 1
+            if self.anaModel._chunked_data.goto_chunk(last_chunk):
+                # Update model with new chunk data
+                self.anaModel.layoutAboutToBeChanged.emit()
+                current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+                self.anaModel.layoutChanged.emit()
+                # Update page info
+                self._updatePageInfo()
+                # Reset selection
+                self.anaView.clearSelection()
+
+    def _goToSpecificRow(self):
+        """Navigate to a specific row in the dataset"""
+        if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+            try:
+                # Get row number from the input field
+                row_number = int(self.gotoEdit.text()) - 1  # Convert to 0-based index
+                total_rows = self.anaModel._chunked_data.get_total_rows()
+
+                if 0 <= row_number < total_rows:
+                    # Calculate which chunk contains this row
+                    chunk_size = self.anaModel._chunked_data.chunk_size
+                    target_chunk = row_number // chunk_size
+
+                    # Go to that chunk
+                    if self.anaModel._chunked_data.goto_chunk(target_chunk):
+                        # Update model with new chunk data
+                        self.anaModel.layoutAboutToBeChanged.emit()
+                        current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                        self.anaModel._data = np.copy(current_chunk)
+                        self.anaModel.layoutChanged.emit()
+
+                        # Calculate the local row index within the chunk
+                        local_row = row_number % chunk_size
+
+                        # Select and scroll to the row
+                        self.anaView.selectRow(local_row)
+                        self.anaView.scrollTo(self.anaModel.index(local_row, 0))
+
+                        # Update page info
+                        self._updatePageInfo()
+                else:
+                    self.appendLogMessage(f'Input&nbsp;&nbsp;: Trace number out of range (1-{total_rows})', MsgType.Error)
+            except ValueError:
+                self.appendLogMessage('Input&nbsp;&nbsp;: Please enter a valid trace number', MsgType.Error)

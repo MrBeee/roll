@@ -545,4 +545,3 @@ def writeSettings(self):
     self.settings.setValue('settings/misc/showSummaries', config.showSummaries)    # show/hide summary information in property pane
 
     self.settings.sync()
-

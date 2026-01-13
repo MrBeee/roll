@@ -1,3 +1,6 @@
+from types import MethodType
+
+import numpy as np
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QFont
 from qgis.PyQt.QtWidgets import (QHBoxLayout, QHeaderView, QLabel, QLineEdit,
@@ -78,6 +81,17 @@ def createTraceTableTab(self):
     hbox.addWidget(self.gotoEdit)
     hbox.addWidget(self.btnGoto)
 
+    # Below are methods for navigation through the analysis table
+    # these methods make use of MethodType to bind them to the RollMainWindow class
+    # See: https://docs.python.org/3/library/types.html#types.MethodType
+    # See: https://runebook.dev/en/docs/python/library/types/types.MethodType
+    self._updatePageInfo = MethodType(_update_page_info, self)
+    self._goToFirstPage = MethodType(_go_to_first_page, self)
+    self._goToPrevPage = MethodType(_go_to_prev_page, self)
+    self._goToNextPage = MethodType(_go_to_next_page, self)
+    self._goToLastPage = MethodType(_go_to_last_page, self)
+    self._goToSpecificRow = MethodType(_go_to_specific_row, self)
+
     # Connect signals
     self.btnFirstPage.clicked.connect(self._goToFirstPage)
     self.btnPrevPage.clicked.connect(self._goToPrevPage)
@@ -99,3 +113,126 @@ def createTraceTableTab(self):
 
     # initialize page info
     self._updatePageInfo()
+
+def _update_page_info(self):
+    """Update the page information label"""
+    if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+        cd = self.anaModel._chunked_data
+        self.lblPageInfo.setText(
+            f'Page {cd.current_chunk + 1:,} of {cd.total_chunks:,} '
+            f'(Rows {cd.current_chunk * cd.chunk_size + 1:,}-'
+            f'{min((cd.current_chunk + 1) * cd.chunk_size, cd.get_total_rows()):,} '
+            f'of {cd.get_total_rows():,})'
+        )
+
+        # Enable/disable navigation buttons
+        self.btnFirstPage.setEnabled(cd.current_chunk > 0)
+        self.btnPrevPage.setEnabled(cd.current_chunk > 0)
+        self.btnNextPage.setEnabled(cd.current_chunk < cd.total_chunks - 1)
+        self.btnLastPage.setEnabled(cd.current_chunk < cd.total_chunks - 1)
+
+        self.gotoLabel.setEnabled(cd.get_total_rows() > 0)
+        self.gotoEdit.setEnabled(cd.get_total_rows() > 0)
+        self.btnGoto.setEnabled(cd.get_total_rows() > 0)
+    else:
+        self.lblPageInfo.setText('No paging')
+
+        # Enable/disable navigation buttons
+        self.btnFirstPage.setEnabled(False)
+        self.btnPrevPage.setEnabled(False)
+        self.btnNextPage.setEnabled(False)
+        self.btnLastPage.setEnabled(False)
+
+        self.gotoLabel.setEnabled(False)
+        self.gotoEdit.setEnabled(False)
+        self.btnGoto.setEnabled(False)
+
+def _go_to_first_page(self):
+    """Navigate to the first chunk of data"""
+    if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+        if self.anaModel._chunked_data.goto_chunk(0):
+            # Update model with new chunk data
+            self.anaModel.layoutAboutToBeChanged.emit()
+            current_chunk = self.anaModel._chunked_data.get_current_chunk()
+            self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+            self.anaModel.layoutChanged.emit()
+            # Update page info
+            self._updatePageInfo()
+            # Reset selection
+            self.anaView.clearSelection()
+
+def _go_to_prev_page(self):
+    """Navigate to the previous chunk of analysis rows."""
+    cd = getattr(self.anaModel, '_chunked_data', None)
+    if not cd:
+        return
+    if cd.previous_chunk():
+        self.anaModel.layoutAboutToBeChanged.emit()
+        self.anaModel._data = np.copy(cd.get_current_chunk())
+        self.anaModel.layoutChanged.emit()
+        self._updatePageInfo()
+        self.anaView.clearSelection()
+
+def _go_to_next_page(self):
+    """Navigate to the next chunk of data"""
+    if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+        if self.anaModel._chunked_data.next_chunk():
+            # Update model with new chunk data
+            self.anaModel.layoutAboutToBeChanged.emit()
+            current_chunk = self.anaModel._chunked_data.get_current_chunk()
+            self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+            self.anaModel.layoutChanged.emit()
+            # Update page info
+            self._updatePageInfo()
+            # Reset selection
+            self.anaView.clearSelection()
+
+def _go_to_last_page(self):
+    """Navigate to the last chunk of data"""
+    if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+        last_chunk = self.anaModel._chunked_data.total_chunks - 1
+        if self.anaModel._chunked_data.goto_chunk(last_chunk):
+            # Update model with new chunk data
+            self.anaModel.layoutAboutToBeChanged.emit()
+            current_chunk = self.anaModel._chunked_data.get_current_chunk()
+            self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
+            self.anaModel.layoutChanged.emit()
+            # Update page info
+            self._updatePageInfo()
+            # Reset selection
+            self.anaView.clearSelection()
+
+def _go_to_specific_row(self):
+    """Navigate to a specific row in the dataset"""
+    if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
+        try:
+            # Get row number from the input field
+            row_number = int(self.gotoEdit.text()) - 1  # Convert to 0-based index
+            total_rows = self.anaModel._chunked_data.get_total_rows()
+
+            if 0 <= row_number < total_rows:
+                # Calculate which chunk contains this row
+                chunk_size = self.anaModel._chunked_data.chunk_size
+                target_chunk = row_number // chunk_size
+
+                # Go to that chunk
+                if self.anaModel._chunked_data.goto_chunk(target_chunk):
+                    # Update model with new chunk data
+                    self.anaModel.layoutAboutToBeChanged.emit()
+                    current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                    self.anaModel._data = np.copy(current_chunk)
+                    self.anaModel.layoutChanged.emit()
+
+                    # Calculate the local row index within the chunk
+                    local_row = row_number % chunk_size
+
+                    # Select and scroll to the row
+                    self.anaView.selectRow(local_row)
+                    self.anaView.scrollTo(self.anaModel.index(local_row, 0))
+
+                    # Update page info
+                    self._updatePageInfo()
+            else:
+                self.appendLogMessage(f'Input&nbsp;&nbsp;: Trace number out of range (1-{total_rows})', MsgType.Error)
+        except ValueError:
+            self.appendLogMessage('Input&nbsp;&nbsp;: Please enter a valid trace number', MsgType.Error)
