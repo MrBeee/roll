@@ -449,6 +449,25 @@ class SpsImportDialog(QDialog):
         spsFormatIndex = self.spsFormatList.currentRow()
         # print("SPS format number:", spsFormatIndex)
 
+        if not config.xpsFormatList:
+            QMessageBox.warning(
+                self,
+                'Missing XPS formats',
+                'No XPS format definitions are available. Reset the SPS/XPS settings '
+                'to restore the default relation formats.',
+            )
+            return
+
+        if not 0 <= spsFormatIndex < len(config.xpsFormatList):
+            QMessageBox.warning(
+                self,
+                'Incompatible SPS/XPS formats',
+                'The selected SPS format does not have a matching XPS entry. '
+                'Reset the SPS/XPS settings to realign the format lists.',
+            )
+            self.spsFormatList.setCurrentRow(0)
+            return
+
         xpsFormat = config.xpsFormatList[spsFormatIndex]
         # print("SPS spsFormat:", spsFormat)
 

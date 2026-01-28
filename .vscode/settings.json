@@ -59,7 +59,7 @@
     "python.languageServer": "Jedi",
     "pylint.args": [
         "--max-line-length=210",
-        "--max-module-lines=3000",
+        "--max-module-lines=4000",
         "--disable=missing-module-docstring",
         "--disable=missing-class-docstring",
         "--disable=missing-function-docstring",

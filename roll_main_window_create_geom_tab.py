@@ -1,7 +1,10 @@
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QPlainTextEdit, QPushButton, QSplitter, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QHeaderView,
+                                 QLabel, QPlainTextEdit, QPushButton,
+                                 QSplitter, QVBoxLayout, QWidget)
 
-from .table_model_view import RpsTableModel, SpsTableModel, TableView, XpsTableModel
+from .table_model_view import (RpsTableModel, SpsTableModel, TableView,
+                               XpsTableModel)
 
 
 def createGeomTab(self):
@@ -113,14 +116,14 @@ def createGeomTab(self):
     self.actionExportAreasToQGIS.triggered.connect(self.exportOutlinesToQgis)    # action from file menu
     self.btnRelExportToQGIS.pressed.connect(self.exportOutlinesToQgis)           # button; export survey outlines to QGIS
 
-    # lastly the receiver buttons
+    # continue with the receiver buttons
     self.btnRecRemoveDuplicates.pressed.connect(self.removeRecDuplicates)
     self.btnRecRemoveOrphans.pressed.connect(self.removeRecOrphans)
     self.actionExportRecToQGIS.triggered.connect(self.exportRecToQgis)      # action from file menu
     self.btnRecExportToQGIS.pressed.connect(self.exportRecToQgis)
     self.btnRecReadFromQGIS.pressed.connect(self.importRecFromQgis)
 
-    # todo maybe move these slot connections to main window?
+    # continue with the binning buttons
     self.btnBinToQGIS.pressed.connect(self.exportBinToQGIS)                 # side buttons;
     self.btnMinToQGIS.pressed.connect(self.exportMinToQGIS)
     self.btnMaxToQGIS.pressed.connect(self.exportMaxToQGIS)

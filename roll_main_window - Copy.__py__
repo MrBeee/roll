@@ -56,7 +56,7 @@ from .aux_functions import (aboutText, convexHull, exampleSurveyXmlText,
                             qgisCheatSheetText)
 from .chunked_data import ChunkedData
 from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
-                                  SurveyType)
+                                  SurveyType2)
 from .find import Find
 from .functions_numba import (numbaAziInline, numbaAziX_line,
                               numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D,
@@ -1062,7 +1062,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         CFG = self.parameters.child('Survey configuration')
 
         copy.crs, surType, copy.name = CFG.value()                              # get tuple of data from parameter
-        copy.type = SurveyType[surType]                                         # SurveyType is an enum
+        copy.type = SurveyType2[surType]                                        # SurveyType2 is an enum
         config.surveyCrs = copy.crs                                             # needed for global access to crs
 
         ANA = self.parameters.child('Survey analysis')
@@ -3133,7 +3133,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         #     self.actionTemplates.setChecked(False)
 
         # check if it is a marine survey; set seed plotting details accordingly
-        if self.survey.type == SurveyType.Streamer:
+        if self.survey.type == SurveyType2.Streamer:
             self.survey.paintDetails &= ~PaintDetails.recPnt
             self.survey.paintDetails &= ~PaintDetails.recPat
 

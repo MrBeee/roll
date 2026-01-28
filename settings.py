@@ -325,6 +325,39 @@ class SettingsDialog(QDialog):
         config.showUnfinished = MIS.child('Show unfinished code').value()       # show/hide "work in progress"
         config.showSummaries = MIS.child('Show summary properties').value()     # show/hide summary information in property pane
 
+# Helper functions to read/clear format groups
+def _read_format_group(self, group):
+    self.settings.beginGroup(group)
+    entries = []
+    for key in self.settings.childKeys():
+        raw = self.settings.value(key)
+        if not raw:
+            continue
+        try:
+            entry = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            continue
+        if isinstance(entry, dict):
+            entry.setdefault('name', key)
+            entries.append(entry)
+    self.settings.endGroup()
+    return entries
+
+def _clear_format_group(self, group):
+    self.settings.beginGroup(group)
+    self.settings.remove('')
+    self.settings.endGroup()
+
+def _write_format_group(self, group, entries):
+    self.settings.beginGroup(group)
+    self.settings.remove('')  # clear existing entries
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get('name', 'Unnamed')
+        self.settings.setValue(name, json.dumps(entry))
+    self.settings.endGroup()
+
 def readSettings(self):
     # main window information
     geom = self.settings.value('mainWindow/geometry', bytes('', 'utf-8'))       # , bytes('', 'utf-8') prevents receiving a 'None' object
@@ -369,65 +402,26 @@ def readSettings(self):
     config.spsParallel = self.settings.value('settings/sps/spsParallel', False, type=bool)
     config.spsDialect = self.settings.value('settings/sps/spsDialect', 'SEG rev2.1')
 
-    self.settings.beginGroup('settings/sps/spsFormatList')              # read custom SPS formats
-    spsKeys = self.settings.childKeys()
-    customSpsFormats = []
+    # read custom SPS formats
+    customSpsFormats = _read_format_group(self, 'settings/sps/spsFormatList')
+    customXpsFormats = _read_format_group(self, 'settings/sps/xpsFormatList')
+    customRpsFormats = _read_format_group(self, 'settings/sps/rpsFormatList')
 
-    for key in spsKeys:
-        raw = self.settings.value(key)
-        if raw is None:
-            continue
-        try:
-            entry = json.loads(raw)
-        except (TypeError, json.JSONDecodeError):
-            continue
-        if isinstance(entry, dict):
-            entry.setdefault('name', key)
-            customSpsFormats.append(entry)
-
-    self.settings.endGroup()
-    if customSpsFormats:
-        config.spsFormatList = customSpsFormats
-
-    self.settings.beginGroup('settings/sps/xpsFormatList')              # read custom XPS formats
-    xpsKeys = self.settings.childKeys()
-    customXpsFormats = []
-
-    for key in xpsKeys:
-        raw = self.settings.value(key)
-        if raw is None:
-            continue
-        try:
-            entry = json.loads(raw)
-        except (TypeError, json.JSONDecodeError):
-            continue
-        if isinstance(entry, dict):
-            entry.setdefault('name', key)
-            customXpsFormats.append(entry)
-
-    self.settings.endGroup()
-    if customXpsFormats:
-        config.xpsFormatList = customXpsFormats
-
-    self.settings.beginGroup('settings/sps/rpsFormatList')              # read custom RPS formats
-    rpsKeys = self.settings.childKeys()
-    customRpsFormats = []
-
-    for key in rpsKeys:
-        raw = self.settings.value(key)
-        if raw is None:
-            continue
-        try:
-            entry = json.loads(raw)
-        except (TypeError, json.JSONDecodeError):
-            continue
-        if isinstance(entry, dict):
-            entry.setdefault('name', key)
-            customRpsFormats.append(entry)
-
-    self.settings.endGroup()
-    if customRpsFormats:
-        config.rpsFormatList = customRpsFormats
+    counts = [len(customSpsFormats), len(customXpsFormats), len(customRpsFormats)]
+    if any(counts):
+        if not all(counts) or len(set(counts)) != 1:
+            print('Stored SPS/XPS/RPS formats are inconsistent; reverting to built-in defaults.')
+            config.reset_sps_database()
+            for group in (
+                'settings/sps/spsFormatList',
+                'settings/sps/xpsFormatList',
+                'settings/sps/rpsFormatList',
+            ):
+                _clear_format_group(self, group)
+        else:
+            config.spsFormatList = customSpsFormats
+            config.xpsFormatList = customXpsFormats
+            config.rpsFormatList = customRpsFormats
 
     # geometry information
     config.recBrushColor = self.settings.value('settings/geo/recBrushColor', '#772929FF')
@@ -502,25 +496,9 @@ def writeSettings(self):
     self.settings.setValue('settings/sps/spsParallel', config.spsParallel)
     self.settings.setValue('settings/sps/spsDialect', config.spsDialect)
 
-    self.settings.beginGroup('settings/sps/spsFormatList')
-    self.settings.remove('')                                                    # clear existing entries
-    for entry in config.spsFormatList:
-        name = entry.get('name', 'Unnamed')
-        self.settings.setValue(name, json.dumps(entry))
-    self.settings.endGroup()
-
-    self.settings.beginGroup('settings/sps/xpsFormatList')
-    self.settings.remove('')                                                    # clear existing entries
-    for entry in config.xpsFormatList:
-        name = entry.get('name', 'Unnamed')
-        self.settings.setValue(name, json.dumps(entry))
-    self.settings.endGroup()
-    self.settings.beginGroup('settings/sps/rpsFormatList')
-    self.settings.remove('')                                                    # clear existing entries
-    for entry in config.rpsFormatList:
-        name = entry.get('name', 'Unnamed')
-        self.settings.setValue(name, json.dumps(entry))
-    self.settings.endGroup()
+    _write_format_group(self, 'settings/sps/spsFormatList', config.spsFormatList)
+    _write_format_group(self, 'settings/sps/xpsFormatList', config.xpsFormatList)
+    _write_format_group(self, 'settings/sps/rpsFormatList', config.rpsFormatList)
 
     # geometry information
     self.settings.setValue('settings/geo/recBrushColor', config.recBrushColor)

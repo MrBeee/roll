@@ -6,6 +6,7 @@ from qgis.PyQt.QtGui import QFont
 from qgis.PyQt.QtWidgets import (QHBoxLayout, QHeaderView, QLabel, QLineEdit,
                                  QPushButton, QVBoxLayout, QWidget)
 
+from .enums_and_int_flags import MsgType
 from .table_model_view import AnaTableModel, TableView
 
 

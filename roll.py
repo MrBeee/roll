@@ -83,8 +83,8 @@ def enable_remote_debugging():
     print(f"Module path         : {__file__}")
     print(f"sys.executable      : {sys.executable}")
     print(f"devised python path : {python_path}")
-    print(f"Python  on PATH      : {shutil.which("python")}")
-    print(f"Python3 on PATH      : {shutil.which("python3")}")
+    print(f"Python  on PATH      : {shutil.which('python')}")
+    print(f"Python3 on PATH      : {shutil.which('python3')}")
 
     try:
         # This can help if you're running different Python versions

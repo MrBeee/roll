@@ -18,7 +18,7 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
 from .aux_functions import containsPoint3D
-from .enums_and_int_flags import PaintDetails, PaintMode, SeedType, SurveyType
+from .enums_and_int_flags import PaintDetails, PaintMode, SeedType, SurveyType2
 from .functions_numba import (clipLineF, numbaFixRelationRecord,
                               numbaSetPointRecord, numbaSetRelationRecord,
                               numbaSliceStats, pointsInRect)
@@ -108,18 +108,6 @@ from .sps_io_and_qc import pntType1, relType2
 # See: https://www.mend.io/blog/closing-the-loop-on-python-circular-import-issue/
 
 
-
-# Note: we need to keep SurveyType and SurveyList in sync; maybe combine in a dictionary ?!
-SurveyList = [
-    'Orthogonal - standard manner of acquiring land data',
-    'Parallel - standard manner of acquiring OBN data',
-    'Slanted - legacy variation on orthogonal, aiming to reduce LMOS',
-    'Brick - legacy variation on orthogonal, aiming to reduce LMOS',
-    'zigzag - legacy manner acquiring narrrow azimuth vibroseis data',
-    'streamer - towed streamer marine survey',
-]
-
-
 # See: https://docs.python.org/3/howto/enum.html
 # See: https://realpython.com/python-enum/#creating-integer-flags-intflag-and-flag
 # class Show(IntFlag):
@@ -197,7 +185,7 @@ class RollSurvey(pg.GraphicsObject):
 
         # survey configuration
         self.crs = QgsCoordinateReferenceSystem()                               # create invalid crs object
-        self.type = SurveyType.Orthogonal                                       # survey type as defined in class SurveyType()
+        self.type = SurveyType2.Orthogonal                                      # survey type as defined in class SurveyType2()
         self.name: str = name
 
         # note: type() is a builtin Python function, so it is recommended NOT to use it as a variable name
@@ -424,7 +412,10 @@ class RollSurvey(pg.GraphicsObject):
             # gc.collect()                                                        # get the garbage collector going
             self.calcNoTemplates()                                              # need to know nr templates, to track progress
             self.nTemplate = 0                                                  # zero based counter
-            self.output.recDict = defaultdict(dict)                             # nested dictionary to access rec positions
+
+            # GPT-5.2 Codex fix proposed to initiate empty nested dictionary here. Original code shown first
+            # self.output.recDict = defaultdict(dict)                             # nested dictionary to access rec positions
+            self.output.recDict = defaultdict(lambda: defaultdict(dict))        # nested dictionary to access rec positions
 
             self.nRecRecord = 0                                                 # zero based array index
             self.nShotPoint = 0                                                 # zero based array index
@@ -442,6 +433,7 @@ class RollSurvey(pg.GraphicsObject):
             self.output.recGeom = np.zeros(shape=(40000), dtype=pntType1)
 
             success = self.geometryFromTemplates()                              # here the work is being done
+
         except BaseException as e:
             # self.errorText = str(e)
             # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
@@ -468,14 +460,14 @@ class RollSurvey(pg.GraphicsObject):
 
                     if length == 0:
                         off0 = QVector3D()                                      # always start at (0, 0, 0)
-                        self.geomTemplate3(nBlock, block, template, off0)
+                        self.geomTemplate4(nBlock, block, template, off0)
 
                     elif length == 1:
                         # get the template boundaries
                         for i in range(template.rollList[0].steps):
                             off0 = QVector3D()                                  # always start at (0, 0, 0)
                             off0 += template.rollList[0].increment * i
-                            self.geomTemplate3(nBlock, block, template, off0)
+                            self.geomTemplate4(nBlock, block, template, off0)
 
                     elif length == 2:
                         for i in range(template.rollList[0].steps):
@@ -483,7 +475,7 @@ class RollSurvey(pg.GraphicsObject):
                             off0 += template.rollList[0].increment * i
                             for j in range(template.rollList[1].steps):
                                 off1 = off0 + template.rollList[1].increment * j
-                                self.geomTemplate3(nBlock, block, template, off1)
+                                self.geomTemplate4(nBlock, block, template, off1)
 
                     elif length == 3:
                         for i in range(template.rollList[0].steps):
@@ -496,7 +488,7 @@ class RollSurvey(pg.GraphicsObject):
                                 for k in range(template.rollList[2].steps):
                                     off2 = off1 + template.rollList[2].increment * k
 
-                                    self.geomTemplate3(nBlock, block, template, off2)
+                                    self.geomTemplate4(nBlock, block, template, off2)
                     else:
                         # do something recursively; not  implemented yet
                         raise NotImplementedError('More than three roll steps currently not allowed.')
@@ -514,9 +506,13 @@ class RollSurvey(pg.GraphicsObject):
             del (fileName, funcName, lineNo)
             return False
 
-        self.progress.emit(100)                                                 # make sure we stop at 100
+        # early completion emit removed
+        # self.progress.emit(100)                                                 # make sure we stop at 100
 
+        # --- finalize geometry arrays ---
         #  first remove all remaining receiver duplicates
+        self.message.emit('Post processing step 1/4 - remove receiver duplicates')
+        self.progress.emit(20)
         self.output.recGeom = np.unique(self.output.recGeom)
 
         # todo; because we keep track of 'self.nRelRecord'
@@ -524,10 +520,14 @@ class RollSurvey(pg.GraphicsObject):
         # need to change the code; resize the relGeom array based on self.nRelRecord
 
         # trim rel & rec arrays removing any zeros, using the 'Uniq' == 1 condition.
+        self.message.emit('Post processing step 2/4 - remove zeros in relation & receiver arrays')
+        self.progress.emit(40)
         self.output.relGeom = self.output.relGeom[self.output.relGeom['Uniq'] == 1]
         self.output.recGeom = self.output.recGeom[self.output.recGeom['Uniq'] == 1]
 
         # set all values in one go at the end
+        self.message.emit('Post processing step 3/4 - set source geometry flags')
+        self.progress.emit(60)
         self.output.srcGeom['Uniq'] = 1
         self.output.srcGeom['InXps'] = 1
         self.output.srcGeom['Code'] = 'E1'
@@ -540,9 +540,47 @@ class RollSurvey(pg.GraphicsObject):
         self.output.relGeom['InRps'] = 1
 
         # sort the three geometry arrays
+        self.message.emit('Post processing step 4/4 - sort geometry arrays')
+        self.progress.emit(80)
         self.output.srcGeom.sort(order=['Index', 'Point', 'Line'])
         self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
         self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+        self.progress.emit(100)
+
+        # --- DEBUG: validate rel coverage per shot ---
+        # build counts of rel records per (SrcInd, SrcLin, SrcPnt)
+        # srcKey = np.core.records.fromarrays(
+        #     [
+        #         self.output.srcGeom['Index'].astype(np.int32),
+        #         np.rint(self.output.srcGeom['Line']).astype(np.int32),
+        #         np.rint(self.output.srcGeom['Point']).astype(np.int32),
+        #     ],
+        #     names='Ind,Lin,Pnt',
+        # )
+
+        # relKey = np.core.records.fromarrays(
+        #     [
+        #         self.output.relGeom['SrcInd'].astype(np.int32),
+        #         np.rint(self.output.relGeom['SrcLin']).astype(np.int32),
+        #         np.rint(self.output.relGeom['SrcPnt']).astype(np.int32),
+        #     ],
+        #     names='Ind,Lin,Pnt',
+        # )
+
+        # # sort once for search
+        # relKeySorted = np.sort(relKey)
+        # left = np.searchsorted(relKeySorted, srcKey, side='left')
+        # right = np.searchsorted(relKeySorted, srcKey, side='right')
+        # relCounts = right - left
+
+        # # any shot with zero rel records?
+        # missing = np.where(relCounts == 0)[0]
+        # if missing.size > 0:
+        #     self.errorText = f'geometryFromTemplates(): {missing.size} shots without rel records. Example index {missing[0]}'
+        #     print(self.errorText)
+        #     return False
+
+        # --- END DEBUG: validate rel coverage per shot ---
 
         return True
 
@@ -1023,6 +1061,13 @@ class RollSurvey(pg.GraphicsObject):
                     self.output.relTemp[nRelRecord]['RecMax'] = recStkX
                     self.output.relTemp[nRelRecord]['RecInd'] = nBlock % 10 + 1
 
+
+                    # --- DEBUG: validate relTemp for this template ---
+                    # if self.output.relTemp[nRelRecord]['RecMin'] > self.output.relTemp[nRelRecord]['RecMax']:
+                    #     self.errorText = 'geomTemplate3(): RecMin > RecMax detected'
+                    #     raise StopIteration
+                    # --- END DEBUG: validate relTemp for this template ---
+
                     arraySize = self.output.relTemp.shape[0]                    # do we have enough space for more relation records ?
                     if nRelRecord + 10 > arraySize:                             # room for less than 50 left ?
                         self.output.relTemp.resize(arraySize + 100, refcheck=False)    # append 100 more records
@@ -1031,6 +1076,12 @@ class RollSurvey(pg.GraphicsObject):
                     # existing relation record; just update min/max rec stake numbers
                     self.output.relTemp[nRelRecord]['RecMin'] = min(recStkX, self.output.relTemp[nRelRecord]['RecMin'])
                     self.output.relTemp[nRelRecord]['RecMax'] = max(recStkX, self.output.relTemp[nRelRecord]['RecMax'])
+
+        # --- DEBUG: validate relTemp for this template ---
+        # if nRelRecord < 0:
+        #     self.errorText = 'geomTemplate3(): no relTemp records created for this template'
+        #     raise StopIteration  # or return/raise to stop
+        # --- END DEBUG: validate relTemp for this template ---
 
         # at this moment:
         # nRelRecord holds the nr of relation records for each shot in this template
@@ -1059,6 +1110,133 @@ class RollSurvey(pg.GraphicsObject):
                 numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
                 self.nRelRecord += 1
 
+    def geomTemplate4(self, nBlock, block, template, templateOffset):
+        """
+        Like geomTemplate3, but fixes receiver de-dup keying by including block index (RecInd).
+        This prevents RecInd/Index mismatches across block boundaries.
+        """
+
+        npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
+
+        if QThread.currentThread().isInterruptionRequested():
+            raise StopIteration
+
+        self.nTemplate += 1
+        threadProgress = (100 * self.nTemplate) // self.nTemplates
+        if threadProgress > self.threadProgress:
+            self.threadProgress = threadProgress
+            self.progress.emit(threadProgress + 1)
+
+        nShotPoint = self.nShotPoint
+
+        # -- Source points --
+        for srcSeed in template.seedList:
+            if not srcSeed.bSource:
+                continue
+
+            srcArray = srcSeed.pointArray + npTemplateOffset
+
+            if not block.borders.srcBorder.isNull():
+                I = pointsInRect(srcArray, block.borders.srcBorder)
+                if I.shape[0] == 0:
+                    continue
+                srcArray = srcArray[I, :]
+
+            for src in srcArray:
+                srcX = src[0]
+                srcY = src[1]
+
+                srcStkX, srcStkY = self.st2Transform.map(srcX, srcY)
+                srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)
+
+                numbaSetPointRecord(self.output.srcGeom, self.nShotPoint, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
+                self.nShotPoint += 1
+
+        nRelRecord = -1
+        nOldRecLine = -999999
+
+        # -- Receiver points & relTemp --
+        for recSeed in template.seedList:
+            if recSeed.bSource:
+                continue
+
+            recPoints = recSeed.pointArray + npTemplateOffset
+
+            if not block.borders.recBorder.isNull():
+                I = pointsInRect(recPoints, block.borders.recBorder)
+                if I.shape[0] == 0:
+                    continue
+                recPoints = recPoints[I, :]
+
+            for rec in recPoints:
+                recX = rec[0]
+                recY = rec[1]
+
+                recStkX, recStkY = self.st2Transform.map(recX, recY)
+                recLocX, recLocY = self.glbTransform.map(recX, recY)
+
+                recPoint = int(recStkX)
+                recLine = int(recStkY)
+
+                # block-aware receiver index
+                recInd = nBlock % 10 + 1
+
+                # de-dup receivers per block/line/point
+                try:
+                    _ = self.output.recDict[recInd][recLine][recPoint]
+                except KeyError:
+                    self.output.recDict[recInd][recLine][recPoint] = self.nRecRecord
+
+                    numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
+                    # numbaSetPointRecord uses nBlock -> Index consistent with recInd
+                    self.nRecRecord += 1
+
+                    arraySize = self.output.recGeom.shape[0]
+                    if self.nRecRecord + 1000 > arraySize:
+                        self.output.recGeom.resize(arraySize + 10000, refcheck=False)
+
+                if recLine != nOldRecLine:
+                    nOldRecLine = recLine
+                    nRelRecord += 1
+
+                    self.output.relTemp[nRelRecord]['RecLin'] = recStkY
+                    self.output.relTemp[nRelRecord]['RecMin'] = recStkX
+                    self.output.relTemp[nRelRecord]['RecMax'] = recStkX
+                    self.output.relTemp[nRelRecord]['RecInd'] = recInd
+
+                    if self.output.relTemp[nRelRecord]['RecMin'] > self.output.relTemp[nRelRecord]['RecMax']:
+                        self.errorText = 'geomTemplate4(): RecMin > RecMax detected'
+                        raise StopIteration
+
+                    arraySize = self.output.relTemp.shape[0]
+                    if nRelRecord + 10 > arraySize:
+                        self.output.relTemp.resize(arraySize + 100, refcheck=False)
+                else:
+                    self.output.relTemp[nRelRecord]['RecMin'] = min(recStkX, self.output.relTemp[nRelRecord]['RecMin'])
+                    self.output.relTemp[nRelRecord]['RecMax'] = max(recStkX, self.output.relTemp[nRelRecord]['RecMax'])
+
+        if nRelRecord < 0:
+            self.errorText = 'geomTemplate4(): no relTemp records created for this template'
+            raise StopIteration
+
+        # -- Expand relTemp into relGeom for all shots in this template --
+        for i in range(nShotPoint, self.nShotPoint):
+            arraySize = self.output.relGeom.shape[0]
+            if self.nRelRecord + 1000 > arraySize:
+                self.output.relGeom.resize(arraySize + 10000, refcheck=False)
+
+            srcLin = self.output.srcGeom[i]['Line']
+            srcPnt = self.output.srcGeom[i]['Point']
+            srcInd = self.output.srcGeom[i]['Index']
+
+            for j in range(nRelRecord + 1):
+                recLin = self.output.relTemp[j]['RecLin']
+                recMin = self.output.relTemp[j]['RecMin']
+                recMax = self.output.relTemp[j]['RecMax']
+
+                numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
+                self.nRelRecord += 1
+
     def setupBinFromGeometry(self, fullAnalysis) -> bool:
         """this routine is used for both geometry files and SPS files"""
 
@@ -1070,11 +1248,11 @@ class RollSurvey(pg.GraphicsObject):
         # Now do the binning; check if we haave a relation file or not
         if self.output.relGeom is not None:                                     # we have a relation file
             if fullAnalysis:
-                success = self.binFromGeometry4(True)
+                success = self.binFromGeometry8(True)
                 self.output.anaOutput.flush()                                   # flush results to hard disk
                 return success
             else:
-                return self.binFromGeometry4(False)
+                return self.binFromGeometry8(False)
         else:                                                                  # no relation file available
             if fullAnalysis:
                 success = self.binFromGeometryNoRel(True)
@@ -1618,6 +1796,9 @@ class RollSurvey(pg.GraphicsObject):
         - Vectorized receiver selection.
         - Vectorized CMP and offset calculations.
         - Efficient bin assignment using np.add.at.
+
+        Not sure if this one works better than binFromGeometry4; needs testing.
+
         """
         self.threadProgress = 0  # Always start at zero
 
@@ -1753,6 +1934,417 @@ class RollSurvey(pg.GraphicsObject):
 
         return True
 
+    def binFromGeometry7(self, fullAnalysis) -> bool:
+        """
+        Optimized version of binFromGeometry4 by GPT-5.2-Codex
+        Vectorized receiver selection + bin updates using np.add.at.
+        Keeps plane/sphere logic intact, but avoids per-trace Python loops for binning.
+
+        After some bug fixes, the code seems much faster than v4.
+        2026-01-23T15:36:58     binning    Thread : Binning completed. Elapsed time:0:03:43 
+        2026-01-20T18:49:41     binning    Thread : Binning completed. Elapsed time:0:15:43 
+        Data used: SPS data from Amstelland survey Swath 1
+        """
+        self.threadProgress = 0
+
+        toLocalTransform, _ = self.glbTransform.inverted()
+
+        # Fill source and receiver arrays with local coordinates if needed
+        if np.all(self.output.srcGeom['LocX'] == 0.0) and np.all(self.output.srcGeom['LocY'] == 0.0):
+            mapped = np.array([toLocalTransform.map(float(x), float(y)) for x, y in zip(self.output.srcGeom['East'], self.output.srcGeom['North'])], dtype=np.float32)
+            self.output.srcGeom['LocX'] = mapped[:, 0]
+            self.output.srcGeom['LocY'] = mapped[:, 1]
+
+        if np.all(self.output.recGeom['LocX'] == 0.0) and np.all(self.output.recGeom['LocY'] == 0.0):
+            mapped = np.array([toLocalTransform.map(float(x), float(y)) for x, y in zip(self.output.recGeom['East'], self.output.recGeom['North'])], dtype=np.float32)
+            self.output.recGeom['LocX'] = mapped[:, 0]
+            self.output.recGeom['LocY'] = mapped[:, 1]
+
+        # Sort geometry arrays to ensure proper order
+        self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
+        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
+        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+
+        # Build relation index lookup
+        relFileIndices = np.zeros((self.output.srcGeom.shape[0], 2), dtype=np.int32)
+        marker = 0
+        for i, srcRecord in enumerate(self.output.srcGeom):
+            relFileIndices[i, 0] = marker
+            for j in range(marker, self.output.relGeom.shape[0]):
+                rel = self.output.relGeom[j]
+                if rel['SrcPnt'] == srcRecord['Point'] and rel['SrcLin'] == srcRecord['Line'] and rel['SrcInd'] == srcRecord['Index']:
+                    relFileIndices[i, 1] = j + 1
+                else:
+                    marker = j
+                    break
+
+        self.nShotPoint = 0
+        self.nShotPoints = self.output.srcGeom.shape[0]
+
+        try:
+            for i, srcRecord in enumerate(self.output.srcGeom):
+                if srcRecord['InUse'] == 0:
+                    continue
+
+                src = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32)
+
+                if QThread.currentThread().isInterruptionRequested():
+                    raise StopIteration
+
+                self.nShotPoint += 1
+                threadProgress = (100 * self.nShotPoint) // self.nShotPoints
+                if threadProgress > self.threadProgress:
+                    self.threadProgress = threadProgress
+                    self.progress.emit(threadProgress + 1)
+
+                minRecord, maxRecord = relFileIndices[i]
+                if maxRecord <= minRecord:
+                    continue
+
+                relSlice = self.output.relGeom[minRecord:maxRecord]
+
+                # Vectorized receiver selection (still loop over relSlice but no concatenations)
+                rec_mask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
+                for rel in relSlice:
+                    rec_mask |= (
+                        (self.output.recGeom['Index'] == rel['RecInd'])
+                        & (self.output.recGeom['Line'] == rel['RecLin'])
+                        & (self.output.recGeom['Point'] >= rel['RecMin'])
+                        & (self.output.recGeom['Point'] <= rel['RecMax'])
+                    )
+
+                recArray = self.output.recGeom[rec_mask]
+                recArray = recArray[recArray['InUse'] > 0]
+                if recArray.shape[0] == 0:
+                    continue
+
+                recPoints = np.vstack((recArray['LocX'], recArray['LocY'], recArray['Elev'])).T
+
+                if self.binning.method == BinningType.cmp:
+                    cmpPoints = (recPoints + src) * 0.5
+                    offArray = recPoints - src
+                elif self.binning.method == BinningType.plane:
+                    srcMirrorNp = self.localPlane.mirrorPointNp(src)
+                    cmpPoints, recPoints = self.localPlane.IntersectLinesAtPointNp(
+                        srcMirrorNp, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
+                    )
+                    if cmpPoints is None:
+                        continue
+                    offArray = recPoints - src
+                elif self.binning.method == BinningType.sphere:
+                    cmpPoints, recPoints = self.localSphere.ReflectSphereAtPointsNp(
+                        src, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
+                    )
+                    if cmpPoints is None:
+                        continue
+                    offArray = recPoints - src
+                else:
+                    continue
+
+                I = pointsInRect(cmpPoints, self.output.rctOutput)
+                if np.all(~I):
+                    continue
+
+                cmpPoints = cmpPoints[I]
+                recPoints = recPoints[I]
+                offArray = offArray[I]
+
+                I = pointsInRect(offArray, self.offset.rctOffsets)
+                if np.all(~I):
+                    continue
+
+                cmpPoints = cmpPoints[I]
+                recPoints = recPoints[I]
+                offArray = offArray[I]
+
+                hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
+                aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
+                aziArray[aziArray < 0] += 360
+
+                r1 = self.offset.radOffsets.x()
+                r2 = self.offset.radOffsets.y()
+                if r2 > 0:
+                    I = (hypArray >= r1) & (hypArray <= r2)
+                    if np.all(~I):
+                        continue
+                    cmpPoints = cmpPoints[I]
+                    recPoints = recPoints[I]
+                    hypArray = hypArray[I]
+                    aziArray = aziArray[I]
+
+                # mapped = np.array([self.binTransform.map(p[0], p[1]) for p in cmpPoints])
+                mapped = np.array([self.binTransform.map(float(p[0]), float(p[1])) for p in cmpPoints], dtype=np.float32)
+
+                nx = mapped[:, 0].astype(int)
+                ny = mapped[:, 1].astype(int)
+
+                valid = (
+                    (nx >= 0) & (ny >= 0)
+                    & (nx < self.output.binOutput.shape[0])
+                    & (ny < self.output.binOutput.shape[1])
+                )
+                if np.all(~valid):
+                    continue
+
+                nx = nx[valid]
+                ny = ny[valid]
+                cmpPoints = cmpPoints[valid]
+                recPoints = recPoints[valid]
+                hypArray = hypArray[valid]
+                aziArray = aziArray[valid]
+
+                np.add.at(self.output.binOutput, (nx, ny), 1)
+                np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
+                np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
+
+                if fullAnalysis:
+                    for idx, (x, y) in enumerate(zip(nx, ny)):
+                        fold = self.output.binOutput[x, y] - 1
+                        if fold < self.grid.fold:
+                            stkX, stkY = self.st2Transform.map(cmpPoints[idx, 0], cmpPoints[idx, 1])
+                            self.output.anaOutput[x, y, fold, 0] = int(stkX)
+                            self.output.anaOutput[x, y, fold, 1] = int(stkY)
+                            self.output.anaOutput[x, y, fold, 2] = fold + 1
+                            self.output.anaOutput[x, y, fold, 3] = src[0]
+                            self.output.anaOutput[x, y, fold, 4] = src[1]
+                            self.output.anaOutput[x, y, fold, 5] = recPoints[idx, 0]
+                            self.output.anaOutput[x, y, fold, 6] = recPoints[idx, 1]
+                            self.output.anaOutput[x, y, fold, 7] = cmpPoints[idx, 0]
+                            self.output.anaOutput[x, y, fold, 8] = cmpPoints[idx, 1]
+                            self.output.anaOutput[x, y, fold, 9] = 0.0
+                            self.output.anaOutput[x, y, fold, 10] = hypArray[idx]
+                            self.output.anaOutput[x, y, fold, 11] = aziArray[idx]
+
+        except StopIteration:
+            self.errorText = 'binning from geometry cancelled by user'
+            return False
+        except BaseException as e:
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            return False
+
+        self.calcFoldAndOffsetEssentials()
+
+        if fullAnalysis:
+            self.calcRmsOffsetValues()
+            self.calcUniqueFoldValues()
+            self.calcOffsetAndAzimuthDistribution()
+        else:
+            self.output.anaOutput = None
+
+        return True
+
+    def binFromGeometry8(self, fullAnalysis) -> bool:
+        """
+        Optimized binning with integer-normalized relation indexing to avoid gaps.
+        """
+        self.threadProgress = 0
+
+        toLocalTransform, _ = self.glbTransform.inverted()
+
+        # Fill source and receiver arrays with local coordinates if needed
+        if np.all(self.output.srcGeom['LocX'] == 0.0) and np.all(self.output.srcGeom['LocY'] == 0.0):
+            mapped = np.array(
+                [toLocalTransform.map(float(x), float(y)) for x, y in zip(self.output.srcGeom['East'], self.output.srcGeom['North'])],
+                dtype=np.float32,
+            )
+            self.output.srcGeom['LocX'] = mapped[:, 0]
+            self.output.srcGeom['LocY'] = mapped[:, 1]
+
+        if np.all(self.output.recGeom['LocX'] == 0.0) and np.all(self.output.recGeom['LocY'] == 0.0):
+            mapped = np.array(
+                [toLocalTransform.map(float(x), float(y)) for x, y in zip(self.output.recGeom['East'], self.output.recGeom['North'])],
+                dtype=np.float32,
+            )
+            self.output.recGeom['LocX'] = mapped[:, 0]
+            self.output.recGeom['LocY'] = mapped[:, 1]
+
+        # Sort geometry arrays to ensure proper order
+        self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
+        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
+        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+
+        # Integer-normalize for stable matching
+        srcIndI = self.output.srcGeom['Index'].astype(np.int32)
+        srcLinI = np.rint(self.output.srcGeom['Line']).astype(np.int32)
+        srcPntI = np.rint(self.output.srcGeom['Point']).astype(np.int32)
+
+        recIndex = self.output.recGeom['Index']
+        recLineI = np.rint(self.output.recGeom['Line']).astype(np.int32)
+        recPointI = np.rint(self.output.recGeom['Point']).astype(np.int32)
+
+        relSrcIndI = self.output.relGeom['SrcInd'].astype(np.int32)
+        relSrcLinI = np.rint(self.output.relGeom['SrcLin']).astype(np.int32)
+        relSrcPntI = np.rint(self.output.relGeom['SrcPnt']).astype(np.int32)
+        relRecIndI = self.output.relGeom['RecInd'].astype(np.int32)
+        relRecLinI = np.rint(self.output.relGeom['RecLin']).astype(np.int32)
+        relRecMinI = np.rint(self.output.relGeom['RecMin']).astype(np.int32)
+        relRecMaxI = np.rint(self.output.relGeom['RecMax']).astype(np.int32)
+
+        # Build fast relation index lookup using searchsorted on integer keys
+        relKey = np.core.records.fromarrays([relSrcIndI, relSrcLinI, relSrcPntI], names='Ind,Lin,Pnt')
+        srcKey = np.core.records.fromarrays([srcIndI, srcLinI, srcPntI], names='Ind,Lin,Pnt')
+
+        relLeft = np.searchsorted(relKey, srcKey, side='left')
+        relRight = np.searchsorted(relKey, srcKey, side='right')
+
+        self.nShotPoint = 0
+        self.nShotPoints = self.output.srcGeom.shape[0]
+
+        try:
+            for i, srcRecord in enumerate(self.output.srcGeom):
+                if srcRecord['InUse'] == 0:
+                    continue
+
+                src = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32)
+
+                if QThread.currentThread().isInterruptionRequested():
+                    raise StopIteration
+
+                self.nShotPoint += 1
+                threadProgress = (100 * self.nShotPoint) // self.nShotPoints
+                if threadProgress > self.threadProgress:
+                    self.threadProgress = threadProgress
+                    self.progress.emit(threadProgress + 1)
+
+                minRecord = relLeft[i]
+                maxRecord = relRight[i]
+                if maxRecord <= minRecord:
+                    continue
+
+                # Vectorized receiver selection using integer-normalized arrays
+                rec_mask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
+                for j in range(minRecord, maxRecord):
+                    rec_mask |= (
+                        (recIndex == relRecIndI[j])
+                        & (recLineI == relRecLinI[j])
+                        & (recPointI >= relRecMinI[j])
+                        & (recPointI <= relRecMaxI[j])
+                    )
+
+                recArray = self.output.recGeom[rec_mask]
+                recArray = recArray[recArray['InUse'] > 0]
+                if recArray.shape[0] == 0:
+                    continue
+
+                recPoints = np.vstack((recArray['LocX'], recArray['LocY'], recArray['Elev'])).T
+
+                if self.binning.method == BinningType.cmp:
+                    cmpPoints = (recPoints + src) * 0.5
+                    offArray = recPoints - src
+                elif self.binning.method == BinningType.plane:
+                    srcMirrorNp = self.localPlane.mirrorPointNp(src)
+                    cmpPoints, recPoints = self.localPlane.IntersectLinesAtPointNp(
+                        srcMirrorNp, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
+                    )
+                    if cmpPoints is None:
+                        continue
+                    offArray = recPoints - src
+                elif self.binning.method == BinningType.sphere:
+                    cmpPoints, recPoints = self.localSphere.ReflectSphereAtPointsNp(
+                        src, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
+                    )
+                    if cmpPoints is None:
+                        continue
+                    offArray = recPoints - src
+                else:
+                    continue
+
+                I = pointsInRect(cmpPoints, self.output.rctOutput)
+                if np.all(~I):
+                    continue
+
+                cmpPoints = cmpPoints[I]
+                recPoints = recPoints[I]
+                offArray = offArray[I]
+
+                I = pointsInRect(offArray, self.offset.rctOffsets)
+                if np.all(~I):
+                    continue
+
+                cmpPoints = cmpPoints[I]
+                recPoints = recPoints[I]
+                offArray = offArray[I]
+
+                hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
+                aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
+                aziArray[aziArray < 0] += 360
+
+                r1 = self.offset.radOffsets.x()
+                r2 = self.offset.radOffsets.y()
+                if r2 > 0:
+                    I = (hypArray >= r1) & (hypArray <= r2)
+                    if np.all(~I):
+                        continue
+                    cmpPoints = cmpPoints[I]
+                    recPoints = recPoints[I]
+                    hypArray = hypArray[I]
+                    aziArray = aziArray[I]
+
+                mapped = np.array([self.binTransform.map(float(p[0]), float(p[1])) for p in cmpPoints], dtype=np.float32)
+                nx = mapped[:, 0].astype(int)
+                ny = mapped[:, 1].astype(int)
+
+                valid = (
+                    (nx >= 0) & (ny >= 0)
+                    & (nx < self.output.binOutput.shape[0])
+                    & (ny < self.output.binOutput.shape[1])
+                )
+                if np.all(~valid):
+                    continue
+
+                nx = nx[valid]
+                ny = ny[valid]
+                cmpPoints = cmpPoints[valid]
+                recPoints = recPoints[valid]
+                hypArray = hypArray[valid]
+                aziArray = aziArray[valid]
+
+                np.add.at(self.output.binOutput, (nx, ny), 1)
+                np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
+                np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
+
+                if fullAnalysis:
+                    for idx, (x, y) in enumerate(zip(nx, ny)):
+                        fold = self.output.binOutput[x, y] - 1
+                        if fold < self.grid.fold:
+                            stkX, stkY = self.st2Transform.map(cmpPoints[idx, 0], cmpPoints[idx, 1])
+                            self.output.anaOutput[x, y, fold, 0] = int(stkX)
+                            self.output.anaOutput[x, y, fold, 1] = int(stkY)
+                            self.output.anaOutput[x, y, fold, 2] = fold + 1
+                            self.output.anaOutput[x, y, fold, 3] = src[0]
+                            self.output.anaOutput[x, y, fold, 4] = src[1]
+                            self.output.anaOutput[x, y, fold, 5] = recPoints[idx, 0]
+                            self.output.anaOutput[x, y, fold, 6] = recPoints[idx, 1]
+                            self.output.anaOutput[x, y, fold, 7] = cmpPoints[idx, 0]
+                            self.output.anaOutput[x, y, fold, 8] = cmpPoints[idx, 1]
+                            self.output.anaOutput[x, y, fold, 9] = 0.0
+                            self.output.anaOutput[x, y, fold, 10] = hypArray[idx]
+                            self.output.anaOutput[x, y, fold, 11] = aziArray[idx]
+
+        except StopIteration:
+            self.errorText = 'binning from geometry cancelled by user'
+            return False
+        except BaseException as e:
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            return False
+
+        self.calcFoldAndOffsetEssentials()
+
+        if fullAnalysis:
+            self.calcRmsOffsetValues()
+            self.calcUniqueFoldValues()
+            self.calcOffsetAndAzimuthDistribution()
+        else:
+            self.output.anaOutput = None
+
+        return True
+
     def setupBinFromTemplates(self, fullAnalysis) -> bool:
         """this routine is used for working from templates only"""
 
@@ -1783,14 +2375,14 @@ class RollSurvey(pg.GraphicsObject):
 
                     if length == 0:
                         off0 = QVector3D()                                      # always start at (0, 0, 0)
-                        self.binTemplate6(block, template, off0, fullAnalysis)
+                        self.binTemplate7(block, template, off0, fullAnalysis)
 
                     elif length == 1:
                         # get the template boundaries
                         for i in range(template.rollList[0].steps):
                             off0 = QVector3D()                                  # always start at (0, 0, 0)
                             off0 += template.rollList[0].increment * i
-                            self.binTemplate6(block, template, off0, fullAnalysis)
+                            self.binTemplate7(block, template, off0, fullAnalysis)
 
                     elif length == 2:
                         for i in range(template.rollList[0].steps):
@@ -1798,7 +2390,7 @@ class RollSurvey(pg.GraphicsObject):
                             off0 += template.rollList[0].increment * i
                             for j in range(template.rollList[1].steps):
                                 off1 = off0 + template.rollList[1].increment * j
-                                self.binTemplate6(block, template, off1, fullAnalysis)
+                                self.binTemplate7(block, template, off1, fullAnalysis)
                                 # print("length = 2. Template offset: ", off1.x(), off1.y() )
 
                     elif length == 3:
@@ -1812,7 +2404,7 @@ class RollSurvey(pg.GraphicsObject):
                                 for k in range(template.rollList[2].steps):
                                     off2 = off1 + template.rollList[2].increment * k
 
-                                    self.binTemplate6(block, template, off2, fullAnalysis)
+                                    self.binTemplate7(block, template, off2, fullAnalysis)
                     else:
                         # do something recursively; not  implemented yet
                         raise NotImplementedError('More than three roll steps currently not allowed.')
@@ -2014,6 +2606,144 @@ class RollSurvey(pg.GraphicsObject):
                         # note: the other exceptions are handled in binFromTemplates()
                         except IndexError:
                             continue
+
+    def binTemplate7(self, block, template, templateOffset, fullAnalysis):
+        """
+        Vectorized template binning (faster).
+        Keeps binTemplate6 intact.
+        """
+        npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
+
+        for srcSeed in template.seedList:
+            if not srcSeed.bSource:
+                continue
+
+            srcArray = srcSeed.pointArray + npTemplateOffset
+
+            if not block.borders.srcBorder.isNull():
+                I = pointsInRect(srcArray, block.borders.srcBorder)
+                if I.shape[0] == 0:
+                    continue
+                srcArray = srcArray[I, :]
+
+            for src in srcArray:
+                if QThread.currentThread().isInterruptionRequested():
+                    raise StopIteration
+
+                self.nShotPoint += 1
+                threadProgress = (100 * self.nShotPoint) // self.nShotPoints
+                if threadProgress > self.threadProgress:
+                    self.threadProgress = threadProgress
+                    self.progress.emit(threadProgress + 1)
+
+                for recSeed in template.seedList:
+                    if recSeed.bSource:
+                        continue
+
+                    recPoints = recSeed.pointArray + npTemplateOffset
+
+                    if not block.borders.recBorder.isNull():
+                        I = pointsInRect(recPoints, block.borders.recBorder)
+                        if I.shape[0] == 0:
+                            continue
+                        recPoints = recPoints[I, :]
+
+                    if recPoints.shape[0] == 0:
+                        continue
+
+                    if self.binning.method == BinningType.cmp:
+                        cmpPoints = (recPoints + src) * 0.5
+                        offArray = recPoints - src
+                    elif self.binning.method == BinningType.plane:
+                        srcMirrorNp = self.localPlane.mirrorPointNp(src)
+                        cmpPoints, recPoints = self.localPlane.IntersectLinesAtPointNp(
+                            srcMirrorNp, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
+                        )
+                        if cmpPoints is None:
+                            continue
+                        offArray = recPoints - src
+                    elif self.binning.method == BinningType.sphere:
+                        cmpPoints, recPoints = self.localSphere.ReflectSphereAtPointsNp(
+                            src, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
+                        )
+                        if cmpPoints is None:
+                            continue
+                        offArray = recPoints - src
+                    else:
+                        continue
+
+                    I = pointsInRect(cmpPoints, self.output.rctOutput)
+                    if np.all(~I):
+                        continue
+                    cmpPoints = cmpPoints[I]
+                    recPoints = recPoints[I]
+                    offArray = offArray[I]
+
+                    I = pointsInRect(offArray, self.offset.rctOffsets)
+                    if np.all(~I):
+                        continue
+                    cmpPoints = cmpPoints[I]
+                    recPoints = recPoints[I]
+                    offArray = offArray[I]
+
+                    hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
+                    aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
+                    aziArray[aziArray < 0] += 360
+
+                    r1 = self.offset.radOffsets.x()
+                    r2 = self.offset.radOffsets.y()
+                    if r2 > 0:
+                        I = (hypArray >= r1) & (hypArray <= r2)
+                        if np.all(~I):
+                            continue
+                        cmpPoints = cmpPoints[I]
+                        recPoints = recPoints[I]
+                        hypArray = hypArray[I]
+                        aziArray = aziArray[I]
+
+                    mapped = np.array([self.binTransform.map(float(p[0]), float(p[1])) for p in cmpPoints], dtype=np.float32)
+                    nx = mapped[:, 0].astype(int)
+                    ny = mapped[:, 1].astype(int)
+
+                    valid = (
+                        (nx >= 0) & (ny >= 0)
+                        & (nx < self.output.binOutput.shape[0])
+                        & (ny < self.output.binOutput.shape[1])
+                    )
+                    if np.all(~valid):
+                        continue
+
+                    nx = nx[valid]
+                    ny = ny[valid]
+                    cmpPoints = cmpPoints[valid]
+                    recPoints = recPoints[valid]
+                    hypArray = hypArray[valid]
+                    aziArray = aziArray[valid]
+
+                    np.add.at(self.output.binOutput, (nx, ny), 1)
+                    np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
+                    np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
+
+                    if fullAnalysis:
+                        for idx, (x, y) in enumerate(zip(nx, ny)):
+                            fold = self.output.binOutput[x, y] - 1
+                            if fold < self.grid.fold:
+                                stkX, stkY = self.st2Transform.map(cmpPoints[idx, 0], cmpPoints[idx, 1])
+                                self.output.anaOutput[x, y, fold, 0] = int(stkX)
+                                self.output.anaOutput[x, y, fold, 1] = int(stkY)
+                                self.output.anaOutput[x, y, fold, 2] = fold + 1
+                                self.output.anaOutput[x, y, fold, 3] = src[0]
+                                self.output.anaOutput[x, y, fold, 4] = src[1]
+                                self.output.anaOutput[x, y, fold, 5] = recPoints[idx, 0]
+                                self.output.anaOutput[x, y, fold, 6] = recPoints[idx, 1]
+                                self.output.anaOutput[x, y, fold, 7] = cmpPoints[idx, 0]
+                                self.output.anaOutput[x, y, fold, 8] = cmpPoints[idx, 1]
+                                self.output.anaOutput[x, y, fold, 9] = 0.0
+                                self.output.anaOutput[x, y, fold, 10] = hypArray[idx]
+                                self.output.anaOutput[x, y, fold, 11] = aziArray[idx]
+
+        # In binFromTemplates(), replace calls to binTemplate6 with binTemplate7:
+        # self.binTemplate6(...) -> self.binTemplate7(...)
 
     def calcFoldAndOffsetEssentials(self):
         # max fold is straightforward
@@ -2559,7 +3289,7 @@ class RollSurvey(pg.GraphicsObject):
                 # print(tagName + "---->")
 
                 if tagName == 'type':
-                    self.type = SurveyType[e.text()]
+                    self.type = SurveyType2[e.text()]
 
                 elif tagName == 'name':
                     self.name = e.text()

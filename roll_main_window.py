@@ -1,3 +1,4 @@
+# roll_main_window.py
 # coding=utf-8
 
 """Main window for the Roll plugin."""
@@ -23,10 +24,7 @@ import sys
 import traceback
 import webbrowser
 import winsound  # make a sound when an exception ocurs
-from datetime import timedelta
 from math import atan2, ceil, degrees
-# from time import perf_counter
-from timeit import default_timer as timer
 
 # PyQtGraph related imports
 import numpy as np  # Numpy functions needed for plot creation
@@ -34,8 +32,7 @@ import pyqtgraph as pg
 from numpy.lib import recfunctions as rfn
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
-                              QPoint, QSettings, QSize, Qt, QTextStream,
-                              QThread)
+                              QPoint, QSettings, QSize, Qt, QTextStream)
 from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QTextCursor,
                              QTransform)
 from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
@@ -51,10 +48,11 @@ from .aux_classes import LineROI
 from .aux_functions import (aboutText, convexHull, exampleSurveyXmlText,
                             highDpiText, licenseText, myPrint,
                             qgisCheatSheetText)
+from .binning_worker_mixin import BinningWorkerMixin
 from .chunked_data import ChunkedData
 from .display_dock import create_display_dock
 from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
-                                  SurveyType)
+                                  SurveyType2)
 from .find import Find
 from .functions_numba import (numbaAziInline, numbaAziX_line,
                               numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D,
@@ -91,8 +89,6 @@ from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
                             pntType1, readRpsLine, readSpsLine, readXpsLine,
                             relType2)
 from .survey_paint_mixin import SurveyPaintMixin
-from .worker_threads import (BinFromGeometryWorker, BinningWorker,
-                             GeometryWorker)
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 # Determine path to resources
@@ -102,13 +98,15 @@ resource_dir = os.path.join(current_dir, 'resources')
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'roll_main_window_base.ui'))
 
-class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaintMixin):
+class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaintMixin, BinningWorkerMixin):
     """Main window for the Roll plugin, uses multiple inheritance.
     * It is first of all derived from QMainWindow.
     * FORM_CLASS is generated from the Qt Designer .ui file.
     * SpiderNavigationMixin provides reusable spider-navigation behaviour.
     * SurveyPaintMixin keeps the paint-mode bookkeeping out of RollMainWindow
+    * BinningWorkerMixin keeps the binning worker thread code out of RollMainWindow
     """
+
     def __init__(self, parent=None):
         """Constructor."""
         super(RollMainWindow, self).__init__(parent)
@@ -794,7 +792,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         CFG = self.parameters.child('Survey configuration')
 
         copy.crs, surType, copy.name = CFG.value()                              # get tuple of data from parameter
-        copy.type = SurveyType[surType]                                         # SurveyType is an enum
+        copy.type = SurveyType2[surType]                                        # SurveyType2 is an enum
         config.surveyCrs = copy.crs                                             # needed for global access to crs
 
         ANA = self.parameters.child('Survey analysis')
@@ -2290,6 +2288,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
 
     def plotStkCel(self, nX: int, nY: int, stkX: int, stkY: int):
+        if self.output.anaOutput is None or self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
+            return
+
         with pg.BusyCursor():
             kMin = 0.001 * config.kxyStack.x()
             kMax = 0.001 * config.kxyStack.y()
@@ -2865,7 +2866,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         #     self.actionTemplates.setChecked(False)
 
         # check if it is a marine survey; set seed plotting details accordingly
-        if self.survey.type == SurveyType.Streamer:
+        if self.survey.type == SurveyType2.Streamer:
             self.survey.paintDetails &= ~PaintDetails.recPnt
             self.survey.paintDetails &= ~PaintDetails.recPat
 
@@ -3757,499 +3758,3 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.actionFullBinFromSps.setEnabled(False)
 
         self.actionStopThread.setEnabled(not enable)
-
-    def testBasicBinningConditions(self) -> bool:
-        if self.survey.unique.apply:                                            # can't do unique fold with basic binning
-            QMessageBox.information(
-                self,
-                'Please adjust',
-                "Applying 'Unique offsets' requires using a 'Full Binning' process, as it is implemented as a post-processing step on the trace table",
-                QMessageBox.StandardButton.Cancel,
-            )
-            return False
-        else:
-            return True
-
-    def testFullBinningConditions(self) -> bool:
-        if self.survey.grid.fold <= 0:                                          # the size of the analysis file is defined by the grid's fold
-            QMessageBox.information(
-                self,
-                'Please adjust',
-                "'Full Binning' requires selecting a max fold value > 0 in the 'local grid' settings, to allocate space for a memory mapped file.\n\n"
-                "You can determine the required max fold value by first running 'Basic Binning'",
-                QMessageBox.StandardButton.Cancel,
-            )
-            return False
-
-        if not self.fileName:
-            QMessageBox.information(self, 'Please adjust', "'Full Binning' requires saving this file first, to obtain a valid filename in a directory with write access.", QMessageBox.StandardButton.Cancel)
-            return False
-
-        return True
-
-    def prepFullBinningConditions(self):
-        self.resetAnaTableModel()
-
-        # prepare for a new memory mapped object; calculate memmap size
-        w = self.survey.output.rctOutput.width()
-        h = self.survey.output.rctOutput.height()
-        dx = self.survey.grid.binSize.x()
-        dy = self.survey.grid.binSize.y()
-        nx = ceil(w / dx)
-        ny = ceil(h / dy)
-        fold = self.survey.grid.fold
-        n = nx * ny * fold
-        self.appendLogMessage(f'Thread : Prepare memory mapped file for {n:,} traces, with nx={nx}, ny={ny}, fold={fold:,}', MsgType.Binning)
-        # See: https://stackoverflow.com/questions/22385801/best-practices-with-reading-and-operating-on-fortran-ordered-arrays-with-numpy
-        # The order='F' in the allocation of the array could impact reading/writing data to the mmap array
-        # This depends on how he binning process traverses through the binning area
-
-        try:
-            anaFileName = self.fileName + '.ana.npy'
-            if os.path.exists(anaFileName):
-                # self.output.anaOutput = np.lib.format.open_memmap(anaFileName, mode='r+', dtype=np.float32, shape=(nx, ny, fold, 13))
-                self.output.anaOutput = np.memmap(anaFileName, shape=(nx, ny, fold, 13), dtype=np.float32, mode='r+')
-
-            else:
-                # self.output.anaOutput = np.lib.format.open_memmap(anaFileName, mode='w+', dtype=np.float32, shape=(nx, ny, fold, 13))
-                self.output.anaOutput = np.memmap(anaFileName, shape=(nx, ny, fold, 13), dtype=np.float32, mode='w+')
-            self.output.anaOutput.fill(0.0)                                            # enforce zero values for all elements
-
-            nX = self.output.anaOutput.shape[0]                             # check against nx, ny
-            nY = self.output.anaOutput.shape[1]                             # check against nx, ny
-            nZ = self.output.anaOutput.shape[2]                             # fold
-            nC = self.output.anaOutput.shape[3]                             # columns
-
-            if nx != nX or ny != nY or nZ != fold or nC != 13:
-                self.appendLogMessage('Thread : Memory mapped file size error while allocating memory', MsgType.Error)
-                return False
-
-            # self.D2_output = self.output.anaOutput.reshape(nx * ny * fold, 13)
-            # self.D2_output[:,:] = 0.0
-
-        except MemoryError as e:
-            self.appendLogMessage(f'Thread : Memory error {e}', MsgType.Error)
-            return False
-
-        return True
-
-    def basicBinFromTemplates(self):
-        if self.testBasicBinningConditions():
-            self.binFromTemplates(False)
-
-    def fullBinFromTemplates(self):
-        if self.testFullBinningConditions():
-            self.binFromTemplates(True)
-
-    def basicBinFromGeometry(self):
-        if self.testBasicBinningConditions():
-            self.binFromGeometry(False)
-
-    def fullBinFromGeometry(self):
-        if self.testFullBinningConditions():
-            self.binFromGeometry(True)
-
-    def basicBinFromSps(self):
-        if self.testBasicBinningConditions():
-            self.binFromSps(False)
-
-    def fullBinFromSps(self):
-        if self.testFullBinningConditions():
-            self.binFromSps(True)
-
-    def binFromTemplates(self, fullAnalysis):
-
-        if fullAnalysis:
-            success = self.prepFullBinningConditions()
-            if not success:
-                return
-            self.progressLabel.setText('Bin from Templates - full analysis')
-        else:
-            self.progressLabel.setText('Bin from Templates - basic analysis')
-
-        self.showStatusbarWidgets()                                             # show two temporary progress widgets
-        self.enableProcessingMenuItems(False)                                   # disable processing menu items
-
-        self.appendLogMessage(f"Thread : Started 'Bin from templates', using {self.survey.nShotPoints:,} shot points", MsgType.Binning)
-
-        # Step 1: Create a worker class
-        # done in file 'worker_threads.py'
-
-        # Step 2: Create a QThread object
-        self.thread = QThread()
-
-        # Step 3: Create a worker object
-        xmlString = self.survey.toXmlString()
-        self.worker = BinningWorker(xmlString)
-
-        # and define the binning mode
-        self.worker.setExtended(fullAnalysis)
-
-        # pass the memory mapped file to worker
-        self.worker.setMemMappedFile(self.output.anaOutput)
-
-        # Step 4: Move worker to the thread
-        self.worker.moveToThread(self.thread)
-
-        # Step 5: Connect signals and slots
-        self.thread.started.connect(self.worker.run)                            # start thread
-        self.worker.survey.progress.connect(self.threadProgress)                # report thread progress from the survey object in the worker
-        self.worker.survey.message.connect(self.threadMessage)                  # update thread task-description in statusbar
-        self.worker.finished.connect(self.binningThreadFinished)                # stop thread;
-        self.worker.finished.connect(self.thread.quit)
-        # self.worker.finished.connect(self.worker.deleteLater)                 # See: http://qt-project.org/forums/viewthread/19848
-
-        # Step 6: Start the thread
-        self.startTime = timer()
-        self.thread.start(QThread.Priority.NormalPriority)
-
-    def binFromGeometry(self, fullAnalysis):
-        if self.srcGeom is None or self.relGeom is None or self.recGeom is None:
-            self.appendLogMessage('Thread : One or more of the geometry files have not been defined', MsgType.Error)
-            return
-
-        if fullAnalysis:
-            success = self.prepFullBinningConditions()
-            if not success:
-                return
-            self.progressLabel.setText('Bin from Geometry - full analysis')
-        else:
-            self.progressLabel.setText('Bin from Geometry - basic analysis')
-
-        self.showStatusbarWidgets()                                             # show two temporary progress widgets
-        self.enableProcessingMenuItems(False)                                   # disable processing menu items
-
-        self.appendLogMessage(f"Thread : Started 'Bin from geometry', using {self.srcGeom.shape[0]:,} shot points", MsgType.Binning)
-
-        # Step 1: Create a worker class
-        # done in file 'worker_threads.py'
-
-        # Step 2: Create a QThread object
-        self.thread = QThread()
-
-        # Step 3: Create a worker object
-        xmlString = self.survey.toXmlString()
-        self.worker = BinFromGeometryWorker(xmlString)
-
-        # and define the binning mode
-        self.worker.setExtended(fullAnalysis)
-
-        # pass the memory mapped file to worker
-        self.worker.setMemMappedFile(self.output.anaOutput)
-
-        # Pass the geometry tables, in same order as used in the Geometry tab
-        self.worker.setGeometryArrays(self.srcGeom, self.relGeom, self.recGeom)
-
-        # Step 4: Move worker to the thread
-        self.worker.moveToThread(self.thread)
-
-        # Step 5: Connect signals and slots
-        self.thread.started.connect(self.worker.run)                            # start thread
-        self.worker.survey.progress.connect(self.threadProgress)                # report thread progress from the survey object in the worker
-        self.worker.survey.message.connect(self.threadMessage)                  # update thread task-description in statusbar
-        self.worker.finished.connect(self.binningThreadFinished)                # stop thread;
-        self.worker.finished.connect(self.thread.quit)
-        # self.worker.finished.connect(self.worker.deleteLater)                 # See: http://qt-project.org/forums/viewthread/19848
-
-        # Step 6: Start the thread
-        self.startTime = timer()
-        self.thread.start(QThread.Priority.NormalPriority)
-
-    def binFromSps(self, fullAnalysis):
-        if self.spsImport is None or self.rpsImport is None:
-        # if self.spsImport is None or self.xpsImport is None or self.rpsImport is None:
-            self.appendLogMessage('Thread : One or more of the sps files have not been defined', MsgType.Error)
-            return
-
-        if fullAnalysis:
-            success = self.prepFullBinningConditions()
-            if not success:
-                return
-            self.progressLabel.setText('Bin from imported SPS - full analysis')
-        else:
-            self.progressLabel.setText('Bin from imported SPS - basic analysis')
-
-        self.showStatusbarWidgets()                                             # show two temporary progress widgets
-        self.enableProcessingMenuItems(False)                                   # disable processing menu items
-
-        self.appendLogMessage(f"Thread : Started 'Bin from Imported SPS', using {self.spsImport.shape[0]:,} shot points", MsgType.Binning)
-        if self.xpsImport is None:
-            self.appendLogMessage('Thread : Relation file has not been defined; using all available receivers for each shot', MsgType.Binning)
-
-        # Step 1: Create a worker class
-        # done in file 'worker_threads.py'
-
-        # Step 2: Create a QThread object
-        self.thread = QThread()
-
-        # Step 3: Create a worker object
-        xmlString = self.survey.toXmlString()
-        self.worker = BinFromGeometryWorker(xmlString)
-
-        # and define the binning mode
-        self.worker.setExtended(fullAnalysis)
-
-        # pass the memory mapped file to worker
-        self.worker.setMemMappedFile(self.output.anaOutput)
-
-        # Pass the geometry tables, in same order as used in the Geometry tab
-        self.worker.setGeometryArrays(self.spsImport, self.xpsImport, self.rpsImport)
-
-        # Step 4: Move worker to the thread
-        self.worker.moveToThread(self.thread)
-
-        # Step 5: Connect signals and slots
-        self.thread.started.connect(self.worker.run)                            # start thread
-        self.worker.survey.progress.connect(self.threadProgress)                # report thread progress from the survey object in the worker
-        self.worker.survey.message.connect(self.threadMessage)                  # update thread task-description in statusbar
-        self.worker.finished.connect(self.binningThreadFinished)                # stop thread;
-        self.worker.finished.connect(self.thread.quit)
-        # self.worker.finished.connect(self.worker.deleteLater)                 # See: http://qt-project.org/forums/viewthread/19848
-
-        # Step 6: Start the thread
-        self.startTime = timer()
-        self.thread.start(QThread.Priority.NormalPriority)
-
-    def createGeometryFromTemplates(self):
-        self.progressLabel.setText('Create Geometry from Templates')
-
-        self.showStatusbarWidgets()                                             # show two temporary progress widgets
-        self.enableProcessingMenuItems(False)                                   # disable processing menu items
-
-        self.appendLogMessage(f"Thread : Started 'Create Geometry from Templates', from {self.survey.nShotPoints:,} shot points", MsgType.Geometry)
-
-        # Step 1: Create a worker class
-        # done in file 'worker_threads.py'
-
-        # Step 2: Create a QThread object
-        self.thread = QThread()
-
-        # Step 3: Create a worker object
-        xmlString = self.survey.toXmlString()
-        self.worker = GeometryWorker(xmlString)
-
-        # Step 4: Move worker to the thread
-        self.worker.moveToThread(self.thread)
-
-        # Step 5: Connect signals and slots
-        self.thread.started.connect(self.worker.run)                            # start thread
-        self.worker.survey.progress.connect(self.threadProgress)                # report thread progress from the survey object in the worker
-        self.worker.survey.message.connect(self.threadMessage)                  # update thread task-description in statusbar
-        self.worker.finished.connect(self.geometryThreadFinished)               # stop thread;
-        self.worker.finished.connect(self.thread.quit)
-        # self.worker.finished.connect(self.worker.deleteLater)                 # See: http://qt-project.org/forums/viewthread/19848
-
-        # Step 6: Start the thread
-        self.startTime = timer()
-        self.thread.start(QThread.Priority.NormalPriority)
-
-    def threadProgress(self, val):
-        if self.progressBar is not None:                                        # in case thread is rumming before GUI set up
-            self.progressBar.setValue(val)
-
-    def threadMessage(self, val):
-        if self.progressLabel is not None:                                      # in case thread is rumming before GUI set up
-            self.progressLabel.setText(val)
-
-    def stopWorkerThread(self):
-        if self.thread is not None and self.thread.isRunning():
-            self.thread.requestInterruption()
-
-    def binningThreadFinished(self, success):                                   # extra argument only available in BinningWorker class
-
-        if not success:
-            self.layoutImg = None                                               # numpy array to be displayed
-            self.layoutImItem = None                                            # pg ImageItem showing analysis result
-            self.handleImageSelection()                                         # change selection and plot survey
-
-            self.appendLogMessage('Thread : . . . aborted binning operation', MsgType.Error)
-            self.appendLogMessage(f'Thread : . . . {self.worker.survey.errorText}', MsgType.Error)
-            QMessageBox.information(self, 'Interrupted', 'Worker thread aborted')
-        else:
-            # copy analysis arrays from worker
-            self.output.binOutput = self.worker.survey.output.binOutput.copy()  # create a copy; not a view of the array(s)
-            self.output.minOffset = self.worker.survey.output.minOffset.copy()
-            self.output.maxOffset = self.worker.survey.output.maxOffset.copy()
-
-            endTime = timer()
-            elapsed = timedelta(seconds=endTime - self.startTime)               # get the elapsed time for binning
-            elapsed = timedelta(seconds=ceil(elapsed.total_seconds()))          # round up to nearest second
-
-            self.appendLogMessage(f'Thread : Binning completed. Elapsed time:{elapsed} ', MsgType.Binning)
-            self.appendLogMessage(f'Thread : . . . Fold&nbsp; &nbsp; &nbsp; &nbsp;: Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ', MsgType.Binning)
-            self.appendLogMessage(f'Thread : . . . Min-offsets: Min:{self.output.minMinOffset:.2f}m - Max:{self.output.maxMinOffset:.2f}m ', MsgType.Binning)
-            self.appendLogMessage(f'Thread : . . . Max-offsets: Min:{self.output.minMaxOffset:.2f}m - Max:{self.output.maxMaxOffset:.2f}m ', MsgType.Binning)
-            if self.output.rmsOffset is not None:                        # only do this for "Full binning"
-                self.appendLogMessage(f'Thread : . . . Rms-offsets: Min:{self.output.minRmsOffset:.2f}m - Max:{self.output.maxRmsOffset:.2f}m ', MsgType.Binning)
-
-            if self.worker.survey.output.anaOutput is not None:                             # extended binning
-                self.output.rmsOffset = self.worker.survey.output.rmsOffset.copy()          # only defined in extended binning
-                self.output.ofAziHist = self.worker.survey.output.ofAziHist.copy()
-                self.output.offstHist = self.worker.survey.output.offstHist.copy()
-
-                # Re-open the memory-mapped file in the main thread to ensure safe access
-                anaFileName = self.fileName + '.ana.npy'
-                shape = self.worker.survey.output.anaOutput.shape
-
-                self.output.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=shape)
-                shape = self.output.anaOutput.shape
-
-                # create a 2D view on the 4D memory mapped array, to be used in the anaView table
-                self.output.D2_Output = self.output.anaOutput.reshape(shape[0] * shape[1] * shape[2], shape[3])
-                self.setDataAnaTableModel()                                              # sets model data if file not too big
-
-            # copy limits from worker; avoid -inf values
-            self.output.minimumFold = max(self.worker.survey.output.minimumFold, 0)
-            self.output.maximumFold = max(self.worker.survey.output.maximumFold, 0)
-            self.output.minMinOffset = max(self.worker.survey.output.minMinOffset, 0)
-            self.output.maxMinOffset = max(self.worker.survey.output.maxMinOffset, 0)
-            self.output.minMaxOffset = max(self.worker.survey.output.minMaxOffset, 0)
-            self.output.maxMaxOffset = max(self.worker.survey.output.maxMaxOffset, 0)
-            self.output.minRmsOffset = max(self.worker.survey.output.minRmsOffset, 0)
-            self.output.maxRmsOffset = max(self.worker.survey.output.maxRmsOffset, 0)
-
-            if self.survey.grid.fold <= 0:
-                self.survey.grid.fold = self.output.maximumFold                        # make sure we have a workable fold value next time around
-
-                # now we need to update the fold value in the text edit as well
-                plainText = self.survey.toXmlString()                           # convert the survey object itself to an xml string
-                self.textEdit.setTextViaCursor(plainText)                       # get text into the textEdit, NOT resetting its doc status
-                self.textEdit.document().setModified(True)                      # we edited the document; so it's been modified
-
-            if self.imageType == 0:                                             # if no image was selected before
-                self.actionFold.setChecked(True)
-                self.imageType = 1                                              # set analysis type to one (fold)
-
-            if self.imageType == 1:
-                self.layoutImg = self.output.binOutput
-                self.layoutMax = self.output.maximumFold
-                label = 'fold'
-            elif self.imageType == 2:
-                self.layoutImg = self.output.minOffset
-                self.layoutMax = self.output.maxMinOffset
-                label = 'minimum offset'
-            elif self.imageType == 3:
-                self.layoutImg = self.output.maxOffset
-                self.layoutMax = self.output.maxMaxOffset
-                label = 'maximum offset'
-            elif self.imageType == 4:
-                self.layoutImg = self.output.rmsOffset
-                self.layoutMax = self.output.maxRmsOffset
-                label = 'rms delta-offset'
-            else:
-                raise NotImplementedError('selected analysis type currently not implemented.')
-
-            self.layoutImItem = pg.ImageItem()                                  # create PyqtGraph image item
-            self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
-
-            # just to be sure; copy cmpTransform back from worker's survey object
-            self.survey.cmpTransform = self.worker.survey.cmpTransform
-
-            if self.layoutColorBar is None:
-                self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.fold_OffCmap, label=label, limits=(0, None), rounding=10.0, values=(0.0, self.layoutMax))
-            else:
-                self.layoutColorBar.setImageItem(self.layoutImItem)
-                self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-                self.layoutColorBar.setColorMap(config.fold_OffCmap)
-                self.setColorbarLabel(label)
-
-            self.plotLayout()                                                   # plot survey with colorbar
-
-            info = ''
-            if not self.fileName:
-                # we created an analysis for a yet to be saved file; set modified True, to force saving results when name has been defined
-                self.textEdit.document().setModified(True)
-                info = 'Analysis results are yet to be saved.'
-            else:
-                # Save the analysis results
-                np.save(self.fileName + '.bin.npy', self.output.binOutput)
-                np.save(self.fileName + '.min.npy', self.output.minOffset)
-                np.save(self.fileName + '.max.npy', self.output.maxOffset)
-
-                # Note, the rms offset results are only available with extended binning
-                if self.output.rmsOffset is not None:                    # only do this for "Full binning"
-                    np.save(self.fileName + '.rms.npy', self.output.rmsOffset)
-
-                info = 'Analysis results have been saved.'
-
-            QMessageBox.information(self, 'Done', f'Worker thread completed. {info} ')
-
-        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
-        self.enableProcessingMenuItems()                                        # enable processing menu items (again)
-        self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
-
-    def geometryThreadFinished(self, success):
-
-        if config.debug:
-            self.appendLogMessage('geometryFromTemplates() profiling information', MsgType.Debug)
-            i = 0
-            while i < len(self.worker.survey.timerTmin):                        # log some debug messages
-                tMin = self.worker.survey.timerTmin[i] * 1000.0 if self.worker.survey.timerTmin[i] != float('Inf') else 0.0
-                tMax = self.worker.survey.timerTmax[i] * 1000.0
-                tTot = self.worker.survey.timerTtot[i] * 1000.0
-                freq = self.worker.survey.timerFreq[i]
-                tAvr = tTot / freq if freq > 0 else 0.0
-                message = f'{i:02d}: min:{tMin:011.3f}, max:{tMax:011.3f}, tot:{tTot:011.3f}, avr:{tAvr:011.3f}, freq:{freq:07d}'
-                self.appendLogMessage(message, MsgType.Debug)
-                i += 1
-
-        if not success:
-            self.appendLogMessage('Thread : . . . aborted geometry creation', MsgType.Error)
-            self.appendLogMessage(f'Thread : . . . {self.worker.survey.errorText}', MsgType.Error)
-            QMessageBox.information(self, 'Interrupted', 'Worker thread aborted')
-        else:
-
-            # copy analysis arrays from worker
-            self.recGeom = self.worker.survey.output.recGeom.copy()             # create a copy; not a view of the arrays
-            self.relGeom = self.worker.survey.output.relGeom.copy()
-            self.srcGeom = self.worker.survey.output.srcGeom.copy()
-
-            # QMessageBox.information(self, 'Done', f'Worker thread completed. No crash!!!')
-            # self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
-            # self.enableProcessingMenuItems()                                        # enable processing menu items (again)
-            # self.mainTabWidget.setCurrentIndex(2)                                   # make sure we display the 'Geometry' tab
-            # self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
-            # return
-
-            self.recModel.setData(self.recGeom)                                 # update the three rec/rel/src models
-            self.relModel.setData(self.relGeom)
-            self.srcModel.setData(self.srcGeom)
-
-            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
-            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
-
-            endTime = timer()
-            elapsed = timedelta(seconds=endTime - self.startTime)               # get the elapsed time for geometry creation
-            elapsed = timedelta(seconds=ceil(elapsed.total_seconds()))          # round up to nearest second
-
-            self.appendLogMessage(f"Thread : Completed 'Create Geometry from Templates'. Elapsed time:{elapsed} ", MsgType.Geometry)
-
-            info = ''
-            if not self.fileName:
-                # we created an analysis for a yet to be saved file; set modified True, forcing results to be saved when name has been defined
-                self.textEdit.document().setModified(True)
-                info = 'Analysis results are yet to be saved.'
-            else:
-                # Save the analysis results
-                np.save(self.fileName + '.rec.npy', self.recGeom)
-                np.save(self.fileName + '.rel.npy', self.relGeom)
-                np.save(self.fileName + '.src.npy', self.srcGeom)
-                info = 'Analysis results have been saved.'
-            QMessageBox.information(self, 'Done', f'Worker thread completed. {info} ')
-
-        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
-        self.enableProcessingMenuItems()                                        # enable processing menu items (again)
-        self.mainTabWidget.setCurrentIndex(3)                                   # make sure we display the 'Geometry' tab
-        self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
-
-    def showStatusbarWidgets(self):
-        self.progressBar.setValue(0)                                            # first reset to zero, to avoid future glitches in progress shown
-        self.statusbar.addWidget(self.progressBar)                              # add temporary widget to statusbar (again)
-        self.progressBar.show()                                                 # forces showing progressbar (again)
-        self.statusbar.addWidget(self.progressLabel)                            # add temporary widget to statusbar (again)
-        self.progressLabel.show()                                               # forces showing progressLabel (again)
-
-    def hideStatusbarWidgets(self):
-        self.statusbar.removeWidget(self.progressBar)                           # remove widget from statusbar (don't kill it)
-        self.progressBar.setValue(0)                                            # reset progressbar to zero, when out of sight
-        self.statusbar.removeWidget(self.progressLabel)                         # remove progress label as well

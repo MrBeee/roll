@@ -8,7 +8,7 @@ from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
 from . import config  # used to pass initial settings
 from .aux_functions import myPrint
-from .enums_and_int_flags import SeedType, SurveyType
+from .enums_and_int_flags import SeedType, SurveyType2
 from .my_cmap import MyCmapParameter
 from .my_crs import MyCrsParameter
 from .my_crs2 import MyCrs2Parameter
@@ -751,7 +751,6 @@ class MyBlockParameter(MyGroupParameter):
         self.block = RollBlock()
         self.block = opts.get('value', self.block)
         directory = opts.get('directory', None)
-
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Source boundary', type='myRectF', value=self.block.borders.srcBorder, default=self.block.borders.srcBorder, flat=True, expanded=False))
@@ -2183,6 +2182,9 @@ class MyBlockListParameter(MyGroupParameter):
     ### class MyPattern ##########################################################
 
 
+### class MyPattern   #########################################################
+
+
 class MyPatternParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
@@ -2520,7 +2522,7 @@ class MyConfigurationParameter(MyGroupParameter):
         self.crs = self.survey.crs
         self.typ = self.survey.type
         self.nam = self.survey.name
-        surTypes = [e.name for e in SurveyType]
+        surTypes = SurveyType2.names()
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Survey CRS', type='myCrs2', value=self.crs, default=self.crs, expanded=False, flat=True))

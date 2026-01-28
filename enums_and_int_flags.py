@@ -35,6 +35,41 @@ class SurveyType(Enum):
     Zigzag = 4
     Streamer = 5
 
+class SurveyType2(Enum):
+    Orthogonal = (0, "Orthogonal - standard manner of acquiring land data")
+    Parallel   = (1, "Parallel - standard manner of acquiring OBN data")
+    Slanted    = (2, "Slanted - legacy variation on orthogonal, aiming to reduce LMOS")
+    Brick      = (3, "Brick - legacy variation on orthogonal, aiming to reduce LMOS")
+    Zigzag     = (4, "zigzag - legacy manner acquiring narrrow azimuth vibroseis data")
+    Streamer   = (5, "streamer - towed streamer marine survey")
+    # Orthogonal = ("Orthogonal", "Orthogonal - standard manner of acquiring land data")
+    # Parallel   = ("Parallel",   "Parallel - standard manner of acquiring OBN data")
+    # Slanted    = ("Slanted",    "Slanted - legacy variation on orthogonal, aiming to reduce LMOS")
+    # Brick      = ("Brick",      "Brick - legacy variation on orthogonal, aiming to reduce LMOS")
+    # Zigzag     = ("Zigzag",     "zigzag - legacy manner acquiring narrrow azimuth vibroseis data")
+    # Streamer   = ("Streamer",   "streamer - towed streamer marine survey")
+
+    @property
+    def code(self) -> int:
+        return self.value[0]
+
+    @property
+    def description(self) -> str:
+        return self.value[1]
+
+    @classmethod
+    def descriptions(cls) -> list[str]:
+        return [m.description for m in cls]
+
+    @classmethod
+    def from_code(cls, code: int) -> "SurveyType2":
+        return next(m for m in cls if m.code == code)
+
+    @classmethod
+    def names(cls) -> list[str]:
+        return [m.name for m in cls]
+
+
 class PaintMode(IntFlag):
     none = 0            # reset the whole lot
     justBlocks = 1      # just src, rec & cmp block outlines

@@ -177,7 +177,7 @@ class SpiderNavigationMixin:
     def _warn_spider_fallback(self, exc: Exception) -> None:
         if getattr(self, '_spider_fallback_warned', False):
             return
-        self.appendLogMessage(f'Warning&nbsp;&nbsp;: Falling back to Python spider plotting because Numba failed ({exc}).', MsgType.Warning    )
+        self.appendLogMessage(f'Numba&nbsp;&nbsp;: Falling back to Python spider plotting because Numba failed ({exc}).', MsgType.Warning    )
         self._spider_fallback_warned = True
 
     @staticmethod
