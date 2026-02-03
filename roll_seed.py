@@ -1,5 +1,8 @@
+# roll_seed.py
+import weakref
+
 """
-This module provides Seed Class, core of the placement of src & rec points in a survey area
+This module provides Seed Class, at the core of the placement of src & rec points in a survey area
 """
 
 import numpy as np
@@ -25,7 +28,9 @@ class RollSeed:
         self.origin = QVector3D()                                               # Seed origin
         self.bSource = False                                                    # 'True' if this is a source point seed (receiver = 'False')
         self.bAzimuth = False                                                   # 'True' if this seed has a pattern in direction of line direction
-        self.patternNo = -1                                                     # Pattern index serialized in survey file (-1 if name not found)
+        self.patternNo = -1                                                     # Pattern index serialized in survey file (-1 if no pattern is used)
+        self._survey_ref = None                                                 # weakref to RollSurvey
+
         self.color = QColor()                                                   # color of seed to discriminate different sources / receivers
 
         # seed subtypes
@@ -48,6 +53,20 @@ class RollSeed:
         # note, in the end, there shall ALWAYS be a pointPicture defined, but NOT ALWAYS a patternPicture, depending on seedType, etc
 
         self.rendered = False                                                   # prevent painting stationary seeds multiple times due to roll-along of other seeds
+
+    def setSurvey(self, survey):
+        self._survey_ref = weakref.ref(survey) if survey is not None else None
+
+    @property
+    def survey(self):
+        return self._survey_ref() if self._survey_ref else None                 # return the referenced survey, or None if not set
+
+    @property
+    def pattern(self):
+        if self.patternNo < 0:
+            return None
+        survey = self.survey
+        return survey.getPattern(self.patternNo) if survey else None            # return the pattern object from the survey, or None if not found
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
         seedElem = doc.createElement('seed')

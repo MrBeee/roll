@@ -1,7 +1,10 @@
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QPlainTextEdit, QPushButton, QSplitter, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QHeaderView,
+                                 QLabel, QPlainTextEdit, QPushButton,
+                                 QSplitter, QVBoxLayout, QWidget)
 
-from .table_model_view import RpsTableModel, SpsTableModel, TableView, XpsTableModel
+from .table_model_view import (RpsTableModel, SpsTableModel, TableView,
+                               XpsTableModel)
 
 
 def createSpsTab(self):
@@ -12,6 +15,8 @@ def createSpsTab(self):
     self.spsView = TableView()                                                  # create sps view
     self.spsModel = SpsTableModel(self.spsImport)                               # create sps model
     self.spsView.setModel(self.spsModel)                                        # add the model to the view
+    self.spsView.inUseToggled.connect(self.onSpsInUseToggled)
+
     self.spsHdrView = self.spsView.horizontalHeader()                           # to detect button clicks here
     self.spsHdrView.sectionClicked.connect(self.sortSpsData)                    # handle the section-clicked signal
     self.spsView.setStyleSheet(table_style)                                     # define selection colors
@@ -30,6 +35,8 @@ def createSpsTab(self):
     self.rpsView = TableView()                                                  # create rps view
     self.rpsModel = RpsTableModel(self.rpsImport)                               # create xps model
     self.rpsView.setModel(self.rpsModel)                                        # add the model to the view
+    self.rpsView.inUseToggled.connect(self.onRpsInUseToggled)
+
     self.rpsHdrView = self.rpsView.horizontalHeader()                           # to detect button clicks here
     self.rpsHdrView.sectionClicked.connect(self.sortRpsData)                    # handle the section-clicked signal
     self.rpsView.setStyleSheet(table_style)                                     # define selection colors

@@ -19,6 +19,10 @@ class MyListParameterItem(WidgetParameterItem):
             if brush is not None:
                 self.setBackground(c, fn.mkColor(brush))
 
+        # refresh combo when limits change
+        param.sigLimitsChanged.connect(self.updateLimits)
+        param.sigOptionsChanged.connect(self.optsChanged)
+
     def makeWidget(self):
         w = QComboBox()
         w.setStyleSheet('border: 0px')
@@ -31,6 +35,30 @@ class MyListParameterItem(WidgetParameterItem):
         w.setValue = self.setValue                                              # the function defined below
         self.hideWidget = False
         return w
+
+    def updateLimits(self, param, limits):
+        self.lst = list(limits) if limits is not None else []
+        self._rebuildCombo()
+
+    def optsChanged(self, param, opts):
+        if 'limits' in opts:
+            self.lst = list(opts['limits']) if opts['limits'] is not None else []
+            self._rebuildCombo()
+
+    def _rebuildCombo(self):
+        if self.widget is None:
+            return
+        current = self.widget.currentText()
+        self.widget.blockSignals(True)
+        self.widget.clear()
+        for item in self.lst:
+            self.widget.addItem(item)
+        # restore selection when possible
+        if current in self.lst:
+            self.widget.setCurrentIndex(self.lst.index(current))
+        elif self.lst:
+            self.widget.setCurrentIndex(0)
+        self.widget.blockSignals(False)
 
     def setValue(self, val):
         try:

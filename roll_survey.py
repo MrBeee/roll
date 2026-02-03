@@ -236,6 +236,153 @@ class RollSurvey(pg.GraphicsObject):
         self._paintEpoch = 0            # bump when data/flags change
         self._paintStart = None         # to track when painting started
 
+    def bindSeedsToSurvey(self):
+        for block in self.blockList:
+            for template in block.templateList:
+                for seed in template.seedList:
+                    seed.setSurvey(self)
+        # patterns are separate objects (not part of a RollSeed), so nothing to bind there
+
+    def getPattern(self, index: int):
+        if 0 <= index < len(self.patternList):
+            return self.patternList[index]
+        return None
+
+    def setPatternList(self, newList):
+        self.patternList = list(newList)
+        # clamp invalid indices
+        max_idx = len(self.patternList) - 1
+        for block in self.blockList:
+            for template in block.templateList:
+                for seed in template.seedList:
+                    if seed.patternNo > max_idx:
+                        seed.patternNo = -1
+        self.invalidatePaintCache()
+
+    def deepcopy(self):
+        # regular deepcopy() does not work for the compound 'RollSurvey' object.
+        # reason; pickle doesn't like the following objects:
+        # ".crs (Type 'QgsCoordinateReferenceSystem' caused: cannot pickle 'QgsCoordinateReferenceSystem' object)",
+        # ".blockList[0].templateList[0].seedList[0].pointPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)",
+        # ".blockList[0].templateList[0].seedList[0].patternPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)",
+        # ".patternList[0].pointPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)",
+        # ".patternList[0].patternPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)"
+        #
+        # tested using: **get_unpicklable(instance, exception=None, string='', first_only=False)**. See functions.py
+        # applied fix: copy via: object --> xml --> object
+
+        plainText = self.toXmlString()
+        surveyCopy = RollSurvey()
+        succes = surveyCopy.fromXmlString(plainText)
+
+        if succes:
+            surveyCopy.bindSeedsToSurvey()                                      # bind seeds to survey after creating copy. This restores weakrefs
+            return surveyCopy
+        else:
+            return None
+
+    def calcSeedData(self):
+        # this routine relies on self.checkIntegrity() to spot any errors
+        for block in self.blockList:
+            for template in block.templateList:
+                for seed in template.seedList:
+
+                    if seed.type == SeedType.rollingGrid:                       # rolling grid
+                        seed.grid.calcSalvoLine(seed.origin)                    # calc line to be drawn in low LOD values
+
+                    elif seed.type == SeedType.fixedGrid:                       # stationary grid
+                        seed.grid.calcSalvoLine(seed.origin)                    # calc line to be drawn in low LOD values
+
+                    elif seed.type == SeedType.circle:                          # circle
+                        seed.pointList = seed.circle.calcPointList(seed.origin)   # calculate the point list for this seed type
+
+                    elif seed.type == SeedType.spiral:                          # spiral
+                        seed.pointList = seed.spiral.calcPointList(seed.origin)   # calculate the point list for this seed type
+                        seed.spiral.calcSpiralPath(seed.origin)                 # calc spiral path to be drawn
+
+                    elif seed.type == SeedType.well:                            # well site
+                        seed.pointList, seed.origin = seed.well.calcPointList(self.crs, self.glbTransform)  # calculate the well's point list
+
+        # Only for patterns create a pointlist in the grid-seed; don't use it for normal 'rolling' or 'fixed' seeds
+        for pattern in self.patternList:
+            for seed in pattern.seedList:
+                seed.pointList = seed.grid.calcPointList(seed.origin)           # calculate the point list for all seeds
+
+    def createBasicSkeleton(self, nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=2):
+
+        assert nBlocks > 0, 'Need at least 1 block'
+        assert nTemplates > 0, 'Need at least 1 template'
+        assert nSrcSeeds > 0, 'Need at least 1 source seed'
+        assert nRecSeeds > 0, 'Need at least 1 receiver seed'
+        # nPatterns may be zero
+
+        self.blockList = []                                                     # make sure, we start with an empty list
+
+        for nBlock in range(nBlocks):
+            blockName = f'block-{nBlock + 1}'                                   # get suitable block name
+            block = RollBlock(blockName)                                        # create block
+            self.blockList.append(block)                                        # add block to survey object
+
+            for nTemplate in range(nTemplates):
+                templateName = f'template-{nTemplate + 1}'                      # get suitable template name
+                template = RollTemplate(templateName)                           # create template
+
+                roll1 = RollTranslate()                                         # create the 'first' roll object
+                template.rollList.append(roll1)                                 # add roll object to template's rollList
+                roll2 = RollTranslate()                                         # create a 'second' roll object
+                template.rollList.append(roll2)                                 # add roll object to template's rollList
+
+                # Todo: Need to add this for completeness; but consequently will have to test the code for every rollList appearance !!!
+                # roll3 = RollTranslate()                                         # create a 'second' roll object
+                # template.rollList.append(roll3)                                 # add roll object to template's rollList
+
+                block.templateList.append(template)                             # add template to block object
+
+                for nSrcSeed in range(nSrcSeeds):
+                    seedName = f'src-{nSrcSeed + 1}'                            # create a source seed object
+                    seedSrc = RollSeed(seedName)
+                    seedSrc.bSource = True
+                    seedSrc.color = QColor('#77FF8989')
+
+                    growR1 = RollTranslate()                                    # create a 'lines' grow object
+                    seedSrc.grid.growList.append(growR1)                        # add grow object to seed
+                    growR2 = RollTranslate()                                    # create a 'points' grow object
+                    seedSrc.grid.growList.append(growR2)                        # add grow object to seed
+                    growR3 = RollTranslate()                                    # create a 'points' grow object
+                    seedSrc.grid.growList.append(growR3)                        # add grow object to seed
+
+                    template.seedList.append(seedSrc)                           # add seed object to template
+
+                for nRecSeed in range(nRecSeeds):
+                    seedName = f'rec-{nRecSeed + 1}'                            # create a receiver seed object
+                    seedRec = RollSeed(seedName)
+                    seedRec.bSource = False
+                    seedRec.color = QColor('#7787A4D9')
+
+                    growR1 = RollTranslate()                                    # create a 'lines' grow object
+                    seedRec.grid.growList.append(growR1)                        # add grow object to seed's growlist
+                    growR2 = RollTranslate()                                    # create a 'points' grow object
+                    seedRec.grid.growList.append(growR2)                        # add grow object to seed
+                    growR3 = RollTranslate()                                    # create a 'points' grow object
+                    seedRec.grid.growList.append(growR3)                        # add grow object to seed
+
+                    template.seedList.append(seedRec)                           # add seed object to template
+
+        self.patternList = []                                                   # make sure, we start with an empty list
+        for nPattern in range(nPatterns):
+            patternName = f'pattern-{nPattern + 1}'                             # create suitable pattern name
+            pattern = RollPattern(patternName)                                  # create the pattern
+            self.patternList.append(pattern)                                    # add pattern to patternList
+
+            seed = RollPatternSeed()                                            # create a new seed (we need just one)
+            pattern.seedList.append(seed)                                       # add this seed to pattern's seedList
+
+            for _ in range(3):                                                  # do this three times
+                growStep = RollTranslate()                                      # create a translation
+                seed.grid.growList.append(growStep)                             # add translation to seed's grid-growlist
+
+        self.bindSeedsToSurvey()                                                # bind seeds to survey after creating skeleton
+
     def calcTransforms(self, createArrays=False):
         """(re)calculate the transforms being used, and optionally initialize fold & offset arrays"""
         x = self.grid.orig.x()
@@ -3007,27 +3154,6 @@ class RollSurvey(pg.GraphicsObject):
             self.calcBoundingRect()                                             # (re)calculate the boundingBox as part of parsing the data
         return success
 
-    def deepcopy(self):
-        # regular deepcopy() does not work for the compound 'RollSurvey' object.
-        # reason; pickle doesn't like the following objects:
-        # ".crs (Type 'QgsCoordinateReferenceSystem' caused: cannot pickle 'QgsCoordinateReferenceSystem' object)",
-        # ".blockList[0].templateList[0].seedList[0].pointPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)",
-        # ".blockList[0].templateList[0].seedList[0].patternPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)",
-        # ".patternList[0].pointPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)",
-        # ".patternList[0].patternPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)"
-        #
-        # tested using: **get_unpicklable(instance, exception=None, string='', first_only=False)**. See functions.py
-        # applied fix: copy via: object --> xml --> object
-
-        plainText = self.toXmlString()
-        surveyCopy = RollSurvey()
-        succes = surveyCopy.fromXmlString(plainText)
-
-        if succes:
-            return surveyCopy
-        else:
-            return None
-
     def checkIntegrity(self, projectDirectory = None) -> bool:
         """this routine checks survey integrity, after edits have been made"""
 
@@ -3097,33 +3223,6 @@ class RollSurvey(pg.GraphicsObject):
                 for seed in template.seedList:
                     seed.calcPointArray()                                   # setup the numpy arrays for more efficient processing
 
-    def calcSeedData(self):
-        # this routine relies on self.checkIntegrity() to spot any errors
-        for block in self.blockList:
-            for template in block.templateList:
-                for seed in template.seedList:
-
-                    if seed.type == SeedType.rollingGrid:                       # rolling grid
-                        seed.grid.calcSalvoLine(seed.origin)                    # calc line to be drawn in low LOD values
-
-                    elif seed.type == SeedType.fixedGrid:                       # stationary grid
-                        seed.grid.calcSalvoLine(seed.origin)                    # calc line to be drawn in low LOD values
-
-                    elif seed.type == SeedType.circle:                          # circle
-                        seed.pointList = seed.circle.calcPointList(seed.origin)   # calculate the point list for this seed type
-
-                    elif seed.type == SeedType.spiral:                          # spiral
-                        seed.pointList = seed.spiral.calcPointList(seed.origin)   # calculate the point list for this seed type
-                        seed.spiral.calcSpiralPath(seed.origin)                 # calc spiral path to be drawn
-
-                    elif seed.type == SeedType.well:                            # well site
-                        seed.pointList, seed.origin = seed.well.calcPointList(self.crs, self.glbTransform)  # calculate the well's point list
-
-        # Only for patterns create a pointlist in the grid-seed; don't use it for normal 'rolling' or 'fixed' seeds
-        for pattern in self.patternList:
-            for seed in pattern.seedList:
-                seed.pointList = seed.grid.calcPointList(seed.origin)           # calculate the point list for all seeds
-
     def makeWellPathsAbsolute(self, projectDirectory = None):
         """ make well paths absolute, if they are not already. Used when loading a survey """
         for block in self.blockList:
@@ -3139,79 +3238,6 @@ class RollSurvey(pg.GraphicsObject):
                 for seed in template.seedList:
                     if seed.type == SeedType.well:
                         seed.well.makePathRelative(projectDirectory)
-
-    def createBasicSkeleton(self, nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=2):
-
-        assert nBlocks > 0, 'Need at least 1 block'
-        assert nTemplates > 0, 'Need at least 1 template'
-        assert nSrcSeeds > 0, 'Need at least 1 source seed'
-        assert nRecSeeds > 0, 'Need at least 1 receiver seed'
-        # nPatterns may be zero
-
-        self.blockList = []                                                     # make sure, we start with an empty list
-
-        for nBlock in range(nBlocks):
-            blockName = f'block-{nBlock + 1}'                                   # get suitable block name
-            block = RollBlock(blockName)                                        # create block
-            self.blockList.append(block)                                        # add block to survey object
-
-            for nTemplate in range(nTemplates):
-                templateName = f'template-{nTemplate + 1}'                      # get suitable template name
-                template = RollTemplate(templateName)                           # create template
-
-                roll1 = RollTranslate()                                         # create the 'first' roll object
-                template.rollList.append(roll1)                                 # add roll object to template's rollList
-                roll2 = RollTranslate()                                         # create a 'second' roll object
-                template.rollList.append(roll2)                                 # add roll object to template's rollList
-
-                # Todo: Need to add this for completeness; but consequently will have to test the code for every rollList appearance !!!
-                # roll3 = RollTranslate()                                         # create a 'second' roll object
-                # template.rollList.append(roll3)                                 # add roll object to template's rollList
-
-                block.templateList.append(template)                             # add template to block object
-
-                for nSrcSeed in range(nSrcSeeds):
-                    seedName = f'src-{nSrcSeed + 1}'                            # create a source seed object
-                    seedSrc = RollSeed(seedName)
-                    seedSrc.bSource = True
-                    seedSrc.color = QColor('#77FF8989')
-
-                    growR1 = RollTranslate()                                    # create a 'lines' grow object
-                    seedSrc.grid.growList.append(growR1)                        # add grow object to seed
-                    growR2 = RollTranslate()                                    # create a 'points' grow object
-                    seedSrc.grid.growList.append(growR2)                        # add grow object to seed
-                    growR3 = RollTranslate()                                    # create a 'points' grow object
-                    seedSrc.grid.growList.append(growR3)                        # add grow object to seed
-
-                    template.seedList.append(seedSrc)                           # add seed object to template
-
-                for nRecSeed in range(nRecSeeds):
-                    seedName = f'rec-{nRecSeed + 1}'                            # create a receiver seed object
-                    seedRec = RollSeed(seedName)
-                    seedRec.bSource = False
-                    seedRec.color = QColor('#7787A4D9')
-
-                    growR1 = RollTranslate()                                    # create a 'lines' grow object
-                    seedRec.grid.growList.append(growR1)                        # add grow object to seed's growlist
-                    growR2 = RollTranslate()                                    # create a 'points' grow object
-                    seedRec.grid.growList.append(growR2)                        # add grow object to seed
-                    growR3 = RollTranslate()                                    # create a 'points' grow object
-                    seedRec.grid.growList.append(growR3)                        # add grow object to seed
-
-                    template.seedList.append(seedRec)                           # add seed object to template
-
-        self.patternList = []                                                   # make sure, we start with an empty list
-        for nPattern in range(nPatterns):
-            patternName = f'pattern-{nPattern + 1}'                             # create suitable pattern name
-            pattern = RollPattern(patternName)                                  # create the pattern
-            self.patternList.append(pattern)                                    # add pattern to patternList
-
-            seed = RollPatternSeed()                                            # create a new seed (we need just one)
-            pattern.seedList.append(seed)                                       # add this seed to pattern's seedList
-
-            for _ in range(3):                                                  # do this three times
-                growStep = RollTranslate()                                      # create a translation
-                seed.grid.growList.append(growStep)                             # add translation to seed's grid-growlist
 
     def writeXml(self, doc: QDomDocument):
         doc.clear()

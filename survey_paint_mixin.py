@@ -74,4 +74,5 @@ class SurveyPaintMixin:
             details |= PaintDetails.recPat
 
         self.survey.paintDetails = details
+        self.survey.invalidatePaintCache()
         self.plotLayout()

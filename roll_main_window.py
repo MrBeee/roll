@@ -751,39 +751,45 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         assert isinstance(survey, RollSurvey), 'make sure we have a RollSurvey object here'
 
-        # first (globally) define the patterns to choose from
-        config.patternList = ['<no pattern>']
-        for p in survey.patternList:
-            config.patternList.append(p.name)
+        patterns = survey.patternList                                           # use survey as source of truth (no longer using config.patternList)
+        names = [p.name for p in patterns]
 
-        # for pattern response display and kxky response
-        self.pattern1.clear()
-        self.pattern1.addItem('<no pattern>')                                   # setup first pattern list in pattern tab
-        for item in self.survey.patternList:
-            self.pattern1.addItem(item.name)
+        combos = [self.pattern1, self.pattern2, self.pattern3, self.pattern4]
 
-        self.pattern2.clear()
-        self.pattern2.addItem('<no pattern>')                                   # setup second pattern list in pattern tab
-        for item in self.survey.patternList:
-            self.pattern2.addItem(item.name)
+        for combo in combos:
+            combo.blockSignals(True)
+        try:
+            # for pattern response display and kxky response
+            self.pattern1.clear()
+            self.pattern1.addItem('<no pattern>')
+            for name in names:
+                self.pattern1.addItem(name)
 
-        listSize = len(self.survey.patternList)                                 # show the first two paterns (if available)
-        self.pattern1.setCurrentIndex(min(listSize, 1))                         # select first pattern in list
-        self.pattern2.setCurrentIndex(min(listSize, 2))                         # select first pattern in list
+            self.pattern2.clear()
+            self.pattern2.addItem('<no pattern>')                               # setup second pattern list in pattern tab
+            for name in names:
+                self.pattern2.addItem(name)
 
-        # for convolution of stack response with pattern response
-        self.pattern3.clear()
-        self.pattern3.addItem('<no pattern>')                                   # setup first pattern list in pattern tab
-        for item in self.survey.patternList:
-            self.pattern3.addItem(item.name)
+            listSize = len(names)                                               # show the first two paterns (if available)
+            self.pattern1.setCurrentIndex(min(listSize, 1))                     # select first pattern in list
+            self.pattern2.setCurrentIndex(min(listSize, 2))                     # select first pattern in list
 
-        self.pattern4.clear()
-        self.pattern4.addItem('<no pattern>')                                   # setup second pattern list in pattern tab
-        for item in self.survey.patternList:
-            self.pattern4.addItem(item.name)
+            # for convolution of stack response with pattern response
+            self.pattern3.clear()
+            self.pattern3.addItem('<no pattern>')                               # setup first pattern list in pattern tab
+            for name in names:
+                self.pattern3.addItem(name)
 
-        self.pattern3.setCurrentIndex(min(listSize, 1))                         # select first pattern in list
-        self.pattern4.setCurrentIndex(min(listSize, 2))                         # select first pattern in list
+            self.pattern4.clear()
+            self.pattern4.addItem('<no pattern>')                               # setup second pattern list in pattern tab
+            for name in names:
+                self.pattern4.addItem(name)
+
+            self.pattern3.setCurrentIndex(min(listSize, 1))                     # select first pattern in list
+            self.pattern4.setCurrentIndex(min(listSize, 2))                     # select first pattern in list
+        finally:
+            for combo in combos:
+                combo.blockSignals(False)
 
     def applyPropertyChanges(self):
         # build new survey object from scratch, and start adding to it
@@ -3242,9 +3248,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         xpsFormat = next((item for item in config.xpsFormatList if item['name'] == spsDialect), None)
         assert xpsFormat is not None, f'No valid XPS dialect with name {spsDialect}'
 
-        xpsFormat = next((item for item in config.xpsFormatList if item['name'] == spsDialect), None)
-        assert xpsFormat is not None, f'No valid XPS dialect with name {spsDialect}'
-
         rpsFormat = next((item for item in config.rpsFormatList if item['name'] == spsDialect), None)
         assert rpsFormat is not None, f'No valid RPS dialect with name {spsDialect}'
 
@@ -3278,6 +3281,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             if self.interrupted:
                 self.appendLogMessage('Import : importing SPS data canceled by user.')
+                self.hideStatusbarWidgets()
                 return False
 
         if dlg.xpsFiles:                                                        # import the XPS data
@@ -3289,6 +3293,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.showStatusbarWidgets()
 
             oldProgress = 0
+            self.interrupted = False
             for line_number, line in enumerate(xpsData):
                 QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
                 if self.interrupted is True:
@@ -3309,6 +3314,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             if self.interrupted:
                 self.appendLogMessage('Import : importing XPS data canceled by user.')
+                self.hideStatusbarWidgets()
                 return False
 
         if dlg.rpsFiles:                                                        # import the RPS data
@@ -3320,6 +3326,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.showStatusbarWidgets()
 
             oldProgress = 0
+            self.interrupted = False
             for line_number, line in enumerate(rpsData):
                 QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
                 if self.interrupted is True:
@@ -3340,6 +3347,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             if self.interrupted:
                 self.appendLogMessage('Import : importing RPS data canceled by user.')
+                self.hideStatusbarWidgets()
                 return False
 
             self.appendLogMessage(f'Import : imported {spsLines} sps-records, {xpsLines} xps-records and {rpsLines} rps-records')
@@ -3376,8 +3384,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 convertCrs(self.rpsImport, dlg.crs, self.survey.crs)  # convert the coordinates to the survey CRS
 
                 origX, origY, lineMin, pointMin, dL, dP, angle1 = calculateLineStakeTransform(self.rpsImport)
-                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: RPS origin = ({origX:.2f}, {origY:.2f}), azimuth = {angle1:,.3f} deg for rec lines &#8741; x-axis')
-                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Local grid: Stake origin = ({pointMin:.2f}, {lineMin:.2f}), increment = ({dP:,.2f}, {dL:,.2f}) m')
+                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: RPS origin = ({origX:.2f}m, {origY:.2f}m), azimuth = {angle1:,.3f}deg for rec lines &#8741; x-axis')
+                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Local grid: Stake origin = ({pointMin:.2f}, {lineMin:.2f}), increment = ({dP:,.2f}m, {dL:,.2f}m)')
                 QApplication.processEvents()  # Ensure the UI updates in real-time
 
                 self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
@@ -3396,8 +3404,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 convertCrs(self.spsImport, dlg.crs, self.survey.crs)  # convert the coordinates to the survey CRS
 
                 origX, origY, lineMin, pointMin, dL, dP, angle1 = calculateLineStakeTransform(self.spsImport)
-                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: SPS origin = ({origX:.2f}, {origY:.2f}) m, azimuth = {angle1:.3f} deg for src lines &#8741; x-axis')
-                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Local grid: stake origin = ({pointMin:.2f}, {lineMin:.2f}), increment = ({dP:,.2f}, {dL:,.2f}) m')
+                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: SPS origin = ({origX:.2f}m, {origY:.2f}m), azimuth = {angle1:.3f}deg for src lines &#8741; x-axis')
+                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Local grid: stake origin = ({pointMin:.2f}, {lineMin:.2f}), increment = ({dP:,.2f}m, {dL:,.2f}m)')
 
                 self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
                 self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the rps points
@@ -3696,6 +3704,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 self.survey.calcSeedData()                                      # needed for circles, spirals & well-seeds; may affect bounding box
                 self.survey.calcBoundingRect()                                  # (re)calculate the boundingBox as part of parsing the data
                 self.survey.calcNoShotPoints()                                  # (re)calculate nr of SPs
+                self.survey.bindSeedsToSurvey()                                 # bind seeds to survey after parsing
                 self.appendLogMessage(f'Parsing: {self.fileName} survey object succesfully parsed')
 
                 return True
@@ -3758,3 +3767,44 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.actionFullBinFromSps.setEnabled(False)
 
         self.actionStopThread.setEnabled(not enable)
+
+    def onSpsInUseToggled(self, rows):
+        if self.spsImport is None:
+            return
+
+        self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
+        self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)
+        self.textEdit.document().setModified(True)
+        self.updateMenuStatus(False)
+        self.replotLayout()
+        self.appendLogMessage(f'Edit&nbsp;&nbsp;&nbsp;: Modified in-use flag for {len(rows):,} SPS record(s)')
+
+    def onRpsInUseToggled(self, rows):
+        if self.rpsImport is None:
+            return
+
+        self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
+        self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)
+        self.textEdit.document().setModified(True)
+        self.updateMenuStatus(False)
+        self.replotLayout()
+        self.appendLogMessage(f'Edit&nbsp;&nbsp;&nbsp;: Modified in-use flag for {len(rows):,} RPS record(s)')
+    def onSrcInUseToggled(self, rows):
+        if self.srcGeom is None:
+            return
+
+        self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
+        self.textEdit.document().setModified(True)
+        self.updateMenuStatus(False)
+        self.replotLayout()
+        self.appendLogMessage(f'Edit&nbsp;&nbsp;&nbsp;: Modified in-use flag for {len(rows):,} SRC record(s)')
+
+    def onRecInUseToggled(self, rows):
+        if self.recGeom is None:
+            return
+
+        self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
+        self.textEdit.document().setModified(True)
+        self.updateMenuStatus(False)
+        self.replotLayout()
+        self.appendLogMessage(f'Edit&nbsp;&nbsp;&nbsp;: Modified in-use flag for {len(rows):,} REC record(s)')

@@ -18,9 +18,10 @@ from .aux_functions import myPrint, toFloat, toInt
 pntType = np.dtype(
     [
         # fmt : off
-        ('RecID', 'U2'),  # A1 ('S' or 'R')
+        ('RecID', 'U1'),  # A1 ('S' or 'R')
         ('Line',  'f4'),  # F10.2
         ('Point', 'f4'),  # F10.2
+        ('Blank', 'U2'),  # A2 ('  '). I.e. spacer after Point
         ('Index', 'i4'),  # I1
         ('Code',  'U2'),  # A2
         ('Static','i4'),  # I4
@@ -32,7 +33,7 @@ pntType = np.dtype(
         ('North', 'f4'),  # F10.1
         ('Elev',  'f4'),  # F6.1
         ('Day',   'i4'),  # I3
-        ('Time',  'i4'),  # 3I2
+        ('Time',  'U6'),  # 3I2
         # fmt : on
     ]
 )
@@ -111,7 +112,7 @@ pntType5 = np.dtype(
 relType = np.dtype(
     [
         # fmt : off
-        ('RecID',  'U2'),  # A1 ('X')
+        ('RecID',  'U1'),  # A1 ('X')
         ('TapeNo', 'U8'),  # 3A2
         ('RecNum', 'i4'),  # I8
         ('RecInc', 'i4'),  # I1
@@ -700,8 +701,8 @@ def fileExportAsR01(parent, fileName, extension, view, crs):
         fn += extension                                                         # just add the file extension
 
     # fmt: 0ff
-    fmt = '%1s',  '%10.2f', '%10.2f', '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6d'
-    #     'RecID','Line',   'Point',  'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'
+    fmt = '%1s',  '%10.2f', '%10.2f', '%2s',   '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6s'
+    #     'RecID','Line',   'Point',  'Blank', 'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'
     # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
     # fmt: 0n
 
@@ -711,31 +712,17 @@ def fileExportAsR01(parent, fileName, extension, view, crs):
     JulianDay = datetime.now().timetuple().tm_yday                              # returns 1 for January 1st
     timeOfDay = datetime.now().strftime('%H%M%S')
 
-    # ('RecID',  'U2'),   # A1 ('S' or 'R')
-    # ('Line',   'f4'),   # F10.2
-    # ('Point',  'f4'),   # F10.2
-    # ('Index',  'i4'),   # I1
-    # ('Code',   'U2'),   # A2
-    # ('Static', 'i4'),   # I4
-    # ('Depth',  'f4'),   # I4
-    # ('Datum',  'i4'),   # I4
-    # ('Uhole',  'i4'),   # I2
-    # ('Water',  'f4'),   # F6.1
-    # ('East',   'f4'),   # F9.1
-    # ('North',  'f4'),   # F10.1
-    # ('Elev',   'f4'),   # F6.1
-    # ('Day',    'i4'),   # I3
-    # ('Time',   'i4') ]) # 3I2
-
     rpsData = np.zeros(shape=size, dtype=pntType)
     # fmt: off
     rpsData['RecID'] = 'R'
     rpsData[ 'Line'] = data['Line']
     rpsData['Point'] = data['Point']
+    rpsData['Blank'] = '  '
     rpsData['Index'] = data['Index']
     rpsData[ 'Code'] = data['Code']
     rpsData[ 'East'] = data['East']
     rpsData['North'] = data['North']
+    rpsData[ 'Elev'] = data['Elev']
     rpsData[  'Day'] = JulianDay
     rpsData[ 'Time'] = timeOfDay
     # fmt: on
@@ -773,8 +760,8 @@ def fileExportAsS01(parent, fileName, extension, view, crs):
         fn += extension                                                         # just add the file extension
 
     # fmt: off
-    fmt = '%1s',  '%10.2f', '%10.2f', '%1d',  '%2s',   '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6d'
-    #     'RecID','Line',   'Point',  'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'
+    fmt = '%1s',  '%10.2f', '%10.2f', '%2s',   '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6s'
+    #     'RecID','Line',   'Point',  'Blank', 'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'
     # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
     # fmt: on
 
@@ -788,10 +775,12 @@ def fileExportAsS01(parent, fileName, extension, view, crs):
     spsData['RecID'] = 'S'
     spsData[ 'Line'] = data['Line']
     spsData['Point'] = data['Point']
+    spsData['Blank'] = '  '
     spsData['Index'] = data['Index']
     spsData[ 'Code'] = data['Code']
     spsData[ 'East'] = data['East']
     spsData['North'] = data['North']
+    spsData[ 'Elev'] = data['Elev']
     spsData[  'Day'] = JulianDay
     spsData[ 'Time'] = timeOfDay
     # fmt: on
@@ -939,19 +928,19 @@ def calculateLineStakeTransform(spsImport) -> []:
 
     spsImport.sort(order=['Line', 'Point', 'Index'])                            # sort the data by line and point
     pointNumIncrement = spsImport['Point'][1:] - spsImport['Point'][:-1]        # get the point number increment
-    pointNumIncrement = np.median(pointNumIncrement)
+    pointNumIncrement = np.median(pointNumIncrement)                            # use median to avoid outliers
     assert pointNumIncrement >= 0, "Point increment is not positive"
     if pointNumIncrement == 0:
-        pointNumIncrement = 1.0                                                  # handle 2D data with no point increment
+        pointNumIncrement = 1.0                                                 # handle 2D data with no point increment
 
     eastIncrement = spsImport['East'][1:] - spsImport['East'][:-1]              # get the east increment
     northIncrement = spsImport['North'][1:] - spsImport['North'][:-1]           # get the north increment
-    pointDisIncrement = np.sqrt(eastIncrement ** 2 + northIncrement ** 2)       # get the point distance increment
-    pointDisIncrement = np.median(pointDisIncrement)
-    if pointDisIncrement == 0:
-        pointDisIncrement = 1.0                                                  # handle 2D data with no point increment
+    pointIntIncrement = np.sqrt(eastIncrement ** 2 + northIncrement ** 2)       # get the point distance increment
+    pointIntIncrement = np.median(pointIntIncrement)                            # use median to avoid outliers
+    if pointIntIncrement == 0:
+        pointIntIncrement = 1.0                                                 # handle 2D data with no point distance increment
     else:
-        pointNumIncrement = pointDisIncrement / pointNumIncrement
+        pointNumIncrement = pointIntIncrement / pointNumIncrement
 
     lineMin = spsImport['Line'][0]
     pointMin = spsImport['Point'][0]
@@ -964,14 +953,14 @@ def calculateLineStakeTransform(spsImport) -> []:
 
     eastIncrement = spsImport['East'][1:] - spsImport['East'][:-1]              # get the east increment
     northIncrement = spsImport['North'][1:] - spsImport['North'][:-1]           # get the north increment
-    lineDisIncrement = np.sqrt(eastIncrement ** 2 + northIncrement ** 2)        # get the distance increment
+    lineIntIncrement = np.sqrt(eastIncrement ** 2 + northIncrement ** 2)        # get the distance increment
     # see: https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
     # distIncrement = np.linalg.norm(eastIncrement - northIncrement)            # get the distance increment
-    lineDisIncrement = np.median(lineDisIncrement)
+    lineIntIncrement = np.median(lineIntIncrement)                              # use median to avoid outliers
     if lineNumIncrement == 0:
         lineNumIncrement = 1.0                                                  # handle 2D data with no line increment
     else:
-        lineNumIncrement = lineDisIncrement / lineNumIncrement
+        lineNumIncrement = lineIntIncrement / lineNumIncrement
 
     # See: https://stackoverflow.com/questions/47780845/solve-over-determined-system-of-linear-equations
     x1 = np.zeros(shape=nRecords, dtype=np.float32)

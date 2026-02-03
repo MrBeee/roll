@@ -1,48 +1,10 @@
-2026-01-26T22:18:21     WARNING    Traceback (most recent call last):
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 637, in onStackPatternIndexChanged
-              self.plotStkCel(nX, nY, stkX, stkY)
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2291, in plotStkCel
-              if self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             AttributeError: 'NoneType' object has no attribute 'shape'
-             
-2026-01-26T22:18:21     WARNING    Traceback (most recent call last):
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 637, in onStackPatternIndexChanged
-              self.plotStkCel(nX, nY, stkX, stkY)
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2291, in plotStkCel
-              if self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             AttributeError: 'NoneType' object has no attribute 'shape'
-             
-2026-01-26T22:18:21     WARNING    Traceback (most recent call last):
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 637, in onStackPatternIndexChanged
-              self.plotStkCel(nX, nY, stkX, stkY)
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2291, in plotStkCel
-              if self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             AttributeError: 'NoneType' object has no attribute 'shape'
-             
-2026-01-26T22:18:21     WARNING    Traceback (most recent call last):
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 637, in onStackPatternIndexChanged
-              self.plotStkCel(nX, nY, stkX, stkY)
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2291, in plotStkCel
-              if self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             AttributeError: 'NoneType' object has no attribute 'shape'
-             
-2026-01-26T22:18:21     WARNING    Traceback (most recent call last):
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 637, in onStackPatternIndexChanged
-              self.plotStkCel(nX, nY, stkX, stkY)
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2291, in plotStkCel
-              if self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             AttributeError: 'NoneType' object has no attribute 'shape'
-             
-2026-01-26T22:18:21     WARNING    Traceback (most recent call last):
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 637, in onStackPatternIndexChanged
-              self.plotStkCel(nX, nY, stkX, stkY)
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2291, in plotStkCel
-              if self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             AttributeError: 'NoneType' object has no attribute 'shape'
+2026-02-03T00:13:46     WARNING    Traceback (most recent call last):
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 3601, in fileExportRpsAsR01
+              records, fn = fileExportAsR01(self, self.fileName, '.rps.r01', self.rpsView, self.survey.crs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\sps_io_and_qc.py", line 750, in fileExportAsR01
+              np.savetxt(fn, rpsData, delimiter='', fmt=fmt, comments='', header=hdr)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numpy\lib\npyio.py", line 1589, in savetxt
+              raise AttributeError('fmt has wrong shape. %s' % str(fmt))
+             AttributeError: fmt has wrong shape. ('%1s', '%10.2f', '%10.2f', '%1d', '%2s', '%4d', '%4.1f', '%4d', '%2d', '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6d')
              

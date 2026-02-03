@@ -125,6 +125,8 @@ class SpiderNavigationMixin:
         self.spiderPoint.setY(min(max(self.spiderPoint.y(), 0), y_max - 1))
 
     def _updateLayoutSpiderOverlay(self, n_x: int, n_y: int, fold: int) -> None:
+        if self.survey.binTransform is None or self.survey.st2Transform is None:
+            return
 
         if fold > 0:
             slice2d = self.output.anaOutput[n_x, n_y, 0:fold, :]

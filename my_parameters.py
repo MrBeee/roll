@@ -748,14 +748,14 @@ class MyBlockParameter(MyGroupParameter):
         if 'children' in opts:
             raise KeyError('Cannot set "children" argument in MyBlockParameter opts')
 
-        self.block = RollBlock()
-        self.block = opts.get('value', self.block)
-        directory = opts.get('directory', None)
+        self.block = opts.get('value', RollBlock())
+        self.survey = opts.get('survey', None)
+        self.directory = opts.get('directory', None)
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Source boundary', type='myRectF', value=self.block.borders.srcBorder, default=self.block.borders.srcBorder, flat=True, expanded=False))
             self.addChild(dict(name='Receiver boundary', type='myRectF', value=self.block.borders.recBorder, default=self.block.borders.recBorder, flat=True, expanded=False))
-            self.addChild(dict(name='Template list', type='myTemplateList', value=self.block.templateList, default=self.block.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m', directory=directory))
+            self.addChild(dict(name='Template list', type='myTemplateList', value=self.block.templateList, default=self.block.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
         self.parS = self.child('Source boundary')
         self.parR = self.child('Receiver boundary')
@@ -802,7 +802,7 @@ class MyBlockParameter(MyGroupParameter):
 
                 block = parent.blockList.pop(index)
                 parent.blockList.insert(index - 1, block)
-                parent.insertChild(index - 1, dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                parent.insertChild(index - 1, dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
         elif name == 'moveDown':
             n = len(parent.children())
@@ -811,7 +811,7 @@ class MyBlockParameter(MyGroupParameter):
 
                 block = parent.blockList.pop(index)
                 parent.blockList.insert(index + 1, block)
-                parent.insertChild(index + 1, dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                parent.insertChild(index + 1, dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
         elif name == 'preview':
             ...
@@ -891,14 +891,13 @@ class MyTemplateParameter(MyGroupParameter):
         d = opts.get('decimals', 5)
         s = opts.get('suffix', 'm')
 
-        template = RollTemplate()
-        self.template = opts.get('value', template)
-        directory = opts.get('directory', None)
+        self.template = opts.get('value', RollTemplate())
+        self.survey = opts.get('survey', None)
+        self.directory = opts.get('directory', None)
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Roll steps', type='myRollList', value=self.template.rollList, default=self.template.rollList, expanded=True, flat=True, decimals=d, suffix=s))
-            self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.template.seedList, default=self.template.seedList, brush='#add8e6', flat=True, directory=directory))
-
+            self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.template.seedList, default=self.template.seedList, brush='#add8e6', flat=True, directory=self.directory, survey=self.survey))
         self.parR = self.child('Roll steps')
         self.parS = self.child('Seed list')
 
@@ -941,7 +940,7 @@ class MyTemplateParameter(MyGroupParameter):
 
                 template = parent.templateList.pop(index)
                 parent.templateList.insert(index - 1, template)
-                parent.insertChild(index - 1, dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                parent.insertChild(index - 1, dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
         elif name == 'moveDown':
             n = len(parent.children())
@@ -950,7 +949,7 @@ class MyTemplateParameter(MyGroupParameter):
 
                 template = parent.templateList.pop(index)
                 parent.templateList.insert(index + 1, template)
-                parent.insertChild(index + 1, dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                parent.insertChild(index + 1, dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
         elif name == 'preview':
             ...
@@ -1236,9 +1235,12 @@ class MySeedListParameter(MyGroupParameter):
         if 'children' in opts:
             raise KeyError('Cannot set "children" argument in MySeedListParameter opts')
 
-        self.seedList = [RollSeed()]
-        self.seedList = opts.get('value', self.seedList)
+        self.survey = opts.get('survey', None)                                  # weak reference to survey object
+        self.seedList = opts.get('value', [RollSeed()])
         self.directory = opts.get('directory', None)
+
+        # bind existing seeds to survey (optional)
+        _ = [seed.setSurvey(self.survey) for seed in self.seedList if self.survey is not None]
 
         if not isinstance(self.seedList, list):
             raise ValueError("Need 'list' instance at this point")
@@ -1249,7 +1251,7 @@ class MySeedListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for n, seed in enumerate(self.seedList):
-                self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory))
+                self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
         self.sigContextMenu.connect(self.contextMenu)
 
@@ -1275,6 +1277,9 @@ class MySeedListParameter(MyGroupParameter):
                     break
 
             seed = RollSeed(newName)
+            if self.survey is not None:
+                seed.setSurvey(self.survey)                                     # <-- bind weakref
+
             if haveReceiverSeed:
                 seed.bSource = True
                 seed.color = QColor('#77ff0000')
@@ -1287,7 +1292,7 @@ class MySeedListParameter(MyGroupParameter):
             # self.insertChild(0, dict(name=newName, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
 
             self.seedList.append(seed)
-            self.addChild(dict(name=newName, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory))
+            self.addChild(dict(name=newName, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
             self.sigAddNew.emit(self, name)
             self.sigValueChanging.emit(self, self.value())
@@ -1422,20 +1427,23 @@ class MySeedParameter(MyGroupParameter):
         if 'children' in opts:
             raise KeyError('Cannot set "children" argument in myTemplateSeed Parameter opts')
 
-        self.seed = RollSeed()
-        self.seed = opts.get('value', self.seed)
-        directory = opts.get('directory', None)
-
-
+        self.seed = opts.get('value', RollSeed())
+        self.survey = self.seed.survey or opts.get('survey', None)              # to avoid using config.py as a backdoor
+        self.directory = opts.get('directory', None)
         d = opts.get('decimals', 7)
 
-        # A 'global' patternList has been defined using config.py as a backdoor;
-        # as patterns are defined on a seperate (not-easy-to-access) branch in the RollSurvey object
-        if self.seed.type > SeedType.fixedGrid:                                 # the assumption is that there are no patterns in circels, spirals and wells
+        def pattern_names():
+            patterns = self.survey.patternList if self.survey else []
+            # index 0 means "no pattern"
+            return ['<None>'] + [p.name for p in patterns]
+
+        patterns = pattern_names()
+
+        if self.seed.type > SeedType.fixedGrid:
             nPattern = 0
         else:
             nPattern = self.seed.patternNo + 1
-            if nPattern >= len(config.patternList):
+            if nPattern >= len(patterns):
                 nPattern = 0
 
         self.seedTypes = ['Grid (roll along)', 'Grid (stationary)', 'Circle', 'Spiral', 'Well']
@@ -1445,12 +1453,12 @@ class MySeedParameter(MyGroupParameter):
             self.addChild(dict(name='Seed color', type='color', value=self.seed.color, default=self.seed.color))
             self.addChild(dict(name='Seed origin', type='myPoint3D', value=self.seed.origin, default=self.seed.origin, expanded=False, flat=True, decimals=d))
 
-            self.addChild(dict(name='Seed pattern', type='myList', value=config.patternList[nPattern], default=config.patternList[nPattern], limits=config.patternList))
+            self.addChild(dict(name='Seed pattern', type='myList', value=patterns[nPattern], default=patterns[nPattern], limits=patterns))
             self.addChild(dict(name='Grid grow steps', type='myRollList', value=self.seed.grid.growList, default=self.seed.grid.growList, expanded=True, flat=True, decimals=d, suffix='m', brush='#add8e6'))
 
             self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
             self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
-            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', directory=directory))   # , brush='#add8e6'
+            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', directory=self.directory))   # , brush='#add8e6'
 
         self.parT = self.child('Seed type')
         self.parR = self.child('Source seed')
@@ -1508,7 +1516,9 @@ class MySeedParameter(MyGroupParameter):
         self.seed.bSource = self.parR.value()
         self.seed.color = self.parL.value()
         self.seed.origin = self.parO.value()
-        self.seed.patternNo = config.patternList.index(self.parP.value()) - 1
+        patterns = self.parP.opts['limits']
+        idx = patterns.index(self.parP.value()) if self.parP.value() in patterns else 0
+        self.seed.patternNo = idx - 1
         self.seed.grid.growList = self.parG.value()
 
         # self.seed.circle = self.parC.value()
@@ -1518,6 +1528,24 @@ class MySeedParameter(MyGroupParameter):
     def value(self):
         return self.seed
 
+    def refreshPatternList(self):
+        # Prefer the pattern list in the parameter tree (UI); fall back to survey
+        root = self
+        while root.parent() is not None:
+            root = root.parent()
+
+        pattern_param = root.child('Pattern list') if root is not None else None
+        if pattern_param is not None and hasattr(pattern_param, 'patternList'):
+            patterns = ['<None>'] + [p.name for p in pattern_param.patternList]
+        elif self.survey:
+            patterns = ['<None>'] + [p.name for p in self.survey.patternList]
+        else:
+            patterns = ['<None>']
+
+        self.parP.setLimits(patterns)
+        idx = max(min(self.seed.patternNo + 1, len(patterns) - 1), 0)
+        self.parP.setValue(patterns[idx], blockSignal=self.changed)
+        
     def contextMenu(self, name=None):
 
         parent = self.parent()
@@ -1541,7 +1569,7 @@ class MySeedParameter(MyGroupParameter):
 
                 seed = parent.seedList.pop(index)
                 parent.seedList.insert(index - 1, seed)
-                parent.insertChild(index - 1, dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                parent.insertChild(index - 1, dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
         elif name == 'moveDown':
             n = len(parent.children())
@@ -1550,7 +1578,7 @@ class MySeedParameter(MyGroupParameter):
 
                 seed = parent.seedList.pop(index)
                 parent.seedList.insert(index + 1, seed)
-                parent.insertChild(index + 1, dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                parent.insertChild(index + 1, dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
         elif name == 'preview':
             ...
@@ -2049,8 +2077,9 @@ class MyTemplateListParameter(MyGroupParameter):
         if 'children' in opts:
             raise KeyError('Cannot set "children" argument in MyTemplateListParameter opts')
 
-        self.templateList = [RollTemplate()]
-        self.templateList = opts.get('value', self.templateList)
+        self.templateList = opts.get('value', [RollTemplate()])
+        self.survey = opts.get('survey', None)
+        self.directory = opts.get('directory', None)
 
         if not isinstance(self.templateList, list):
             raise ValueError("Need 'list' instance at this point")
@@ -2061,14 +2090,14 @@ class MyTemplateListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for n, template in enumerate(self.templateList):
-                self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m'))
+                self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
         self.sigContextMenu.connect(self.contextMenu)
 
         QApplication.processEvents()
 
     def value(self):
-        return self.childs
+        return self.templateList
 
     def contextMenu(self, name=None):
 
@@ -2082,6 +2111,11 @@ class MyTemplateListParameter(MyGroupParameter):
             template = RollTemplate(newName)
             seed1 = RollSeed('Seed-1')
             seed2 = RollSeed('Seed-2')
+
+            if self.survey is not None:                                         # assign survey to seeds
+                seed1.setSurvey(self.survey)
+                seed2.setSurvey(self.survey)
+
             seed1.bSource = True
             seed2.bSource = False
             seed1.color = QColor('#77ff0000')
@@ -2091,7 +2125,7 @@ class MyTemplateListParameter(MyGroupParameter):
             template.seedList.append(seed2)
             self.templateList.append(template)
 
-            self.addChild(dict(name=newName, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+            self.addChild(dict(name=newName, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
             self.sigAddNew.emit(self, name)
 
             self.sigValueChanging.emit(self, self.value())
@@ -2115,10 +2149,9 @@ class MyBlockListParameter(MyGroupParameter):
         if 'children' in opts:
             raise KeyError('Cannot set "children" argument in MyBlockListParameter opts')
 
-        self.blockList = [RollBlock()]
-        self.blockList = opts.get('value', self.blockList)
-
-        directory = opts.get('directory', None)
+        self.blockList = opts.get('value', [RollBlock()])
+        self.survey = opts.get('survey', None)
+        self.directory = opts.get('directory', None)
 
         if not isinstance(self.blockList, list):
             raise ValueError("Need 'BlockList' instance at this point")
@@ -2130,7 +2163,7 @@ class MyBlockListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for block in self.blockList:
-                self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(nBlocks == 1), renamable=True, flat=True, decimals=5, suffix='m', directory=directory))
+                self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(nBlocks == 1), renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
 
         self.sigContextMenu.connect(self.contextMenu)
         self.sigChildAdded.connect(self.onChildAdded)
@@ -2154,6 +2187,10 @@ class MyBlockListParameter(MyGroupParameter):
             template = RollTemplate()
             seed1 = RollSeed('Seed-1')
             seed2 = RollSeed('Seed-2')
+            if self.survey is not None:                                         # assign survey to seeds
+                seed1.setSurvey(self.survey)
+                seed2.setSurvey(self.survey)
+
             seed1.bSource = True
             seed2.bSource = False
             seed1.color = QColor('#77ff0000')
@@ -2164,7 +2201,7 @@ class MyBlockListParameter(MyGroupParameter):
             block.templateList.append(template)
 
             self.blockList.append(block)
-            self.addChild(dict(name=newName, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+            self.addChild(dict(name=newName, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
             self.sigAddNew.emit(self, name)
 
             self.sigValueChanging.emit(self, self.value())
@@ -2241,6 +2278,10 @@ class MyPatternParameter(MyGroupParameter):
     def nameChanged(self, _):
         self.pattern.name = self.name()
 
+        parent = self.parent()
+        if isinstance(parent, MyPatternListParameter):
+            parent.refreshSeedPatternLists()
+
     def value(self):
         return self.pattern
 
@@ -2260,6 +2301,9 @@ class MyPatternParameter(MyGroupParameter):
 
                 parent.patternList.pop(index)
                 parent.sigChildRemoved.emit(self, parent)
+                parent._removePatternIndex(index)
+                parent._syncSurveyPatternList()
+                parent.refreshSeedPatternLists()
 
         elif name == 'moveUp':
             if index > 0:
@@ -2268,6 +2312,9 @@ class MyPatternParameter(MyGroupParameter):
                 pattern = parent.patternList.pop(index)
                 parent.patternList.insert(index - 1, pattern)
                 parent.insertChild(index - 1, dict(name=pattern.name, type='myPattern', value=pattern, default=pattern, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                parent._swapPatternIndices(index, index - 1)
+                parent._syncSurveyPatternList()
+                parent.refreshSeedPatternLists()
 
         elif name == 'moveDown':
             n = len(parent.children())
@@ -2277,6 +2324,9 @@ class MyPatternParameter(MyGroupParameter):
                 pattern = parent.patternList.pop(index)
                 parent.patternList.insert(index + 1, pattern)
                 parent.insertChild(index + 1, dict(name=pattern.name, type='myPattern', value=pattern, default=pattern, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
+                parent._swapPatternIndices(index, index + 1)
+                parent._syncSurveyPatternList()
+                parent.refreshSeedPatternLists()
 
         elif name == 'preview':
             ...
@@ -2302,8 +2352,8 @@ class MyPatternListParameter(MyGroupParameter):
         if 'children' in opts:
             raise KeyError('Cannot set "children" argument in MyPatternListParameter opts')
 
-        self.patternList = [RollPattern()]
-        self.patternList = opts.get('value', self.patternList)
+        self.patternList = opts.get('value', [RollPattern()])
+        self.survey = opts.get('survey', None)
 
         if not isinstance(self.patternList, list):
             raise ValueError("Need 'list' instance at this point")
@@ -2315,11 +2365,54 @@ class MyPatternListParameter(MyGroupParameter):
         self.sigContextMenu.connect(self.contextMenu)
         self.sigChildAdded.connect(self.onChildAdded)
         self.sigChildRemoved.connect(self.onChildRemoved)
+        self.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
         QApplication.processEvents()
 
+    def onTreeStateChanged(self, *_):
+        # Any change in pattern list (rename, move, add, remove) must refresh seeds
+        self._syncSurveyPatternList()
+        self.refreshSeedPatternLists()
+
     def value(self):
         return self.patternList
+
+    def _syncSurveyPatternList(self):
+        if self.survey is not None:
+            self.survey.setPatternList(self.patternList)
+
+    def _swapPatternIndices(self, i, j):
+        if i == j:
+            return
+        root = self.parent()
+        if root is None:
+            return
+        block_list = root.child('Block list')
+        if block_list is None:
+            return
+        for block in block_list:
+            for template in block.child('Template list'):
+                for seed_param in template.child('Seed list'):
+                    if seed_param.seed.patternNo == i:
+                        seed_param.seed.patternNo = j
+                    elif seed_param.seed.patternNo == j:
+                        seed_param.seed.patternNo = i
+
+    def _removePatternIndex(self, removed_index):
+        root = self.parent()
+        if root is None:
+            return
+        block_list = root.child('Block list')
+        if block_list is None:
+            return
+        for block in block_list:
+            for template in block.child('Template list'):
+                for seed_param in template.child('Seed list'):
+                    pno = seed_param.seed.patternNo
+                    if pno == removed_index:
+                        seed_param.seed.patternNo = -1  # <None>
+                    elif pno > removed_index:
+                        seed_param.seed.patternNo = pno - 1
 
     def contextMenu(self, name=None):
 
@@ -2337,16 +2430,32 @@ class MyPatternListParameter(MyGroupParameter):
             self.sigAddNew.emit(self, name)
 
             self.sigValueChanging.emit(self, self.value())
+            self._syncSurveyPatternList()
+            self.refreshSeedPatternLists()
 
         QApplication.processEvents()
 
+    def refreshSeedPatternLists(self):
+        root = self.parent()
+        if root is None:
+            return
+        block_list = root.child('Block list')
+        if block_list is None:
+            return
+        for block in block_list:
+            for template in block.child('Template list'):
+                for seed in template.child('Seed list'):
+                    seed.refreshPatternList()
+
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
+        self._syncSurveyPatternList()
+        self.refreshSeedPatternLists()
         # myPrint(f'>>>{lineNo():5d} PatternList.ChildAdded <<<')
-        ...
 
     def onChildRemoved(self, _):                                                # child unused and replaced by _
+        self._syncSurveyPatternList()
+        self.refreshSeedPatternLists()
         # myPrint(f'>>>{lineNo():5d} PatternList.ChildRemoved <<<')
-        ...
 
 
 ### class MyGrid ##############################################################
@@ -2577,8 +2686,7 @@ class MySurveyParameter(MyGroupParameter):
         if 'children' in opts:
             raise KeyError('Cannot set "children" argument in mySurvey Parameter opts')
 
-        self.survey = RollSurvey()                                              # (re)set the survey object
-        self.survey = opts.get('value', self.survey)
+        self.survey = opts.get('value', RollSurvey())
 
         brush = '#add8e6'
 
@@ -2587,8 +2695,8 @@ class MySurveyParameter(MyGroupParameter):
             self.addChild(dict(brush=brush, name='Survey analysis', type='myAnalysis', value=self.survey, default=self.survey))
             self.addChild(dict(brush=brush, name='Survey reflectors', type='myReflectors', value=self.survey, default=self.survey))
             self.addChild(dict(brush=brush, name='Survey grid', type='myGrid', value=self.survey.grid, default=self.survey.grid))
-            self.addChild(dict(brush=brush, name='Block list', type='myBlockList', value=self.survey.blockList, default=self.survey.blockList))
-            self.addChild(dict(brush=brush, name='Pattern list', type='myPatternList', value=self.survey.patternList, default=self.survey.patternList))
+            self.addChild(dict(brush=brush, name='Block list', type='myBlockList', value=self.survey.blockList, default=self.survey.blockList, survey=self.survey))
+            self.addChild(dict(brush=brush, name='Pattern list', type='myPatternList', value=self.survey.patternList, default=self.survey.patternList, survey=self.survey))
 
         QApplication.processEvents()
 

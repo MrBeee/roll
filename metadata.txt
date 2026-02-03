@@ -7,7 +7,7 @@ name=Roll
 qgisMinimumVersion=3.28
 supportsQt6=True
 description=Design and analysis of 3D seismic survey geometries
-version=0.5.1
+version=0.5.3
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -34,7 +34,7 @@ about:<p>This plugin is intended to create and analyze 3D seismic survey geometr
   But when <i>upgrading</i> from an earlier QGIS version, it requires installing the above listed packages <b><i>again.</b></i> </li></ul>
   <p>
   <p>As of version 0.4.6 the plugin is <i>(well, should be)</i> compatible with Qt6. Tests are ongoing.
-  <p>Therefore the plugin should function with QGIS v3.40 onwards, linked with Qt6 (<i>experimental</i>) and with Qt6 the High DPI scaling issues have been resolved
+  <p>Therefore the plugin should function with QGIS v3.40 onwards, linked with Qt6 (<i>experimental</i>). Note that with Qt6 the High DPI scaling issues have been resolved
 
 
 tracker=https://github.com/MrBeee/roll/issues
@@ -44,7 +44,9 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:  <p>2025-12-03 (0.5.1) Updated SPS file import and implemented flexible SPS format definition by the end user. Binning can now be done in absence of a relation file (*.xps), using offset limits solely
+changelog:  <p>2026-01-29 (0.5.3) Fixed pattern management (adding/moving/renaming/removing patterns) in the Property pane
+  <p>2026-01-28 (0.5.2) Fixed bug resulting in coverage gaps at block boundaries for multi block (marine) surveys, when working from geometry data
+  <p>2025-12-03 (0.5.1) Updated SPS file import and implemented flexible SPS format definition by the end user. Binning can now be done in absence of a relation file (*.xps), using offset limits solely
   <p>2025-09-22 (0.5.0) Some significant changes; progressive painting, keeps UI alive with large survey objects; debugging with Debugpy instead of Debugvs; Well files accessed through relative paths  <p>2025-09-22 (0.4.9) Small bug fixes related to using - or not using - numba
   <p>2025-09-19 (0.4.8) Use chunked data-access when using very large memory-mapped analysis files
   <p>2025-09-17 (0.4.7) Removed a bug that caused QGIS to crash, when using very large memory-mapped analysis files

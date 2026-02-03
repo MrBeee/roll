@@ -15,6 +15,8 @@ def createGeomTab(self):
     self.srcView = TableView()                                              # create src view
     self.srcModel = SpsTableModel(self.srcGeom)                             # create src model
     self.srcView.setModel(self.srcModel)                                    # add the model to the view; see: https://doc.qt.io/qt-6/qtableview.html
+    self.srcView.inUseToggled.connect(self.onSrcInUseToggled)
+
     self.srcHdrView = self.srcView.horizontalHeader()                       # to detect button clicks here
     self.srcHdrView.sectionClicked.connect(self.sortSrcData)                # handle the section-clicked signal
     self.srcView.setStyleSheet(table_style)                                 # define selection colors
@@ -33,6 +35,8 @@ def createGeomTab(self):
     self.recView = TableView()                                              # create rec view
     self.recModel = RpsTableModel(self.recGeom)                             # create rec model
     self.recView.setModel(self.recModel)                                    # add the model to the view
+    self.recView.inUseToggled.connect(self.onRecInUseToggled)
+
     self.recHdrView = self.recView.horizontalHeader()                       # to detect button clicks here
     self.recHdrView.sectionClicked.connect(self.sortRecData)                # handle the section-clicked signal
     self.recView.setStyleSheet(table_style)                                 # define selection colors
