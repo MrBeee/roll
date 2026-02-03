@@ -3382,10 +3382,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 QApplication.processEvents()  # Ensure the UI updates in real-time
 
                 convertCrs(self.rpsImport, dlg.crs, self.survey.crs)  # convert the coordinates to the survey CRS
+                origX, origY, pMin, lMin, dPint, dLint, dPn, dLn, angle1 = calculateLineStakeTransform(self.rpsImport)
 
-                origX, origY, lineMin, pointMin, dL, dP, angle1 = calculateLineStakeTransform(self.rpsImport)
-                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: RPS origin = ({origX:.2f}m, {origY:.2f}m), azimuth = {angle1:,.3f}deg for rec lines &#8741; x-axis')
-                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Local grid: Stake origin = ({pointMin:.2f}, {lineMin:.2f}), increment = ({dP:,.2f}m, {dL:,.2f}m)')
+                self.appendLogMessage(f'Import : . . . . . . Origin: (E{origX:.2f}m, N{origY:.2f}m) @ (pnt{pMin:.1f}, lin{lMin:.1f})')
+                self.appendLogMessage(f'Import : . . . . . . Orientation {angle1:,.3f}deg for lines &#8741; x-axis')
+                self.appendLogMessage(f'Import : . . . . . . Intervals for (line, point) in design (lin{dLint:,.2f}m, pnt{dPint:,.2f}m)')
+                self.appendLogMessage(f'Import : . . . . . . Increments for (line, point) in grid (lin{dLn:,.2f}m, pnt{dPn:,.2f}m)')
+
                 QApplication.processEvents()  # Ensure the UI updates in real-time
 
                 self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
@@ -3402,10 +3405,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 QApplication.processEvents()  # Ensure the UI updates in real-time
 
                 convertCrs(self.spsImport, dlg.crs, self.survey.crs)  # convert the coordinates to the survey CRS
+                origX, origY, pMin, lMin, dPint, dLint, dPn, dLn, angle1 = calculateLineStakeTransform(self.spsImport)
 
-                origX, origY, lineMin, pointMin, dL, dP, angle1 = calculateLineStakeTransform(self.spsImport)
-                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Global grid: SPS origin = ({origX:.2f}m, {origY:.2f}m), azimuth = {angle1:.3f}deg for src lines &#8741; x-axis')
-                self.appendLogMessage(f'Import : . . . . . . Survey grid -> Local grid: stake origin = ({pointMin:.2f}, {lineMin:.2f}), increment = ({dP:,.2f}m, {dL:,.2f}m)')
+                self.appendLogMessage(f'Import : . . . . . . Origin: (E{origX:.2f}m, N{origY:.2f}m) @ (pnt{pMin:.1f}, lin{lMin:.1f})')
+                self.appendLogMessage(f'Import : . . . . . . Orientation {angle1:,.3f}deg for lines &#8741; x-axis')
+                self.appendLogMessage(f'Import : . . . . . . Intervals for (line, point) in design (lin{dLint:,.2f}m, pnt{dPint:,.2f}m)')
+                self.appendLogMessage(f'Import : . . . . . . Increments for (line, point) in grid (lin{dLn:,.2f}m, pnt{dPn:,.2f}m)')
 
                 self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
                 self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the rps points

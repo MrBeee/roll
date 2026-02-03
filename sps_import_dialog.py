@@ -413,7 +413,7 @@ class SpsImportDialog(QDialog):
 
 
     def onSpsComboHighlighted(self, index):
-        print("SPS item highlighted:", index)
+        # print("SPS item highlighted:", index)
 
         keys = list(config.spsPointFormatDict.keys())
         if 0 <= index < len(keys):
@@ -497,7 +497,7 @@ class SpsImportDialog(QDialog):
 
         self._setSpinValue(self.rpsFromSpin, rpsFormat[rpsKey][0] + 1)     # +1 to convert from 0-based to 1-based indexing
         self._setSpinValue(self.rpsToSpin, rpsFormat[rpsKey][1])           # this column is exclusive, so no +1 needed
-        print("RPS from/to:", rpsFormat[rpsKey][0] + 1, rpsFormat[rpsKey][1])
+        # print("RPS from/to:", rpsFormat[rpsKey][0] + 1, rpsFormat[rpsKey][1])
 
         self.rpsTab.line1 = rpsFormat[rpsKey][0]
         self.rpsTab.line2 = rpsFormat[rpsKey][1]

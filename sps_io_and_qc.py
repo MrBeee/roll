@@ -706,7 +706,9 @@ def fileExportAsR01(parent, fileName, extension, view, crs):
     # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
     # fmt: 0n
 
-    data = view.model().getData()                                               # get the data from the model
+    data = view.model().getData()                                               # get the data from the model as a structured array
+    data = data[data['InUse'] > 0].copy()                                       # only export 'InUse' points
+
     size = data.shape[0]
 
     JulianDay = datetime.now().timetuple().tm_yday                              # returns 1 for January 1st
@@ -765,7 +767,9 @@ def fileExportAsS01(parent, fileName, extension, view, crs):
     # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
     # fmt: on
 
-    data = view.model().getData()                                               # get the data from the model
+    data = view.model().getData()                                               # get the data from the model as a structured array
+    data = data[data['InUse'] > 0].copy()                                       # only export 'InUse' points
+
     size = data.shape[0]
     JulianDay = datetime.now().timetuple().tm_yday                              # returns 1 for January 1st
     timeOfDay = datetime.now().strftime('%H%M%S')
@@ -940,8 +944,10 @@ def calculateLineStakeTransform(spsImport) -> []:
     if pointIntIncrement == 0:
         pointIntIncrement = 1.0                                                 # handle 2D data with no point distance increment
     else:
-        pointNumIncrement = pointIntIncrement / pointNumIncrement
+        pointNumIncrement = pointIntIncrement / pointNumIncrement               # interval to increment grid by 1 in inline direction
 
+    # as origin, use the point where the line nr is at its minimum, 
+    # with minimum point nr in that same line, get east and north coordinates of that point
     lineMin = spsImport['Line'][0]
     pointMin = spsImport['Point'][0]
     origX = spsImport['East'][0]
@@ -949,7 +955,7 @@ def calculateLineStakeTransform(spsImport) -> []:
 
     spsImport.sort(order=['Point', 'Line', 'Index'])                            # sort the data by point and line
     lineNumIncrement = spsImport['Line'][1:] - spsImport['Line'][:-1]           # get the line number increment
-    lineNumIncrement = np.median(lineNumIncrement)
+    lineNumIncrement = np.median(lineNumIncrement)                              # use median to avoid outliers
 
     eastIncrement = spsImport['East'][1:] - spsImport['East'][:-1]              # get the east increment
     northIncrement = spsImport['North'][1:] - spsImport['North'][:-1]           # get the north increment
@@ -960,7 +966,7 @@ def calculateLineStakeTransform(spsImport) -> []:
     if lineNumIncrement == 0:
         lineNumIncrement = 1.0                                                  # handle 2D data with no line increment
     else:
-        lineNumIncrement = lineIntIncrement / lineNumIncrement
+        lineNumIncrement = lineIntIncrement / lineNumIncrement                  # interval to increment grid by 1 in crossline direction
 
     # See: https://stackoverflow.com/questions/47780845/solve-over-determined-system-of-linear-equations
     x1 = np.zeros(shape=nRecords, dtype=np.float32)
@@ -989,7 +995,8 @@ def calculateLineStakeTransform(spsImport) -> []:
     # angle3 = np.arctan2(ABCDEF[3], ABCDEF[5]) * 180.0 / np.pi                 # angle 3 and angle4 are NOT identical, and differ from angle1 and angle2
     # angle4 = np.arctan2(-ABCDEF[4], ABCDEF[2]) * 180.0 / np.pi
 
-    return (origX, origY, lineMin, pointMin, lineNumIncrement, pointNumIncrement, angle1)
+    # return origin, pointMin, lineMin, pointNumIncrement, lineNumIncrement, angle1 in order (x, y)
+    return (origX, origY, pointMin, lineMin, pointIntIncrement, lineIntIncrement, pointNumIncrement, lineNumIncrement, angle1)
 
     # See also: EPSG:9624 (https://epsg.io/9624-method
     # A0  +  A1 * Xs  +  A2 * Ys = Xt
