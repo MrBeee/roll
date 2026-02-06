@@ -40,6 +40,7 @@ from .roll_spiral import RollSpiral
 from .roll_survey import RollSurvey
 from .roll_template import RollTemplate
 from .roll_translate import RollTranslate
+from .roll_unique import RollUnique
 from .roll_well import RollWell
 
 # This file contains a collections of parameters, as defined in pyQtGraph
@@ -302,9 +303,7 @@ class MyUniqOffParameter(MyGroupParameter):
             raise KeyError('Cannot set "children" argument in MyUniqOffParameter opts')
 
         d = opts.get('decimals', 7)
-
-        self.unique = RollOffset()
-        self.unique = opts.get('value', self.unique)
+        self.unique = opts.get('value', RollUnique())
 
         tip = 'Write back rounded offset- and azimuth values back to analysis results'
         with self.treeChangeBlocker():

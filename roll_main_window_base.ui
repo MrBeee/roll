@@ -41,6 +41,9 @@
      <property name="title">
       <string>&amp;New Survey</string>
      </property>
+     <property name="toolTipsVisible">
+      <bool>true</bool>
+     </property>
      <addaction name="actionNewLandSurvey"/>
      <addaction name="actionNewMarineSurvey"/>
      <addaction name="actionNew"/>
@@ -54,9 +57,15 @@
        <normalon>resources/mActionFileExport.svg</normalon>
       </iconset>
      </property>
+     <property name="toolTipsVisible">
+      <bool>true</bool>
+     </property>
      <widget class="QMenu" name="menuExport_Geometry_Files">
       <property name="title">
        <string>Export &amp;Geometry</string>
+      </property>
+      <property name="toolTipsVisible">
+       <bool>true</bool>
       </property>
       <addaction name="actionExportRecAsCsv"/>
       <addaction name="actionExportSrcAsCsv"/>
@@ -69,6 +78,9 @@
      <widget class="QMenu" name="menu_Re_export_SPS_Files">
       <property name="title">
        <string>(Re-) export &amp;SPS</string>
+      </property>
+      <property name="toolTipsVisible">
+       <bool>true</bool>
       </property>
       <addaction name="actionExportRpsAsCsv"/>
       <addaction name="actionExportSpsAsCsv"/>
@@ -138,6 +150,7 @@
     <addaction name="actionImportSPS"/>
     <addaction name="separator"/>
     <addaction name="actionPrint"/>
+    <addaction name="actionPrintPreview"/>
     <addaction name="separator"/>
     <addaction name="actionSettings"/>
     <addaction name="separator"/>
@@ -937,30 +950,48 @@
    <property name="text">
     <string>REC records - as R01 file</string>
    </property>
+   <property name="toolTip">
+    <string>Exports table using SEG rev2.1 SPS format</string>
+   </property>
   </action>
   <action name="actionExportSrcAsS01">
    <property name="text">
     <string>SRC records - as S01 file</string>
+   </property>
+   <property name="toolTip">
+    <string>Exports table using SEG rev2.1 SPS format</string>
    </property>
   </action>
   <action name="actionExportRelAsX01">
    <property name="text">
     <string>REL records - as X01 file</string>
    </property>
+   <property name="toolTip">
+    <string>Exports table using SEG rev2.1 SPS format</string>
+   </property>
   </action>
   <action name="actionExportRpsAsR01">
    <property name="text">
     <string>RPS records - as R01 file</string>
+   </property>
+   <property name="toolTip">
+    <string>Exports table using SEG rev2.1 SPS format</string>
    </property>
   </action>
   <action name="actionExportSpsAsS01">
    <property name="text">
     <string>SPS records - as S01 file</string>
    </property>
+   <property name="toolTip">
+    <string>Exports table using SEG rev2.1 SPS format</string>
+   </property>
   </action>
   <action name="actionExportXpsAsX01">
    <property name="text">
     <string>XPS records - as X01 file</string>
+   </property>
+   <property name="toolTip">
+    <string>Exports table using SEG rev2.1 SPS format</string>
    </property>
   </action>
   <action name="actionBasicBinFromSps">
@@ -1641,6 +1672,18 @@
    </property>
    <property name="text">
     <string>Analysis Area</string>
+   </property>
+  </action>
+  <action name="actionPrintPreview">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionFilePrint.svg</normaloff>resources/mActionFilePrint.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Print preview</string>
+   </property>
+   <property name="toolTip">
+    <string>Print preview</string>
    </property>
   </action>
  </widget>

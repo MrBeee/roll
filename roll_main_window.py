@@ -32,9 +32,10 @@ import pyqtgraph as pg
 from numpy.lib import recfunctions as rfn
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
-                              QPoint, QSettings, QSize, Qt, QTextStream)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QTextCursor,
-                             QTransform)
+                              QPoint, QRectF, QSettings, QSize, QSizeF, Qt,
+                              QTextStream)
+from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QImage, QPageLayout,
+                             QPainter, QTextCursor, QTransform)
 from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
                                       QPrintPreviewDialog)
 from qgis.PyQt.QtWidgets import (QAction, QApplication, QDialog, QFileDialog,
@@ -420,6 +421,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionOpen.triggered.connect(self.fileOpen)
         self.actionImportSPS.triggered.connect(self.fileImportSpsData)
         self.actionPrint.triggered.connect(self.filePrint)
+        self.actionPrintPreview.triggered.connect(self.filePrintPreview)
         self.actionSave.triggered.connect(self.fileSave)
         self.actionSaveAs.triggered.connect(self.fileSaveAs)
         self.actionSettings.triggered.connect(self.fileSettings)
@@ -913,37 +915,32 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if isinstance(widget, QCodeEditor):
                 widget.setFocus()
 
+    def _invokeFocusMethod(self, methodName: str) -> bool:
+        obj = QApplication.focusWidget()
+        if obj is None:
+            obj = QApplication.focusObject()
+        if obj is None:
+            return False
+
+        method = getattr(obj, methodName, None)
+        if callable(method):
+            method()
+            return True
+        return False
+
     def cut(self):
-        currentWidget = QApplication.focusWidget()
-        try:
-            currentWidget.cut()
-        except AttributeError as e:                                             # current widget does not support cut(), so ignore command
-            myPrint('Exception occurred: ', e)
+        self._invokeFocusMethod('cut')
         self.actionPaste.setEnabled(self.clipboardHasText())
 
     def copy(self):
-        currentWidget = QApplication.focusWidget()
-        try:
-            currentWidget.copy()
-        except AttributeError as e:                                             # current widget does not support copy(), so ignore command
-            myPrint('Exception occurred: ', e)
+        self._invokeFocusMethod('copy')
         self.actionPaste.setEnabled(self.clipboardHasText())
 
     def paste(self):
-        currentWidget = QApplication.focusWidget()
-        try:
-            currentWidget.paste()
-        except AttributeError as e:                                             # current widget does not support paste(), so ignore command
-            myPrint('Exception occurred: ', e)
-        return
+        self._invokeFocusMethod('paste')
 
     def selectAll(self):
-        currentWidget = QApplication.focusWidget()
-        try:
-            currentWidget.selectAll()
-        except AttributeError as e:                                             # current widget does not support selectAll(), so ignore command
-            myPrint('Exception occurred: ', e)
-        return
+        self._invokeFocusMethod('selectAll')
 
     def find(self):
         # find only operates on the xml-text edit
@@ -2382,8 +2379,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             dA = 5.0                                                            # azimuth increments
             dO = 100.0                                                          # offsets increments
 
-            aMin = -180.0                                                       # max x-scale
-            aMax = 180.0                                                        # max x-scale
+            aMin = 0.0                                                          # min x-scale
+            aMax = 360.0                                                        # max x-scale
             aMax += dA                                                          # make sure end value is included
 
             oMax = ceil(self.output.maxMaxOffset / dO) * dO + dO                # max y-scale; make sure end value is included
@@ -3631,27 +3628,114 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         records, fn = fileExportAsX01(self, self.fileName, '.rel.x01', self.relView, self.survey.crs)
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
+    def _grabPlotWidgetForPrint(self):
+        currentWidget = self.mainTabWidget.currentWidget()
+        if isinstance(currentWidget, pg.PlotWidget):
+            return currentWidget
+
+        # If we're on the Analysis tab, drill down to the active analysis widget
+        if currentWidget is self.analysisTabWidget:
+            currentWidget = self.analysisTabWidget.currentWidget()
+
+        if currentWidget is None:
+            return None
+
+        if isinstance(currentWidget, pg.PlotWidget):
+            return currentWidget
+
+        return currentWidget.findChild(pg.PlotWidget)
+
     def filePrint(self):
-        printer = QPrinter(QPrinter.HighResolution)
-        dlg = QPrintDialog(printer, self)
+        # printer = QPrinter(QPrinter.HighResolution)
+        # dlg = QPrintDialog(printer, self)
 
-        if self.textEdit.textCursor().hasSelection():
-            dlg.addEnabledOption(QPrintDialog.PrintSelection)
+        # if self.textEdit.textCursor().hasSelection():
+        #     options = dlg.enabledOptions()
+        #     dlg.setEnabledOptions(options | QPrintDialog.PrintSelection)
 
-        dlg.setWindowTitle('Print Document')
+        # dlg.setWindowTitle('Print Document')
 
-        if dlg.exec() == QDialog.DialogCode.Accepted:
-            self.textEdit.print_(printer)
+        # if dlg.exec() == QDialog.DialogCode.Accepted:
+        #     self.textEdit.print_(printer)
 
-        del dlg
+        # del dlg
+
+        # native print dialog causes problems with preview on some platforms.
+        # so we use print-preview only for the time being
+        self.filePrintPreview()
 
     def filePrintPreview(self):
         printer = QPrinter(QPrinter.HighResolution)
+        # printer.setDocName("My Custom Title")
         preview = QPrintPreviewDialog(printer, self)
         preview.paintRequested.connect(self.printPreview)
+        preview.setWindowTitle('Print Preview')
         preview.exec()
 
     def printPreview(self, printer):
+        currentWidget = self.mainTabWidget.currentWidget()
+
+        if currentWidget is self.textEdit:
+            self.textEdit.print_(printer)
+            return
+
+        plotWidget = self._grabPlotWidgetForPrint()
+        if plotWidget is not None:
+
+            painter = QPainter(printer)
+            try:
+                target = printer.pageLayout().paintRectPixels(printer.resolution())
+                source = plotWidget.rect()
+                if source.isEmpty() or target.isEmpty():
+                    return
+
+                margin = int(min(target.width(), target.height()) * 0.10)
+                target = target.adjusted(margin, margin, -margin, -margin)
+                if target.isEmpty():
+                    return
+
+                # provide a header with the file name, if available
+                headerText = QFileInfo(self.fileName).fileName() if self.fileName else 'Untitled'
+                if headerText:
+                    painter.save()
+                    headerFont = QFont(painter.font())
+                    headerFont.setBold(True)
+                    headerFont.setPointSize(max(8, int(headerFont.pointSize() * 1.2)))
+                    painter.setFont(headerFont)
+
+                    headerHeight = painter.fontMetrics().height()
+                    headerRect = QRectF(target.x(), target.y(), target.width(), headerHeight)
+                    painter.drawText(headerRect, Qt.AlignHCenter | Qt.AlignTop, headerText)
+
+                    gap = max(2, int(headerHeight * 0.35))
+                    lineY = int(headerRect.bottom() + (gap * 0.5))
+                    painter.drawLine(int(target.x()), lineY, int(target.x() + target.width()), lineY)
+
+                    target = target.adjusted(0, headerHeight + gap, 0, 0)
+                    painter.restore()
+
+                    if target.isEmpty():
+                        return
+
+                image = QImage(source.size(), QImage.Format_ARGB32_Premultiplied)            
+                image.fill(Qt.white)
+                imagePainter = QPainter(image)
+                try:
+                    plotWidget.render(imagePainter)
+                finally:
+                    imagePainter.end()
+
+                scale = min(target.width() / image.width(), target.height() / image.height())
+                x = target.x() + (target.width() - image.width() * scale) / 2.0
+                y = target.y() + (target.height() - image.height() * scale) / 2.0
+                drawRect = QRectF(x, y, image.width() * scale, image.height() * scale)
+
+                painter.drawImage(drawRect, image)
+            finally:
+                painter.end()
+            return
+
+        # fallback: print XML if other tabs are active
         self.textEdit.print_(printer)
 
     def filePrintPdf(self):

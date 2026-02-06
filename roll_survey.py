@@ -3111,8 +3111,8 @@ class RollSurvey(pg.GraphicsObject):
         dA = 5.0                                                                # azimuth increments
         dO = 100.0                                                              # offsets increments
 
-        aMin = -180.0                                                           # max x-scale
-        aMax = 180.0                                                            # max x-scale
+        aMin = 0.0                                                              # min x-scale
+        aMax = 360.0                                                            # max x-scale
         aMax += dA                                                              # make sure end value is included
         oMax = math.ceil(self.output.maxMaxOffset / dO) * dO + dO               # max y-scale; make sure end value is included
 

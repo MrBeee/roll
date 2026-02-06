@@ -7,7 +7,7 @@ name=Roll
 qgisMinimumVersion=3.28
 supportsQt6=True
 description=Design and analysis of 3D seismic survey geometries
-version=0.5.3
+version=0.5.4
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -44,10 +44,12 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:  <p>2026-01-29 (0.5.3) Fixed pattern management (adding/moving/renaming/removing patterns) in the Property pane
+changelog:  <p>2026-02-03 (0.5.4) Improved import and export of SPS data
+  <p>2026-01-29 (0.5.3) Fixed pattern management (adding/moving/renaming/removing patterns) in the Property panel
   <p>2026-01-28 (0.5.2) Fixed bug resulting in coverage gaps at block boundaries for multi block (marine) surveys, when working from geometry data
   <p>2025-12-03 (0.5.1) Updated SPS file import and implemented flexible SPS format definition by the end user. Binning can now be done in absence of a relation file (*.xps), using offset limits solely
-  <p>2025-09-22 (0.5.0) Some significant changes; progressive painting, keeps UI alive with large survey objects; debugging with Debugpy instead of Debugvs; Well files accessed through relative paths  <p>2025-09-22 (0.4.9) Small bug fixes related to using - or not using - numba
+  <p>2025-09-22 (0.5.0) Some significant changes; progressive painting, keeps UI alive with large survey objects; debugging with Debugpy instead of Debugvs; Well files accessed through relative paths
+  <p>2025-09-22 (0.4.9) Small bug fixes related to using - or not using - numba
   <p>2025-09-19 (0.4.8) Use chunked data-access when using very large memory-mapped analysis files
   <p>2025-09-17 (0.4.7) Removed a bug that caused QGIS to crash, when using very large memory-mapped analysis files
   <p>2025-09-12 (0.4.6) The code has been reformatted to be compatible with Qt6. It should still be backwards compatible with Qt5
@@ -59,7 +61,7 @@ changelog:  <p>2026-01-29 (0.5.3) Fixed pattern management (adding/moving/renami
   <p>2025-02-15 (0.4.0) updated Marine Wizard; simplifying data structure in case there's no streamer fanning, significantly speeding up property editing
   <p>2025-02-11 (0.3.9) implemented Marine Wizard for streamer surveys and improved Level of Detail (LOD) rendering in Layout pane
   <p>2024-11-02 (0.3.8) improved editing patterns in Property pane and displaying hem in the Pattern tab. 
-  <p>2024-10-22 (0.3.7) introduced multiple seeds per pattern, allowing for very complex pattern layout. Ensured backwards compatibility.  <p>2024-10-15 (0.3.6) added 'pattern' tab for pattern display & analysis. Added convolution with patterns to kx-ky stack response. Fixed an assertion bug in Land Wizard.  <p>2024-10-09 (0.3.5) moved statistics calculations to extended binning. Updated metadata.txt to describe installation of plugin
+  <p>2024-10-22 (0.3.7) introduced multiple seeds per pattern, allowing for very complex pattern layout. Ensured backwards compatibility.
   <p>2024-07-27 (0.3.6) added 'pattern' tab for pattern display & analysis. Added convolution with patterns to kx-ky stack response. Fixed an assertion bug in Land Wizard
   <p>2024-07-27 (0.3.5) moved statistics calculations to extended binning. Updated metadata.txt to describe installation of plugin
   <p>2024-07-27 (0.3.4) added "inuse" field to src & rec points in QGIS. Implemented a Categorized Symbol Renderer to display used/unused points in QGIS
