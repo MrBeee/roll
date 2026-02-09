@@ -150,7 +150,6 @@
     <addaction name="actionImportSPS"/>
     <addaction name="separator"/>
     <addaction name="actionPrint"/>
-    <addaction name="actionPrintPreview"/>
     <addaction name="separator"/>
     <addaction name="actionSettings"/>
     <addaction name="separator"/>
@@ -764,7 +763,7 @@
      <normaloff>resources/mActionFilePrint.svg</normaloff>resources/mActionFilePrint.svg</iconset>
    </property>
    <property name="text">
-    <string>Print</string>
+    <string>Preview &amp;&amp; Print</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+P</string>
@@ -1672,18 +1671,6 @@
    </property>
    <property name="text">
     <string>Analysis Area</string>
-   </property>
-  </action>
-  <action name="actionPrintPreview">
-   <property name="icon">
-    <iconset>
-     <normaloff>resources/mActionFilePrint.svg</normaloff>resources/mActionFilePrint.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Print preview</string>
-   </property>
-   <property name="toolTip">
-    <string>Print preview</string>
    </property>
   </action>
  </widget>

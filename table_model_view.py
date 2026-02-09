@@ -185,7 +185,7 @@ class TableView(QTableView):
         action_set_on = menu.addAction("Set 'in use' = 1")
         action_set_off = menu.addAction("Set 'in use' = 0")
 
-        action = menu.exec_(self.viewport().mapToGlobal(pos))
+        action = menu.exec(self.viewport().mapToGlobal(pos))
         rows = [idx.row() for idx in self.selectionModel().selectedRows()]
         if not rows:
             return

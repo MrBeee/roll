@@ -32,13 +32,12 @@ import pyqtgraph as pg
 from numpy.lib import recfunctions as rfn
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
-                              QPoint, QRectF, QSettings, QSize, QSizeF, Qt,
+                              QPoint, QRectF, QSettings, QSize, Qt,
                               QTextStream)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QImage, QPageLayout,
-                             QPainter, QTextCursor, QTransform)
-from qgis.PyQt.QtPrintSupport import (QPrintDialog, QPrinter,
-                                      QPrintPreviewDialog)
-from qgis.PyQt.QtWidgets import (QAction, QApplication, QDialog, QFileDialog,
+from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QImage, QPainter,
+                             QTextCursor, QTransform)
+from qgis.PyQt.QtPrintSupport import QPrinter, QPrintPreviewDialog
+from qgis.PyQt.QtWidgets import (QAction, QApplication, QFileDialog,
                                  QGraphicsEllipseItem, QGraphicsRectItem,
                                  QLabel, QMainWindow, QMessageBox,
                                  QProgressBar, QTabWidget, QWidget)
@@ -54,7 +53,10 @@ from .chunked_data import ChunkedData
 from .display_dock import create_display_dock
 from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
                                   SurveyType2)
-from .find import Find
+# from .find import Find.
+# Superseded by FindNotepad, which is more user friendly and has a better implementation.
+# The old Find class is still available in find.py, but not imported here.
+from .find import FindNotepad
 from .functions_numba import (numbaAziInline, numbaAziX_line,
                               numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D,
                               numbaOffInline, numbaOffsetBin, numbaOffX_line,
@@ -123,6 +125,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         # reset GUI when the plugin is restarted (not when restarted from minimized state on windows)
         self.killMe = False
+        self.findDialog = None                                                  # the find/replace dialog, created when needed
 
         # GQIS interface
         self.iface = None                                                       # for access to QGis interface; declared here, and initialized in roll.py
@@ -421,7 +424,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionOpen.triggered.connect(self.fileOpen)
         self.actionImportSPS.triggered.connect(self.fileImportSpsData)
         self.actionPrint.triggered.connect(self.filePrint)
-        self.actionPrintPreview.triggered.connect(self.filePrintPreview)
         self.actionSave.triggered.connect(self.fileSave)
         self.actionSaveAs.triggered.connect(self.fileSaveAs)
         self.actionSettings.triggered.connect(self.fileSettings)
@@ -516,7 +518,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionUndo.setEnabled(self.textEdit.document().isUndoAvailable())
         self.actionRedo.setEnabled(self.textEdit.document().isRedoAvailable())
         self.actionCut.setEnabled(False)
-        self.actionCopy.setEnabled(False)
+        self.actionCopy.setEnabled(self._grabPlotWidgetForPrint() is not None)
         self.actionPaste.setEnabled(self.clipboardHasText())
 
         self.updateMenuStatus(True)                                             # keep menu status in sync with program's state
@@ -915,6 +917,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if isinstance(widget, QCodeEditor):
                 widget.setFocus()
 
+        plotWidget = self._grabPlotWidgetForPrint()
+        if plotWidget is not None:
+            self.actionCopy.setEnabled(True)
+
     def _invokeFocusMethod(self, methodName: str) -> bool:
         obj = QApplication.focusWidget()
         if obj is None:
@@ -933,7 +939,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionPaste.setEnabled(self.clipboardHasText())
 
     def copy(self):
-        self._invokeFocusMethod('copy')
+        if not self._invokeFocusMethod('copy'):
+            self._copyPlotWidgetToClipboard()
         self.actionPaste.setEnabled(self.clipboardHasText())
 
     def paste(self):
@@ -944,8 +951,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def find(self):
         # find only operates on the xml-text edit
-        self.mainTabWidget.setCurrentIndex(2)                                   # make sure we display the 'xml' tab
-        Find(self).show()                                                       # show find and replace dialog
+        self.mainTabWidget.setCurrentIndex(2)
+        if getattr(self, 'findDialog', None) is None:
+            self.findDialog = FindNotepad(self)
+        self.findDialog.show()
+        self.findDialog.raise_()
+        self.findDialog.activateWindow()
 
     def createPlotWidget(self, plotTitle='', xAxisTitle='', yAxisTitle='', unitX='', unitY='', aspectLocked=True):
         """Create a plot widget for first usage"""
@@ -2941,10 +2952,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     self.output.maximumFold = self.output.binOutput.max()           # calc min/max fold is straightforward
                     self.output.minimumFold = self.output.binOutput.min()
 
-                    # todo: clean this up, so image handling isn't required here !
                     self.actionFold.setChecked(True)
-
                     self.imageType = 1                                              # set analysis type to one (fold map)
+
                     self.layoutImg = self.survey.output.binOutput                   # use fold map for image data np-array
                     self.layoutMax = self.output.maximumFold                        # use appropriate maximum
                     self.layoutImItem = pg.ImageItem()                              # create PyqtGraph image item
@@ -3645,27 +3655,29 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         return currentWidget.findChild(pg.PlotWidget)
 
+    def _copyPlotWidgetToClipboard(self) -> bool:
+        plotWidget = self._grabPlotWidgetForPrint()
+        if plotWidget is None:
+            return False
+
+        source = plotWidget.rect()
+        if source.isEmpty():
+            return False
+
+        image = QImage(source.size(), QImage.Format.Format_ARGB32_Premultiplied)
+        image.fill(Qt.GlobalColor.white)
+
+        painter = QPainter(image)
+        try:
+            plotWidget.render(painter)
+        finally:
+            painter.end()
+
+        QApplication.clipboard().setImage(image)
+        return True
+
     def filePrint(self):
-        # printer = QPrinter(QPrinter.HighResolution)
-        # dlg = QPrintDialog(printer, self)
-
-        # if self.textEdit.textCursor().hasSelection():
-        #     options = dlg.enabledOptions()
-        #     dlg.setEnabledOptions(options | QPrintDialog.PrintSelection)
-
-        # dlg.setWindowTitle('Print Document')
-
-        # if dlg.exec() == QDialog.DialogCode.Accepted:
-        #     self.textEdit.print_(printer)
-
-        # del dlg
-
-        # native print dialog causes problems with preview on some platforms.
-        # so we use print-preview only for the time being
-        self.filePrintPreview()
-
-    def filePrintPreview(self):
-        printer = QPrinter(QPrinter.HighResolution)
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         # printer.setDocName("My Custom Title")
         preview = QPrintPreviewDialog(printer, self)
         preview.paintRequested.connect(self.printPreview)
@@ -3676,7 +3688,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         currentWidget = self.mainTabWidget.currentWidget()
 
         if currentWidget is self.textEdit:
-            self.textEdit.print_(printer)
+            self.textEdit.print(printer)
             return
 
         plotWidget = self._grabPlotWidgetForPrint()
@@ -3705,7 +3717,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
                     headerHeight = painter.fontMetrics().height()
                     headerRect = QRectF(target.x(), target.y(), target.width(), headerHeight)
-                    painter.drawText(headerRect, Qt.AlignHCenter | Qt.AlignTop, headerText)
+                    painter.drawText(headerRect, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop, headerText)
 
                     gap = max(2, int(headerHeight * 0.35))
                     lineY = int(headerRect.bottom() + (gap * 0.5))
@@ -3717,8 +3729,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     if target.isEmpty():
                         return
 
-                image = QImage(source.size(), QImage.Format_ARGB32_Premultiplied)            
-                image.fill(Qt.white)
+                image = QImage(source.size(), QImage.Format.Format_ARGB32_Premultiplied)
+                image.fill(Qt.GlobalColor.white)
                 imagePainter = QPainter(image)
                 try:
                     plotWidget.render(imagePainter)
@@ -3736,7 +3748,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             return
 
         # fallback: print XML if other tabs are active
-        self.textEdit.print_(printer)
+        self.textEdit.print(printer)
 
     def filePrintPdf(self):
         fn, _ = QFileDialog.getSaveFileName(self, 'Export PDF', None, 'PDF files (*.pdf);;All Files (*)')
@@ -3745,10 +3757,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if QFileInfo(fn).suffix().isEmpty():
                 fn += '.pdf'
 
-            printer = QPrinter(QPrinter.HighResolution)
-            printer.setOutputFormat(QPrinter.PdfFormat)
+            printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+            printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
             printer.setOutputFileName(fn)
-            self.textEdit.document().print_(printer)
+            self.textEdit.document().print(printer)
 
     def appendLogMessage(self, message: str = 'test', index: MsgType = MsgType.Info):
         # dateTime = QDateTime.currentDateTime().toString("dd-MM-yyyy hh:mm:ss")

@@ -1,8 +1,9 @@
 # Roll
 
-### Seismic survey design plugin for QGIS
+## Seismic survey design plugin for QGIS
 
-#### 1	Preamble, external dependencies
+
+### 1	Preamble, external dependencies
 
 Roll depends on the following Python libraries that need to be installed separately 
 In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'```,  where --upgrade forces the installation of the latest version
@@ -11,14 +12,14 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 | :--------- | :-------------- | :----------------------------------------------------------- |
 | debugpy    | 1.8.17          | Needed if you want to debug code that runs in GUI- and worker threads |
 | numba      | 0.62.1          | ***Significantly*** speeds up some numpy calculations        |
-| numpy      | 1.26.24         | Array and matrix manipulation                                |
+| numpy      | 1.26.4          | Array and matrix manipulation                                |
 | pyqtgraph  | 0.13.7          | Plotting of vector and raster data                           |
 | rasterio   | 1.4.1           | Export of figures as GeoTiff  files                          |
 | wellpathpy | 0.5.0           | Position sensors  & sources in a well trajectory (VSPs etc.) |
 
 
 
-#### 2	Introduction
+### 2	Introduction
 
 **Roll** is a plugin aimed at designing 3D seismic survey geometries, using a template based approach.
 
@@ -134,7 +135,7 @@ The interface still requires a few tweaks, but as of version 3.3.3 Roll is no lo
 
 
 
-#### 3	Import of SPS data
+### 3	Import of SPS data
 
 If (legacy) SPS data is available, this can be imported from the file menu, and is treated in the same way as the internally generated geometry files. This makes it handy to analize survey performance based solely on SPS-data. This SPS data can also be exported as shapefiles to the current QGIS project.
 
@@ -146,7 +147,7 @@ As there are many flavors of SPS files, a number varieties have been predefined,
 
 
 
-#### 4	Editing a survey file
+### 4	Editing a survey file
 
 As it is cumbersome to manipulate xml-data directly, the user is helped at two levels:
 
@@ -157,13 +158,13 @@ But in case you get very familiar with the xml-structure, you could also edit th
 
 
 
-#### 5	Interaction with QGIS
+### 5	Interaction with QGIS
 
 The generated Geometry points, the imported SPS data, as well as the analysis plots can all be exported to QGIS. In QGIS, source- and receiver points can be moved, deleted, or marked as 'inactive'. These modifications can be loaded back into Roll, for a renewed analysis.   This process is described in much more detail in an html file, accessible from the Help menu in Roll.
 
 
 
-#### 6	Status
+### 6	Status
 
 On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll). Initial release on the QGIS plugin website occurred on 13 March 2024.
 
@@ -173,13 +174,29 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 
 
-#### 7	Changelog
+### 7	To Do
 
+- Improve Roll's analysis capabilities
+- Make processing of Geometry & SPS data more robust
+- Use multiprocessing instead of a single worker thread to speed up background tasks
+- Consider using a relational database instead of numpy arrays for geometry tables
+
+
+
+### 8	Changelog
+
+- 2026-02-07 (0.5.7) Updated 'Find and Replace' dialog for direct Xml editing. Fixed enum bugs to ensure Qt6 compatibility
+- 2026-02-07 (0.5.6) Added 'Preview & Print' to the file menu for the xml file and the pyqtgraph charts. Implemented copy & paste for pyqtgraph charts
+- 2026-02-06 (0.5.5) Fixed bug in azimuth range in Offset/Azimuth diagram
+- 2026-02-03 (0.5.4) Improved import and export of SPS data
+- 2026-01-29 (0.5.3) Fixed pattern management (adding/moving/renaming/removing patterns) in the Property panel
+- 2026-01-28 (0.5.2) Fixed bug resulting in coverage gaps at block boundaries for multi block (marine) surveys, when working from geometry data
+- 2025-12-03 (0.5.1) Updated SPS file import and implemented flexible SPS format definition by the end user. 
+  - Binning can now be done in absence of a relation file (*.xps), using offset limits solely
 - 2025-09-22 (0.5.0) Some significant changes; 
   - progressive painting, keeps user interface alive while painting large survey objects; 
   - debugging uses Debugpy instead of Debugvs; 
   - well files accessed through relative paths
-
 - 2025-09-22 (0.4.9) Small bug fixes related to using - *or not using* - numba
 - 2025-09-19 (0.4.8) Use chunked data-access when using very large memory-mapped analysis files
 - 2025-09-17 (0.4.7) Removed a bug that caused QGIS to crash, when using very large memory-mapped analysis files
@@ -213,15 +230,3 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 - 2024-03-30 (0.2.3) updated metadata.txt (a) about text and (b) dependencies.
 - 2024-03-30 (0.2.2) improved handling of line- and stake numbers; refactoring of parameter handling.
 - 2024-03-13 (0.2.1) Initial release on the QGIS plugin website.
-
-
-
-#### 8	To Do
-
-- Improve handling of SPS data
-- Related to this, improve the interface with QGIS to manipulate SPS data
-- Make processing of Geometry & SPS data more robust
-- Improve Roll's analysis capabilities
-- Use multiprocessing instead of a single worker thread to speed up background tasks
-- Consider using a relational database instead of numpy arrays for geometry tables
-

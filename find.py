@@ -1,11 +1,12 @@
 import re
 
-from qgis.PyQt.QtGui import QTextCursor
-from qgis.PyQt.QtWidgets import QDialog, QGridLayout, QLineEdit, QPushButton, QRadioButton
+from qgis.PyQt.QtGui import QTextCursor, QTextDocument
+from qgis.PyQt.QtWidgets import (QCheckBox, QDialog, QGridLayout, QGroupBox,
+                                 QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                                 QRadioButton, QVBoxLayout)
 
 # To add find and replace dialog, see: https://github.com/goldsborough/Writer-Tutorial/tree/master.
 # And in particular: https://web.archive.org/web/20170515141231/http://www.binpress.com/tutorial/building-a-text-editor-with-pyqt-part-3/147
-
 
 class Find(QDialog):
     def __init__(self, parent=None):
@@ -144,3 +145,148 @@ class Find(QDialog):
 
         # And finally we set this new cursor as the parent's
         self.parent.textEdit.setTextCursor(cursor)
+
+# the following find/replace dialog is following the Notepad implementation,
+# which is a bit different from the one above, and is more user friendly in some cases.
+# It also allows to search backwards, which is a nice feature.
+
+class FindNotepad(QDialog):
+    def __init__(self, parent=None):
+        QDialog.__init__(self, parent)
+        self.parent = parent
+        self.initUI()
+
+    def initUI(self):
+        self.findField = QLineEdit(self)
+        self.findField.resize(250, 30)
+        self.findField.textChanged.connect(self.updateButtons)
+
+        self.replaceField = QLineEdit(self)
+        self.replaceField.resize(250, 30)
+
+        self.findButton = QPushButton('Find Next', self)
+        self.findButton.clicked.connect(self.findNext)
+        self.replaceButton = QPushButton('Replace', self)
+        self.replaceButton.clicked.connect(self.replace)
+        self.allButton = QPushButton('Replace All', self)
+        self.allButton.clicked.connect(self.replaceAll)
+        self.cancelButton = QPushButton('Cancel', self)
+        self.cancelButton.clicked.connect(self.close)
+
+        self.matchCaseCheck = QCheckBox('Match case', self)
+        self.wholeWordCheck = QCheckBox('Whole word', self)
+        self.wrapCheck = QCheckBox('Wrap around', self)
+        self.wrapCheck.setChecked(True)
+
+        self.dirUpRadio = QRadioButton('Up', self)
+        self.dirDownRadio = QRadioButton('Down', self)
+        self.dirDownRadio.setChecked(True)
+
+        dirLayout = QHBoxLayout()
+        dirLayout.addWidget(self.dirUpRadio)
+        dirLayout.addWidget(self.dirDownRadio)
+        dirBox = QGroupBox('Direction', self)
+        dirBox.setLayout(dirLayout)
+
+        optionsLayout = QVBoxLayout()
+        optionsLayout.addWidget(self.matchCaseCheck)
+        optionsLayout.addWidget(self.wholeWordCheck)
+        optionsLayout.addWidget(self.wrapCheck)
+        optionsLayout.addWidget(dirBox)
+        optionsBox = QGroupBox('Options', self)
+        optionsBox.setLayout(optionsLayout)
+
+        layout = QGridLayout()
+        layout.addWidget(QLabel('Find what:'), 0, 0)
+        layout.addWidget(self.findField, 0, 1)
+        layout.addWidget(self.findButton, 0, 2)
+        layout.addWidget(QLabel('Replace with:'), 1, 0)
+        layout.addWidget(self.replaceField, 1, 1)
+        layout.addWidget(self.replaceButton, 1, 2)
+        layout.addWidget(optionsBox, 2, 0, 1, 2)
+        layout.addWidget(self.allButton, 2, 2)
+        layout.addWidget(self.cancelButton, 3, 2)
+
+        nWidth = 440
+        nHeight = 210
+        if self.parent is not None:
+            xPos = self.parent.x() + (self.parent.width() - nWidth) // 2
+            yPos = self.parent.y() + (self.parent.height() - nHeight) // 2
+            self.setGeometry(xPos, yPos, nWidth, nHeight)
+        else:
+            self.resize(nWidth, nHeight)
+
+        self.setWindowTitle('Find and Replace')
+        self.setLayout(layout)
+        self.updateButtons()
+
+    def buildFlags(self):
+        flags = QTextDocument.FindFlags()
+        if self.matchCaseCheck.isChecked():
+            flags |= QTextDocument.FindCaseSensitively
+        if self.wholeWordCheck.isChecked():
+            flags |= QTextDocument.FindWholeWords
+        if self.dirUpRadio.isChecked():
+            flags |= QTextDocument.FindBackward
+        return flags
+
+    def findNext(self):
+        query = self.findField.text()
+        if not query:
+            return
+
+        flags = self.buildFlags()
+        found = self.parent.textEdit.find(query, flags)
+
+        if not found and self.wrapCheck.isChecked():
+            cursor = self.parent.textEdit.textCursor()
+            if flags & QTextDocument.FindBackward:
+                cursor.movePosition(QTextCursor.End)
+            else:
+                cursor.movePosition(QTextCursor.Start)
+            self.parent.textEdit.setTextCursor(cursor)
+            self.parent.textEdit.find(query, flags)
+
+    def replace(self):
+        cursor = self.parent.textEdit.textCursor()
+        if cursor.hasSelection() and self.selectionMatches(cursor, self.findField.text()):
+            cursor.insertText(self.replaceField.text())
+            self.parent.textEdit.setTextCursor(cursor)
+            self.findNext()
+            return
+
+        self.findNext()
+
+    def replaceAll(self):
+        query = self.findField.text()
+        if not query:
+            return
+
+        flags = self.buildFlags()
+        flags &= ~QTextDocument.FindBackward
+
+        blockCursor = self.parent.textEdit.textCursor()
+        blockCursor.beginEditBlock()
+        blockCursor.movePosition(QTextCursor.Start)
+        self.parent.textEdit.setTextCursor(blockCursor)
+
+        while self.parent.textEdit.find(query, flags):
+            cursor = self.parent.textEdit.textCursor()
+            cursor.insertText(self.replaceField.text())
+
+        blockCursor.endEditBlock()
+
+    def selectionMatches(self, cursor, query):
+        if not query:
+            return False
+
+        selected = cursor.selectedText()
+        if self.matchCaseCheck.isChecked():
+            return selected == query
+        return selected.lower() == query.lower()
+
+    def updateButtons(self):
+        hasText = bool(self.findField.text())
+        self.findButton.setEnabled(hasText)
+        self.replaceButton.setEnabled(hasText)
+        self.allButton.setEnabled(hasText)
