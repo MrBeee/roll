@@ -345,6 +345,14 @@ class BinningWorkerMixin:
             else:
                 raise NotImplementedError('selected analysis type currently not implemented.')
 
+            # Make no-data bins transparent.
+            if self.layoutImg is not None:
+                mask = self.output.binOutput == 0
+                if np.any(mask):
+                    img = self.layoutImg.astype(np.float32, copy=True)
+                    img[mask] = np.nan
+                    self.layoutImg = img
+
             self.layoutImItem = pg.ImageItem()
             self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
             self.survey.cmpTransform = self.worker.survey.cmpTransform

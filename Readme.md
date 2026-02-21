@@ -185,6 +185,8 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 ### 8	Changelog
 
+- 2026-02-13 (0.5.9) Made fold-map transparent for areas where fold = 0. Added context menu in SPS and Geometry tables, to edit 'in-use' status
+- 2026-02-10 (0.5.8) Fixed a small bug in copying charts to the clipboard
 - 2026-02-07 (0.5.7) Updated 'Find and Replace' dialog for direct Xml editing. Fixed enum bugs to ensure Qt6 compatibility
 - 2026-02-07 (0.5.6) Added 'Preview & Print' to the file menu for the xml file and the pyqtgraph charts. Implemented copy & paste for pyqtgraph charts
 - 2026-02-06 (0.5.5) Fixed bug in azimuth range in Offset/Azimuth diagram

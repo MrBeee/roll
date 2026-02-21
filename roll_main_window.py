@@ -30,6 +30,7 @@ from math import atan2, ceil, degrees
 import numpy as np  # Numpy functions needed for plot creation
 import pyqtgraph as pg
 from numpy.lib import recfunctions as rfn
+from qgis.core import QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
                               QPoint, QRectF, QSettings, QSize, Qt,
@@ -94,6 +95,39 @@ from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
 from .survey_paint_mixin import SurveyPaintMixin
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
+
+# code to run Roll standalone, without QGIS, for testing and development purposes
+def runStandalone(argv=None):
+    argv = argv or sys.argv
+
+    # Ensure one Qt app exists
+    qtApp = QApplication.instance()
+    if qtApp is None:
+        qtApp = QApplication(argv)
+
+    # Init QGIS app (no GUI flag here because Roll uses widgets)
+    qgsApp = QgsApplication.instance()
+    ownsQgsApp = False
+    if qgsApp is None:
+        # Optional: set prefix if needed in your environment
+        # QgsApplication.setPrefixPath(os.environ.get("QGIS_PREFIX_PATH", r"C:\OSGeo4W\apps\qgis"), True)
+        qgsApp = QgsApplication(argv, True)
+        qgsApp.initQgis()
+        ownsQgsApp = True
+
+    window = RollMainWindow(iface=None, parent=None, standaloneMode=True)
+    window.show()
+
+    exitCode = qtApp.exec()
+
+    if ownsQgsApp:
+        qgsApp.exitQgis()
+
+    return exitCode
+
+if __name__ == '__main__':
+    raise SystemExit(runStandalone())
+
 # Determine path to resources
 current_dir = os.path.dirname(os.path.abspath(__file__))
 resource_dir = os.path.join(current_dir, 'resources')
@@ -110,7 +144,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     * BinningWorkerMixin keeps the binning worker thread code out of RollMainWindow
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, iface=None, parent=None, standaloneMode=False):
         """Constructor."""
         super(RollMainWindow, self).__init__(parent)
         # Set up the user interface from Designer through FORM_CLASS.
@@ -128,7 +162,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.findDialog = None                                                  # the find/replace dialog, created when needed
 
         # GQIS interface
-        self.iface = None                                                       # for access to QGis interface; declared here, and initialized in roll.py
+        self.iface = iface                                                      # for access to QGis interface; declared here, and initialized in roll.py
+        self.standaloneMode = standaloneMode                                    # True when running outside of QGIS, for testing and development purposes
 
         # toolbar parameters
         self.XisY = True                                                        # equal x / y scaling
@@ -603,7 +638,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.updateRecentFileActions()                                          # update the MRU file menu actions, with info from readSettings()
 
+        if self.standaloneMode:                                                 # Optional: disable actions that require a live QGIS iface
+            self._configureStandaloneUi()
+
         self.statusbar.showMessage('Ready', 3000)
+
+    def _configureStandaloneUi(self):
+        # Guard or disable iface-dependent actions here
+        self.actionImportFromQgis.setEnabled(False)
+        self.actionExportToQgis.setEnabled(False)
+        self.actionExportFoldMapToQGIS.setEnabled(False)
+        self.actionExportMinOffsetsToQGIS.setEnabled(False)
+        self.actionExportMaxOffsetsToQGIS.setEnabled(False)
+        self.actionExportRmsOffsetsToQGIS.setEnabled(False)
 
     # deal with pattern selection for display & kxky plotting
     def onPattern1IndexChanged(self):
@@ -1529,6 +1576,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         else:
             raise NotImplementedError('selected analysis type currently not implemented.')
 
+        # Make no-data bins transparent.
+        if self.layoutImg is not None:
+            mask = self.output.binOutput == 0
+            if np.any(mask):
+                img = self.layoutImg.astype(np.float32, copy=True)
+                img[mask] = np.nan
+                self.layoutImg = img
+
         self.layoutImItem = pg.ImageItem()                                          # create a PyqtGraph image item
         self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))    # set image and its range limits
 
@@ -1626,7 +1681,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 if self.imageType == 0:
                     self.posWidgetStatusbar.setText(f'S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
                 elif self.imageType == 1:
-                    fold = self.layoutImg[bx, by]
+                    foldValue = float(self.layoutImg[bx, by])
+                    if np.isnan(foldValue):
+                        foldValue = 0.0
+                    fold = int(foldValue)                                       # fold value is float because of the NaN values for no-data bins. Integers don't understand NaN
                     self.posWidgetStatusbar.setText(f'fold: {fold:,d}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
                 elif self.imageType == 2:
                     offset = float(self.layoutImg[bx, by])

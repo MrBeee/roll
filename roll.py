@@ -308,3 +308,14 @@ class Roll:
         # self.mainWindow.setFocus()                                            # No need to set the focus
 
         self.mainWindow.iface = self.iface                                      # Bart: mainWindow needs to get hold of the interface to QGis
+
+# code to run Roll standalone, without QGIS, for testing and development purposes
+# Run on Windows from the OSGeo4W/QGIS Python shell:
+# python d:\QGis\MyPlugins\roll\roll.py
+
+if __name__ == '__main__':
+    try:
+        from .roll_main_window import runStandalone
+    except ImportError:
+        from roll_main_window import runStandalone
+    raise SystemExit(runStandalone())
