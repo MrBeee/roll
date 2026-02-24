@@ -25,6 +25,7 @@ class _LoggingDockBuilder:
 
     def _init_shell(self):
         self.w.dockLogging = QDockWidget('Logging pane', self.w)
+        self.w.dockLogging.setObjectName('dockLogging')
         areas = (
             Qt.DockWidgetArea.LeftDockWidgetArea
             | Qt.DockWidgetArea.BottomDockWidgetArea

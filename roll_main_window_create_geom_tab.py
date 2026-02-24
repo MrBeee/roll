@@ -214,7 +214,20 @@ def createGeomTab(self):
     splitter2.setSizes([900, 100])
 
     # ceate the main layout for the SPS tab
-    hbox = QHBoxLayout()
-    hbox.addWidget(splitter2)
+    # hbox = QHBoxLayout()
+    # hbox.addWidget(splitter2)
+    # self.tabGeom.setLayout(hbox)
 
-    self.tabGeom.setLayout(hbox)
+    # main layout for tabGeom: create once, reuse on rebuild
+    tabLayout = self.tabGeom.layout()
+    if tabLayout is None:
+        tabLayout = QHBoxLayout(self.tabGeom)
+        tabLayout.setContentsMargins(0, 0, 0, 0)
+    else:
+        while tabLayout.count():
+            item = tabLayout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+
+    tabLayout.addWidget(splitter2)

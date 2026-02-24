@@ -29,6 +29,7 @@ class _PropertyDockBuilder:
     def _init_shell(self):
         w = self.w
         w.dockProperty = QDockWidget('Property pane', w)
+        w.dockProperty.setObjectName('dockProperty')
         allowed = Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
         w.dockProperty.setAllowedAreas(allowed)
         w.dockProperty.setStyleSheet('QDockWidget::title {background : lightblue;}')

@@ -3920,3 +3920,16 @@ class RollSurvey(pg.GraphicsObject):
 
     def generateSvg(self, nodes):
         pass                                                                    # for the time being don't do anything; just to keep PyLint happy
+
+    def itemChange(self, change, value):
+        try:
+            return super().itemChange(change, value)
+        except TypeError:
+            # PyQt/PyQtGraph QVariant conversion mismatch in some runtimes.
+            # Keep app responsive instead of flooding traceback.
+            # This can be triggered by zooming/panning in the view, or by resizing the window, or by any change that triggers a redraw.
+            # The offending call is likely in GraphicsObject.itemChange, which is called by the framework when certain properties change (like position, scale, etc.). The exact change types that trigger this can vary, but it’s often related to transformations or geometry changes.
+            # The error occurs because the base implementation of itemChange in GraphicsObject expects a QVariant, but in some PyQt/PyQtGraph versions or configurations, it might receive a native Python type instead, leading to a TypeError when it tries to convert it to QVariant.
+            # By catching this exception, we can prevent the application from crashing due to this mismatch. However, it’s important to note that this is more of a workaround than a proper fix. Ideally, the underlying issue in the PyQt/PyQtGraph version should be addressed to ensure compatibility with native Python types.
+            # This routine was introduced when allowing the use of Roll as a standalone module without PyQtGraph, but it can also be useful in the integrated application to prevent crashes due to this issue.
+            return value

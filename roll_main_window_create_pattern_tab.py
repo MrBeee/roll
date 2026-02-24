@@ -90,7 +90,15 @@ def createPatternTab(self):
     splitter1.addWidget(rightSide)
     splitter1.setSizes([100, 500])
 
-    hbox1 = QHBoxLayout(self)
-    hbox1.addWidget(splitter1)
+    tabLayout = self.tabPatterns.layout()
+    if tabLayout is None:
+        tabLayout = QHBoxLayout(self.tabPatterns)
+        tabLayout.setContentsMargins(0, 0, 0, 0)
+    else:
+        while tabLayout.count():
+            item = tabLayout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
 
-    self.tabPatterns.setLayout(hbox1)
+    tabLayout.addWidget(splitter1)

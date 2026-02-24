@@ -93,7 +93,15 @@ def createStackResponseTab(self):
     splitter1.addWidget(rightSide)
     splitter1.setSizes([100, 500])
 
-    hbox1 = QHBoxLayout(self)
-    hbox1.addWidget(splitter1)
+    tabLayout = self.tabKxKyStack.layout()
+    if tabLayout is None:
+        tabLayout = QHBoxLayout(self.tabKxKyStack)
+        tabLayout.setContentsMargins(0, 0, 0, 0)
+    else:
+        while tabLayout.count():
+            item = tabLayout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
 
-    self.tabKxKyStack.setLayout(hbox1)
+    tabLayout.addWidget(splitter1)

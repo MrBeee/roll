@@ -411,7 +411,7 @@ def readSettings(self):
     if any(counts):
         if not all(counts) or len(set(counts)) != 1:
             print('Stored SPS/XPS/RPS formats are inconsistent; reverting to built-in defaults.')
-            config.reset_sps_database()
+            config.resetSpsDatabase()
             for group in (
                 'settings/sps/spsFormatList',
                 'settings/sps/xpsFormatList',

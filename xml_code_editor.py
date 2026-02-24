@@ -94,10 +94,10 @@ class XMLHighlighter(QSyntaxHighlighter):
             r'>',
             r'<',
             r'</',
-            r'\b?(spatialrefsys|wkt|proj4|srsid|srid|authid|description|projectionacronym|ellipsoidacronym|geographicflag)\b',
-            r'\b?(survey|type|name|surveyCrs|limits|angles|binning|offset|output|unique|well|spiral|circle)\b',
-            r'\b?(grid|b?local|global|block_list|block|borders|plane|sphere|reflectors|rec_border|src_border)\b',
-            r'\b?(template_list|template|roll_list|translate|seed_list|seed|grow_list|pattern_list|pattern|wellCrs|xml)\b',
+            r'\b(spatialrefsys|wkt|proj4|srsid|srid|authid|description|projectionacronym|ellipsoidacronym|geographicflag)\b',
+            r'\b(survey|type|name|surveyCrs|limits|angles|binning|offset|output|unique|well|spiral|circle)\b',
+            r'\b(grid|b?local|global|block_list|block|borders|plane|sphere|reflectors|rec_border|src_border)\b',
+            r'\b(template_list|template|roll_list|translate|seed_list|seed|grow_list|pattern_list|pattern|wellCrs|xml)\b',
         ]
 
         self.highlightingRules += [(QRegularExpression(pattern), keywordFormat) for pattern in keywordPatterns]

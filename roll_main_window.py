@@ -34,7 +34,7 @@ from qgis.core import QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
                               QPoint, QRectF, QSettings, QSize, Qt,
-                              QTextStream)
+                              QTextStream, QTimer)
 from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QImage, QPainter,
                              QTextCursor, QTransform)
 from qgis.PyQt.QtPrintSupport import QPrinter, QPrintPreviewDialog
@@ -95,38 +95,65 @@ from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
 from .survey_paint_mixin import SurveyPaintMixin
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
-
 # code to run Roll standalone, without QGIS, for testing and development purposes
-def runStandalone(argv=None):
-    argv = argv or sys.argv
 
-    # Ensure one Qt app exists
-    qtApp = QApplication.instance()
-    if qtApp is None:
-        qtApp = QApplication(argv)
+def _toQgsArgv(argv):
+    if argv is None:
+        argv = []
+    qgsArgv = []
+    for arg in argv:
+        if isinstance(arg, bytes):
+            qgsArgv.append(arg)
+        else:
+            qgsArgv.append(str(arg).encode('utf-8', errors='ignore'))
+    return qgsArgv
 
-    # Init QGIS app (no GUI flag here because Roll uses widgets)
+def getStandaloneQgisApp(argv=None):
+    argv = sys.argv if argv is None else argv
     qgsApp = QgsApplication.instance()
     ownsQgsApp = False
+
     if qgsApp is None:
-        # Optional: set prefix if needed in your environment
-        # QgsApplication.setPrefixPath(os.environ.get("QGIS_PREFIX_PATH", r"C:\OSGeo4W\apps\qgis"), True)
-        qgsApp = QgsApplication(argv, True)
+        qgsApp = QgsApplication(_toQgsArgv(argv), True)
         qgsApp.initQgis()
         ownsQgsApp = True
 
-    window = RollMainWindow(iface=None, parent=None, standaloneMode=True)
-    window.show()
+    return qgsApp, ownsQgsApp
 
-    exitCode = qtApp.exec()
+def runStandalone(argv=None, filePath=None):
+    qgsApp, ownsQgsApp = getStandaloneQgisApp(argv)
+    qgsApp.setQuitOnLastWindowClosed(True)
+
+    mainWindow = RollMainWindow(iface=None, parent=None, standaloneMode=True)
+    mainWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+    mainWindow.destroyed.connect(qgsApp.quit)
+    qgsApp.aboutToQuit.connect(mainWindow.onAppAboutToQuit)
+    mainWindow.show()
+
+    def _safeLoad():
+        logPath = os.path.join(os.path.dirname(__file__), 'roll_standalone.err.log')
+        try:
+            with open(logPath, 'a', encoding='utf-8') as f:
+                f.write(f'[INFO] _safeLoad filePath={filePath}\n')
+            if not filePath or not os.path.isfile(filePath):
+                with open(logPath, 'a', encoding='utf-8') as f:
+                    f.write('[ERROR] filePath missing or not a file\n')
+                return
+            mainWindow.fileLoad(filePath)
+        except Exception:
+            errText = traceback.format_exc()
+            with open(logPath, 'a', encoding='utf-8') as f:
+                f.write(errText + '\n')
+
+    if filePath:
+        QTimer.singleShot(0, _safeLoad)
+
+    exitCode = qgsApp.exec()
 
     if ownsQgsApp:
         qgsApp.exitQgis()
 
     return exitCode
-
-if __name__ == '__main__':
-    raise SystemExit(runStandalone())
 
 # Determine path to resources
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -643,14 +670,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.statusbar.showMessage('Ready', 3000)
 
+    def _setActionEnabledSafe(self, actionName, enabled):
+        action = getattr(self, actionName, None)
+        if action is not None:
+            action.setEnabled(enabled)
+
     def _configureStandaloneUi(self):
-        # Guard or disable iface-dependent actions here
-        self.actionImportFromQgis.setEnabled(False)
-        self.actionExportToQgis.setEnabled(False)
-        self.actionExportFoldMapToQGIS.setEnabled(False)
-        self.actionExportMinOffsetsToQGIS.setEnabled(False)
-        self.actionExportMaxOffsetsToQGIS.setEnabled(False)
-        self.actionExportRmsOffsetsToQGIS.setEnabled(False)
+        actionNames = (
+            'actionImportFromQgis',
+            'actionExportToQgis',
+            'actionImportSpsFromQgis',
+            'actionExportSpsToQgis',
+        )
+
+        for actionName in actionNames:
+            self._setActionEnabledSafe(actionName, False)
+
 
     # deal with pattern selection for display & kxky plotting
     def onPattern1IndexChanged(self):
@@ -1551,12 +1586,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
 
-        colorMap = config.fold_OffCmap                                          # default fold & offset color map
+        colorMap = self.resolveColorMapName(config.fold_OffCmap, fallback='CET-L4')  # default fold & offset color map
         if self.imageType == 0:                                                 # now deal with all image types
             self.layoutImg = None                                               # no image to show
             label = 'N/A'
             self.layoutMax = 10
-            colorMap = config.inActiveCmap                                      # grey color map
+            colorMap = self.resolveColorMapName(config.inActiveCmap, fallback='CET-L1')  # grey color map
         elif self.imageType == 1:
             self.layoutImg = self.output.binOutput                              # don't make a copy, create a view
             self.layoutMax = self.output.maximumFold
@@ -1587,13 +1622,39 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.layoutImItem = pg.ImageItem()                                          # create a PyqtGraph image item
         self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))    # set image and its range limits
 
+        colorMap = self.coerceColorMap(colorMap, fallback='CET-L1')
+        if not isinstance(colorMap, (str, pg.ColorMap)):
+            self.appendLogMessage(
+                f'Invalid colorMap type {type(colorMap)} value {colorMap!r};',
+                MsgType.Debug,
+            )
+            self.appendLogMessage(f'available maps={len(pg.colormap.listMaps())}', MsgType.Debug)
+        elif isinstance(colorMap, str):
+            colorMap = str(colorMap)
+
+        colorMapObj = self.resolveColorMapObject(colorMap, fallback='viridis')
+        
         if self.layoutColorBar is None:                                             # create colorbar with default values
-            self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.inActiveCmap, label='N/A', limits=(0, None), rounding=10.0, values=(0, 10))
+            try:
+                self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
+                    self.layoutImItem,
+                    colorMap=colorMapObj,
+                    label='N/A',
+                    limits=(0, None),
+                    rounding=10.0,
+                    values=(0, 10),
+                )
+            except TypeError as exc:
+                self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                self.layoutColorBar = None
 
         if self.layoutColorBar is not None:
             self.layoutColorBar.setImageItem(self.layoutImItem)                     # couple imageItem to the colorbar
             self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-            self.layoutColorBar.setColorMap(colorMap)
+            try:
+                self.layoutColorBar.setColorMap(colorMapObj)
+            except TypeError as exc:
+                self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
             self.setColorbarLabel(label)
 
         self.plotLayout()
@@ -2312,15 +2373,51 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.stkTrkImItem.setImage(self.inlineStk, levels=(-50.0, 0.0))     # plot with log scale from -50 to 0
             self.stkTrkImItem.setTransform(tr)
 
-            if self.stkTrkColorBar is None:
-                self.stkTrkColorBar = self.stkTrkWidget.plotItem.addColorBar(self.stkTrkImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0))
-                self.stkTrkColorBar.setLevels(low=-50.0, high=0.0)
-            else:
-                self.stkTrkColorBar.setImageItem(self.stkTrkImItem)
-                self.stkTrkColorBar.setColorMap(config.analysisCmap)            # in case the colorbar has been changed
+            # if self.stkTrkColorBar is None:
+            #     self.stkTrkColorBar = self.stkTrkWidget.plotItem.addColorBar(
+            #         self.stkTrkImItem,
+            #         colorMap=self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'),
+            #         label='dB attenuation',
+            #         limits=(-100.0, 0.0),
+            #         rounding=10.0,
+            #         values=(-50.0, 0.0),
+            #     )
+            #     self.stkTrkColorBar.setLevels(low=-50.0, high=0.0)
+            # else:
+            #     self.stkTrkColorBar.setImageItem(self.stkTrkImItem)
+            #     self.stkTrkColorBar.setColorMap(self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'))  # in case the colorbar has been changed
 
-            self.stkTrkWidget.plotItem.clear()
+            # self.stkTrkWidget.plotItem.clear()
+            # self.stkTrkWidget.plotItem.addItem(self.stkTrkImItem)
+
+            # plotTitle = f'{self.plotTitles[5]} [line={stkY}]'
+            # self.stkTrkWidget.setTitle(plotTitle, color='b', size='16pt')
+
+            self.stkTrkWidget.plotItem.clear()                                  # clear first, then always add the image
             self.stkTrkWidget.plotItem.addItem(self.stkTrkImItem)
+
+            colorMapObj = self.resolveColorMapObject(config.analysisCmap, fallback='viridis')
+            if self.stkTrkColorBar is None:
+                try:
+                    self.stkTrkColorBar = self.stkTrkWidget.plotItem.addColorBar(
+                        self.stkTrkImItem,
+                        colorMap=colorMapObj,
+                        label='dB attenuation',
+                        limits=(-100.0, 0.0),
+                        rounding=10.0,
+                        values=(-50.0, 0.0),
+                    )
+                    self.stkTrkColorBar.setLevels(low=-50.0, high=0.0)
+                except TypeError as exc:
+                    self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                    self.stkTrkColorBar = None
+            else:
+                try:
+                    self.stkTrkColorBar.setImageItem(self.stkTrkImItem)
+                    self.stkTrkColorBar.setLevels(low=-50.0, high=0.0)
+                    self.stkTrkColorBar.setColorMap(colorMapObj)                # in case the colorbar has been changed
+                except TypeError as exc:
+                    self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
 
             plotTitle = f'{self.plotTitles[5]} [line={stkY}]'
             self.stkTrkWidget.setTitle(plotTitle, color='b', size='16pt')
@@ -2346,18 +2443,55 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.stkBinImItem.setImage(self.x_lineStk, levels=(-50.0, 0.0))     # plot with log scale from -50 to 0
             self.stkBinImItem.setTransform(tr)
 
-            if self.stkBinColorBar is None:
-                self.stkBinColorBar = self.stkBinWidget.plotItem.addColorBar(self.stkBinImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0))
-                self.stkBinColorBar.setLevels(low=-50.0, high=0.0)
-            else:
-                self.stkBinColorBar.setImageItem(self.stkBinImItem)
-                self.stkBinColorBar.setColorMap(config.analysisCmap)            # in case the colorbar has been changed
+            # if self.stkBinColorBar is None:
+            #     self.stkBinColorBar = self.stkBinWidget.plotItem.addColorBar(
+            #         self.stkBinImItem,
+            #         colorMap=self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'),
+            #         label='dB attenuation',
+            #         limits=(-100.0, 0.0),
+            #         rounding=10.0,
+            #         values=(-50.0, 0.0),
+            #     )
+            #     self.stkBinColorBar.setLevels(low=-50.0, high=0.0)
+            # else:
+            #     self.stkBinColorBar.setImageItem(self.stkBinImItem)
+            #     self.stkBinColorBar.setColorMap(self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'))  # in case the colorbar has been changed
 
-            self.stkBinWidget.plotItem.clear()
+            # self.stkBinWidget.plotItem.clear()
+            # self.stkBinWidget.plotItem.addItem(self.stkBinImItem)
+
+            # plotTitle = f'{self.plotTitles[6]} [stake={stkX}]'
+            # self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
+
+            self.stkBinWidget.plotItem.clear()                                  # clear first, then always add the image
             self.stkBinWidget.plotItem.addItem(self.stkBinImItem)
+
+            colorMapObj = self.resolveColorMapObject(config.analysisCmap, fallback='viridis')
+            if self.stkBinColorBar is None:
+                try:
+                    self.stkBinColorBar = self.stkBinWidget.plotItem.addColorBar(
+                        self.stkBinImItem,
+                        colorMap=colorMapObj,
+                        label='dB attenuation',
+                        limits=(-100.0, 0.0),
+                        rounding=10.0,
+                        values=(-50.0, 0.0),
+                    )
+                    self.stkBinColorBar.setLevels(low=-50.0, high=0.0)
+                except TypeError as exc:
+                    self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                    self.stkBinColorBar = None
+            else:
+                try:
+                    self.stkBinColorBar.setImageItem(self.stkBinImItem)
+                    self.stkBinColorBar.setLevels(low=-50.0, high=0.0)
+                    self.stkBinColorBar.setColorMap(colorMapObj)                # in case the colorbar has been changed
+                except TypeError as exc:
+                    self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
 
             plotTitle = f'{self.plotTitles[6]} [stake={stkX}]'
             self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
+
 
     def plotStkCel(self, nX: int, nY: int, stkX: int, stkY: int):
         if self.output.anaOutput is None or self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
@@ -2404,15 +2538,52 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.stkCelImItem = pg.ImageItem()                              # create PyqtGraph image item
             self.stkCelImItem.setImage(self.xyCellStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
             self.stkCelImItem.setTransform(tr)
-            if self.stkCelColorBar is None:
-                self.stkCelColorBar = self.stkCelWidget.plotItem.addColorBar(self.stkCelImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0))
-                self.stkCelColorBar.setLevels(low=-50.0, high=0.0)
-            else:
-                self.stkCelColorBar.setImageItem(self.stkCelImItem)
-                self.stkCelColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
 
-            self.stkCelWidget.plotItem.clear()
+            # if self.stkCelColorBar is None:
+            #     self.stkCelColorBar = self.stkCelWidget.plotItem.addColorBar(
+            #         self.stkCelImItem,
+            #         colorMap=self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'),
+            #         label='dB attenuation',
+            #         limits=(-100.0, 0.0),
+            #         rounding=10.0,
+            #         values=(-50.0, 0.0),
+            #     )
+            #     self.stkCelColorBar.setLevels(low=-50.0, high=0.0)
+            # else:
+            #     self.stkCelColorBar.setImageItem(self.stkCelImItem)
+            #     self.stkCelColorBar.setColorMap(self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'))  # in case the colorbar has been changed
+
+            # self.stkCelWidget.plotItem.clear()
+            # self.stkCelWidget.plotItem.addItem(self.stkCelImItem)
+
+            # plotTitle = f'{self.plotTitles[7]} [stake={stkX}, line={stkY}, fold={fold}]'
+            # self.stkCelWidget.setTitle(plotTitle, color='b', size='16pt')
+
+            self.stkCelWidget.plotItem.clear()                                  # clear first, then always add the image
             self.stkCelWidget.plotItem.addItem(self.stkCelImItem)
+
+            colorMapObj = self.resolveColorMapObject(config.analysisCmap, fallback='viridis')
+            if self.stkCelColorBar is None:
+                try:
+                    self.stkCelColorBar = self.stkCelWidget.plotItem.addColorBar(
+                        self.stkCelImItem,
+                        colorMap=colorMapObj,
+                        label='dB attenuation',
+                        limits=(-100.0, 0.0),
+                        rounding=10.0,
+                        values=(-50.0, 0.0),
+                    )
+                    self.stkCelColorBar.setLevels(low=-50.0, high=0.0)
+                except TypeError as exc:
+                    self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                    self.stkCelColorBar = None
+            else:
+                try:
+                    self.stkCelColorBar.setImageItem(self.stkCelImItem)
+                    self.stkCelColorBar.setLevels(low=-50.0, high=0.0)
+                    self.stkCelColorBar.setColorMap(colorMapObj)                # in case the colorbar has been changed
+                except TypeError as exc:
+                    self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
 
             plotTitle = f'{self.plotTitles[7]} [stake={stkX}, line={stkY}, fold={fold}]'
             self.stkCelWidget.setTitle(plotTitle, color='b', size='16pt')
@@ -2470,15 +2641,48 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.offAziImItem = pg.ImageItem()                                  # create PyqtGraph image item
             self.offAziImItem.setImage(self.output.ofAziHist)
             self.offAziImItem.setTransform(tr)
-            if self.offAziColorBar is None:
-                self.offAziColorBar = self.offAziWidget.plotItem.addColorBar(self.offAziImItem, colorMap=config.analysisCmap, label='frequency', rounding=10.0)
-                self.offAziColorBar.setLevels(low=0.0)                          # , high=0.0
-            else:
-                self.offAziColorBar.setImageItem(self.offAziImItem)
-                self.offAziColorBar.setColorMap(config.analysisCmap)            # in case the colorbar has been changed
 
-            self.offAziWidget.plotItem.clear()
+            # if self.offAziColorBar is None:
+            #     self.offAziColorBar = self.offAziWidget.plotItem.addColorBar(
+            #         self.offAziImItem,
+            #         colorMap=self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'),
+            #         label='frequency',
+            #         rounding=10.0,
+            #     )
+            #     self.offAziColorBar.setLevels(low=0.0)                          # , high=0.0
+            # else:
+            #     self.offAziColorBar.setImageItem(self.offAziImItem)
+            #     self.offAziColorBar.setColorMap(self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'))  # in case the colorbar has been changed
+
+            # self.offAziWidget.plotItem.clear()
+            # self.offAziWidget.plotItem.addItem(self.offAziImItem)
+
+            # count = np.sum(self.output.binOutput)                               # available traces
+            # plotTitle = f'{self.plotTitles[9]} [{count:,} traces]'
+            # self.offAziWidget.setTitle(plotTitle, color='b', size='16pt')
+
+            self.offAziWidget.plotItem.clear()                                  # clear first, then always add the image
             self.offAziWidget.plotItem.addItem(self.offAziImItem)
+
+            colorMapObj = self.resolveColorMapObject(config.analysisCmap, fallback='viridis')
+            if self.offAziColorBar is None:
+                try:
+                    self.offAziColorBar = self.offAziWidget.plotItem.addColorBar(
+                        self.offAziImItem,
+                        colorMap=colorMapObj,
+                        label='frequency',
+                        rounding=10.0,
+                    )
+                    self.offAziColorBar.setLevels(low=0.0)                      # , high=0.0
+                except TypeError as exc:
+                    self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                    self.offAziColorBar = None
+            else:
+                try:
+                    self.offAziColorBar.setImageItem(self.offAziImItem)
+                    self.offAziColorBar.setColorMap(colorMapObj)                # in case the colorbar has been changed
+                except TypeError as exc:
+                    self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
 
             count = np.sum(self.output.binOutput)                               # available traces
             plotTitle = f'{self.plotTitles[9]} [{count:,} traces]'
@@ -2558,17 +2762,55 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 self.kxyPatImItem = pg.ImageItem()                              # create PyqtGraph image item
                 self.kxyPatImItem.setImage(self.xyPatResp, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
                 self.kxyPatImItem.setTransform(tr)
-                if self.kxyPatColorBar is None:
-                    self.kxyPatColorBar = self.arraysWidget.plotItem.addColorBar(
-                        self.kxyPatImItem, colorMap=config.analysisCmap, label='dB attenuation', limits=(-100.0, 0.0), rounding=10.0, values=(-50.0, 0.0)
-                    )
-                    self.kxyPatColorBar.setLevels(low=-50.0, high=0.0)
-                else:
-                    self.kxyPatColorBar.setImageItem(self.kxyPatImItem)
-                    self.kxyPatColorBar.setColorMap(config.analysisCmap)        # in case the colorbar has been changed
 
-                self.arraysWidget.plotItem.clear()
+        #         if self.kxyPatColorBar is None:
+        #             self.kxyPatColorBar = self.arraysWidget.plotItem.addColorBar(
+        #                 self.kxyPatImItem,
+        #                 colorMap=self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'),
+        #                 label='dB attenuation',
+        #                 limits=(-100.0, 0.0),
+        #                 rounding=10.0,
+        #                 values=(-50.0, 0.0),
+        #             )
+        #             self.kxyPatColorBar.setLevels(low=-50.0, high=0.0)
+        #         else:
+        #             self.kxyPatColorBar.setImageItem(self.kxyPatImItem)
+        #             self.kxyPatColorBar.setColorMap(self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'))  # in case the colorbar has been changed
+
+        #         self.arraysWidget.plotItem.clear()
+        #         self.arraysWidget.plotItem.addItem(self.kxyPatImItem)
+
+        # plotTitle = f'{self.plotTitles[10]} [{self.pattern1.currentText()} * {self.pattern2.currentText()}]'
+        # plotTitle = plotTitle.replace('<', '&lt;')                              # bummer; plotTitle is an html string
+        # plotTitle = plotTitle.replace('>', '&gt;')                              # we need to escape the angle brackets
+
+        # self.arraysWidget.setTitle(plotTitle, color='b', size='16pt')
+
+                self.arraysWidget.plotItem.clear()                              # clear first, then always add the image
                 self.arraysWidget.plotItem.addItem(self.kxyPatImItem)
+
+                colorMapObj = self.resolveColorMapObject(config.analysisCmap, fallback='viridis')
+                if self.kxyPatColorBar is None:
+                    try:
+                        self.kxyPatColorBar = self.arraysWidget.plotItem.addColorBar(
+                            self.kxyPatImItem,
+                            colorMap=colorMapObj,
+                            label='dB attenuation',
+                            limits=(-100.0, 0.0),
+                            rounding=10.0,
+                            values=(-50.0, 0.0),
+                        )
+                        self.kxyPatColorBar.setLevels(low=-50.0, high=0.0)
+                    except TypeError as exc:
+                        self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                        self.kxyPatColorBar = None
+                else:
+                    try:
+                        self.kxyPatColorBar.setImageItem(self.kxyPatImItem)
+                        self.kxyPatColorBar.setLevels(low=-50.0, high=0.0)
+                        self.kxyPatColorBar.setColorMap(colorMapObj)            # in case the colorbar has been changed
+                    except TypeError as exc:
+                        self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
 
         plotTitle = f'{self.plotTitles[10]} [{self.pattern1.currentText()} * {self.pattern2.currentText()}]'
         plotTitle = plotTitle.replace('<', '&lt;')                              # bummer; plotTitle is an html string
@@ -2634,6 +2876,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         #         e.accept()
         #     else:
         #         e.ignore()                                                      # ignore the event and stay active
+
+    def onAppAboutToQuit(self):
+        # See: https://doc.qt.io/qt-6/qcoreapplication.html#aboutToQuit
+        # intended to shut down quickly in standaloneme mode,
+        # without going through the closeEvent (which is not triggered when the main window is closed in standalone mode)
+        if self.thread is not None and self.thread.isRunning():
+            self.thread.requestInterruption()
+            self.thread.quit()
+            self.thread.wait(2000)
+        self.resetAnaTableModel()
+        gc.collect()
 
     def newFile(self):                                                          # wrapper around fileNew; used to create a log message
         if self.fileNew():
@@ -2998,6 +3251,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             nx = ceil(w / dx)
             ny = ceil(h / dy)
 
+            self.appendLogMessage(f'Analysis dims: nx={nx}, ny={ny}, binSize=({dx:.3f},{dy:.3f})')
+
+            for suffix in ('.bin.npy', '.min.npy', '.max.npy', '.rms.npy', '.off.npy', '.azi.npy', '.ana.npy'):
+                path = self.fileName + suffix
+                self.appendLogMessage(f'Analysis file: {suffix} exists={os.path.exists(path)}')
+
             if os.path.exists(self.fileName + '.bin.npy'):                      # open the existing foldmap file
                 self.output.binOutput = np.load(self.fileName + '.bin.npy')
                 nX = self.output.binOutput.shape[0]                             # check against nx
@@ -3013,18 +3272,33 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     self.actionFold.setChecked(True)
                     self.imageType = 1                                              # set analysis type to one (fold map)
 
-                    self.layoutImg = self.survey.output.binOutput                   # use fold map for image data np-array
+                    self.layoutImg = self.output.binOutput                          # use fold map for image data np-array
                     self.layoutMax = self.output.maximumFold                        # use appropriate maximum
                     self.layoutImItem = pg.ImageItem()                              # create PyqtGraph image item
                     self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
 
                     label = 'fold'
+                    colorMapObj = self.resolveColorMapObject(config.fold_OffCmap, fallback='viridis')
                     if self.layoutColorBar is None:
-                        self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(self.layoutImItem, colorMap=config.fold_OffCmap, label=label, limits=(0, None), rounding=10.0, values=(0.0, self.layoutMax))
+                        try:
+                            self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
+                                self.layoutImItem,
+                                colorMap=colorMapObj,
+                                label=label,
+                                limits=(0, None),
+                                rounding=10.0,
+                                values=(0.0, self.layoutMax),
+                            )
+                        except TypeError as exc:
+                            self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                            self.layoutColorBar = None
                     else:
                         self.layoutColorBar.setImageItem(self.layoutImItem)
                         self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-                        self.layoutColorBar.setColorMap(config.fold_OffCmap)
+                        try:
+                            self.layoutColorBar.setColorMap(colorMapObj)
+                        except TypeError as exc:
+                            self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
                         self.setColorbarLabel(label)
 
                     self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ')
@@ -3122,15 +3396,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     else:
                         fold = self.output.maximumFold                          # fold is defined by observed maxfold in bin file
 
+                    self.appendLogMessage(f'Analysis load: fold={fold}, maxFold={self.output.maximumFold}', MsgType.Info)
+
                     # if we had a large memmap file open earlier; close it and call the garbage collector
                     self.resetAnaTableModel()
 
-                    # self.output.anaOutput = np.lib.format.open_memmap(self.fileName + '.ana.npy', mode='r+', dtype=np.float32, shape=None)
                     self.output.anaOutput = np.memmap(self.fileName + '.ana.npy', dtype=np.float32, mode='r+', shape=(nx, ny, fold, 13))
                     nT = self.output.anaOutput.size                             # total size of array in Nr of elements
 
                     # we know the (supposed) size of the binning area, and nr of columns in the file. Therefore
                     delta = nT - (nx * ny * fold * 13)
+
+                    self.appendLogMessage(f'Analysis load: nT={nT}, expected={nx * ny * fold * 13}, delta={delta}', MsgType.Info)
 
                     if delta != 0:
                         self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: mismatch in trace table compared to fold {fold:,} x-size {nx}, and y-size {ny}. Please rerun extended analysis', MsgType.Error)
@@ -3139,10 +3416,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                         self.anaModel.setData(None)                             # use this as the model data
                     else:
                         self.output.D2_Output = self.output.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
+                        self.appendLogMessage(f'Analysis load: D2_Output.shape={self.output.D2_Output.shape}', MsgType.Info)
 
                     if self.output.maximumFold > fold:
                         self.appendLogMessage(
-                            f'Loaded : . . . Analysis &nbsp;: observed fold in in binning file {self.output.maximumFold:,} larger than allowed in trace table {fold:,} missing traces in spider plot !'
+                            f'Loaded : . . . Analysis &nbsp;: observed fold in binning file: {self.output.maximumFold:,}. This is larger than allowed in the trace table ({fold:,}), expect missing traces in spider plot !'
                         )
 
                     self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces (reserved space)')
@@ -3236,10 +3514,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.rpsModel.setData(self.rpsImport)                               # update the three rps/sps/xps models
             self.spsModel.setData(self.spsImport)
             self.xpsModel.setData(self.xpsImport)
+            if self.rpsView is not None:
+                self.rpsView.reset()
+            if self.spsView is not None:
+                self.spsView.reset()
+            if self.xpsView is not None:
+                self.xpsView.reset()
 
             self.recModel.setData(self.recGeom)                                 # update the three rec/rel/src models
             self.relModel.setData(self.relGeom)
             self.srcModel.setData(self.srcGeom)
+            if self.recView is not None:
+                self.recView.reset()
+            if self.relView is not None:
+                self.relView.reset()
+            if self.srcView is not None:
+                self.srcView.reset()
 
             self.handleImageSelection()                                         # change selection and plot survey
 
@@ -3544,7 +3834,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def fileOpenRecent(self):
         action = self.sender()
         if action:
-            self.fileLoad(action.data())
+            data = action.data()
+            if data is None:
+                return
+            to_string = getattr(data, 'toString', None)
+            fileName = to_string() if callable(to_string) else str(data)
+            if fileName and not os.path.isabs(fileName) and self.projectDirectory:
+                fileName = os.path.join(self.projectDirectory, fileName)
+            self.fileLoad(fileName)
 
     def fileSave(self):
         if not self.fileName:                                                   # need to have a valid filename first, and set the projectDirectory

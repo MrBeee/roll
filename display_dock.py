@@ -41,6 +41,7 @@ class _DisplayDockBuilder:
 
     def _init_shell(self):
         self.w.dockDisplay = QDockWidget('Display pane', self.w)
+        self.w.dockDisplay.setObjectName('dockDisplay')
         self.w.dockDisplay.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         self.w.dockDisplay.setStyleSheet('QDockWidget::title {background : lightblue;}')
 

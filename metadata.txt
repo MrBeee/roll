@@ -4,7 +4,7 @@
 # Mandatory items:
 [general]
 name=Roll
-qgisMinimumVersion=3.28
+qgisMinimumVersion=3.34
 supportsQt6=True
 description=Design and analysis of 3D seismic survey geometries
 version=0.5.9
@@ -44,7 +44,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:  <p>2026-02-13 (0.5.9) Made fold-map transparent for areas where fold = 0. Added context menu in SPS and Geometry tables, to edit 'in-use' status
+changelog:  <p>2026-02-23 (0.6.0) Made Roll a 'standalone' app for testing and debugging purposes. Raised minimum QGIS version to 3.34
+  <p>2026-02-13 (0.5.9) Made fold-map transparent for areas where fold = 0. Added context menu in SPS and Geometry tables, to edit 'in-use' status
   <p>2026-02-10 (0.5.8) Fixed a small bug in copying charts to the clipboard
   <p>2026-02-07 (0.5.7) Updated 'Find and Replace' dialog for direct Xml editing. Fixed enum bugs to ensure Qt6 compatibility
   <p>2026-02-07 (0.5.6) Added 'Preview & Print' to the file menu for the xml file and the pyqtgraph charts. Implemented copy & paste for pyqtgraph charts
@@ -60,7 +61,7 @@ changelog:  <p>2026-02-13 (0.5.9) Made fold-map transparent for areas where fold
   <p>2025-09-12 (0.4.6) The code has been reformatted to be compatible with Qt6. It should still be backwards compatible with Qt5
   <p>2025-06-09 (0.4.5) Accept projects that are created from SPS-data only (i.e. projects that are not template-based)
   <p>2025-06-01 (0.4.4) changed the way SPS source points are shown in QGIS: (point, line) has become (line, point) except for parallel/NAZ surveys
-  <p>2025-05-11 (0.4.3) several improvements in transferring data from Roll to QGis and vice versa. Created html help page in help menu
+  <p>2025-05-11 (0.4.3) several improvements in transferring data from Roll to QGIS and vice versa. Created html help page in help menu
   <p>2025-03-05 (0.4.2) refactoring of parameter management code, speeding up display in property pane of surveys with many blocks & seed points
   <p>2025-02-22 (0.4.1) implemented feathering in Marine Wizard; enabled selective drawing of survey details (lines and/or points and/or patterns)
   <p>2025-02-15 (0.4.0) updated Marine Wizard; simplifying data structure in case there's no streamer fanning, significantly speeding up property editing

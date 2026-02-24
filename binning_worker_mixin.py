@@ -21,6 +21,111 @@ from .worker_threads import (BinFromGeometryWorker, BinningWorker,
 class BinningWorkerMixin:
     """Keeps the binning/geometry worker-thread lifecycle outside RollMainWindow."""
 
+    def resolveColorMapName(self, value, fallback='CET-L1'):
+        name = None
+        if isinstance(value, pg.ColorMap):
+            name = getattr(value, 'name', None)
+            if callable(name):
+                name = name()
+        elif isinstance(value, str):
+            name = value
+        elif isinstance(value, bytes):
+            name = value.decode(errors='ignore')
+        else:
+            to_string = getattr(value, 'toString', None)
+            if callable(to_string):
+                try:
+                    name = to_string()
+                except Exception:
+                    name = None
+            if name is None:
+                try:
+                    name = str(value)
+                except Exception:
+                    name = None
+
+        available = pg.colormap.listMaps()
+        if name and name in available:
+            return name
+
+        if fallback in available:
+            return fallback
+
+        for candidate in ('viridis', 'plasma', 'magma', 'inferno', 'grey', 'gray'):
+            if candidate in available:
+                return candidate
+
+        if available:
+            return available[0]
+
+        return pg.ColorMap([0.0, 1.0], [(0, 0, 0, 255), (255, 255, 255, 255)])
+
+    def coerceColorMap(self, value, fallback='CET-L1'):
+        if isinstance(value, (str, pg.ColorMap)):
+            return value
+
+        name = None
+        try:
+            name = str(value)
+        except Exception:
+            name = None
+
+        if name:
+            resolved = self.resolveColorMapName(name, fallback=fallback)
+            if isinstance(resolved, (str, pg.ColorMap)):
+                return resolved
+
+        available = pg.colormap.listMaps()
+        if available:
+            return available[0]
+
+        return pg.ColorMap([0.0, 1.0], [(0, 0, 0, 255), (255, 255, 255, 255)])
+
+    def resolveColorMapObject(self, value, fallback='viridis'):
+        if isinstance(value, pg.ColorMap):
+            return value
+
+        name = None
+        if isinstance(value, str):
+            name = value
+        elif isinstance(value, bytes):
+            name = value.decode(errors='ignore')
+        else:
+            to_string = getattr(value, 'toString', None)
+            if callable(to_string):
+                try:
+                    name = to_string()
+                except Exception:
+                    name = None
+            if name is None:
+                try:
+                    name = str(value)
+                except Exception:
+                    name = None
+
+        if name:
+            cmap = pg.colormap.get(name)
+            if cmap is not None:
+                return cmap
+
+        fallback_cmap = pg.colormap.get(fallback)
+        if fallback_cmap is not None:
+            return fallback_cmap
+
+        available = pg.colormap.listMaps()
+        for candidate in ('viridis', 'plasma', 'magma', 'inferno', 'grey', 'gray'):
+            if candidate in available:
+                cmap = pg.colormap.get(candidate)
+                if cmap is not None:
+                    return cmap
+
+        if available:
+            cmap = pg.colormap.get(available[0])
+            if cmap is not None:
+                return cmap
+
+        return pg.ColorMap([0.0, 1.0], [(0, 0, 0, 255), (255, 255, 255, 255)])
+
     def testBasicBinningConditions(self) -> bool:
         if self.survey.unique.apply:
             QMessageBox.information(
@@ -360,7 +465,7 @@ class BinningWorkerMixin:
             if self.layoutColorBar is None:
                 self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
                     self.layoutImItem,
-                    colorMap=config.fold_OffCmap,
+                    colorMap=self.resolveColorMapName(config.fold_OffCmap, fallback='CET-L4'),
                     label=label,
                     limits=(0, None),
                     rounding=10.0,
@@ -369,7 +474,7 @@ class BinningWorkerMixin:
             else:
                 self.layoutColorBar.setImageItem(self.layoutImItem)
                 self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-                self.layoutColorBar.setColorMap(config.fold_OffCmap)
+                self.layoutColorBar.setColorMap(self.resolveColorMapName(config.fold_OffCmap, fallback='CET-L4'))
                 self.setColorbarLabel(label)
 
             self.plotLayout()

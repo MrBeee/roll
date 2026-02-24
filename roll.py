@@ -40,7 +40,7 @@ except ImportError as ie:
     haveDebugpy = False
 
 # Import statement to acces the main window
-from .roll_main_window import RollMainWindow
+from .roll_main_window import RollMainWindow, runStandalone
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 resource_dir = os.path.join(current_dir, 'resources')
@@ -294,10 +294,10 @@ class Roll:
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start:
             self.first_start = False
-            self.mainWindow = RollMainWindow()
+            self.mainWindow = RollMainWindow(iface = self.iface)                # Bart: pass iface to mainWindow, so that it can access QGIS interface
 
         if self.mainWindow is None or self.mainWindow.killMe is True:           # Bart: Restart the GUI from scratch, when previously closed
-            self.mainWindow = RollMainWindow()
+            self.mainWindow = RollMainWindow(iface = self.iface)                # Bart: pass iface to mainWindow, so that it can access QGIS interface
 
         # show the main window
         self.mainWindow.show()                                                  # bring window to top on OSX and windows
@@ -306,16 +306,3 @@ class Roll:
             self.mainWindow.showNormal()                                        # bring window from minimized state on windows
         self.mainWindow.activateWindow()                                        # bring window to front on OSX and windows
         # self.mainWindow.setFocus()                                            # No need to set the focus
-
-        self.mainWindow.iface = self.iface                                      # Bart: mainWindow needs to get hold of the interface to QGis
-
-# code to run Roll standalone, without QGIS, for testing and development purposes
-# Run on Windows from the OSGeo4W/QGIS Python shell:
-# python d:\QGis\MyPlugins\roll\roll.py
-
-if __name__ == '__main__':
-    try:
-        from .roll_main_window import runStandalone
-    except ImportError:
-        from roll_main_window import runStandalone
-    raise SystemExit(runStandalone())

@@ -395,7 +395,7 @@ class SpsImportDialog(QDialog):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        config.reset_sps_database()
+        config.resetSpsDatabase()
 
         settings = QSettings(config.organization, config.application)
         for group in (

@@ -100,17 +100,23 @@ def createTraceTableTab(self):
     self.btnLastPage.clicked.connect(self._goToLastPage)
     self.btnGoto.clicked.connect(self._goToSpecificRow)
 
-    # then create the layout
-    self.tabTraces.layout = QVBoxLayout(self)
-    self.tabTraces.layout.setContentsMargins(1, 1, 1, 1)
-    self.tabTraces.layout.addWidget(self.anaLabel)
-    self.tabTraces.layout.addWidget(self.anaView)
+    # then create the layout (reuse existing layout if tab is rebuilt)
+    tabLayout = self.tabTraces.layout()
+    if tabLayout is None:
+        tabLayout = QVBoxLayout(self.tabTraces)
+        tabLayout.setContentsMargins(1, 1, 1, 1)
+    else:
+        while tabLayout.count():
+            item = tabLayout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+
+    tabLayout.addWidget(self.anaLabel)
+    tabLayout.addWidget(self.anaView)
 
     # Add the pagination widget to the layout near the trace table
-    self.tabTraces.layout.addWidget(self.paginationWidget)
-
-    # put table on traces tab
-    self.tabTraces.setLayout(self.tabTraces.layout)
+    tabLayout.addWidget(self.paginationWidget)
 
     # initialize page info
     self._updatePageInfo()

@@ -238,7 +238,7 @@ _spsFormatDefaults = copy.deepcopy(spsFormatList)
 _rpsFormatDefaults = copy.deepcopy(rpsFormatList)
 _xpsFormatDefaults = copy.deepcopy(xpsFormatList)
 
-def reset_sps_database():
+def resetSpsDatabase():
     global spsFormatList, rpsFormatList, xpsFormatList                      # pylint: disable=W0603; need to update global variables
     spsFormatList = copy.deepcopy(_spsFormatDefaults)
     rpsFormatList = copy.deepcopy(_rpsFormatDefaults)
@@ -272,8 +272,8 @@ showSummaries = False
 
 # debug parameters in settings menu
 # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
-debug = False   # show debug messages in Logging pane
-debugpy = False   # run worker threads in debug mode
+debug = True                                                                    # show debug messages in Logging pane
+debugpy = False                                                                 # run worker threads in debug mode
 
 # QTableView can handle a max number of rows without 'hanging' QGIS.
 # For this reason a chunked approach is used to show analysis results in the table view.
