@@ -587,18 +587,27 @@ class SpsImportDialog(QDialog):
         xpsText = ''
         rpsText = ''
 
+        # local function to safely read sps files with fallback encodings and error handling
+        def readTextFileSafe(filePath: str) -> str:
+            try:
+                with open(filePath, 'r', encoding='utf-8') as file:
+                    return file.read()
+            except UnicodeDecodeError:
+                with open(filePath, 'r', encoding='latin-1', errors='replace') as file:
+                    return file.read()
+            except OSError as ex:
+                QMessageBox.warning(self, 'File read error', f'Could not read:\n{filePath}\n\n{ex}')
+                return ''
+
         with pg.BusyCursor():                                               # this may take a while; start wait cursor
             for spsFile in self.spsFiles:
-                with open(spsFile, 'r', encoding='utf-8') as file:
-                    spsText += file.read()
+                spsText += readTextFileSafe(spsFile)
 
             for xpsFile in self.xpsFiles:
-                with open(xpsFile, 'r', encoding='utf-8') as file:
-                    xpsText += file.read()
+                xpsText += readTextFileSafe(xpsFile)
 
             for rpsFile in self.rpsFiles:
-                with open(rpsFile, 'r', encoding='utf-8') as file:
-                    rpsText += file.read()
+                rpsText += readTextFileSafe(rpsFile)
 
             self.spsTab.setPlainText(spsText)  # for some reason unknown, the text is not colored properly, when setPlainText is used
             self.xpsTab.setPlainText(xpsText)  # see: https://doc.qt.io/qtforpython-6.5/examples/example_widgets_richtext_syntaxhighlighter.html

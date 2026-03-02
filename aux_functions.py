@@ -78,6 +78,19 @@ def toInt(value: any, default: int = 0) -> int:
     except ValueError:
         return default
 
+def toBool(value: any, default=False) -> bool:
+    if value is None:                                                         # if you expect None to be passed
+        return default
+    try:
+        if value.lower() in ['true', '1', 'yes']:
+            return True
+        if value.lower() in ['false', '0', 'no']:
+            return False
+        else:
+            return default
+    except AttributeError:
+        return default
+
 
 def knotToMeterperSec(speed: float) -> float:
     return speed * 0.514444444
@@ -311,7 +324,7 @@ def rotatePoint2D(x: float, y: float, angle: float) -> tuple:
     return x1, y1
 
 
-def dummyText_on_nDFT():
+def dummyTextOnNDFT():
     # For the Kr stack response, we need to do a DFT (not an FFT)
     # With a stack response you don't have even intervals between subsequent points as in a 'nornal' DFT/FFT
     # The intervals are defined by the |offset| increments between subsequent traces
@@ -391,14 +404,14 @@ def makeParmsFromPen(pen):
     return params
 
 
-def natural_sort(lst):
+def naturalSort(lst):
     def convert(text):
         return int(text) if text.isdigit() else text.lower()
 
-    def alphanum_key(key):
+    def alphanumKey(key):
         return [convert(c) for c in re.split('([0-9]+)', key)]
 
-    return sorted(lst, key=alphanum_key)
+    return sorted(lst, key=alphanumKey)
 
 
 def containsPoint2D(border: QRectF, point: QPointF) -> bool:
@@ -538,8 +551,8 @@ def rawcount(filename):
     return lines
 
 
-def buf_count_newlines_gen(fname):
-    def _make_gen(reader):
+def bufCountNewlinesGen(fname):
+    def makeGen(reader):
         while True:
             b = reader(2**16)
             if not b:
@@ -547,7 +560,7 @@ def buf_count_newlines_gen(fname):
             yield b
 
     with open(fname, 'rb') as f:
-        count = sum(buf.count(b'\n') for buf in _make_gen(f.raw.read))
+        count = sum(buf.count(b'\n') for buf in makeGen(f.raw.read))
     return count
 
 
@@ -592,7 +605,7 @@ def isFileInUse(file_path):
         return False
 
 
-def get_unpicklable(instance, exception=None, string='', first_only=True):
+def getUnpicklable(instance, exception=None, string='', first_only=True):
     # See: https://stackoverflow.com/questions/30499341/establishing-why-an-object-cant-be-pickled
     """
     Recursively go through all attributes of instance and return a list of whatever can't be pickled.
@@ -606,7 +619,7 @@ def get_unpicklable(instance, exception=None, string='', first_only=True):
             try:
                 pickle.dumps(v)
             except BaseException as e:
-                problems.extend(get_unpicklable(v, e, string + f'[{k}]'))
+                problems.extend(getUnpicklable(v, e, string + f'[{k}]'))
                 if first_only:
                     break
     elif isinstance(instance, dict):
@@ -614,14 +627,14 @@ def get_unpicklable(instance, exception=None, string='', first_only=True):
             try:
                 pickle.dumps(k)
             except BaseException as e:
-                problems.extend(get_unpicklable(k, e, string + f'[key type={type(k).__name__}]'))
+                problems.extend(getUnpicklable(k, e, string + f'[key type={type(k).__name__}]'))
                 if first_only:
                     break
         for v in instance.values():
             try:
                 pickle.dumps(v)
             except BaseException as e:
-                problems.extend(get_unpicklable(v, e, string + f'[val type={type(v).__name__}]'))
+                problems.extend(getUnpicklable(v, e, string + f'[val type={type(v).__name__}]'))
                 if first_only:
                     break
     else:
@@ -629,7 +642,7 @@ def get_unpicklable(instance, exception=None, string='', first_only=True):
             try:
                 pickle.dumps(v)
             except BaseException as e:
-                problems.extend(get_unpicklable(v, e, string + '.' + k))
+                problems.extend(getUnpicklable(v, e, string + '.' + k))
 
     # if we get here, it means pickling instance caused an exception (string is not
     # empty), yet no member was a problem (problems is empty), thus instance itself
@@ -639,7 +652,7 @@ def get_unpicklable(instance, exception=None, string='', first_only=True):
     return problems
 
 
-def compute_lcm(x, y):
+def computeLcm(x, y):
     # function to find the Least Common Multiple (LCM) of two input numbers
     # choose the greater number
     if x > y:
@@ -798,7 +811,7 @@ def aboutText() -> str:
         f'<li>Wellpathpy version: {wp.__version__} </li></ul>'
         f'Source code is available on GitHub {sourceUrl} <br> '
         f'Sample projects are available on GitHub {sampleUrl} <br><br> '
-        f'Copyright © 2022-2025 by Duijndam.Dev'
+        f'Copyright © 2022-2026 by Duijndam.Dev'
     )
 
     return text

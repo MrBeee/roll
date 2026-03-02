@@ -8,7 +8,7 @@ from qgis.PyQt.QtGui import QKeySequence, QTextOption
 from qgis.PyQt.QtWidgets import QDockWidget, QPlainTextEdit
 
 
-def create_logging_dock(window):
+def createLoggingDock(window):
     """Construct the logging dock for RollMainWindow."""
     return _LoggingDockBuilder(window).build()
 

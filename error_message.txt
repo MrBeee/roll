@@ -1,10 +1,777 @@
-2026-02-03T00:13:46     WARNING    Traceback (most recent call last):
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 3601, in fileExportRpsAsR01
-              records, fn = fileExportAsR01(self, self.fileName, '.rps.r01', self.rpsView, self.survey.crs)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\sps_io_and_qc.py", line 750, in fileExportAsR01
-              np.savetxt(fn, rpsData, delimiter='', fmt=fmt, comments='', header=hdr)
-              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numpy\lib\npyio.py", line 1589, in savetxt
-              raise AttributeError('fmt has wrong shape. %s' % str(fmt))
-             AttributeError: fmt has wrong shape. ('%1s', '%10.2f', '%10.2f', '%1d', '%2s', '%4d', '%4.1f', '%4d', '%2d', '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6d')
+2026-03-02T14:31:10     WARNING    Traceback (most recent call last):
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 755, in eventFilter
+              self.updateVisiblePlotWidget(plotIndex)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 1859, in updateVisiblePlotWidget
+              self.plotOffTrk(nY, stkY, ox)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2293, in plotOffTrk
+              slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 443, in _compile_for_args
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 376, in _compile_for_args
+              return_val = self.compile(tuple(argtypes))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 908, in compile
+              cres = self._compiler.compile(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 80, in compile
+              status, retval = self._compile_cached(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 94, in _compile_cached
+              retval = self._compile_core(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 107, in _compile_core
+              cres = compiler.compile_extra(self.targetdescr.typing_context,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 739, in compile_extra
+              return pipeline.compile_extra(func)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 439, in compile_extra
+              return self._compile_bytecode()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 505, in _compile_bytecode
+              return self._compile_core()
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 481, in _compile_core
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 473, in _compile_core
+              pm.run(self.state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 363, in run
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 356, in run
+              self._runPass(idx, pass_inst, state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_lock.py", line 35, in _acquire_compile_lock
+              return func(*args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 311, in _runPass
+              mutated |= check(pss.run_pass, internal_state)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 272, in check
+              mangled = func(compiler_state)
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 114, in run_pass
+              typemap, return_type, calltypes, errs = type_inference_stage(
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 95, in type_inference_stage
+              errs = infer.propagate(raise_errors=raise_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1075, in propagate
+              errors = self.constraints.propagate(self)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 160, in propagate
+              constraint(typeinfer)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 572, in __call__
+              self.resolve(typeinfer, typevars, fnty)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 595, in resolve
+              sig = typeinfer.resolve_call(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1569, in resolve_call
+              return self.context.resolve_function_type(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 279, in resolve_function_type
+              res = self._resolve_user_function_type(func, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 335, in _resolve_user_function_type
+              return func.get_call_type(self, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 404, in get_call_type
+              raise exc
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 401, in get_call_type
+              out = template.apply(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1140, in generic
+              sig = self._get_signature(self.context, fnty, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1085, in _get_signature
+              sig = fnty.get_call_type(typingctx, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 314, in get_call_type
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 311, in get_call_type
+              sig = temp.apply(nolitargs, nolitkws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 621, in generic
+              disp, new_args = self._get_impl(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 720, in _get_impl
+              impl, args = self._build_impl(cache_key, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 824, in _build_impl
+              disp_type.get_call_type(self.context, args, kws)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 541, in get_call_type
+              self.dispatcher.get_call_template(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             AttributeError: 'function' object has no attribute 'get_call_template'
+             
+2026-03-02T14:31:11     WARNING    Traceback (most recent call last):
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 755, in eventFilter
+              self.updateVisiblePlotWidget(plotIndex)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 1861, in updateVisiblePlotWidget
+              self.plotOffBin(nX, stkX, oy)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2309, in plotOffBin
+              slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 443, in _compile_for_args
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 376, in _compile_for_args
+              return_val = self.compile(tuple(argtypes))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 908, in compile
+              cres = self._compiler.compile(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 80, in compile
+              status, retval = self._compile_cached(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 94, in _compile_cached
+              retval = self._compile_core(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 107, in _compile_core
+              cres = compiler.compile_extra(self.targetdescr.typing_context,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 739, in compile_extra
+              return pipeline.compile_extra(func)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 439, in compile_extra
+              return self._compile_bytecode()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 505, in _compile_bytecode
+              return self._compile_core()
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 481, in _compile_core
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 473, in _compile_core
+              pm.run(self.state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 363, in run
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 356, in run
+              self._runPass(idx, pass_inst, state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_lock.py", line 35, in _acquire_compile_lock
+              return func(*args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 311, in _runPass
+              mutated |= check(pss.run_pass, internal_state)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 272, in check
+              mangled = func(compiler_state)
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 114, in run_pass
+              typemap, return_type, calltypes, errs = type_inference_stage(
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 95, in type_inference_stage
+              errs = infer.propagate(raise_errors=raise_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1075, in propagate
+              errors = self.constraints.propagate(self)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 160, in propagate
+              constraint(typeinfer)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 572, in __call__
+              self.resolve(typeinfer, typevars, fnty)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 595, in resolve
+              sig = typeinfer.resolve_call(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1569, in resolve_call
+              return self.context.resolve_function_type(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 279, in resolve_function_type
+              res = self._resolve_user_function_type(func, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 335, in _resolve_user_function_type
+              return func.get_call_type(self, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 404, in get_call_type
+              raise exc
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 401, in get_call_type
+              out = template.apply(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1140, in generic
+              sig = self._get_signature(self.context, fnty, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1085, in _get_signature
+              sig = fnty.get_call_type(typingctx, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 314, in get_call_type
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 311, in get_call_type
+              sig = temp.apply(nolitargs, nolitkws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 621, in generic
+              disp, new_args = self._get_impl(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 720, in _get_impl
+              impl, args = self._build_impl(cache_key, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 824, in _build_impl
+              disp_type.get_call_type(self.context, args, kws)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 541, in get_call_type
+              self.dispatcher.get_call_template(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             AttributeError: 'function' object has no attribute 'get_call_template'
+             
+2026-03-02T14:31:13     WARNING    Traceback (most recent call last):
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 755, in eventFilter
+              self.updateVisiblePlotWidget(plotIndex)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 1863, in updateVisiblePlotWidget
+              self.plotAziTrk(nY, stkY, ox)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2326, in plotAziTrk
+              slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 443, in _compile_for_args
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 376, in _compile_for_args
+              return_val = self.compile(tuple(argtypes))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 908, in compile
+              cres = self._compiler.compile(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 80, in compile
+              status, retval = self._compile_cached(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 94, in _compile_cached
+              retval = self._compile_core(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 107, in _compile_core
+              cres = compiler.compile_extra(self.targetdescr.typing_context,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 739, in compile_extra
+              return pipeline.compile_extra(func)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 439, in compile_extra
+              return self._compile_bytecode()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 505, in _compile_bytecode
+              return self._compile_core()
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 481, in _compile_core
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 473, in _compile_core
+              pm.run(self.state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 363, in run
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 356, in run
+              self._runPass(idx, pass_inst, state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_lock.py", line 35, in _acquire_compile_lock
+              return func(*args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 311, in _runPass
+              mutated |= check(pss.run_pass, internal_state)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 272, in check
+              mangled = func(compiler_state)
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 114, in run_pass
+              typemap, return_type, calltypes, errs = type_inference_stage(
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 95, in type_inference_stage
+              errs = infer.propagate(raise_errors=raise_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1075, in propagate
+              errors = self.constraints.propagate(self)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 160, in propagate
+              constraint(typeinfer)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 572, in __call__
+              self.resolve(typeinfer, typevars, fnty)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 595, in resolve
+              sig = typeinfer.resolve_call(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1569, in resolve_call
+              return self.context.resolve_function_type(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 279, in resolve_function_type
+              res = self._resolve_user_function_type(func, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 335, in _resolve_user_function_type
+              return func.get_call_type(self, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 404, in get_call_type
+              raise exc
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 401, in get_call_type
+              out = template.apply(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1140, in generic
+              sig = self._get_signature(self.context, fnty, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1085, in _get_signature
+              sig = fnty.get_call_type(typingctx, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 314, in get_call_type
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 311, in get_call_type
+              sig = temp.apply(nolitargs, nolitkws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 621, in generic
+              disp, new_args = self._get_impl(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 720, in _get_impl
+              impl, args = self._build_impl(cache_key, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 824, in _build_impl
+              disp_type.get_call_type(self.context, args, kws)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 541, in get_call_type
+              self.dispatcher.get_call_template(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             AttributeError: 'function' object has no attribute 'get_call_template'
+             
+2026-03-02T14:31:13     WARNING    Traceback (most recent call last):
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 755, in eventFilter
+              self.updateVisiblePlotWidget(plotIndex)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 1865, in updateVisiblePlotWidget
+              self.plotAziBin(nX, stkX, oy)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2343, in plotAziBin
+              slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 443, in _compile_for_args
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 376, in _compile_for_args
+              return_val = self.compile(tuple(argtypes))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 908, in compile
+              cres = self._compiler.compile(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 80, in compile
+              status, retval = self._compile_cached(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 94, in _compile_cached
+              retval = self._compile_core(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 107, in _compile_core
+              cres = compiler.compile_extra(self.targetdescr.typing_context,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 739, in compile_extra
+              return pipeline.compile_extra(func)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 439, in compile_extra
+              return self._compile_bytecode()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 505, in _compile_bytecode
+              return self._compile_core()
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 481, in _compile_core
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 473, in _compile_core
+              pm.run(self.state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 363, in run
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 356, in run
+              self._runPass(idx, pass_inst, state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_lock.py", line 35, in _acquire_compile_lock
+              return func(*args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 311, in _runPass
+              mutated |= check(pss.run_pass, internal_state)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 272, in check
+              mangled = func(compiler_state)
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 114, in run_pass
+              typemap, return_type, calltypes, errs = type_inference_stage(
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 95, in type_inference_stage
+              errs = infer.propagate(raise_errors=raise_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1075, in propagate
+              errors = self.constraints.propagate(self)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 160, in propagate
+              constraint(typeinfer)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 572, in __call__
+              self.resolve(typeinfer, typevars, fnty)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 595, in resolve
+              sig = typeinfer.resolve_call(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1569, in resolve_call
+              return self.context.resolve_function_type(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 279, in resolve_function_type
+              res = self._resolve_user_function_type(func, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 335, in _resolve_user_function_type
+              return func.get_call_type(self, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 404, in get_call_type
+              raise exc
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 401, in get_call_type
+              out = template.apply(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1140, in generic
+              sig = self._get_signature(self.context, fnty, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1085, in _get_signature
+              sig = fnty.get_call_type(typingctx, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 314, in get_call_type
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 311, in get_call_type
+              sig = temp.apply(nolitargs, nolitkws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 621, in generic
+              disp, new_args = self._get_impl(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 720, in _get_impl
+              impl, args = self._build_impl(cache_key, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 824, in _build_impl
+              disp_type.get_call_type(self.context, args, kws)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 541, in get_call_type
+              self.dispatcher.get_call_template(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             AttributeError: 'function' object has no attribute 'get_call_template'
+             
+2026-03-02T14:31:14     WARNING    Traceback (most recent call last):
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 755, in eventFilter
+              self.updateVisiblePlotWidget(plotIndex)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 1867, in updateVisiblePlotWidget
+              self.plotStkTrk(nY, stkY, x0, dx)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2360, in plotStkTrk
+              slice3D, I = numbaSlice3D(self.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 443, in _compile_for_args
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 376, in _compile_for_args
+              return_val = self.compile(tuple(argtypes))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 908, in compile
+              cres = self._compiler.compile(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 80, in compile
+              status, retval = self._compile_cached(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 94, in _compile_cached
+              retval = self._compile_core(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 107, in _compile_core
+              cres = compiler.compile_extra(self.targetdescr.typing_context,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 739, in compile_extra
+              return pipeline.compile_extra(func)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 439, in compile_extra
+              return self._compile_bytecode()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 505, in _compile_bytecode
+              return self._compile_core()
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 481, in _compile_core
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 473, in _compile_core
+              pm.run(self.state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 363, in run
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 356, in run
+              self._runPass(idx, pass_inst, state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_lock.py", line 35, in _acquire_compile_lock
+              return func(*args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 311, in _runPass
+              mutated |= check(pss.run_pass, internal_state)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 272, in check
+              mangled = func(compiler_state)
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 114, in run_pass
+              typemap, return_type, calltypes, errs = type_inference_stage(
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 95, in type_inference_stage
+              errs = infer.propagate(raise_errors=raise_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1075, in propagate
+              errors = self.constraints.propagate(self)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 160, in propagate
+              constraint(typeinfer)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 572, in __call__
+              self.resolve(typeinfer, typevars, fnty)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 595, in resolve
+              sig = typeinfer.resolve_call(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1569, in resolve_call
+              return self.context.resolve_function_type(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 279, in resolve_function_type
+              res = self._resolve_user_function_type(func, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 335, in _resolve_user_function_type
+              return func.get_call_type(self, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 404, in get_call_type
+              raise exc
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 401, in get_call_type
+              out = template.apply(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1140, in generic
+              sig = self._get_signature(self.context, fnty, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1085, in _get_signature
+              sig = fnty.get_call_type(typingctx, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 314, in get_call_type
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 311, in get_call_type
+              sig = temp.apply(nolitargs, nolitkws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 621, in generic
+              disp, new_args = self._get_impl(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 720, in _get_impl
+              impl, args = self._build_impl(cache_key, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 824, in _build_impl
+              disp_type.get_call_type(self.context, args, kws)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 541, in get_call_type
+              self.dispatcher.get_call_template(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             AttributeError: 'function' object has no attribute 'get_call_template'
+             
+2026-03-02T14:31:15     WARNING    Traceback (most recent call last):
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 755, in eventFilter
+              self.updateVisiblePlotWidget(plotIndex)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 1869, in updateVisiblePlotWidget
+              self.plotStkBin(nX, stkX, y0, dy)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2430, in plotStkBin
+              slice3D, I = numbaSlice3D(self.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 443, in _compile_for_args
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 376, in _compile_for_args
+              return_val = self.compile(tuple(argtypes))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 908, in compile
+              cres = self._compiler.compile(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 80, in compile
+              status, retval = self._compile_cached(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 94, in _compile_cached
+              retval = self._compile_core(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 107, in _compile_core
+              cres = compiler.compile_extra(self.targetdescr.typing_context,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 739, in compile_extra
+              return pipeline.compile_extra(func)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 439, in compile_extra
+              return self._compile_bytecode()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 505, in _compile_bytecode
+              return self._compile_core()
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 481, in _compile_core
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 473, in _compile_core
+              pm.run(self.state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 363, in run
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 356, in run
+              self._runPass(idx, pass_inst, state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_lock.py", line 35, in _acquire_compile_lock
+              return func(*args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 311, in _runPass
+              mutated |= check(pss.run_pass, internal_state)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 272, in check
+              mangled = func(compiler_state)
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 114, in run_pass
+              typemap, return_type, calltypes, errs = type_inference_stage(
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 95, in type_inference_stage
+              errs = infer.propagate(raise_errors=raise_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1075, in propagate
+              errors = self.constraints.propagate(self)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 160, in propagate
+              constraint(typeinfer)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 572, in __call__
+              self.resolve(typeinfer, typevars, fnty)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 595, in resolve
+              sig = typeinfer.resolve_call(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1569, in resolve_call
+              return self.context.resolve_function_type(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 279, in resolve_function_type
+              res = self._resolve_user_function_type(func, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 335, in _resolve_user_function_type
+              return func.get_call_type(self, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 404, in get_call_type
+              raise exc
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 401, in get_call_type
+              out = template.apply(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1140, in generic
+              sig = self._get_signature(self.context, fnty, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1085, in _get_signature
+              sig = fnty.get_call_type(typingctx, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 314, in get_call_type
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 311, in get_call_type
+              sig = temp.apply(nolitargs, nolitkws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 621, in generic
+              disp, new_args = self._get_impl(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 720, in _get_impl
+              impl, args = self._build_impl(cache_key, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 824, in _build_impl
+              disp_type.get_call_type(self.context, args, kws)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 541, in get_call_type
+              self.dispatcher.get_call_template(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             AttributeError: 'function' object has no attribute 'get_call_template'
+             
+2026-03-02T14:31:15     WARNING    Traceback (most recent call last):
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 755, in eventFilter
+              self.updateVisiblePlotWidget(plotIndex)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 1871, in updateVisiblePlotWidget
+              self.plotStkCel(nX, nY, stkX, stkY)
+              File "C:\Users/BartD/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\roll\roll_main_window.py", line 2506, in plotStkCel
+              offsetX, offsetY, noData = numbaOffsetBin(self.output.anaOutput[nX, nY, :, :], self.survey.unique.apply)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 443, in _compile_for_args
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 376, in _compile_for_args
+              return_val = self.compile(tuple(argtypes))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 908, in compile
+              cres = self._compiler.compile(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 80, in compile
+              status, retval = self._compile_cached(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 94, in _compile_cached
+              retval = self._compile_core(args, return_type)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\dispatcher.py", line 107, in _compile_core
+              cres = compiler.compile_extra(self.targetdescr.typing_context,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 739, in compile_extra
+              return pipeline.compile_extra(func)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 439, in compile_extra
+              return self._compile_bytecode()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 505, in _compile_bytecode
+              return self._compile_core()
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 481, in _compile_core
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler.py", line 473, in _compile_core
+              pm.run(self.state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 363, in run
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 356, in run
+              self._runPass(idx, pass_inst, state)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_lock.py", line 35, in _acquire_compile_lock
+              return func(*args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 311, in _runPass
+              mutated |= check(pss.run_pass, internal_state)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\compiler_machinery.py", line 272, in check
+              mangled = func(compiler_state)
+              ^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 114, in run_pass
+              typemap, return_type, calltypes, errs = type_inference_stage(
+              ^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typed_passes.py", line 95, in type_inference_stage
+              errs = infer.propagate(raise_errors=raise_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1075, in propagate
+              errors = self.constraints.propagate(self)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 160, in propagate
+              constraint(typeinfer)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 572, in __call__
+              self.resolve(typeinfer, typevars, fnty)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 595, in resolve
+              sig = typeinfer.resolve_call(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typeinfer.py", line 1569, in resolve_call
+              return self.context.resolve_function_type(fnty, pos_args, kw_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 279, in resolve_function_type
+              res = self._resolve_user_function_type(func, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\context.py", line 335, in _resolve_user_function_type
+              return func.get_call_type(self, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 404, in get_call_type
+              raise exc
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 401, in get_call_type
+              out = template.apply(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1140, in generic
+              sig = self._get_signature(self.context, fnty, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 1085, in _get_signature
+              sig = fnty.get_call_type(typingctx, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 314, in get_call_type
+              raise e
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 311, in get_call_type
+              sig = temp.apply(nolitargs, nolitkws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 358, in apply
+              sig = generic(args, kws)
+              ^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 621, in generic
+              disp, new_args = self._get_impl(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 720, in _get_impl
+              impl, args = self._build_impl(cache_key, args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\typing\templates.py", line 824, in _build_impl
+              disp_type.get_call_type(self.context, args, kws)
+              File "C:\PROGRA~1\QGIS33~1.13\apps\Python312\Lib\site-packages\numba\core\types\functions.py", line 541, in get_call_type
+              self.dispatcher.get_call_template(args, kws)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             AttributeError: 'function' object has no attribute 'get_call_template'
              

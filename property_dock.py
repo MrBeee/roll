@@ -10,7 +10,7 @@ from qgis.PyQt.QtWidgets import (QDialogButtonBox, QDockWidget, QHeaderView,
                                  QVBoxLayout, QWidget)
 
 
-def create_property_dock(window):
+def createPropertyDock(window):
     """Construct the property dock for RollMainWindow."""
     return _PropertyDockBuilder(window).build()
 

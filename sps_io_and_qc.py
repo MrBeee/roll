@@ -986,7 +986,7 @@ def calculateLineStakeTransform(spsImport) -> []:
     M2 = np.concatenate([x1, y1])
 
     # ABCDEF = np.linalg.lstsq(M1, M2)[0]                                       # the A0_B0_A1_B1_A2_B2 array is first parameter to be returned
-    ABCDEF, residuals, *_ = np.linalg.lstsq(M1, M2)                             # unused rank and sing replaced by *_ to avoid warning
+    ABCDEF, residuals, *_ = np.linalg.lstsq(M1, M2, rcond=None)                             # unused rank and sing replaced by *_ to avoid warning
     myPrint(ABCDEF)
     myPrint(residuals[0] if residuals.size > 0 else 0 / M1.shape[0])
 

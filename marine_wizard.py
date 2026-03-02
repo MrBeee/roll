@@ -2462,7 +2462,7 @@ class Page_7(SurveyWizardPage):
         self.setLayout(layout)
 
         self.registerField('crs', self.proj_selector)
-        self.proj_selector.crsSelected.connect(self.crs_selected)
+        self.proj_selector.crsSelected.connect(self.crsSelected)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         myPrint('initialize page 7')
@@ -2471,7 +2471,7 @@ class Page_7(SurveyWizardPage):
         self.parent.page(4).plot()                                              # needed to update the plot
         myPrint('cleanup of page 7')
 
-    def crs_selected(self):
+    def crsSelected(self):
         # See: https://api.qgis.org/api/classQgsCoordinateReferenceSystem.html
 
         if self.proj_selector.crs().isGeographic():

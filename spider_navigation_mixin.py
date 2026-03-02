@@ -7,10 +7,10 @@
 # Adding an __init__ here would force every subclass to remember calling super().__init__() in the right order,
 # which is easy to forget and can break other base classes because Python’s MRO would run multiple constructors that weren’t designed to cooperate.
 # All state the mixin needs is created elsewhere: the host window instantiates the toolbar actions, numpy models, transforms, etc.
-# The mixin only binds signals via setup_spider_actions() and relies on attributes that already exist.
+# The mixin only binds signals via setupSpiderActions() and relies on attributes that already exist.
 # That keeps the mixin “passive” and avoids side effects during construction.
 # If someday the mixin does need to set up its own attributes,
-# the typical pattern is to expose a dedicated setup method (like setup_spider_actions()) that the concrete class calls after its own initialization.
+# the typical pattern is to expose a dedicated setup method (like setupSpiderActions()) that the concrete class calls after its own initialization.
 # This is more explicit and doesn’t interfere with other base classes’ constructors.
 # So skipping __init__ is deliberate: it keeps the mixin lightweight, predictable, and safe to reuse in multiple inheritance hierarchies.
 
@@ -33,7 +33,7 @@ from .functions_numba import numbaSpiderBin
 class SpiderNavigationMixin:
     """Reusable spider-navigation behaviour for RollMainWindow variants."""
 
-    def setup_spider_actions(self) -> None:
+    def setupSpiderActions(self) -> None:
         """Wire toolbar buttons to the mixin handlers; call once during init."""
         self.actionMoveLt.triggered.connect(self.spiderGoLt)
         self.actionMoveRt.triggered.connect(self.spiderGoRt)
@@ -224,9 +224,9 @@ class SpiderNavigationMixin:
         chunk_size = chunked.chunk_size
         target_chunk = global_offset // chunk_size
 
-        if chunked.current_chunk != target_chunk and chunked.goto_chunk(target_chunk):
+        if chunked.current_chunk != target_chunk and chunked.gotoChunk(target_chunk):
             self.anaModel.layoutAboutToBeChanged.emit()
-            self.anaModel._data = np.copy(chunked.get_current_chunk())
+            self.anaModel._data = np.copy(chunked.getCurrentChunk())
             self.anaModel.layoutChanged.emit()
             self._updatePageInfo()
 

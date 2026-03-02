@@ -1,5 +1,7 @@
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QActionGroup, QComboBox, QFrame, QGroupBox, QHBoxLayout, QSplitter, QToolButton, QVBoxLayout
+from qgis.PyQt.QtWidgets import (QActionGroup, QComboBox, QFrame, QGroupBox,
+                                 QHBoxLayout, QSplitter, QToolButton,
+                                 QVBoxLayout)
 
 
 def createPatternTab(self):
@@ -42,7 +44,7 @@ def createPatternTab(self):
     self.actionPatternLayout.setChecked(True)
 
     self.actionPatternLayout.triggered.connect(self.onActionPatternLayoutTriggered)
-    self.actionPattern_kx_ky.triggered.connect(self.onActionPattern_kx_kyTriggered)
+    self.actionPattern_kx_ky.triggered.connect(self.onActionPatternKxKyTriggered)
 
     vbox1 = QVBoxLayout()                                                       # vertical layout for analysis options
     vbox1.addWidget(self.tbPatternLayout)

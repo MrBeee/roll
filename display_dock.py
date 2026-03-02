@@ -20,7 +20,7 @@ TOOL_STYLE = (
 EXPORT_STYLE = 'background-color:lightgoldenrodyellow; font-weight:bold;'
 
 
-def create_display_dock(window):
+def createDisplayDock(window):
     """Construct the geometry/analysis display dock for RollMainWindow."""
     return _DisplayDockBuilder(window).build()
 
@@ -79,7 +79,7 @@ class _DisplayDockBuilder:
         w.actionShowRecPoints.setChecked(True)
         w.actionShowRecPatterns.setChecked(True)
 
-        w.setup_paint_actions()
+        w.setupPaintActions()
         w.paintMode = QActionGroup(w)
         for action in (w.actionShowBlocks, w.actionShowTemplates, w.actionShowLines, w.actionShowPoints, w.actionShowPatterns):
             w.paintMode.addAction(action)
@@ -121,7 +121,7 @@ class _DisplayDockBuilder:
         w.actionMoveRt.setShortcuts(['Alt+Right', 'Alt+Shift+Right', 'Alt+Ctrl+Right', 'Alt+Shift+Ctrl+Right'])
         w.actionMoveUp.setShortcuts(['Alt+Up', 'Alt+Shift+Up', 'Alt+Ctrl+Up', 'Alt+Shift+Ctrl+Up'])
         w.actionMoveDn.setShortcuts(['Alt+Down', 'Alt+Shift+Down', 'Alt+Ctrl+Down', 'Alt+Shift+Ctrl+Down'])
-        w.setup_spider_actions()
+        w.setupSpiderActions()
 
         w.analysisActionGroup = QActionGroup(w)
         for action in (w.actionNone, w.actionArea, w.actionFold, w.actionMinO, w.actionMaxO, w.actionRmsO):
@@ -184,17 +184,37 @@ class _DisplayDockBuilder:
         toggle.setShortcut(QKeySequence('Ctrl+Alt+d'))
         w.menu_View.addAction(toggle)
 
+    # def _toggle_button(self, action, *, text_only=False):
+    #     btn = QToolButton()
+    #     btn.setMinimumWidth(110)
+    #     btn.setStyleSheet(TOOL_STYLE)
+    #     if text_only:
+    #         btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+    #     btn.setDefaultAction(action)
+    #     return btn
+
     def _toggle_button(self, action, *, text_only=False):
         btn = QToolButton()
         btn.setMinimumWidth(110)
+        btn.setAutoRaise(False)
+        btn.setCheckable(True)
+        if action is not None:
+            action.setCheckable(True)
         btn.setStyleSheet(TOOL_STYLE)
         if text_only:
             btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         btn.setDefaultAction(action)
         return btn
 
+    # def _nav_button(self, action):
+    #     btn = QToolButton()
+    #     btn.setStyleSheet(TOOL_STYLE)
+    #     btn.setDefaultAction(action)
+    #     return btn
+
     def _nav_button(self, action):
         btn = QToolButton()
+        btn.setAutoRaise(False)
         btn.setStyleSheet(TOOL_STYLE)
         btn.setDefaultAction(action)
         return btn

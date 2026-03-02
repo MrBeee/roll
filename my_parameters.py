@@ -1431,12 +1431,12 @@ class MySeedParameter(MyGroupParameter):
         self.directory = opts.get('directory', None)
         d = opts.get('decimals', 7)
 
-        def pattern_names():
+        def patternNames():
             patterns = self.survey.patternList if self.survey else []
             # index 0 means "no pattern"
             return ['<None>'] + [p.name for p in patterns]
 
-        patterns = pattern_names()
+        patterns = patternNames()
 
         if self.seed.type > SeedType.fixedGrid:
             nPattern = 0

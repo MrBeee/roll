@@ -62,7 +62,7 @@ class SurveyType2(Enum):
         return [m.description for m in cls]
 
     @classmethod
-    def from_code(cls, code: int) -> "SurveyType2":
+    def fromCode(cls, code: int) -> "SurveyType2":
         return next(m for m in cls if m.code == code)
 
     @classmethod

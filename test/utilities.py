@@ -29,7 +29,7 @@ PARENT = None
 IFACE = None
 
 
-def get_qgis_app():
+def getQgisApp():
     """Start one QGIS application instance for tests."""
     global QGIS_APP, CANVAS, PARENT, IFACE                                      # pylint: disable=W0603
 

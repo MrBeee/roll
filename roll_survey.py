@@ -268,7 +268,7 @@ class RollSurvey(pg.GraphicsObject):
         # ".patternList[0].pointPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)",
         # ".patternList[0].patternPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)"
         #
-        # tested using: **get_unpicklable(instance, exception=None, string='', first_only=False)**. See functions.py
+        # tested using: **getUnpicklable(instance, exception=None, string='', first_only=False)**. See functions.py
         # applied fix: copy via: object --> xml --> object
 
         plainText = self.toXmlString()
@@ -1534,6 +1534,7 @@ class RollSurvey(pg.GraphicsObject):
                 hypArray = np.hypot(offArray[:, 0], offArray[:, 1])             # calculate radial offset size
                 aziArray = np.arctan2(offArray[:, 0], offArray[:, 1])           # calculate offset angles
                 aziArray = np.rad2deg(aziArray)                                 # get angles in degrees instead of radians
+                aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
 
                 r1 = self.offset.radOffsets.x()                                 # r1 = minimum radius
                 r2 = self.offset.radOffsets.y()                                 # r2 = maximum radius
@@ -1837,6 +1838,7 @@ class RollSurvey(pg.GraphicsObject):
                 hypArray = np.hypot(offArray[:, 0], offArray[:, 1])             # calculate radial offset size
                 aziArray = np.arctan2(offArray[:, 0], offArray[:, 1])           # calculate offset angles
                 aziArray = np.rad2deg(aziArray)                                 # get angles in degrees instead of radians
+                aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
 
                 r1 = self.offset.radOffsets.x()                                 # r1 = minimum radius
                 r2 = self.offset.radOffsets.y()                                 # r2 = maximum radius
@@ -2041,7 +2043,7 @@ class RollSurvey(pg.GraphicsObject):
                 # Calculate hypotenuse (offset distance) and azimuth
                 hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
                 aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
-                aziArray[aziArray < 0] += 360
+                aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
 
                 # Map CMP points to bin grid coordinates
                 mapped_coords = np.array([self.binTransform.map(pt[0], pt[1]) for pt in cmpPoints])
@@ -2682,6 +2684,7 @@ class RollSurvey(pg.GraphicsObject):
                     hypArray = np.hypot(offArray[:, 0], offArray[:, 1])         # calculate radial offset per row
                     aziArray = np.arctan2(offArray[:, 0], offArray[:, 1])       # calculate offset angles
                     aziArray = np.rad2deg(aziArray)                             # get angles in degrees instead of radians
+                    aziArray = (aziArray + 360.0) % 360.0                       # convert angles to 0-360 range
 
                     r1 = self.offset.radOffsets.x()                             # r1 = minimum radius
                     r2 = self.offset.radOffsets.y()                             # r2 = maximum radius
@@ -3488,15 +3491,15 @@ class RollSurvey(pg.GraphicsObject):
         w_px = max(1, int(round(w_log * dpr)))
         h_px = max(1, int(round(h_log * dpr)))
 
-        def new_img():
+        def newImg():
             img = QImage(w_px, h_px, QImage.Format.Format_ARGB32_Premultiplied)
             img.setDevicePixelRatio(dpr)
             img.fill(0)  # fully transparent
             return img
 
         # Allocate both layers
-        self._fbBase = new_img()   # invariant (bin/src/rec/cmp)
-        self._fbProg = new_img()   # progressive (templates/seeds)
+        self._fbBase = newImg()   # invariant (bin/src/rec/cmp)
+        self._fbProg = newImg()   # progressive (templates/seeds)
         self._fbKey = key
 
         # Reset progressive state for a fresh accumulation in this view

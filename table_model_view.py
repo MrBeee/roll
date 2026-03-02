@@ -120,7 +120,7 @@ class AnaTableModel(QAbstractTableModel):
     def rowCount(self, parent=None):
         """Return row count based on whether we're using chunked data or not"""
         if self._chunked_data is not None:
-            return self._chunked_data.get_row_count()
+            return self._chunked_data.getRowCount()
         elif self._data is not None:
             return self._data.shape[0]
         return 20
@@ -267,7 +267,7 @@ class TableView(QTableView):
         # See: https://stackoverflow.com/questions/9442165/pyqt-mouse-events-for-qtabwidget
         # See: https://stackoverflow.com/questions/20420072/use-keypressevent-to-catch-enter-or-return
         if event.type() == QEvent.Type.KeyPress and event.matches(QKeySequence.StandardKey.SelectAll):
-            self.select_all()
+            self.selectAll()
             return True
 
         if event.type() == QEvent.Type.KeyPress and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
@@ -276,7 +276,7 @@ class TableView(QTableView):
             if event.key() == Qt.Key.Key_1:
                 myPrint('Select All')
                 self.clearSelection()
-                self.select_all()
+                self.selectAll()
                 return True
 
             if event.key() == Qt.Key.Key_Home:
@@ -505,7 +505,7 @@ class TableView(QTableView):
         #                 )
         # return
 
-    def select_all(self):
+    def selectAll(self):
         data = self.model().getData()                                           # get numpy data from the underlying model
         if data is None:
             winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)

@@ -379,7 +379,7 @@ class Page_1(SurveyWizardPage):
         self.setField('sld', round(config.deployInline / (config.slr * config.sli)) + 1)
         self.setField('rld', round(config.deployX_line / (config.rlr * config.rli)) + 1)
 
-        name = SurveyType2.from_code(index).name                                # get name from enum
+        name = SurveyType2.fromCode(index).name                                # get name from enum
         number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
         self.name.setText(f'{name}_{number}')                                   # show the new name
 
@@ -732,7 +732,7 @@ class Page_2(SurveyWizardPage):
 
         # fill in the survey object information we already know now
         self.parent.survey.name = self.field('name')                            # Survey name
-        self.parent.survey.type = SurveyType2.from_code(typ)                    # Survey type Enum
+        self.parent.survey.type = SurveyType2.fromCode(typ)                    # Survey type Enum
 
         nsla = self.field('nslant')                                             # nr templates in a slanted survey
         nzz = self.field('nzz')                                                 # nr source fleets in a zigzag survey
@@ -2270,7 +2270,7 @@ class Page_6(SurveyWizardPage):
         self.setLayout(layout)
 
         self.registerField('crs', self.proj_selector)
-        self.proj_selector.crsSelected.connect(self.crs_selected)
+        self.proj_selector.crsSelected.connect(self.crsSelected)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         myPrint('initialize page 6')
@@ -2279,7 +2279,7 @@ class Page_6(SurveyWizardPage):
         self.parent.page(4).plot()                                              # needed to update the plot
         myPrint('cleanup of page 6')
 
-    def crs_selected(self):
+    def crsSelected(self):
         # See: https://api.qgis.org/api/classQgsCoordinateReferenceSystem.html
 
         if self.proj_selector.crs().isGeographic():

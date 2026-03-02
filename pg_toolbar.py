@@ -69,11 +69,11 @@ class PgToolBar(QToolBar):
         self.actionGridLines.triggered.connect(self.plotGridLines)
 
         if not self.plotWidget is None:
-            self.plotWidget.scene().sigMouseMoved.connect(self.MouseMovedInPlot)
+            self.plotWidget.scene().sigMouseMoved.connect(self.mouseMovedInPlot)
 
     def setPlotWidget(self, plotWidget):
         self.plotWidget = plotWidget
-        self.plotWidget.scene().sigMouseMoved.connect(self.MouseMovedInPlot)
+        self.plotWidget.scene().sigMouseMoved.connect(self.mouseMovedInPlot)
 
     def plotZoomRect(self, checked):
         if not self.plotWidget is None:
@@ -101,7 +101,7 @@ class PgToolBar(QToolBar):
             else:
                 self.plotWidget.showGrid(x=False, y=False)                      # hides the grey grid lines
 
-    def MouseMovedInPlot(self, evt):                                            # See: https://stackoverflow.com/questions/46166205/display-coordinates-in-pyqtgraph
+    def mouseMovedInPlot(self, evt):                                            # See: https://stackoverflow.com/questions/46166205/display-coordinates-in-pyqtgraph
         if not self.plotWidget is None:
             pos = evt
             if self.plotWidget.sceneBoundingRect().contains(pos):

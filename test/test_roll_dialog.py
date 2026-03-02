@@ -15,9 +15,9 @@ import unittest
 
 from qgis.PyQt.QtGui import QDialog, QDialogButtonBox
 from roll_dialog import RollDialog
-from utilities import get_qgis_app
+from utilities import getQgisApp
 
-QGIS_APP = get_qgis_app()
+QGIS_APP = getQgisApp()
 
 
 class RollDialogTest(unittest.TestCase):
@@ -31,7 +31,7 @@ class RollDialogTest(unittest.TestCase):
         """Runs after each test."""
         self.dialog = None
 
-    def test_dialog_ok(self):
+    def testDialogOk(self):
         """Test we can click OK."""
 
         button = self.dialog.button_box.button(QDialogButtonBox.StandardButton.Ok)
@@ -39,7 +39,7 @@ class RollDialogTest(unittest.TestCase):
         result = self.dialog.result()
         self.assertEqual(result, QDialog.DialogCode.Accepted)
 
-    def test_dialog_cancel(self):
+    def testDialogCancel(self):
         """Test we can click cancel."""
         button = self.dialog.button_box.button(QDialogButtonBox.StandardButton.Cancel)
         button.click()

@@ -6,7 +6,7 @@ from qgis.PyQt.QtCore import QLineF, QRectF
 from qgis.PyQt.QtGui import QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .aux_functions import toFloat, toInt
+from .aux_functions import toBool, toFloat, toInt
 from .roll_translate import RollTranslate
 
 
@@ -119,7 +119,7 @@ class RollGrid:
             if not nameElem.isNull():
                 self.name = nameElem.text()
 
-            self.bRoll = gridElem.attribute('roll') == 'True'
+            self.bRoll = toBool(gridElem.attribute('roll'), True)
             self.points = toInt(gridElem.attribute('points'))
 
             g = gridElem.firstChildElement('translate')
@@ -143,7 +143,7 @@ class RollGrid:
             if not nameElem.isNull():
                 self.name = nameElem.text()
 
-            self.bRoll = growListElem.attribute('roll') == 'True'
+            self.bRoll = toBool(growListElem.attribute('roll'), True)
             self.points = toFloat(growListElem.attribute('points'))
 
             g = growListElem.firstChildElement('translate')

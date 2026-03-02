@@ -11,7 +11,7 @@ provides the line numbers bar and the syntax and the current line highlighting.
 
 testing and examples:
 
-    def run_test():
+    def runTest():
 
 Module is only compatible pyQt5; pyQt4 compatibility has been removed
 
@@ -38,8 +38,11 @@ And in particular: https://web.archive.org/web/20170515141231/http://www.binpres
 
 
 from qgis.PyQt.QtCore import QRect, QRegularExpression, Qt
-from qgis.PyQt.QtGui import QColor, QFont, QPainter, QSyntaxHighlighter, QTextCharFormat, QTextCursor, QTextFormat, QTextOption
-from qgis.PyQt.QtWidgets import QApplication, QPlainTextEdit, QTextEdit, QWidget
+from qgis.PyQt.QtGui import (QColor, QFont, QPainter, QSyntaxHighlighter,
+                             QTextCharFormat, QTextCursor, QTextFormat,
+                             QTextOption)
+from qgis.PyQt.QtWidgets import (QApplication, QPlainTextEdit, QTextEdit,
+                                 QWidget)
 
 # classes definition
 
@@ -53,54 +56,119 @@ class XMLHighlighter(QSyntaxHighlighter):
 
     """
 
+    # def __init__(self, parent=None):
+
+    #     super(XMLHighlighter, self).__init__(parent)
+
+    #     self.highlightingRules = []
+
+    #     xmlElementFormat = QTextCharFormat()
+    #     xmlElementFormat.setForeground(QColor('#0070C0'))   # blue-ish
+    #     # xmlElementFormat.setForeground(QColor("#000070")) # blue
+    #     self.highlightingRules.append((QRegularExpression(r'\b[A-Za-z0-9_]+(?=[\s/>])'), xmlElementFormat))
+
+    #     xmlAttributeFormat = QTextCharFormat()
+    #     xmlAttributeFormat.setFontItalic(True)
+    #     xmlAttributeFormat.setForeground(QColor('#177317'))   # green
+    #     self.highlightingRules.append((QRegularExpression(r'\b[A-Za-z0-9_]+(?==)'), xmlAttributeFormat))
+    #     self.highlightingRules.append((QRegularExpression(r'='), xmlAttributeFormat))
+
+    #     self.valueFormat = QTextCharFormat()
+    #     self.valueFormat.setForeground(QColor('#e35e00'))   # orange
+
+    #     # CORRECTION: the '"' caracter needs to be preceeded by a '=' character !
+    #     # to highlight an attribute that follows an '=' sign use: (?<=\=)\"([^"]*?)\"
+    #     self.valueStartExpression = QRegularExpression(r'(?<=\=)"')
+    #     self.valueEndExpression = QRegularExpression(r'"(?=[\s></])')
+
+    #     singleLineCommentFormat = QTextCharFormat()
+    #     singleLineCommentFormat.setForeground(QColor('#a0a0a4'))   # grey
+    #     self.highlightingRules.append((QRegularExpression(r'<!--[^\n]*-->'), singleLineCommentFormat))
+
+    #     textFormat = QTextCharFormat()
+    #     textFormat.setForeground(QColor('#000000'))   # black
+    #     # Old: r'>(.+)(?=</)'  # also paints the '>' black
+    #     self.highlightingRules.append((QRegularExpression(r'(?<=>)[^<]+(?=</)'), textFormat))
+
+    #     keywordFormat = QTextCharFormat()
+    #     keywordFormat.setForeground(QColor('#000070'))   # blue
+    #     keywordFormat.setFontWeight(QFont.Weight.Bold)
+    #     keywordPatterns = [
+    #         r'/>',
+    #         r'>',
+    #         r'<',
+    #         r'</',
+    #         r'\b(spatialrefsys|wkt|proj4|srsid|srid|authid|description|projectionacronym|ellipsoidacronym|geographicflag)\b',
+    #         r'\b(survey|type|name|survey|surveyCrs|limits|angles|binning|offset|output|unique|well|spiral|circle)\b',
+    #         r'\b(grid|b?local|global|block_list|block|borders|plane|sphere|reflectors|rec_border|src_border)\b',
+    #         r'\b(template_list|template|roll_list|translate|seed_list|seed|grow_list|pattern_list|pattern|wellCrs|xml)\b',
+    #     ]
+
+    #     self.highlightingRules += [(QRegularExpression(pattern), keywordFormat) for pattern in keywordPatterns]
+
+
     def __init__(self, parent=None):
 
         super(XMLHighlighter, self).__init__(parent)
 
         self.highlightingRules = []
 
+        # Element (tag) names
         xmlElementFormat = QTextCharFormat()
         xmlElementFormat.setForeground(QColor('#0070C0'))   # blue-ish
-        # xmlElementFormat.setForeground(QColor("#000070")) # blue
-        self.highlightingRules.append((QRegularExpression(r'\b[A-Za-z0-9_]+(?=[\s/>])'), xmlElementFormat))
+        self.highlightingRules.append((QRegularExpression(r'\b[A-Za-z0-9_:-]+(?=[\s/>])'), xmlElementFormat))
 
+        # Attributes and equals sign
         xmlAttributeFormat = QTextCharFormat()
         xmlAttributeFormat.setFontItalic(True)
         xmlAttributeFormat.setForeground(QColor('#177317'))   # green
-        self.highlightingRules.append((QRegularExpression(r'\b[A-Za-z0-9_]+(?==)'), xmlAttributeFormat))
+        self.highlightingRules.append((QRegularExpression(r'\b[A-Za-z0-9_:-]+(?==)'), xmlAttributeFormat))
         self.highlightingRules.append((QRegularExpression(r'='), xmlAttributeFormat))
 
+        # Attribute values
         self.valueFormat = QTextCharFormat()
         self.valueFormat.setForeground(QColor('#e35e00'))   # orange
-
-        # CORRECTION: the '"' caracter needs to be preceeded by a '=' character !
-        # to highlight an attribute that follows an '=' sign use: (?<=\=)\"([^"]*?)\"
         self.valueStartExpression = QRegularExpression(r'(?<=\=)"')
-        self.valueEndExpression = QRegularExpression(r'"(?=[\s></])')
+        self.valueEndExpression = QRegularExpression(r'"(?=[\s?></])')
 
+        # Comments
         singleLineCommentFormat = QTextCharFormat()
         singleLineCommentFormat.setForeground(QColor('#a0a0a4'))   # grey
         self.highlightingRules.append((QRegularExpression(r'<!--[^\n]*-->'), singleLineCommentFormat))
 
+        # Text between tags (do NOT include the brackets)
         textFormat = QTextCharFormat()
         textFormat.setForeground(QColor('#000000'))   # black
-        self.highlightingRules.append((QRegularExpression(r'>(.+)(?=</)'), textFormat))
+        self.highlightingRules.append((QRegularExpression(r'(?<=>)[^<]+(?=</)'), textFormat))
 
+        # Keywords and brackets (applied later to override earlier matches)
         keywordFormat = QTextCharFormat()
         keywordFormat.setForeground(QColor('#000070'))   # blue
         keywordFormat.setFontWeight(QFont.Weight.Bold)
+
         keywordPatterns = [
-            r'/>',
-            r'>',
-            r'<',
-            r'</',
             r'\b(spatialrefsys|wkt|proj4|srsid|srid|authid|description|projectionacronym|ellipsoidacronym|geographicflag)\b',
             r'\b(survey|type|name|surveyCrs|limits|angles|binning|offset|output|unique|well|spiral|circle)\b',
             r'\b(grid|b?local|global|block_list|block|borders|plane|sphere|reflectors|rec_border|src_border)\b',
             r'\b(template_list|template|roll_list|translate|seed_list|seed|grow_list|pattern_list|pattern|wellCrs|xml)\b',
         ]
-
         self.highlightingRules += [(QRegularExpression(pattern), keywordFormat) for pattern in keywordPatterns]
+
+        # Brackets and tag names (last = highest priority)
+        tagFormat = QTextCharFormat()
+        tagFormat.setForeground(QColor('#000070'))   # blue
+        tagFormat.setFontWeight(QFont.Weight.Bold)
+
+        bracketAndTagPatterns = [
+            r'</',                      # closing bracket start
+            r'<',                       # opening bracket
+            r'/>',                      # self-closing end
+            r'>',                       # closing bracket
+            r'(?<=</)[A-Za-z0-9_:-]+',   # closing tag name
+            r'(?<=<)[A-Za-z0-9_:-]+',    # opening tag name
+        ]
+        self.highlightingRules += [(QRegularExpression(pattern), tagFormat) for pattern in bracketAndTagPatterns]
+
 
     # VIRTUAL FUNCTION WE OVERRIDE THAT DOES ALL THE COLLORING
 
@@ -318,7 +386,7 @@ if __name__ == '__main__':
     # TESTING
     import sys
 
-    def run_test():
+    def runTest():
 
         app = QApplication([])
 
@@ -344,7 +412,7 @@ if __name__ == '__main__':
 
         sys.exit(app.exec())
 
-    run_test()
+    runTest()
 
 
 # Some help with painting lines in QPlainTextEdit

@@ -128,8 +128,8 @@ def _update_page_info(self):
         self.lblPageInfo.setText(
             f'Page {cd.current_chunk + 1:,} of {cd.total_chunks:,} '
             f'(Rows {cd.current_chunk * cd.chunk_size + 1:,}-'
-            f'{min((cd.current_chunk + 1) * cd.chunk_size, cd.get_total_rows()):,} '
-            f'of {cd.get_total_rows():,})'
+            f'{min((cd.current_chunk + 1) * cd.chunk_size, cd.getTotalRows()):,} '
+            f'of {cd.getTotalRows():,})'
         )
 
         # Enable/disable navigation buttons
@@ -138,9 +138,9 @@ def _update_page_info(self):
         self.btnNextPage.setEnabled(cd.current_chunk < cd.total_chunks - 1)
         self.btnLastPage.setEnabled(cd.current_chunk < cd.total_chunks - 1)
 
-        self.gotoLabel.setEnabled(cd.get_total_rows() > 0)
-        self.gotoEdit.setEnabled(cd.get_total_rows() > 0)
-        self.btnGoto.setEnabled(cd.get_total_rows() > 0)
+        self.gotoLabel.setEnabled(cd.getTotalRows() > 0)
+        self.gotoEdit.setEnabled(cd.getTotalRows() > 0)
+        self.btnGoto.setEnabled(cd.getTotalRows() > 0)
     else:
         self.lblPageInfo.setText('No paging')
 
@@ -157,10 +157,10 @@ def _update_page_info(self):
 def _go_to_first_page(self):
     """Navigate to the first chunk of data"""
     if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
-        if self.anaModel._chunked_data.goto_chunk(0):
+        if self.anaModel._chunked_data.gotoChunk(0):
             # Update model with new chunk data
             self.anaModel.layoutAboutToBeChanged.emit()
-            current_chunk = self.anaModel._chunked_data.get_current_chunk()
+            current_chunk = self.anaModel._chunked_data.getCurrentChunk()
             self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
             self.anaModel.layoutChanged.emit()
             # Update page info
@@ -173,9 +173,9 @@ def _go_to_prev_page(self):
     cd = getattr(self.anaModel, '_chunked_data', None)
     if not cd:
         return
-    if cd.previous_chunk():
+    if cd.previousChunk():
         self.anaModel.layoutAboutToBeChanged.emit()
-        self.anaModel._data = np.copy(cd.get_current_chunk())
+        self.anaModel._data = np.copy(cd.getCurrentChunk())
         self.anaModel.layoutChanged.emit()
         self._updatePageInfo()
         self.anaView.clearSelection()
@@ -183,10 +183,10 @@ def _go_to_prev_page(self):
 def _go_to_next_page(self):
     """Navigate to the next chunk of data"""
     if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
-        if self.anaModel._chunked_data.next_chunk():
+        if self.anaModel._chunked_data.nextChunk():
             # Update model with new chunk data
             self.anaModel.layoutAboutToBeChanged.emit()
-            current_chunk = self.anaModel._chunked_data.get_current_chunk()
+            current_chunk = self.anaModel._chunked_data.getCurrentChunk()
             self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
             self.anaModel.layoutChanged.emit()
             # Update page info
@@ -198,10 +198,10 @@ def _go_to_last_page(self):
     """Navigate to the last chunk of data"""
     if hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data:
         last_chunk = self.anaModel._chunked_data.total_chunks - 1
-        if self.anaModel._chunked_data.goto_chunk(last_chunk):
+        if self.anaModel._chunked_data.gotoChunk(last_chunk):
             # Update model with new chunk data
             self.anaModel.layoutAboutToBeChanged.emit()
-            current_chunk = self.anaModel._chunked_data.get_current_chunk()
+            current_chunk = self.anaModel._chunked_data.getCurrentChunk()
             self.anaModel._data = np.copy(current_chunk)  # Make a copy to avoid memory mapping issues
             self.anaModel.layoutChanged.emit()
             # Update page info
@@ -215,7 +215,7 @@ def _go_to_specific_row(self):
         try:
             # Get row number from the input field
             row_number = int(self.gotoEdit.text()) - 1  # Convert to 0-based index
-            total_rows = self.anaModel._chunked_data.get_total_rows()
+            total_rows = self.anaModel._chunked_data.getTotalRows()
 
             if 0 <= row_number < total_rows:
                 # Calculate which chunk contains this row
@@ -223,10 +223,10 @@ def _go_to_specific_row(self):
                 target_chunk = row_number // chunk_size
 
                 # Go to that chunk
-                if self.anaModel._chunked_data.goto_chunk(target_chunk):
+                if self.anaModel._chunked_data.gotoChunk(target_chunk):
                     # Update model with new chunk data
                     self.anaModel.layoutAboutToBeChanged.emit()
-                    current_chunk = self.anaModel._chunked_data.get_current_chunk()
+                    current_chunk = self.anaModel._chunked_data.getCurrentChunk()
                     self.anaModel._data = np.copy(current_chunk)
                     self.anaModel.layoutChanged.emit()
 

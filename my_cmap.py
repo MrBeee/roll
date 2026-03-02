@@ -6,7 +6,7 @@ from qgis.PyQt.QtCore import QSize, Qt
 from qgis.PyQt.QtGui import QIcon, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import QComboBox
 
-from .aux_functions import natural_sort
+from .aux_functions import naturalSort
 
 # See: https://github.com/pyqtgraph/pyqtgraph/issues/1407
 # See: https://docs.bokeh.org/en/latest/docs/reference/colors.html
@@ -20,7 +20,7 @@ class MyCmapParameterItem(WidgetParameterItem):
     """
 
     def __init__(self, param, depth):
-        self.cmapList = natural_sort(pg.colormap.listMaps())                    # the naturally sorted list of colormap names
+        self.cmapList = naturalSort(pg.colormap.listMaps())                    # the naturally sorted list of colormap names
         self.colorbarWidth = 120                                                # need to define *before* parent's init as parent 'makes' the widget
         super().__init__(param, depth)
 

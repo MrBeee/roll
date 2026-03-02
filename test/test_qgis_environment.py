@@ -15,19 +15,19 @@ __copyright__ = ('Copyright 2012, Australia Indonesia Facility for '
 
 import os
 import unittest
-from qgis.core import (
-    QgsProviderRegistry,
-    QgsCoordinateReferenceSystem,
-    QgsRasterLayer)
 
-from .utilities import get_qgis_app
-QGIS_APP = get_qgis_app()
+from qgis.core import (QgsCoordinateReferenceSystem, QgsProviderRegistry,
+                       QgsRasterLayer)
+
+from .utilities import getQgisApp
+
+QGIS_APP = getQgisApp()
 
 
 class QGISTest(unittest.TestCase):
     """Test the QGIS Environment"""
 
-    def test_qgis_environment(self):
+    def testQgisEnvironment(self):
         """QGIS environment has the expected providers"""
 
         r = QgsProviderRegistry.instance()
@@ -35,7 +35,7 @@ class QGISTest(unittest.TestCase):
         self.assertIn('ogr', r.providerList())
         self.assertIn('postgres', r.providerList())
 
-    def test_projection(self):
+    def testProjection(self):
         """Test that QGIS properly parses a wkt string.
         """
         crs = QgsCoordinateReferenceSystem()

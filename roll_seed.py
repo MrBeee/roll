@@ -1,17 +1,13 @@
 # roll_seed.py
 import weakref
 
-"""
-This module provides Seed Class, at the core of the placement of src & rec points in a survey area
-"""
-
 import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QRectF
 from qgis.PyQt.QtGui import QColor, QPainter, QPicture, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .aux_functions import toFloat
+from .aux_functions import toBool, toFloat
 from .enums_and_int_flags import SeedType
 from .roll_circle import RollCircle
 from .roll_grid import RollGrid
@@ -120,8 +116,8 @@ class RollSeed:
         self.origin.setY(toFloat(parent.attribute('y0')))
         self.origin.setZ(toFloat(parent.attribute('z0')))
 
-        self.bSource = parent.attribute('src') == 'True'
-        self.bAzimuth = parent.attribute('azi') == 'True'
+        self.bSource = toBool(parent.attribute('src'), True)
+        self.bAzimuth = toBool(parent.attribute('azi'), True)
         self.patternNo = int(parent.attribute('patno'))
 
         self.type = SeedType(int(parent.attribute('typno')))                    # convert string -> int -> SeedType

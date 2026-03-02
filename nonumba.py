@@ -15,9 +15,9 @@ import functools
 # use numba decorators when numba package is not available
 
 
-def optional_arg_decorator(fn):
+def optionalArgDecorator(fn):
     @functools.wraps(fn)
-    def wrapped_decorator(*args, **kwargs):
+    def wrappedDecorator(*args, **kwargs):
         #        is_bound_method = hasattr(args[0], fn.__name__) if args else False
 
         #        if is_bound_method:
@@ -33,18 +33,18 @@ def optional_arg_decorator(fn):
 
         else:
 
-            def real_decorator(decoratee):
+            def realDecorator(decoratee):
                 #                if is_bound_method:
                 #                    return fn(klass, decoratee, *args, **kwargs)
                 #                else:
                 return fn(decoratee, *args, **kwargs)
 
-            return real_decorator
+            return realDecorator
 
-    return wrapped_decorator
+    return wrappedDecorator
 
 
-@optional_arg_decorator
+@optionalArgDecorator
 def __noop(func, *args, **kwargs):
     return func
 

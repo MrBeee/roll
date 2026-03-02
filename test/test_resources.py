@@ -17,7 +17,6 @@ import unittest
 from qgis.PyQt.QtGui import QIcon
 
 
-
 class RollDialogTest(unittest.TestCase):
     """Test rerources work."""
 
@@ -29,7 +28,7 @@ class RollDialogTest(unittest.TestCase):
         """Runs after each test."""
         pass
 
-    def test_icon_png(self):
+    def testIconPng(self):
         """Test we can click OK."""
         path = ':/plugins/Roll/icon.png'
         icon = QIcon(path)

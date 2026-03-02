@@ -5,7 +5,7 @@ from .enums_and_int_flags import PaintDetails, PaintMode
 class SurveyPaintMixin:
     """Keeps the paint-mode bookkeeping out of RollMainWindow."""
 
-    def setup_paint_actions(self) -> None:
+    def setupPaintActions(self) -> None:
         # call during init after self.actionShow* exist
         toggles = [
             self.actionShowCmpArea,

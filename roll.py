@@ -47,7 +47,7 @@ resource_dir = os.path.join(current_dir, 'resources')
 
 MESSAGE_CATEGORY = 'Messages'
 
-def enable_remote_debugging():
+def enableRemoteDebugging():
 
     # See: https://medium.com/@45364/debugging-qgis-plugin-using-vs-code-33319de9d638
     # See: https://duijndam.dev/debugging-qgis-python-plugins/
@@ -137,7 +137,7 @@ class Roll:
         """
 
         # enable debugging
-        enable_remote_debugging()
+        enableRemoteDebugging()
 
         # Save reference to the QGIS interface
         self.iface = iface
@@ -180,7 +180,7 @@ class Roll:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('Roll', message)
 
-    def add_action(
+    def addAction(
         self,
         icon_path,
         text,
@@ -260,7 +260,7 @@ class Roll:
         # icon_path = ':/plugins/roll/resources/icon.png'
         iconFile = os.path.join(resource_dir, 'icon.png')
 
-        self.add_action(
+        self.addAction(
             iconFile,
             text=self.tr('Roll 3D survey design'),
             callback=self.run,

@@ -73,12 +73,12 @@ def numbaSlice3D(slice3D: np.ndarray, unique=False):
 # @nb.jit(nb.types.Tuple((nb.float32[:], nb.float32[:], nb.boolean))(nb.float32[:, :, :, :], nb.boolean), nopython=True)                    # numba needs array specs to work
 def numbaSliceStats(slice4D: np.ndarray, unique=False):
 
-# fmt: off
+    # fmt: off
     fold    = slice4D[:, :, :,  2]                                              # we are left with 1 dimension
     offsets = slice4D[:, :, :, 10]                                              # we are left with 1 dimension
     azimuth = slice4D[:, :, :, 11]                                              # we are left with 1 dimension
     include = slice4D[:, :, :, 12]                                              # we are left with 1 dimension
-# fmt: on
+    # fmt: on
 
     if unique is True:                                                          # we'd like to use unique offsets
         useUnique = True if include.min() == -1 else False                      # are there any -1 records ?
@@ -231,7 +231,8 @@ def numbaOffsetBin(slice2D: np.ndarray, unique=False):
 
     noData = np.count_nonzero(I) == 0
     if noData:
-        return (None, None, noData)                                             # nothing to show; return
+        empty = np.empty(0, dtype=slice2D.dtype)
+        return (empty, empty, noData)                                           # nothing to show; return
 
     slice2D = slice2D[I, :]                                                     # filter the 2D slice
 

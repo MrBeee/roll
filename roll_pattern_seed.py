@@ -7,7 +7,7 @@ from qgis.PyQt.QtCore import QRectF
 from qgis.PyQt.QtGui import QColor, QPicture, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .aux_functions import toFloat
+from .aux_functions import toBool, toFloat
 from .roll_grid import RollGrid
 
 
@@ -61,7 +61,7 @@ class RollPatternSeed:
         self.origin.setY(toFloat(parent.attribute('y0')))
         self.origin.setZ(toFloat(parent.attribute('z0')))
 
-        self.bAzimuth = parent.attribute('azi') == 'True'
+        self.bAzimuth = toBool(parent.attribute('azi'), True)
 
         if parent.hasAttribute('argb'):                                         # rgb is there for backwards compatibility
             self.color = QColor(parent.attribute('argb'))

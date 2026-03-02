@@ -7,7 +7,7 @@ name=Roll
 qgisMinimumVersion=3.34
 supportsQt6=True
 description=Design and analysis of 3D seismic survey geometries
-version=0.5.9
+version=0.6.1
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -44,7 +44,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:  <p>2026-02-23 (0.6.0) Made Roll a 'standalone' app for testing and debugging purposes. Raised minimum QGIS version to 3.34
+changelog:  <p>2026-02-25 (0.6.1) Fixed a bug related to reading boolean values reliably from xml text input
+  <p>2026-02-23 (0.6.0) Made Roll a 'standalone' app for testing and debugging purposes. Raised minimum QGIS version to 3.34  
   <p>2026-02-13 (0.5.9) Made fold-map transparent for areas where fold = 0. Added context menu in SPS and Geometry tables, to edit 'in-use' status
   <p>2026-02-10 (0.5.8) Fixed a small bug in copying charts to the clipboard
   <p>2026-02-07 (0.5.7) Updated 'Find and Replace' dialog for direct Xml editing. Fixed enum bugs to ensure Qt6 compatibility

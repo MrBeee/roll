@@ -12,13 +12,12 @@ except ImportError:
 try:    # need to TRY importing debugpy, only to see if it is available
     haveDebugpy = True
     import debugpy  # pylint: disable=W0611
-except ImportError as ie:
+except ImportError:
     haveDebugpy = False
 
 import contextlib
 import gc
 import os
-import os.path
 import platform
 import sys
 import traceback
@@ -51,7 +50,7 @@ from .aux_functions import (aboutText, convexHull, exampleSurveyXmlText,
                             qgisCheatSheetText)
 from .binning_worker_mixin import BinningWorkerMixin
 from .chunked_data import ChunkedData
-from .display_dock import create_display_dock
+from .display_dock import createDisplayDock
 from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
                                   SurveyType2)
 # from .find import Find.
@@ -63,10 +62,10 @@ from .functions_numba import (numbaAziInline, numbaAziX_line,
                               numbaOffInline, numbaOffsetBin, numbaOffX_line,
                               numbaSlice3D, numbaSliceStats)
 from .land_wizard import LandSurveyWizard
-from .logging_dock import create_logging_dock
+from .logging_dock import createLoggingDock
 from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .property_dock import create_property_dock
+from .property_dock import createPropertyDock
 from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
                              exportPointLayerToQgis, exportSpsOutlinesToQgis,
                              exportSurveyOutlinesToQgis,
@@ -140,10 +139,9 @@ def runStandalone(argv=None, filePath=None):
                     f.write('[ERROR] filePath missing or not a file\n')
                 return
             mainWindow.fileLoad(filePath)
-        except Exception:
-            errText = traceback.format_exc()
+        except (OSError, ValueError) as exc:
             with open(logPath, 'a', encoding='utf-8') as f:
-                f.write(errText + '\n')
+                f.write(f'[ERROR] _safeLoad failed: {exc}\n')            
 
     if filePath:
         QTimer.singleShot(0, _safeLoad)
@@ -181,8 +179,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # See also: https://doc.qt.io/qt-6/designer-using-a-ui-file-python.html
         # See: https://docs.qgis.org/3.22/en/docs/documentation_guidelines/substitutions.html#toolbar-button-icons for QGIS Icons
         self.setupUi(self)
-        create_display_dock(self)
-        create_logging_dock(self)
+        createDisplayDock(self)
+        createLoggingDock(self)
 
         # reset GUI when the plugin is restarted (not when restarted from minimized state on windows)
         self.killMe = False
@@ -236,7 +234,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         # analysis numpy arrays
         self.inlineStk = None                                                   # numpy array with inline Kr stack reponse
-        self.x_lineStk = None                                                   # numpy array with x_line Kr stack reponse
+        self.x0lineStk = None                                                   # numpy array with x_line Kr stack reponse
         self.xyCellStk = None                                                   # numpy array with cell's KxKy stack response
         self.xyPatResp = None                                                   # numpy array with pattern's KxKy response
 
@@ -442,7 +440,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.setWindowModified(self.textEdit.document().isModified())                   # update window status based on document status
         self.textEdit.cursorPositionChanged.connect(self.cursorPositionChanged)         # to show cursor position in statusbar
 
-        self.layoutWidget.scene().sigMouseMoved.connect(self.MouseMovedInPlot)
+        self.layoutWidget.scene().sigMouseMoved.connect(self.mouseMovedInPlot)
         self.layoutWidget.plotItem.sigRangeChanged.connect(self.layoutRangeChanged)     # to handle changes in tickmarks when zooming
 
         # the following actions are related to the plotWidget
@@ -542,7 +540,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         # actions related to the view menu
         self.actionRefreshPlot.triggered.connect(self.replotLayout)             # hooked up with F5
-        self.actionReparseDocument.triggered.connect(self.UpdateAllViews)       # hooked up with Ctrl+F5
+        self.actionReparseDocument.triggered.connect(self.updateAllViews)       # hooked up with Ctrl+F5
         self.actionStopPainting.triggered.connect(self.stopPainting)            # hooked up with Esc
 
         # actions related to the processing menu
@@ -555,11 +553,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionGeometryFromTemplates.triggered.connect(self.createGeometryFromTemplates)
 
         # actions related to the help menu
-        self.actionAbout.triggered.connect(self.OnAbout)
-        self.actionLicense.triggered.connect(self.OnLicense)
-        self.actionHighDpi.triggered.connect(self.OnHighDpi)
-        self.actionQGisCheatSheet.triggered.connect(self.OnQGisCheatSheet)
-        self.actionQGisRollInterface.triggered.connect(self.OnQGisRollInterface)
+        self.actionAbout.triggered.connect(self.onAbout)
+        self.actionLicense.triggered.connect(self.onLicense)
+        self.actionHighDpi.triggered.connect(self.onHighDpi)
+        self.actionQGisCheatSheet.triggered.connect(self.onQGisCheatSheet)
+        self.actionQGisRollInterface.triggered.connect(self.onQGisRollInterface)
 
         self.actionStopThread.triggered.connect(self.stopWorkerThread)
 
@@ -616,7 +614,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.parameters = None
         self.binChild   = None
         self.grdChild   = None
-        create_property_dock(self)                                              # defined late, as it needs access the loaded survey object
+        createPropertyDock(self)                                              # defined late, as it needs access the loaded survey object
 
         # self.dockProperty = QDockWidget('Property pane')
         # self.dockProperty.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
@@ -698,7 +696,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.patternLayout = True
         self.plotPatterns()
 
-    def onActionPattern_kx_kyTriggered(self):
+    def onActionPatternKxKyTriggered(self):
         self.patternLayout = False
         self.plotPatterns()
 
@@ -784,24 +782,24 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.paramTree.clear()
 
         # set the survey object in the property pane using current survey properties
-        copy = self.survey.deepcopy()
+        surveyCopy = self.survey.deepcopy()
 
         # create valid pattern list, before using it in property panel
-        self.updatePatternList(copy)
+        self.updatePatternList(surveyCopy)
 
         # first copy the crs for global access (todo: need to fix this later)
-        config.surveyCrs = copy.crs
+        config.surveyCrs = surveyCopy.crs
 
         # brush color for main parameter categories
         brush = '#add8e6'
 
         surveyParams = [
-            dict(brush=brush, name='Survey configuration', type='myConfiguration', value=copy, default=copy),
-            dict(brush=brush, name='Survey analysis', type='myAnalysis', value=copy, default=copy),
-            dict(brush=brush, name='Survey reflectors', type='myReflectors', value=copy, default=copy),
-            dict(brush=brush, name='Survey grid', type='myGrid', value=copy.grid, default=copy.grid),
-            dict(brush=brush, name='Block list', type='myBlockList', value=copy.blockList, default=copy.blockList, directory=self.projectDirectory),
-            dict(brush=brush, name='Pattern list', type='myPatternList', value=copy.patternList, default=copy.patternList),
+            dict(brush=brush, name='Survey configuration', type='myConfiguration', value=surveyCopy, default=surveyCopy),
+            dict(brush=brush, name='Survey analysis', type='myAnalysis', value=surveyCopy, default=surveyCopy),
+            dict(brush=brush, name='Survey reflectors', type='myReflectors', value=surveyCopy, default=surveyCopy),
+            dict(brush=brush, name='Survey grid', type='myGrid', value=surveyCopy.grid, default=surveyCopy.grid),
+            dict(brush=brush, name='Block list', type='myBlockList', value=surveyCopy.blockList, default=surveyCopy.blockList, directory=self.projectDirectory),
+            dict(brush=brush, name='Pattern list', type='myPatternList', value=surveyCopy.patternList, default=surveyCopy.patternList),
         ]
 
         self.parameters = pg.parametertree.Parameter.create(name='Survey Properties', type='group', children=surveyParams)
@@ -879,34 +877,34 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def applyPropertyChanges(self):
         # build new survey object from scratch, and start adding to it
-        copy = RollSurvey()
+        surveyCopy = RollSurvey()
 
         CFG = self.parameters.child('Survey configuration')
 
-        copy.crs, surType, copy.name = CFG.value()                              # get tuple of data from parameter
-        copy.type = SurveyType2[surType]                                        # SurveyType2 is an enum
-        config.surveyCrs = copy.crs                                             # needed for global access to crs
+        surveyCopy.crs, surType, surveyCopy.name = CFG.value()                              # get tuple of data from parameter
+        surveyCopy.type = SurveyType2[surType]                                        # SurveyType2 is an enum
+        config.surveyCrs = surveyCopy.crs                                             # needed for global access to crs
 
         ANA = self.parameters.child('Survey analysis')
-        copy.output.rctOutput, copy.angles, copy.binning, copy.offset, copy.unique = ANA.value()
+        surveyCopy.output.rctOutput, surveyCopy.angles, surveyCopy.binning, surveyCopy.offset, surveyCopy.unique = ANA.value()
 
         REF = self.parameters.child('Survey reflectors')
-        copy.globalPlane, copy.globalSphere = REF.value()
+        surveyCopy.globalPlane, surveyCopy.globalSphere = REF.value()
 
         GRD = self.parameters.child('Survey grid')
-        copy.grid = GRD.value()
+        surveyCopy.grid = GRD.value()
 
         BLK = self.parameters.child('Block list')
-        copy.blockList = BLK.value()
+        surveyCopy.blockList = BLK.value()
 
         PAT = self.parameters.child('Pattern list')
-        copy.patternList = PAT.value()
+        surveyCopy.patternList = PAT.value()
 
         # first check survey integrity before committing to it.
-        if copy.checkIntegrity(self.projectDirectory) is False:
+        if surveyCopy.checkIntegrity(self.projectDirectory) is False:
             return
 
-        self.survey = copy.deepcopy()                                           # start using the updated survey object
+        self.survey = surveyCopy.deepcopy()                                           # start using the updated survey object
 
         # update the survey object with the necessary steps
         self.survey.calcTransforms()                                            # (re)calculate the transforms being used
@@ -925,7 +923,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.binAreaChanged = False                                         # reset this flag
 
             self.inlineStk = None                                               # numpy array with inline Kr stack reponse
-            self.x_lineStk = None                                               # numpy array with x_line Kr stack reponse
+            self.x0lineStk = None                                               # numpy array with x_line Kr stack reponse
             self.xyCellStk = None                                               # numpy array with cell's KxKy stack response
             self.xyPatResp = None                                               # numpy array with pattern's KxKy response
 
@@ -1688,7 +1686,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         col = self.textEdit.textCursor().columnNumber() + 1
         self.posWidgetStatusbar.setText(f'Line: {line} Col: {col}')
 
-    def MouseMovedInPlot(self, pos):                                            # See: https://stackoverflow.com/questions/46166205/display-coordinates-in-pyqtgraph
+    def mouseMovedInPlot(self, pos):                                            # See: https://stackoverflow.com/questions/46166205/display-coordinates-in-pyqtgraph
         if self.layoutWidget.sceneBoundingRect().contains(pos):                 # is mouse moved within the scene area ?
 
             if self.survey is None or self.survey.glbTransform is None:
@@ -1960,7 +1958,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.ruler = checked
         self.plotLayout()
 
-    def UpdateAllViews(self):                                                   # re-parse the text in the textEdit, update the survey object, and replot the layout
+    def updateAllViews(self):                                                   # re-parse the text in the textEdit, update the survey object, and replot the layout
         plainText = self.textEdit.getTextViaCursor()                            # read complete file content, not affecting doc status
         success = self.parseText(plainText)                                     # parse the string & check if it went okay...
 
@@ -2433,14 +2431,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            self.x_lineStk = numbaNdft_1D(kMax, dK, slice3D, I)
+            self.x0lineStk = numbaNdft_1D(kMax, dK, slice3D, I)
 
             tr = QTransform()                                                   # prepare ImageItem transformation:
             tr.translate(y0, kStart)                                            # move image to correct location
             tr.scale(dy, kDelta)                                                # scale horizontal and vertical axes
 
             self.stkBinImItem = pg.ImageItem()                                  # create PyqtGraph image item
-            self.stkBinImItem.setImage(self.x_lineStk, levels=(-50.0, 0.0))     # plot with log scale from -50 to 0
+            self.stkBinImItem.setImage(self.x0lineStk, levels=(-50.0, 0.0))     # plot with log scale from -50 to 0
             self.stkBinImItem.setTransform(tr)
 
             # if self.stkBinColorBar is None:
@@ -2492,7 +2490,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             plotTitle = f'{self.plotTitles[6]} [stake={stkX}]'
             self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
 
-
     def plotStkCel(self, nX: int, nY: int, stkX: int, stkY: int):
         if self.output.anaOutput is None or self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
             return
@@ -2512,7 +2509,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             else:
                 fold = offsetX.shape[0]
 
-            if offsetX is None:
+            if noData or offsetX.size == 0:
                 kX = np.arange(kMin, kMax, dK)
                 nX = kX.shape[0]
                 self.xyCellStk = np.ones(shape=(nX, nX), dtype=np.float32) * -50.0           # create -50 dB array of the right size and type
@@ -2846,9 +2843,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             if self.projectDirectory and os.path.isdir(self.projectDirectory):  # append information to log file in working directory
                 logFile = os.path.join(self.projectDirectory, '.roll.log')      # join directory & log file name
-                with open(logFile, 'a+', encoding='utf-8') as file:             # append (a) information to a logfile, or create a new logfile (a+) if it does not yet exist
-                    file.write(self.logEdit.toPlainText())                      # get text from logEdit
-                    file.write('+++\n\n')                                       # closing remarks
+                with open(logFile, 'a+', encoding='utf-8') as qFile:             # append (a) information to a logfile, or create a new logfile (a+) if it does not yet exist
+                    qFile.write(self.logEdit.toPlainText())                      # get text from logEdit
+                    qFile.write('+++\n\n')                                       # closing remarks
 
             e.accept()                                                          # finally accep the event
 
@@ -2901,7 +2898,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         # analysis numpy arrays
         self.inlineStk = None                                                   # numpy array with inline Kr stack reponse
-        self.x_lineStk = None                                                   # numpy array with x_line Kr stack reponse
+        self.x0lineStk = None                                                   # numpy array with x_line Kr stack reponse
         self.xyCellStk = None                                                   # numpy array with cell's KxKy stack response
         self.xyPatResp = None                                                   # numpy array with pattern's KxKy response
 
@@ -3043,7 +3040,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.textEdit.setFont(QFont('Ubuntu Mono', 9, QFont.Weight.Normal))        # the font may have been messed up by the initial html text
 
             self.textEdit.setTextViaCursor(plainText)                           # get text into the textEdit, NOT resetting its doc status
-            self.UpdateAllViews()                                               # parse the textEdit; show the corresponding plot
+            self.updateAllViews()                                               # parse the textEdit; show the corresponding plot
 
             self.appendLogMessage(f'Wizard : created land survey: {self.survey.name}')
             config.surveyNumber += 1                                            # update global counter
@@ -3067,7 +3064,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.actionShowBlocks.setChecked(True)                              # show blocks by default
             self.survey.paintMode = PaintMode.justBlocks                        # show blocks by default
 
-            self.UpdateAllViews()                                               # parse the textEdit; show the corresponding plot
+            self.updateAllViews()                                               # parse the textEdit; show the corresponding plot
 
             self.appendLogMessage(f'Wizard : created streamer survey: {self.survey.name}')
             config.surveyNumber += 1                                            # update global counter
@@ -3155,19 +3152,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.anaModel.setData(None)
             return
 
-        total_rows = self.output.D2_Output.shape[0]
-        chunk_size = config.maxRowsPerChunk                                     # Default chunk size from config
+        totalRows = self.output.D2_Output.shape[0]
+        chunkSize = config.maxRowsPerChunk                                     # Default chunk size from config
 
-        if total_rows <= chunk_size:
+        if totalRows <= chunkSize:
             # Dataset is small enough to display directly
             self.anaModel.setData(self.output.D2_Output)
-            self.appendLogMessage(f'Loaded : . . . Analysis: {total_rows:,} traces displayed in Trace Table')
+            self.appendLogMessage(f'Loaded : . . . Analysis: {totalRows:,} traces displayed in Trace Table')
         else:
             # Create a ChunkedData view object that will handle paging
-            chunked_data = ChunkedData(self.output.D2_Output, chunk_size)
-            self.anaModel.setChunkedData(chunked_data)
+            chunkedData = ChunkedData(self.output.D2_Output, chunkSize)
+            self.anaModel.setChunkedData(chunkedData)
             self._goToFirstPage()
-            self.appendLogMessage(f'Loaded : . . . Analysis: {total_rows:,} traces available (showing {chunk_size:,} at a time)')
+            self.appendLogMessage(f'Loaded : . . . Analysis: {totalRows:,} traces available (showing {chunkSize:,} at a time)')
         self._updatePageInfo()
 
     def resetAnaTableModel(self):
@@ -3210,14 +3207,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         config.resetTimers()    ###                                             # reset timers for debugging code
 
-        file = QFile(fileName)
-        if not file.open(QFile.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):   # report status message and return False
+        qFile = QFile(fileName)
+        if not qFile.open(QFile.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):   # report status message and return False
             try:                                                                # remove from MRU in case of errors
                 self.recentFileList.remove(fileName)
             except ValueError:
                 pass
 
-            self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Cannot open file:{fileName}. Error:{file.errorString()}', MsgType.Error)
+            self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Cannot open file:{fileName}. Error:{qFile.errorString()}', MsgType.Error)
             return False
 
         self.appendLogMessage(f'Opening: {fileName}')                           # send status message
@@ -3225,9 +3222,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.survey = RollSurvey()                                              # reset the survey object; get rid of all blocks in the list !
         self.setCurrentFileName(fileName)                                       # update self.fileName, set textEditModified(False) and setWindowModified(False)
 
-        stream = QTextStream(file)                                              # create a stream to read all the data
+        stream = QTextStream(qFile)                                              # create a stream to read all the data
         plainText = stream.readAll()                                            # load text in a string
-        file.close()                                                            # file object no longer needed
+        qFile.close()                                                            # file object no longer needed
 
         # Xml tab
         self.appendLogMessage(f'Parsing: {fileName}')                           # send status message
@@ -3852,14 +3849,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         xml_text = self.survey.toXmlString(4)
 
-        file = QFile(self.fileName)
-        success = file.open(QIODevice.OpenModeFlag.WriteOnly | QIODevice.OpenModeFlag.Truncate)
+        qFile = QFile(self.fileName)
+        success = qFile.open(QIODevice.OpenModeFlag.WriteOnly | QIODevice.OpenModeFlag.Truncate)
 
         if success:
-            _ = QTextStream(file) << xml_text                                  # unused stream replaced by _ to make PyLint happy
+            _ = QTextStream(qFile) << xml_text                                  # unused stream replaced by _ to make PyLint happy
             self.appendLogMessage(f'Saved&nbsp;&nbsp;: {self.fileName}')
             self.textEdit.document().setModified(False)
-            file.close()
+            qFile.close()
 
             # try to save the analysis files as well
             if self.output.binOutput is not None:
@@ -4168,19 +4165,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.appendLogMessage(f'Parse&nbsp;&nbsp;: {errorMsg}, at line: {errorLine} col:{errorColumn}; survey object not updated', MsgType.Error)
             return False
 
-    def OnAbout(self):
+    def onAbout(self):
         QMessageBox.about(self, 'About Roll', aboutText())
 
-    def OnLicense(self):
+    def onLicense(self):
         QMessageBox.about(self, 'License conditions', licenseText())
 
-    def OnHighDpi(self):
+    def onHighDpi(self):
         QMessageBox.about(self, 'High DPI UI scaling issues', highDpiText())
 
-    def OnQGisCheatSheet(self):
+    def onQGisCheatSheet(self):
         QMessageBox.about(self, 'QGis Cheat Sheet', qgisCheatSheetText())
 
-    def OnQGisRollInterface(self):
+    def onQGisRollInterface(self):
         # See: https://stackoverflow.com/questions/4216985/call-to-operating-system-to-open-url
 
         dirName = os.path.dirname(os.path.abspath(__file__))
@@ -4245,6 +4242,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.updateMenuStatus(False)
         self.replotLayout()
         self.appendLogMessage(f'Edit&nbsp;&nbsp;&nbsp;: Modified in-use flag for {len(rows):,} RPS record(s)')
+
     def onSrcInUseToggled(self, rows):
         if self.srcGeom is None:
             return
