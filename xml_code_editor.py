@@ -33,7 +33,7 @@ And in particular: https://web.archive.org/web/20170515141231/http://www.binpres
 # QRegExp is obsolete as of Qt 5.15
 # See: https://doc.qt.io/qt-5/qregexp.html
 # See: https://github.com/Komet/MediaElch/issues/1086
-# See:https://doc.qt.io/archives/qt-5.15/qregularexpression.html#notes-for-qregexp-users
+# See: https://doc.qt.io/archives/qt-5.15/qregularexpression.html#notes-for-qregexp-users
 # See: https://qxmledit.org/
 
 
@@ -50,62 +50,8 @@ from qgis.PyQt.QtWidgets import (QApplication, QPlainTextEdit, QTextEdit,
 class XMLHighlighter(QSyntaxHighlighter):
     """
     Class for highlighting xml text inherited from QSyntaxHighlighter
-
-    reference:
-        http://www.yasinuludag.com/blog/?p=49
-
+    reference: http://www.yasinuludag.com/blog/?p=49
     """
-
-    # def __init__(self, parent=None):
-
-    #     super(XMLHighlighter, self).__init__(parent)
-
-    #     self.highlightingRules = []
-
-    #     xmlElementFormat = QTextCharFormat()
-    #     xmlElementFormat.setForeground(QColor('#0070C0'))   # blue-ish
-    #     # xmlElementFormat.setForeground(QColor("#000070")) # blue
-    #     self.highlightingRules.append((QRegularExpression(r'\b[A-Za-z0-9_]+(?=[\s/>])'), xmlElementFormat))
-
-    #     xmlAttributeFormat = QTextCharFormat()
-    #     xmlAttributeFormat.setFontItalic(True)
-    #     xmlAttributeFormat.setForeground(QColor('#177317'))   # green
-    #     self.highlightingRules.append((QRegularExpression(r'\b[A-Za-z0-9_]+(?==)'), xmlAttributeFormat))
-    #     self.highlightingRules.append((QRegularExpression(r'='), xmlAttributeFormat))
-
-    #     self.valueFormat = QTextCharFormat()
-    #     self.valueFormat.setForeground(QColor('#e35e00'))   # orange
-
-    #     # CORRECTION: the '"' caracter needs to be preceeded by a '=' character !
-    #     # to highlight an attribute that follows an '=' sign use: (?<=\=)\"([^"]*?)\"
-    #     self.valueStartExpression = QRegularExpression(r'(?<=\=)"')
-    #     self.valueEndExpression = QRegularExpression(r'"(?=[\s></])')
-
-    #     singleLineCommentFormat = QTextCharFormat()
-    #     singleLineCommentFormat.setForeground(QColor('#a0a0a4'))   # grey
-    #     self.highlightingRules.append((QRegularExpression(r'<!--[^\n]*-->'), singleLineCommentFormat))
-
-    #     textFormat = QTextCharFormat()
-    #     textFormat.setForeground(QColor('#000000'))   # black
-    #     # Old: r'>(.+)(?=</)'  # also paints the '>' black
-    #     self.highlightingRules.append((QRegularExpression(r'(?<=>)[^<]+(?=</)'), textFormat))
-
-    #     keywordFormat = QTextCharFormat()
-    #     keywordFormat.setForeground(QColor('#000070'))   # blue
-    #     keywordFormat.setFontWeight(QFont.Weight.Bold)
-    #     keywordPatterns = [
-    #         r'/>',
-    #         r'>',
-    #         r'<',
-    #         r'</',
-    #         r'\b(spatialrefsys|wkt|proj4|srsid|srid|authid|description|projectionacronym|ellipsoidacronym|geographicflag)\b',
-    #         r'\b(survey|type|name|survey|surveyCrs|limits|angles|binning|offset|output|unique|well|spiral|circle)\b',
-    #         r'\b(grid|b?local|global|block_list|block|borders|plane|sphere|reflectors|rec_border|src_border)\b',
-    #         r'\b(template_list|template|roll_list|translate|seed_list|seed|grow_list|pattern_list|pattern|wellCrs|xml)\b',
-    #     ]
-
-    #     self.highlightingRules += [(QRegularExpression(pattern), keywordFormat) for pattern in keywordPatterns]
-
 
     def __init__(self, parent=None):
 
@@ -208,8 +154,8 @@ class QCodeEditor(QPlainTextEdit):
     """
     QCodeEditor inherited from QPlainTextEdit providing:
 
-        numberBar - set by DISPLAY_LINE_NUMBERS flag equals True
-        curent line highligthing - set by HIGHLIGHT_CURRENT_LINE flag equals True
+        numberBar - set by display_line_numbers flag equals True
+        curent line highligthing - set by highlight_currrent_line flag equals True
         setting up QSyntaxHighlighter
 
     references:
@@ -242,10 +188,10 @@ class QCodeEditor(QPlainTextEdit):
                 blockNumber = block.blockNumber()
 
                 # Bart: added int(xxx), as QGIS was complaing about a float for QRect()
-                block_top = int(self.editor.blockBoundingGeometry(block).translated(self.editor.contentOffset()).top())
+                blockTop = int(self.editor.blockBoundingGeometry(block).translated(self.editor.contentOffset()).top())
 
                 # Check if the position of the block is out side of the visible area.
-                if not block.isVisible() or block_top >= event.rect().bottom():
+                if not block.isVisible() or blockTop >= event.rect().bottom():
                     break
 
                 # We want the line number for the selected line to be bold.
@@ -258,8 +204,8 @@ class QCodeEditor(QPlainTextEdit):
                 painter.setFont(self.font)
 
                 # Draw the line number right justified at the position of the line.
-                paint_rect = QRect(0, block_top, self.width(), self.editor.fontMetrics().height())
-                painter.drawText(paint_rect, Qt.AlignmentFlag.AlignRight, str(blockNumber + 1))
+                paintRect = QRect(0, blockTop, self.width(), self.editor.fontMetrics().height())
+                painter.drawText(paintRect, Qt.AlignmentFlag.AlignRight, str(blockNumber + 1))
 
                 block = block.next()
 
@@ -291,13 +237,13 @@ class QCodeEditor(QPlainTextEdit):
                 self.font.setStyle(QFont.Style.StyleNormal)
                 self.updateWidth()
 
-    def __init__(self, DISPLAY_LINE_NUMBERS=True, HIGHLIGHT_CURRENT_LINE=True, SyntaxHighlighter=None):
+    def __init__(self, display_line_numbers=True, highlight_currrent_line=True, SyntaxHighlighter=None):
         """
         Parameters
         ----------
-        DISPLAY_LINE_NUMBERS : bool
+        display_line_numbers : bool
             switch on/off the presence of the lines number bar
-        HIGHLIGHT_CURRENT_LINE : bool
+        highlight_currrent_line : bool
             switch on/off the current line highliting
         SyntaxHighlighter : QSyntaxHighlighter
             should be inherited from QSyntaxHighlighter
@@ -307,13 +253,12 @@ class QCodeEditor(QPlainTextEdit):
         self.setFont(QFont('Ubuntu Mono', 9))
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.setWordWrapMode(QTextOption.WrapMode.NoWrap)
+        self.displayLineNumbers = display_line_numbers
 
-        self.DISPLAY_LINE_NUMBERS = DISPLAY_LINE_NUMBERS
+        if display_line_numbers:
+            self.numberBar = self.NumberBar(self)
 
-        if DISPLAY_LINE_NUMBERS:
-            self.number_bar = self.NumberBar(self)
-
-        if HIGHLIGHT_CURRENT_LINE:
+        if highlight_currrent_line:
             self.currentLineNumber = None
             self.currentLineColor = self.palette().alternateBase()
             # self.currentLineColor = QColor("#e8e8e8")
@@ -325,10 +270,10 @@ class QCodeEditor(QPlainTextEdit):
     def resizeEvent(self, *e):
         """overload resizeEvent handler"""
 
-        if self.DISPLAY_LINE_NUMBERS:   # resize number_bar widget
+        if self.displayLineNumbers:   # resize number_bar widget
             cr = self.contentsRect()
-            rec = QRect(cr.left(), cr.top(), self.number_bar.getWidth(), cr.height())
-            self.number_bar.setGeometry(rec)
+            rec = QRect(cr.left(), cr.top(), self.numberBar.getWidth(), cr.height())
+            self.numberBar.setGeometry(rec)
 
         QPlainTextEdit.resizeEvent(self, *e)
 
@@ -336,12 +281,12 @@ class QCodeEditor(QPlainTextEdit):
         newCurrentLineNumber = self.textCursor().blockNumber()
         if newCurrentLineNumber != self.currentLineNumber:
             self.currentLineNumber = newCurrentLineNumber
-            hi_selection = QTextEdit.ExtraSelection()
-            hi_selection.format.setBackground(self.currentLineColor)
-            hi_selection.format.setProperty(QTextFormat.Property.FullWidthSelection, True)
-            hi_selection.cursor = self.textCursor()
-            hi_selection.cursor.clearSelection()
-            self.setExtraSelections([hi_selection])
+            hiSelection = QTextEdit.ExtraSelection()
+            hiSelection.format.setBackground(self.currentLineColor)
+            hiSelection.format.setProperty(QTextFormat.Property.FullWidthSelection, True)
+            hiSelection.cursor = self.textCursor()
+            hiSelection.cursor.clearSelection()
+            self.setExtraSelections([hiSelection])
 
     def getTextViaClipboard(self):
         cursor = self.textCursor()                                              # Do NOT use textEdit.toPlainText() as it resets doc status
@@ -390,7 +335,7 @@ if __name__ == '__main__':
 
         app = QApplication([])
 
-        editor = QCodeEditor(DISPLAY_LINE_NUMBERS=True, HIGHLIGHT_CURRENT_LINE=True, SyntaxHighlighter=XMLHighlighter)
+        editor = QCodeEditor(display_line_numbers=True, highlight_currrent_line=True, SyntaxHighlighter=XMLHighlighter)
 
         text = """<FINITELATTICE>
           <LATTICE name="myLattice">

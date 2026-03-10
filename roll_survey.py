@@ -100,8 +100,8 @@ from .sps_io_and_qc import pntType1, relType2
 # To give an xml-object a name, create a seperate <name> element as first xml entry (preferred over name attribute)
 # the advantage of using element.text is that characters like ' and " don't cause issues in terminating a ""-string
 # if len(self.name) > 0:
-#     name_elem = ET.SubElement(seed_elem, 'name')
-#     name_elem.text = self.name
+#     nameElem = ET.SubElement(seed_elem, 'name')
+#     nameElem.text = self.name
 
 # The survey object contains several "lower" objects such as blocks, templates and patterns, all defined in separate modules
 # When these need their parent "survey" object in a function, there's a chance of getting circular references
@@ -251,11 +251,11 @@ class RollSurvey(pg.GraphicsObject):
     def setPatternList(self, newList):
         self.patternList = list(newList)
         # clamp invalid indices
-        max_idx = len(self.patternList) - 1
+        maxIdx = len(self.patternList) - 1
         for block in self.blockList:
             for template in block.templateList:
                 for seed in template.seedList:
-                    if seed.patternNo > max_idx:
+                    if seed.patternNo > maxIdx:
                         seed.patternNo = -1
         self.invalidatePaintCache()
 
@@ -268,7 +268,7 @@ class RollSurvey(pg.GraphicsObject):
         # ".patternList[0].pointPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)",
         # ".patternList[0].patternPicture (Type 'QPicture' caused: cannot pickle 'QPicture' object)"
         #
-        # tested using: **getUnpicklable(instance, exception=None, string='', first_only=False)**. See functions.py
+        # tested using: **getUnpicklable(instance, exception=None, string='', firstOnly=False)**. See functions.py
         # applied fix: copy via: object --> xml --> object
 
         plainText = self.toXmlString()
@@ -478,9 +478,9 @@ class RollSurvey(pg.GraphicsObject):
             self.output.minOffset = np.zeros(shape=(nx, ny), dtype=np.float32)  # start with empty array of the right size and type
             self.output.maxOffset = np.zeros(shape=(nx, ny), dtype=np.float32)  # start with empty array of the right size and type
             # self.output.rmsOffset = np.zeros(shape=(nx, ny), dtype=np.float32)  # start with empty array of the right size and type
-            self.output.minOffset.fill(np.Inf)                                  # start min offset with +inf (use np.full instead)
-            self.output.maxOffset.fill(np.NINF)                                 # start max offset with -inf (use np.full instead)
-            # self.output.rmsOffset.fill(np.NINF)                                 # start max offset with -inf (use np.full instead)
+            self.output.minOffset.fill(np.inf)                                  # start min offset with +inf (use np.full instead)
+            self.output.maxOffset.fill(-np.inf)                                 # start max offset with -inf (use np.full instead)
+            # self.output.rmsOffset.fill(-np.inf)                                 # start max offset with -inf (use np.full instead)
 
         self.binTransform = QTransform()
         self.binTransform.translate(x0, y0)
@@ -978,17 +978,6 @@ class RollSurvey(pg.GraphicsObject):
                 srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)            # we need global positions
 
                 numbaSetPointRecord(self.output.srcGeom, nSrc, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
-                # self.output.srcGeom[nSrc]['Line'] = int(srcStkY)
-                # self.output.srcGeom[nSrc]['Point'] = int(srcStkX)
-                # self.output.srcGeom[nSrc]['Index'] = nBlock % 10 + 1            # the single digit point index is used to indicate block nr
-                # self.output.srcGeom[nSrc]['Code' ] = 'E1'                       # can do this in one go at the end
-                # self.output.srcGeom[nSrc]['Depth'] = 0.0                        # not needed; zero when initialized
-                # self.output.srcGeom[nSrc]['East'] = srcLocX
-                # self.output.srcGeom[nSrc]['North'] = srcLocY
-                # self.output.srcGeom[nSrc]['LocX'] = srcX                        # x-component of 3D-location
-                # self.output.srcGeom[nSrc]['LocY'] = srcY                        # y-component of 3D-location
-                # self.output.srcGeom[nSrc]['Elev'] = srcZ                        # z-value not affected by transform
-
                 time = self.elapsedTime(time, 3)    ###
 
                 # now iterate over all seeds to find the receivers
@@ -1030,18 +1019,6 @@ class RollSurvey(pg.GraphicsObject):
                         self.nRecRecord += 1
 
                         numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
-                        # self.output.recGeom[self.nRecRecord]['Line'] = int(recStkY)
-                        # self.output.recGeom[self.nRecRecord]['Point'] = int(recStkX)
-                        # self.output.recGeom[self.nRecRecord]['Index'] = nBlock % 10 + 1   # the single digit point index is used to indicate block nr
-                        # self.output.recGeom[self.nRecRecord]['Code' ] = 'G1'  # can do this in one go at the end
-                        # self.output.recGeom[self.nRecRecord]['Depth'] = 0.0   # not needed; zero when initialized
-                        # self.output.recGeom[self.nRecRecord]['East'] = recLocX
-                        # self.output.recGeom[self.nRecRecord]['North'] = recLocY
-                        # self.output.recGeom[self.nRecRecord]['LocX'] = recX   # x-component of 3D-location
-                        # self.output.recGeom[self.nRecRecord]['LocY'] = recY   # y-component of 3D-location
-                        # self.output.recGeom[self.nRecRecord]['Elev'] = recZ   # z-value not affected by transform
-                        # self.output.recGeom[self.nRecRecord]['Uniq'] = 1      # We want to use Uniq == 1 later, to remove empty records
-
                         time = self.elapsedTime(time, 9)    ###
 
                         # apply self.output.recGeom.resize(N) when more memory is needed, after cleaning duplicates
@@ -1064,15 +1041,6 @@ class RollSurvey(pg.GraphicsObject):
 
                             # create new relation record; fill it in completely
                             numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcStkX, srcStkY, nBlock, self.nShotPoint, recStkY, recStkX, recStkX)
-                            # self.output.relGeom[self.nRelRecord]['SrcLin'] = int(srcStkY)
-                            # self.output.relGeom[self.nRelRecord]['SrcPnt'] = int(srcStkX)
-                            # self.output.relGeom[self.nRelRecord]['SrcInd'] = nBlock % 10 + 1
-                            # self.output.relGeom[self.nRelRecord]['RecNum'] = self.nShotPoint
-                            # self.output.relGeom[self.nRelRecord]['RecLin'] = int(recStkY)
-                            # self.output.relGeom[self.nRelRecord]['RecMin'] = int(recStkX)
-                            # self.output.relGeom[self.nRelRecord]['RecMax'] = int(recStkX)
-                            # self.output.relGeom[self.nRelRecord]['RecInd'] = nBlock % 10 + 1
-                            # self.output.relGeom[self.nRelRecord]['Uniq'] = 1    # needed for compacting array later (remove empty records)
                         else:
                             # existing relation record; just update min/max rec stake numbers
                             numbaFixRelationRecord(self.output.relGeom, self.nRelRecord, recStkX)
@@ -1554,11 +1522,11 @@ class RollSurvey(pg.GraphicsObject):
                     upDnArray = recPoints - src                                 # straigth rays; total length of both legs
                     totalTime = np.linalg.norm(upDnArray, axis=1)               # get length of the rays
                 else:
-                    downArray = cmpPoints - src                                 # 1st leg of the rays
-                    up__Array = cmpPoints - recPoints                           # 2nd leg of the rays
-                    downTime = np.linalg.norm(downArray, axis=1)                # get length of the 1st leg
-                    up__Time = np.linalg.norm(up__Array, axis=1)                # get length of the 2nd leg
-                    totalTime = downTime + up__Time                             # total length of both legs
+                    dnArray = cmpPoints - src                                 # 1st leg of the rays
+                    upArray = cmpPoints - recPoints                           # 2nd leg of the rays
+                    dnTime = np.linalg.norm(dnArray, axis=1)                # get length of the 1st leg
+                    upTime = np.linalg.norm(upArray, axis=1)                # get length of the 2nd leg
+                    totalTime = dnTime + upTime                             # total length of both legs
 
                 totalTime *= self.binning.slowness                              # convert distance into travel time
 
@@ -1858,11 +1826,11 @@ class RollSurvey(pg.GraphicsObject):
                     upDnArray = recPoints - src                                 # straigth rays; total length of both legs
                     totalTime = np.linalg.norm(upDnArray, axis=1)               # get length of the rays
                 else:
-                    downArray = cmpPoints - src                                 # 1st leg of the rays
-                    up__Array = cmpPoints - recPoints                           # 2nd leg of the rays
-                    downTime = np.linalg.norm(downArray, axis=1)                # get length of the 1st leg
-                    up__Time = np.linalg.norm(up__Array, axis=1)                # get length of the 2nd leg
-                    totalTime = downTime + up__Time                             # total length of both legs
+                    dnArray = cmpPoints - src                                   # 1st leg of the rays
+                    upArray = cmpPoints - recPoints                             # 2nd leg of the rays
+                    dnTime = np.linalg.norm(dnArray, axis=1)                    # get length of the 1st leg
+                    upTime = np.linalg.norm(upArray, axis=1)                    # get length of the 2nd leg
+                    totalTime = dnTime + upTime                                 # total length of both legs
 
                 totalTime *= self.binning.slowness                              # convert distance into travel time
 
@@ -2010,16 +1978,16 @@ class RollSurvey(pg.GraphicsObject):
                 relSlice = self.output.relGeom[minRecord:maxRecord]
 
                 # Vectorized receiver selection
-                rec_mask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
+                recMask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
                 for relRecord in relSlice:
-                    rec_mask |= (
+                    recMask |= (
                         (self.output.recGeom['Index'] == relRecord['RecInd'])
                         & (self.output.recGeom['Line'] == relRecord['RecLin'])
                         & (self.output.recGeom['Point'] >= relRecord['RecMin'])
                         & (self.output.recGeom['Point'] <= relRecord['RecMax'])
                     )
 
-                recArray = self.output.recGeom[rec_mask]
+                recArray = self.output.recGeom[recMask]
                 recArray = recArray[recArray['InUse'] > 0]
                 if recArray.shape[0] == 0:
                     continue
@@ -2046,18 +2014,18 @@ class RollSurvey(pg.GraphicsObject):
                 aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
 
                 # Map CMP points to bin grid coordinates
-                mapped_coords = np.array([self.binTransform.map(pt[0], pt[1]) for pt in cmpPoints])
-                nx = mapped_coords[:, 0].astype(int)
-                ny = mapped_coords[:, 1].astype(int)
+                mappedCoords = np.array([self.binTransform.map(pt[0], pt[1]) for pt in cmpPoints])
+                nx = mappedCoords[:, 0].astype(int)
+                ny = mappedCoords[:, 1].astype(int)
 
                 # Create a mask for valid bins
-                valid_bins_mask = (nx >= 0) & (ny >= 0) & (nx < self.output.binOutput.shape[0]) & (ny < self.output.binOutput.shape[1])
+                validBinsMask = (nx >= 0) & (ny >= 0) & (nx < self.output.binOutput.shape[0]) & (ny < self.output.binOutput.shape[1])
 
                 # Filter arrays to include only valid bins
-                nx = nx[valid_bins_mask]
-                ny = ny[valid_bins_mask]
-                hypArray = hypArray[valid_bins_mask]
-                aziArray = aziArray[valid_bins_mask]
+                nx = nx[validBinsMask]
+                ny = ny[validBinsMask]
+                hypArray = hypArray[validBinsMask]
+                aziArray = aziArray[validBinsMask]
 
                 if nx.shape[0] == 0:
                     continue
@@ -2153,16 +2121,16 @@ class RollSurvey(pg.GraphicsObject):
                 relSlice = self.output.relGeom[minRecord:maxRecord]
 
                 # Vectorized receiver selection (still loop over relSlice but no concatenations)
-                rec_mask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
+                recMask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
                 for rel in relSlice:
-                    rec_mask |= (
+                    recMask |= (
                         (self.output.recGeom['Index'] == rel['RecInd'])
                         & (self.output.recGeom['Line'] == rel['RecLin'])
                         & (self.output.recGeom['Point'] >= rel['RecMin'])
                         & (self.output.recGeom['Point'] <= rel['RecMax'])
                     )
 
-                recArray = self.output.recGeom[rec_mask]
+                recArray = self.output.recGeom[recMask]
                 recArray = recArray[recArray['InUse'] > 0]
                 if recArray.shape[0] == 0:
                     continue
@@ -2208,7 +2176,7 @@ class RollSurvey(pg.GraphicsObject):
 
                 hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
                 aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
-                aziArray[aziArray < 0] += 360
+                aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
 
                 r1 = self.offset.radOffsets.x()
                 r2 = self.offset.radOffsets.y()
@@ -2364,16 +2332,16 @@ class RollSurvey(pg.GraphicsObject):
                     continue
 
                 # Vectorized receiver selection using integer-normalized arrays
-                rec_mask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
+                recMask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
                 for j in range(minRecord, maxRecord):
-                    rec_mask |= (
+                    recMask |= (
                         (recIndex == relRecIndI[j])
                         & (recLineI == relRecLinI[j])
                         & (recPointI >= relRecMinI[j])
                         & (recPointI <= relRecMaxI[j])
                     )
 
-                recArray = self.output.recGeom[rec_mask]
+                recArray = self.output.recGeom[recMask]
                 recArray = recArray[recArray['InUse'] > 0]
                 if recArray.shape[0] == 0:
                     continue
@@ -2419,7 +2387,7 @@ class RollSurvey(pg.GraphicsObject):
 
                 hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
                 aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
-                aziArray[aziArray < 0] += 360
+                aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
 
                 r1 = self.offset.radOffsets.x()
                 r2 = self.offset.radOffsets.y()
@@ -2704,11 +2672,11 @@ class RollSurvey(pg.GraphicsObject):
                         upDnArray = recPoints - src                             # straigth rays; total length of both legs
                         totalTime = np.linalg.norm(upDnArray, axis=1)           # get length of the rays
                     else:
-                        downArray = cmpPoints - src                             # 1st leg of the rays
-                        up__Array = cmpPoints - recPoints                       # 2nd leg of the rays
-                        downTime = np.linalg.norm(downArray, axis=1)            # get length of the 1st leg
-                        up__Time = np.linalg.norm(up__Array, axis=1)            # get length of the 2nd leg
-                        totalTime = downTime + up__Time                         # total length of both legs
+                        dnArray = cmpPoints - src                             # 1st leg of the rays
+                        upArray = cmpPoints - recPoints                       # 2nd leg of the rays
+                        dnTime = np.linalg.norm(dnArray, axis=1)            # get length of the 1st leg
+                        upTime = np.linalg.norm(upArray, axis=1)            # get length of the 2nd leg
+                        totalTime = dnTime + upTime                         # total length of both legs
 
                     totalTime *= self.binning.slowness                          # convert distance into travel time
 
@@ -2838,7 +2806,7 @@ class RollSurvey(pg.GraphicsObject):
 
                     hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
                     aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
-                    aziArray[aziArray < 0] += 360
+                    aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
 
                     r1 = self.offset.radOffsets.x()
                     r2 = self.offset.radOffsets.y()
@@ -2914,7 +2882,7 @@ class RollSurvey(pg.GraphicsObject):
         # replace (inf) by (-inf) for max values
         self.message.emit('Calc min/max offsets - step 4/9')
         self.progress.emit(40)
-        self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF
+        self.output.minOffset[self.output.minOffset == np.inf] = -np.inf
 
         # calc max values against (-inf) minimum
         self.message.emit('Calc min/max offsets - step 5/9')
@@ -2929,7 +2897,7 @@ class RollSurvey(pg.GraphicsObject):
         # replace (-inf) by (inf) for min values
         self.message.emit('Calc min/max offsets - step 7/9')
         self.progress.emit(70)
-        self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf
+        self.output.maxOffset[self.output.maxOffset == -np.inf] = np.inf
 
         # calc min offset against min (inf) values
         self.message.emit('Calc min/max offsets - step 8/9')
@@ -2939,7 +2907,7 @@ class RollSurvey(pg.GraphicsObject):
         # replace (inf) by (-inf) for max values
         self.message.emit('Calc min/max offsets - step 9/9')
         self.progress.emit(90)
-        self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF
+        self.output.maxOffset[self.output.maxOffset == np.inf] = -np.inf
 
         self.progress.emit(100)
         return True
@@ -3010,6 +2978,8 @@ class RollSurvey(pg.GraphicsObject):
                     slice2D[:, 11] = slottedAzimuth                         # write it back into the 2D slice
 
                 slottedOffAzi = np.column_stack((slottedOffset, slottedAzimuth))
+
+                # return_index gives the indices of the first occurrence of the unique values in the original array; these are the traces we want to keep
                 _, indices = np.unique(slottedOffAzi, return_index=True, axis=0)
 
                 for index in indices:                                       # flag unique offset, azimuth values
@@ -3045,7 +3015,7 @@ class RollSurvey(pg.GraphicsObject):
 
         # by defining the array only here, we prevent having a 'null' array that would result in a plot with 'empty' rms values
         self.output.rmsOffset = np.zeros(shape=(rows, cols), dtype=np.float32)  # start with empty array of the right size and type
-        self.output.rmsOffset.fill(np.NINF)                                     # start max offset with -inf (use np.full instead)
+        self.output.rmsOffset.fill(-np.inf)                                     # start max offset with -inf (use np.full instead)
 
         self.nShotPoint = 0                                                     # reuse nShotPoint(s) to implement progress in statusbar
         self.nShotPoints = rows * cols                                          # calc nr of applicable points
@@ -3068,7 +3038,7 @@ class RollSurvey(pg.GraphicsObject):
 
                         fold = self.output.binOutput[row, col]                          # check available traces for this bin
                         if fold <= 0:                                                   # nothing to see here, move to next bin
-                            continue                                                    # rms values prefilled with np.NINF
+                            continue                                                    # rms values prefilled with -np.inf
 
                         slice2D = self.output.anaOutput[row, col, 0:fold, :]            # get all available traces belonging to this bin
                         offset1D = slice2D[:, 10]                                       # grab 10th item of 2nd dimension (=offset)
@@ -3157,7 +3127,7 @@ class RollSurvey(pg.GraphicsObject):
             self.calcBoundingRect()                                             # (re)calculate the boundingBox as part of parsing the data
         return success
 
-    def checkIntegrity(self, projectDirectory = None) -> bool:
+    def checkIntegrity(self, projectDirectory=None) -> bool:
         """this routine checks survey integrity, after edits have been made"""
 
         e = 'Survey format error'
@@ -3183,14 +3153,14 @@ class RollSurvey(pg.GraphicsObject):
                             seed.grid.growList.insert(0, RollTranslate())
 
                     elif seed.type == SeedType.well:                            # well site; check for errors
-                        f_name = seed.well.name                                 # may be relative to projectDirectory
+                        wellName = seed.well.name                                 # may be relative to projectDirectory
 
-                        if f_name is None or not os.path.exists(f_name):  # check if well file exists
+                        if wellName is None or not os.path.exists(wellName):  # check if well file exists
                             QMessageBox.warning(None, e, f'A well-seed should point to an existing well-file\nRemove seed or adjust name in well-seed "{seed.name}"')
                             return False
 
                         if seed.well.errorText is not None:
-                            QMessageBox.warning(None, e, f'{seed.well.errorText} in well file:\n{f_name}\nRemove seed or correct error in well-seed "{seed.name}"')
+                            QMessageBox.warning(None, e, f'{seed.well.errorText} in well file:\n{wellName}\nRemove seed or correct error in well-seed "{seed.name}"')
                             return False
 
                         c = seed.well.crs                                       # check if crs is valid; not really needed already checked in RollWell
@@ -3226,7 +3196,7 @@ class RollSurvey(pg.GraphicsObject):
                 for seed in template.seedList:
                     seed.calcPointArray()                                   # setup the numpy arrays for more efficient processing
 
-    def makeWellPathsAbsolute(self, projectDirectory = None):
+    def makeWellPathsAbsolute(self, projectDirectory=None):
         """ make well paths absolute, if they are not already. Used when loading a survey """
         for block in self.blockList:
             for template in block.templateList:
@@ -3234,7 +3204,7 @@ class RollSurvey(pg.GraphicsObject):
                     if seed.type == SeedType.well:
                         seed.well.makePathAbsolute(projectDirectory)
 
-    def makeWellPathsRelative(self, projectDirectory = None):
+    def makeWellPathsRelative(self, projectDirectory=None):
         """ make well paths relative, if possible. Used when saving a survey """
         for block in self.blockList:
             for template in block.templateList:
@@ -3426,13 +3396,13 @@ class RollSurvey(pg.GraphicsObject):
         # geometry() is logical (DIPs); multiply by DPR to get native pixels
         geo = screen.geometry()
         dpr = screen.devicePixelRatio()
-        native_w = round(geo.width() * dpr)
-        native_h = round(geo.height() * dpr)
+        nativeW = round(geo.width() * dpr)
+        nativeH = round(geo.height() * dpr)
 
         # Simple classification; adjust thresholds if you want to be stricter
-        if native_w >= 3840 or native_h >= 2160:    # UHD (4K)
+        if nativeW >= 3840 or nativeH >= 2160:    # UHD (4K)
             return 3.0
-        if native_w >= 2560 or native_h >= 1440:    # QHD (2K)
+        if nativeW >= 2560 or nativeH >= 1440:    # QHD (2K)
             return 2.0
         return 1.5                                  # fallback for FHD/others
 
@@ -3447,8 +3417,8 @@ class RollSurvey(pg.GraphicsObject):
     def _shouldAbortPaint(self) -> bool:
         """ time budget OR external cancel """
 
-        elapsed_ms = (perf_counter() - self._paintStart) * 1000.0
-        return self._cancelPaint or elapsed_ms > self._paintBudgetMs
+        elapsedMs = (perf_counter() - self._paintStart) * 1000.0
+        return self._cancelPaint or elapsedMs > self._paintBudgetMs
 
     def invalidatePaintCache(self) -> None:
         """Call this whenever data, transforms, colors/pens, or PaintDetails/PaintMode affecting areas change."""
@@ -3460,7 +3430,7 @@ class RollSurvey(pg.GraphicsObject):
         self._ps = None
         self.update()
 
-    def _make_fb_key(self, painter: QPainter, option) -> tuple:
+    def _makeFramebufferKey(self, painter: QPainter, option) -> tuple:
         """Build a key representing the current paint device/transform/LOD/flags/epoch."""
         dev = painter.device()
 
@@ -3471,11 +3441,11 @@ class RollSurvey(pg.GraphicsObject):
         lod = option.levelOfDetailFromTransform(T) * self.lodScale
         return ( w, h, m, round(lod, 3), int(self.paintMode), int(self.paintDetails), getattr(self, "_paintEpoch", 0), )
 
-    def _ensure_buffers(self, painter: QPainter, option, penWidth=2) -> None:
+    def _ensureBuffers(self, painter: QPainter, option, penWidth=2) -> None:
         """ Ensure the base and progressive framebuffers exist and match the current view.
         Rebuilds and re-renders the base layer (bin/src/rec/cmp rectangles) if the key changes. """
 
-        key = self._make_fb_key(painter, option)
+        key = self._makeFramebufferKey(painter, option)
         if key == self._fbKey and self._fbBase is not None and self._fbProg is not None:
             return
 
@@ -3486,13 +3456,13 @@ class RollSurvey(pg.GraphicsObject):
         except Exception:
             dpr = float(getattr(dev, "devicePixelRatio", lambda: 1.0)())
 
-        w_log = max(1, int(getattr(dev, "width", lambda: 0)()))
-        h_log = max(1, int(getattr(dev, "height", lambda: 0)()))
-        w_px = max(1, int(round(w_log * dpr)))
-        h_px = max(1, int(round(h_log * dpr)))
+        wLog = max(1, int(getattr(dev, "width", lambda: 0)()))
+        hLog = max(1, int(getattr(dev, "height", lambda: 0)()))
+        wPx = max(1, int(round(wLog * dpr)))
+        hPx = max(1, int(round(hLog * dpr)))
 
         def newImg():
-            img = QImage(w_px, h_px, QImage.Format.Format_ARGB32_Premultiplied)
+            img = QImage(wPx, hPx, QImage.Format.Format_ARGB32_Premultiplied)
             img.setDevicePixelRatio(dpr)
             img.fill(0)  # fully transparent
             return img
@@ -3503,7 +3473,7 @@ class RollSurvey(pg.GraphicsObject):
         self._fbKey = key
 
         # Reset progressive state for a fresh accumulation in this view
-        self._init_paint_state()
+        self._initPaintState()
 
         # Render invariant layers once into the base buffer
         p = QPainter(self._fbBase)
@@ -3511,11 +3481,11 @@ class RollSurvey(pg.GraphicsObject):
             p.setWorldTransform(painter.worldTransform())
             p.setClipRect(self.viewRect())
             p.setRenderHints(painter.renderHints())
-            self._render_base_layers(p, option, penWidth=penWidth)
+            self._renderBaseLayers(p, option, penWidth=penWidth)
         finally:
             p.end()
 
-    def _render_base_layers(self, p: QPainter, option, penWidth=2) -> None:
+    def _renderBaseLayers(self, p: QPainter, option, penWidth=2) -> None:
         """ Draw only invariant layers into the base framebuffer:
         - survey outline at very low LOD
         - bin area (if enabled)
@@ -3531,14 +3501,6 @@ class RollSurvey(pg.GraphicsObject):
             p.setBrush(pg.mkBrush((64, 64, 64, 255)))
             p.drawRect(self.boundingRect())                                     # draw survey bounding box
             return
-
-        # Moved to roll_main_window.py to be drawn independent of survey object
-        # Bin area (if enabled)
-        # if self.output.rctOutput.isValid():
-        #     p.setOpacity(1.0)
-        #     p.setPen(config.binAreaPen)
-        #     p.setBrush(QBrush(QColor(config.binAreaColor)))
-        #     p.drawRect(self.output.rctOutput)
 
         # Per-block outlines (if enabled); culled by viewRect
         for block in self.blockList:
@@ -3574,9 +3536,9 @@ class RollSurvey(pg.GraphicsObject):
             for template in block.templateList:
                 if not template.totTemplateRect.intersects(vb):
                     continue
-                self._render_invariant_seeds_into_base(p, vb, lod, template, penWidth=penWidth)
+                self._renderInvariantSeedsIntoBase(p, vb, lod, template, penWidth=penWidth)
 
-    def _render_invariant_seeds_into_base(self, painter, viewbox, lod, template, penWidth=2):
+    def _renderInvariantSeedsIntoBase(self, painter, viewbox, lod, template, penWidth=2):
         # Draw circle/spiral/well once into the base framebuffer
         for seed in getattr(template, 'seedList', []):
 
@@ -3617,13 +3579,13 @@ class RollSurvey(pg.GraphicsObject):
                         for pt in getattr(seed, 'pointList', []):
                             painter.drawPicture(pt.toPointF(), seed.getPointPicture())
 
-    def _init_paint_state(self) -> None:
+    def _initPaintState(self) -> None:
         """ Initialize or reset the progressive pass state (resume indices) for templates.
-        Keep this separate from any legacy _init_paint_state you may have. """
+        Keep this separate from any legacy _initPaintState you may have. """
 
         self._ps = {"b": 0, "t": 0, "i": 0, "j": 0, "k": 0}
 
-    def _paint_pass_into_progressive(self, p: QPainter, option, penWidth=2) -> bool:
+    def _paintPassIntoProgressive(self, p: QPainter, option, penWidth=2) -> bool:
         """ Draw a time-budgeted chunk of template content into self._fbProg using painter p.
         Honors current LOD and PaintMode for deciding between outlines vs. detailed template painting.
         Returns True when fully done; False when more passes are needed. """
@@ -3635,7 +3597,7 @@ class RollSurvey(pg.GraphicsObject):
         lod = option.levelOfDetailFromTransform(p.worldTransform()) * self.lodScale
 
         if self._ps is None:
-            self._init_paint_state()
+            self._initPaintState()
 
         # Start/refresh time budget for this pass
         self._paintStartNow()
@@ -3744,7 +3706,7 @@ class RollSurvey(pg.GraphicsObject):
         penWidth = self.lineWidthForScreen(screen)
 
         # Ensure buffers for current view/transform/flags/epoch (this also resets self._ps on key change)
-        self._ensure_buffers(painter, option, penWidth)
+        self._ensureBuffers(painter, option, penWidth)
 
         # 1) Do ONE progressive pass first (so the new content is visible in this same paint)
         finished = True
@@ -3757,7 +3719,7 @@ class RollSurvey(pg.GraphicsObject):
                 fbp.setWorldTransform(painter.worldTransform())
                 fbp.setClipRect(self.viewRect())
                 fbp.setRenderHints(painter.renderHints())
-                finished = self._paint_pass_into_progressive(fbp, option, penWidth=penWidth)
+                finished = self._paintPassIntoProgressive(fbp, option, penWidth=penWidth)
             finally:
                 fbp.end()
 

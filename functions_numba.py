@@ -99,7 +99,7 @@ def numbaSliceStats(slice4D: np.ndarray, unique=False):
 
 
 # @nb.jit(nopython=True)
-def numbaNdft_1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarray):
+def numbaNdft1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarray):
     kR = np.arange(0, kMax, dK)                                                 # numpy array with k-values [0 ... kMax]
     nK = kR.shape[0]                                                            # number of points along y-axis (size of kR array)
     nP = slice3D.shape[0]                                                       # number of points along x-axis
@@ -112,9 +112,9 @@ def numbaNdft_1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarra
         n = np.count_nonzero(incRadial)                                         # normalize by actual  nr of available traces
         a = 1 / n if n > 0 else 0                                               # response will be zero for n = zero
         response = np.dot(incRadial, np.exp(2j * np.pi * kR * offRadial[:, np.newaxis])) * a
-        abs_response = np.abs(response)
-        log_response = np.log(abs_response) * 20.0
-        radialStk[p, :] = log_response
+        absResponse = np.abs(response)
+        logResponse = np.log(absResponse) * 20.0
+        radialStk[p, :] = logResponse
 
     return radialStk
 
@@ -128,7 +128,7 @@ def numbaNdft_1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarra
 # 4) save results in a cache to prevent recalculation
 #    see: https://docs.python.org/dev/library/functools.html#functools.lru_cache
 @nb.jit(nopython=True)
-def numbaNdft_2D(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offsetY: np.ndarray):
+def numbaNdft2D(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offsetY: np.ndarray):
 
     kX = np.arange(kMin, kMax, dK)
     kY = np.arange(kMin, kMax, dK)
@@ -144,74 +144,74 @@ def numbaNdft_2D(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offse
             for p in range(nP):
                 e = np.exp(2j * np.pi * (kX[x] * offsetX[p] + kY[y] * offsetY[p]))
                 response += e
-            abs_response = np.abs(response) / nP
-            # log_response = np.round(np.log(abs_response) * 20.0, 2)           # np.round is only handy to review array contents
-            log_response = np.log(abs_response) * 20.0
-            xyCellStk[x, y] = log_response
+            absResponse = np.abs(response) / nP
+            # logResponse = np.round(np.log(absResponse) * 20.0, 2)           # np.round is only handy to review array contents
+            logResponse = np.log(absResponse) * 20.0
+            xyCellStk[x, y] = logResponse
 
     return xyCellStk
 
 
 @nb.jit(nopython=True)
 def numbaOffInline(slice2D: np.ndarray, ox: float):
-    x__Inline = slice2D[:, 7]                                                   # get all available cmp values belonging to this row
-    offInline = slice2D[:, 10]                                                  # get all available offsets belonging to this row
+    xInline = slice2D[:, 7]                                                     # get all available cmp values belonging to this row
+    oInline = slice2D[:, 10]                                                    # get all available offsets belonging to this row
 
-    x = np.empty((2 * x__Inline.size), dtype=x__Inline.dtype)
-    x[0::2] = x__Inline - ox
-    x[1::2] = x__Inline + ox
+    x = np.empty((2 * xInline.size), dtype=xInline.dtype)
+    x[0::2] = xInline - ox
+    x[1::2] = xInline + ox
 
-    y = np.empty((2 * offInline.size), dtype=offInline.dtype)
-    y[0::2] = offInline
-    y[1::2] = offInline
+    y = np.empty((2 * oInline.size), dtype=oInline.dtype)
+    y[0::2] = oInline
+    y[1::2] = oInline
 
     return (x, y)
 
 
 @nb.jit(nopython=True)
-def numbaOffX_line(slice2D: np.ndarray, oy: float):
-    y__Inline = slice2D[:, 8]                                                   # get all available cmp values belonging to this row
-    offInline = slice2D[:, 10]                                                  # get all available offsets belonging to this row
+def numbaOffXline(slice2D: np.ndarray, oy: float):
+    yInline = slice2D[:, 8]                                                     # get all available cmp values belonging to this row
+    oInline = slice2D[:, 10]                                                  # get all available offsets belonging to this row
 
-    x = np.empty((2 * y__Inline.size), dtype=y__Inline.dtype)
-    x[0::2] = y__Inline - oy
-    x[1::2] = y__Inline + oy
+    x = np.empty((2 * yInline.size), dtype=yInline.dtype)
+    x[0::2] = yInline - oy
+    x[1::2] = yInline + oy
 
-    y = np.empty((2 * offInline.size), dtype=offInline.dtype)
-    y[0::2] = offInline
-    y[1::2] = offInline
+    y = np.empty((2 * oInline.size), dtype=oInline.dtype)
+    y[0::2] = oInline
+    y[1::2] = oInline
 
     return (x, y)
 
 
 @nb.jit(nopython=True)
 def numbaAziInline(slice2D: np.ndarray, ox: float):
-    x__Inline = slice2D[:, 7]                                                   # get all available cmp values belonging to this row
-    offInline = slice2D[:, 11]                                                  # get all available azimuths belonging to this row
+    xInline = slice2D[:, 7]                                                   # get all available cmp values belonging to this row
+    oInline = slice2D[:, 11]                                                  # get all available azimuths belonging to this row
 
-    x = np.empty((2 * x__Inline.size), dtype=x__Inline.dtype)
-    x[0::2] = x__Inline - ox
-    x[1::2] = x__Inline + ox
+    x = np.empty((2 * xInline.size), dtype=xInline.dtype)
+    x[0::2] = xInline - ox
+    x[1::2] = xInline + ox
 
-    y = np.empty((2 * offInline.size), dtype=offInline.dtype)
-    y[0::2] = offInline
-    y[1::2] = offInline
+    y = np.empty((2 * oInline.size), dtype=oInline.dtype)
+    y[0::2] = oInline
+    y[1::2] = oInline
 
     return (x, y)
 
 
 @nb.jit(nopython=True)
-def numbaAziX_line(slice2D: np.ndarray, oy: float):
-    y__Inline = slice2D[:, 8]                                                   # get all available cmp values belonging to this row
-    offInline = slice2D[:, 11]                                                  # get all available azimuths belonging to this row
+def numbaAziXline(slice2D: np.ndarray, oy: float):
+    yInline = slice2D[:, 8]                                                   # get all available cmp values belonging to this row
+    oInline = slice2D[:, 11]                                                  # get all available azimuths belonging to this row
 
-    x = np.empty((2 * y__Inline.size), dtype=y__Inline.dtype)
-    x[0::2] = y__Inline - oy
-    x[1::2] = y__Inline + oy
+    x = np.empty((2 * yInline.size), dtype=yInline.dtype)
+    x[0::2] = yInline - oy
+    x[1::2] = yInline + oy
 
-    y = np.empty((2 * offInline.size), dtype=offInline.dtype)
-    y[0::2] = offInline
-    y[1::2] = offInline
+    y = np.empty((2 * oInline.size), dtype=oInline.dtype)
+    y[0::2] = oInline
+    y[1::2] = oInline
 
     return (x, y)
 
@@ -378,17 +378,17 @@ def clipLineF(line: QLineF, border: QRectF) -> QLineF:
     x2 = line.x2()
     y2 = line.y2()
 
-    y_min = border.top()                                                        # copy the rect elements to individual float values
-    x_min = border.left()
-    y_max = border.bottom()
-    x_max = border.right()
+    yMin = border.top()                                                        # copy the rect elements to individual float values
+    xMin = border.left()
+    yMax = border.bottom()
+    xMax = border.right()
 
-    x1, y1, x2, y2 = numbaClipLineF(x1, y1, x2, y2, x_min, x_max, y_min, y_max)
+    x1, y1, x2, y2 = numbaClipLineF(x1, y1, x2, y2, xMin, xMax, yMin, yMax)
     return QLineF(x1, y1, x2, y2)                                               # return the clipped line
 
 
 @nb.jit(nopython=True)
-def numbaClipLineF(x1: float, y1: float, x2: float, y2: float, x_min: float, x_max: float, y_min: float, y_max: float) -> tuple:
+def numbaClipLineF(x1: float, y1: float, x2: float, y2: float, xMin: float, xMax: float, yMin: float, yMax: float) -> tuple:
 
     # Python routine to implement Cohen Sutherland algorithm for line clipping.
     # See: https://www.geeksforgeeks.org/line-clipping-set-1-cohen-sutherland-algorithm/
@@ -405,13 +405,13 @@ def numbaClipLineF(x1: float, y1: float, x2: float, y2: float, x_min: float, x_m
     # Inner function to compute the region code for a point(x, y) relative to the border of the rectangle
     def computeCode(x, y):
         code = INSIDE
-        if x < x_min:                                                           # to the left of rectangle
+        if x < xMin:                                                           # to the left of rectangle
             code |= LEFT
-        elif x > x_max:                                                         # to the right of rectangle
+        elif x > xMax:                                                         # to the right of rectangle
             code |= RIGHT
-        if y < y_min:                                                           # below the rectangle
+        if y < yMin:                                                           # below the rectangle
             code |= BOTTOM
-        elif y > y_max:                                                         # above the rectangle
+        elif y > yMax:                                                         # above the rectangle
             code |= TOP
         return code
 
@@ -436,33 +436,33 @@ def numbaClipLineF(x1: float, y1: float, x2: float, y2: float, x_min: float, x_m
         y = 1.0
 
         if code1 != 0:
-            code_out = code1
+            codeOut = code1
         else:
-            code_out = code2
+            codeOut = code2
 
         # Find intersection point using formulas
         #   y = y1 + slope * (x - x1),
         #   x = x1 + (1 / slope) * (y - y1)
-        if code_out & TOP:  		                                            # point is above the clip rectangle
-            x = x1 + (x2 - x1) * (y_max - y1) / (y2 - y1)
-            y = y_max
+        if codeOut & TOP:  		                                            # point is above the clip rectangle
+            x = x1 + (x2 - x1) * (yMax - y1) / (y2 - y1)
+            y = yMax
 
-        elif code_out & BOTTOM:  		                                        # point is below the clip rectangle
-            x = x1 + (x2 - x1) * (y_min - y1) / (y2 - y1)
-            y = y_min
+        elif codeOut & BOTTOM:  		                                        # point is below the clip rectangle
+            x = x1 + (x2 - x1) * (yMin - y1) / (y2 - y1)
+            y = yMin
 
-        elif code_out & RIGHT:  		                                        # point is to the right of the clip rectangle
-            y = y1 + (y2 - y1) * (x_max - x1) / (x2 - x1)
-            x = x_max
+        elif codeOut & RIGHT:  		                                        # point is to the right of the clip rectangle
+            y = y1 + (y2 - y1) * (xMax - x1) / (x2 - x1)
+            x = xMax
 
-        elif code_out & LEFT:  		                                            # point is to the left of the clip rectangle
-            y = y1 + (y2 - y1) * (x_min - x1) / (x2 - x1)
-            x = x_min
+        elif codeOut & LEFT:  		                                            # point is to the left of the clip rectangle
+            y = y1 + (y2 - y1) * (xMin - x1) / (x2 - x1)
+            x = xMin
 
         # Now an intersection point (x, y) has been found,
         # we replace the point outside clipping rectangle
         # by the intersection point
-        if code_out == code1:
+        if codeOut == code1:
             x1 = x
             y1 = y
             code1 = computeCode(x1, y1)

@@ -29,13 +29,19 @@ from .aux_functions import (even, intListToString, knotToMeterperSec,
                             maxTurnSpeedVsCableLength, myPrint,
                             newtonToTonForce, rotatePoint2D, stringToIntList,
                             tonForceToNewton)
+from .config import (dSpinBoxBoldStyle, dSpinBoxErrorStyle,
+                     dSpinBoxNormalStyle, editErrorStyle, editNormalStyle,
+                     labelErrorStyle, labelExactStyle, labelNormalStyle,
+                     labelWarningStyle, nSpinBoxErrorStyle, nSpinBoxExactStyle,
+                     nSpinBoxWarningStyle, wizardComboHighlightStyle,
+                     wizardEditHighlightStyle)
 from .enums_and_int_flags import PaintDetails, PaintMode, SurveyType2
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
 from .roll_survey import RollSurvey
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-resource_dir = os.path.join(current_dir, 'resources')
+currentDir = os.path.dirname(os.path.abspath(__file__))
+resourceDir = os.path.join(currentDir, 'resources')
 
 # WIZARD  =======================================================================
 
@@ -43,22 +49,22 @@ class MarineSurveyWizard(SurveyWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.addPage(Page_1(self))
-        self.addPage(Page_2(self))
-        self.addPage(Page_3(self))
-        self.addPage(Page_4(self))
-        self.addPage(Page_5(self))
-        self.addPage(Page_6(self))
-        self.addPage(Page_7(self))
-        self.addPage(Page_8(self))
-        self.addPage(Page_9(self))
+        self.addPage(Page1(self))
+        self.addPage(Page2(self))
+        self.addPage(Page3(self))
+        self.addPage(Page4(self))
+        self.addPage(Page5(self))
+        self.addPage(Page6(self))
+        self.addPage(Page7(self))
+        self.addPage(Page8(self))
+        self.addPage(Page9(self))
 
         self.setWindowTitle('Towed Streamer Survey Wizard')
         self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
 
         # self.setOption(QWizard.IndependentPages , True) # Don't use this option as fields are no longer updated !!! Make dummy cleanupPage(self) instead
-        logo_image = QImage(os.path.join(resource_dir, 'icon.png'))
-        self.setPixmap(QWizard.WizardPixmap.LogoPixmap, QPixmap.fromImage(logo_image))
+        logoImage = QImage(os.path.join(resourceDir, 'icon.png'))
+        self.setPixmap(QWizard.WizardPixmap.LogoPixmap, QPixmap.fromImage(logoImage))
 
 
 #        self.setOption(QWizard.NoCancelButton, True)
@@ -69,11 +75,11 @@ class MarineSurveyWizard(SurveyWizard):
 #        pass
 
 
-# Page_1 =======================================================================
+# Page1 =======================================================================
 # 1. Survey type, Nr lines, and line & point intervals
 
 
-class Page_1(SurveyWizardPage):
+class Page1(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -84,7 +90,7 @@ class Page_1(SurveyWizardPage):
 
         # create some widgets
         self.name = QLineEdit()
-        self.name.setStyleSheet('QLineEdit  { background-color : lightblue} ')
+        self.name.setStyleSheet(wizardEditHighlightStyle)
         name = SurveyType2.Streamer.name                       # get name from enum
         number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
         self.name.setText(f'{name}_{number}')                                   # show the new name
@@ -97,7 +103,7 @@ class Page_1(SurveyWizardPage):
         self.type = QComboBox()
         SurveyList = SurveyType2.descriptions()
         self.type.addItem(SurveyList[-1])
-        self.type.setStyleSheet('QComboBox  { background-color : lightblue} ')
+        self.type.setStyleSheet(wizardComboHighlightStyle)
         self.registerField('type', self.type)                                   # Survey type
 
         self.vSail = QDoubleSpinBox()
@@ -110,7 +116,7 @@ class Page_1(SurveyWizardPage):
         self.vTurn = QDoubleSpinBox()
         self.vTurn.setRange(0.1, 10.0)
         self.vTurn.setValue(config.vTurn)                                       # do this once in the constructor
-        self.vTurn.editingFinished.connect(self.evt_vTurn_editingFinished)
+        self.vTurn.editingFinished.connect(self.evtVturnEditingFinished)
         self.registerField('vTurn', self.vTurn, 'value')                        # Vessel line turn speed
 
         self.vCross = QDoubleSpinBox()
@@ -145,7 +151,7 @@ class Page_1(SurveyWizardPage):
         self.cabLength.setRange(100.0, 20_000.0)
         self.cabLength.setValue(config.cabLength)
         self.cabLength.setSingleStep(1000.0)                                    # increment by km extra streamer
-        self.cabLength.editingFinished.connect(self.evt_cabLength_editingFinished)
+        self.cabLength.editingFinished.connect(self.evtCabLengthEditingFinished)
         self.registerField('cabLength', self.cabLength, 'value')                # streamer length
 
         self.groupInt = QDoubleSpinBox()
@@ -331,7 +337,7 @@ class Page_1(SurveyWizardPage):
         myPrint('cleanup of page 1')
 
     def updateParameters(self):
-        # Page_1
+        # Page1
         vSail = self.vSail.value()
         vTail = self.vTail.value()
         vCross = self.vCross.value()
@@ -366,11 +372,11 @@ class Page_1(SurveyWizardPage):
         tRecord = self.recLength.value()
 
         if tRecord > tAtHeadCurrent or tRecord > tAtTailCurrent:
-            self.recLength.setStyleSheet('QDoubleSpinBox {color:red; background-color:lightblue;}')
-            self.recLengthLabel.setStyleSheet('QLabel {color:red}')
+            self.recLength.setStyleSheet(dSpinBoxErrorStyle)
+            self.recLengthLabel.setStyleSheet(labelErrorStyle)
         else:
-            self.recLength.setStyleSheet('QDoubleSpinBox {color:black; background-color:white;}')
-            self.recLengthLabel.setStyleSheet('QLabel {color:black}')
+            self.recLength.setStyleSheet(dSpinBoxNormalStyle)
+            self.recLengthLabel.setStyleSheet(labelNormalStyle)
 
         nSrc = self.nSrc.value()
         self.srcShtInt.setValue(popInt * nSrc)
@@ -384,7 +390,7 @@ class Page_1(SurveyWizardPage):
         else:
             self.srcPopInt.setSingleStep(1.0)
 
-    def evt_vTurn_editingFinished(self):
+    def evtVturnEditingFinished(self):
         vTurn = self.field('vTurn')                                             # Vessel line turn speed
         cL = self.field('cabLength')                                            # streamer length
         vMax = maxTurnSpeedVsCableLength(cL)
@@ -399,7 +405,7 @@ class Page_1(SurveyWizardPage):
             else:
                 self.vTurn.setValue(vMax)
 
-    def evt_cabLength_editingFinished(self):
+    def evtCabLengthEditingFinished(self):
         cL = self.field('cabLength')                                            # streamer length
         vTurn = self.field('vTurn')                                             # Vessel line turn speed (from page 1)
         cLmax = maxCableLengthVsTurnSpeed(vTurn)
@@ -415,11 +421,11 @@ class Page_1(SurveyWizardPage):
                 self.cabLength.setValue(cLmax)
 
 
-# Page_2 =======================================================================
+# Page2 =======================================================================
 # 2. Template Properties - Enter Spread and Salvo details
 
 
-class Page_2(SurveyWizardPage):
+class Page2(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -531,7 +537,7 @@ class Page_2(SurveyWizardPage):
 
         self.plotType = QComboBox()
         self.plotType.addItems(['Cross section of towed equipment', 'template(s) forward sailing on race track', 'template(s) return sailing  on race track'])
-        self.plotType.setStyleSheet('QComboBox  { background-color : lightblue} ')
+        self.plotType.setStyleSheet(wizardComboHighlightStyle)
         self.plotType.currentIndexChanged.connect(self.plotTypeChanged)
 
         row += 1
@@ -592,14 +598,14 @@ class Page_2(SurveyWizardPage):
         cL = self.field('cabLength')                                            # streamer length
 
         maxInlineOffset = 1.5 * cL
-        max_XlineOffset = 1.5 * cL
+        maxXlineOffset = 1.5 * cL
         maxRadialOffset = 2.5 * cL
 
         self.parent.survey.offset.rctOffsets.setLeft(-maxInlineOffset)
         self.parent.survey.offset.rctOffsets.setRight(maxInlineOffset)
 
-        self.parent.survey.offset.rctOffsets.setTop(-max_XlineOffset)
-        self.parent.survey.offset.rctOffsets.setBottom(max_XlineOffset)
+        self.parent.survey.offset.rctOffsets.setTop(-maxXlineOffset)
+        self.parent.survey.offset.rctOffsets.setBottom(maxXlineOffset)
 
         self.parent.survey.offset.radOffsets.setX(0.0)
         self.parent.survey.offset.radOffsets.setY(maxRadialOffset)
@@ -618,11 +624,11 @@ class Page_2(SurveyWizardPage):
         cabSepTail = self.cabSepTail.value()
 
         if cabSepTail < cabSepHead:                                             # provide a warning
-            self.cabSepTail.setStyleSheet('QDoubleSpinBox {color:red; background-color:lightblue;}')
-            self.cabSepTailLabel.setStyleSheet('QLabel {color:red}')
+            self.cabSepTail.setStyleSheet(dSpinBoxErrorStyle)
+            self.cabSepTailLabel.setStyleSheet(labelErrorStyle)
         else:
-            self.cabSepTail.setStyleSheet('QDoubleSpinBox {color:black; background-color:white;}')
-            self.cabSepTailLabel.setStyleSheet('QLabel {color:black}')
+            self.cabSepTail.setStyleSheet(dSpinBoxNormalStyle)
+            self.cabSepTailLabel.setStyleSheet(labelNormalStyle)
 
         self.updateSourceSeparation()                                           # cable separation affects source separation too; contains self.plot()
 
@@ -631,11 +637,11 @@ class Page_2(SurveyWizardPage):
         cabDepthTail = self.cabDepthTail.value()
 
         if cabDepthTail < cabDepthHead:                                         # give a warning
-            self.cabDepthTail.setStyleSheet('QDoubleSpinBox {color:red; background-color:lightblue;}')
-            self.cabDepthTailLabel.setStyleSheet('QLabel {color:red}')
+            self.cabDepthTail.setStyleSheet(dSpinBoxErrorStyle)
+            self.cabDepthTailLabel.setStyleSheet(labelErrorStyle)
         else:
-            self.cabDepthTail.setStyleSheet('QDoubleSpinBox {color:black; background-color:white;}')
-            self.cabDepthTailLabel.setStyleSheet('QLabel {color:black}')
+            self.cabDepthTail.setStyleSheet(dSpinBoxNormalStyle)
+            self.cabDepthTailLabel.setStyleSheet(labelNormalStyle)
         self.plot()                                                             # refresh the plot
 
     def updateSourceSeparation(self):
@@ -762,7 +768,7 @@ class Page_2(SurveyWizardPage):
             _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker; grey hexagon; 'orig' return value not used
 
     def updateParentSurvey(self, plotIndex):
-        # create / update the survey skeleton - Page_2
+        # create / update the survey skeleton - Page2
 
         nSrc = self.field('nSrc')
         nCab = self.field('nCab')
@@ -933,11 +939,11 @@ class Page_2(SurveyWizardPage):
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
 
 
-# Page_3 =======================================================================
+# Page3 =======================================================================
 # 3. Template Properties - Enter the bin grid properties
 
 
-class Page_3(SurveyWizardPage):
+class Page3(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -1042,7 +1048,7 @@ class Page_3(SurveyWizardPage):
         self.binI.editingFinished.connect(self.updateParameters)                # see when editing is finished for bin values
         self.binX.editingFinished.connect(self.updateParameters)
 
-        self.chkBingridAlign.toggled.connect(self.evt_BingridAlign_toggled)
+        self.chkBingridAlign.toggled.connect(self.evtBingridAlignToggled)
 
     def initializePage(self):                                                   # This function is called when the user clicks "Next" to prepare the page for display
         myPrint('initialize page 3')
@@ -1051,7 +1057,7 @@ class Page_3(SurveyWizardPage):
         self.plot()                                                             # refresh the plot
 
     def cleanupPage(self):                                                      # This function is called when the user clicks "Back" to leave the page, going backwards
-        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
+        # note page(x) starts with a ZERO index; therefore pag(0) == Page1
         self.parent.page(1).plot()                                              # needed to update the plot
         myPrint('cleanup of page 3')
 
@@ -1120,17 +1126,17 @@ class Page_3(SurveyWizardPage):
             self.binI.setSingleStep(1.0)
             self.binX.setSingleStep(1.0)
 
-        # # note page(x) starts with a ZERO index; therefore page(0) == Page_1
-        # self.parent.page(3).evt_binImin_editingFinished(plot=False)             # adjust binning parameters in next page (Page_4)
-        # self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
-        # self.parent.page(3).evt_binXmin_editingFinished(plot=False)
-        # self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
+        # # note page(x) starts with a ZERO index; therefore page(0) == Page1
+        # self.parent.page(3).evtBinIminEditingFinished(plot=False)             # adjust binning parameters in next page (Page4)
+        # self.parent.page(3).evtBinIsizEditingFinished(plot=False)
+        # self.parent.page(3).evtBinXminEditingFinished(plot=False)
+        # self.parent.page(3).evtBinXsizEditingFinished(plot=False)
 
         self.updateParentSurvey()
         self.plot()
 
     def updateParentSurvey(self):
-        # adjust plot settings and populate / update the survey skeleton - Page_3
+        # adjust plot settings and populate / update the survey skeleton - Page3
 
         binI = self.field('binI')
         binX = self.field('binX')
@@ -1177,15 +1183,15 @@ class Page_3(SurveyWizardPage):
         self.parent.survey.grid.stakeSize.setX(self.field('binI'))              # inline stake interval
         self.parent.survey.grid.stakeSize.setY(self.field('binX'))              # x-line line interval
 
-    def evt_BingridAlign_toggled(self):
+    def evtBingridAlignToggled(self):
         self.updateParameters()
 
 
-# Page_4 =======================================================================
+# Page4 =======================================================================
 # 4. Template Properties - Enter Roll Along and Binning Area details
 
 
-class Page_4(SurveyWizardPage):
+class Page4(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('4. Template Properties')
@@ -1198,7 +1204,7 @@ class Page_4(SurveyWizardPage):
         self.turnRad = QDoubleSpinBox()                                         # min turning radius
         self.turnRad.setEnabled(False)                                          # readonly
         self.turnRad.setRange(-1.0, 1_000_000.0)
-        self.turnRad.setStyleSheet('QDoubleSpinBox {font: bold;} ')
+        self.turnRad.setStyleSheet(dSpinBoxBoldStyle)
         self.registerField('turnRad', self.turnRad, 'value')                    # turn radius
 
         self.runOut = QDoubleSpinBox()                                          # run-out (= 1/2 streamer length)
@@ -1247,7 +1253,7 @@ class Page_4(SurveyWizardPage):
         self.nrSaillines.setEnabled(False)                                      # readonly
 
         self.noSaillines = QSpinBox()                                           # actual nr sail lines in survey
-        self.noSaillines.setStyleSheet('QDoubleSpinBox {font: bold;} ')
+        self.noSaillines.setStyleSheet(dSpinBoxBoldStyle)
         self.noSaillines.setEnabled(False)                                      # readonly
         self.noSaillines.setRange(0, 1_000)                                     # set some (positive) limits
         linesTip = (
@@ -1283,8 +1289,8 @@ class Page_4(SurveyWizardPage):
         self.registerField('surXsiz', self.surXsiz, 'value')                    # x-line survey size
 
         self.lineSeries = QLineEdit()
-        input_validator = QRegularExpressionValidator(QRegularExpression('[0-9 ]+'), self.lineSeries)
-        self.lineSeries.setValidator(input_validator)
+        inputValidator = QRegularExpressionValidator(QRegularExpression('[0-9 ]+'), self.lineSeries)
+        self.lineSeries.setValidator(inputValidator)
         self.lineSeries.textEdited.connect(self.updateSailLineOverhead)
         self.registerField('lineSeries', self.lineSeries)                       # series of lines per race track
 
@@ -1313,7 +1319,7 @@ class Page_4(SurveyWizardPage):
         self.runIns.setRange(-1.0, 1_000_000.0)
 
         self.turnOverhead = QDoubleSpinBox()
-        self.turnOverhead.setStyleSheet('QDoubleSpinBox {font: bold;} ')
+        self.turnOverhead.setStyleSheet(dSpinBoxBoldStyle)
         self.turnOverhead.setRange(-1.0, 1_000_000.0)
         self.turnOverhead.setEnabled(False)                                  # readonly
 
@@ -1322,7 +1328,7 @@ class Page_4(SurveyWizardPage):
         self.totalTurns.setRange(-1.0, 1_000_000.0)
 
         self.totalPrime = QDoubleSpinBox()
-        self.totalPrime.setStyleSheet('QDoubleSpinBox {font: bold;} ')
+        self.totalPrime.setStyleSheet(dSpinBoxBoldStyle)
         self.totalPrime.setEnabled(False)                                  # readonly
         self.totalPrime.setRange(-1.0, 1_000_000.0)
 
@@ -1451,7 +1457,7 @@ class Page_4(SurveyWizardPage):
         self.updateSailLineOverhead()
 
     def updateParameters(self):
-        # Page_4. need to work out ideal racetrack width and nr of tracks and sail lines in survey
+        # Page4. need to work out ideal racetrack width and nr of tracks and sail lines in survey
         cL = self.field('cabLength')                                            # streamer length
         dCab0 = self.field('cabSepHead')
         nCab = self.field('nCab')
@@ -1536,24 +1542,22 @@ class Page_4(SurveyWizardPage):
                     error = True
                     break
         if error:
-            self.lineSeries.setStyleSheet('QLineEdit {color:red; background-color:lightblue;}')
-            self.lineSeriesLabel.setStyleSheet('QLabel {color:red}')
+            self.lineSeries.setStyleSheet(editErrorStyle)
+            self.lineSeriesLabel.setStyleSheet(labelErrorStyle)
         else:
-            self.lineSeries.setStyleSheet('QLineEdit {color:black; background-color:white;}')
-            self.lineSeriesLabel.setStyleSheet('QLabel {color:black}')
+            self.lineSeries.setStyleSheet(editNormalStyle)
+            self.lineSeriesLabel.setStyleSheet(labelNormalStyle)
 
         nrSaillines = self.nrSaillines.value()
         if noSaillines < nrSaillines:                                           # required < actual
-            self.noSaillines.setStyleSheet('QSpinBox {font:bold; color:red} ')
-            self.nsl2Label.setStyleSheet('QLabel {color:red}')
+            self.noSaillines.setStyleSheet(nSpinBoxErrorStyle)
+            self.nsl2Label.setStyleSheet(labelErrorStyle)
         elif nrSaillines < noSaillines:                                         # actual > required
-            self.noSaillines.setStyleSheet('QSpinBox {font:bold; color:darkorange} ')
-            self.nsl2Label.setStyleSheet('QLabel {color:darkorange}')
+            self.noSaillines.setStyleSheet(nSpinBoxWarningStyle)
+            self.nsl2Label.setStyleSheet(labelWarningStyle)
         else:
-            # self.noSaillines.setStyleSheet('QSpinBox {font:bold; color:dimgrey} ')
-            # self.nsl2Label.setStyleSheet('QLabel {color:black}')                # actual == required
-            self.noSaillines.setStyleSheet('QSpinBox {font:bold; color:forestgreen} ')
-            self.nsl2Label.setStyleSheet('QLabel {color:forestgreen}')                # actual == required
+            self.noSaillines.setStyleSheet(nSpinBoxExactStyle)
+            self.nsl2Label.setStyleSheet(labelExactStyle)                       # actual == required
 
         cL = self.field('cabLength')                                            # streamer length
         FF = self.field('surIsiz')                                              # bin area inline size
@@ -1636,7 +1640,7 @@ class Page_4(SurveyWizardPage):
         # self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         # self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey ignoring rolling along
 
-        # note page(x) starts with a ZERO index; therefore page(0) == Page_1 and page(2) == Page_3
+        # note page(x) starts with a ZERO index; therefore page(0) == Page1 and page(2) == Page3
         # self.parent.page(2).updateParentSurvey()                                # (re)center single spread, may be shifted inline due to origin shift
         # self.parent.page(2).plot()                                              # needed to update the plot
 
@@ -1652,11 +1656,11 @@ class Page_4(SurveyWizardPage):
             return True
 
 
-# Page_5 =======================================================================
+# Page5 =======================================================================
 # 5. Template Properties - Binning extent in survey area
 
 
-class Page_5(SurveyWizardPage):
+class Page5(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('5. Template Properties')
@@ -1683,10 +1687,10 @@ class Page_5(SurveyWizardPage):
         self.binXsiz.setValue(2000.0)
         self.registerField('binXsiz', self.binXsiz, 'value')                    # bin area x-line size
 
-        self.binImin.editingFinished.connect(self.evt_binImin_editingFinished)
-        self.binIsiz.editingFinished.connect(self.evt_binIsiz_editingFinished)
-        self.binXmin.editingFinished.connect(self.evt_binXmin_editingFinished)
-        self.binXsiz.editingFinished.connect(self.evt_binXsiz_editingFinished)
+        self.binImin.editingFinished.connect(self.evtBinIminEditingFinished)
+        self.binIsiz.editingFinished.connect(self.evtBinIsizEditingFinished)
+        self.binXmin.editingFinished.connect(self.evtBinXminEditingFinished)
+        self.binXsiz.editingFinished.connect(self.evtBinXsizEditingFinished)
 
         self.chkShowSrc = QCheckBox('Source areas')
         self.chkShowRec = QCheckBox('Receiver areas')
@@ -1786,7 +1790,7 @@ class Page_5(SurveyWizardPage):
         myPrint('cleanup of page 5')
 
     def updateParentSurvey(self):
-        # build up total survey object from scratch - Page_5
+        # build up total survey object from scratch - Page5
 
         lineSeries = self.field('lineSeries')                                   # list from edit control
         trackList = stringToIntList(lineSeries)                                 # list converted to integers
@@ -1801,7 +1805,7 @@ class Page_5(SurveyWizardPage):
         dCab0 = self.field('cabSepHead')
         dCab9 = self.field('cabSepTail')
 
-        # a marine survey cconsists of a number of race tracks, each with a number of sail lines going forward, and a number of sail lines going backward
+        # a marine survey consists of a number of race tracks, each with a number of sail lines going forward, and a number of sail lines going backward
         # the lines going forward and those going backward are represented by a single block in Roll
         # therefore; with n race tracks in a survey, the survey would contain 2n blocks 0, 2, 4, ... going forwards and 1, 3, 5, ... going backwards
         # in practice, we want to reduce the number of sailline reversals. This can be achieved by flipping the direction of the even race tracks
@@ -2102,21 +2106,21 @@ class Page_5(SurveyWizardPage):
         oriY = [0.0]
         _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker; semi-transparent grey; 'orig' return value not used
 
-    def evt_binImin_editingFinished(self, plot=True):
+    def evtBinIminEditingFinished(self, plot=True):
         binI = self.field('binI')
         nrIntervals = round(self.binImin.value() / binI)
         binImin = nrIntervals * binI
         self.binImin.setValue(binImin)
         self.updateBinningArea(plot)
 
-    def evt_binXmin_editingFinished(self, plot=True):
+    def evtBinXminEditingFinished(self, plot=True):
         binX = self.field('binX')
         nrIntervals = max(round(self.binXmin.value() / binX), 1)
         binXmin = nrIntervals * binX
         self.binXmin.setValue(binXmin)
         self.updateBinningArea(plot)
 
-    def evt_binIsiz_editingFinished(self, plot=True):
+    def evtBinIsizEditingFinished(self, plot=True):
         binI = self.field('binI')
         # nrIntervals = round(self.binIsiz.value() / binI)
         nrIntervals = max(round(self.binIsiz.value() / binI), 1)
@@ -2124,7 +2128,7 @@ class Page_5(SurveyWizardPage):
         self.binIsiz.setValue(binIsiz)
         self.updateBinningArea(plot)
 
-    def evt_binXsiz_editingFinished(self, plot=True):
+    def evtBinXsizEditingFinished(self, plot=True):
         binX = self.field('binX')
         # nrIntervals = round(self.binXsiz.value() / binX)
         nrIntervals = max(round(self.binXsiz.value() / binX), 1)
@@ -2153,11 +2157,11 @@ class Page_5(SurveyWizardPage):
         self.plot()
 
 
-# Page_6 =======================================================================
+# Page6 =======================================================================
 # 6. Template Properties - Pattern/array details
 
 
-class Page_6(SurveyWizardPage):
+class Page6(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('6. Template Properties')
@@ -2312,7 +2316,7 @@ class Page_6(SurveyWizardPage):
         myPrint('cleanup of page 6')
 
     def updateParentSurvey(self):
-        # populate / update the survey skeleton - Page_6
+        # populate / update the survey skeleton - Page6
 
         rUse = self.field('rUse')
         sUse = self.field('sUse')
@@ -2435,11 +2439,11 @@ class Page_6(SurveyWizardPage):
         # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
 
-# Page_7 =======================================================================
+# Page7 =======================================================================
 # 7. Project Coordinate Reference System (CRS)
 
 
-class Page_7(SurveyWizardPage):
+class Page7(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('7. Project Coordinate Reference System (CRS)')
@@ -2449,20 +2453,20 @@ class Page_7(SurveyWizardPage):
 
         # See: https://api.qgis.org/api/3.16/qgscoordinatereferencesystem_8h_source.html#l00668
         # See https://api.qgis.org/api/classQgsProjectionSelectionTreeWidget.html
-        self.proj_selector = QgsProjectionSelectionTreeWidget()
+        self.projectionSelector = QgsProjectionSelectionTreeWidget()
 
         # See: https://qgis.org/pyqgis/master/core/QgsProject.html#qgis.core.QgsProject.crs
         # tmpCrs = QgsProject.instance().crs()
         # if tmpCrs.isValid():
-        #    self.proj_selector.setCrs(tmpCrs)
+        #    self.projectionSelector.setCrs(tmpCrs)
 
         # set the page layout
         layout = QVBoxLayout()
-        layout.addWidget(self.proj_selector)
+        layout.addWidget(self.projectionSelector)
         self.setLayout(layout)
 
-        self.registerField('crs', self.proj_selector)
-        self.proj_selector.crsSelected.connect(self.crsSelected)
+        self.registerField('crs', self.projectionSelector)
+        self.projectionSelector.crsSelected.connect(self.crsSelected)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         myPrint('initialize page 7')
@@ -2474,24 +2478,24 @@ class Page_7(SurveyWizardPage):
     def crsSelected(self):
         # See: https://api.qgis.org/api/classQgsCoordinateReferenceSystem.html
 
-        if self.proj_selector.crs().isGeographic():
+        if self.projectionSelector.crs().isGeographic():
             QMessageBox.warning(self, 'Wrong CRS type', 'Please select a Projected Coordinate System to ensure valid distance and area measurements.')
         else:
-            self.setField('crs', self.proj_selector.crs())                       # Needed, as we have redefined isComplete()
+            self.setField('crs', self.projectionSelector.crs())                       # Needed, as we have redefined isComplete()
         self.completeChanged.emit()
 
     def isComplete(self):
-        if self.proj_selector.crs().isValid() and not self.proj_selector.crs().isGeographic():
+        if self.projectionSelector.crs().isValid() and not self.projectionSelector.crs().isGeographic():
             self.parent.survey.crs = self.field('crs')
             return True
         return False
 
 
-# Page_8 =======================================================================
+# Page8 =======================================================================
 # 8. Project Coordinate Reference System (CRS) - Enter the survey's coordinate transformation details
 
 
-class Page_8(SurveyWizardPage):
+class Page8(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -2501,8 +2505,8 @@ class Page_8(SurveyWizardPage):
         myPrint('page 8 init')
 
         # create some widgets
-        self.Xt_0 = QDoubleSpinBox()
-        self.Yt_0 = QDoubleSpinBox()
+        self.xOri = QDoubleSpinBox()
+        self.yOri = QDoubleSpinBox()
 
         self.azim = QDoubleSpinBox()
 
@@ -2510,8 +2514,8 @@ class Page_8(SurveyWizardPage):
         self.scaY = QDoubleSpinBox()
 
         # set ranges
-        self.Xt_0.setRange(-999_000, 999_000)
-        self.Yt_0.setRange(-999_000, 999_000)
+        self.xOri.setRange(-999_000, 999_000)
+        self.yOri.setRange(-999_000, 999_000)
 
         self.azim.setRange(0, 360)
         self.azim.setWrapping(True)
@@ -2544,9 +2548,9 @@ class Page_8(SurveyWizardPage):
         # file:///D:/WorkStuff/Desktop-Shell/2010%20CD/SEG-UKOOA%20Formats%20and%20Standards/UKOOA%20Formats/ukooa_p6_98.pdf
 
         row += 1
-        layout.addWidget(self.Xt_0, row, 0)
+        layout.addWidget(self.xOri, row, 0)
         layout.addWidget(QLabel('X-origin [m]'), row, 1)
-        layout.addWidget(self.Yt_0, row, 2)
+        layout.addWidget(self.yOri, row, 2)
         layout.addWidget(QLabel('Y-origin [m]'), row, 3)
 
         # row += 1
@@ -2599,46 +2603,46 @@ class Page_8(SurveyWizardPage):
 
         # register fields for access in other Wizard Page
         # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
-        self.registerField('Xt_0', self.Xt_0, 'value')
-        self.registerField('Yt_0', self.Yt_0, 'value')
+        self.registerField('xOri', self.xOri, 'value')
+        self.registerField('yOri', self.yOri, 'value')
         self.registerField('azim', self.azim, 'value')
         self.registerField('scaX', self.scaX, 'value')
         self.registerField('scaY', self.scaY, 'value')
 
         # connect signals to slots
-        self.Xt_0.editingFinished.connect(self.evt_global_editingFinished)
-        self.Yt_0.editingFinished.connect(self.evt_global_editingFinished)
-        self.azim.editingFinished.connect(self.evt_global_editingFinished)
-        self.scaX.editingFinished.connect(self.evt_global_editingFinished)
-        self.scaY.editingFinished.connect(self.evt_global_editingFinished)
+        self.xOri.editingFinished.connect(self.evtGlobalEditingFinished)
+        self.yOri.editingFinished.connect(self.evtGlobalEditingFinished)
+        self.azim.editingFinished.connect(self.evtGlobalEditingFinished)
+        self.scaX.editingFinished.connect(self.evtGlobalEditingFinished)
+        self.scaY.editingFinished.connect(self.evtGlobalEditingFinished)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         myPrint('initialize page 8')
-        self.evt_global_editingFinished()
+        self.evtGlobalEditingFinished()
 
     def cleanupPage(self):                                                      # needed to return to previous pages
         myPrint('cleanup of page 8')
         # transform = QTransform()                                                # reset transform
         # self.parent.survey.setTransform(transform)                              # back to local survey grid
 
-        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
+        # note page(x) starts with a ZERO index; therefore pag(0) == Page1
         # self.parent.page(3).plot()                                              # needed to update the plot
 
-    def evt_global_editingFinished(self):
+    def evtGlobalEditingFinished(self):
         azim = self.field('azim')
-        Xt_0 = self.field('Xt_0')
-        Yt_0 = self.field('Yt_0')
+        xOri = self.field('xOri')
+        yOri = self.field('yOri')
         scaX = self.field('scaX')
         scaY = self.field('scaY')
 
         self.parent.survey.grid.angle = azim
-        self.parent.survey.grid.orig.setX(Xt_0)
-        self.parent.survey.grid.orig.setY(Yt_0)
+        self.parent.survey.grid.orig.setX(xOri)
+        self.parent.survey.grid.orig.setY(yOri)
         self.parent.survey.grid.scale.setX(scaX)
         self.parent.survey.grid.scale.setY(scaY)
 
         transform = QTransform()
-        transform.translate(Xt_0, Yt_0)
+        transform.translate(xOri, yOri)
         transform.rotate(azim)
         transform.scale(scaX, scaY)
 
@@ -2686,11 +2690,11 @@ class Page_8(SurveyWizardPage):
     # » Yt = Yt0  –  Xs * k * mX * Ishift(phiX)  +  Ys * k * mY * cos(phiY)<br>
 
 
-# Page_9 =======================================================================
+# Page9 =======================================================================
 # 9. Summary information - Survey representation in xml-format
 
 
-class Page_9(SurveyWizardPage):
+class Page9(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('9. Summary information')

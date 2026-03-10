@@ -3,14 +3,13 @@ from qgis.PyQt.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QHeaderView,
                                  QLabel, QPlainTextEdit, QPushButton,
                                  QSplitter, QVBoxLayout, QWidget)
 
+from .config import (exportButtonStyle, labelStyle, purpleButtonStyle,
+                     purpleLabelStyle, tableStyle)
 from .table_model_view import (RpsTableModel, SpsTableModel, TableView,
                                XpsTableModel)
 
 
 def createGeomTab(self):
-    table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
-    label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
-
     # first create the main widgets
     self.srcView = TableView()                                              # create src view
     self.srcModel = SpsTableModel(self.srcGeom)                             # create src model
@@ -19,7 +18,7 @@ def createGeomTab(self):
 
     self.srcHdrView = self.srcView.horizontalHeader()                       # to detect button clicks here
     self.srcHdrView.sectionClicked.connect(self.sortSrcData)                # handle the section-clicked signal
-    self.srcView.setStyleSheet(table_style)                                 # define selection colors
+    self.srcView.setStyleSheet(tableStyle)                                 # define selection colors
     self.srcView.resizeColumnsToContents()
     self.srcView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
@@ -28,7 +27,7 @@ def createGeomTab(self):
     self.relView.setModel(self.relModel)                                    # add the model to the view
     self.relHdrView = self.relView.horizontalHeader()                       # to detect button clicks here
     self.relHdrView.sectionClicked.connect(self.sortRelData)                # handle the section-clicked signal
-    self.relView.setStyleSheet(table_style)                                 # define selection colors
+    self.relView.setStyleSheet(tableStyle)                                 # define selection colors
     self.relView.resizeColumnsToContents()
     self.relView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
@@ -39,22 +38,22 @@ def createGeomTab(self):
 
     self.recHdrView = self.recView.horizontalHeader()                       # to detect button clicks here
     self.recHdrView.sectionClicked.connect(self.sortRecData)                # handle the section-clicked signal
-    self.recView.setStyleSheet(table_style)                                 # define selection colors
+    self.recView.setStyleSheet(tableStyle)                                 # define selection colors
     self.recView.resizeColumnsToContents()
     self.recView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
     # add the top labels
     self.srcLabel = QLabel('SRC records')
     self.srcLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    self.srcLabel.setStyleSheet(label_style)
+    self.srcLabel.setStyleSheet(labelStyle)
 
     self.relLabel = QLabel('REL records')
     self.relLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    self.relLabel.setStyleSheet(label_style)
+    self.relLabel.setStyleSheet(labelStyle)
 
     self.recLabel = QLabel('REC records')
     self.recLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    self.recLabel.setStyleSheet(label_style)
+    self.recLabel.setStyleSheet(labelStyle)
 
     # then create three containers for the layout of src, rel & rec
     self.srcPane = QWidget()
@@ -89,22 +88,22 @@ def createGeomTab(self):
     self.btnRelExportToQGIS.setToolTip('This button is enabled once you have saved the project')
 
     # make the buttons stand out a bit. See: https://www.webucator.com/article/python-color-constants-module/
-    self.btnSrcRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
-    self.btnSrcRemoveOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
+    self.btnSrcRemoveDuplicates.setStyleSheet(purpleButtonStyle)
+    self.btnSrcRemoveOrphans.setStyleSheet(purpleButtonStyle)
 
-    self.btnRelRemoveSrcOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
-    self.btnRelRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
-    self.btnRelRemoveRecOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
+    self.btnRelRemoveSrcOrphans.setStyleSheet(purpleButtonStyle)
+    self.btnRelRemoveDuplicates.setStyleSheet(purpleButtonStyle)
+    self.btnRelRemoveRecOrphans.setStyleSheet(purpleButtonStyle)
 
-    self.btnRecRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
-    self.btnRecRemoveOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
+    self.btnRecRemoveDuplicates.setStyleSheet(purpleButtonStyle)
+    self.btnRecRemoveOrphans.setStyleSheet(purpleButtonStyle)
 
     # style for the QGIS buttons
-    self.btnSrcExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-    self.btnSrcReadFromQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-    self.btnRecExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-    self.btnRecReadFromQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-    self.btnRelExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
+    self.btnSrcExportToQGIS.setStyleSheet(exportButtonStyle)
+    self.btnSrcReadFromQGIS.setStyleSheet(exportButtonStyle)
+    self.btnRecExportToQGIS.setStyleSheet(exportButtonStyle)
+    self.btnRecReadFromQGIS.setStyleSheet(exportButtonStyle)
+    self.btnRelExportToQGIS.setStyleSheet(exportButtonStyle)
 
     # These buttons have signals, start with source buttons
     self.btnSrcRemoveDuplicates.pressed.connect(self.removeSrcDuplicates)
@@ -133,13 +132,13 @@ def createGeomTab(self):
     self.btnMaxToQGIS.pressed.connect(self.exportMaxToQGIS)
     self.btnRmsToQGIS.pressed.connect(self.exportRmsToQGIS)
 
-    label1.setStyleSheet('border: 1px solid black;background-color:lavender')
+    label1.setStyleSheet(purpleLabelStyle)
     label1.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label2.setStyleSheet('border: 1px solid black;background-color:lavender')
+    label2.setStyleSheet(purpleLabelStyle)
     label2.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label3.setStyleSheet('border: 1px solid black;background-color:lavender')
+    label3.setStyleSheet(purpleLabelStyle)
     label3.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label4.setStyleSheet('border: 1px solid black;background-color:lavender')
+    label4.setStyleSheet(purpleLabelStyle)
     label4.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     # create the three button layouts
@@ -213,12 +212,7 @@ def createGeomTab(self):
     splitter2.addWidget(self.geomBottom)
     splitter2.setSizes([900, 100])
 
-    # ceate the main layout for the SPS tab
-    # hbox = QHBoxLayout()
-    # hbox.addWidget(splitter2)
-    # self.tabGeom.setLayout(hbox)
-
-    # main layout for tabGeom: create once, reuse on rebuild
+     # main layout for tabGeom: create once, reuse on rebuild
     tabLayout = self.tabGeom.layout()
     if tabLayout is None:
         tabLayout = QHBoxLayout(self.tabGeom)

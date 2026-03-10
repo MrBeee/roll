@@ -15,7 +15,7 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 | numpy      | 1.26.4          | Array and matrix manipulation                                |
 | pyqtgraph  | 0.13.7          | Plotting of vector and raster data                           |
 | rasterio   | 1.4.1           | Export of figures as GeoTiff  files                          |
-| wellpathpy | 0.5.0           | Position sensors  & sources in a well trajectory (VSPs etc.) |
+| wellpathpy | 0.5.2           | Position sensors  & sources in a well trajectory (VSPs etc.) |
 
 
 
@@ -131,7 +131,7 @@ As of version 3.34.6, QGIS upgraded Python from V3.9 to to V3.12 This change spe
 
 As of version 0.3.3 Roll has a 'working' interface with QGIS, and is able to read back points that have been changed in QGIS. This involves either moving points around, or setting a flag whether the point is in use. The integer Field Code that is used to decide whether a point is active or not can be selected in the Layer Selection Dialog. Points that are 'inactive' are shown in grey in the geometry tables and in the Layout view. They do not contribute is the fold (etc.) analysis.
 
-The interface still requires a few tweaks, but as of version 3.3.3 Roll is no longer considered an experimental plugin.
+The interface still requires a few tweaks, but as of version 0.3.3 Roll is no longer considered an experimental plugin.
 
 
 
@@ -168,7 +168,9 @@ The generated Geometry points, the imported SPS data, as well as the analysis pl
 
 On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll). Initial release on the QGIS plugin website occurred on 13 March 2024.
 
-As of version 3.3.3 Roll is no longer considered an experimental plugin. But there is still some functionality left to be added. See 'To Do' section.
+As of version 0.3.3 Roll is no longer considered an experimental plugin. But there is still some functionality left to be added. See 'To Do' section.
+
+As of version 0.4.6 Roll is compatible with Qt6.0 and therefore ready to work with QGIS 4.0.
 
 Furthermore, see the 'Changelog' for already implemented functionality. Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository.
 
@@ -184,7 +186,8 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 
 ### 8	Changelog
-
+- 2026-03-10 (0.6.3) Some numpy attribute names needed to be changed for NumPy 2.0 compatibility in QGIS 4.0
+- 2026-03-08 (0.6.2) Reformatting of code to make attribute & variable names compatible with QGIS' use of camelCase, rather than snake_case. Some minor tweaks applied
 - 2026-02-25 (0.6.1) Fixed a bug related to reading boolean values reliably from xml text input
 - 2026-02-23 (0.6.0) Made Roll a 'standalone' app for testing and debugging purposes. Raised minimum QGIS version to 3.34
 - 2026-02-13 (0.5.9) Made fold-map transparent for areas where fold = 0. Added context menu in SPS and Geometry tables, to edit 'in-use' status
@@ -207,7 +210,7 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 - 2025-09-12 (0.4.6) The code has been reformatted to be compatible with Qt6. It should still be backwards compatible with Qt5  
 - 2025-06-09 (0.4.5) Accept projects that are created from SPS-data only (i.e. projects that are not template-based)
 - 2025-06-01 (0.4.4) changed the way SPS source points are shown in QGIS: (point, line) has become (line, point) except for parallel/NAZ surveys
-- 2025-05-11 (0.4.3) several improvements in transferring data from Roll to QGis and vice versa. Created html help page in help menu
+- 2025-05-11 (0.4.3) several improvements in transferring data from Roll to QGIS and vice versa. Created html help page in help menu
 - 2025-03-05 (0.4.2) refactoring of parameter management code, speeding up display in property pane of surveys with many blocks & seed points
 - 2025-02-22 (0.4.1) implemented feathering in Marine Wizard; enabled selective drawing of survey details (lines and/or points and/or patterns)
 - 2025-02-15 (0.4.0) updated Marine Wizard; simplifying data structure in case there's no streamer fanning, significantly speeding up property editing

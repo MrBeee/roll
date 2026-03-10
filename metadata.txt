@@ -5,9 +5,10 @@
 [general]
 name=Roll
 qgisMinimumVersion=3.34
+qgisMaximumVersion=4.99
 supportsQt6=True
 description=Design and analysis of 3D seismic survey geometries
-version=0.6.1
+version=0.6.3
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -16,7 +17,7 @@ about:<p>This plugin is intended to create and analyze 3D seismic survey geometr
   <li><b>numpy</b> (version 1.26.4) <i>should already be installed by QGIS installation</i> </li>
   <li><b>pyqtgraph</b> (version 0.13.7) or higher</li>
   <li><b>rasterio</b> (version 1.4.1) </li>
-  <li><b>wellpathpy</b> (version 0.5.0) </li></ul>
+  <li><b>wellpathpy</b> (version 0.5.2) </li></ul>
   <p>Please install these packages <b>first</b>, using pip from the OSGeo4W command prompt (on Windows)
   <p>Use <b>pip list</b> to detect which packages and versions have already been installed. (E.g. numpy should already be installed)
   <p>Start with installing rasterio (it has quite a few dependencies), followed by numba, pyqtgraph and wellpathpy in that order
@@ -27,14 +28,17 @@ about:<p>This plugin is intended to create and analyze 3D seismic survey geometr
   <p>
   <p>Please take note:<ul>
   <li>Packages newer than those listed above may have bug fixes (nice) or incompatibilities (not so nice) </li>
+  <li>Wellpathpy 0.5.2 solved a deprecation warning in 0.5.0, as a call to 'import pkg_resources' has been removed </li>
   <li>The plugin has not (yet) been tested on Linux or macOS </li>
   <li>The plugin works best on a QHD Screen (2560 x 1440 pixels) or larger </li>
   <li>As of QGIS v3.32, High-DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a> </li> 
   <li>As of version 3.34.6, QGIS upgraded Python from v3.9 to to v3.12 This speeds up calculations and solves some security issues.
   But when <i>upgrading</i> from an earlier QGIS version, it requires installing the above listed packages <b><i>again.</b></i> </li></ul>
   <p>
-  <p>As of version 0.4.6 the plugin is <i>(well, should be)</i> compatible with Qt6. Tests are ongoing.
-  <p>Therefore the plugin should function with QGIS v3.40 onwards, linked with Qt6 (<i>experimental</i>). Note that with Qt6 the High DPI scaling issues have been resolved
+  <p>As of version 0.4.6 the plugin is compatible with Qt6. Note that with Qt6 the High DPI scaling issues have been resolved
+  <p>As of version 0.6.3 the plugin is compatible with QGIS 4.0. Some numpy attribute names needed to be changed for NumPy 2.0 
+  <p>
+
 
 
 tracker=https://github.com/MrBeee/roll/issues
@@ -44,7 +48,9 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:  <p>2026-02-25 (0.6.1) Fixed a bug related to reading boolean values reliably from xml text input
+changelog:  <p>2026-03-10 (0.6.3) Some numpy attribute names needed to be changed for NumPy 2.0 compatibility in QGIS 4.0
+  <p>2026-03-08 (0.6.2) Mainly internal reformatting of code to make attribute & variable names compatible with QGIS' use of camelCase, rather than snake_case. Some minor tweaks applied
+  <p>2026-02-25 (0.6.1) Fixed a bug related to reading boolean values reliably from xml text input
   <p>2026-02-23 (0.6.0) Made Roll a 'standalone' app for testing and debugging purposes. Raised minimum QGIS version to 3.34  
   <p>2026-02-13 (0.5.9) Made fold-map transparent for areas where fold = 0. Added context menu in SPS and Geometry tables, to edit 'in-use' status
   <p>2026-02-10 (0.5.8) Fixed a small bug in copying charts to the clipboard

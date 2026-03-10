@@ -133,14 +133,6 @@ class RollPattern(pg.GraphicsObject):
         if not nameElem.isNull():
             self.name = nameElem.text()
 
-        # self.origin.setX(toFloat(parent.attribute('x0')))
-        # self.origin.setY(toFloat(parent.attribute('y0')))
-        # self.origin.setZ(toFloat(parent.attribute('z0')))
-        # if parent.hasAttribute('argb'):
-        #     self.color = QColor(parent.attribute('argb'))
-        # elif parent.hasAttribute('rgb'):
-        #     self.color = QColor(parent.attribute('rgb'))
-
         growListElem = parent.namedItem('grow_list').toElement()
         g = growListElem.firstChildElement('translate')
 

@@ -59,6 +59,9 @@ pntType1 = np.dtype(
     ]
 )
 
+# this point-type includes local x, y coordinates and time components;
+# it isn't being used currently but may be useful in the future
+
 # pntType2 = np.dtype(
 #     [
 #         # fmt : on
@@ -365,6 +368,7 @@ def markUniqueRPSrecords(rpsImport, sort=True) -> int:
     if rpsImport is None or rpsImport.shape[0] == 0:
         return -1
 
+    # return_index gives the indices of the first occurrence of the unique values in the original array; these are the traces we want to keep
     rpsUnique, rpsIndices = np.unique(rpsImport, return_index=True)
     rpsImport[rpsIndices]['Uniq'] = 1       # Set 'Uniq' value at the applicable indices using NumPy advanced indexing
 
@@ -382,6 +386,7 @@ def markUniqueSPSrecords(spsImport, sort=True) -> int:
     if spsImport is None or spsImport.shape[0] == 0:
         return -1
 
+    # return_index gives the indices of the first occurrence of the unique values in the original array; these are the traces we want to keep
     spsUnique, spsIndices = np.unique(spsImport, return_index=True)
     spsImport[spsIndices]['Uniq'] = 1       # Set 'Uniq' value at the applicable indices using NumPy advanced indexing
 
@@ -399,6 +404,7 @@ def markUniqueXPSrecords(xpsImport, sort=True) -> int:
     if xpsImport is None or xpsImport.shape[0] == 0:
         return -1
 
+    # return_index gives the indices of the first occurrence of the unique values in the original array; these are the traces we want to keep
     xpsUnique, xpsIndices = np.unique(xpsImport, return_index=True)
     xpsImport[xpsIndices]['Uniq'] = 1       # Set 'Uniq' value at the applicable indices using NumPy advanced indexing
 
@@ -574,12 +580,12 @@ def findRecOrphans(rpsImport, xpsImport) -> (int, int):
     xpsMax = xpsUnique['RecMax']
 
     # Perform vectorized comparisons
-    index_match = rpsIndex == xpsIndex
-    line_match = rpsLine == xpsLine
-    point_match = (rpsPoint >= xpsMin) & (rpsPoint <= xpsMax)
+    indexMatch = rpsIndex == xpsIndex
+    lineMatch = rpsLine == xpsLine
+    pointMatch = (rpsPoint >= xpsMin) & (rpsPoint <= xpsMax)
 
     # Combine all conditions
-    match = index_match & line_match & point_match
+    match = indexMatch & lineMatch & pointMatch
 
     # Determine if each rpsRecord has a match in xpsUnique
     rpsImport['InXps'] = match.any(axis=1).astype(int)

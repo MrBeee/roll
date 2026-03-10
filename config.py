@@ -19,15 +19,15 @@ surveyName = 'Orthogonal_001'                                                   
 maxRecentFiles = 9                                                              # used in the File -> Open Recent menu
 
 # deployment area
-deployInline = 10000                                                            # inline deployment distance
-deployX_line = 10000                                                            # x-line deployment distance
+deployXDir = 10000                                                              # inline deployment distance
+deployYDir = 10000                                                              # x-line deployment distance
 
 # source for land/obc templates
 nsl = 1                                                                         # nr. src lines in template
-nsl_par = 681                                                                   # nr. src pointd in parallel template
+nslPar = 681                                                                   # nr. src pointd in parallel template
 nsp = 4                                                                         # nr. src points in template
 sli = 250                                                                       # src line interval
-sli_par = 50                                                                    # src POINT interval in a parallel template
+sliPar = 50                                                                    # src POINT interval in a parallel template
 spi = 50                                                                        # src point interval; src LINE interval in a parallel template
 slr = 1                                                                         # src line roll along
 sld = 41                                                                        # src line deployments (inline)
@@ -36,7 +36,7 @@ sld = 41                                                                        
 # spreadlength = 12000                                                          # initial spread length [m], before changes are made
 nrl = 8                                                                         # nr. rec lines in template
 nrp = 240                                                                       # nr. rec points in template
-nrp_par = 440                                                                   # nr. rec points in template
+nrpPar = 440                                                                   # nr. rec points in template
 rli = 200                                                                       # rec line interval
 rpi = 50                                                                        # rec point interval
 rlr = 1                                                                         # rec line roll along
@@ -139,7 +139,7 @@ recAreaPen = QPen(Qt.GlobalColor.blue, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyl
 srcAreaPen = QPen(Qt.GlobalColor.red, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
 
 # Default colormaps, used to display images
-fold_OffCmap = 'CET-L4'                                                         # used for fold/offset map (layout tab)
+foldDispCmap = 'CET-L4'                                                         # used for fold/offset map (layout tab)
 analysisCmap = 'CET-R4'                                                         # used for analysis results (analysis tab)
 inActiveCmap = 'CET-L1'                                                         # used when no imageItem is available
 
@@ -215,10 +215,10 @@ rpsFormatList = [
     # all indices are 'zero' based and the last number is not included
     # the first character on a line is therefore [0, 1], the last one is [79, 80]
     # Note: In SEG rev2.1, Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
-    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),
-    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),
-    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 11], point=[11, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),
-    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0,1], line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0,1], line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),
+    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0,1], line=[ 1, 11], point=[11, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),
+    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0,1], line=[ 1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),
 ]
 # fmt: on
 
@@ -227,10 +227,10 @@ xpsFormatList = [
     # configuration settings for locations of fields in SPS data;
     # all indices are 'zero' based and the last number is not included
     # the first character on a line is therefore [0, 1], the last one is [79, 80]
-    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[8, 11], srcLin=[23, 27], srcPnt=[33, 37], srcInd=[37, 38], recLin=[57, 61], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
-    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[8, 15], srcLin=[29, 33], srcPnt=[33, 37], srcInd=[37, 38], recLin=[61, 65], recMin=[65, 69], recMax=[75, 79], recInd=[79, 80]),
-    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[7, 15], srcLin=[17, 27], srcPnt=[27, 37], srcInd=[37, 38], recLin=[49, 59], recMin=[59, 69], recMax=[69, 79], recInd=[79, 80]),
-    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[4, 12], srcLin=[13, 17], srcPnt=[33, 37], srcInd=[37, 38], recLin=[47, 51], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0,1], recNum=[8, 11], srcLin=[23, 27], srcPnt=[33, 37], srcInd=[37, 38], recLin=[57, 61], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0,1], recNum=[8, 15], srcLin=[29, 33], srcPnt=[33, 37], srcInd=[37, 38], recLin=[61, 65], recMin=[65, 69], recMax=[75, 79], recInd=[79, 80]),
+    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0,1], recNum=[7, 15], srcLin=[17, 27], srcPnt=[27, 37], srcInd=[37, 38], recLin=[49, 59], recMin=[59, 69], recMax=[69, 79], recInd=[79, 80]),
+    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0,1], recNum=[4, 12], srcLin=[13, 17], srcPnt=[33, 37], srcInd=[37, 38], recLin=[47, 51], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),
 ]
 # fmt: on
 
@@ -257,7 +257,7 @@ surveyCrs = None
 surveyTransform = None
 
 # k-plot settings
-kr_Stack = QVector3D(0.0, 20.0, 0.10)   # settings for k_r plots (min, max, step size)
+kraStack = QVector3D(0.0, 20.0, 0.10)   # settings for kra plots (min, max, step size)
 kxyStack = QVector3D(-5.0, 5.0, 0.05)   # settings for kxy plots (min, max, step size)
 kxyArray = QVector3D(-50.0, 50.0, 0.5)  # settings for pattern kxy plots (min, max, step size)
 
@@ -289,6 +289,35 @@ timerTmin = [float('Inf') for _ in range(20)]
 timerTmax = [0.0 for _ in range(20)]
 timerTtot = [0.0 for _ in range(20)]
 timerFreq = [0 for _ in range(20)]
+
+# style definitions for consistent style across the application
+toolButtonStyle = 'QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }'
+purpleLabelStyle = 'border: 1px solid black;background-color:lavender'
+exportButtonStyle = 'background-color:lightgoldenrodyellow; font-weight:bold;'
+purpleButtonStyle = 'background-color:lavender; font-weight:bold;'
+dockWidgetTitleStyle = 'QDockWidget::title {background : lightblue;}'
+wizardEditHighlightStyle = 'QLineEdit  { background-color : lightblue} '
+wizardComboHighlightStyle = 'QComboBox  { background-color : lightblue} '
+
+dSpinBoxBoldStyle = 'QDoubleSpinBox {font: bold;} '
+dSpinBoxErrorStyle = 'QDoubleSpinBox {color:red; background-color:lightblue;}'
+dSpinBoxNormalStyle = 'QDoubleSpinBox {color:black; background-color:white;}'
+
+nSpinBoxExactStyle = 'QSpinBox {font:bold; color:forestgreen} '
+nSpinBoxErrorStyle = 'QSpinBox {font:bold; color:red} '
+nSpinBoxWarningStyle = 'QSpinBox {font:bold; color:darkorange} '
+
+labelErrorStyle = 'QLabel {color:red}'
+labelNormalStyle = 'QLabel {color:black}'
+labelWarningStyle = 'QLabel {color:darkorange}'
+labelExactStyle = 'QLabel {color:forestgreen}'
+
+editErrorStyle = 'QLineEdit {color:red; background-color:lightblue;}'
+editNormalStyle = 'QLineEdit {color:black; background-color:white;}'
+
+# See: https://stackoverflow.com/questions/7840325/change-the-selection-color-of-a-qtablewidget
+tableStyle = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
+labelStyle = 'font-family: Arial; font-weight: bold; font-size: 16px;'
 
 
 def elapsedTime(startTime, index: int) -> None:

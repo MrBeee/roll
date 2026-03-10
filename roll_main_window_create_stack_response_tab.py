@@ -1,5 +1,9 @@
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QActionGroup, QComboBox, QFrame, QGroupBox, QHBoxLayout, QSplitter, QToolButton, QVBoxLayout
+from qgis.PyQt.QtWidgets import (QActionGroup, QComboBox, QFrame, QGroupBox,
+                                 QHBoxLayout, QSplitter, QToolButton,
+                                 QVBoxLayout)
+
+from .config import toolButtonStyle
 
 
 def createStackResponseTab(self):
@@ -30,8 +34,8 @@ def createStackResponseTab(self):
     self.tbStackResponse.setMinimumWidth(110)
     self.tbStackPatterns.setMinimumWidth(110)
 
-    self.tbStackResponse.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
-    self.tbStackPatterns.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+    self.tbStackResponse.setStyleSheet(toolButtonStyle)
+    self.tbStackPatterns.setStyleSheet(toolButtonStyle)
 
     self.tbStackResponse.setDefaultAction(self.actionStackResponse)             # coupling done here
     self.tbStackPatterns.setDefaultAction(self.actionStackPatterns)

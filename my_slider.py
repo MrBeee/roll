@@ -1,6 +1,7 @@
 import numpy as np
 from pyqtgraph.parametertree import Parameter, registerParameterType
-from pyqtgraph.parametertree.parameterTypes.basetypes import Emitter, WidgetParameterItem
+from pyqtgraph.parametertree.parameterTypes.basetypes import (
+    Emitter, WidgetParameterItem)
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSlider, QWidget
 
@@ -90,11 +91,11 @@ class MySliderParameterItem(WidgetParameterItem):
             suffixTxt = ''
         else:
             suffixTxt = f' {self._suffix}'
-        format_ = self.param.opts.get('format', None)
+        sliderFormat = self.param.opts.get('format', None)
         cspan = self.charSpan
-        if format_ is None:
-            format_ = f'{{0:>{cspan.dtype.itemsize}}}{suffixTxt}'
-        return format_.format(cspan[v].decode())
+        if sliderFormat is None:
+            sliderFormat = f'{{0:>{cspan.dtype.itemsize}}}{suffixTxt}'
+        return sliderFormat.format(cspan[v].decode())
 
     def optsChanged(self, param, opts):
         try:

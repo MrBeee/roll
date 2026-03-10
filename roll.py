@@ -40,10 +40,10 @@ except ImportError as ie:
     haveDebugpy = False
 
 # Import statement to acces the main window
-from .roll_main_window import RollMainWindow, runStandalone
+from .roll_main_window import RollMainWindow
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-resource_dir = os.path.join(current_dir, 'resources')
+currentDir = os.path.dirname(os.path.abspath(__file__))
+resourceDir = os.path.join(currentDir, 'resources')
 
 MESSAGE_CATEGORY = 'Messages'
 
@@ -74,26 +74,26 @@ def enableRemoteDebugging():
         return
 
     # Configure Python interpreter
-    python_path = shutil.which("python")
-    if not python_path:
-        python_path = re.sub(r'[^/\\]+(?:\.exe)?$', 'python', sys.executable)
+    pythonPath = shutil.which("python")
+    if not pythonPath:
+        pythonPath = re.sub(r'[^/\\]+(?:\.exe)?$', 'python', sys.executable)
 
     # Print current environment for debugging
     print(f"Current directory   : {os.getcwd()}")
     print(f"Module path         : {__file__}")
     print(f"sys.executable      : {sys.executable}")
-    print(f"devised python path : {python_path}")
-    print(f"Python  on PATH      : {shutil.which('python')}")
-    print(f"Python3 on PATH      : {shutil.which('python3')}")
+    print(f"devised python path : {pythonPath}")
+    print(f"Python  on PATH     : {shutil.which('python')}")
+    print(f"Python3 on PATH     : {shutil.which('python3')}")
 
     try:
         # This can help if you're running different Python versions
         # Cross-platform method to replace executable with python
 
-        QgsMessageLog.logMessage(f"Configure debugpy with python path: {python_path}", MESSAGE_CATEGORY, Qgis.Info)
-        print(f"Configure debugpy with python path: {python_path}")
+        QgsMessageLog.logMessage(f"Configure debugpy with python path: {pythonPath}", MESSAGE_CATEGORY, Qgis.Info)
+        print(f"Configure debugpy with python path: {pythonPath}")
 
-        debugpy.configure(python=python_path)
+        debugpy.configure(python=pythonPath)
 
         try:
             QgsMessageLog.logMessage("Try to listen", MESSAGE_CATEGORY, Qgis.Info)
@@ -143,15 +143,15 @@ class Roll:
         self.iface = iface
 
         # initialize plugin directory
-        self.plugin_dir = os.path.dirname(__file__)
+        self.pluginDir = os.path.dirname(__file__)
 
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
-        locale_path = os.path.join(self.plugin_dir, 'i18n', f'Roll_{locale}.qm')
+        localePath = os.path.join(self.pluginDir, 'i18n', f'Roll_{locale}.qm')
 
-        if os.path.exists(locale_path):
+        if os.path.exists(localePath):
             self.translator = QTranslator()
-            self.translator.load(locale_path)
+            self.translator.load(localePath)
             QCoreApplication.installTranslator(self.translator)
 
         # Declare instance attributes
@@ -160,7 +160,7 @@ class Roll:
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
-        self.first_start = None
+        self.firstStart = None
 
         # define mainWindow in __init__ , to keep Pylint happy
         self.mainWindow = None
@@ -256,9 +256,7 @@ class Roll:
     # required for a minimal QGIS plugin
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-
-        # icon_path = ':/plugins/roll/resources/icon.png'
-        iconFile = os.path.join(resource_dir, 'icon.png')
+        iconFile = os.path.join(resourceDir, 'icon.png')
 
         self.addAction(
             iconFile,
@@ -268,7 +266,7 @@ class Roll:
         )
 
         # will be set False in run()
-        self.first_start = True
+        self.firstStart = True
 
     # required for a minimal QGIS plugin
     def unload(self):
@@ -292,8 +290,8 @@ class Roll:
 
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start:
-            self.first_start = False
+        if self.firstStart:
+            self.firstStart = False
             self.mainWindow = RollMainWindow(iface = self.iface)                # Bart: pass iface to mainWindow, so that it can access QGIS interface
 
         if self.mainWindow is None or self.mainWindow.killMe is True:           # Bart: Restart the GUI from scratch, when previously closed

@@ -16,7 +16,7 @@ from .aux_functions import myPrint
 # this means flattening the 4D analysis array from 4D to 2D, before it can be used:
 
 # self.survey.output.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=(nx, ny, fold, 13))
-# self.D2_Output = self.survey.output.anaOutput.reshape(nx * ny * fold, 13)
+# self.an2Output = self.survey.output.anaOutput.reshape(nx * ny * fold, 13)
 
 # When using a Treeview approach, flattening won't be required; now we will have:
 # index = model.index(row, column, parent) for each record
@@ -44,7 +44,7 @@ class AnaTableModel(QAbstractTableModel):
     def __init__(self, data):
         super().__init__()
         self._data = None
-        self._chunked_data = None
+        self._chunkedData = None
 
         # the underlying data uses a 2D numpy array without any field names. So it is reliant on the header names and format strings for export to clipboard
         # fmt: off
@@ -77,7 +77,7 @@ class AnaTableModel(QAbstractTableModel):
     def setData(self, data):
         """Modified to reset chunked data when direct data is set"""
         # self.beginResetModel()                                                  # https://doc.qt.io/qt-6/qabstractitemmodel.html#beginResetModel
-        self._chunked_data = None
+        self._chunkedData = None
         self._data = data
         self.layoutChanged.emit()                                               # needed to indicate that 'model' has changed
 
@@ -88,7 +88,7 @@ class AnaTableModel(QAbstractTableModel):
     def setChunkedData(self, chunked_data):
         """Set the model to use chunked data instead of a direct data reference"""
         self._data = None
-        self._chunked_data = chunked_data
+        self._chunkedData = chunked_data
         self.layoutChanged.emit()
 
     def getData(self):
@@ -105,8 +105,8 @@ class AnaTableModel(QAbstractTableModel):
             if orientation == Qt.Orientation.Horizontal:
                 return self._header[section]
             else:
-                if self._chunked_data is not None:
-                    return f'{(self._chunked_data.current_chunk * self._chunked_data.chunk_size) + section + 1:,}'
+                if self._chunkedData is not None:
+                    return f'{(self._chunkedData.currentChunk * self._chunkedData.chunkSize) + section + 1:,}'
                 else:
                     return f'{section + 1:,}'
 
@@ -119,8 +119,8 @@ class AnaTableModel(QAbstractTableModel):
 
     def rowCount(self, parent=None):
         """Return row count based on whether we're using chunked data or not"""
-        if self._chunked_data is not None:
-            return self._chunked_data.getRowCount()
+        if self._chunkedData is not None:
+            return self._chunkedData.getRowCount()
         elif self._data is not None:
             return self._data.shape[0]
         return 20
@@ -173,30 +173,30 @@ class TableView(QTableView):
 
         # context menu support
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self._show_context_menu)
+        self.customContextMenuRequested.connect(self.showContextMenu)
 
-    def _show_context_menu(self, pos):
+    def showContextMenu(self, pos):
         model = self.model()
         if model is None or not hasattr(model, 'toggleInUseRows'):
             return
 
         menu = QMenu(self)
-        action_toggle = menu.addAction("Toggle 'in use' status")
-        action_set_on = menu.addAction("Set 'in use' = 1")
-        action_set_off = menu.addAction("Set 'in use' = 0")
+        actionToggle = menu.addAction("Toggle 'in use' status")
+        actionSetOn = menu.addAction("Set 'in use' = 1")
+        actionSetOff = menu.addAction("Set 'in use' = 0")
 
         action = menu.exec(self.viewport().mapToGlobal(pos))
         rows = [idx.row() for idx in self.selectionModel().selectedRows()]
         if not rows:
             return
 
-        if action == action_toggle:
+        if action == actionToggle:
             model.toggleInUseRows(rows)
             self.inUseToggled.emit(rows)
-        elif action == action_set_on:
+        elif action == actionSetOn:
             model.setInUseRows(rows, 1)
             self.inUseToggled.emit(rows)
-        elif action == action_set_off:
+        elif action == actionSetOff:
             model.setInUseRows(rows, 0)
             self.inUseToggled.emit(rows)
                 
@@ -459,49 +459,49 @@ class TableView(QTableView):
         #     model = self.model()
 
         #     buffer = QApplication.clipboard().text()
-        #     all_rows = []
-        #     all_columns = []
+        #     allRows = []
+        #     allColumns = []
         #     for index in selection:
-        #         if not index.row() in all_rows:
-        #             all_rows.append(index.row())
-        #         if not index.column() in all_columns:
-        #             all_columns.append(index.column())
-        #     visible_rows = [row for row in all_rows if not self.isRowHidden(row)]
-        #     visible_columns = [col for col in all_columns if not self.isColumnHidden(col)]
+        #         if not index.row() in allRows:
+        #             allRows.append(index.row())
+        #         if not index.column() in allColumns:
+        #             allColumns.append(index.column())
+        #     visibleRows = [row for row in allRows if not self.isRowHidden(row)]
+        #     visibleColumns = [col for col in allColumns if not self.isColumnHidden(col)]
 
         #     reader = csv.reader(io.StringIO(buffer), delimiter='\t')
         #     arr = [[cell for cell in row] for row in reader]
         #     if len(arr) > 0:
         #         nrows = len(arr)
         #         ncols = len(arr[0])
-        #         if len(visible_rows) == 1 and len(visible_columns) == 1:
+        #         if len(visibleRows) == 1 and len(visibleColumns) == 1:
         #             # Only the top-left cell is highlighted.
         #             for i in range(nrows):
-        #                 insert_rows = [visible_rows[0]]
-        #                 row = insert_rows[0] + 1
-        #                 while len(insert_rows) < nrows:
+        #                 insertRows = [visibleRows[0]]
+        #                 row = insertRows[0] + 1
+        #                 while len(insertRows) < nrows:
         #                     row += 1
         #                     if not self.isRowHidden(row):
-        #                         insert_rows.append(row)
+        #                         insertRows.append(row)
         #             for j in range(ncols):
-        #                 insert_columns = [visible_columns[0]]
-        #                 col = insert_columns[0] + 1
-        #                 while len(insert_columns) < ncols:
+        #                 insertColumns = [visibleColumns[0]]
+        #                 col = insertColumns[0] + 1
+        #                 while len(insertColumns) < ncols:
         #                     col += 1
         #                     if not self.isColumnHidden(col):
-        #                         insert_columns.append(col)
-        #             for i, insert_row in enumerate(insert_rows):
-        #                 for j, insert_column in enumerate(insert_columns):
+        #                         insertColumns.append(col)
+        #             for i, insert_row in enumerate(insertRows):
+        #                 for j, insert_column in enumerate(insertColumns):
         #                     cell = arr[i][j]
         #                     model.setData(model.index(insert_row, insert_column), cell)
         #         else:
         #             # Assume the selection size matches the clipboard data size.
         #             for index in selection:
-        #                 selection_row = visible_rows.index(index.row())
-        #                 selection_column = visible_columns.index(index.column())
+        #                 selectionRow = visibleRows.index(index.row())
+        #                 selectionColumn = visibleColumns.index(index.column())
         #                 model.setData(
         #                     model.index(index.row(), index.column()),
-        #                     arr[selection_row][selection_column],
+        #                     arr[selectionRow][selectionColumn],
         #                 )
         # return
 
@@ -585,19 +585,19 @@ class RpsTableModel(QAbstractTableModel):
 
         # Display columns (in order) mapped to dtype fields
         # fmt: off
-        self._display_fields =  ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']
+        self._displayFields =   ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']
         self._header =          ['rec line', 'rec point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'in use']
         self._format =           '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d'
         # fmt: on
 
-        self._minMax = np.zeros(shape=(2, len(self._display_fields)), dtype=np.float32)
+        self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
         self.setData(data)
 
     def data(self, index, role):
         if role == Qt.ItemDataRole.DisplayRole:
             if self._data is not None:
                 record = self._data[index.row()]
-                field = self._display_fields[index.column()]
+                field = self._displayFields[index.column()]
                 if field in ('Index', 'InUse'):
                     value = str(int(record[field]))
                 elif field == 'Code':
@@ -640,7 +640,7 @@ class RpsTableModel(QAbstractTableModel):
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
-                field = self._display_fields[section]
+                field = self._displayFields[section]
                 if field in ('Index', 'InUse'):
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
                 elif field == 'Code':
@@ -675,9 +675,9 @@ class RpsTableModel(QAbstractTableModel):
     def setData(self, data):
         if data is not None and data.shape[0] > 0:
             self._names = data.dtype.names                                      # get the field names from the numpy array
-            self._minMax = np.zeros(shape=(2, len(self._display_fields)), dtype=np.float32)
+            self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
 
-            for i, name in enumerate(self._display_fields):
+            for i, name in enumerate(self._displayFields):
                 if name == 'Code':
                     continue
                 self._minMax[0, i] = data[name].min()
@@ -685,7 +685,7 @@ class RpsTableModel(QAbstractTableModel):
 
             self._data = data
         else:
-            self._minMax = np.zeros(shape=(2, len(self._display_fields)), dtype=np.float32)
+            self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
             self._data = None
 
         self.layoutChanged.emit()
@@ -704,7 +704,7 @@ class RpsTableModel(QAbstractTableModel):
 
         sortList = []
         for sort in reversed(self._qSort):                                      # Iterate over self._qSort backwards
-            sortList.append(self._display_fields[sort])
+            sortList.append(self._displayFields[sort])
 
         self._data.sort(order=sortList)                                         # Sort the data using the list of sorts
         self.layoutChanged.emit()
@@ -716,7 +716,7 @@ class RpsTableModel(QAbstractTableModel):
 
         sortList = []
         for sort in reversed(self._qSort):  # Iterate over self._qSort backwards
-            sortList.append(self._display_fields[sort])
+            sortList.append(self._displayFields[sort])
 
         return str(sortList)
 
@@ -785,7 +785,7 @@ class RpsTableModel(QAbstractTableModel):
         for row in rows:
             self._data[row]['InUse'] = 0 if self._data[row]['InUse'] else 1
 
-        col = self._display_fields.index('InUse')
+        col = self._displayFields.index('InUse')
         self._minMax[0, col] = self._data['InUse'].min()
         self._minMax[1, col] = self._data['InUse'].max()
 
@@ -803,7 +803,7 @@ class RpsTableModel(QAbstractTableModel):
         for row in rows:
             self._data[row]['InUse'] = 1 if value else 0
 
-        col = self._display_fields.index('InUse')
+        col = self._displayFields.index('InUse')
         self._minMax[0, col] = self._data['InUse'].min()
         self._minMax[1, col] = self._data['InUse'].max()
 
@@ -844,19 +844,19 @@ class SpsTableModel(QAbstractTableModel):
 
         # Display columns (in order) mapped to dtype fields
         # fmt: off
-        self._display_fields =  ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']
+        self._displayFields =   ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']
         self._header =          ['src line', 'src point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'in use']
         self._format =           '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d'
         # fmt: on
 
-        self._minMax = np.zeros(shape=(2, len(self._display_fields)), dtype=np.float32)
+        self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
         self.setData(data)
 
     def data(self, index, role):
         if role == Qt.ItemDataRole.DisplayRole:
             if self._data is not None:
                 record = self._data[index.row()]
-                field = self._display_fields[index.column()]
+                field = self._displayFields[index.column()]
                 if field in ('Index', 'InUse'):
                     value = str(int(record[field]))
                 elif field == 'Code':
@@ -899,7 +899,7 @@ class SpsTableModel(QAbstractTableModel):
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
-                field = self._display_fields[section]
+                field = self._displayFields[section]
                 if field in ('Index', 'InUse'):
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
                 elif field == 'Code':
@@ -934,9 +934,9 @@ class SpsTableModel(QAbstractTableModel):
     def setData(self, data):
         if data is not None and data.shape[0] > 0:
             self._names = data.dtype.names                                      # get the field names from the numpy array
-            self._minMax = np.zeros(shape=(2, len(self._display_fields)), dtype=np.float32)
+            self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
 
-            for i, name in enumerate(self._display_fields):
+            for i, name in enumerate(self._displayFields):
                 if name == 'Code':
                     continue
                 self._minMax[0, i] = data[name].min()
@@ -944,7 +944,7 @@ class SpsTableModel(QAbstractTableModel):
 
             self._data = data
         else:
-            self._minMax = np.zeros(shape=(2, len(self._display_fields)), dtype=np.float32)
+            self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
             self._data = None
 
         self.layoutChanged.emit()
@@ -963,7 +963,7 @@ class SpsTableModel(QAbstractTableModel):
 
         sortList = []
         for sort in reversed(self._qSort):                                      # Iterate over self._qSort backwards
-            sortList.append(self._display_fields[sort])
+            sortList.append(self._displayFields[sort])
 
         self._data.sort(order=sortList)                                         # Sort the data using the list of sorts
         self.layoutChanged.emit()
@@ -975,7 +975,7 @@ class SpsTableModel(QAbstractTableModel):
 
         sortList = []
         for sort in reversed(self._qSort):                                      # Iterate over self._qSort backwards
-            sortList.append(self._display_fields[sort])
+            sortList.append(self._displayFields[sort])
 
         return str(sortList)
 
@@ -1044,7 +1044,7 @@ class SpsTableModel(QAbstractTableModel):
         for row in rows:
             self._data[row]['InUse'] = 0 if self._data[row]['InUse'] else 1
 
-        col = self._display_fields.index('InUse')
+        col = self._displayFields.index('InUse')
         self._minMax[0, col] = self._data['InUse'].min()
         self._minMax[1, col] = self._data['InUse'].max()
 
@@ -1062,7 +1062,7 @@ class SpsTableModel(QAbstractTableModel):
         for row in rows:
             self._data[row]['InUse'] = 1 if value else 0
 
-        col = self._display_fields.index('InUse')
+        col = self._displayFields.index('InUse')
         self._minMax[0, col] = self._data['InUse'].min()
         self._minMax[1, col] = self._data['InUse'].max()
 

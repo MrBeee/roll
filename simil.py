@@ -131,7 +131,7 @@ import numpy as np
 # =================
 
 
-def _get_scalar(alpha_0, q_coords=None):
+def _getScalar(alpha_0, q_coords=None):
     if q_coords is None:
         scalar = np.einsum('i->', alpha_0)
     else:
@@ -139,17 +139,17 @@ def _get_scalar(alpha_0, q_coords=None):
     return scalar
 
 
-def _get_q_matrix(quaternions):
+def _getQMatrix(quaternions):
     q_matrix = [[[q[3], -q[2], q[1], q[0]], [q[2], q[3], -q[0], q[1]], [-q[1], q[0], q[3], q[2]], [-q[0], -q[1], -q[2], q[3]]] for q in quaternions]
     return np.array(q_matrix)
 
 
-def _get_w_matrix(quaternions):
+def _getWMatrix(quaternions):
     w_matrix = [[[q[3], q[2], -q[1], q[0]], [-q[2], q[3], q[0], q[1]], [q[1], -q[0], q[3], q[2]], [-q[0], -q[1], -q[2], q[3]]] for q in quaternions]
     return np.array(w_matrix)
 
 
-def _get_abc_matrices(alpha_0, m1, m2=None):
+def _getAbcMatrices(alpha_0, m1, m2=None):
     if m2 is None:
         matrix = np.einsum('i,ijk->jk', alpha_0, m1)
     else:
@@ -157,24 +157,24 @@ def _get_abc_matrices(alpha_0, m1, m2=None):
     return matrix
 
 
-def _get_blc_matrix(b_matrix, lambda_i, c_matrix):
+def _getBlcMatrix(b_matrix, lambda_i, c_matrix):
     blc_matrix = b_matrix - lambda_i * c_matrix
     return blc_matrix
 
 
-def _get_d_matrix(li, cs, am, blcm):
+def _getDMatrix(li, cs, am, blcm):
     d_matrix = 2 * li * am + (1 / cs) * (blcm.T @ blcm)
     return d_matrix
 
 
-def _get_r_quat(d_matrix):
+def _getRQuat(d_matrix):
     eigvals, eigvects = np.linalg.eig(d_matrix)
     beta_1 = np.argmax(eigvals)
     r_quat = eigvects[:, beta_1]
     return beta_1, r_quat
 
 
-def _get_lambda_next(am, bs, bm, cs, cm, rq):
+def _getLambdaNext(am, bs, bm, cs, cm, rq):
     expr_1 = rq.T @ am @ rq
     expr_2 = (1 / cs) * (rq.T @ bm.T @ cm @ rq)
     expr_3 = (1 / cs) * (rq.T @ cm.T @ cm @ rq)
@@ -182,35 +182,35 @@ def _get_lambda_next(am, bs, bm, cs, cm, rq):
     return lambda_next
 
 
-def _get_solution(am, bs, bm, cs, cm, scale, li, i):
-    blc_matrix = _get_blc_matrix(bm, li, cm)
-    d_matrix = _get_d_matrix(li, cs, am, blc_matrix)
-    beta_1, r_quat = _get_r_quat(d_matrix)
+def _getSolution(am, bs, bm, cs, cm, scale, li, i):
+    blc_matrix = _getBlcMatrix(bm, li, cm)
+    d_matrix = _getDMatrix(li, cs, am, blc_matrix)
+    beta_1, r_quat = _getRQuat(d_matrix)
     if scale is False:
         return blc_matrix, d_matrix, beta_1, r_quat, li, i
     else:
-        lambda_next = _get_lambda_next(am, bs, bm, cs, cm, r_quat)
+        lambda_next = _getLambdaNext(am, bs, bm, cs, cm, r_quat)
         if abs(li - lambda_next) < 0.000001:
             return blc_matrix, d_matrix, beta_1, r_quat, li, i
         else:
             li, i = lambda_next, i + 1
-            return _get_solution(am, bs, bm, cs, cm, scale, li, i)
+            return _getSolution(am, bs, bm, cs, cm, scale, li, i)
 
 
-def _get_r_matrix(r_quat):
-    r_w_matrix = _get_w_matrix([r_quat])[0]
-    r_q_matrix = _get_q_matrix([r_quat])[0]
+def _getRMatrix(r_quat):
+    r_w_matrix = _getWMatrix([r_quat])[0]
+    r_q_matrix = _getQMatrix([r_quat])[0]
     r_matrix = (r_w_matrix.T @ r_q_matrix)[:3, :3]
     return r_matrix
 
 
-def _get_s_quat(c_scalar, blcm, r_quat):
+def _getSQuat(c_scalar, blcm, r_quat):
     s_quat = 1 / (2 * c_scalar) * (blcm @ r_quat)
     return s_quat
 
 
-def _get_t_vector(r_quat, s_quat):
-    r_w_matrix = _get_w_matrix([r_quat])[0]
+def _getTVector(r_quat, s_quat):
+    r_w_matrix = _getWMatrix([r_quat])[0]
     t_vector = [2 * (r_w_matrix.T @ s_quat)[:3]]
     return t_vector
 
@@ -316,29 +316,41 @@ def process(source_points, target_points, alpha_0=None, scale=True, lambda_0=1.0
 
     target_q_coords = np.concatenate((target_coords, np.zeros((1, n))))
 
-    b_scalar = _get_scalar(alpha_0, source_q_coords)
+    b_scalar = _getScalar(alpha_0, source_q_coords)
 
     c_scalar = np.einsum('i->', alpha_0)
 
-    q0_w_matrix = _get_w_matrix(source_q_coords.T)
+    q0_w_matrix = _getWMatrix(source_q_coords.T)
 
-    qt_q_matrix = _get_q_matrix(target_q_coords.T)
+    qt_q_matrix = _getQMatrix(target_q_coords.T)
 
-    a_matrix = _get_abc_matrices(alpha_0, q0_w_matrix, qt_q_matrix)
+    a_matrix = _getAbcMatrices(alpha_0, q0_w_matrix, qt_q_matrix)
 
-    b_matrix = _get_abc_matrices(alpha_0, qt_q_matrix)
+    b_matrix = _getAbcMatrices(alpha_0, qt_q_matrix)
 
-    c_matrix = _get_abc_matrices(alpha_0, q0_w_matrix)
+    c_matrix = _getAbcMatrices(alpha_0, q0_w_matrix)
 
     lambda_i, i = lambda_0, 1
 
     # d_matrix, beta_1 unused and replaced by _
-    blc_matrix, _, _, r_quat, lambda_i, i = _get_solution(a_matrix, b_scalar, b_matrix, c_scalar, c_matrix, scale, lambda_i, i)
+    blc_matrix, _, _, r_quat, lambda_i, i = _getSolution(a_matrix, b_scalar, b_matrix, c_scalar, c_matrix, scale, lambda_i, i)
 
-    r_matrix = _get_r_matrix(r_quat)
+    r_matrix = _getRMatrix(r_quat)
 
-    s_quat = _get_s_quat(c_scalar, blc_matrix, r_quat)
+    s_quat = _getSQuat(c_scalar, blc_matrix, r_quat)
 
-    t_vector = np.array(_get_t_vector(r_quat, s_quat)).reshape(3, 1)
+    t_vector = np.array(_getTVector(r_quat, s_quat)).reshape(3, 1)
 
     return lambda_i, r_matrix, t_vector
+
+
+
+
+
+
+
+
+
+
+
+

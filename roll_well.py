@@ -404,12 +404,14 @@ class RollWell:
 
         # this is the key routine that resamples a well trajectory into (x, y, z) values
         pos = dev.minimum_curvature().resample(depths=ahdList)
-        pos_wellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
-        pos_tvdss = pos_wellhead.to_tvdss(datum_elevation=self.origW.z())
 
-        x = pos_tvdss.easting
-        y = pos_tvdss.northing
-        z = pos_tvdss.depth
+        # the following methods expect snake_case for input variables
+        posWellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
+        posTvdss = posWellhead.to_tvdss(datum_elevation=self.origW.z())
+
+        x = posTvdss.easting
+        y = posTvdss.northing
+        z = posTvdss.depth
         n = len(x)
 
         # first create the list of 3D points in survey coordinates (well-crs -> project-crs -> survey grid)
@@ -440,10 +442,12 @@ class RollWell:
 
         # this is the key routine that resamples to (x, y, z) values
         pos = dev.minimum_curvature().resample(depths=displayList)              # use minimum curvature interpolation
-        pos_wellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
-        pos_tvdss = pos_wellhead.to_tvdss(datum_elevation=self.origW.z())
 
-        data = list(zip(pos_tvdss.easting, pos_tvdss.northing))                 # create list with (x, y) pairs
+        # the following methods expect snake_case for input variables
+        posWellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
+        posTvdss = posWellhead.to_tvdss(datum_elevation=self.origW.z())
+
+        data = list(zip(posTvdss.easting, posTvdss.northing))                 # create list with (x, y) pairs
 
         # create mask point list with 2.5 m accuracy
         mask = filterRdp(data, threshold=2.5)                                   # create a numpy mask

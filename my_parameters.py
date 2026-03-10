@@ -1179,12 +1179,6 @@ class MyRollParameter(MyGroupParameter):
                     value = parent.value()
                     myPrint(value)
 
-                    # self.remove()
-                    # name = self.name()
-                    # move = parent.moveList.pop(index)
-                    # parent.moveList.insert(index + 1, move)
-                    # parent.insertChild(index + 1, dict(name=name, type='myRoll', value=move, expanded=False, flat=True, decimals=5, suffix='m'))
-
 
 ### class MySeedList ##########################################################
 
@@ -1533,9 +1527,9 @@ class MySeedParameter(MyGroupParameter):
         while root.parent() is not None:
             root = root.parent()
 
-        pattern_param = root.child('Pattern list') if root is not None else None
-        if pattern_param is not None and hasattr(pattern_param, 'patternList'):
-            patterns = ['<None>'] + [p.name for p in pattern_param.patternList]
+        patternParam = root.child('Pattern list') if root is not None else None
+        if patternParam is not None and hasattr(patternParam, 'patternList'):
+            patterns = ['<None>'] + [p.name for p in patternParam.patternList]
         elif self.survey:
             patterns = ['<None>'] + [p.name for p in self.survey.patternList]
         else:
@@ -2386,10 +2380,10 @@ class MyPatternListParameter(MyGroupParameter):
         root = self.parent()
         if root is None:
             return
-        block_list = root.child('Block list')
-        if block_list is None:
+        blockList = root.child('Block list')
+        if blockList is None:
             return
-        for block in block_list:
+        for block in blockList:
             for template in block.child('Template list'):
                 for seed_param in template.child('Seed list'):
                     if seed_param.seed.patternNo == i:
@@ -2401,10 +2395,10 @@ class MyPatternListParameter(MyGroupParameter):
         root = self.parent()
         if root is None:
             return
-        block_list = root.child('Block list')
-        if block_list is None:
+        blockList = root.child('Block list')
+        if blockList is None:
             return
-        for block in block_list:
+        for block in blockList:
             for template in block.child('Template list'):
                 for seed_param in template.child('Seed list'):
                     pno = seed_param.seed.patternNo
@@ -2438,10 +2432,10 @@ class MyPatternListParameter(MyGroupParameter):
         root = self.parent()
         if root is None:
             return
-        block_list = root.child('Block list')
-        if block_list is None:
+        blockList = root.child('Block list')
+        if blockList is None:
             return
-        for block in block_list:
+        for block in blockList:
             for template in block.child('Template list'):
                 for seed in template.child('Seed list'):
                     seed.refreshPatternList()

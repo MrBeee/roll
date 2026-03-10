@@ -10,16 +10,16 @@
 # The mixin only binds signals via setupSpiderActions() and relies on attributes that already exist.
 # That keeps the mixin “passive” and avoids side effects during construction.
 # If someday the mixin does need to set up its own attributes,
-# the typical pattern is to expose a dedicated setup method (like setupSpiderActions()) that the concrete class calls after its own initialization.
+# the typical pattern is to expose a dedicated setup availableRows (like setupSpiderActions()) that the concrete class calls after its own initialization.
 # This is more explicit and doesn’t interfere with other base classes’ constructors.
 # So skipping __init__ is deliberate: it keeps the mixin lightweight, predictable, and safe to reuse in multiple inheritance hierarchies.
 
 # SpiderNavigationMixin.navigateSpider() calls self.getVisiblePlotWidget() around spider_navigation_mixin.py:58-83.
 # At runtime self is an instance of RollMainWindow, because that class inherits from the mixin (e.g., class RollMainWindow(..., SpiderNavigationMixin)).
-# Python resolves self.getVisiblePlotWidget through the method resolution order,
+# Python resolves self.getVisiblePlotWidget through the availableRows resolution order,
 # so it finds the implementation already defined on RollMainWindow in roll_main_window.py:2228-2277.
-# Methods don’t need to be defined “above” their call sites; they just have to exist on the object when the call happens.
-# So the mixin can safely rely on RollMainWindow supplying that method.
+# availableRowss don’t need to be defined “above” their call sites; they just have to exist on the object when the call happens.
+# So the mixin can safely rely on RollMainWindow supplying that availableRows.
 
 import numpy as np
 import pyqtgraph as pg
@@ -44,7 +44,7 @@ class SpiderNavigationMixin:
     # Public triggers -----------------------------------------------------
 
     # deal with the spider navigation
-    # See: https://stackoverflow.com/questions/49316067/how-get-pressed-keys-in-mousepressevent-method-with-qt
+    # See: https://stackoverflow.com/questions/49316067/how-get-pressed-keys-in-mousepressevent-availableRows-with-qt
 
     def spiderGoRt(self, *_, direction: Direction = Direction.Rt) -> None:
         self.navigateSpider(direction=direction)
@@ -71,10 +71,10 @@ class SpiderNavigationMixin:
             return
 
         step = self._spiderStepFromModifiers()
-        x_ana, y_ana, z_fold, w_cols = self.output.anaOutput.shape
-        x_bin, y_bin = self.output.binOutput.shape
+        xAna, yAna, zFold, wCols = self.output.anaOutput.shape
+        xBin, yBin = self.output.binOutput.shape
 
-        if w_cols != 13 or x_ana != x_bin or y_ana != y_bin:
+        if wCols != 13 or xAna != xBin or yAna != yBin:
             QMessageBox.warning(
                 self,
                 'Misaligned analysis arrays',
@@ -82,21 +82,21 @@ class SpiderNavigationMixin:
             )
             return
 
-        self._updateSpiderPoint(direction, step, x_ana, y_ana)
-        n_x, n_y = self.spiderPoint.x(), self.spiderPoint.y()
+        self._updateSpiderPoint(direction, step, xAna, yAna)
+        nX, nY = self.spiderPoint.x(), self.spiderPoint.y()
 
         try:
-            fold = min(self.output.binOutput[n_x, n_y], z_fold)
+            fold = min(self.output.binOutput[nX, nY], zFold)
         except IndexError:
             return
 
-        _, plot_index = self.getVisiblePlotWidget()                             # get current plot; plot_widget not used
-        if plot_index == 0:
-            self._updateLayoutSpiderOverlay(n_x, n_y, fold)
+        _, plotIndex = self.getVisiblePlotWidget()                             # get current plot; plot_widget not used
+        if plotIndex == 0:
+            self._updateLayoutSpiderOverlay(nX, nY, fold)
         else:
-            self.updateVisiblePlotWidget(plot_index)
+            self.updateVisiblePlotWidget(plotIndex)
 
-        self._syncTraceTableSelection(n_x, n_y, fold)
+        self._syncTraceTableSelection(nX, nY, fold)
 
     # Helpers -------------------------------------------------------------
 
@@ -124,31 +124,31 @@ class SpiderNavigationMixin:
         self.spiderPoint.setX(min(max(self.spiderPoint.x(), 0), x_max - 1))
         self.spiderPoint.setY(min(max(self.spiderPoint.y(), 0), y_max - 1))
 
-    def _updateLayoutSpiderOverlay(self, n_x: int, n_y: int, fold: int) -> None:
+    def _updateLayoutSpiderOverlay(self, nX: int, nY: int, fold: int) -> None:
         if self.survey.binTransform is None or self.survey.st2Transform is None:
             return
 
         if fold > 0:
-            slice2d = self.output.anaOutput[n_x, n_y, 0:fold, :]
-            legs = self._spider_leg_arrays(slice2d)
+            slice2d = self.output.anaOutput[nX, nY, 0:fold, :]
+            legs = self._spiderLegArrays(slice2d)
             self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = legs
         else:
             self.spiderSrcX = self.spiderSrcY = self.spiderRecX = self.spiderRecY = None
 
         # if fold > 0:
-        #     legs = numbaSpiderBin(self.output.anaOutput[n_x, n_y, 0:fold, :])
+        #     legs = numbaSpiderBin(self.output.anaOutput[nX, nY, 0:fold, :])
         #     self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = legs
         # else:
         #     self.spiderSrcX = self.spiderSrcY = self.spiderRecX = self.spiderRecY = None
 
-        inv_bin, _ = self.survey.binTransform.inverted()
-        cmp_x, cmp_y = inv_bin.map(n_x, n_y)
-        stk_x, stk_y = self.survey.st2Transform.map(cmp_x, cmp_y)
+        invBin, _ = self.survey.binTransform.inverted()
+        cmpX, cmpY = invBin.map(nX, nY)
+        stkX, stkY = self.survey.st2Transform.map(cmpX, cmpY)
 
-        label_x = cmp_x
-        label_y = max(self.spiderRecY.max(), self.spiderSrcY.max()) if fold > 0 else cmp_y
+        labelX = cmpX
+        labelY = max(self.spiderRecY.max(), self.spiderSrcY.max()) if fold > 0 else cmpY
         if self.glob:
-            label_x, label_y = self.survey.glbTransform.map(label_x, label_y)
+            labelX, labelY = self.survey.glbTransform.map(labelX, labelY)
 
         if self.spiderText is None:
             self.spiderText = pg.TextItem(
@@ -160,32 +160,32 @@ class SpiderNavigationMixin:
             )
             self.spiderText.setZValue(1000)
 
-        self.spiderText.setPos(label_x, label_y)
-        self.spiderText.setText(f'S({int(stk_x)},{int(stk_y)}), fold = {fold}')
+        self.spiderText.setPos(labelX, labelY)
+        self.spiderText.setText(f'S({int(stkX)},{int(stkY)}), fold = {fold}')
         self.plotLayout()
 
-    def _spider_leg_arrays(self, slice2d: np.ndarray):
+    def _spiderLegArrays(self, slice2d: np.ndarray):
         try:
             return numbaSpiderBin(slice2d)
         except Exception as exc:
             module = exc.__class__.__module__
-            is_numba_exc = module.startswith('numba')
-            is_known_attr = isinstance(exc, AttributeError) and 'get_call_template' in str(exc)
-            if not (is_numba_exc or is_known_attr):
+            isNumbaExc = module.startswith('numba')
+            isKnownAttr = isinstance(exc, AttributeError) and 'get_call_template' in str(exc)
+            if not (isNumbaExc or isKnownAttr):
                 raise
-            self._warn_spider_fallback(exc)
-            return self._spider_leg_arrays_python(slice2d)
+            self._warnSpiderFallback(exc)
+            return self._spiderLegArraysPython(slice2d)
 
-    def _warn_spider_fallback(self, exc: Exception) -> None:
-        if getattr(self, '_spider_fallback_warned', False):
+    def _warnSpiderFallback(self, exc: Exception) -> None:
+        if getattr(self, '_spiderFallbackWarned', False):
             return
         self.appendLogMessage(f'Numba&nbsp;&nbsp;: Falling back to Python spider plotting because Numba failed ({exc}).', MsgType.Warning    )
-        self._spider_fallback_warned = True
+        self._spiderFallbackWarned = True
 
     @staticmethod
-    def _spider_leg_arrays_python(slice2d: np.ndarray):
-        fold_x2 = slice2d.shape[0] * 2
-        spiderSrcX = np.zeros(fold_x2, dtype=np.float32)
+    def _spiderLegArraysPython(slice2d: np.ndarray):
+        foldTimesTwo = slice2d.shape[0] * 2
+        spiderSrcX = np.zeros(foldTimesTwo, dtype=np.float32)
         spiderSrcY = np.zeros_like(spiderSrcX)
         spiderRecX = np.zeros_like(spiderSrcX)
         spiderRecY = np.zeros_like(spiderSrcX)
@@ -195,57 +195,56 @@ class SpiderNavigationMixin:
         spiderRecY[0::2] = slice2d[:, 6]; spiderRecY[1::2] = slice2d[:, 8]
         return spiderSrcX, spiderSrcY, spiderRecX, spiderRecY
 
+    def _syncTraceTableSelection(self, nX: int, nY: int, fold: int) -> None:
+        sizeY = self.output.anaOutput.shape[1]
+        maxFold = self.output.anaOutput.shape[2]
+        globalOffset = (nX * sizeY + nY) * maxFold
 
-    def _syncTraceTableSelection(self, n_x: int, n_y: int, fold: int) -> None:
-        size_y = self.output.anaOutput.shape[1]
-        max_fold = self.output.anaOutput.shape[2]
-        global_offset = (n_x * size_y + n_y) * max_fold
-
-        is_chunked = hasattr(self.anaModel, '_chunked_data') and self.anaModel._chunked_data is not None
-        if is_chunked:
-            self._syncChunkedSelection(global_offset, fold)
+        isChunked = hasattr(self.anaModel, '_chunkedData') and self.anaModel._chunkedData is not None
+        if isChunked:
+            self._syncChunkedSelection(globalOffset, fold)
             return
 
-        index = self.anaView.model().index(global_offset, 0)
+        index = self.anaView.model().index(globalOffset, 0)
         self.anaView.scrollTo(index)
-        self.anaView.selectRow(global_offset)
+        self.anaView.selectRow(globalOffset)
 
         fold = max(fold, 1)
-        top = self.anaView.model().index(global_offset, 0)
-        bottom = self.anaView.model().index(global_offset + fold - 1, 0)
+        top = self.anaView.model().index(globalOffset, 0)
+        bottom = self.anaView.model().index(globalOffset + fold - 1, 0)
         selection = QItemSelection(top, bottom)
         self.anaView.selectionModel().select(
             selection,
             QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
         )
 
-    def _syncChunkedSelection(self, global_offset: int, fold: int) -> None:
-        chunked = self.anaModel._chunked_data
-        chunk_size = chunked.chunk_size
-        target_chunk = global_offset // chunk_size
+    def _syncChunkedSelection(self, globalOffset: int, fold: int) -> None:
+        chunked = self.anaModel._chunkedData
+        chunkSize = chunked.chunkSize
+        targetChunk = globalOffset // chunkSize
 
-        if chunked.current_chunk != target_chunk and chunked.gotoChunk(target_chunk):
+        if chunked.currentChunk != targetChunk and chunked.gotoChunk(targetChunk):
             self.anaModel.layoutAboutToBeChanged.emit()
             self.anaModel._data = np.copy(chunked.getCurrentChunk())
             self.anaModel.layoutChanged.emit()
             self._updatePageInfo()
 
-        local_offset = global_offset % chunk_size
-        available_rows = min(fold, chunk_size - local_offset)
+        localOffset = globalOffset % chunkSize
+        availableRows = min(fold, chunkSize - localOffset)
 
-        if available_rows <= 0 or local_offset >= self.anaModel.rowCount():
+        if availableRows <= 0 or localOffset >= self.anaModel.rowCount():
             return
 
-        top = self.anaModel.index(local_offset, 0)
-        bottom = self.anaModel.index(local_offset + available_rows - 1, 0)
+        top = self.anaModel.index(localOffset, 0)
+        bottom = self.anaModel.index(localOffset + availableRows - 1, 0)
         selection = QItemSelection(top, bottom)
 
         self.anaView.scrollTo(top)
         sm = self.anaView.selectionModel()
         sm.select(selection, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
 
-        if available_rows < fold:
+        if availableRows < fold:
             self.appendLogMessage(
-                f'Note&nbsp;&nbsp;: Only {available_rows} of {fold} traces for this bin are visible in the current chunk',
+                f'Note&nbsp;&nbsp;: Only {availableRows} of {fold} traces for this bin are visible in the current chunk',
                 MsgType.Warning,
             )

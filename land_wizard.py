@@ -23,13 +23,14 @@ from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox,
 from . import config  # used to pass initial settings
 from .aux_classes import QHLine, SurveyWizard, SurveyWizardPage
 from .aux_functions import myPrint
+from .config import wizardComboHighlightStyle, wizardEditHighlightStyle
 from .enums_and_int_flags import PaintMode, SurveyType2
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
 from .roll_survey import RollSurvey
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-resource_dir = os.path.join(current_dir, 'resources')
+currentDir = os.path.dirname(os.path.abspath(__file__))
+resourceDir = os.path.join(currentDir, 'resources')
 
 
 # WIZARD  =======================================================================
@@ -39,23 +40,23 @@ class LandSurveyWizard(SurveyWizard):
         super().__init__(parent)
 
         self.nTemplates = 1                                                     # nr of templates in a design. Will be affected by brick, slant & zigzag geometries
-        self.surveySize = QSizeF(config.deployInline, config.deployX_line)      # initial survey size; determined by src area for orthogonal surveys and rec area for parallel
+        self.surveySize = QSizeF(config.deployXDir, config.deployYDir)      # initial survey size; determined by src area for orthogonal surveys and rec area for parallel
 
-        self.addPage(Page_1(self))
-        self.addPage(Page_2(self))
-        self.addPage(Page_3(self))
-        self.addPage(Page_4(self))
-        self.addPage(Page_5(self))
-        self.addPage(Page_6(self))
-        self.addPage(Page_7(self))
-        self.addPage(Page_8(self))
+        self.addPage(Page1(self))
+        self.addPage(Page2(self))
+        self.addPage(Page3(self))
+        self.addPage(Page4(self))
+        self.addPage(Page5(self))
+        self.addPage(Page6(self))
+        self.addPage(Page7(self))
+        self.addPage(Page8(self))
 
         self.setWindowTitle('Land & OBN Seismic Survey Wizard')
         self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
 
         # self.setOption(QWizard.IndependentPages , True) # Don't use this option as fields are no longer updated !!! Make dummy cleanupPage(self) instead
-        logo_image = QImage(os.path.join(resource_dir, 'icon.png'))
-        self.setPixmap(QWizard.WizardPixmap.LogoPixmap, QPixmap.fromImage(logo_image))
+        logoImage = QImage(os.path.join(resourceDir, 'icon.png'))
+        self.setPixmap(QWizard.WizardPixmap.LogoPixmap, QPixmap.fromImage(logoImage))
 
 
 #        self.setOption(QWizard.NoCancelButton, True)
@@ -66,11 +67,11 @@ class LandSurveyWizard(SurveyWizard):
 #        pass
 
 
-# Page_1 =======================================================================
+# Page1 =======================================================================
 # 1. Survey type, Nr lines, and line & point intervals
 
 
-class Page_1(SurveyWizardPage):
+class Page1(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -126,8 +127,8 @@ class Page_1(SurveyWizardPage):
         for item in SurveyList[:-1]:                                            # skip last item from list; streamer survey
             self.type.addItem(item)
 
-        self.name.setStyleSheet('QLineEdit  { background-color : lightblue} ')
-        self.type.setStyleSheet('QComboBox  { background-color : lightblue} ')
+        self.name.setStyleSheet(wizardEditHighlightStyle)
+        self.type.setStyleSheet(wizardComboHighlightStyle)
 
         # set the page layout
         layout = QGridLayout()
@@ -280,19 +281,19 @@ class Page_1(SurveyWizardPage):
         self.registerField('mir', self.chkMirrorOddEven)                        # mirror od/even templates
 
         # connect signals to slots
-        self.type.currentIndexChanged.connect(self.evt_type_indexChanged)
+        self.type.currentIndexChanged.connect(self.evtTypeIndexChanged)
 
         # signals and slots for when editing is finished
-        self.sli.editingFinished.connect(self.evt_sli_editingFinished)          # for source line interval
-        self.spi.editingFinished.connect(self.evt_spi_editingFinished)          # for source point interval
-        self.rli.editingFinished.connect(self.evt_rli_editingFinished)          # for receiver line interval
-        self.rpi.editingFinished.connect(self.evt_rpi_editingFinished)          # for receiver point interval
+        self.sli.editingFinished.connect(self.evtSliEditingFinished)          # for source line interval
+        self.spi.editingFinished.connect(self.evtSpiEditingFinished)          # for source point interval
+        self.rli.editingFinished.connect(self.evtRliEditingFinished)          # for receiver line interval
+        self.rpi.editingFinished.connect(self.evtRpiEditingFinished)          # for receiver point interval
 
-        self.chkLinePntAlign.stateChanged.connect(self.evt_align_stateChanged)
-        self.chkBrickMatchRpi.stateChanged.connect(self.evt_match_stateChanged)
+        self.chkLinePntAlign.stateChanged.connect(self.evtAlignStateChanged)
+        self.chkBrickMatchRpi.stateChanged.connect(self.evtMatchStateChanged)
 
-        self.slantS.valueChanged.connect(self.evt_slantS_valueChanged)
-        self.brickS.editingFinished.connect(self.evt_brickS_editingFinished)
+        self.slantS.valueChanged.connect(self.evtSlantValueChanged)
+        self.brickS.editingFinished.connect(self.evtBrickEditingFinished)
 
         # start values in the constructor, taken from config.py
         self.nsl.setValue(config.nsl)
@@ -305,9 +306,9 @@ class Page_1(SurveyWizardPage):
         self.brickS.setValue(config.brick)
 
         # variables to keep survey dimensions more or less the same, when editing
-        self.old_rpi = config.rpi
-        self.old_rli = config.rli
-        self.old_sli = config.sli
+        self.oldRpi = config.rpi
+        self.oldRli = config.rli
+        self.oldSli = config.sli
 
         # hide optional controls for non-orthogonal surveys
         slanted = False
@@ -349,35 +350,35 @@ class Page_1(SurveyWizardPage):
         self.setField('binI', 0.5 * rpi)                                        # need to adjust bingrid too
         self.setField('binX', 0.5 * spi)
 
-        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
-        self.parent.page(3).evt_binImin_editingFinished(plot=False)             # need to update binning area too
-        self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
-        self.parent.page(3).evt_binXmin_editingFinished(plot=False)
-        self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
+        # note page(x) starts with a ZERO index; therefore pag(0) == Page1
+        self.parent.page(3).evtBinIminEditingFinished(plot=False)             # need to update binning area too
+        self.parent.page(3).evtBinIsizEditingFinished(plot=False)
+        self.parent.page(3).evtBinXminEditingFinished(plot=False)
+        self.parent.page(3).evtBinXsizEditingFinished(plot=False)
 
-    def evt_align_stateChanged(self):                                           # alignment state changed
-        self.evt_sli_editingFinished()                                          # update dependent controls
-        self.evt_rli_editingFinished()
-        self.evt_spi_editingFinished()
-        self.evt_rpi_editingFinished()
+    def evtAlignStateChanged(self):                                           # alignment state changed
+        self.evtSliEditingFinished()                                          # update dependent controls
+        self.evtRliEditingFinished()
+        self.evtSpiEditingFinished()
+        self.evtRpiEditingFinished()
 
-    def evt_match_stateChanged(self):                                           # match state changed
-        self.evt_brickS_editingFinished()                                       # update dependent control
+    def evtMatchStateChanged(self):                                           # match state changed
+        self.evtBrickEditingFinished()                                       # update dependent control
 
-    def evt_type_indexChanged(self, index):
+    def evtTypeIndexChanged(self, index):
         self.nsl.setValue(1)                                                    # reset nr source lines in case we came from zigzag or parallel
 
         self.sli.setEnabled(True)                                               # in case we disabled this earlier
         self.nsl.setEnabled(True)                                               # for instance with zigzag or parallel
 
         self.sli.setValue(config.sli)                                           # in case we used parallel earlier
-        self.old_sli = config.sli                                               # in case we used parallel earlier
+        self.oldSli = config.sli                                               # in case we used parallel earlier
 
         self.nsl.setValue(config.nsl)
         self.setField('rlr', 1)                                                 # One line to roll
         self.setField('slr', 1)                                                 # One line to roll
-        self.setField('sld', round(config.deployInline / (config.slr * config.sli)) + 1)
-        self.setField('rld', round(config.deployX_line / (config.rlr * config.rli)) + 1)
+        self.setField('sld', round(config.deployXDir / (config.slr * config.sli)) + 1)
+        self.setField('rld', round(config.deployYDir / (config.rlr * config.rli)) + 1)
 
         name = SurveyType2.fromCode(index).name                                # get name from enum
         number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
@@ -389,9 +390,9 @@ class Page_1(SurveyWizardPage):
             self.templateLabel.setText('In a <b>parallel</b> template, source points run <b>parallel</b> to the receiver lines')
             self.lineLabel.setText('<b>Point</b> spacing between sources and <b>line</b> spacing between receivers')
             self.pointLabel.setText('<b>Line</b> spacing between sources and <b>point</b> spacing between receivers')
-            self.sli.setValue(config.sli_par)
-            self.nsl.setValue(config.nsl_par)
-            self.setField('nrp', config.nrp_par)
+            self.sli.setValue(config.sliPar)
+            self.nsl.setValue(config.nslPar)
+            self.setField('nrp', config.nrpPar)
 
             self.nslLabel.setText('<b>NSP</b> Nr Src Points [&#8594;]')
             self.sliLabel.setText('<b>SPI</b> Src Point Int [m&#8594;]')   ##
@@ -412,7 +413,7 @@ class Page_1(SurveyWizardPage):
         self.slantA.setVisible(slanted)
         self.slantT.setVisible(slanted)
         if slanted:
-            self.evt_slantS_valueChanged(self.slantS.value())
+            self.evtSlantValueChanged(self.slantS.value())
 
         brick = index == SurveyType2.Brick.code
         self.brickH.setVisible(brick)
@@ -439,7 +440,7 @@ class Page_1(SurveyWizardPage):
 
         self.update()                                                           # update GUI
 
-    def evt_sli_editingFinished(self):
+    def evtSliEditingFinished(self):
         nrIntervals = max(round(self.sli.value() / self.rpi.value()), 1)
         rpiValue = self.sli.value() / nrIntervals
 
@@ -448,18 +449,18 @@ class Page_1(SurveyWizardPage):
                 self.rpi.setValue(rpiValue)                                     # for zigzag sli is 'fixed' by other variables
 
         nslant = self.field('nslant')                                           # get variable from field name
-        self.evt_slantS_valueChanged(nslant)                                    # update the slant angle for slanted surveys
+        self.evtSlantValueChanged(nslant)                                    # update the slant angle for slanted surveys
 
         sld = self.field('sld')                                                 # get variables from field names
         slr = self.field('slr')                                                 # get variables from field names
-        sizI = sld * slr * self.old_sli
+        sizI = sld * slr * self.oldSli
         sld = max(round(sizI / self.sli.value()), 1)
         self.setField('sld', sld)                                               # adjust nr source line deployments
 
-        self.old_sli = self.sli.value()
+        self.oldSli = self.sli.value()
         self.adjustBingrid()
 
-    def evt_rli_editingFinished(self):
+    def evtRliEditingFinished(self):
         nrIntervals = max(round(self.rli.value() / self.spi.value()), 1)
         spiValue = self.rli.value() / nrIntervals
 
@@ -476,18 +477,18 @@ class Page_1(SurveyWizardPage):
         #     self.sli.setValue(sliValue)
 
         nslant = self.field('nslant')                                           # get variable from field name
-        self.evt_slantS_valueChanged(nslant)                                    # update the slant angle for slanted surveys
+        self.evtSlantValueChanged(nslant)                                    # update the slant angle for slanted surveys
 
         rld = self.field('rld')                                                 # get variables from field names
         rlr = self.field('rlr')                                                 # get variables from field names
-        sizX = rld * rlr * self.old_rli
+        sizX = rld * rlr * self.oldRli
         rld = max(round(sizX / self.rli.value()), 1)
         self.setField('rld', rld)                                               # adjust nr receiver line deployments
 
-        self.old_rli = self.rli.value()
+        self.oldRli = self.rli.value()
         self.adjustBingrid()
 
-    def evt_spi_editingFinished(self):
+    def evtSpiEditingFinished(self):
         nsp = self.field('nsp')                                                 # get variables from field names
         rli = self.rli.value()
         rpi = self.rpi.value()
@@ -513,7 +514,7 @@ class Page_1(SurveyWizardPage):
 
         self.adjustBingrid()
 
-    def evt_rpi_editingFinished(self):
+    def evtRpiEditingFinished(self):
         nrIntervals = max(round(self.sli.value() / self.rpi.value()), 1)
         rpiValue = self.sli.value() / nrIntervals
 
@@ -525,20 +526,20 @@ class Page_1(SurveyWizardPage):
             self.sli.setValue(nsp * self.rpi.value())
 
         nrp = self.field('nrp')                                                 # get variables from field names
-        spreadlength = nrp * self.old_rpi                                       # current receiver line length
+        spreadlength = nrp * self.oldRpi                                       # current receiver line length
         nrp = max(round(spreadlength / self.rpi.value()), 1)                    # RPI has been altered; adjust nrp
         self.setField('nrp', nrp)                                               # save its value
 
-        self.old_rpi = self.rpi.value()
+        self.oldRpi = self.rpi.value()
         self.adjustBingrid()
 
-    def evt_slantS_valueChanged(self, i):
+    def evtSlantValueChanged(self, i):
         sli = self.field('sli')                                                 # get variables from field names
         rli = self.field('rli')
         angle = 90.0 - math.degrees(math.atan2(i * rli, sli))                   # get the slant angle (deviation from orthogonal
         self.slantA.setText(f'{angle:.3f}')                                     # put it back in the edit window
 
-    def evt_brickS_editingFinished(self):
+    def evtBrickEditingFinished(self):
         sli = self.field('sli')                                                 # get variable from field names
         brick = self.brickS.value()
         brick = min(sli - 1.0, brick)
@@ -551,11 +552,11 @@ class Page_1(SurveyWizardPage):
         self.brickS.setValue(brick)
 
 
-# Page_2 =======================================================================
+# Page2 =======================================================================
 # 2. Template Properties - Enter Spread and Salvo details
 
 
-class Page_2(SurveyWizardPage):
+class Page2(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -571,8 +572,8 @@ class Page_2(SurveyWizardPage):
         self.grid = True
 
         # variables altered when nrp, nsp change
-        self.offsetInshift = 0.0
-        self.offsetX_shift = 0.0
+        self.offsetIShift = 0.0
+        self.offsetXShift = 0.0
 
         # create some widgets
         self.nsp = QSpinBox()
@@ -691,18 +692,18 @@ class Page_2(SurveyWizardPage):
         self.registerField('offXmax', self.offXmax, 'value')
 
         # connect signals to slots for checkboxes
-        self.chkNrecKnown.toggled.connect(self.evt_chkNrecKnown_toggled)        # work from numbers or offsets
-        self.chkNsrcKnown.toggled.connect(self.evt_chkNsrcKnown_toggled)
-        self.chkNrecMatch.toggled.connect(self.evt_chkNrecMatch_toggled)        # require NRP & NSP, matching to SLI & RLI
-        self.chkNsrcMatch.toggled.connect(self.evt_chkNsrcMatch_toggled)
+        self.chkNrecKnown.toggled.connect(self.evtChkNrecKnownToggled)        # work from numbers or offsets
+        self.chkNsrcKnown.toggled.connect(self.evtChkNsrcKnownToggled)
+        self.chkNrecMatch.toggled.connect(self.evtChkNrecMatchToggled)        # require NRP & NSP, matching to SLI & RLI
+        self.chkNsrcMatch.toggled.connect(self.evtChkNsrcMatchToggled)
 
         # connect signals to slots for edit controls
-        self.nsp.editingFinished.connect(self.evt_nsp_editingFinished)      # evaluate new nsp
-        self.nrp.editingFinished.connect(self.evt_nrp_editingFinished)      # evaluate new nrp
-        self.offImin.editingFinished.connect(self.evt_offImin_editingFinished)  # evaluate new offsets
-        self.offImax.editingFinished.connect(self.evt_offImax_editingFinished)
-        self.offXmin.editingFinished.connect(self.evt_offxmin_editingFinished)
-        self.offXmax.editingFinished.connect(self.evt_offXmax_editingFinished)
+        self.nsp.editingFinished.connect(self.evtNspEditingFinished)      # evaluate new nsp
+        self.nrp.editingFinished.connect(self.evtNrpEditingFinished)      # evaluate new nrp
+        self.offImin.editingFinished.connect(self.evtOffIminEditingFinished)  # evaluate new offsets
+        self.offImax.editingFinished.connect(self.evtIffImaxEditingFinished)
+        self.offXmin.editingFinished.connect(self.evtOffxminEditingFinished)
+        self.offXmax.editingFinished.connect(self.evtOffXmaxEditingFinished)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         myPrint('initialize page 2')
@@ -739,14 +740,14 @@ class Page_2(SurveyWizardPage):
         mir = self.field('mir')                                                 # mirrored zigzag survey
 
         # set initial offset values
-        templateInShift = 0.5 * (nsl - 1) * sli
-        templateX_shift = 0.5 * (nrl - 1) * rli
+        templateIShift = 0.5 * (nsl - 1) * sli
+        templateXShift = 0.5 * (nrl - 1) * rli
 
-        self.offImin.setValue(-0.5 * (nrp - 1) * rpi + self.offsetInshift + templateInShift)
-        self.offImax.setValue(0.5 * (nrp - 1) * rpi + self.offsetInshift + templateInShift)
+        self.offImin.setValue(-0.5 * (nrp - 1) * rpi + self.offsetIShift + templateIShift)
+        self.offImax.setValue(0.5 * (nrp - 1) * rpi + self.offsetIShift + templateIShift)
 
-        self.offXmin.setValue(-0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
-        self.offXmax.setValue(0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
+        self.offXmin.setValue(-0.5 * (nsp - 1) * spi + self.offsetXShift + templateXShift)
+        self.offXmax.setValue(0.5 * (nsp - 1) * spi + self.offsetXShift + templateXShift)
 
         # as of Python version 3.10, there is an official switch-case statement.
         # Alas, QGIS 3.28 is using Python v3.9.5 so we have to use if ... elif ... elif etc.
@@ -877,17 +878,17 @@ class Page_2(SurveyWizardPage):
             inline1 = offImin                                                   # offImin is a negative number
             inline2 = (nrp - 1) * rpi + inline1                                 # positive number
 
-        x_line1 = -(offXmin + (nsp - 1) * spi)                                  # offXmin is a positive number
-        x_line2 = (nrl - 1) * rli - offXmin
+        xLine1 = -(offXmin + (nsp - 1) * spi)                                  # offXmin is a positive number
+        xLine2 = (nrl - 1) * rli - offXmin
 
         self.parent.survey.offset.rctOffsets.setLeft(inline1 - 1.0)             # inline offset limits
         self.parent.survey.offset.rctOffsets.setRight(inline2 + 1.0)
 
-        self.parent.survey.offset.rctOffsets.setTop(x_line1 - 1.0)              # x_line offset limits
-        self.parent.survey.offset.rctOffsets.setBottom(x_line2 + 1.0)
+        self.parent.survey.offset.rctOffsets.setTop(xLine1 - 1.0)              # x_line offset limits
+        self.parent.survey.offset.rctOffsets.setBottom(xLine2 + 1.0)
 
         w = max(abs(inline1), abs(inline2))                                     # calc radial limit r from w & h
-        h = max(abs(x_line1), abs(x_line2))
+        h = max(abs(xLine1), abs(xLine2))
         r = round(math.sqrt(w * w + h * h)) + 1.0
 
         self.parent.survey.offset.radOffsets.setX(0.0)                          # radial; rmin
@@ -1165,22 +1166,22 @@ class Page_2(SurveyWizardPage):
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
 
-    def evt_chkNrecKnown_toggled(self, chkd):                                   # toggle enabled status for 2 controls
+    def evtChkNrecKnownToggled(self, chkd):                                   # toggle enabled status for 2 controls
         self.nrp.setEnabled(chkd)
         self.offImax.setEnabled(not chkd)
 
-    def evt_chkNsrcKnown_toggled(self, chkd):                                   # toggle enabled status for 2 controls
+    def evtChkNsrcKnownToggled(self, chkd):                                   # toggle enabled status for 2 controls
         self.nsp.setEnabled(chkd)
         self.offXmax.setEnabled(not chkd)
 
-    def evt_chkNrecMatch_toggled(self):
+    def evtChkNrecMatchToggled(self):
         nrp = self.field('nrp')
         self.alignRecPoints(nrp)
 
         self.updateParentSurvey()                                               # update the survey object
         self.plot()                                                             # refresh the plot
 
-    def evt_chkNsrcMatch_toggled(self):
+    def evtChkNsrcMatchToggled(self):
         nsp = self.field('nsp')
         self.alignSrcPoints(nsp)
 
@@ -1210,7 +1211,7 @@ class Page_2(SurveyWizardPage):
         self.nsp.setValue(nsp)                                                  # always set value; so value becomes permanent
         return nsp
 
-    def evt_nrp_editingFinished(self):
+    def evtNrpEditingFinished(self):
         sli = self.field('sli')
         rpi = self.field('rpi')
         nsl = self.field('nsl')
@@ -1218,14 +1219,14 @@ class Page_2(SurveyWizardPage):
         nrp = self.alignRecPoints(nrp)                                          # checks nrp and stores its value
 
         # set the offset values
-        templateInShift = 0.5 * (nsl - 1) * sli
-        self.offImin.setValue(-0.5 * (nrp - 1) * rpi + self.offsetInshift + templateInShift)
-        self.offImax.setValue(0.5 * (nrp - 1) * rpi + self.offsetInshift + templateInShift)
+        templateIShift = 0.5 * (nsl - 1) * sli
+        self.offImin.setValue(-0.5 * (nrp - 1) * rpi + self.offsetIShift + templateIShift)
+        self.offImax.setValue(0.5 * (nrp - 1) * rpi + self.offsetIShift + templateIShift)
 
         self.updateParentSurvey()                                               # update the survey object
         self.plot()                                                             # refresh the plot
 
-    def evt_nsp_editingFinished(self):
+    def evtNspEditingFinished(self):
         rli = self.field('rli')
         spi = self.field('spi')
         nrl = self.field('nrl')
@@ -1233,14 +1234,14 @@ class Page_2(SurveyWizardPage):
         nsp = self.alignSrcPoints(nsp)                                          # checks nsp and stores its value
 
         # set the  offset values
-        templateX_shift = 0.5 * (nrl - 1) * rli
-        self.offXmin.setValue(-0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
-        self.offXmax.setValue(0.5 * (nsp - 1) * spi + self.offsetX_shift + templateX_shift)
+        templateXShift = 0.5 * (nrl - 1) * rli
+        self.offXmin.setValue(-0.5 * (nsp - 1) * spi + self.offsetXShift + templateXShift)
+        self.offXmax.setValue(0.5 * (nsp - 1) * spi + self.offsetXShift + templateXShift)
 
         self.updateParentSurvey()                                               # update the survey object
         self.plot()                                                             # refresh the plot
 
-    def evt_offImin_editingFinished(self):
+    def evtOffIminEditingFinished(self):
         nsl = self.field('nsl')
         rpi = self.field('rpi')
         nrp = self.field('nrp')
@@ -1249,28 +1250,28 @@ class Page_2(SurveyWizardPage):
         templateInshift = 0.5 * (nsl - 1) * sli
         halfSpreadLength = 0.5 * (nrp - 1) * rpi
 
-        self.offsetInshift = halfSpreadLength - templateInshift + self.offImin.value()
+        self.offsetIShift = halfSpreadLength - templateInshift + self.offImin.value()
         self.offImax.setValue(self.offImin.value() + 2 * halfSpreadLength)
 
         self.updateParentSurvey()                                               # update the survey object
         self.plot()                                                             # refresh the plot
 
-    def evt_offxmin_editingFinished(self):
+    def evtOffxminEditingFinished(self):
         nsp = self.field('nsp')
         nrl = self.field('nrl')
         spi = self.field('spi')
         rli = self.field('rli')
 
-        templateX_shift = 0.5 * (nrl - 1) * rli
+        templateXShift = 0.5 * (nrl - 1) * rli
         halfSalvoLength = 0.5 * (nsp - 1) * spi
 
-        self.offsetX_shift = halfSalvoLength - templateX_shift + self.offXmin.value()
+        self.offsetXShift = halfSalvoLength - templateXShift + self.offXmin.value()
         self.offXmax.setValue(self.offXmin.value() + 2 * halfSalvoLength)
 
         self.updateParentSurvey()                                               # update the survey object
         self.plot()                                                             # refresh the plot
 
-    def evt_offImax_editingFinished(self):
+    def evtIffImaxEditingFinished(self):
         nsl = self.field('nsl')
         rpi = self.field('rpi')
         sli = self.field('sli')
@@ -1281,13 +1282,13 @@ class Page_2(SurveyWizardPage):
         templateInshift = 0.5 * (nsl - 1) * sli
         halfSpreadLength = 0.5 * (nrp - 1) * rpi
 
-        self.offsetInshift = templateInshift - halfSpreadLength + self.offImin.value()
+        self.offsetIShift = templateInshift - halfSpreadLength + self.offImin.value()
         self.offImax.setValue(self.offImin.value() + 2 * halfSpreadLength)
 
         self.updateParentSurvey()                                               # update the survey object
         self.plot()                                                             # refresh the plot
 
-    def evt_offXmax_editingFinished(self):
+    def evtOffXmaxEditingFinished(self):
         nrl = self.field('nrl')
         rli = self.field('rli')
         spi = self.field('spi')
@@ -1295,10 +1296,10 @@ class Page_2(SurveyWizardPage):
         nsp = max(round((self.offXmax.value() - self.offXmin.value()) / spi) + 1, 1)  # nr source points over offset range
         nsp = self.alignSrcPoints(nsp)                                          # checks nsp and stores its value
 
-        templateX_shift = 0.5 * (nrl - 1) * rli
+        templateXShift = 0.5 * (nrl - 1) * rli
         halfSalvoLength = 0.5 * (nsp - 1) * spi
 
-        self.offsetX_shift = templateX_shift - halfSalvoLength + self.offXmin.value()
+        self.offsetXShift = templateXShift - halfSalvoLength + self.offXmin.value()
         self.offXmax.setValue(self.offXmin.value() + 2 * halfSalvoLength)
 
         self.updateParentSurvey()                                               # update the survey object
@@ -1330,11 +1331,11 @@ class Page_2(SurveyWizardPage):
         # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
 
-# Page_3 =======================================================================
+# Page3 =======================================================================
 # 3. Template Properties - Enter the bin grid properties
 
 
-class Page_3(SurveyWizardPage):
+class Page3(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -1434,10 +1435,10 @@ class Page_3(SurveyWizardPage):
         self.registerField('chkBingridAlign', self.chkBingridAlign)
 
         # connect signals to slots
-        self.binI.editingFinished.connect(self.evt_bin_editingFinished)         # see when editing is finished for bin values
-        self.binX.editingFinished.connect(self.evt_bin_editingFinished)
+        self.binI.editingFinished.connect(self.evtBinEditingFinished)         # see when editing is finished for bin values
+        self.binX.editingFinished.connect(self.evtBinEditingFinished)
 
-        self.chkBingridAlign.toggled.connect(self.evt_BingridAlign_toggled)
+        self.chkBingridAlign.toggled.connect(self.evtBingridAlignToggled)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         myPrint('initialize page 3')
@@ -1474,7 +1475,7 @@ class Page_3(SurveyWizardPage):
         self.plot()                                                             # refresh the plot
 
     def cleanupPage(self):                                                      # needed to update previous page
-        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
+        # note page(x) starts with a ZERO index; therefore pag(0) == Page1
         self.parent.page(1).plot()                                              # needed to update the plot
         myPrint('cleanup of page 3')
 
@@ -1566,28 +1567,28 @@ class Page_3(SurveyWizardPage):
             self.binI.setValue(0.5 * rpi)
             self.binX.setValue(0.5 * spi)
 
-        # note page(x) starts with a ZERO index; therefore page(0) == Page_1
-        self.parent.page(3).evt_binImin_editingFinished(plot=False)             # adjust binning parameters in next page (Page_4)
-        self.parent.page(3).evt_binIsiz_editingFinished(plot=False)
-        self.parent.page(3).evt_binXmin_editingFinished(plot=False)
-        self.parent.page(3).evt_binXsiz_editingFinished(plot=False)
+        # note page(x) starts with a ZERO index; therefore page(0) == Page1
+        self.parent.page(3).evtBinIminEditingFinished(plot=False)             # adjust binning parameters in next page (Page4)
+        self.parent.page(3).evtBinIsizEditingFinished(plot=False)
+        self.parent.page(3).evtBinXminEditingFinished(plot=False)
+        self.parent.page(3).evtBinXsizEditingFinished(plot=False)
 
         self.updateParentSurvey()
         self.plot()
 
-    def evt_bin_editingFinished(self):
+    def evtBinEditingFinished(self):
         # adjust the bin grid and/or offsets if required
         self.alignBingrid()
 
-    def evt_BingridAlign_toggled(self):
+    def evtBingridAlignToggled(self):
         self.alignBingrid()
 
 
-# Page_4 =======================================================================
+# Page4 =======================================================================
 # 4. Template Properties - Enter Roll Along and Binning Area details
 
 
-class Page_4(SurveyWizardPage):
+class Page4(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('4. Template Properties')
@@ -1706,7 +1707,7 @@ class Page_4(SurveyWizardPage):
         self.registerField('rld', self.rld, 'value')                            # rec line deployments
         self.registerField('sld', self.sld, 'value')                            # src line deployments
 
-        self.registerField('rec_00', self.chkShiftSpread)                       # put 1st receiver at (0,0)
+        self.registerField('rec00', self.chkShiftSpread)                       # put 1st receiver at (0,0)
 
         self.registerField('binImin', self.binImin, 'value')                    # bin area x-origin
         self.registerField('binIsiz', self.binIsiz, 'value')                    # bin area x-size
@@ -1714,23 +1715,23 @@ class Page_4(SurveyWizardPage):
         self.registerField('binXsiz', self.binXsiz, 'value')                    # bin area y-size
 
         # connect signals to slots
-        self.rlr.editingFinished.connect(self.evt_roll_editingFinished)         # connect all signals to the same slot
-        self.slr.editingFinished.connect(self.evt_roll_editingFinished)
-        self.rld.editingFinished.connect(self.evt_roll_editingFinished)
-        self.sld.editingFinished.connect(self.evt_roll_editingFinished)
+        self.rlr.editingFinished.connect(self.evtRollEditingFinished)         # connect all signals to the same slot
+        self.slr.editingFinished.connect(self.evtRollEditingFinished)
+        self.rld.editingFinished.connect(self.evtRollEditingFinished)
+        self.sld.editingFinished.connect(self.evtRollEditingFinished)
 
-        self.binImin.editingFinished.connect(self.evt_binImin_editingFinished)
-        self.binIsiz.editingFinished.connect(self.evt_binIsiz_editingFinished)
-        self.binXmin.editingFinished.connect(self.evt_binXmin_editingFinished)
-        self.binXsiz.editingFinished.connect(self.evt_binXsiz_editingFinished)
+        self.binImin.editingFinished.connect(self.evtBinIminEditingFinished)
+        self.binIsiz.editingFinished.connect(self.evtBinIsizEditingFinished)
+        self.binXmin.editingFinished.connect(self.evtBinXminEditingFinished)
+        self.binXsiz.editingFinished.connect(self.evtBinXsizEditingFinished)
 
-        self.chkShiftSpread.toggled.connect(self.evt_chkShiftSpread_toggled)
+        self.chkShiftSpread.toggled.connect(self.evtChkShiftSpreadToggled)
 
         # give some initial values
         self.rlr.setValue(config.rlr)       # moveup one line
         self.slr.setValue(config.slr)       # moveup one line
-        self.sld.setValue(round(config.deployInline / (config.slr * config.sli)) + 1)
-        self.rld.setValue(round(config.deployX_line / (config.rlr * config.rli)) + 1)
+        self.sld.setValue(round(config.deployXDir / (config.slr * config.sli)) + 1)
+        self.rld.setValue(round(config.deployYDir / (config.rlr * config.rli)) + 1)
 
         # initial bin analysis area
         shiftI = 6000 if shift else 0
@@ -1751,8 +1752,8 @@ class Page_4(SurveyWizardPage):
         self.setField('slr', slr)
         self.setField('rlr', rlr)
 
-        sld = max(round(config.deployInline / (slr * sli)), 1)
-        rld = max(round(config.deployX_line / (rlr * rli)), 1)
+        sld = max(round(config.deployXDir / (slr * sli)), 1)
+        rld = max(round(config.deployYDir / (rlr * rli)), 1)
         self.setField('sld', sld)
         self.setField('rld', rld)
 
@@ -1771,7 +1772,7 @@ class Page_4(SurveyWizardPage):
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey ignoring rolling along
 
-        # note page(x) starts with a ZERO index; therefore page(0) == Page_1 and page(2) == Page_3
+        # note page(x) starts with a ZERO index; therefore page(0) == Page1 and page(2) == Page3
         self.parent.page(2).updateParentSurvey()                                # (re)center single spread, may be shifted inline due to origin shift
         self.parent.page(2).plot()                                              # needed to update the plot
 
@@ -1793,8 +1794,8 @@ class Page_4(SurveyWizardPage):
         nzz = self.field('nzz')                                                 # nr source fleets in a zigzag survey
         mir = self.field('mir')                                                 # mirrored zigzag survey
 
-        rec_00 = self.field('rec_00')                                           # if True, move receiver origin to (0, 0)
-        shiftI = -offImin if rec_00 else 0.0                                    # amount of x-shift to apply to each seed
+        rec00 = self.field('rec00')                                           # if True, move receiver origin to (0, 0)
+        shiftI = -offImin if rec00 else 0.0                                    # amount of x-shift to apply to each seed
 
         if typ == SurveyType2.Orthogonal.code or typ == SurveyType2.Parallel.code:
             # source
@@ -1907,7 +1908,7 @@ class Page_4(SurveyWizardPage):
         oriY = [0.0]
         _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker 'orig' not used further
 
-    def evt_chkShiftSpread_toggled(self, chkd):
+    def evtChkShiftSpreadToggled(self, chkd):
         offImin = self.field('offImin')
         Imin = self.field('binImin')                                     # get inline origin of binning area
         if chkd:                                                                # shifted up to (0,0) for the first receiver ?
@@ -1921,32 +1922,32 @@ class Page_4(SurveyWizardPage):
         self.updateParentSurvey()
         self.plot()
 
-    def evt_roll_editingFinished(self):
+    def evtRollEditingFinished(self):
         self.updateParentSurvey()
         self.plot()
 
-    def evt_binImin_editingFinished(self, plot=True):
+    def evtBinIminEditingFinished(self, plot=True):
         binI = self.field('binI')
         nrIntervals = max(round(self.binImin.value() / binI), 1)
         binImin = nrIntervals * binI
         self.binImin.setValue(binImin)
         self.updateBinningArea(plot)
 
-    def evt_binIsiz_editingFinished(self, plot=True):
+    def evtBinIsizEditingFinished(self, plot=True):
         binI = self.field('binI')
         nrIntervals = max(round(self.binIsiz.value() / binI), 1)
         binIsiz = nrIntervals * binI
         self.binIsiz.setValue(binIsiz)
         self.updateBinningArea(plot)
 
-    def evt_binXmin_editingFinished(self, plot=True):
+    def evtBinXminEditingFinished(self, plot=True):
         binX = self.field('binX')
         nrIntervals = max(round(self.binXmin.value() / binX), 1)
         binXmin = nrIntervals * binX
         self.binXmin.setValue(binXmin)
         self.updateBinningArea(plot)
 
-    def evt_binXsiz_editingFinished(self, plot=True):
+    def evtBinXsizEditingFinished(self, plot=True):
         binX = self.field('binX')
         nrIntervals = max(round(self.binXsiz.value() / binX), 1)
         binXsiz = nrIntervals * binX
@@ -1963,11 +1964,11 @@ class Page_4(SurveyWizardPage):
             self.plot()
 
 
-# Page_5 =======================================================================
+# Page5 =======================================================================
 # 5. Template Properties - Pattern/array details
 
 
-class Page_5(SurveyWizardPage):
+class Page5(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('5. Template Properties')
@@ -2243,11 +2244,11 @@ class Page_5(SurveyWizardPage):
         # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
 
 
-# Page_6 =======================================================================
+# Page6 =======================================================================
 # 6. Project Coordinate Reference System (CRS)
 
 
-class Page_6(SurveyWizardPage):
+class Page6(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('6. Project Coordinate Reference System (CRS)')
@@ -2257,20 +2258,20 @@ class Page_6(SurveyWizardPage):
 
         # See: https://api.qgis.org/api/3.16/qgscoordinatereferencesystem_8h_source.html#l00668
         # See https://api.qgis.org/api/classQgsProjectionSelectionTreeWidget.html
-        self.proj_selector = QgsProjectionSelectionTreeWidget()
+        self.projectionSelector = QgsProjectionSelectionTreeWidget()
 
         # See: https://qgis.org/pyqgis/master/core/QgsProject.html#qgis.core.QgsProject.crs
         # tmpCrs = QgsProject.instance().crs()
         # if tmpCrs.isValid():
-        #    self.proj_selector.setCrs(tmpCrs)
+        #    self.projectionSelector.setCrs(tmpCrs)
 
         # set the page layout
         layout = QVBoxLayout()
-        layout.addWidget(self.proj_selector)
+        layout.addWidget(self.projectionSelector)
         self.setLayout(layout)
 
-        self.registerField('crs', self.proj_selector)
-        self.proj_selector.crsSelected.connect(self.crsSelected)
+        self.registerField('crs', self.projectionSelector)
+        self.projectionSelector.crsSelected.connect(self.crsSelected)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         myPrint('initialize page 6')
@@ -2282,24 +2283,24 @@ class Page_6(SurveyWizardPage):
     def crsSelected(self):
         # See: https://api.qgis.org/api/classQgsCoordinateReferenceSystem.html
 
-        if self.proj_selector.crs().isGeographic():
+        if self.projectionSelector.crs().isGeographic():
             QMessageBox.warning(self, 'Wrong CRS type', 'Please select a Projected Coordinate System to ensure valid distance and area measurements.')
         else:
-            self.setField('crs', self.proj_selector.crs())                       # Needed, as we have redefined isComplete()
+            self.setField('crs', self.projectionSelector.crs())                       # Needed, as we have redefined isComplete()
         self.completeChanged.emit()
 
     def isComplete(self):
-        if self.proj_selector.crs().isValid() and not self.proj_selector.crs().isGeographic():
+        if self.projectionSelector.crs().isValid() and not self.projectionSelector.crs().isGeographic():
             self.parent.survey.crs = self.field('crs')
             return True
         return False
 
 
-# Page_7 =======================================================================
+# Page7 =======================================================================
 # 7. Project Coordinate Reference System (CRS) - Enter the survey's coordinate transformation details
 
 
-class Page_7(SurveyWizardPage):
+class Page7(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -2309,8 +2310,8 @@ class Page_7(SurveyWizardPage):
         myPrint('page 7 init')
 
         # create some widgets
-        self.Xt_0 = QDoubleSpinBox()
-        self.Yt_0 = QDoubleSpinBox()
+        self.xOri = QDoubleSpinBox()
+        self.yOri = QDoubleSpinBox()
 
         self.azim = QDoubleSpinBox()
 
@@ -2318,8 +2319,8 @@ class Page_7(SurveyWizardPage):
         self.scaY = QDoubleSpinBox()
 
         # set ranges
-        self.Xt_0.setRange(-999_000, 999_000)
-        self.Yt_0.setRange(-999_000, 999_000)
+        self.xOri.setRange(-999_000, 999_000)
+        self.yOri.setRange(-999_000, 999_000)
 
         self.azim.setRange(0, 360)
         self.azim.setWrapping(True)
@@ -2354,9 +2355,9 @@ class Page_7(SurveyWizardPage):
         # file:///D:/WorkStuff/Desktop-Shell/2010%20CD/SEG-UKOOA%20Formats%20and%20Standards/UKOOA%20Formats/ukooa_p6_98.pdf
 
         row += 1
-        layout.addWidget(self.Xt_0, row, 0)
+        layout.addWidget(self.xOri, row, 0)
         layout.addWidget(QLabel('X-origin [m]'), row, 1)
-        layout.addWidget(self.Yt_0, row, 2)
+        layout.addWidget(self.yOri, row, 2)
         layout.addWidget(QLabel('Y-origin [m]'), row, 3)
 
         row += 1
@@ -2409,46 +2410,46 @@ class Page_7(SurveyWizardPage):
 
         # register fields for access in other Wizard Page
         # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
-        self.registerField('Xt_0', self.Xt_0, 'value')
-        self.registerField('Yt_0', self.Yt_0, 'value')
+        self.registerField('xOri', self.xOri, 'value')
+        self.registerField('yOri', self.yOri, 'value')
         self.registerField('azim', self.azim, 'value')
         self.registerField('scaX', self.scaX, 'value')
         self.registerField('scaY', self.scaY, 'value')
 
         # connect signals to slots
-        self.Xt_0.editingFinished.connect(self.evt_global_editingFinished)
-        self.Yt_0.editingFinished.connect(self.evt_global_editingFinished)
-        self.azim.editingFinished.connect(self.evt_global_editingFinished)
-        self.scaX.editingFinished.connect(self.evt_global_editingFinished)
-        self.scaY.editingFinished.connect(self.evt_global_editingFinished)
+        self.xOri.editingFinished.connect(self.evtGlobalEditingFinished)
+        self.yOri.editingFinished.connect(self.evtGlobalEditingFinished)
+        self.azim.editingFinished.connect(self.evtGlobalEditingFinished)
+        self.scaX.editingFinished.connect(self.evtGlobalEditingFinished)
+        self.scaY.editingFinished.connect(self.evtGlobalEditingFinished)
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         myPrint('initialize page 7')
-        self.evt_global_editingFinished()
+        self.evtGlobalEditingFinished()
 
     def cleanupPage(self):                                                      # needed to return to previous pages
         myPrint('cleanup of page 7')
         transform = QTransform()                                                # reset transform
         self.parent.survey.setTransform(transform)                              # back to local survey grid
 
-        # note page(x) starts with a ZERO index; therefore pag(0) == Page_1
+        # note page(x) starts with a ZERO index; therefore pag(0) == Page1
         self.parent.page(3).plot()                                              # needed to update the plot
 
-    def evt_global_editingFinished(self):
+    def evtGlobalEditingFinished(self):
         azim = self.field('azim')
-        Xt_0 = self.field('Xt_0')
-        Yt_0 = self.field('Yt_0')
+        xOri = self.field('xOri')
+        yOri = self.field('yOri')
         scaX = self.field('scaX')
         scaY = self.field('scaY')
 
         self.parent.survey.grid.angle = azim
-        self.parent.survey.grid.orig.setX(Xt_0)
-        self.parent.survey.grid.orig.setY(Yt_0)
+        self.parent.survey.grid.orig.setX(xOri)
+        self.parent.survey.grid.orig.setY(yOri)
         self.parent.survey.grid.scale.setX(scaX)
         self.parent.survey.grid.scale.setY(scaY)
 
         transform = QTransform()
-        transform.translate(Xt_0, Yt_0)
+        transform.translate(xOri, yOri)
         transform.rotate(azim)
         transform.scale(scaX, scaY)
 
@@ -2496,11 +2497,11 @@ class Page_7(SurveyWizardPage):
     # » Yt = Yt0  –  Xs * k * mX * Ishift(phiX)  +  Ys * k * mY * cos(phiY)<br>
 
 
-# Page_8 =======================================================================
+# Page8 =======================================================================
 # 8. Summary information - Survey representation in xml-format
 
 
-class Page_8(SurveyWizardPage):
+class Page8(SurveyWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('8. Summary information')

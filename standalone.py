@@ -13,7 +13,7 @@ LOG_PATH = os.path.join(tempfile.gettempdir(), 'roll-standalone.log')
 _LOG_FILE = None
 
 
-def _log_message(message):
+def _logMessage(message):
     global _LOG_FILE
     if _LOG_FILE is None:
         _LOG_FILE = open(LOG_PATH, 'a', encoding='utf-8')
@@ -24,7 +24,7 @@ def _log_message(message):
     _LOG_FILE.flush()
 
 
-def _close_log_file():
+def _closeLogFile():
     global _LOG_FILE
     if _LOG_FILE is None:
         return
@@ -54,53 +54,53 @@ def ensureQgisPythonPaths():
 
 
 def preferQgisSitePackages():
-    qgis_site = os.path.join(sys.prefix, 'Lib', 'site-packages')
-    if os.path.isdir(qgis_site):
-        if qgis_site in sys.path:
-            sys.path.remove(qgis_site)
-        sys.path.insert(0, qgis_site)
+    qgisSite = os.path.join(sys.prefix, 'Lib', 'site-packages')
+    if os.path.isdir(qgisSite):
+        if qgisSite in sys.path:
+            sys.path.remove(qgisSite)
+        sys.path.insert(0, qgisSite)
 
-    user_site = site.getusersitepackages()
-    if user_site and user_site in sys.path:
-        sys.path.remove(user_site)
-        sys.path.append(user_site)
+    userSite = site.getusersitepackages()
+    if userSite and userSite in sys.path:
+        sys.path.remove(userSite)
+        sys.path.append(userSite)
 
 
 def dropUserPyqtgraphModules():
-    user_site = site.getusersitepackages()
-    if not user_site:
+    userSite = site.getusersitepackages()
+    if not userSite:
         return
 
-    to_remove = []
+    toRemove = []
     for name, module in sys.modules.items():
-        module_path = getattr(module, '__file__', None)
-        if not module_path:
+        modulePath = getattr(module, '__file__', None)
+        if not modulePath:
             continue
         if name == 'pyqtgraph' or name.startswith('pyqtgraph.'):
-            if os.path.normcase(module_path).startswith(os.path.normcase(user_site)):
-                to_remove.append(name)
+            if os.path.normcase(modulePath).startswith(os.path.normcase(userSite)):
+                toRemove.append(name)
 
-    for name in to_remove:
+    for name in toRemove:
         sys.modules.pop(name, None)
 
 
 def ensureQgisPyqtgraph():
-    user_site = site.getusersitepackages()
-    removed_user_site = False
-    if user_site and user_site in sys.path:
-        sys.path.remove(user_site)
-        removed_user_site = True
+    userSite = site.getusersitepackages()
+    removedUserSite = False
+    if userSite and userSite in sys.path:
+        sys.path.remove(userSite)
+        removedUserSite = True
 
     try:
         import pyqtgraph  # noqa: F401
     except ModuleNotFoundError as exc:
-        if removed_user_site:
-            sys.path.append(user_site)
-            removed_user_site = False
+        if removedUserSite:
+            sys.path.append(userSite)
+            removedUserSite = False
 
-        version_tag = f'Python{sys.version_info.major}{sys.version_info.minor}'
-        user_site_ok = bool(user_site and version_tag.lower() in user_site.lower())
-        if user_site_ok:
+        versionTag = f'Python{sys.version_info.major}{sys.version_info.minor}'
+        userSiteOk = bool(userSite and versionTag.lower() in userSite.lower())
+        if userSiteOk:
             import pyqtgraph  # noqa: F401
             return
 
@@ -111,8 +111,8 @@ def ensureQgisPyqtgraph():
         )
         raise RuntimeError(message) from exc
     finally:
-        if removed_user_site:
-            sys.path.append(user_site)
+        if removedUserSite:
+            sys.path.append(userSite)
 
 
 def configureQtBinding():
@@ -129,23 +129,23 @@ def logTopLevelWidgets():
     try:
         from qgis.PyQt.QtWidgets import QApplication
         widgets = QApplication.topLevelWidgets()
-        _log_message(f"Top-level widgets: count={len(widgets)}")
+        _logMessage(f"Top-level widgets: count={len(widgets)}")
         for w in widgets:
             try:
                 title = w.windowTitle()
                 className = w.metaObject().className() if w.metaObject() else type(w).__name__
                 visible = w.isVisible()
                 size = w.size()
-                _log_message(f"  - {className} title='{title}' visible={visible} size={size.width()}x{size.height()}")
+                _logMessage(f"  - {className} title='{title}' visible={visible} size={size.width()}x{size.height()}")
             except Exception as exc:
-                _log_message(f"  - <error reading widget>: {exc}")
+                _logMessage(f"  - <error reading widget>: {exc}")
     except Exception as exc:
-        _log_message(f"Failed to list top-level widgets: {exc}")
+        _logMessage(f"Failed to list top-level widgets: {exc}")
 
 def main(argv=None):
     argv = sys.argv if argv is None else argv
 
-    _log_message('Starting Roll standalone')
+    _logMessage('Starting Roll standalone')
     ensureQgisPythonPaths()
     configureQtBinding()
     preferQgisSitePackages()
@@ -159,18 +159,18 @@ def main(argv=None):
             break
 
     from .roll_main_window import runStandalone
-    exit_code = runStandalone(argv if argv is not None else sys.argv, filePath=filePath)
+    exitCode = runStandalone(argv if argv is not None else sys.argv, filePath=filePath)
     logTopLevelWidgets()
-    return exit_code
+    return exitCode
 
 if __name__ == '__main__':
     try:
         raise SystemExit(main())
     except SystemExit as exc:
-        _log_message(f'SystemExit: {exc}')
-        _close_log_file()
+        _logMessage(f'SystemExit: {exc}')
+        _closeLogFile()
         raise
     except Exception:
-        _log_message('Unhandled exception:\n' + traceback.format_exc())
-        _close_log_file()
+        _logMessage('Unhandled exception:\n' + traceback.format_exc())
+        _closeLogFile()
         raise

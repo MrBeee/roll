@@ -14,12 +14,12 @@ class MyRangeParameterItem(MyGroupParameterItem):
 
     def showPreviewInformation(self, param):
         d = param.opts.get('decimals', 3)
-        min_ = param.child('Min').value()
-        max_ = param.child('Max').value()
-        stp_ = param.child('Step').value()
-        pnt_ = param.child('Points').value()
-        pnt_ = round((max_ - min_) / stp_) + 1
-        t = f'[{min_:.{d}g} to {max_:.{d}g}] {pnt_:.{d}g} steps @ {stp_:.{d}g}'
+        minRange = param.child('Min').value()
+        maxRange = param.child('Max').value()
+        stpRange = param.child('Step').value()
+        pntRange = param.child('Points').value()
+        pntRange = round((maxRange - minRange) / stpRange) + 1
+        t = f'[{minRange:.{d}g} to {maxRange:.{d}g}] {pntRange:.{d}g} steps @ {stpRange:.{d}g}'
 
         self.previewLabel.setText(t)
         self.previewLabel.update()
@@ -44,16 +44,16 @@ class MyRangeParameter(MyGroupParameter):
 
         # A QVector3D(x, y, z) object is 'abused' to represent QVector3D(min, max, step)
         self.range = opts.get('value', QVector3D(0.0, 1.0, 0.1))
-        min_ = self.range.x()      # avoid using 'min' and 'max'; these are builtin functions
-        max_ = self.range.y()
-        stp_ = self.range.z()
-        pnt_ = round((max_ - min_) / stp_) + 1
+        minRange = self.range.x()      # avoid using 'min' and 'max'; these are builtin functions
+        maxRange = self.range.y()
+        stpRange = self.range.z()
+        pntRange = round((maxRange - minRange) / stpRange) + 1
 
         self.addChild(dict(name='Min', type='myFloat', value=self.range.x(), default=self.range.x(), decimals=d, readonly=r, suffix=s))
         self.addChild(dict(name='Max', type='myFloat', value=self.range.y(), default=self.range.y(), decimals=d, suffix=s))
         self.addChild(dict(name='Step', type='myFloat', value=self.range.z(), default=self.range.z(), decimals=d, suffix=s))
-        self.addChild(dict(name='Points', type='myInt', value=pnt_, default=pnt_, enabled=False, readonly=True, suffix='#'))   # set value through setPoints()
-        self.addChild(dict(name='Points 2D', type='myInt', value=pnt_**2, default=pnt_**2, enabled=False, readonly=True, suffix='#'))   # set value through setPoints()
+        self.addChild(dict(name='Points', type='myInt', value=pntRange, default=pntRange, enabled=False, readonly=True, suffix='#'))   # set value through setPoints()
+        self.addChild(dict(name='Points 2D', type='myInt', value=pntRange**2, default=pntRange**2, enabled=False, readonly=True, suffix='#'))   # set value through setPoints()
 
         self.parMin = self.child('Min')
         self.parMax = self.child('Max')
@@ -67,31 +67,31 @@ class MyRangeParameter(MyGroupParameter):
         self.parStp.sigValueChanged.connect(self.stpChanged)
 
     def setPoints(self):
-        min_ = self.range.x()      # avoid using 'min' and 'max'; these are builtin functions
-        max_ = self.range.y()
-        stp_ = self.range.z()
-        pnt_ = round((max_ - min_) / stp_) + 1
-        self.parPnt.setValue(pnt_)
-        self.parP2D.setValue(pnt_**2)
+        minRange = self.range.x()      # avoid using 'min' and 'max'; these are builtin functions
+        maxRange = self.range.y()
+        stpRange = self.range.z()
+        pntRange = round((maxRange - minRange) / stpRange) + 1
+        self.parPnt.setValue(pntRange)
+        self.parP2D.setValue(pntRange**2)
 
     def minChanged(self):
-        min_ = self.parMin.value()
-        self.range.setX(min_)
+        minRange = self.parMin.value()
+        self.range.setX(minRange)
         # if the minimum changes; the overall number of points wil change as well
         self.setPoints()
 
         # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def maxChanged(self):
-        max_ = self.parMax.value()
-        self.range.setY(max_)
+        maxRange = self.parMax.value()
+        self.range.setY(maxRange)
         self.setPoints()
 
         # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def stpChanged(self):
-        stp_ = self.parStp.value()
-        self.range.setZ(stp_)
+        stpRange = self.parStp.value()
+        self.range.setZ(stpRange)
         # if the step size changes; the overall number of points wil change as well
         self.setPoints()
 

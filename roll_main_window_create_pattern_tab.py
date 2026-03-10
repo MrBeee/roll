@@ -3,6 +3,8 @@ from qgis.PyQt.QtWidgets import (QActionGroup, QComboBox, QFrame, QGroupBox,
                                  QHBoxLayout, QSplitter, QToolButton,
                                  QVBoxLayout)
 
+from .config import toolButtonStyle
+
 
 def createPatternTab(self):
     self.patInfChoice = QGroupBox('Pattern info')                               # create display widget(s)
@@ -27,28 +29,28 @@ def createPatternTab(self):
     vbox0.addStretch(9)                                                         # add some stretch to main center widget(s)
 
     self.tbPatternLayout = QToolButton()
-    self.tbPattern_kx_ky = QToolButton()
+    self.tbPatternKxKy = QToolButton()
 
     self.tbPatternLayout.setMinimumWidth(110)
-    self.tbPattern_kx_ky.setMinimumWidth(110)
+    self.tbPatternKxKy.setMinimumWidth(110)
 
-    self.tbPatternLayout.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
-    self.tbPattern_kx_ky.setStyleSheet('QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }')
+    self.tbPatternLayout.setStyleSheet(toolButtonStyle)
+    self.tbPatternKxKy.setStyleSheet(toolButtonStyle)
 
     self.tbPatternLayout.setDefaultAction(self.actionPatternLayout)             # coupling done here
-    self.tbPattern_kx_ky.setDefaultAction(self.actionPattern_kx_ky)
+    self.tbPatternKxKy.setDefaultAction(self.actionPatternKxKy)
 
     self.patternActionGroup = QActionGroup(self)                                # the QActionGroup provides text label to QToolButtons
     self.patternActionGroup.addAction(self.actionPatternLayout)
-    self.patternActionGroup.addAction(self.actionPattern_kx_ky)
+    self.patternActionGroup.addAction(self.actionPatternKxKy)
     self.actionPatternLayout.setChecked(True)
 
     self.actionPatternLayout.triggered.connect(self.onActionPatternLayoutTriggered)
-    self.actionPattern_kx_ky.triggered.connect(self.onActionPatternKxKyTriggered)
+    self.actionPatternKxKy.triggered.connect(self.onActionPatternKxKyTriggered)
 
     vbox1 = QVBoxLayout()                                                       # vertical layout for analysis options
     vbox1.addWidget(self.tbPatternLayout)
-    vbox1.addWidget(self.tbPattern_kx_ky)
+    vbox1.addWidget(self.tbPatternKxKy)
     self.patInfChoice.setLayout(vbox1)
 
     self.pattern1 = QComboBox()                                                 # vertical layout for selection 1st pattern

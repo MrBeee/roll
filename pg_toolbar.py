@@ -27,12 +27,12 @@ class PgToolBar(QToolBar):
         self.setIconSize(QSize(24, 24))
 
         # define actions for PyQtGraph toolbar
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.actionZoomAll = QAction(QIcon(os.path.join(current_dir, 'resources/mActionZoomFullExtent.svg')), '&ZoomAll', self)
-        self.actionZoomRect = QAction(QIcon(os.path.join(current_dir, 'resources/mActionZoomRect.svg')), '&ZoomRect', self)
-        self.actionAntiAlias = QAction(QIcon(os.path.join(current_dir, 'resources/mActionPlotAntiAlias.svg')), '&antiAlias', self)
-        self.actionAspectRatio = QAction(QIcon(os.path.join(current_dir, 'resources/mActionZoomAspectRatio.svg')), '&aspectRatio', self)
-        self.actionGridLines = QAction(QIcon(os.path.join(current_dir, 'resources/mActionPlotGrid.svg')), '&Gridlines', self)
+        currentDir = os.path.dirname(os.path.abspath(__file__))
+        self.actionZoomAll = QAction(QIcon(os.path.join(currentDir, 'resources/mActionZoomFullExtent.svg')), '&ZoomAll', self)
+        self.actionZoomRect = QAction(QIcon(os.path.join(currentDir, 'resources/mActionZoomRect.svg')), '&ZoomRect', self)
+        self.actionAntiAlias = QAction(QIcon(os.path.join(currentDir, 'resources/mActionPlotAntiAlias.svg')), '&antiAlias', self)
+        self.actionAspectRatio = QAction(QIcon(os.path.join(currentDir, 'resources/mActionZoomAspectRatio.svg')), '&aspectRatio', self)
+        self.actionGridLines = QAction(QIcon(os.path.join(currentDir, 'resources/mActionPlotGrid.svg')), '&Gridlines', self)
 
         # add actions to toolbar
         self.addAction(self.actionZoomAll)

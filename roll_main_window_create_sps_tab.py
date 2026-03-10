@@ -3,14 +3,13 @@ from qgis.PyQt.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QHeaderView,
                                  QLabel, QPlainTextEdit, QPushButton,
                                  QSplitter, QVBoxLayout, QWidget)
 
+from .config import (exportButtonStyle, labelStyle, purpleButtonStyle,
+                     purpleLabelStyle, tableStyle)
 from .table_model_view import (RpsTableModel, SpsTableModel, TableView,
                                XpsTableModel)
 
 
 def createSpsTab(self):
-    table_style = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
-    label_style = 'font-family: Arial; font-weight: bold; font-size: 16px;'
-
     # first create the main widgets
     self.spsView = TableView()                                                  # create sps view
     self.spsModel = SpsTableModel(self.spsImport)                               # create sps model
@@ -19,7 +18,7 @@ def createSpsTab(self):
 
     self.spsHdrView = self.spsView.horizontalHeader()                           # to detect button clicks here
     self.spsHdrView.sectionClicked.connect(self.sortSpsData)                    # handle the section-clicked signal
-    self.spsView.setStyleSheet(table_style)                                     # define selection colors
+    self.spsView.setStyleSheet(tableStyle)                                     # define selection colors
     self.spsView.resizeColumnsToContents()
     self.spsView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
@@ -28,7 +27,7 @@ def createSpsTab(self):
     self.xpsView.setModel(self.xpsModel)                                        # add the model to the view
     self.xpsHdrView = self.xpsView.horizontalHeader()                           # to detect button clicks here
     self.xpsHdrView.sectionClicked.connect(self.sortXpsData)                    # handle the section-clicked signal
-    self.xpsView.setStyleSheet(table_style)                                     # define selection colors
+    self.xpsView.setStyleSheet(tableStyle)                                     # define selection colors
     self.xpsView.resizeColumnsToContents()
     self.xpsView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
@@ -39,22 +38,22 @@ def createSpsTab(self):
 
     self.rpsHdrView = self.rpsView.horizontalHeader()                           # to detect button clicks here
     self.rpsHdrView.sectionClicked.connect(self.sortRpsData)                    # handle the section-clicked signal
-    self.rpsView.setStyleSheet(table_style)                                     # define selection colors
+    self.rpsView.setStyleSheet(tableStyle)                                     # define selection colors
     self.rpsView.resizeColumnsToContents()
     self.rpsView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
     # add the top labels
     self.spsLabel = QLabel('SPS records')
     self.spsLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    self.spsLabel.setStyleSheet(label_style)
+    self.spsLabel.setStyleSheet(labelStyle)
 
     self.xpsLabel = QLabel('XPS records')
     self.xpsLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    self.xpsLabel.setStyleSheet(label_style)
+    self.xpsLabel.setStyleSheet(labelStyle)
 
     self.rpsLabel = QLabel('RPS records')
     self.rpsLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    self.rpsLabel.setStyleSheet(label_style)
+    self.rpsLabel.setStyleSheet(labelStyle)
 
     # then create widget containers for the sps, xps and rps layout
     self.spsPane = QWidget()
@@ -91,22 +90,22 @@ def createSpsTab(self):
     self.btnRpsReadFromQGIS.pressed.connect(self.importRpsFromQgis)
 
     # make the buttons stand out a bit. See: https://www.webucator.com/article/python-color-constants-module/
-    self.btnSpsRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
-    self.btnSpsRemoveOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
+    self.btnSpsRemoveDuplicates.setStyleSheet(purpleButtonStyle)
+    self.btnSpsRemoveOrphans.setStyleSheet(purpleButtonStyle)
 
-    self.btnXpsRemoveSpsOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
-    self.btnXpsRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
-    self.btnXpsRemoveRpsOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
+    self.btnXpsRemoveSpsOrphans.setStyleSheet(purpleButtonStyle)
+    self.btnXpsRemoveDuplicates.setStyleSheet(purpleButtonStyle)
+    self.btnXpsRemoveRpsOrphans.setStyleSheet(purpleButtonStyle)
 
-    self.btnRpsRemoveDuplicates.setStyleSheet('background-color:lavender; font-weight:bold;')
-    self.btnRpsRemoveOrphans.setStyleSheet('background-color:lavender; font-weight:bold;')
+    self.btnRpsRemoveDuplicates.setStyleSheet(purpleButtonStyle)
+    self.btnRpsRemoveOrphans.setStyleSheet(purpleButtonStyle)
 
     # style for the QGIS buttons
-    self.btnSpsExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-    self.btnSpsReadFromQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-    self.btnRpsExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-    self.btnRpsReadFromQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
-    self.btnXpsExportToQGIS.setStyleSheet('background-color:lightgoldenrodyellow; font-weight:bold;')
+    self.btnSpsExportToQGIS.setStyleSheet(exportButtonStyle)
+    self.btnSpsReadFromQGIS.setStyleSheet(exportButtonStyle)
+    self.btnRpsExportToQGIS.setStyleSheet(exportButtonStyle)
+    self.btnRpsReadFromQGIS.setStyleSheet(exportButtonStyle)
+    self.btnXpsExportToQGIS.setStyleSheet(exportButtonStyle)
 
     # these buttons have signals
     self.btnSpsRemoveDuplicates.pressed.connect(self.removeSpsDuplicates)
@@ -124,13 +123,13 @@ def createSpsTab(self):
     self.btnRpsExportToQGIS.pressed.connect(self.exportRpsToQgis)           # export rps records to QGIS
     self.btnRpsRemoveOrphans.pressed.connect(self.removeRpsOrphans)
 
-    label1.setStyleSheet('border: 1px solid black;background-color:lavender')
+    label1.setStyleSheet(purpleLabelStyle)
     label1.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label2.setStyleSheet('border: 1px solid black;background-color:lavender')
+    label2.setStyleSheet(purpleLabelStyle)
     label2.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label3.setStyleSheet('border: 1px solid black;background-color:lavender')
+    label3.setStyleSheet(purpleLabelStyle)
     label3.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label4.setStyleSheet('border: 1px solid black;background-color:lavender')
+    label4.setStyleSheet(purpleLabelStyle)
     label4.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     # create the three button layouts

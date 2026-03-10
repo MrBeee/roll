@@ -111,24 +111,25 @@ def tonForceToNewton(force: float) -> float:
 def stringToIntList(string: str):
 
     string = string.replace(',', ' ').replace(';', ' ')                         # first convert all delimiters back to spaces
-    str_list = string.split()                                                   # split the string into a list of strings
-    num_list = []
 
-    for s in str_list:
+    stringList = string.split()                                                 # split the string into a list of strings
+    intList = []
+
+    for s in stringList:
         try:
-            num_list.append(int(s))                                             # append the integer to the list
+            intList.append(int(s))                                              # append the integer to the list
         except ValueError:
             return []                                                           # bummer; input error
 
-    return num_list
+    return intList
 
 
-def intListToString(num_list):
+def intListToString(intList):
 
     delimiter = ' '                                                             # Define the delimiter to be used
-    num_list_string = map(str, num_list)                                        # Convert each element into a string
-    join_num_str = delimiter.join(num_list_string)                              # Join the strings using the delimiter
-    return join_num_str
+    intListString = map(str, intList)                                           # Convert each element into a string
+    joinNumberString = delimiter.join(intListString)                            # Join the strings using the delimiter
+    return joinNumberString
 
 
 def odd(number):
@@ -253,10 +254,10 @@ def getNameFromQtEnum(enum, value):
     Compatible with both PyQt5 and PyQt6.
     """
     # PyQt6 enums are subclasses of enum.Enum, PyQt5 are not
-    import enum as std_enum
+    import enum as stdEnum
 
     # Handle PyQt6 enums (subclass of enum.Enum)
-    if isinstance(enum, type) and issubclass(enum, std_enum.Enum):
+    if isinstance(enum, type) and issubclass(enum, stdEnum.Enum):
         for member in enum:
             if member.value == value or member == value:
                 return member.name
@@ -294,7 +295,7 @@ def getMethodFromModule(pmm: str):
 
 
 # See: https://github.com/bensarthou/pynufft_benchmark/blob/master/NDFT.py # now accelerated in funtions_numba.py
-def ndft_1Da(x, f, kMax, dK):
+def nDft1Da(x, f, kMax, dK):
     """non-equispaced discrete Fourier transform on x with weights (1/0) in f"""
     # n = x.shape[0]                                            # normalize by maximum nr of available races
     n = np.count_nonzero(f)                                     # normalize by actual  nr of available traces
@@ -304,7 +305,7 @@ def ndft_1Da(x, f, kMax, dK):
     return r
 
 
-def ndft_1Db(x, kMax, dK):
+def nDft1Db(x, kMax, dK):
     """non-equispaced discrete Fourier transform on x with equal weights defined by size of transform"""
     n = x.shape[0]
     a = 1 / n if n > 0 else 0
@@ -348,10 +349,10 @@ def dummyTextOnNDFT():
     # See: https://rdrr.io/github/gzt/rNFFT/man/ndft_1d.html
 
     # def progress(count, total, status=''):
-    # 	bar_len = 60
-    # 	filled_len = int(round(bar_len * count / float(total)))
+    # 	barLen = 60
+    # 	filledLen = int(round(barLen * count / float(total)))
     # 	percents = round(100.0 * count / float(total), 1)
-    # 	bar = '=' * filled_len + '-' * (bar_len - filled_len)
+    # 	bar = '=' * filledLen + '-' * (barLen - filledLen)
     # 	sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
     # 	sys.stdout.flush()
     #
@@ -368,14 +369,14 @@ def dummyTextOnNDFT():
     # 	for k in range(K):
     # 		# print('k',k ,'sur ', K)
     # 		progress(k, K)
-    # 		sum_ = 0.0
+    # 		summed = 0.0
     # 		for m in range(M):
     # 			for n in range(N):
     # 				# print(n,m)
     # 				value = f[m, n]
     # 				e = np.exp(- 1j * 2*np.pi * (x[k,0] + x[k,1]))
-    # 				sum_ += value * e
-    # 		ndft2d[k] = sum_ / M / N
+    # 				summed += value * e
+    # 		ndft2d[k] = summed / M / N
     # 	return ndft2d
     #
     # https://stackoverflow.com/questions/11333454/2d-fft-using-1d-fft
@@ -456,21 +457,21 @@ def clipLineF(line: QLineF, border: QRectF) -> QLineF:
     y1 = line.y1()
     x2 = line.x2()
     y2 = line.y2()
-    y_min = border.top()
-    x_min = border.left()
-    y_max = border.bottom()
-    x_max = border.right()
+    yMin = border.top()
+    xMin = border.left()
+    yMax = border.bottom()
+    xMax = border.right()
 
     # Inner function to compute the region code for a point(x, y) relative to the border of the rectangle
     def computeCode(x, y):
         code = INSIDE
-        if x < x_min:                                                           # to the left of rectangle
+        if x < xMin:                                                           # to the left of rectangle
             code |= LEFT
-        elif x > x_max:                                                         # to the right of rectangle
+        elif x > xMax:                                                         # to the right of rectangle
             code |= RIGHT
-        if y < y_min:                                                           # below the rectangle
+        if y < yMin:                                                           # below the rectangle
             code |= BOTTOM
-        elif y > y_max:                                                         # above the rectangle
+        elif y > yMax:                                                         # above the rectangle
             code |= TOP
         return code
 
@@ -495,33 +496,33 @@ def clipLineF(line: QLineF, border: QRectF) -> QLineF:
         y = 1.0
 
         if code1 != 0:
-            code_out = code1
+            codeOut = code1
         else:
-            code_out = code2
+            codeOut = code2
 
         # Find intersection point using formulas
         #   y = y1 + slope * (x - x1),
         #   x = x1 + (1 / slope) * (y - y1)
-        if code_out & TOP:  		                                            # point is above the clip rectangle
-            x = x1 + (x2 - x1) * (y_max - y1) / (y2 - y1)
-            y = y_max
+        if codeOut & TOP:  		                                            # point is above the clip rectangle
+            x = x1 + (x2 - x1) * (yMax - y1) / (y2 - y1)
+            y = yMax
 
-        elif code_out & BOTTOM:  		                                        # point is below the clip rectangle
-            x = x1 + (x2 - x1) * (y_min - y1) / (y2 - y1)
-            y = y_min
+        elif codeOut & BOTTOM:  		                                        # point is below the clip rectangle
+            x = x1 + (x2 - x1) * (yMin - y1) / (y2 - y1)
+            y = yMin
 
-        elif code_out & RIGHT:  		                                        # point is to the right of the clip rectangle
-            y = y1 + (y2 - y1) * (x_max - x1) / (x2 - x1)
-            x = x_max
+        elif codeOut & RIGHT:  		                                        # point is to the right of the clip rectangle
+            y = y1 + (y2 - y1) * (xMax - x1) / (x2 - x1)
+            x = xMax
 
-        elif code_out & LEFT:  		                                            # point is to the left of the clip rectangle
-            y = y1 + (y2 - y1) * (x_min - x1) / (x2 - x1)
-            x = x_min
+        elif codeOut & LEFT:  		                                            # point is to the left of the clip rectangle
+            y = y1 + (y2 - y1) * (xMin - x1) / (x2 - x1)
+            x = xMin
 
         # Now an intersection point (x, y) has been found,
         # we replace the point outside clipping rectangle
         # by the intersection point
-        if code_out == code1:
+        if codeOut == code1:
             x1 = x
             y1 = y
             code1 = computeCode(x1, y1)
@@ -538,16 +539,16 @@ def clipLineF(line: QLineF, border: QRectF) -> QLineF:
 
 # some functions to count number of lines in a text file.
 # See: https://stackoverflow.com/questions/845058/how-to-get-line-count-of-a-large-file-cheaply-in-python/68385697#68385697
-def rawcount(filename):
+def rawCount(filename):
     with open(filename, 'rb') as f:
         lines = 0
-        buf_size = 1024 * 1024
-        read_f = f.raw.read
+        bufSize = 1024 * 1024
+        readFile = f.raw.read
 
-        buf = read_f(buf_size)
+        buf = readFile(bufSize)
         while buf:
             lines += buf.count(b'\n')
-            buf = read_f(buf_size)
+            buf = readFile(bufSize)
     return lines
 
 
@@ -590,8 +591,8 @@ def countHeaderLines2(filename):
     return count
 
 
-def isFileInUse(file_path):
-    path = Path(file_path)
+def isFileInUse(filePath):
+    path = Path(filePath)
 
     if not path.exists():
         # raise FileNotFoundError
@@ -605,12 +606,12 @@ def isFileInUse(file_path):
         return False
 
 
-def getUnpicklable(instance, exception=None, string='', first_only=True):
+def getUnpicklable(instance, exception=None, string='', firstOnly=True):
     # See: https://stackoverflow.com/questions/30499341/establishing-why-an-object-cant-be-pickled
     """
     Recursively go through all attributes of instance and return a list of whatever can't be pickled.
 
-    Set first_only to only print the first problematic element in a list, tuple or
+    Set firstOnly to only print the first problematic element in a list, tuple or
     dict (otherwise there could be lots of duplication).
     """
     problems = []
@@ -620,7 +621,7 @@ def getUnpicklable(instance, exception=None, string='', first_only=True):
                 pickle.dumps(v)
             except BaseException as e:
                 problems.extend(getUnpicklable(v, e, string + f'[{k}]'))
-                if first_only:
+                if firstOnly:
                     break
     elif isinstance(instance, dict):
         for k in instance:
@@ -628,14 +629,14 @@ def getUnpicklable(instance, exception=None, string='', first_only=True):
                 pickle.dumps(k)
             except BaseException as e:
                 problems.extend(getUnpicklable(k, e, string + f'[key type={type(k).__name__}]'))
-                if first_only:
+                if firstOnly:
                     break
         for v in instance.values():
             try:
                 pickle.dumps(v)
             except BaseException as e:
                 problems.extend(getUnpicklable(v, e, string + f'[val type={type(v).__name__}]'))
-                if first_only:
+                if firstOnly:
                     break
     else:
         for k, v in instance.__dict__.items():
@@ -701,40 +702,40 @@ def convexHull(x, y):
         return points
 
 
-def transformConvexHull(hull_points, transform):
+def transformConvexHull(hullPoints, transform):
     """
     Transforms the output of convexHull(x, y) using QTransform.map().
 
-    :param hull_points: A NumPy array of points (x, y) representing the convex hull.
+    :param hullPoints: A NumPy array of points (x, y) representing the convex hull.
                         Expected shape: (n, 2), where n is the number of vertices.
     :param transform: A QTransform object to apply the transformation.
     :return: A transformed NumPy array of points (x, y).
     """
-    if hull_points is None or len(hull_points) < 1:
+    if hullPoints is None or len(hullPoints) < 1:
         raise ValueError('Invalid convex hull points. At least 1 point is required.')
 
     if not isinstance(transform, QTransform):
         raise TypeError('The transform parameter must be a QTransform object.')
 
     # Apply the transformation to each point
-    transformed_points = np.array([transform.map(x, y) for x, y in hull_points])
+    transformedPoints = np.array([transform.map(x, y) for x, y in hullPoints])
 
-    return transformed_points
+    return transformedPoints
 
 
-def convexHullToQgisPolygon(hull_points):
+def convexHullToQgisPolygon(hullPoints):
     """
     Converts the output of convexHull(x, y) to a QGIS polygon.
 
-    :param hull_points: A NumPy array of points (x, y) representing the convex hull.
+    :param hullPoints: A NumPy array of points (x, y) representing the convex hull.
                         Expected shape: (n, 2), where n is the number of vertices.
     :return: A QGIS polygon geometry (QgsGeometry).
     """
-    if hull_points is None or len(hull_points) < 3:
+    if hullPoints is None or len(hullPoints) < 3:
         raise ValueError('Invalid convex hull points. At least 3 points are required to form a polygon.')
 
     # Convert the NumPy array of points to a list of QgsPointXY
-    vertices = [QgsPointXY(x, y) for x, y in hull_points]
+    vertices = [QgsPointXY(x, y) for x, y in hullPoints]
 
     # Ensure the polygon is closed by appending the first point to the end
     if vertices[0] != vertices[-1]:
@@ -773,12 +774,12 @@ def numpyToQpolygonF(xdata, ydata):
 def aboutText() -> str:
     # See : https://github.com/qgis/QGIS/blob/master/python/utils.py#L291 for version info
 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, 'metadata.txt')
+    currentDir = os.path.dirname(os.path.abspath(__file__))
+    filePath = os.path.join(currentDir, 'metadata.txt')
 
     parser = configparser.ConfigParser()
     parser.optionxform = str
-    parser.read(file_path)
+    parser.read(filePath)
 
     metadata = []
     metadata.extend(parser.items('general'))
@@ -985,8 +986,8 @@ def qgisCheatSheetText() -> str:
     return qgisText
 
 # See: https://stackoverflow.com/questions/62196835/how-to-get-string-name-for-qevent-in-pyqt5
-# usage: print(event_lookup[str(event.type())])
-event_lookup = {
+# usage: print(eventLookup[str(event.type())])
+eventLookup = {
     '216': 'QEvent::UNKNOWN EVENT !',
     '0': 'QEvent::None',
     '114': 'QEvent::ActionAdded',

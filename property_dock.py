@@ -9,6 +9,8 @@ from qgis.PyQt.QtGui import QKeySequence
 from qgis.PyQt.QtWidgets import (QDialogButtonBox, QDockWidget, QHeaderView,
                                  QVBoxLayout, QWidget)
 
+from .config import dockWidgetTitleStyle
+
 
 def createPropertyDock(window):
     """Construct the property dock for RollMainWindow."""
@@ -20,25 +22,25 @@ class _PropertyDockBuilder:
         self.w = window
 
     def build(self):
-        self._init_shell()
-        self._init_parameter_tree()
-        self._init_buttons()
+        self._initShell()
+        self._initParameterTree()
+        self._initButtons()
         self._finalize()
         return self.w.dockProperty
 
-    def _init_shell(self):
+    def _initShell(self):
         w = self.w
         w.dockProperty = QDockWidget('Property pane', w)
         w.dockProperty.setObjectName('dockProperty')
         allowed = Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
         w.dockProperty.setAllowedAreas(allowed)
-        w.dockProperty.setStyleSheet('QDockWidget::title {background : lightblue;}')
+        w.dockProperty.setStyleSheet(dockWidgetTitleStyle)
         w.propertyWidget = QWidget()
         w.propertyLayout = QVBoxLayout()
         w.propertyWidget.setLayout(w.propertyLayout)
         w.dockProperty.setWidget(w.propertyWidget)
 
-    def _init_parameter_tree(self):
+    def _initParameterTree(self):
         w = self.w
         w.paramTree = pg.parametertree.ParameterTree(showHeader=True)
         header = w.paramTree.header()
@@ -48,7 +50,7 @@ class _PropertyDockBuilder:
         w.registerParameters()
         w.resetSurveyProperties()
 
-    def _init_buttons(self):
+    def _initButtons(self):
         w = self.w
         w.propertyLayout.addStretch()
         buttons = (
@@ -67,4 +69,4 @@ class _PropertyDockBuilder:
         w.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, w.dockProperty)
         toggle = w.dockProperty.toggleViewAction()
         toggle.setShortcut(QKeySequence('Ctrl+Alt+p'))
-        w.menu_View.addAction(toggle)
+        w.menuView.addAction(toggle)

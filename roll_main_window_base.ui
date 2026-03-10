@@ -33,7 +33,7 @@
      <height>22</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menu_File">
+   <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>&amp;File</string>
     </property>
@@ -155,7 +155,7 @@
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
-   <widget class="QMenu" name="menu_View">
+   <widget class="QMenu" name="menuView">
     <property name="title">
      <string>&amp;View</string>
     </property>
@@ -284,9 +284,9 @@
     <addaction name="actionMoveUp"/>
     <addaction name="actionMoveDn"/>
    </widget>
-   <addaction name="menu_File"/>
+   <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
-   <addaction name="menu_View"/>
+   <addaction name="menuView"/>
    <addaction name="menuDisplay"/>
    <addaction name="menu_Processing"/>
    <addaction name="menuHelp"/>
@@ -1303,7 +1303,7 @@
     <string>Show Pattern Layout(s)</string>
    </property>
   </action>
-  <action name="actionPattern_kx_ky">
+  <action name="actionPatternKxKy">
    <property name="checkable">
     <bool>true</bool>
    </property>

@@ -17,8 +17,8 @@ from qgis.PyQt.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFrame,
 from . import config  # used to pass initial settings
 from .aux_classes import BlackLine, CustomPlainTextEdit, LineHighlighter
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-resource_dir = os.path.join(current_dir, 'resources')
+currentDir = os.path.dirname(os.path.abspath(__file__))
+resourceDir = os.path.join(currentDir, 'resources')
 
 
 
@@ -51,10 +51,10 @@ class SpsImportDialog(QDialog):
         selectorLayout.setAlignment(Qt.AlignmentFlag.AlignTop)                  # Top-align all children
         selectorLayout.setSpacing(4)                                            # tighten vertical gaps, including label→list
 
-        label_style = 'font-family: Arial; font-weight: bold; font-size: 15px;'
+        labelStyle = 'font-family: Arial; font-weight: bold; font-size: 15px;'
 
         filesLabel = QLabel('Select SPS files to import:')
-        filesLabel.setStyleSheet(label_style)
+        filesLabel.setStyleSheet(labelStyle)
         selectorLayout.addWidget(filesLabel)
 
         nameFilter = (
@@ -113,7 +113,7 @@ class SpsImportDialog(QDialog):
         selectorLayout.addWidget(QLabel(''))                                    # spacer
 
         crsLabel = QLabel('Select SPS CRS projection:')
-        crsLabel.setStyleSheet(label_style)
+        crsLabel.setStyleSheet(labelStyle)
         selectorLayout.addWidget(crsLabel)
 
         self.crsWidget = QgsProjectionSelectionWidget()
@@ -127,7 +127,7 @@ class SpsImportDialog(QDialog):
         selectorLayout.addWidget(QLabel(''))                                    # spacer
 
         selectorLabel = QLabel('Select SPS Format Implementation:')
-        selectorLabel.setStyleSheet(label_style)
+        selectorLabel.setStyleSheet(labelStyle)
         selectorLayout.addWidget(selectorLabel)
 
         # List widget (editable, min 4 rows visible)
@@ -146,11 +146,11 @@ class SpsImportDialog(QDialog):
         self.spsFormatList.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # Calculate height for exactly 4 visible rows based on font metrics
-        font_metrics = QFontMetricsF(self.spsFormatList.font())
-        item_height = font_metrics.height() + 4                                 # Add padding per item
-        visible_rows = 4
-        list_height = int(item_height * visible_rows) + 4                       # Add 4 for widget borders
-        self.spsFormatList.setFixedHeight(list_height)
+        fontMetrics = QFontMetricsF(self.spsFormatList.font())
+        itemHeight = fontMetrics.height() + 4                                 # Add padding per item
+        visibleRows = 4
+        listHeight = int(itemHeight * visibleRows) + 4                       # Add 4 for widget borders
+        self.spsFormatList.setFixedHeight(listHeight)
 
         self.populateSpsFormatList()
 
@@ -161,7 +161,7 @@ class SpsImportDialog(QDialog):
         formatWidget = QWidget()
         formatWidget.setLayout(formatLayout)
         formatWidget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        # formatWidget.setFixedHeight(list_height)                                # or list_height + button margins
+        # formatWidget.setFixedHeight(listHeight)                                # or listHeight + button margins
 
         selectorLayout.addWidget(formatWidget, 0, Qt.AlignmentFlag.AlignTop)
 
@@ -170,7 +170,7 @@ class SpsImportDialog(QDialog):
         # buttonLayout.addSpacing(20)  # spacer before the buttons
 
         self.addButton = QPushButton()
-        self.addButton.setIcon(QIcon(os.path.join(resource_dir,'symbologyAdd.svg')))
+        self.addButton.setIcon(QIcon(os.path.join(resourceDir,'symbologyAdd.svg')))
         self.addButton.setMaximumWidth(30)
         self.addButton.setToolTip("Add a new SPS implementation to the list, based on the current selection")
 
@@ -178,7 +178,7 @@ class SpsImportDialog(QDialog):
         buttonLayout.addWidget(self.addButton)
 
         self.removeButton = QPushButton()
-        self.removeButton.setIcon(QIcon(os.path.join(resource_dir,'symbologyRemove.svg')))
+        self.removeButton.setIcon(QIcon(os.path.join(resourceDir,'symbologyRemove.svg')))
         self.removeButton.setMaximumWidth(30)
         self.removeButton.setToolTip("Remove the selected SPS implementation from the list")
         self.removeButton.clicked.connect(self.onRemoveSpsName)
@@ -191,7 +191,7 @@ class SpsImportDialog(QDialog):
 
         self.databaseButton = QPushButton('  Reset SPS database  ')
         self.databaseButton.setToolTip("Reset the SPS implementation database to to the built-in defaults")
-        self.databaseButton.setStyleSheet(label_style)
+        self.databaseButton.setStyleSheet(labelStyle)
         self.databaseButton.setMinimumHeight(28)
         self.databaseButton.setMaximumWidth(220)
         self.databaseButton.clicked.connect(self.onResetSpsDatabase)
@@ -212,7 +212,7 @@ class SpsImportDialog(QDialog):
         selectorLayout.addWidget(QLabel(''))                                    # spacer
 
         spsFieldLabel = QLabel('Select SPS field to highlight:')
-        spsFieldLabel.setStyleSheet(label_style)
+        spsFieldLabel.setStyleSheet(labelStyle)
         selectorLayout.addWidget(spsFieldLabel)
         selectorLayout.addSpacing(6)                                            # small spacer
         # selectorLayout.addWidget(QLabel(''))                                  # spacer
@@ -364,22 +364,22 @@ class SpsImportDialog(QDialog):
 
     def populateSpsFormatList(self):
         self.spsFormatListInitializing = True
-        prev_blocked = self.spsFormatList.blockSignals(True)
+        prevBlocked = self.spsFormatList.blockSignals(True)
         self.spsFormatList.clear()
         for fmt in config.spsFormatList:
             item = QListWidgetItem(fmt['name'])
             item.setFlags(item.flags() | Qt.ItemIsEditable)
             self.spsFormatList.addItem(item)
-        self.spsFormatList.blockSignals(prev_blocked)
+        self.spsFormatList.blockSignals(prevBlocked)
 
-        target_row = 0
+        targetRow = 0
         if config.spsDialect:
             matches = self.spsFormatList.findItems(config.spsDialect, Qt.MatchExactly)
             if matches:
-                target_row = self.spsFormatList.row(matches[0])
+                targetRow = self.spsFormatList.row(matches[0])
 
         if self.spsFormatList.count():
-            self.spsFormatList.setCurrentRow(target_row)
+            self.spsFormatList.setCurrentRow(targetRow)
 
         self.spsFormatListInitializing = False
 
@@ -802,9 +802,9 @@ class SpsImportDialog(QDialog):
 
         nextRow = min(currentRow, self.spsFormatList.count() - 1)
         if nextRow >= 0:
-            prev_blocked = self.spsFormatList.blockSignals(True)
+            prevBlocked = self.spsFormatList.blockSignals(True)
             self.spsFormatList.setCurrentRow(nextRow)
-            self.spsFormatList.blockSignals(prev_blocked)
+            self.spsFormatList.blockSignals(prevBlocked)
             self.onSpsFormatChanged(nextRow)
 
     def ensureUniqueSpsName(self, item: QListWidgetItem):

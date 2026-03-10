@@ -53,7 +53,7 @@ class CustomPlainTextEdit(QPlainTextEdit):
         self.setFont(QFont('Courier New', 10))  # Monospaced font for all text
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.setWordWrapMode(QTextOption.WrapMode.NoWrap)
-        self.setStyleSheet('background-color: #FFFFE0; color: #000000;')  # Light yellow background, black text
+        self.setStyleSheet('background-color: #FFFFE0; color: #000000;')        # Light yellow background, black text
 
     def paintEvent(self, event):
         # Call the base class paintEvent to ensure the text is drawn
@@ -64,13 +64,13 @@ class CustomPlainTextEdit(QPlainTextEdit):
         painter.setPen(QColor('#000080'))  # dark color for the line
 
         # Calculate the x-coordinate for the vertical line
-        char_width = self.fontMetrics().averageCharWidth()
-        x_position = char_width * 10  # After the 10th character
-        x_offset = int(char_width * 0.4) - self.horizontalScrollBar().value()   # Adjust the offset to center the line
+        charWidth = self.fontMetrics().averageCharWidth()
+        xPosition = charWidth * 10                                             # After the 10th character
+        xOffset = int(charWidth * 0.4) - self.horizontalScrollBar().value()    # Adjust the offset to center the line
 
         # Draw the line for the full height of the widget
         for i in range(1, 9):
-            painter.drawLine(x_position * i + x_offset, 0, x_position * i + x_offset, self.viewport().height())
+            painter.drawLine(xPosition * i + xOffset, 0, xPosition * i + xOffset, self.viewport().height())
         painter.end()
 
 

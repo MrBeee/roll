@@ -100,7 +100,7 @@ class SettingsDialog(QDialog):
                     dict(name='Cmp area pen', type='myPen', flat=True, expanded=False, value=cmpAreaPenParam, default=cmpAreaPenParam),
                     dict(name='Rec area pen', type='myPen', flat=True, expanded=False, value=recAreaPenParam, default=recAreaPenParam),
                     dict(name='Src area pen', type='myPen', flat=True, expanded=False, value=srcAreaPenParam, default=srcAreaPenParam),
-                    dict(name='Fold/offset color map', type='myCmap', value=config.fold_OffCmap, default=config.fold_OffCmap),
+                    dict(name='Fold/offset color map', type='myCmap', value=config.foldDispCmap, default=config.foldDispCmap),
                     dict(name='Analysis color map', type='myCmap', value=config.analysisCmap, default=config.analysisCmap),
                 ],
             ),
@@ -159,7 +159,7 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Kr  stack response', type='myRange', flat=True, expanded=False, value=config.kr_Stack, default=config.kr_Stack, suffix=' [1/km]'),  # fixedMin=True,
+                    dict(name='Kr  stack response', type='myRange', flat=True, expanded=False, value=config.kraStack, default=config.kraStack, suffix=' [1/km]'),  # fixedMin=True,
                     dict(name='Kxy stack response', type='myRange', flat=True, expanded=False, value=config.kxyStack, default=config.kxyStack, suffix=' [1/km]', twoDim=True),
                     dict(name='Kxy array response', type='myRange', flat=True, expanded=False, value=config.kxyArray, default=config.kxyArray, suffix=' [1/km]', twoDim=True),
                 ],
@@ -267,7 +267,7 @@ class SettingsDialog(QDialog):
 
         # color (map) settings
         config.analysisCmap = COL.child('Analysis color map').value()
-        config.fold_OffCmap = COL.child('Fold/offset color map').value()
+        config.foldDispCmap = COL.child('Fold/offset color map').value()
 
         config.binAreaColor = COL.child('Bin area color').value().name(QColor.NameFormat.HexArgb)
         config.cmpAreaColor = COL.child('Cmp area color').value().name(QColor.NameFormat.HexArgb)
@@ -306,7 +306,7 @@ class SettingsDialog(QDialog):
         config.srcSymbolSize = srcValue.size()
 
         # k-plot settings
-        config.kr_Stack = KKK.child('Kr  stack response').value()
+        config.kraStack = KKK.child('Kr  stack response').value()
         config.kxyStack = KKK.child('Kxy stack response').value()
         config.kxyArray = KKK.child('Kxy array response').value()
 
@@ -326,7 +326,7 @@ class SettingsDialog(QDialog):
         config.showSummaries = MIS.child('Show summary properties').value()     # show/hide summary information in property pane
 
 # Helper functions to read/clear format groups
-def _read_format_group(self, group):
+def _readFormatGroup(self, group):
     self.settings.beginGroup(group)
     entries = []
     for key in self.settings.childKeys():
@@ -343,12 +343,12 @@ def _read_format_group(self, group):
     self.settings.endGroup()
     return entries
 
-def _clear_format_group(self, group):
+def _clearFormatGroup(self, group):
     self.settings.beginGroup(group)
     self.settings.remove('')
     self.settings.endGroup()
 
-def _write_format_group(self, group, entries):
+def _writeFormatGroup(self, group, entries):
     self.settings.beginGroup(group)
     self.settings.remove('')  # clear existing entries
     for entry in entries:
@@ -388,7 +388,7 @@ def readSettings(self):
     config.srcAreaPen = makePenFromParms(literal_eval(srcAreaPenParams))
 
     config.analysisCmap = self.settings.value('settings/colors/analysisCmap', 'CET-R4')     # from pg.colormap.listMaps()
-    config.fold_OffCmap = self.settings.value('settings/colors/fold_OffCmap', 'CET-L4')     # from pg.colormap.listMaps()
+    config.foldDispCmap = self.settings.value('settings/colors/foldDispCmap', 'CET-L4')     # from pg.colormap.listMaps()
 
     # sps information
     config.rpsBrushColor = self.settings.value('settings/sps/rpsBrushColor', '#772929FF')
@@ -403,9 +403,9 @@ def readSettings(self):
     config.spsDialect = self.settings.value('settings/sps/spsDialect', 'SEG rev2.1')
 
     # read custom SPS formats
-    customSpsFormats = _read_format_group(self, 'settings/sps/spsFormatList')
-    customXpsFormats = _read_format_group(self, 'settings/sps/xpsFormatList')
-    customRpsFormats = _read_format_group(self, 'settings/sps/rpsFormatList')
+    customSpsFormats = _readFormatGroup(self, 'settings/sps/spsFormatList')
+    customXpsFormats = _readFormatGroup(self, 'settings/sps/xpsFormatList')
+    customRpsFormats = _readFormatGroup(self, 'settings/sps/rpsFormatList')
 
     counts = [len(customSpsFormats), len(customXpsFormats), len(customRpsFormats)]
     if any(counts):
@@ -417,7 +417,7 @@ def readSettings(self):
                 'settings/sps/xpsFormatList',
                 'settings/sps/rpsFormatList',
             ):
-                _clear_format_group(self, group)
+                _clearFormatGroup(self, group)
         else:
             config.spsFormatList = customSpsFormats
             config.xpsFormatList = customXpsFormats
@@ -432,7 +432,7 @@ def readSettings(self):
     config.srcSymbolSize = self.settings.value('settings/geo/srcSymbolSize', 25)
 
     # k-plot information
-    config.kr_Stack = rng.read(self.settings.value('settings/k-plots/kr_Stack', '0;20;0.1'))
+    config.kraStack = rng.read(self.settings.value('settings/k-plots/kraStack', '0;20;0.1'))
     config.kxyStack = rng.read(self.settings.value('settings/k-plots/kxyStack', '-5;5;0.05'))
     config.kxyArray = rng.read(self.settings.value('settings/k-plots/kxyArray', '-50;50;0.5'))
 
@@ -482,7 +482,7 @@ def writeSettings(self):
     self.settings.setValue('settings/colors/recAreaPen', str(makeParmsFromPen(config.recAreaPen)))
     self.settings.setValue('settings/colors/srcAreaPen', str(makeParmsFromPen(config.srcAreaPen)))
     self.settings.setValue('settings/colors/analysisCmap', config.analysisCmap)
-    self.settings.setValue('settings/colors/fold_OffCmap', config.fold_OffCmap)
+    self.settings.setValue('settings/colors/foldDispCmap', config.foldDispCmap)
 
     # sps information
     self.settings.setValue('settings/sps/rpsBrushColor', config.rpsBrushColor)
@@ -496,9 +496,9 @@ def writeSettings(self):
     self.settings.setValue('settings/sps/spsParallel', config.spsParallel)
     self.settings.setValue('settings/sps/spsDialect', config.spsDialect)
 
-    _write_format_group(self, 'settings/sps/spsFormatList', config.spsFormatList)
-    _write_format_group(self, 'settings/sps/xpsFormatList', config.xpsFormatList)
-    _write_format_group(self, 'settings/sps/rpsFormatList', config.rpsFormatList)
+    _writeFormatGroup(self, 'settings/sps/spsFormatList', config.spsFormatList)
+    _writeFormatGroup(self, 'settings/sps/xpsFormatList', config.xpsFormatList)
+    _writeFormatGroup(self, 'settings/sps/rpsFormatList', config.rpsFormatList)
 
     # geometry information
     self.settings.setValue('settings/geo/recBrushColor', config.recBrushColor)
@@ -509,7 +509,7 @@ def writeSettings(self):
     self.settings.setValue('settings/geo/srcSymbolSize', config.srcSymbolSize)
 
     # k-plot information
-    self.settings.setValue('settings/k-plots/kr_Stack', rng.write(config.kr_Stack))
+    self.settings.setValue('settings/k-plots/kraStack', rng.write(config.kraStack))
     self.settings.setValue('settings/k-plots/kxyStack', rng.write(config.kxyStack))
     self.settings.setValue('settings/k-plots/kxyArray', rng.write(config.kxyArray))
 
@@ -523,3 +523,6 @@ def writeSettings(self):
     self.settings.setValue('settings/misc/showSummaries', config.showSummaries)    # show/hide summary information in property pane
 
     self.settings.sync()
+
+
+

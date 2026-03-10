@@ -25,7 +25,7 @@ class RollSeed:
         self.bSource = False                                                    # 'True' if this is a source point seed (receiver = 'False')
         self.bAzimuth = False                                                   # 'True' if this seed has a pattern in direction of line direction
         self.patternNo = -1                                                     # Pattern index serialized in survey file (-1 if no pattern is used)
-        self._survey_ref = None                                                 # weakref to RollSurvey
+        self._surveyRef = None                                                  # weakref to RollSurvey
 
         self.color = QColor()                                                   # color of seed to discriminate different sources / receivers
 
@@ -51,11 +51,11 @@ class RollSeed:
         self.rendered = False                                                   # prevent painting stationary seeds multiple times due to roll-along of other seeds
 
     def setSurvey(self, survey):
-        self._survey_ref = weakref.ref(survey) if survey is not None else None
+        self._surveyRef = weakref.ref(survey) if survey is not None else None
 
     @property
     def survey(self):
-        return self._survey_ref() if self._survey_ref else None                 # return the referenced survey, or None if not set
+        return self._surveyRef() if self._surveyRef else None                 # return the referenced survey, or None if not set
 
     @property
     def pattern(self):

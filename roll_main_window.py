@@ -57,9 +57,9 @@ from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
 # Superseded by FindNotepad, which is more user friendly and has a better implementation.
 # The old Find class is still available in find.py, but not imported here.
 from .find import FindNotepad
-from .functions_numba import (numbaAziInline, numbaAziX_line,
-                              numbaFilterSlice2D, numbaNdft_1D, numbaNdft_2D,
-                              numbaOffInline, numbaOffsetBin, numbaOffX_line,
+from .functions_numba import (numbaAziInline, numbaAziXline,
+                              numbaFilterSlice2D, numbaNdft1D, numbaNdft2D,
+                              numbaOffInline, numbaOffsetBin, numbaOffXline,
                               numbaSlice3D, numbaSliceStats)
 from .land_wizard import LandSurveyWizard
 from .logging_dock import createLoggingDock
@@ -154,8 +154,8 @@ def runStandalone(argv=None, filePath=None):
     return exitCode
 
 # Determine path to resources
-current_dir = os.path.dirname(os.path.abspath(__file__))
-resource_dir = os.path.join(current_dir, 'resources')
+currentDir = os.path.dirname(os.path.abspath(__file__))
+resourceDir = os.path.join(currentDir, 'resources')
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'roll_main_window_base.ui'))
@@ -319,8 +319,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # pattern information plotting parameters
         self.patternLayout = True                                               # True shows geometry (layout). False shows kxky response
 
-        # icon_path = ':/plugins/roll/resources/icon.png'
-        iconFile = os.path.join(resource_dir, 'icon.png')
+        iconFile = os.path.join(resourceDir, 'icon.png')
 
         icon = QIcon(iconFile)
         self.setWindowIcon(icon)
@@ -616,48 +615,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.grdChild   = None
         createPropertyDock(self)                                              # defined late, as it needs access the loaded survey object
 
-        # self.dockProperty = QDockWidget('Property pane')
-        # self.dockProperty.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
-        # self.dockProperty.setStyleSheet('QDockWidget::title {background : lightblue;}')
-
-        # # setup the ParameterTree object
-        # self.paramTree = pg.parametertree.ParameterTree(showHeader=True)        # define parameter tree widget
-        # self.paramTree.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        # self.paramTree.header().resizeSection(0, 280)
-        # self.registerParameters()
-        # self.resetSurveyProperties()                                            # get the parameters into the parameter tree
-
-        # self.propertyWidget = QWidget()                                         # placeholder widget to generate a layout
-        # self.propertyLayout = QVBoxLayout()                                     # required vertical layout
-
-        # buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Apply
-        # self.propertyButtonBox = QDialogButtonBox(buttons)                      # define 3 buttons to handle property changes
-
-        # # connect 3 buttons (signals) to their event handlers (slots)
-        # self.propertyButtonBox.accepted.connect(self.applyPropertyChangesAndHide)
-        # self.propertyButtonBox.rejected.connect(self.resetSurveyProperties)
-        # self.propertyButtonBox.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.applyPropertyChanges)
-
-        # self.propertyLayout.addWidget(self.paramTree)                           # add parameter tree to layout
-        # self.propertyLayout.addStretch()                                        # add some stretch towards 3 buttons
-        # self.propertyLayout.addWidget(self.propertyButtonBox)                   # add 3 buttons
-
-        # self.propertyWidget.setLayout(self.propertyLayout)                      # add layout to widget
-        # self.dockProperty.setWidget(self.propertyWidget)
-
-        # self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockProperty)           # add docking panel to main window
-
-        # self.dockProperty.toggleViewAction().setShortcut(QKeySequence('Ctrl+Alt+p'))
-        # self.menu_View.addAction(self.dockProperty.toggleViewAction())          # show/hide as requested
-
-        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-        self.menu_View.addSeparator()
-        self.menu_View.addAction(self.fileBar.toggleViewAction())
-        self.menu_View.addAction(self.editBar.toggleViewAction())
-        self.menu_View.addAction(self.graphBar.toggleViewAction())
-        self.menu_View.addAction(self.moveBar.toggleViewAction())
-        self.menu_View.addAction(self.paintBar.toggleViewAction())
+        self.menuView.addSeparator()
+        self.menuView.addAction(self.fileBar.toggleViewAction())
+        self.menuView.addAction(self.editBar.toggleViewAction())
+        self.menuView.addAction(self.graphBar.toggleViewAction())
+        self.menuView.addAction(self.moveBar.toggleViewAction())
+        self.menuView.addAction(self.paintBar.toggleViewAction())
 
         self.plotLayout()
 
@@ -1584,7 +1547,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
 
-        colorMap = self.resolveColorMapName(config.fold_OffCmap, fallback='CET-L4')  # default fold & offset color map
+        colorMap = self.resolveColorMapName(config.foldDispCmap, fallback='CET-L4')  # default fold & offset color map
         if self.imageType == 0:                                                 # now deal with all image types
             self.layoutImg = None                                               # no image to show
             label = 'N/A'
@@ -1667,18 +1630,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             # use the next string for a messagebox if "debug is on"
             # See: https://waylonwalker.com/python-sys-excepthook/
-            # traceback_details = "\n".join(traceback.extract_tb(eTraceback).format())
+            # tracebackString = "\n".join(traceback.extract_tb(eTraceback).format())
 
-            traceback_str = ''
-            # for file_name, line_number, func_name, text in traceback.extract_tb(eTraceback, limit=2)[1:]:
-            for file_name, line_number, func_name, _ in traceback.extract_tb(eTraceback, limit=2):
-                file_name = os.path.basename(file_name)
-                traceback_str += f' File "{file_name}", line {line_number}, in function "{func_name}".'
+            tracebackString = ''
+            # for fileName, line_number, func_name, text in traceback.extract_tb(eTraceback, limit=2)[1:]:
+            for fileName, line_number, func_name, _ in traceback.extract_tb(eTraceback, limit=2):
+                fileName = os.path.basename(fileName)
+                tracebackString += f' File "{fileName}", line {line_number}, in function "{func_name}".'
 
-            if traceback_str != '':
-                traceback_str = f'Traceback: {traceback_str}'
+            if tracebackString != '':
+                tracebackString = f'Traceback: {tracebackString}'
 
-            exceptionMsg = f'Error&nbsp;&nbsp;:&nbsp;{eType.__name__}: {eValue} {traceback_str}'
+            exceptionMsg = f'Error&nbsp;&nbsp;:&nbsp;{eType.__name__}: {eValue} {tracebackString}'
             self.appendLogMessage(exceptionMsg, MsgType.Exception)
 
     def cursorPositionChanged(self):
@@ -1925,30 +1888,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.showRuler(False)
 
         self.rulerState = None
-
-        # if False:                                                          # provide some debugging output on the applied transform; use "if self.debug:" to enable
-        #     # Get the transform that maps from local coordinates to the item's ViewBox coordinates
-        #     transform = self.survey.glbTransform                                # GraphicsItem method
-        #     if transform is not None:
-        #         s1 = f'm11 ={transform.m11():12.6f},   m12 ={transform.m12():12.6f},   m13 ={transform.m13():12.6f} » [A1, B1, ...]'
-        #         s2 = f'm21 ={transform.m21():12.6f},   m22 ={transform.m22():12.6f},   m23 ={transform.m23():12.6f} » [A2, B2, ...]'
-        #         s3 = f'm31 ={transform.m31():12.6f},   m32 ={transform.m32():12.6f},   m33 ={transform.m33():12.6f} » [A0, B0, ...]<br>'
-
-        #         self.appendLogMessage('plotProjected(). Showing transform parameters before changing view', MsgType.Debug)
-        #         self.appendLogMessage(s1, MsgType.Debug)
-        #         self.appendLogMessage(s2, MsgType.Debug)
-        #         self.appendLogMessage(s3, MsgType.Debug)
-
-        #         if not transform.isIdentity():
-        #             i_trans, _ = transform.inverted()                           # inverted_transform, invertable = transform.inverted()
-        #             s1 = f'm11 ={i_trans.m11():12.6f},   m12 ={i_trans.m12():12.6f},   m13 ={i_trans.m13():12.6f} » [A1, B1, ...]'
-        #             s2 = f'm21 ={i_trans.m21():12.6f},   m22 ={i_trans.m22():12.6f},   m23 ={i_trans.m23():12.6f} » [A2, B2, ...]'
-        #             s3 = f'm31 ={i_trans.m31():12.6f},   m32 ={i_trans.m32():12.6f},   m33 ={i_trans.m33():12.6f} » [A0, B0, ...]<br>'
-
-        #             self.appendLogMessage('plotProjected(). Showing inverted-transform parameters before changing view', MsgType.Debug)
-        #             self.appendLogMessage(s1, MsgType.Debug)
-        #             self.appendLogMessage(s2, MsgType.Debug)
-        #             self.appendLogMessage(s3, MsgType.Debug)
 
         self.handleSpiderPlot()                                                 # spider label should move depending on local/global coords
         self.layoutWidget.autoRange()                                           # show the full range of objects when changing local vs global coordinates
@@ -2314,7 +2253,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            x, y = numbaOffX_line(slice2D, oy)
+            x, y = numbaOffXline(slice2D, oy)
             self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotAziTrk(self, nY: int, stkY: int, ox: float):
@@ -2347,13 +2286,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            x, y = numbaAziX_line(slice2D, oy)
+            x, y = numbaAziXline(slice2D, oy)
             self.aziBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotStkTrk(self, nY: int, stkY: int, x0: float, dx: float):
         with pg.BusyCursor():
-            dK = 0.001 * config.kr_Stack.z()
-            kMax = 0.001 * config.kr_Stack.y() + dK
+            dK = 0.001 * config.kraStack.z()
+            kMax = 0.001 * config.kraStack.y() + dK
             kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
@@ -2361,7 +2300,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            self.inlineStk = numbaNdft_1D(kMax, dK, slice3D, I)
+            self.inlineStk = numbaNdft1D(kMax, dK, slice3D, I)
 
             tr = QTransform()                                                   # prepare ImageItem transformation:
             tr.translate(x0, kStart)                                            # move image to correct location
@@ -2370,26 +2309,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.stkTrkImItem = pg.ImageItem()                                  # create PyqtGraph image item
             self.stkTrkImItem.setImage(self.inlineStk, levels=(-50.0, 0.0))     # plot with log scale from -50 to 0
             self.stkTrkImItem.setTransform(tr)
-
-            # if self.stkTrkColorBar is None:
-            #     self.stkTrkColorBar = self.stkTrkWidget.plotItem.addColorBar(
-            #         self.stkTrkImItem,
-            #         colorMap=self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'),
-            #         label='dB attenuation',
-            #         limits=(-100.0, 0.0),
-            #         rounding=10.0,
-            #         values=(-50.0, 0.0),
-            #     )
-            #     self.stkTrkColorBar.setLevels(low=-50.0, high=0.0)
-            # else:
-            #     self.stkTrkColorBar.setImageItem(self.stkTrkImItem)
-            #     self.stkTrkColorBar.setColorMap(self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'))  # in case the colorbar has been changed
-
-            # self.stkTrkWidget.plotItem.clear()
-            # self.stkTrkWidget.plotItem.addItem(self.stkTrkImItem)
-
-            # plotTitle = f'{self.plotTitles[5]} [line={stkY}]'
-            # self.stkTrkWidget.setTitle(plotTitle, color='b', size='16pt')
 
             self.stkTrkWidget.plotItem.clear()                                  # clear first, then always add the image
             self.stkTrkWidget.plotItem.addItem(self.stkTrkImItem)
@@ -2422,8 +2341,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def plotStkBin(self, nX: int, stkX: int, y0: float, dy: float):
         with pg.BusyCursor():
-            dK = 0.001 * config.kr_Stack.z()
-            kMax = 0.001 * config.kr_Stack.y() + dK
+            dK = 0.001 * config.kraStack.z()
+            kMax = 0.001 * config.kraStack.y() + dK
             kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
@@ -2431,7 +2350,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            self.x0lineStk = numbaNdft_1D(kMax, dK, slice3D, I)
+            self.x0lineStk = numbaNdft1D(kMax, dK, slice3D, I)
 
             tr = QTransform()                                                   # prepare ImageItem transformation:
             tr.translate(y0, kStart)                                            # move image to correct location
@@ -2440,26 +2359,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.stkBinImItem = pg.ImageItem()                                  # create PyqtGraph image item
             self.stkBinImItem.setImage(self.x0lineStk, levels=(-50.0, 0.0))     # plot with log scale from -50 to 0
             self.stkBinImItem.setTransform(tr)
-
-            # if self.stkBinColorBar is None:
-            #     self.stkBinColorBar = self.stkBinWidget.plotItem.addColorBar(
-            #         self.stkBinImItem,
-            #         colorMap=self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'),
-            #         label='dB attenuation',
-            #         limits=(-100.0, 0.0),
-            #         rounding=10.0,
-            #         values=(-50.0, 0.0),
-            #     )
-            #     self.stkBinColorBar.setLevels(low=-50.0, high=0.0)
-            # else:
-            #     self.stkBinColorBar.setImageItem(self.stkBinImItem)
-            #     self.stkBinColorBar.setColorMap(self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'))  # in case the colorbar has been changed
-
-            # self.stkBinWidget.plotItem.clear()
-            # self.stkBinWidget.plotItem.addItem(self.stkBinImItem)
-
-            # plotTitle = f'{self.plotTitles[6]} [stake={stkX}]'
-            # self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
 
             self.stkBinWidget.plotItem.clear()                                  # clear first, then always add the image
             self.stkBinWidget.plotItem.addItem(self.stkBinImItem)
@@ -2514,7 +2413,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 nX = kX.shape[0]
                 self.xyCellStk = np.ones(shape=(nX, nX), dtype=np.float32) * -50.0           # create -50 dB array of the right size and type
             else:
-                self.xyCellStk = numbaNdft_2D(kMin, kMax, dK, offsetX, offsetY)
+                self.xyCellStk = numbaNdft2D(kMin, kMax, dK, offsetX, offsetY)
 
             i3 = self.pattern3.currentIndex() - 1                               # turn <no pattern> into -1
             i4 = self.pattern4.currentIndex() - 1
@@ -2522,11 +2421,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             if self.tbStackPatterns.isChecked() and i3 >= 0 and i3 < imax:
                 x3, y3 = self.survey.patternList[i3].calcPatternPointArrays()
-                self.xyCellStk = self.xyCellStk + numbaNdft_2D(kMin, kMax, dK, x3, y3)
+                self.xyCellStk = self.xyCellStk + numbaNdft2D(kMin, kMax, dK, x3, y3)
 
             if self.tbStackPatterns.isChecked() and i4 >= 0 and i4 < imax:
                 x4, y4 = self.survey.patternList[i4].calcPatternPointArrays()
-                self.xyCellStk = self.xyCellStk + numbaNdft_2D(kMin, kMax, dK, x4, y4)
+                self.xyCellStk = self.xyCellStk + numbaNdft2D(kMin, kMax, dK, x4, y4)
 
             tr = QTransform()                                               # prepare ImageItem transformation:
             tr.translate(kStart, kStart)                                    # move image to correct location
@@ -2535,26 +2434,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.stkCelImItem = pg.ImageItem()                              # create PyqtGraph image item
             self.stkCelImItem.setImage(self.xyCellStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
             self.stkCelImItem.setTransform(tr)
-
-            # if self.stkCelColorBar is None:
-            #     self.stkCelColorBar = self.stkCelWidget.plotItem.addColorBar(
-            #         self.stkCelImItem,
-            #         colorMap=self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'),
-            #         label='dB attenuation',
-            #         limits=(-100.0, 0.0),
-            #         rounding=10.0,
-            #         values=(-50.0, 0.0),
-            #     )
-            #     self.stkCelColorBar.setLevels(low=-50.0, high=0.0)
-            # else:
-            #     self.stkCelColorBar.setImageItem(self.stkCelImItem)
-            #     self.stkCelColorBar.setColorMap(self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'))  # in case the colorbar has been changed
-
-            # self.stkCelWidget.plotItem.clear()
-            # self.stkCelWidget.plotItem.addItem(self.stkCelImItem)
-
-            # plotTitle = f'{self.plotTitles[7]} [stake={stkX}, line={stkY}, fold={fold}]'
-            # self.stkCelWidget.setTitle(plotTitle, color='b', size='16pt')
 
             self.stkCelWidget.plotItem.clear()                                  # clear first, then always add the image
             self.stkCelWidget.plotItem.addItem(self.stkCelImItem)
@@ -2638,25 +2517,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.offAziImItem = pg.ImageItem()                                  # create PyqtGraph image item
             self.offAziImItem.setImage(self.output.ofAziHist)
             self.offAziImItem.setTransform(tr)
-
-            # if self.offAziColorBar is None:
-            #     self.offAziColorBar = self.offAziWidget.plotItem.addColorBar(
-            #         self.offAziImItem,
-            #         colorMap=self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'),
-            #         label='frequency',
-            #         rounding=10.0,
-            #     )
-            #     self.offAziColorBar.setLevels(low=0.0)                          # , high=0.0
-            # else:
-            #     self.offAziColorBar.setImageItem(self.offAziImItem)
-            #     self.offAziColorBar.setColorMap(self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'))  # in case the colorbar has been changed
-
-            # self.offAziWidget.plotItem.clear()
-            # self.offAziWidget.plotItem.addItem(self.offAziImItem)
-
-            # count = np.sum(self.output.binOutput)                               # available traces
-            # plotTitle = f'{self.plotTitles[9]} [{count:,} traces]'
-            # self.offAziWidget.setTitle(plotTitle, color='b', size='16pt')
 
             self.offAziWidget.plotItem.clear()                                  # clear first, then always add the image
             self.offAziWidget.plotItem.addItem(self.offAziImItem)
@@ -2747,10 +2607,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     self.xyPatResp = np.zeros(shape=(nX, nX), dtype=np.float32)   # create zero array of the right size and type
 
                     if i1 >= 0 and i1 < imax:                                   # multiply with array response (dB -> multiplication becomes summation)
-                        self.xyPatResp = self.xyPatResp + numbaNdft_2D(kMin, kMax, dK, x1, y1)
+                        self.xyPatResp = self.xyPatResp + numbaNdft2D(kMin, kMax, dK, x1, y1)
 
                     if i2 >= 0 and i2 < imax:                                   # multiply with array response (dB -> multiplication becomes summation)
-                        self.xyPatResp = self.xyPatResp + numbaNdft_2D(kMin, kMax, dK, x2, y2)
+                        self.xyPatResp = self.xyPatResp + numbaNdft2D(kMin, kMax, dK, x2, y2)
 
                 tr = QTransform()                                               # prepare ImageItem transformation:
                 tr.translate(kStart, kStart)                                    # move image to correct location
@@ -2759,29 +2619,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 self.kxyPatImItem = pg.ImageItem()                              # create PyqtGraph image item
                 self.kxyPatImItem.setImage(self.xyPatResp, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
                 self.kxyPatImItem.setTransform(tr)
-
-        #         if self.kxyPatColorBar is None:
-        #             self.kxyPatColorBar = self.arraysWidget.plotItem.addColorBar(
-        #                 self.kxyPatImItem,
-        #                 colorMap=self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'),
-        #                 label='dB attenuation',
-        #                 limits=(-100.0, 0.0),
-        #                 rounding=10.0,
-        #                 values=(-50.0, 0.0),
-        #             )
-        #             self.kxyPatColorBar.setLevels(low=-50.0, high=0.0)
-        #         else:
-        #             self.kxyPatColorBar.setImageItem(self.kxyPatImItem)
-        #             self.kxyPatColorBar.setColorMap(self.resolveColorMapName(config.analysisCmap, fallback='CET-R4'))  # in case the colorbar has been changed
-
-        #         self.arraysWidget.plotItem.clear()
-        #         self.arraysWidget.plotItem.addItem(self.kxyPatImItem)
-
-        # plotTitle = f'{self.plotTitles[10]} [{self.pattern1.currentText()} * {self.pattern2.currentText()}]'
-        # plotTitle = plotTitle.replace('<', '&lt;')                              # bummer; plotTitle is an html string
-        # plotTitle = plotTitle.replace('>', '&gt;')                              # we need to escape the angle brackets
-
-        # self.arraysWidget.setTitle(plotTitle, color='b', size='16pt')
 
                 self.arraysWidget.plotItem.clear()                              # clear first, then always add the image
                 self.arraysWidget.plotItem.addItem(self.kxyPatImItem)
@@ -2909,13 +2746,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.stkCelImItem = None
         self.offAziImItem = None
         self.kxyPatImItem = None
-
-        # corresponding color bars
-        # self.layoutColorBar = None                                              # DON'T reset these; adjust the existing ones
-        # self.stkTrkColorBar = None
-        # self.stkBinColorBar = None
-        # self.stkCelColorBar = None
-        # self.offAziColorBar = None
 
         # rps, sps, xps input arrays
         self.rpsImport = None                                                   # numpy array with list of RPS records
@@ -3148,20 +2978,20 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.recentFileActions[j].setVisible(False)
 
     def setDataAnaTableModel(self):
-        if self.output.D2_Output is None:
+        if self.output.an2Output is None:
             self.anaModel.setData(None)
             return
 
-        totalRows = self.output.D2_Output.shape[0]
+        totalRows = self.output.an2Output.shape[0]
         chunkSize = config.maxRowsPerChunk                                     # Default chunk size from config
 
         if totalRows <= chunkSize:
             # Dataset is small enough to display directly
-            self.anaModel.setData(self.output.D2_Output)
+            self.anaModel.setData(self.output.an2Output)
             self.appendLogMessage(f'Loaded : . . . Analysis: {totalRows:,} traces displayed in Trace Table')
         else:
             # Create a ChunkedData view object that will handle paging
-            chunkedData = ChunkedData(self.output.D2_Output, chunkSize)
+            chunkedData = ChunkedData(self.output.an2Output, chunkSize)
             self.anaModel.setChunkedData(chunkedData)
             self._goToFirstPage()
             self.appendLogMessage(f'Loaded : . . . Analysis: {totalRows:,} traces available (showing {chunkSize:,} at a time)')
@@ -3170,7 +3000,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def resetAnaTableModel(self):
         if self.output.anaOutput is not None:                                   # get rid of current memory mapped array first
             self.anaModel.setData(None)                                         # first remove reference to self.output.anaOutput
-            self.output.D2_Output = None                                        # flattened reference to self.output.anaOutput
+            self.output.an2Output = None                                        # flattened reference to self.output.anaOutput
 
             self.output.anaOutput.flush()                                       # make sure all data is written to disk
             del self.output.anaOutput                                           # try to delete the object
@@ -3275,7 +3105,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
 
                     label = 'fold'
-                    colorMapObj = self.resolveColorMapObject(config.fold_OffCmap, fallback='viridis')
+                    colorMapObj = self.resolveColorMapObject(config.foldDispCmap, fallback='viridis')
                     if self.layoutColorBar is None:
                         try:
                             self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
@@ -3313,10 +3143,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     self.appendLogMessage('Loaded : . . . Min-offset: Wrong dimensions, compared to analysis area - file ignored')
                     self.output.minOffset = None
                 else:
-                    self.output.minOffset[self.output.minOffset == np.NINF] = np.Inf    # replace (-inf) by (inf) for min values
+                    self.output.minOffset[self.output.minOffset == -np.inf] = np.inf    # replace (-inf) by (inf) for min values
                     self.output.minMinOffset = self.output.minOffset.min()          # calc min offset against max (inf) values
 
-                    self.output.minOffset[self.output.minOffset == np.Inf] = np.NINF  # replace (inf) by (-inf) for max values
+                    self.output.minOffset[self.output.minOffset == np.inf] = -np.inf  # replace (inf) by (-inf) for max values
                     self.output.maxMinOffset = self.output.minOffset.max()          # calc max values against (-inf) minimum
                     self.output.maxMinOffset = max(self.output.maxMinOffset, 0)     # avoid -inf as maximum
 
@@ -3335,10 +3165,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 else:
                     self.output.maxMaxOffset = self.output.maxOffset.max()          # calc max offset against max (-inf) values
                     self.output.maxMaxOffset = max(self.output.maxMaxOffset, 0)     # avoid -inf as maximum
-                    self.output.maxOffset[self.output.maxOffset == np.NINF] = np.inf   # replace (-inf) by (inf) for min values
+                    self.output.maxOffset[self.output.maxOffset == -np.inf] = np.inf   # replace (-inf) by (inf) for min values
 
                     self.output.minMaxOffset = self.output.maxOffset.min()          # calc min offset against min (inf) values
-                    self.output.maxOffset[self.output.maxOffset == np.Inf] = np.NINF   # replace (inf) by (-inf) for max values
+                    self.output.maxOffset[self.output.maxOffset == np.inf] = -np.inf   # replace (inf) by (-inf) for max values
                     self.appendLogMessage(f'Loaded : . . . Max-offset: Min:{self.output.minMaxOffset:.2f}m - Max:{self.output.maxMaxOffset:.2f}m ')
             else:
                 self.output.maxOffset = None
@@ -3408,27 +3238,27 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
                     if delta != 0:
                         self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: mismatch in trace table compared to fold {fold:,} x-size {nx}, and y-size {ny}. Please rerun extended analysis', MsgType.Error)
-                        self.output.D2_Output = None                            # remove reference to self.output.anaOutput
+                        self.output.an2Output = None                            # remove reference to self.output.anaOutput
                         self.output.anaOutput = None                            # remove self.output.anaOutput itself
                         self.anaModel.setData(None)                             # use this as the model data
                     else:
-                        self.output.D2_Output = self.output.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
-                        self.appendLogMessage(f'Analysis load: D2_Output.shape={self.output.D2_Output.shape}', MsgType.Info)
+                        self.output.an2Output = self.output.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
+                        self.appendLogMessage(f'Analysis load: an2Output.shape={self.output.an2Output.shape}', MsgType.Info)
 
                     if self.output.maximumFold > fold:
                         self.appendLogMessage(
                             f'Loaded : . . . Analysis &nbsp;: observed fold in binning file: {self.output.maximumFold:,}. This is larger than allowed in the trace table ({fold:,}), expect missing traces in spider plot !'
                         )
 
-                    self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.D2_Output.shape[0]:,} traces (reserved space)')
+                    self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.an2Output.shape[0]:,} traces (reserved space)')
                 except (ValueError, PermissionError) as error:
                     self.appendLogMessage(f"Loaded : . . . Analysis &nbsp;: read error {self.fileName + '.ana.npy'}. A {type(error).__name__} has occurred ")
                     self.anaModel.setData(None)
-                    self.output.D2_Output = None
+                    self.output.an2Output = None
                     self.output.anaOutput = None
             else:
                 self.anaModel.setData(None)
-                self.output.D2_Output = None
+                self.output.an2Output = None
                 self.output.anaOutput = None
 
             self.setDataAnaTableModel()                                         # sets model data, in a trunked manner if needed
@@ -3834,8 +3664,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             data = action.data()
             if data is None:
                 return
-            to_string = getattr(data, 'toString', None)
-            fileName = to_string() if callable(to_string) else str(data)
+            toString = getattr(data, 'toString', None)
+            fileName = toString() if callable(toString) else str(data)
             if fileName and not os.path.isabs(fileName) and self.projectDirectory:
                 fileName = os.path.join(self.projectDirectory, fileName)
             self.fileLoad(fileName)
@@ -3847,13 +3677,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if config.useRelativePaths:
             self.survey.makeWellPathsRelative(self.projectDirectory)            # make well paths relative to working directory
 
-        xml_text = self.survey.toXmlString(4)
+        xmlText = self.survey.toXmlString(4)
 
         qFile = QFile(self.fileName)
         success = qFile.open(QIODevice.OpenModeFlag.WriteOnly | QIODevice.OpenModeFlag.Truncate)
 
         if success:
-            _ = QTextStream(qFile) << xml_text                                  # unused stream replaced by _ to make PyLint happy
+            _ = QTextStream(qFile) << xmlText                                  # unused stream replaced by _ to make PyLint happy
             self.appendLogMessage(f'Saved&nbsp;&nbsp;: {self.fileName}')
             self.textEdit.document().setModified(False)
             qFile.close()

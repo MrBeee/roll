@@ -18,15 +18,15 @@ import functools
 def optionalArgDecorator(fn):
     @functools.wraps(fn)
     def wrappedDecorator(*args, **kwargs):
-        #        is_bound_method = hasattr(args[0], fn.__name__) if args else False
+        #        isBoundMethod = hasattr(args[0], fn.__name__) if args else False
 
-        #        if is_bound_method:
+        #        if isBoundMethod:
         #            klass = args[0]
         #            args = args[1:]
 
         # If no arguments were passed...
         if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
-            #            if is_bound_method:
+            #            if isBoundMethod:
             #                return fn(klass, args[0])
             #            else:
             return fn(args[0])
@@ -34,7 +34,7 @@ def optionalArgDecorator(fn):
         else:
 
             def realDecorator(decoratee):
-                #                if is_bound_method:
+                #                if isBoundMethod:
                 #                    return fn(klass, decoratee, *args, **kwargs)
                 #                else:
                 return fn(decoratee, *args, **kwargs)

@@ -32,10 +32,10 @@ class BinningWorkerMixin:
         elif isinstance(value, bytes):
             name = value.decode(errors='ignore')
         else:
-            to_string = getattr(value, 'toString', None)
-            if callable(to_string):
+            toString = getattr(value, 'toString', None)
+            if callable(toString):
                 try:
-                    name = to_string()
+                    name = toString()
                 except Exception:
                     name = None
             if name is None:
@@ -91,10 +91,10 @@ class BinningWorkerMixin:
         elif isinstance(value, bytes):
             name = value.decode(errors='ignore')
         else:
-            to_string = getattr(value, 'toString', None)
-            if callable(to_string):
+            toString = getattr(value, 'toString', None)
+            if callable(toString):
                 try:
-                    name = to_string()
+                    name = toString()
                 except Exception:
                     name = None
             if name is None:
@@ -108,9 +108,9 @@ class BinningWorkerMixin:
             if cmap is not None:
                 return cmap
 
-        fallback_cmap = pg.colormap.get(fallback)
-        if fallback_cmap is not None:
-            return fallback_cmap
+        fallbackCmap = pg.colormap.get(fallback)
+        if fallbackCmap is not None:
+            return fallbackCmap
 
         available = pg.colormap.listMaps()
         for candidate in ('viridis', 'plasma', 'magma', 'inferno', 'grey', 'gray'):
@@ -409,7 +409,7 @@ class BinningWorkerMixin:
                 anaFileName = self.fileName + '.ana.npy'
                 shape = self.worker.survey.output.anaOutput.shape
                 self.output.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=shape)
-                self.output.D2_Output = self.output.anaOutput.reshape(shape[0] * shape[1] * shape[2], shape[3])
+                self.output.an2Output = self.output.anaOutput.reshape(shape[0] * shape[1] * shape[2], shape[3])
                 self.setDataAnaTableModel()
 
             self.output.minimumFold = max(self.worker.survey.output.minimumFold, 0)
@@ -465,7 +465,7 @@ class BinningWorkerMixin:
             if self.layoutColorBar is None:
                 self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
                     self.layoutImItem,
-                    colorMap=self.resolveColorMapName(config.fold_OffCmap, fallback='CET-L4'),
+                    colorMap=self.resolveColorMapName(config.foldDispCmap, fallback='CET-L4'),
                     label=label,
                     limits=(0, None),
                     rounding=10.0,
@@ -474,7 +474,7 @@ class BinningWorkerMixin:
             else:
                 self.layoutColorBar.setImageItem(self.layoutImItem)
                 self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-                self.layoutColorBar.setColorMap(self.resolveColorMapName(config.fold_OffCmap, fallback='CET-L4'))
+                self.layoutColorBar.setColorMap(self.resolveColorMapName(config.foldDispCmap, fallback='CET-L4'))
                 self.setColorbarLabel(label)
 
             self.plotLayout()

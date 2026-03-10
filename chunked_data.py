@@ -4,58 +4,58 @@ import numpy as np
 class ChunkedData:
     """Provides a view into a large dataset by accessing only chunks at a time."""
 
-    def __init__(self, data, chunk_size=100_000):
+    def __init__(self, data, chunkSize=100_000):
         """
         Initialize with the source data and chunk size
 
         Args:
             data: A numpy array or memmap
-            chunk_size: Number of rows in each chunk
+            chunkSize: Number of rows in each chunk
         """
         self.data = data
-        self.chunk_size = chunk_size
-        self.current_chunk = 0
-        self.total_chunks = int(np.ceil(data.shape[0] / chunk_size))
+        self.chunkSize = chunkSize
+        self.currentChunk = 0
+        self.totalChunks = int(np.ceil(data.shape[0] / chunkSize))
         self.columns = data.shape[1] if len(data.shape) > 1 else 1
 
     def getCurrentChunk(self):
         """Returns the current chunk of data"""
-        start = self.current_chunk * self.chunk_size
-        end = min(start + self.chunk_size, self.data.shape[0])
+        start = self.currentChunk * self.chunkSize
+        end = min(start + self.chunkSize, self.data.shape[0])
         return self.data[start:end]
 
     def nextChunk(self):
         """Move to next chunk if available"""
-        if self.current_chunk < self.total_chunks - 1:
-            self.current_chunk += 1
+        if self.currentChunk < self.totalChunks - 1:
+            self.currentChunk += 1
             return True
         return False
 
     def previousChunk(self):
         """Move to previous chunk if available"""
-        if self.current_chunk > 0:
-            self.current_chunk -= 1
+        if self.currentChunk > 0:
+            self.currentChunk -= 1
             return True
         return False
 
-    def gotoChunk(self, chunk_index):
+    def gotoChunk(self, chunkIndex):
         """Jump to a specific chunk"""
-        if 0 <= chunk_index < self.total_chunks:
-            self.current_chunk = chunk_index
+        if 0 <= chunkIndex < self.totalChunks:
+            self.currentChunk = chunkIndex
             return True
         return False
 
     def getRowCount(self):
         """Get number of rows in current chunk"""
-        start = self.current_chunk * self.chunk_size
-        end = min(start + self.chunk_size, self.data.shape[0])
+        start = self.currentChunk * self.chunkSize
+        end = min(start + self.chunkSize, self.data.shape[0])
         return end - start
 
     def getItem(self, row, column):
         """Get a specific item from the current chunk"""
-        actual_row = self.current_chunk * self.chunk_size + row
-        if actual_row < self.data.shape[0] and column < self.columns:
-            return self.data[actual_row, column]
+        actualRow = self.currentChunk * self.chunkSize + row
+        if actualRow < self.data.shape[0] and column < self.columns:
+            return self.data[actualRow, column]
         return None
 
     def getTotalRows(self):

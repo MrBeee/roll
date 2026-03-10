@@ -10,14 +10,7 @@ from qgis.PyQt.QtWidgets import (QActionGroup, QDockWidget, QGroupBox,
                                  QVBoxLayout, QWidget)
 
 from .aux_classes import QHLine
-
-TOOL_STYLE = (
-    'QToolButton { selection-background-color: blue } '
-    'QToolButton:checked { background-color: lightblue } '
-    'QToolButton:pressed { background-color: red }'
-)
-
-EXPORT_STYLE = 'background-color:lightgoldenrodyellow; font-weight:bold;'
+from .config import dockWidgetTitleStyle, exportButtonStyle, toolButtonStyle
 
 
 def createDisplayDock(window):
@@ -28,22 +21,22 @@ def createDisplayDock(window):
 class _DisplayDockBuilder:
     def __init__(self, window):
         self.w = window
-        self._central_column = QVBoxLayout()
+        self.centralColumn = QVBoxLayout()
 
     def build(self):
-        self._init_shell()
-        self._build_geometry_section()
-        self._build_analysis_section()
-        self._build_export_section()
-        self._compose_layout()
+        self._initShell()
+        self._buildGeometrySection()
+        self._buildAnalysisSection()
+        self._buildExportSection()
+        self._composeLayout()
         self._finalize()
         return self.w.dockDisplay
 
-    def _init_shell(self):
+    def _initShell(self):
         self.w.dockDisplay = QDockWidget('Display pane', self.w)
         self.w.dockDisplay.setObjectName('dockDisplay')
         self.w.dockDisplay.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
-        self.w.dockDisplay.setStyleSheet('QDockWidget::title {background : lightblue;}')
+        self.w.dockDisplay.setStyleSheet(dockWidgetTitleStyle)
 
         self.w.geometryChoice = QGroupBox('Geometry to display')
         self.w.analysisChoice = QGroupBox('Analysis to display')
@@ -55,17 +48,17 @@ class _DisplayDockBuilder:
 
         self.w.displayLayout = QHBoxLayout()
         self.w.displayLayout.addStretch()
-        self.w.displayLayout.addLayout(self._central_column)
+        self.w.displayLayout.addLayout(self.centralColumn)
         self.w.displayLayout.addStretch()
 
-    def _build_geometry_section(self):
+    def _buildGeometrySection(self):
         w = self.w
-        w.tbTemplat = self._toggle_button(w.actionTemplates, text_only=True)
-        w.tbRecList = self._toggle_button(w.actionRecPoints)
-        w.tbSrcList = self._toggle_button(w.actionSrcPoints)
-        w.tbRpsList = self._toggle_button(w.actionRpsPoints)
-        w.tbSpsList = self._toggle_button(w.actionSpsPoints)
-        w.tbAllList = self._toggle_button(w.actionAllPoints)
+        w.tbTemplat = self._toggleButton(w.actionTemplates, textOnly=True)
+        w.tbRecList = self._toggleButton(w.actionRecPoints)
+        w.tbSrcList = self._toggleButton(w.actionSrcPoints)
+        w.tbRpsList = self._toggleButton(w.actionRpsPoints)
+        w.tbSpsList = self._toggleButton(w.actionSpsPoints)
+        w.tbAllList = self._toggleButton(w.actionAllPoints)
 
         w.actionTemplates.setChecked(True)
         w.actionShowPatterns.setChecked(True)
@@ -100,22 +93,22 @@ class _DisplayDockBuilder:
 
         w.geometryChoice.setLayout(layout)
 
-    def _build_analysis_section(self):
+    def _buildAnalysisSection(self):
         w = self.w
-        w.tbNone = self._toggle_button(w.actionNone)
-        w.tbArea = self._toggle_button(w.actionArea)
-        w.tbFold = self._toggle_button(w.actionFold)
-        w.tbMinO = self._toggle_button(w.actionMinO)
-        w.tbMaxO = self._toggle_button(w.actionMaxO)
-        w.tbRmsO = self._toggle_button(w.actionRmsO)
+        w.tbNone = self._toggleButton(w.actionNone)
+        w.tbArea = self._toggleButton(w.actionArea)
+        w.tbFold = self._toggleButton(w.actionFold)
+        w.tbMinO = self._toggleButton(w.actionMinO)
+        w.tbMaxO = self._toggleButton(w.actionMaxO)
+        w.tbRmsO = self._toggleButton(w.actionRmsO)
 
         w.actionArea.setChecked(True)
 
-        w.tbSpider = self._toggle_button(w.actionSpider, text_only=True)
-        w.btnSpiderLt = self._nav_button(w.actionMoveLt)
-        w.btnSpiderRt = self._nav_button(w.actionMoveRt)
-        w.btnSpiderUp = self._nav_button(w.actionMoveUp)
-        w.btnSpiderDn = self._nav_button(w.actionMoveDn)
+        w.tbSpider = self._toggleButton(w.actionSpider, textOnly=True)
+        w.btnSpiderLt = self._navButton(w.actionMoveLt)
+        w.btnSpiderRt = self._navButton(w.actionMoveRt)
+        w.btnSpiderUp = self._navButton(w.actionMoveUp)
+        w.btnSpiderDn = self._navButton(w.actionMoveDn)
 
         w.actionMoveLt.setShortcuts(['Alt+Left', 'Alt+Shift+Left', 'Alt+Ctrl+Left', 'Alt+Shift+Ctrl+Left'])
         w.actionMoveRt.setShortcuts(['Alt+Right', 'Alt+Shift+Right', 'Alt+Ctrl+Right', 'Alt+Shift+Ctrl+Right'])
@@ -149,12 +142,12 @@ class _DisplayDockBuilder:
 
         w.analysisChoice.setLayout(layout)
 
-    def _build_export_section(self):
+    def _buildExportSection(self):
         w = self.w
-        w.btnBinToQGIS = self._export_button('Fold Map')
-        w.btnMinToQGIS = self._export_button('Min Offset')
-        w.btnMaxToQGIS = self._export_button('Max Offset')
-        w.btnRmsToQGIS = self._export_button('Rms Offset')
+        w.btnBinToQGIS = self._exportButton('Fold Map')
+        w.btnMinToQGIS = self._exportButton('Min Offset')
+        w.btnMaxToQGIS = self._exportButton('Max Offset')
+        w.btnRmsToQGIS = self._exportButton('Rms Offset')
 
         layout = QVBoxLayout()
         layout.addWidget(w.btnBinToQGIS)
@@ -163,8 +156,8 @@ class _DisplayDockBuilder:
         layout.addWidget(w.btnRmsToQGIS)
         w.analysisToQgis.setLayout(layout)
 
-    def _compose_layout(self):
-        column = self._central_column
+    def _composeLayout(self):
+        column = self.centralColumn
         column.addStretch()
         column.addWidget(self.w.geometryChoice)
         column.addStretch()
@@ -182,45 +175,45 @@ class _DisplayDockBuilder:
         w.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, w.dockDisplay)
         toggle = w.dockDisplay.toggleViewAction()
         toggle.setShortcut(QKeySequence('Ctrl+Alt+d'))
-        w.menu_View.addAction(toggle)
+        w.menuView.addAction(toggle)
 
-    # def _toggle_button(self, action, *, text_only=False):
+    # def _toggleButton(self, action, *, textOnly=False):
     #     btn = QToolButton()
     #     btn.setMinimumWidth(110)
-    #     btn.setStyleSheet(TOOL_STYLE)
-    #     if text_only:
+    #     btn.setStyleSheet(toolButtonStyle)
+    #     if textOnly:
     #         btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
     #     btn.setDefaultAction(action)
     #     return btn
 
-    def _toggle_button(self, action, *, text_only=False):
+    def _toggleButton(self, action, *, textOnly=False):
         btn = QToolButton()
         btn.setMinimumWidth(110)
         btn.setAutoRaise(False)
         btn.setCheckable(True)
         if action is not None:
             action.setCheckable(True)
-        btn.setStyleSheet(TOOL_STYLE)
-        if text_only:
+        btn.setStyleSheet(toolButtonStyle)
+        if textOnly:
             btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         btn.setDefaultAction(action)
         return btn
 
-    # def _nav_button(self, action):
+    # def _navButton(self, action):
     #     btn = QToolButton()
-    #     btn.setStyleSheet(TOOL_STYLE)
+    #     btn.setStyleSheet(toolButtonStyle)
     #     btn.setDefaultAction(action)
     #     return btn
 
-    def _nav_button(self, action):
+    def _navButton(self, action):
         btn = QToolButton()
         btn.setAutoRaise(False)
-        btn.setStyleSheet(TOOL_STYLE)
+        btn.setStyleSheet(toolButtonStyle)
         btn.setDefaultAction(action)
         return btn
 
-    def _export_button(self, label):
+    def _exportButton(self, label):
         btn = QPushButton(label)
         btn.setMinimumWidth(110)
-        btn.setStyleSheet(EXPORT_STYLE)
+        btn.setStyleSheet(exportButtonStyle)
         return btn

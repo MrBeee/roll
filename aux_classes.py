@@ -90,24 +90,24 @@ class CustomPlainTextEdit(QPlainTextEdit):
         painter.setPen(pen)
 
         # Use QFontMetricsF for floating point precision to prevent drift
-        font_metrics = QFontMetricsF(self.font())
-        char_width = font_metrics.horizontalAdvance(' ')
+        fontMetrics = QFontMetricsF(self.font())
+        charWidth = fontMetrics.horizontalAdvance(' ')
 
         # Get the document margin to align correctly with the text start
         margin = self.document().documentMargin()
-        x_offset = margin - self.horizontalScrollBar().value()
+        xDirectionOffset = margin - self.horizontalScrollBar().value()
 
         # Draw the lines for the full height of the widget
         # Calculate positions using float math, then round to int for drawing
-        x1 = round(self.line1 * char_width + x_offset)
-        x2 = round(self.line2 * char_width + x_offset)
+        x1 = round(self.line1 * charWidth + xDirectionOffset)
+        x2 = round(self.line2 * charWidth + xDirectionOffset)
 
         height = self.viewport().height()
         painter.drawLine(x1, 0, x1, height)
         painter.drawLine(x2, 0, x2, height)
 
         # for n in range(0, 80):
-        #     x = round(n  * char_width + x_offset)                             # QC the line positions
+        #     x = round(n  * charWidth + xDirectionOffset)                             # QC the line positions
         #     painter.drawLine(x, 0, x, height)
 
         painter.end()

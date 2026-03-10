@@ -7,6 +7,8 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QKeySequence, QTextOption
 from qgis.PyQt.QtWidgets import QDockWidget, QPlainTextEdit
 
+from .config import dockWidgetTitleStyle
+
 
 def createLoggingDock(window):
     """Construct the logging dock for RollMainWindow."""
@@ -18,12 +20,12 @@ class _LoggingDockBuilder:
         self.w = window
 
     def build(self):
-        self._init_shell()
-        self._init_editor()
+        self._initShell()
+        self._initEditor()
         self._finalize()
         return self.w.dockLogging
 
-    def _init_shell(self):
+    def _initShell(self):
         self.w.dockLogging = QDockWidget('Logging pane', self.w)
         self.w.dockLogging.setObjectName('dockLogging')
         areas = (
@@ -32,9 +34,9 @@ class _LoggingDockBuilder:
             | Qt.DockWidgetArea.TopDockWidgetArea
         )
         self.w.dockLogging.setAllowedAreas(areas)
-        self.w.dockLogging.setStyleSheet('QDockWidget::title {background : lightblue;}')
+        self.w.dockLogging.setStyleSheet(dockWidgetTitleStyle)
 
-    def _init_editor(self):
+    def _initEditor(self):
         log = QPlainTextEdit()
         log.clear()
         log.setUndoRedoEnabled(False)
@@ -48,4 +50,4 @@ class _LoggingDockBuilder:
         self.w.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.w.dockLogging)
         toggle = self.w.dockLogging.toggleViewAction()
         toggle.setShortcut(QKeySequence('Ctrl+Alt+l'))
-        self.w.menu_View.addAction(toggle)
+        self.w.menuView.addAction(toggle)

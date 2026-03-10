@@ -14,8 +14,8 @@ from . import config  # used to pass initial settings
 from .aux_functions import lineNo, myPrint
 from .my_preview_label import MyPreviewLabel
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-resource_dir = os.path.join(current_dir, 'resources')
+currentDir = os.path.dirname(os.path.abspath(__file__))
+resourceDir = os.path.join(currentDir, 'resources')
 
 #  helper function to check if all parents have been expanded. In that case the preview label should be shown
 def expandedParents(param):
@@ -137,7 +137,7 @@ class MyGroupParameterItem(GroupParameterItem):
                     continue
 
                 iconFile = name + 'Icon.svg'
-                iconFile = os.path.join(resource_dir, iconFile)
+                iconFile = os.path.join(resourceDir, iconFile)
                 if os.path.exists(iconFile):
                     if name == 'rename':
                         self.contextMenu.addAction(QIcon(iconFile), title).triggered.connect(self.editName)

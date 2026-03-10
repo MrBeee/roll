@@ -15,10 +15,10 @@ def dist2(points, start, end):
 
     d = np.divide(end - start, np.sqrt(np.sum((end - start) ** 2)))
 
-    max_p1 = np.dot(start - points, d).max()
-    max_p2 = np.dot(points - end, d).max()
+    maxP1 = np.dot(start - points, d).max()
+    maxP2 = np.dot(points - end, d).max()
 
-    return max(max_p1, max_p2, 0) ** 2 + np.cross(points - np.expand_dims(start, 0), np.expand_dims(d, 0)) ** 2
+    return max(maxP1, maxP2, 0) ** 2 + np.cross(points - np.expand_dims(start, 0), np.expand_dims(d, 0)) ** 2
 
 
 def _filter(points, threshold, dist2_fun):
@@ -30,7 +30,7 @@ def _filter(points, threshold, dist2_fun):
 
     d = dist2_fun(points[1:-1], start, end)
     i = np.argmax(d) + 1
-    d_max = d[i - 1]
+    dMax = d[i - 1]
 
     return (
         np.concatenate(
@@ -39,7 +39,7 @@ def _filter(points, threshold, dist2_fun):
                 _filter(points[i:], threshold, dist2_fun),
             ]
         )
-        if d_max > threshold**2
+        if dMax > threshold**2
         else np.array(
             [True] + [False] * (points.shape[0] - 2) + [True],
         )
