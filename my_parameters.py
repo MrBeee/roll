@@ -6,7 +6,6 @@ from qgis.PyQt.QtCore import QFileInfo, QPointF
 from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
-from . import config  # used to pass initial settings
 from .aux_functions import myPrint
 from .enums_and_int_flags import SeedType, SurveyType2
 from .my_cmap import MyCmapParameter
@@ -1233,7 +1232,9 @@ class MySeedListParameter(MyGroupParameter):
         self.directory = opts.get('directory', None)
 
         # bind existing seeds to survey (optional)
-        _ = [seed.setSurvey(self.survey) for seed in self.seedList if self.survey is not None]
+        if self.survey is not None:
+            for seed in self.seedList:
+                seed.setSurvey(self.survey)
 
         if not isinstance(self.seedList, list):
             raise ValueError("Need 'list' instance at this point")
@@ -1422,6 +1423,9 @@ class MySeedParameter(MyGroupParameter):
 
         self.seed = opts.get('value', RollSeed())
         self.survey = self.seed.survey or opts.get('survey', None)              # to avoid using config.py as a backdoor
+        if self.survey is not None:
+            self.seed.setSurvey(self.survey)
+
         self.directory = opts.get('directory', None)
         d = opts.get('decimals', 7)
 
@@ -1451,7 +1455,7 @@ class MySeedParameter(MyGroupParameter):
 
             self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
             self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
-            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', directory=self.directory))   # , brush='#add8e6'
+            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', directory=self.directory, survey=self.survey))   # , brush='#add8e6'
 
         self.parT = self.child('Seed type')
         self.parR = self.child('Source seed')
@@ -1888,6 +1892,10 @@ class MyWellParameter(MyGroupParameter):
         self.well = opts.get('value', self.well)
         directory = opts.get('directory', None)
 
+        self.survey = self.well.survey or opts.get('survey', None)
+        if self.survey is not None:
+            self.well.setSurvey(self.survey)
+
         d = opts.get('decimals', 7)
 
         nameFilter = 'Well files (*.wws *.well);;Deviation files [md,inc,azi] (*.wws);;OpendTect files [n,e,z,md] (*.well);;All files (*.*)'
@@ -1929,7 +1937,14 @@ class MyWellParameter(MyGroupParameter):
     def changedF(self):
         self.well.name = self.parF.value()                                      # file name has changed
 
-        success = self.well.readHeader(config.surveyCrs, config.glbTransform)
+        survey = self.survey or self.well.survey
+        if survey is not None:
+            self.well.setSurvey(survey)
+            survey.calcTransforms()
+            success = self.well.readHeader(survey.crs, survey.glbTransform)
+        else:
+            success = self.well.readHeader()
+
         if not success:
             self.well.origW = QVector3D(-999.0, -999.0, -999.0)
             self.well.origG = QPointF(-999.0, -999.0)
@@ -1955,7 +1970,14 @@ class MyWellParameter(MyGroupParameter):
     def changedC(self):
         self.well.crs = self.parC.value()
 
-        success = self.well.readHeader(config.surveyCrs, config.glbTransform)
+        survey = self.survey or self.well.survey
+        if survey is not None:
+            self.well.setSurvey(survey)
+            survey.calcTransforms()
+            success = self.well.readHeader(survey.crs, survey.glbTransform)
+        else:
+            success = self.well.readHeader()
+
         if not success:
             self.well.origW = QVector3D(-999.0, -999.0, -999.0)
             self.well.origG = QPointF(-999.0, -999.0)
@@ -2642,6 +2664,11 @@ class MyConfigurationParameter(MyGroupParameter):
         self.crs = self.parC.value()
         self.typ = self.parT.value()
         self.nam = self.parN.value()
+
+        if self.survey is not None:
+            self.survey.crs = self.crs
+            self.survey.type = SurveyType2[self.typ]
+            self.survey.name = self.nam
 
     def value(self):
         return (self.crs, self.typ, self.nam)

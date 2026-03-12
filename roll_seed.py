@@ -52,6 +52,7 @@ class RollSeed:
 
     def setSurvey(self, survey):
         self._surveyRef = weakref.ref(survey) if survey is not None else None
+        self.well.setSurvey(survey)
 
     @property
     def survey(self):

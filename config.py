@@ -249,13 +249,6 @@ def resetSpsDatabase():
 organization = 'Duijndam.Dev'
 application = 'Roll'
 
-# used to share a 'global' variable between roll_main_window.py and my_parameters.py
-patternList = []
-
-# currently used as a backdoor to access survey.crs and global transform from other parameters
-surveyCrs = None
-surveyTransform = None
-
 # k-plot settings
 kraStack = QVector3D(0.0, 20.0, 0.10)   # settings for kra plots (min, max, step size)
 kxyStack = QVector3D(-5.0, 5.0, 0.05)   # settings for kxy plots (min, max, step size)

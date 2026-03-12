@@ -750,9 +750,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # create valid pattern list, before using it in property panel
         self.updatePatternList(surveyCopy)
 
-        # first copy the crs for global access (todo: need to fix this later)
-        config.surveyCrs = surveyCopy.crs
-
         # brush color for main parameter categories
         brush = '#add8e6'
 
@@ -761,8 +758,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             dict(brush=brush, name='Survey analysis', type='myAnalysis', value=surveyCopy, default=surveyCopy),
             dict(brush=brush, name='Survey reflectors', type='myReflectors', value=surveyCopy, default=surveyCopy),
             dict(brush=brush, name='Survey grid', type='myGrid', value=surveyCopy.grid, default=surveyCopy.grid),
-            dict(brush=brush, name='Block list', type='myBlockList', value=surveyCopy.blockList, default=surveyCopy.blockList, directory=self.projectDirectory),
-            dict(brush=brush, name='Pattern list', type='myPatternList', value=surveyCopy.patternList, default=surveyCopy.patternList),
+            dict(brush=brush, name='Block list', type='myBlockList', value=surveyCopy.blockList, default=surveyCopy.blockList, directory=self.projectDirectory, survey=surveyCopy),
+            dict(brush=brush, name='Pattern list', type='myPatternList', value=surveyCopy.patternList, default=surveyCopy.patternList, survey=surveyCopy),
         ]
 
         self.parameters = pg.parametertree.Parameter.create(name='Survey Properties', type='group', children=surveyParams)
@@ -846,7 +843,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         surveyCopy.crs, surType, surveyCopy.name = CFG.value()                              # get tuple of data from parameter
         surveyCopy.type = SurveyType2[surType]                                        # SurveyType2 is an enum
-        config.surveyCrs = surveyCopy.crs                                             # needed for global access to crs
 
         ANA = self.parameters.child('Survey analysis')
         surveyCopy.output.rctOutput, surveyCopy.angles, surveyCopy.binning, surveyCopy.offset, surveyCopy.unique = ANA.value()
@@ -862,6 +858,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         PAT = self.parameters.child('Pattern list')
         surveyCopy.patternList = PAT.value()
+
+        surveyCopy.bindSeedsToSurvey()
 
         # first check survey integrity before committing to it.
         if surveyCopy.checkIntegrity(self.projectDirectory) is False:

@@ -396,8 +396,6 @@ class RollSurvey(pg.GraphicsObject):
         self.glbTransform.rotate(p)
         self.glbTransform.scale(q, r)
 
-        config.glbTransform = self.glbTransform                              # for global access to this transform
-
         # set up a QMatrix4x4 using the three transform steps (translate, rotate, scale)
         # glbMatrix1 = QMatrix4x4()
         # glbMatrix1.translate(QVector3D(x, y, 0))

@@ -1,4 +1,5 @@
 import os
+import weakref
 
 import numpy as np
 import wellpathpy as wp
@@ -8,7 +9,6 @@ from qgis.PyQt.QtCore import QFileInfo, QPointF, QRectF
 from qgis.PyQt.QtGui import QPolygonF, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from . import config  # used to pass initial settings
 from .aux_functions import myPrint, toFloat, toInt
 from .rdp import filterRdp
 
@@ -19,12 +19,7 @@ class RollWell:
         # input variables
         self.name = name                                                        # (relative) path to well file
         self.errorText = None                                                   # text explaining which error occurred
-
-        if config.surveyCrs is not None and config.surveyCrs.isValid():         # copy crs from project
-            self.crs = config.surveyCrs
-        else:
-            self.crs = QgsCoordinateReferenceSystem('EPSG:23095')               # ED50 / TM 5 NE (arbitrarily chosen)
-
+        self.crs = QgsCoordinateReferenceSystem('EPSG:23095')               # ED50 / TM 5 NE (arbitrarily chosen)
         self.ahd0 = 1000.0                                                      # first (along hole) depth
         self.dAhd = 15.0                                                        # along hole depth increment
         self.nAhd = 12                                                          # nr of along hole stations
@@ -39,12 +34,31 @@ class RollWell:
         # self.polygon = QPolygonF()                                              # polygon in local coordinates, to draw well trajectory; start empty
         self.polygon = None                                                     # QPolygonF() in local coordinates, to draw well trajectory; start with None
         self.pntList2D = []                                                     # points  in local coordinates, to draw well trajectory; start empty
+        self._surveyRef = None                                                  # weakref to RollSurvey
 
         # please note the seed's origin is hidden in the property editor, when using a well-based seed
         # instead, the well's origin is shown in 3 different CRSes; (a) well (b) global survey (c) local survey
         # in the xml file, the seed origin is shown in the local survey coordinates
 
         # for self.lod0 See: https://python.hotexamples.com/examples/PyQt5.QtGui/QPainter/drawPolyline/python-qpainter-drawpolyline-method-examples.html
+
+    def setSurvey(self, survey):
+        self._surveyRef = weakref.ref(survey) if survey is not None else None
+
+    @property
+    def survey(self):
+        return self._surveyRef() if self._surveyRef else None                 # return the referenced survey, or None if not set
+
+    def _resolveSurveyContext(self, surveyCrs=None, glbTransform=None):
+        survey = self.survey
+
+        if surveyCrs is None and survey is not None:
+            surveyCrs = survey.crs
+
+        if glbTransform is None and survey is not None:
+            glbTransform = survey.glbTransform
+
+        return surveyCrs, glbTransform
 
     def makePathRelative(self, basePath: str):
         """ convert self.name to a relative path upon saving the project """
@@ -93,9 +107,18 @@ class RollWell:
             # Be conservative on unexpected errors
             self.name = None
 
-    def readHeader(self, surveyCrs, glbTransform):
+    def readHeader(self, surveyCrs=None, glbTransform=None):
         header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
         self.errorText = None                                                   # text explaining which error occurred
+
+        surveyCrs, glbTransform = self._resolveSurveyContext(surveyCrs, glbTransform)
+
+        if surveyCrs is None or not surveyCrs.isValid():
+            self.errorText = 'No valid survey CRS available'
+            return False
+        if glbTransform is None:
+            self.errorText = 'No valid survey transform available'
+            return False
 
         f = self.name
         if f is None or not os.path.exists(f):                                  # check filename first
@@ -351,12 +374,14 @@ class RollWell:
         mds = np.cumsum(mds)
         return wp.deviation(md=np.array(mds), inc=np.array(incs), azi=np.array(azis))
 
-    def calcPointList(self, surveyCrs, glbTransform):
+    def calcPointList(self, surveyCrs=None, glbTransform=None):
         # See: https://stackoverflow.com/questions/49322017/merging-1d-arrays-into-a-2d-array
         # See: https://www.appsloveworld.com/numpy/100/17/how-can-i-efficiently-transfer-data-from-a-numpy-array-to-a-qpolygonf-when-using
         # See: https://stackoverflow.com/questions/5081875/ctypes-beginner for working with ctypes
 
+        surveyCrs, glbTransform = self._resolveSurveyContext(surveyCrs, glbTransform)
         success = self.readHeader(surveyCrs, glbTransform)
+
         if not success:
             return [], QVector3D(-999.0, -999.0, -999.0)
 
