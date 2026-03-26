@@ -17,11 +17,12 @@ PLUGIN_ROOT = os.path.dirname(TEST_DIR)
 if PLUGIN_ROOT not in sys.path:
     sys.path.insert(0, PLUGIN_ROOT)
 
-# Handle both package and direct-script test execution
-try:
+# Handle both package and direct-script test execution without falling back
+# to the production qgis_interface module on internal import errors.
+if __package__:
     from .qgis_interface import QgisInterface
-except ImportError:
-    from qgis_interface import QgisInterface
+else:
+    from test.qgis_interface import QgisInterface
 
 QGIS_APP = None
 CANVAS = None
@@ -29,12 +30,23 @@ PARENT = None
 IFACE = None
 
 
+def _toQgsArgv(argv=None):
+    argv = sys.argv if argv is None else argv
+    qgsArgv = []
+    for arg in argv:
+        if isinstance(arg, bytes):
+            qgsArgv.append(arg)
+        else:
+            qgsArgv.append(str(arg).encode('utf-8', errors='ignore'))
+    return qgsArgv
+
+
 def getQgisApp():
     """Start one QGIS application instance for tests."""
     global QGIS_APP, CANVAS, PARENT, IFACE                                      # pylint: disable=W0603
 
     if QGIS_APP is None:
-        QGIS_APP = QgsApplication(sys.argv, True)
+        QGIS_APP = QgsApplication(_toQgsArgv(), True)
         QGIS_APP.initQgis()
         LOGGER.debug(QGIS_APP.showSettings())
 

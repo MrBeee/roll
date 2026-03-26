@@ -190,5 +190,340 @@ If you want, I can take this one step further and turn these recommendations int
 2. A proposed target architecture diagram for the plugin.
 3. A prioritized backlog of refactor tickets written as actionable work items.
 
+**Concrete Execution Plan**
+
+This is the order I would actually execute. The plan is intentionally biased toward creating testable seams before touching broader state or threading behavior.
+
+**Phase 0 - Baseline and Safety Net**
+
+Goal:
+Create enough protection to refactor without breaking project load/save, well transforms, and array handling.
+
+Work items:
+1. Keep the existing plugin bootstrap tests as smoke tests.
+2. Add domain tests for survey XML round-trip, survey deepcopy, sidecar array shape validation, and filter functions.
+3. Add one minimal project fixture that includes:
+	- a .roll file,
+	- one well reference,
+	- one small analysis area,
+	- optional .bin.npy and .ana.npy sidecars.
+4. Add a profiling script or test helper that can time:
+	- project load,
+	- project save,
+	- import QC,
+	- geometry generation,
+	- duplicate filtering.
+
+Files to add or update first:
+1. test/test_roll_project_roundtrip.py
+2. test/test_project_sidecars.py
+3. test/test_sps_filters.py
+4. test/fixtures/...
+
+Exit criteria:
+1. A saved survey can be loaded again with matching survey metadata and output extents.
+2. Invalid sidecar dimensions are detected and ignored deterministically.
+3. Duplicate and orphan filters are covered by direct tests against sps_io_and_qc.py.
+
+Estimated effort:
+1 to 2 days.
+
+**Phase 1 - Extract Project Persistence First**
+
+Goal:
+Remove file-system persistence and sidecar-array orchestration from RollMainWindow without changing UI behavior.
+
+New module:
+project_service.py
+
+New types to introduce:
+1. ProjectLoadResult
+2. ProjectSaveResult
+3. SidecarLoadResult
+4. ProjectWarning or plain warning records
+
+Responsibilities for ProjectService:
+1. Read a .roll file from disk.
+2. Convert XML text into a RollSurvey instance.
+3. Load .bin.npy, .min.npy, .max.npy, .rms.npy, .off.npy, .azi.npy, .ana.npy, .rps.npy, .sps.npy, .xps.npy, .rec.npy, .rel.npy, and .src.npy.
+4. Validate expected shapes against survey output dimensions.
+5. Return structured results and warnings, not UI actions.
+6. Save project XML and sidecar arrays.
+
+Methods to move or split first from roll_main_window.py:
+1. fileLoad()
+	- extract raw file read,
+	- extract XML parse and survey creation,
+	- extract sidecar loading and dimension checks,
+	- extract numpy array reopening logic.
+2. fileSave()
+	- extract XML write,
+	- extract sidecar save policy,
+	- extract per-array save logic.
+3. fileSaveAs()
+	- keep dialog handling in UI,
+	- delegate actual persistence to ProjectService.
+
+What stays in RollMainWindow for now:
+1. QFileDialog interactions.
+2. Log message formatting.
+3. Model resets.
+4. Widget state updates.
+5. plotLayout(), handleImageSelection(), and property-tree refreshes.
+
+Suggested API shape:
+1. loadProject(fileName) -> ProjectLoadResult
+2. saveProject(fileName, survey, output, imports, geometry, useRelativePaths, projectDirectory) -> ProjectSaveResult
+
+Exit criteria:
+1. RollMainWindow no longer contains direct np.load/np.save logic for project sidecars.
+2. Project load/save can be exercised by tests without instantiating the full main window.
+3. Existing UI behavior remains unchanged.
+
+Estimated effort:
+3 to 5 days.
+
+**Phase 2 - Introduce Explicit Session State**
+
+Goal:
+Replace implicit shared runtime state with one explicit object owned by the main window.
+
+New module:
+session_state.py
+
+New types to introduce:
+1. SessionState
+2. ImportedDataState
+3. GeometryDataState
+4. AnalysisState
+
+SessionState should own:
+1. current survey
+2. output object
+3. rpsImport, spsImport, xpsImport
+4. recGeom, srcGeom, relGeom
+5. layout image selection state
+6. currently open project path and project directory
+7. recent file list
+8. interruption and processing flags that are truly session-specific
+
+Do not move into SessionState yet:
+1. persistent QSettings-backed preferences
+2. constants and SPS format defaults from config.py
+3. rendering style constants
+
+Refactor rule:
+RollMainWindow may still expose convenience properties, but the data owner becomes SessionState.
+
+Exit criteria:
+1. Main window initialization becomes simpler because grouped runtime state is created in one place.
+2. Future services receive state objects instead of many loosely related parameters.
+
+Estimated effort:
+2 to 3 days.
+
+**Phase 3 - Extract FilterService**
+
+Goal:
+Remove the repeated duplicate/orphan cleanup handlers and centralize data refresh rules.
+
+New module:
+filter_service.py
+
+Why this phase is early:
+The logic already exists in sps_io_and_qc.py, and the current UI layer repeats the same orchestration many times.
+
+Refactor target methods in roll_main_window.py:
+1. removeRpsDuplicates()
+2. removeSpsDuplicates()
+3. removeRpsOrphans()
+4. removeSpsOrphans()
+5. removeXpsDuplicates()
+6. removeXpsSpsOrphans()
+7. removeXpsRpsOrphans()
+8. removeRecDuplicates()
+9. removeSrcDuplicates()
+10. removeRecOrphans()
+11. removeSrcOrphans()
+12. removeRelDuplicates()
+13. removeRelSrcOrphans()
+14. removeRelRecOrphans()
+
+Implementation approach:
+1. Create a descriptor table that defines:
+	- source attribute name,
+	- model attribute name,
+	- filter function,
+	- whether hull/live-dead coordinates must be recomputed,
+	- log label,
+	- orphan mode if applicable.
+2. Create one generic applyPointFilter() path and one generic applyRelationFilter() path.
+3. Keep log-message wording stable to avoid confusing users.
+
+Exit criteria:
+1. The 14 handlers collapse into a small number of generic handlers plus descriptors.
+2. Filter functions are directly unit tested outside the UI.
+3. Layout refresh behavior remains unchanged.
+
+Estimated effort:
+2 days.
+
+**Phase 4 - Extract Import/QC Service**
+
+Goal:
+Separate SPS/RPS/XPS parsing and QC from the UI so later worker-thread changes are low risk.
+
+New module:
+import_service.py
+
+Responsibilities:
+1. Parse SPS, RPS, and XPS text into structured arrays.
+2. Run QC passes:
+	- unique markers,
+	- CRS conversion,
+	- line/stake transform calculation,
+	- orphan analysis.
+3. Return a result object and progress events or callbacks.
+
+Methods to split:
+1. fileImportSpsData()
+	- keep dialog selection in UI,
+	- move parsing/QC loops to service.
+
+Important note:
+Do not move this to a worker first. First isolate the logic, then decide if it should run in a worker.
+
+Exit criteria:
+1. Parsing and QC can be tested without a QMainWindow instance.
+2. Progress reporting is abstracted behind callbacks or signals.
+3. QApplication.processEvents is no longer required inside core parsing logic.
+
+Estimated effort:
+3 to 5 days.
+
+**Phase 5 - Split Plot and UI Refresh Orchestration**
+
+Goal:
+Separate domain mutation from redraw policy.
+
+New module:
+plot_service.py
+
+Responsibilities:
+1. Compute what needs redraw.
+2. Build image/colorbar inputs.
+3. Separate full layout refresh from partial invalidation.
+
+Near-term target methods:
+1. plotLayout() and its immediate helpers
+2. image selection handlers
+3. colorbar update logic used during load and analysis changes
+
+Refactor rule:
+The service computes plotting inputs; the main window still owns actual widget objects.
+
+Exit criteria:
+1. Data mutation no longer directly decides full redraw policy in many places.
+2. Small filters/import changes can invalidate only affected layers.
+
+Estimated effort:
+3 to 4 days.
+
+**Phase 6 - Move Remaining Mutable Runtime State Out of config.py**
+
+Goal:
+Leave config.py as defaults, constants, formatting tables, and style definitions only.
+
+Move out of config.py:
+1. timers and timing accumulators
+2. debug/session flags if they are mutable runtime state rather than defaults
+3. any remaining project-specific runtime objects
+
+Where to move them:
+1. timing state -> profiling helper or SessionState
+2. runtime flags -> SessionState or AppSettings depending on persistence needs
+
+Keep in config.py:
+1. SPS/RPS/XPS format definitions
+2. application identity strings
+3. display/style defaults
+4. constant limits and default values
+
+Exit criteria:
+1. config.py no longer acts as a runtime message bus.
+2. Runtime mutations are visible through owned objects.
+
+Estimated effort:
+1 to 2 days.
+
+**Phase 7 - Worker Contract Cleanup**
+
+Goal:
+Make workers consume explicit snapshots and return owned results.
+
+New modules or types:
+1. worker_models.py or snapshot types colocated with worker_threads.py
+2. BinningRequest
+3. BinningResult
+
+Changes:
+1. Replace broad XML or survey handoff where practical with a smaller request snapshot.
+2. Centralize result validation in one place.
+3. Stop writing worker results directly into broad UI-owned state from scattered callbacks.
+
+Important dependency:
+Do this only after Phase 1 through Phase 4 are complete. Otherwise the worker contracts will still mirror the current god-object design.
+
+Exit criteria:
+1. Worker inputs and outputs are explicit and documented.
+2. Completion handlers do less copying and less implicit mutation.
+
+Estimated effort:
+3 to 5 days.
+
+**Phase 8 - Performance Cleanup After Structure Is Stable**
+
+Goal:
+Only optimize after the architecture makes profiling results trustworthy.
+
+Targets:
+1. repeated np.unique passes in roll_survey.py
+2. memmap reopen/copy paths
+3. full replot after small data changes
+4. XML use for internal clone/transfer paths
+
+Rule:
+Do not optimize speculative hotspots before the service boundaries are in place.
+
+Exit criteria:
+1. A before/after profile exists for at least three survey sizes.
+2. Every optimization is tied to measured hotspots.
+
+Estimated effort:
+2 to 5 days depending on findings.
+
+**Backlog of First 12 Tickets**
+
+1. Add survey XML round-trip test.
+2. Add sidecar-dimension validation test.
+3. Add direct tests for deletePntDuplicates/deletePntOrphans/deleteRelDuplicates/deleteRelOrphans.
+4. Create project_service.py with loadProject() skeleton.
+5. Move raw .roll file reading and XML parse into ProjectService.
+6. Move sidecar load and validation into ProjectService.
+7. Move project save and sidecar save into ProjectService.
+8. Create SessionState and migrate main-window owned arrays into it.
+9. Create filter_service.py and replace duplicate/orphan handlers.
+10. Create import_service.py and move SPS/RPS/XPS parsing and QC logic.
+11. Split plot input computation from plot widget updates.
+12. Remove remaining mutable runtime state from config.py.
+
+**Definition of Done for the First Major Milestone**
+
+The first major milestone is complete when:
+1. RollMainWindow is no longer responsible for project persistence internals.
+2. Project load/save is covered by domain tests.
+3. Filter actions no longer duplicate orchestration logic across many handlers.
+4. Session runtime state has a single explicit owner.
+
 Note: Need to check if crs coordinate transform goes in the right direction for well-files.
 

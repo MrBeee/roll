@@ -4,11 +4,15 @@ import sys
 from ast import literal_eval
 
 import pyqtgraph as pg
-from console import console
 from qgis.PyQt.QtCore import QStandardPaths, pyqtSignal
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (QDialog, QDialogButtonBox, QHeaderView,
                                  QVBoxLayout)
+
+try:
+    from console import console
+except ImportError:
+    console = None
 
 try:    # need to TRY importing numba, only to see if it is available
     haveNumba = True
@@ -441,12 +445,14 @@ def readSettings(self):
     config.debug = self.settings.value('settings/debug/logging', False, type=bool)    # assume no debugging messages required
     config.debugpy = self.settings.value('settings/debug/debugpy', False, type=bool)      # assume no debugging in main/worker threads
 
-    if config.debug:
+    if config.debug and console is not None:
         if console._console is None:                                            # pylint: disable=W0212 # unfortunately need access to protected member
             console.show_console()                                              # opens the console for the first time
         else:
             console._console.setUserVisible(True)                               # pylint: disable=W0212 # unfortunately need access to protected member
         print('print() to Python console has been enabled; Python console is opened')   # this message should always be printed
+    elif config.debug:
+        print('print() to Python console has been enabled, but the QGIS console module is not available')
     else:
         print('print() to Python console has been disabled from now on')        # this message is the last one to be printed
 
@@ -457,7 +463,7 @@ def readSettings(self):
         if 'roll.functions_numba' in sys.modules:                               # If already imported, reload; otherwise, import
             importlib.reload(sys.modules['roll.functions_numba'])               # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
         else:
-            from roll import \
+            from . import \
                 functions_numba  # pylint: disable=C0415, W0611 # load it for the first time
 
     config.useRelativePaths = self.settings.value('settings/misc/useRelativePaths', True, type=bool)    # save well file names relative to .roll project file
@@ -523,6 +529,3 @@ def writeSettings(self):
     self.settings.setValue('settings/misc/showSummaries', config.showSummaries)    # show/hide summary information in property pane
 
     self.settings.sync()
-
-
-

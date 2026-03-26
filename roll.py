@@ -7,7 +7,7 @@
                               -------------------
         begin                : 2022-10-09
         git sha              : $Format:%H$
-        copyright            : (C) 2022 by Duijndam.Dev
+        copyright            : (C) 2022 - present by Duijndam.Dev
         email                : bart.duijndam@ziggo.nl
  ***************************************************************************/
 
@@ -146,7 +146,10 @@ class Roll:
         self.pluginDir = os.path.dirname(__file__)
 
         # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
+        locale = QSettings().value('locale/userLocale', 'en_US')
+        if not locale:
+            locale = 'en_US'
+        locale = str(locale)[0:2]
         localePath = os.path.join(self.pluginDir, 'i18n', f'Roll_{locale}.qm')
 
         if os.path.exists(localePath):

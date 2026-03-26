@@ -17,16 +17,8 @@ import unittest
 from qgis.PyQt.QtGui import QIcon
 
 
-class RollDialogTest(unittest.TestCase):
+class RollResourcesTest(unittest.TestCase):
     """Test rerources work."""
-
-    def setUp(self):
-        """Runs before each test."""
-        pass
-
-    def tearDown(self):
-        """Runs after each test."""
-        pass
 
     def testIconPng(self):
         """Test we can click OK."""
@@ -38,6 +30,3 @@ if __name__ == "__main__":
     suite = unittest.makeSuite(RollResourcesTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
-
-
-

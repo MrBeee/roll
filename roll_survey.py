@@ -17,11 +17,9 @@ from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
 from . import config  # used to pass initial settings
+from . import functions_numba as fnb
 from .aux_functions import containsPoint3D
 from .enums_and_int_flags import PaintDetails, PaintMode, SeedType, SurveyType2
-from .functions_numba import (clipLineF, numbaFixRelationRecord,
-                              numbaSetPointRecord, numbaSetRelationRecord,
-                              numbaSliceStats, pointsInRect)
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -37,6 +35,12 @@ from .roll_template import RollTemplate
 from .roll_translate import RollTranslate
 from .roll_unique import RollUnique
 from .sps_io_and_qc import pntType1, relType2
+
+# from .functions_numba import (clipLineF, numbaFixRelationRecord,
+#                               numbaSetPointRecord, numbaSetRelationRecord,
+#                               numbaSliceStats, pointsInRect)
+
+
 
 # See: https://realpython.com/python-multiple-constructors/#instantiating-classes-in-python for multiple constructors
 # See: https://stackoverflow.com/questions/39513191/python-operator-overloading-with-multiple-operands for operator overlaoding
@@ -940,7 +944,7 @@ class RollSurvey(pg.GraphicsObject):
             srcArray = srcSeed.pointArray + npTemplateOffset
 
             if not block.borders.srcBorder.isNull():                            # deal with block's source  border if it isn't null()
-                I = pointsInRect(srcArray, block.borders.srcBorder)
+                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
                 if I.shape[0] == 0:
                     continue
                 time = self.elapsedTime(time, 0)    ###
@@ -975,7 +979,7 @@ class RollSurvey(pg.GraphicsObject):
                 srcStkX, srcStkY = self.st2Transform.map(srcX, srcY)            # get line and point indices
                 srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)            # we need global positions
 
-                numbaSetPointRecord(self.output.srcGeom, nSrc, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
+                fnb.numbaSetPointRecord(self.output.srcGeom, nSrc, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
                 time = self.elapsedTime(time, 3)    ###
 
                 # now iterate over all seeds to find the receivers
@@ -989,7 +993,7 @@ class RollSurvey(pg.GraphicsObject):
                     time = self.elapsedTime(time, 4)    ###
 
                     if not block.borders.recBorder.isNull():                    # deal with block's receiver border if it isn't null()
-                        I = pointsInRect(recPoints, block.borders.recBorder)
+                        I = fnb.pointsInRect(recPoints, block.borders.recBorder)
                         if I.shape[0] == 0:
                             continue
                         else:
@@ -1016,7 +1020,7 @@ class RollSurvey(pg.GraphicsObject):
                         # we have a new receiver record
                         self.nRecRecord += 1
 
-                        numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
+                        fnb.numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
                         time = self.elapsedTime(time, 9)    ###
 
                         # apply self.output.recGeom.resize(N) when more memory is needed, after cleaning duplicates
@@ -1038,10 +1042,10 @@ class RollSurvey(pg.GraphicsObject):
                             self.nRelRecord += 1                                # increment relation record number
 
                             # create new relation record; fill it in completely
-                            numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcStkX, srcStkY, nBlock, self.nShotPoint, recStkY, recStkX, recStkX)
+                            fnb.numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcStkX, srcStkY, nBlock, self.nShotPoint, recStkY, recStkX, recStkX)
                         else:
                             # existing relation record; just update min/max rec stake numbers
-                            numbaFixRelationRecord(self.output.relGeom, self.nRelRecord, recStkX)
+                            fnb.numbaFixRelationRecord(self.output.relGeom, self.nRelRecord, recStkX)
                             # recMin = min(int(recStkX), self.output.relGeom[self.nRelRecord]['RecMin'])
                             # recMax = max(int(recStkX), self.output.relGeom[self.nRelRecord]['RecMax'])
                             # self.output.relGeom[self.nRelRecord]['RecMin'] = recMin
@@ -1098,13 +1102,13 @@ class RollSurvey(pg.GraphicsObject):
             srcArray = srcSeed.pointArray + npTemplateOffset
 
             if not block.borders.srcBorder.isNull():                            # deal with block's source border if it isn't null()
-                I = pointsInRect(srcArray, block.borders.srcBorder)
+                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
                 if I.shape[0] == 0:
                     continue
                 srcArray = srcArray[I, :]                                       # filter the source array
 
             for src in srcArray:                                                # iterate over all sources
-                # useful source point; pointsInRect passed it through
+                # useful source point; fnb.pointsInRect passed it through
 
                 # determine line & stake nrs for source point
                 srcX = src[0]
@@ -1113,7 +1117,7 @@ class RollSurvey(pg.GraphicsObject):
                 srcStkX, srcStkY = self.st2Transform.map(srcX, srcY)            # get line and point indices
                 srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)            # we need global positions
 
-                numbaSetPointRecord(self.output.srcGeom, self.nShotPoint, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
+                fnb.numbaSetPointRecord(self.output.srcGeom, self.nShotPoint, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
                 self.nShotPoint += 1                                            # increment for the next shot
 
         nRelRecord = -1                                                         # start with invalid value (will be 0 for 1st record)
@@ -1128,7 +1132,7 @@ class RollSurvey(pg.GraphicsObject):
             recPoints = recSeed.pointArray + npTemplateOffset
 
             if not block.borders.recBorder.isNull():                            # deal with block's receiver border if it isn't null()
-                I = pointsInRect(recPoints, block.borders.recBorder)
+                I = fnb.pointsInRect(recPoints, block.borders.recBorder)
                 if I.shape[0] == 0:
                     continue
                 else:
@@ -1155,7 +1159,7 @@ class RollSurvey(pg.GraphicsObject):
                 except KeyError:
                     self.output.recDict[recLine][recPoint] = self.nRecRecord    # use self.nRecRecord to create an entry in the self.output.recGeom table
 
-                    numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
+                    fnb.numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
                     self.nRecRecord += 1                                        # increment for the next receiver
 
                     arraySize = self.output.recGeom.shape[0]
@@ -1220,7 +1224,7 @@ class RollSurvey(pg.GraphicsObject):
                 recMax = self.output.relTemp[j]['RecMax']
 
                 # recInd equals srcInd (both are linked to the block number) so it is not entered separately
-                numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
+                fnb.numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
                 self.nRelRecord += 1
 
     def geomTemplate4(self, nBlock, block, template, templateOffset):
@@ -1250,7 +1254,7 @@ class RollSurvey(pg.GraphicsObject):
             srcArray = srcSeed.pointArray + npTemplateOffset
 
             if not block.borders.srcBorder.isNull():
-                I = pointsInRect(srcArray, block.borders.srcBorder)
+                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
                 if I.shape[0] == 0:
                     continue
                 srcArray = srcArray[I, :]
@@ -1262,7 +1266,7 @@ class RollSurvey(pg.GraphicsObject):
                 srcStkX, srcStkY = self.st2Transform.map(srcX, srcY)
                 srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)
 
-                numbaSetPointRecord(self.output.srcGeom, self.nShotPoint, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
+                fnb.numbaSetPointRecord(self.output.srcGeom, self.nShotPoint, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
                 self.nShotPoint += 1
 
         nRelRecord = -1
@@ -1276,7 +1280,7 @@ class RollSurvey(pg.GraphicsObject):
             recPoints = recSeed.pointArray + npTemplateOffset
 
             if not block.borders.recBorder.isNull():
-                I = pointsInRect(recPoints, block.borders.recBorder)
+                I = fnb.pointsInRect(recPoints, block.borders.recBorder)
                 if I.shape[0] == 0:
                     continue
                 recPoints = recPoints[I, :]
@@ -1301,7 +1305,7 @@ class RollSurvey(pg.GraphicsObject):
                     self.output.recDict[recInd][recLine][recPoint] = self.nRecRecord
 
                     numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
-                    # numbaSetPointRecord uses nBlock -> Index consistent with recInd
+                    # fnb.numbaSetPointRecord uses nBlock -> Index consistent with recInd
                     self.nRecRecord += 1
 
                     arraySize = self.output.recGeom.shape[0]
@@ -1347,7 +1351,7 @@ class RollSurvey(pg.GraphicsObject):
                 recMin = self.output.relTemp[j]['RecMin']
                 recMax = self.output.relTemp[j]['RecMax']
 
-                numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
+                fnb.numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
                 self.nRelRecord += 1
 
     def setupBinFromGeometry(self, fullAnalysis) -> bool:
@@ -1476,7 +1480,7 @@ class RollSurvey(pg.GraphicsObject):
                     if cmpPoints is None:
                         continue
 
-                I = pointsInRect(cmpPoints, self.output.rctOutput)              # find the cmp locations that contribute to the output area
+                I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)              # find the cmp locations that contribute to the output area
                 if I.shape[0] == 0:
                     continue
 
@@ -1487,7 +1491,7 @@ class RollSurvey(pg.GraphicsObject):
                 offArray = np.zeros(shape=(size, 3), dtype=np.float32)          # allocate the offset array according to rec array
                 offArray = recPoints - src                                      # define the offset array
 
-                I = pointsInRect(offArray, self.offset.rctOffsets)
+                I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
                 if I.shape[0] == 0:
                     continue
 
@@ -1780,7 +1784,7 @@ class RollSurvey(pg.GraphicsObject):
                     if cmpPoints is None:
                         continue
 
-                I = pointsInRect(cmpPoints, self.output.rctOutput)              # find the cmp locations that contribute to the output area
+                I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)              # find the cmp locations that contribute to the output area
                 if I.shape[0] == 0:
                     continue
 
@@ -1791,7 +1795,7 @@ class RollSurvey(pg.GraphicsObject):
                 offArray = np.zeros(shape=(size, 3), dtype=np.float32)          # allocate the offset array according to rec array
                 offArray = recPoints - src                                      # define the offset array
 
-                I = pointsInRect(offArray, self.offset.rctOffsets)
+                I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
                 if I.shape[0] == 0:
                     continue
 
@@ -1999,7 +2003,7 @@ class RollSurvey(pg.GraphicsObject):
                     offArray = recPoints - src
 
                 # Filter CMPs that are outside the geometry
-                I = pointsInRect(cmpPoints, self.output.rctOutput)
+                I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
                 if np.all(~I):
                     continue
 
@@ -2156,7 +2160,7 @@ class RollSurvey(pg.GraphicsObject):
                 else:
                     continue
 
-                I = pointsInRect(cmpPoints, self.output.rctOutput)
+                I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
                 if np.all(~I):
                     continue
 
@@ -2164,7 +2168,7 @@ class RollSurvey(pg.GraphicsObject):
                 recPoints = recPoints[I]
                 offArray = offArray[I]
 
-                I = pointsInRect(offArray, self.offset.rctOffsets)
+                I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
                 if np.all(~I):
                     continue
 
@@ -2367,7 +2371,7 @@ class RollSurvey(pg.GraphicsObject):
                 else:
                     continue
 
-                I = pointsInRect(cmpPoints, self.output.rctOutput)
+                I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
                 if np.all(~I):
                     continue
 
@@ -2375,7 +2379,7 @@ class RollSurvey(pg.GraphicsObject):
                 recPoints = recPoints[I]
                 offArray = offArray[I]
 
-                I = pointsInRect(offArray, self.offset.rctOffsets)
+                I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
                 if np.all(~I):
                     continue
 
@@ -2569,7 +2573,7 @@ class RollSurvey(pg.GraphicsObject):
             srcArray = srcSeed.pointArray + npTemplateOffset
 
             if not block.borders.srcBorder.isNull():                            # deal with block's source  border if it isn't null()
-                I = pointsInRect(srcArray, block.borders.srcBorder)
+                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
                 if I.shape[0] == 0:
                     continue
                 srcArray = srcArray[I, :]                                       # filter the source array
@@ -2596,7 +2600,7 @@ class RollSurvey(pg.GraphicsObject):
                     recPoints = recSeed.pointArray + npTemplateOffset
 
                     if not block.borders.recBorder.isNull():                    # deal with block's receiver border if it isn't null()
-                        I = pointsInRect(recPoints, block.borders.recBorder)
+                        I = fnb.pointsInRect(recPoints, block.borders.recBorder)
                         if I.shape[0] == 0:
                             continue
                         recPoints = recPoints[I, :]
@@ -2626,7 +2630,7 @@ class RollSurvey(pg.GraphicsObject):
                         if cmpPoints is None:
                             continue
 
-                    I = pointsInRect(cmpPoints, self.output.rctOutput)
+                    I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
                     if I.shape[0] == 0:
                         continue
 
@@ -2637,7 +2641,7 @@ class RollSurvey(pg.GraphicsObject):
                     offArray = np.zeros(shape=(size, 3), dtype=np.float32)      # allocate the offset array according to rec array
                     offArray = recPoints - src                                  # fill the offset array with  (x,y,z) values
 
-                    I = pointsInRect(offArray, self.offset.rctOffsets)
+                    I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
                     if I.shape[0] == 0:
                         continue
 
@@ -2737,7 +2741,7 @@ class RollSurvey(pg.GraphicsObject):
             srcArray = srcSeed.pointArray + npTemplateOffset
 
             if not block.borders.srcBorder.isNull():
-                I = pointsInRect(srcArray, block.borders.srcBorder)
+                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
                 if I.shape[0] == 0:
                     continue
                 srcArray = srcArray[I, :]
@@ -2759,7 +2763,7 @@ class RollSurvey(pg.GraphicsObject):
                     recPoints = recSeed.pointArray + npTemplateOffset
 
                     if not block.borders.recBorder.isNull():
-                        I = pointsInRect(recPoints, block.borders.recBorder)
+                        I = fnb.pointsInRect(recPoints, block.borders.recBorder)
                         if I.shape[0] == 0:
                             continue
                         recPoints = recPoints[I, :]
@@ -2788,14 +2792,14 @@ class RollSurvey(pg.GraphicsObject):
                     else:
                         continue
 
-                    I = pointsInRect(cmpPoints, self.output.rctOutput)
+                    I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
                     if np.all(~I):
                         continue
                     cmpPoints = cmpPoints[I]
                     recPoints = recPoints[I]
                     offArray = offArray[I]
 
-                    I = pointsInRect(offArray, self.offset.rctOffsets)
+                    I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
                     if np.all(~I):
                         continue
                     cmpPoints = cmpPoints[I]
@@ -3075,7 +3079,7 @@ class RollSurvey(pg.GraphicsObject):
             return False
 
         self.message.emit('Calc offset/azimuth distribution - 1/2')
-        offsets, azimuth, noData = numbaSliceStats(self.output.anaOutput, self.unique.apply)
+        offsets, azimuth, noData = fnb.numbaSliceStats(self.output.anaOutput, self.unique.apply)
         if noData:
             return False
 
@@ -3772,8 +3776,8 @@ class RollSurvey(pg.GraphicsObject):
                     offset = QVector3D()                                        # always start at (0, 0, 0)
                     offset += templateOffset                                    # start here
                     salvo = seed.grid.salvo.translated(offset.toPointF())       # move the line into place
-                    salvo = clipLineF(salvo, seed.blockBorder)                  # check line against block's src/rec border
-                    salvo = clipLineF(salvo, viewbox)                           # check line against viewbox
+                    salvo = fnb.clipLineF(salvo, seed.blockBorder)                  # check line against block's src/rec border
+                    salvo = fnb.clipLineF(salvo, viewbox)                           # check line against viewbox
 
                     if salvo.isNull():
                         return
@@ -3795,8 +3799,8 @@ class RollSurvey(pg.GraphicsObject):
                     offset = QVector3D()                                        # always start at (0, 0, 0)
                     offset += templateOffset                                    # start here
                     salvo = seed.salvo.grid.translated(offset.toPointF())       # move the line into place
-                    salvo = clipLineF(salvo, seed.blockBorder)                  # check line against block's src/rec border
-                    salvo = clipLineF(salvo, viewbox)                           # check line against viewbox
+                    salvo = fnb.clipLineF(salvo, seed.blockBorder)                  # check line against block's src/rec border
+                    salvo = fnb.clipLineF(salvo, viewbox)                           # check line against viewbox
 
                     if salvo.isNull():
                         return
@@ -3822,8 +3826,8 @@ class RollSurvey(pg.GraphicsObject):
                         offset += templateOffset                                # start here
                         offset += seed.grid.growList[0].increment * i           # we now have the correct location
                         salvo = seed.grid.salvo.translated(offset.toPointF())   # move the line into place
-                        salvo = clipLineF(salvo, seed.blockBorder)              # check line against block's src/rec border
-                        salvo = clipLineF(salvo, viewbox)                       # check line against viewbox
+                        salvo = fnb.clipLineF(salvo, seed.blockBorder)              # check line against block's src/rec border
+                        salvo = fnb.clipLineF(salvo, viewbox)                       # check line against viewbox
 
                         if salvo.isNull():
                             continue
@@ -3851,8 +3855,8 @@ class RollSurvey(pg.GraphicsObject):
                             offset += seed.grid.growList[0].increment * i       # we now have the correct location
                             offset += seed.grid.growList[1].increment * j       # we now have the correct location
                             salvo = seed.grid.salvo.translated(offset.toPointF())   # move the line into place
-                            salvo = clipLineF(salvo, seed.blockBorder)          # check line against block's src/rec border
-                            salvo = clipLineF(salvo, viewbox)                   # check line against viewbox
+                            salvo = fnb.clipLineF(salvo, seed.blockBorder)          # check line against block's src/rec border
+                            salvo = fnb.clipLineF(salvo, viewbox)                   # check line against viewbox
 
                             if salvo.isNull():
                                 continue

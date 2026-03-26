@@ -19,7 +19,7 @@ class RollWell:
         # input variables
         self.name = name                                                        # (relative) path to well file
         self.errorText = None                                                   # text explaining which error occurred
-        self.crs = QgsCoordinateReferenceSystem('EPSG:23095')               # ED50 / TM 5 NE (arbitrarily chosen)
+        self.crs = QgsCoordinateReferenceSystem('EPSG:23095')                   # ED50 / TM 5 NE (arbitrarily chosen)
         self.ahd0 = 1000.0                                                      # first (along hole) depth
         self.dAhd = 15.0                                                        # along hole depth increment
         self.nAhd = 12                                                          # nr of along hole stations
@@ -189,8 +189,8 @@ class RollWell:
 
         self.origW = QVector3D(header['surface_easting'], header['surface_northing'], header['elevation'])
 
-        # note: if survey's crs and well's crs are the same, the wellToGlobalTransform has no effect
-        wellToGlobalTransform = QgsCoordinateTransform(surveyCrs, self.crs, QgsProject.instance())
+        # note: Transform well crs to survey crs. if survey's crs and well's crs are the same, the wellToGlobalTransform has no effect
+        wellToGlobalTransform = QgsCoordinateTransform(self.crs, surveyCrs, QgsProject.instance())
 
         if not wellToGlobalTransform.isValid():                                 # no valid transform found
             self.errorText = 'invalid coordinate transform'
@@ -391,8 +391,8 @@ class RollWell:
         n = self.nAhd
         td = a + (n - 1) * s
 
-        # note: if survey's crs and well's crs are the same, the wellToGlobalTransform has no effect
-        wellToGlobalTransform = QgsCoordinateTransform(surveyCrs, self.crs, QgsProject.instance())
+        # note: Transform well crs to survey crs. if survey's crs and well's crs are the same, the wellToGlobalTransform has no effect
+        wellToGlobalTransform = QgsCoordinateTransform(self.crs, surveyCrs, QgsProject.instance())
 
         # create transform from global- to local coordinates
         toLocalTransform, _ = glbTransform.inverted()

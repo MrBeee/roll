@@ -43,7 +43,12 @@ from qgis.PyQt.QtWidgets import (QAction, QApplication, QFileDialog,
                                  QProgressBar, QTabWidget, QWidget)
 from qgis.PyQt.QtXml import QDomDocument
 
+# from .functions_numba import (numbaAziInline, numbaAziXline,
+#                               numbaFilterSlice2D, numbaNdft1D, numbaNdft2D,
+#                               numbaOffInline, numbaOffsetBin, numbaOffXline,
+#                               numbaSlice3D, numbaSliceStats)
 from . import config  # used to pass initial settings
+from . import functions_numba as fnb
 from .aux_classes import LineROI
 from .aux_functions import (aboutText, convexHull, exampleSurveyXmlText,
                             highDpiText, licenseText, myPrint,
@@ -57,10 +62,6 @@ from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
 # Superseded by FindNotepad, which is more user friendly and has a better implementation.
 # The old Find class is still available in find.py, but not imported here.
 from .find import FindNotepad
-from .functions_numba import (numbaAziInline, numbaAziXline,
-                              numbaFilterSlice2D, numbaNdft1D, numbaNdft2D,
-                              numbaOffInline, numbaOffsetBin, numbaOffXline,
-                              numbaSlice3D, numbaSliceStats)
 from .land_wizard import LandSurveyWizard
 from .logging_dock import createLoggingDock
 from .marine_wizard import MarineSurveyWizard
@@ -141,7 +142,7 @@ def runStandalone(argv=None, filePath=None):
             mainWindow.fileLoad(filePath)
         except (OSError, ValueError) as exc:
             with open(logPath, 'a', encoding='utf-8') as f:
-                f.write(f'[ERROR] _safeLoad failed: {exc}\n')            
+                f.write(f'[ERROR] _safeLoad failed: {exc}\n')
 
     if filePath:
         QTimer.singleShot(0, _safeLoad)
@@ -1592,7 +1593,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             colorMap = str(colorMap)
 
         colorMapObj = self.resolveColorMapObject(colorMap, fallback='viridis')
-        
+
         if self.layoutColorBar is None:                                             # create colorbar with default values
             try:
                 self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
@@ -2227,14 +2228,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             slice3D = self.output.anaOutput[:, nY, :, :]
             slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
-            slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+            slice2D = fnb.numbaFilterSlice2D(slice2D, self.survey.unique.apply)
 
             self.offTrkWidget.plotItem.clear()
             self.offTrkWidget.setTitle(plotTitle, color='b', size='16pt')
             if slice2D.shape[0] == 0:                                           # empty array
                 return
 
-            x, y = numbaOffInline(slice2D, ox)
+            x, y = fnb.numbaOffInline(slice2D, ox)
             self.offTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotOffBin(self, nX: int, stkX: int, oy: float):
@@ -2243,7 +2244,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             slice3D = self.output.anaOutput[nX, :, :, :]
             slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
-            slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+            slice2D = fnb.numbaFilterSlice2D(slice2D, self.survey.unique.apply)
 
             plotTitle = f'{self.plotTitles[2]} [stake={stkX}]'
             self.offBinWidget.setTitle(plotTitle, color='b', size='16pt')
@@ -2251,7 +2252,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            x, y = numbaOffXline(slice2D, oy)
+            x, y = fnb.numbaOffXline(slice2D, oy)
             self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotAziTrk(self, nY: int, stkY: int, ox: float):
@@ -2260,7 +2261,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             slice3D = self.output.anaOutput[:, nY, :, :]
             slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
-            slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+            slice2D = fnb.numbaFilterSlice2D(slice2D, self.survey.unique.apply)
 
             plotTitle = f'{self.plotTitles[3]} [line={stkY}]'
             self.aziTrkWidget.setTitle(plotTitle, color='b', size='16pt')
@@ -2268,7 +2269,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            x, y = numbaAziInline(slice2D, ox)
+            x, y = fnb.numbaAziInline(slice2D, ox)
             self.aziTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotAziBin(self, nX: int, stkX: int, oy: float):
@@ -2277,14 +2278,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             slice3D = self.output.anaOutput[nX, :, :, :]
             slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
-            slice2D = numbaFilterSlice2D(slice2D, self.survey.unique.apply)
+            slice2D = fnb.numbaFilterSlice2D(slice2D, self.survey.unique.apply)
 
             plotTitle = f'{self.plotTitles[4]} [stake={stkX}]'
             self.aziBinWidget.setTitle(plotTitle, color='b', size='16pt')
             if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            x, y = numbaAziXline(slice2D, oy)
+            x, y = fnb.numbaAziXline(slice2D, oy)
             self.aziBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotStkTrk(self, nY: int, stkY: int, x0: float, dx: float):
@@ -2294,11 +2295,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
-            slice3D, I = numbaSlice3D(self.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
+            slice3D, I = fnb.numbaSlice3D(self.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
             if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            self.inlineStk = numbaNdft1D(kMax, dK, slice3D, I)
+            self.inlineStk = fnb.numbaNdft1D(kMax, dK, slice3D, I)
 
             tr = QTransform()                                                   # prepare ImageItem transformation:
             tr.translate(x0, kStart)                                            # move image to correct location
@@ -2344,11 +2345,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
-            slice3D, I = numbaSlice3D(self.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
+            slice3D, I = fnb.numbaSlice3D(self.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
             if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            self.x0lineStk = numbaNdft1D(kMax, dK, slice3D, I)
+            self.x0lineStk = fnb.numbaNdft1D(kMax, dK, slice3D, I)
 
             tr = QTransform()                                                   # prepare ImageItem transformation:
             tr.translate(y0, kStart)                                            # move image to correct location
@@ -2400,7 +2401,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             kStart = 1000.0 * (kMin - 0.5 * dK)                                 # scale by factor 1000 as we want to show [1/km] on scale
             kDelta = 1000.0 * dK                                                # same here
 
-            offsetX, offsetY, noData = numbaOffsetBin(self.output.anaOutput[nX, nY, :, :], self.survey.unique.apply)
+            offsetX, offsetY, noData = fnb.numbaOffsetBin(self.output.anaOutput[nX, nY, :, :], self.survey.unique.apply)
             if noData:
                 fold = 0
             else:
@@ -2411,7 +2412,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 nX = kX.shape[0]
                 self.xyCellStk = np.ones(shape=(nX, nX), dtype=np.float32) * -50.0           # create -50 dB array of the right size and type
             else:
-                self.xyCellStk = numbaNdft2D(kMin, kMax, dK, offsetX, offsetY)
+                self.xyCellStk = fnb.numbaNdft2D(kMin, kMax, dK, offsetX, offsetY)
 
             i3 = self.pattern3.currentIndex() - 1                               # turn <no pattern> into -1
             i4 = self.pattern4.currentIndex() - 1
@@ -2419,11 +2420,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             if self.tbStackPatterns.isChecked() and i3 >= 0 and i3 < imax:
                 x3, y3 = self.survey.patternList[i3].calcPatternPointArrays()
-                self.xyCellStk = self.xyCellStk + numbaNdft2D(kMin, kMax, dK, x3, y3)
+                self.xyCellStk = self.xyCellStk + fnb.numbaNdft2D(kMin, kMax, dK, x3, y3)
 
             if self.tbStackPatterns.isChecked() and i4 >= 0 and i4 < imax:
                 x4, y4 = self.survey.patternList[i4].calcPatternPointArrays()
-                self.xyCellStk = self.xyCellStk + numbaNdft2D(kMin, kMax, dK, x4, y4)
+                self.xyCellStk = self.xyCellStk + fnb.numbaNdft2D(kMin, kMax, dK, x4, y4)
 
             tr = QTransform()                                               # prepare ImageItem transformation:
             tr.translate(kStart, kStart)                                    # move image to correct location
@@ -2470,7 +2471,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             oR = np.arange(0, oMax, dO)                                         # numpy array with values [0 ... oMax]
 
             if self.output.offstHist is None:
-                offsets, _, noData = numbaSliceStats(self.output.anaOutput, self.survey.unique.apply)
+                offsets, _, noData = fnb.numbaSliceStats(self.output.anaOutput, self.survey.unique.apply)
                 if noData:
                     return
 
@@ -2605,10 +2606,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     self.xyPatResp = np.zeros(shape=(nX, nX), dtype=np.float32)   # create zero array of the right size and type
 
                     if i1 >= 0 and i1 < imax:                                   # multiply with array response (dB -> multiplication becomes summation)
-                        self.xyPatResp = self.xyPatResp + numbaNdft2D(kMin, kMax, dK, x1, y1)
+                        self.xyPatResp = self.xyPatResp + fnb.numbaNdft2D(kMin, kMax, dK, x1, y1)
 
                     if i2 >= 0 and i2 < imax:                                   # multiply with array response (dB -> multiplication becomes summation)
-                        self.xyPatResp = self.xyPatResp + numbaNdft2D(kMin, kMax, dK, x2, y2)
+                        self.xyPatResp = self.xyPatResp + fnb.numbaNdft2D(kMin, kMax, dK, x2, y2)
 
                 tr = QTransform()                                               # prepare ImageItem transformation:
                 tr.translate(kStart, kStart)                                    # move image to correct location

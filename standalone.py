@@ -14,7 +14,7 @@ _LOG_FILE = None
 
 
 def _logMessage(message):
-    global _LOG_FILE
+    global _LOG_FILE                                                            # pylint: disable=W0603
     if _LOG_FILE is None:
         _LOG_FILE = open(LOG_PATH, 'a', encoding='utf-8')
         faulthandler.enable(_LOG_FILE)
@@ -25,7 +25,7 @@ def _logMessage(message):
 
 
 def _closeLogFile():
-    global _LOG_FILE
+    global _LOG_FILE                                                            # pylint: disable=W0603
     if _LOG_FILE is None:
         return
     try:
@@ -92,7 +92,7 @@ def ensureQgisPyqtgraph():
         removedUserSite = True
 
     try:
-        import pyqtgraph  # noqa: F401
+        import pyqtgraph  # pylint: disable=C0415, W0611
     except ModuleNotFoundError as exc:
         if removedUserSite:
             sys.path.append(userSite)
@@ -101,7 +101,7 @@ def ensureQgisPyqtgraph():
         versionTag = f'Python{sys.version_info.major}{sys.version_info.minor}'
         userSiteOk = bool(userSite and versionTag.lower() in userSite.lower())
         if userSiteOk:
-            import pyqtgraph  # noqa: F401
+            import pyqtgraph  # pylint: disable=C0415
             return
 
         message = (
@@ -116,7 +116,7 @@ def ensureQgisPyqtgraph():
 
 
 def configureQtBinding():
-    from qgis.PyQt.QtCore import QT_VERSION_STR
+    from qgis.PyQt.QtCore import QT_VERSION_STR  # pylint: disable=C0415
     qtMajor = int((QT_VERSION_STR or '5').split('.')[0])
     if qtMajor >= 6:
         os.environ.setdefault('QT_API', 'pyqt6')
@@ -127,7 +127,7 @@ def configureQtBinding():
 
 def logTopLevelWidgets():
     try:
-        from qgis.PyQt.QtWidgets import QApplication
+        from qgis.PyQt.QtWidgets import QApplication  # pylint: disable=C0415
         widgets = QApplication.topLevelWidgets()
         _logMessage(f"Top-level widgets: count={len(widgets)}")
         for w in widgets:
@@ -158,7 +158,7 @@ def main(argv=None):
             filePath = os.path.abspath(arg)
             break
 
-    from .roll_main_window import runStandalone
+    from .roll_main_window import runStandalone  # pylint: disable=C0415
     exitCode = runStandalone(argv if argv is not None else sys.argv, filePath=filePath)
     logTopLevelWidgets()
     return exitCode

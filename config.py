@@ -284,7 +284,46 @@ timerTtot = [0.0 for _ in range(20)]
 timerFreq = [0 for _ in range(20)]
 
 # style definitions for consistent style across the application
-toolButtonStyle = 'QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }'
+# toolButtonStyle = 'QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }'
+toolButtonStyle = '''
+QToolButton {
+    background-color: #f2f2f2;
+    color: #202020;
+    border: 1px solid #8f8f8f;
+    border-radius: 4px;
+    padding: 2px 5px;
+    margin: 1px;
+    min-height: 15px;
+}
+
+QToolButton:hover {
+    background-color: #e6f0ff;
+    border: 1px solid #5b8bd9;
+}
+
+QToolButton:pressed {
+    background-color: #cfe2ff;
+    border: 1px solid #3f6fb5;
+}
+
+QToolButton:checked {
+    background-color: #bcd7ff;
+    border: 1px solid #3f6fb5;
+    font-weight: bold;
+}
+
+QToolButton:checked:hover {
+    background-color: #aecdff;
+    border: 1px solid #2f5fa5;
+}
+
+QToolButton:disabled {
+    background-color: #f7f7f7;
+    color: #9a9a9a;
+    border: 1px solid #c8c8c8;
+}
+'''.strip()
+
 purpleLabelStyle = 'border: 1px solid black;background-color:lavender'
 exportButtonStyle = 'background-color:lightgoldenrodyellow; font-weight:bold;'
 purpleButtonStyle = 'background-color:lavender; font-weight:bold;'

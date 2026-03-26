@@ -83,13 +83,13 @@ class _DisplayDockBuilder:
         w.actionAllPoints.setChecked(True)
 
         layout = QVBoxLayout()
-        layout.addWidget(w.tbTemplat)
-        layout.addWidget(w.tbRecList)
-        layout.addWidget(w.tbSrcList)
-        layout.addWidget(w.tbRpsList)
-        layout.addWidget(w.tbSpsList)
+        layout.addWidget(w.tbTemplat, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(w.tbRecList, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(w.tbSrcList, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(w.tbRpsList, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(w.tbSpsList, 0, Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(QHLine())
-        layout.addWidget(w.tbAllList)
+        layout.addWidget(w.tbAllList, 0, Qt.AlignmentFlag.AlignHCenter)
 
         w.geometryChoice.setLayout(layout)
 
@@ -129,9 +129,9 @@ class _DisplayDockBuilder:
 
         layout = QVBoxLayout()
         for button in (w.tbNone, w.tbArea, w.tbFold, w.tbMinO, w.tbMaxO, w.tbRmsO):
-            layout.addWidget(button)
+            layout.addWidget(button, 0, Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(QHLine())
-        layout.addWidget(w.tbSpider)
+        layout.addWidget(w.tbSpider, 0, Qt.AlignmentFlag.AlignHCenter)
 
         nav = QHBoxLayout()
         nav.addStretch()

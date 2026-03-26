@@ -952,7 +952,7 @@ def calculateLineStakeTransform(spsImport) -> []:
     else:
         pointNumIncrement = pointIntIncrement / pointNumIncrement               # interval to increment grid by 1 in inline direction
 
-    # as origin, use the point where the line nr is at its minimum, 
+    # as origin, use the point where the line nr is at its minimum,
     # with minimum point nr in that same line, get east and north coordinates of that point
     lineMin = spsImport['Line'][0]
     pointMin = spsImport['Point'][0]

@@ -254,7 +254,7 @@ def getNameFromQtEnum(enum, value):
     Compatible with both PyQt5 and PyQt6.
     """
     # PyQt6 enums are subclasses of enum.Enum, PyQt5 are not
-    import enum as stdEnum
+    import enum as stdEnum  # pylint: disable=C0415
 
     # Handle PyQt6 enums (subclass of enum.Enum)
     if isinstance(enum, type) and issubclass(enum, stdEnum.Enum):
@@ -812,7 +812,7 @@ def aboutText() -> str:
         f'<li>Wellpathpy version: {wp.__version__} </li></ul>'
         f'Source code is available on GitHub {sourceUrl} <br> '
         f'Sample projects are available on GitHub {sampleUrl} <br><br> '
-        f'Copyright © 2022-2026 by Duijndam.Dev'
+        f'Copyright © 2022 - present by Duijndam.Dev'
     )
 
     return text
@@ -847,7 +847,7 @@ def highDpiText() -> str:
 
 def licenseText() -> str:
     licenseTxt = """
-    Copyright  © 2022-2024 by Duijndam.Dev. All rights reserved.
+    Copyright  © 2022 - present by Duijndam.Dev. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

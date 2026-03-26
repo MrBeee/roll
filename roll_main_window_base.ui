@@ -241,7 +241,7 @@
     </widget>
     <widget class="QMenu" name="menuShow_areas">
      <property name="title">
-      <string>Show areas</string>
+      <string>Areas to show</string>
      </property>
      <addaction name="actionShowCmpArea"/>
      <addaction name="actionShowSrcArea"/>
@@ -1161,7 +1161,7 @@
      <normaloff>resources/mActionTemplates.svg</normaloff>resources/mActionTemplates.svg</iconset>
    </property>
    <property name="text">
-    <string>Show templates</string>
+    <string>Templates</string>
    </property>
    <property name="toolTip">
     <string>Show templates</string>
@@ -1485,10 +1485,10 @@
      <normaloff>resources/mActionSrcArea.svg</normaloff>resources/mActionSrcArea.svg</iconset>
    </property>
    <property name="text">
-    <string>Show source areas</string>
+    <string>Source areas</string>
    </property>
    <property name="toolTip">
-    <string>source areas</string>
+    <string>Show source areas</string>
    </property>
   </action>
   <action name="actionShowRecArea">
@@ -1500,10 +1500,10 @@
      <normaloff>resources/mActionRecArea.svg</normaloff>resources/mActionRecArea.svg</iconset>
    </property>
    <property name="text">
-    <string>Show receiver areas</string>
+    <string>Receiver areas</string>
    </property>
    <property name="toolTip">
-    <string>receiver areas</string>
+    <string>Show receiver areas</string>
    </property>
   </action>
   <action name="actionShowCmpArea">
@@ -1515,7 +1515,7 @@
      <normaloff>resources/mActionCmpArea.svg</normaloff>resources/mActionCmpArea.svg</iconset>
    </property>
    <property name="text">
-    <string>Show CMP areas</string>
+    <string>CMP areas</string>
    </property>
    <property name="toolTip">
     <string>Show CMP areas</string>

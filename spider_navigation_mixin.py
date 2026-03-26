@@ -26,8 +26,9 @@ import pyqtgraph as pg
 from qgis.PyQt.QtCore import QItemSelection, QItemSelectionModel, QPoint, Qt
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
+# from .functions_numba import numbaSpiderBin
+from . import functions_numba as fnb
 from .enums_and_int_flags import Direction, MsgType
-from .functions_numba import numbaSpiderBin
 
 
 class SpiderNavigationMixin:
@@ -136,7 +137,7 @@ class SpiderNavigationMixin:
             self.spiderSrcX = self.spiderSrcY = self.spiderRecX = self.spiderRecY = None
 
         # if fold > 0:
-        #     legs = numbaSpiderBin(self.output.anaOutput[nX, nY, 0:fold, :])
+        #     legs = fnb.numbaSpiderBin(self.output.anaOutput[nX, nY, 0:fold, :])
         #     self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = legs
         # else:
         #     self.spiderSrcX = self.spiderSrcY = self.spiderRecX = self.spiderRecY = None
@@ -166,7 +167,7 @@ class SpiderNavigationMixin:
 
     def _spiderLegArrays(self, slice2d: np.ndarray):
         try:
-            return numbaSpiderBin(slice2d)
+            return fnb.numbaSpiderBin(slice2d)
         except Exception as exc:
             module = exc.__class__.__module__
             isNumbaExc = module.startswith('numba')
