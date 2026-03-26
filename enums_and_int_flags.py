@@ -27,7 +27,7 @@ class SeedType(IntFlag):
     spiral = 3
     well = 4
 
-class SurveyType(Enum):
+class SurveyTypeOld(Enum):
     Orthogonal = 0
     Parallel = 1
     Slanted = 2
@@ -35,7 +35,7 @@ class SurveyType(Enum):
     Zigzag = 4
     Streamer = 5
 
-class SurveyType2(Enum):
+class SurveyType(Enum):
     Orthogonal = (0, "Orthogonal - standard manner of acquiring land data")
     Parallel   = (1, "Parallel - standard manner of acquiring OBN data")
     Slanted    = (2, "Slanted - legacy variation on orthogonal, aiming to reduce LMOS")
@@ -62,7 +62,7 @@ class SurveyType2(Enum):
         return [m.description for m in cls]
 
     @classmethod
-    def fromCode(cls, code: int) -> "SurveyType2":
+    def fromCode(cls, code: int) -> "SurveyType":
         return next(m for m in cls if m.code == code)
 
     @classmethod

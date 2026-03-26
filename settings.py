@@ -323,7 +323,12 @@ class SettingsDialog(QDialog):
         config.useNumba = MIS.child('Use Numba').value()
         if haveNumba:                                                           # can only do this when numba has been installed
             numba.config.DISABLE_JIT = not config.useNumba                      # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
-            importlib.reload(sys.modules['roll.functions_numba'])               # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
+            moduleName = f'{__package__}.functions_numba'
+            module = sys.modules.get(moduleName)
+            if module is not None:
+                importlib.reload(module)                                        # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
+            else:
+                importlib.import_module(moduleName)                             # load it for the first time, which will ensure proper value of numba.config.DISABLE_JIT is being used
 
         config.useRelativePaths = MIS.child('Use relative paths').value()       # save well file names relative to .roll project file
         config.showUnfinished = MIS.child('Show unfinished code').value()       # show/hide "work in progress"
@@ -460,11 +465,12 @@ def readSettings(self):
     config.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)   # assume Numba not installed (and used) by default
     if haveNumba:                                                               # can only do this when numba has been installed
         numba.config.DISABLE_JIT = not config.useNumba                          # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
-        if 'roll.functions_numba' in sys.modules:                               # If already imported, reload; otherwise, import
-            importlib.reload(sys.modules['roll.functions_numba'])               # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
+        moduleName = f'{__package__}.functions_numba'
+        module = sys.modules.get(moduleName)
+        if module is not None:                                                  # If already imported, reload; otherwise, import
+            importlib.reload(module)                                            # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
         else:
-            from . import \
-                functions_numba  # pylint: disable=C0415, W0611 # load it for the first time
+            importlib.import_module(moduleName)                                 # load it for the first time, which will ensure proper value of numba.config.DISABLE_JIT is being used
 
     config.useRelativePaths = self.settings.value('settings/misc/useRelativePaths', True, type=bool)    # save well file names relative to .roll project file
     config.showUnfinished = self.settings.value('settings/misc/showUnfinished', False, type=bool)       # show unfinished code

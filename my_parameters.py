@@ -7,7 +7,7 @@ from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
 from .aux_functions import myPrint
-from .enums_and_int_flags import SeedType, SurveyType2
+from .enums_and_int_flags import SeedType, SurveyType
 from .my_cmap import MyCmapParameter
 from .my_crs import MyCrsParameter
 from .my_crs2 import MyCrs2Parameter
@@ -2646,7 +2646,7 @@ class MyConfigurationParameter(MyGroupParameter):
         self.crs = self.survey.crs
         self.typ = self.survey.type
         self.nam = self.survey.name
-        surTypes = SurveyType2.names()
+        surTypes = SurveyType.names()
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Survey CRS', type='myCrs2', value=self.crs, default=self.crs, expanded=False, flat=True))
@@ -2667,7 +2667,7 @@ class MyConfigurationParameter(MyGroupParameter):
 
         if self.survey is not None:
             self.survey.crs = self.crs
-            self.survey.type = SurveyType2[self.typ]
+            self.survey.type = SurveyType[self.typ]
             self.survey.name = self.nam
 
     def value(self):

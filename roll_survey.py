@@ -19,7 +19,7 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 from . import config  # used to pass initial settings
 from . import functions_numba as fnb
 from .aux_functions import containsPoint3D
-from .enums_and_int_flags import PaintDetails, PaintMode, SeedType, SurveyType2
+from .enums_and_int_flags import PaintDetails, PaintMode, SeedType, SurveyType
 from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
@@ -189,7 +189,7 @@ class RollSurvey(pg.GraphicsObject):
 
         # survey configuration
         self.crs = QgsCoordinateReferenceSystem()                               # create invalid crs object
-        self.type = SurveyType2.Orthogonal                                      # survey type as defined in class SurveyType2()
+        self.type = SurveyType.Orthogonal                                      # survey type as defined in class SurveyType()
         self.name: str = name
 
         # note: type() is a builtin Python function, so it is recommended NOT to use it as a variable name
@@ -1304,7 +1304,7 @@ class RollSurvey(pg.GraphicsObject):
                 except KeyError:
                     self.output.recDict[recInd][recLine][recPoint] = self.nRecRecord
 
-                    numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
+                    fnb.numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
                     # fnb.numbaSetPointRecord uses nBlock -> Index consistent with recInd
                     self.nRecRecord += 1
 
@@ -3290,7 +3290,7 @@ class RollSurvey(pg.GraphicsObject):
                 # print(tagName + "---->")
 
                 if tagName == 'type':
-                    self.type = SurveyType2[e.text()]
+                    self.type = SurveyType[e.text()]
 
                 elif tagName == 'name':
                     self.name = e.text()
@@ -3895,8 +3895,12 @@ class RollSurvey(pg.GraphicsObject):
             # PyQt/PyQtGraph QVariant conversion mismatch in some runtimes.
             # Keep app responsive instead of flooding traceback.
             # This can be triggered by zooming/panning in the view, or by resizing the window, or by any change that triggers a redraw.
-            # The offending call is likely in GraphicsObject.itemChange, which is called by the framework when certain properties change (like position, scale, etc.). The exact change types that trigger this can vary, but it’s often related to transformations or geometry changes.
-            # The error occurs because the base implementation of itemChange in GraphicsObject expects a QVariant, but in some PyQt/PyQtGraph versions or configurations, it might receive a native Python type instead, leading to a TypeError when it tries to convert it to QVariant.
-            # By catching this exception, we can prevent the application from crashing due to this mismatch. However, it’s important to note that this is more of a workaround than a proper fix. Ideally, the underlying issue in the PyQt/PyQtGraph version should be addressed to ensure compatibility with native Python types.
-            # This routine was introduced when allowing the use of Roll as a standalone module without PyQtGraph, but it can also be useful in the integrated application to prevent crashes due to this issue.
+            # The offending call is likely in GraphicsObject.itemChange, which is called by the framework when certain properties change (like position, scale, etc.).
+            # The exact change types that trigger this can vary, but it’s often related to transformations or geometry changes.
+            # The error occurs because the base implementation of itemChange in GraphicsObject expects a QVariant,
+            # but in some PyQt/PyQtGraph versions or configurations, it might receive a native Python type instead, leading to a TypeError when it tries to convert it to QVariant.
+            # By catching this exception, we can prevent the application from crashing due to this mismatch. However, it’s important to note that this is more of a workaround than a proper fix.
+            # Ideally, the underlying issue in the PyQt/PyQtGraph version should be addressed to ensure compatibility with native Python types.
+            # This routine was introduced when allowing the use of Roll as a standalone module without PyQtGraph,
+            # but it can also be useful in the integrated application to prevent crashes due to this issue.
             return value

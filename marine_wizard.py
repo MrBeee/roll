@@ -35,7 +35,7 @@ from .config import (dSpinBoxBoldStyle, dSpinBoxErrorStyle,
                      labelWarningStyle, nSpinBoxErrorStyle, nSpinBoxExactStyle,
                      nSpinBoxWarningStyle, wizardComboHighlightStyle,
                      wizardEditHighlightStyle)
-from .enums_and_int_flags import PaintDetails, PaintMode, SurveyType2
+from .enums_and_int_flags import PaintDetails, PaintMode, SurveyType
 from .pg_toolbar import PgToolBar
 from .roll_pattern import RollPattern
 from .roll_survey import RollSurvey
@@ -91,7 +91,7 @@ class Page1(SurveyWizardPage):
         # create some widgets
         self.name = QLineEdit()
         self.name.setStyleSheet(wizardEditHighlightStyle)
-        name = SurveyType2.Streamer.name                       # get name from enum
+        name = SurveyType.Streamer.name                       # get name from enum
         number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
         self.name.setText(f'{name}_{number}')                                   # show the new name
         self.registerField('name', self.name)                                   # Survey name
@@ -101,7 +101,7 @@ class Page1(SurveyWizardPage):
         # See: https://stackoverflow.com/questions/33796022/use-registerfield-in-pyqt
 
         self.type = QComboBox()
-        SurveyList = SurveyType2.descriptions()
+        SurveyList = SurveyType.descriptions()
         self.type.addItem(SurveyList[-1])
         self.type.setStyleSheet(wizardComboHighlightStyle)
         self.registerField('type', self.type)                                   # Survey type
@@ -592,7 +592,7 @@ class Page2(SurveyWizardPage):
 
         # fill in the survey object information we already know now
         self.parent.survey.name = self.field('name')                            # Survey name
-        self.parent.survey.type = SurveyType2.Streamer                          # Survey type Enum
+        self.parent.survey.type = SurveyType.Streamer                          # Survey type Enum
 
         # we know the cable length, so let's use that to define the allowed offsets
         cL = self.field('cabLength')                                            # streamer length

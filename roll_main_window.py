@@ -57,7 +57,7 @@ from .binning_worker_mixin import BinningWorkerMixin
 from .chunked_data import ChunkedData
 from .display_dock import createDisplayDock
 from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
-                                  SurveyType2)
+                                  SurveyType)
 # from .find import Find.
 # Superseded by FindNotepad, which is more user friendly and has a better implementation.
 # The old Find class is still available in find.py, but not imported here.
@@ -843,7 +843,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         CFG = self.parameters.child('Survey configuration')
 
         surveyCopy.crs, surType, surveyCopy.name = CFG.value()                              # get tuple of data from parameter
-        surveyCopy.type = SurveyType2[surType]                                        # SurveyType2 is an enum
+        surveyCopy.type = SurveyType[surType]                                        # SurveyType is an enum
 
         ANA = self.parameters.child('Survey analysis')
         surveyCopy.output.rctOutput, surveyCopy.angles, surveyCopy.binning, surveyCopy.offset, surveyCopy.unique = ANA.value()
@@ -2501,7 +2501,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             oMax = ceil(self.output.maxMaxOffset / dO) * dO + dO                # max y-scale; make sure end value is included
 
             if self.output.ofAziHist is None:                                   # calculate offset/azimuth distribution
-                offsets, azimuth, noData = numbaSliceStats(self.output.anaOutput, self.survey.unique.apply)
+                offsets, azimuth, noData = fnb.numbaSliceStats(self.output.anaOutput, self.survey.unique.apply)
                 if noData:
                     return
 
@@ -2962,7 +2962,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.setWindowTitle(self.tr(f'{shownName}[*] - Roll Survey'))           # update window name, with optional * for modified status
         self.setWindowModified(False)                                           # reset document status
 
+    def resolveRecentFileName(self, fileName):
+        if fileName and not os.path.isabs(fileName) and self.projectDirectory:
+            return os.path.join(self.projectDirectory, fileName)
+        return fileName
+
     def updateRecentFileActions(self):                                          # update the MRU file menu actions
+        prunedRecentFiles = []
+        for fileName in self.recentFileList:
+            resolvedName = self.resolveRecentFileName(fileName)
+            if resolvedName and os.path.exists(resolvedName):
+                prunedRecentFiles.append(fileName)
+
+        if prunedRecentFiles != self.recentFileList:
+            self.recentFileList = prunedRecentFiles
+            writeSettings(self)
+
         numRecentFiles = min(len(self.recentFileList), config.maxRecentFiles)   # get actual number of recent files
 
         for i in range(numRecentFiles):
@@ -3017,7 +3032,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         #     self.actionTemplates.setChecked(False)
 
         # check if it is a marine survey; set seed plotting details accordingly
-        if self.survey.type == SurveyType2.Streamer:
+        if self.survey.type == SurveyType.Streamer:
             self.survey.paintDetails &= ~PaintDetails.recPnt
             self.survey.paintDetails &= ~PaintDetails.recPat
 
@@ -3657,6 +3672,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if fn:
                 self.fileLoad(fn)                                               # load() does all the hard work
 
+    def removeRecentFile(self, fileName):
+        removed = False
+        while True:
+            try:
+                self.recentFileList.remove(fileName)
+                removed = True
+            except ValueError:
+                break
+
+        if removed:
+            self.updateRecentFileActions()
+            writeSettings(self)
+
+        return removed
+
     def fileOpenRecent(self):
         action = self.sender()
         if action:
@@ -3664,9 +3694,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if data is None:
                 return
             toString = getattr(data, 'toString', None)
-            fileName = toString() if callable(toString) else str(data)
-            if fileName and not os.path.isabs(fileName) and self.projectDirectory:
-                fileName = os.path.join(self.projectDirectory, fileName)
+            recentName = toString() if callable(toString) else str(data)
+            fileName = self.resolveRecentFileName(recentName)
+
+            if not fileName or not os.path.exists(fileName):
+                self.removeRecentFile(recentName)
+                self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Recent file no longer exists and was removed from the list: {fileName}', MsgType.Error)
+                return
+
             self.fileLoad(fileName)
 
     def fileSave(self):
