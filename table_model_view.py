@@ -632,9 +632,9 @@ class RpsTableModel(QAbstractTableModel):
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
-            inXps = record['InXps']
-            if not inXps:
-                return QBrush(QColor(200, 200, 200))                            # inactive -> grey
+            inUse = record['InUse']
+            if not inUse:
+                return QBrush(QColor(160, 160, 160))                            # inactive -> grey
             return QVariant()
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
@@ -891,9 +891,9 @@ class SpsTableModel(QAbstractTableModel):
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
-            inXps = record['InXps']
-            if not inXps:
-                return QBrush(QColor(200, 200, 200))                            # inactive -> grey
+            inUse = record['InUse']
+            if not inUse:
+                return QBrush(QColor(160, 160, 160))                            # inactive -> grey
             return QVariant()
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):

@@ -56,6 +56,7 @@ from .chunked_data import ChunkedData
 from .display_dock import createDisplayDock
 from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
                                   SurveyType)
+from .filter_service import FilterService
 # from .find import Find.
 # Superseded by FindNotepad, which is more user friendly and has a better implementation.
 # The old Find class is still available in find.py, but not imported here.
@@ -79,18 +80,17 @@ from .roll_main_window_create_stack_response_tab import createStackResponseTab
 from .roll_main_window_create_trace_table_tab import createTraceTableTab
 from .roll_output import RollOutput
 from .roll_survey import RollSurvey
+from .session_service import SessionService
 from .settings import SettingsDialog, readSettings, writeSettings
 from .spider_navigation_mixin import SpiderNavigationMixin
 from .sps_import_dialog import SpsImportDialog
 from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
-                            convertCrs, deletePntDuplicates, deletePntOrphans,
-                            deleteRelDuplicates, deleteRelOrphans,
-                            exportDataAsTxt, fileExportAsR01, fileExportAsS01,
-                            fileExportAsX01, findRecOrphans, findSrcOrphans,
-                            getAliveAndDead, markUniqueRPSrecords,
-                            markUniqueSPSrecords, markUniqueXPSrecords,
-                            pntType1, readRpsLine, readSpsLine, readXpsLine,
-                            relType2)
+                            convertCrs, exportDataAsTxt, fileExportAsR01,
+                            fileExportAsS01, fileExportAsX01, findRecOrphans,
+                            findSrcOrphans, getAliveAndDead,
+                            markUniqueRPSrecords, markUniqueSPSrecords,
+                            markUniqueXPSrecords, pntType1, readRpsLine,
+                            readSpsLine, readXpsLine, relType2)
 from .survey_paint_mixin import SurveyPaintMixin
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
@@ -208,7 +208,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # list with most recently used [mru] file actions
         self.recentFileActions = []
         self.recentFileList = []
+        self.filterService = FilterService()
         self.projectService = ProjectService()
+        self.sessionService = SessionService()
 
         # workerTread parameters
         self.worker = None                                                      # 'moveToThread' object
@@ -1056,80 +1058,25 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.appendLogMessage(f'Sorting: XPS-data sorted on {self.xpsModel.sortColumns()}')
 
     def removeRpsDuplicates(self):
-        if self.rpsImport is None:
-            return
-
-        self.rpsImport, before, after = deletePntDuplicates(self.rpsImport)
-        self.rpsModel.setData(self.rpsImport)                                   # update the model's data
-        if after < before:                                                      # need to update the (x, y) points as well
-            self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
-            self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)            # get the convex hull of the rps points
-            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
-            self.plotLayout()
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps-duplicates')
+        self._applyConfiguredPointFilter('rps_duplicates', 'rpsImport', self.rpsModel, ('rpsLiveE', 'rpsLiveN', 'rpsDeadE', 'rpsDeadN'), boundAttr='rpsBound')
 
     def removeSpsDuplicates(self):
-        if self.spsImport is None:
-            return
-
-        self.spsImport, before, after = deletePntDuplicates(self.spsImport)
-        self.spsModel.setData(self.spsImport)
-        if after < before:
-            self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
-            self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)            # get the convex hull of the rps points
-            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
-            self.plotLayout()
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps-duplicates')
+        self._applyConfiguredPointFilter('sps_duplicates', 'spsImport', self.spsModel, ('spsLiveE', 'spsLiveN', 'spsDeadE', 'spsDeadN'), boundAttr='spsBound')
 
     def removeRpsOrphans(self):
-        if self.rpsImport is None:
-            return
-
-        self.rpsImport, before, after = deletePntOrphans(self.rpsImport)
-        self.rpsModel.setData(self.rpsImport)
-        if after < before:
-            self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
-            self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)            # get the convex hull of the rps points
-            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
-            self.plotLayout()
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rps/xps-orphans')
+        self._applyConfiguredPointFilter('rps_orphans', 'rpsImport', self.rpsModel, ('rpsLiveE', 'rpsLiveN', 'rpsDeadE', 'rpsDeadN'), boundAttr='rpsBound')
 
     def removeSpsOrphans(self):
-        if self.spsImport is None:
-            return
-
-        self.spsImport, before, after = deletePntOrphans(self.spsImport)
-        self.spsModel.setData(self.spsImport)
-        if after < before:
-            self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
-            self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)            # get the convex hull of the rps points
-            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
-            self.plotLayout()
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} sps/xps-orphans')
+        self._applyConfiguredPointFilter('sps_orphans', 'spsImport', self.spsModel, ('spsLiveE', 'spsLiveN', 'spsDeadE', 'spsDeadN'), boundAttr='spsBound')
 
     def removeXpsDuplicates(self):
-        if self.xpsImport is None:
-            return
-
-        self.xpsImport, before, after = deleteRelDuplicates(self.xpsImport)
-        self.xpsModel.setData(self.xpsImport)
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} xps-duplicates')
+        self._applyConfiguredRelationFilter('xps_duplicates', 'xpsImport', self.xpsModel)
 
     def removeXpsSpsOrphans(self):
-        if self.xpsImport is None:
-            return
-
-        self.xpsImport, before, after = deleteRelOrphans(self.xpsImport, True)
-        self.xpsModel.setData(self.xpsImport)
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} xps/sps-orphans')
+        self._applyConfiguredRelationFilter('xps_sps_orphans', 'xpsImport', self.xpsModel)
 
     def removeXpsRpsOrphans(self):
-        if self.xpsImport is None:
-            return
-
-        self.xpsImport, before, after = deleteRelOrphans(self.xpsImport, False)
-        self.xpsModel.setData(self.xpsImport)
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} xps/rps-orphans')
+        self._applyConfiguredRelationFilter('xps_rps_orphans', 'xpsImport', self.xpsModel)
 
     # define src, rec, rel button functions
     def sortRecData(self, index):
@@ -1154,76 +1101,56 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.appendLogMessage(f'Sorting: REL-data sorted on {self.relModel.sortColumns()}')
 
     def removeRecDuplicates(self):
-        if self.recGeom is None:
-            return
-
-        self.recGeom, before, after = deletePntDuplicates(self.recGeom)
-        self.recModel.setData(self.recGeom)                                     # update the model's data
-        if after < before:                                                      # need to update the (x, y) points as well
-            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
-            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
-            self.plotLayout()
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec-duplicates')
+        self._applyConfiguredPointFilter('rec_duplicates', 'recGeom', self.recModel, ('recLiveE', 'recLiveN', 'recDeadE', 'recDeadN'))
 
     def removeSrcDuplicates(self):
-        if self.srcGeom is None:
-            return
-
-        self.srcGeom, before, after = deletePntDuplicates(self.srcGeom)
-        self.srcModel.setData(self.srcGeom)
-        if after < before:
-            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
-            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
-            self.plotLayout()
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src-duplicates')
+        self._applyConfiguredPointFilter('src_duplicates', 'srcGeom', self.srcModel, ('srcLiveE', 'srcLiveN', 'srcDeadE', 'srcDeadN'))
 
     def removeRecOrphans(self):
-        if self.recGeom is None:
-            return
-
-        self.recGeom, before, after = deletePntOrphans(self.recGeom)
-        self.recModel.setData(self.recGeom)
-        if after < before:
-            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
-            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
-            self.plotLayout()
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rec/rel-orphans')
+        self._applyConfiguredPointFilter('rec_orphans', 'recGeom', self.recModel, ('recLiveE', 'recLiveN', 'recDeadE', 'recDeadN'))
 
     def removeSrcOrphans(self):
-        if self.srcGeom is None:
-            return
-
-        self.srcGeom, before, after = deletePntOrphans(self.srcGeom)
-        self.srcModel.setData(self.srcGeom)
-        if after < before:
-            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
-            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; don't reset analysis figure
-            self.plotLayout()
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} src/rel-orphans')
+        self._applyConfiguredPointFilter('src_orphans', 'srcGeom', self.srcModel, ('srcLiveE', 'srcLiveN', 'srcDeadE', 'srcDeadN'))
 
     def removeRelDuplicates(self):
-        if self.relGeom is None:
-            return
-
-        self.relGeom, before, after = deleteRelDuplicates(self.relGeom)
-        self.relModel.setData(self.relGeom)
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rel-duplicates')
+        self._applyConfiguredRelationFilter('rel_duplicates', 'relGeom', self.relModel)
 
     def removeRelSrcOrphans(self):
-        if self.relGeom is None:
-            return
-
-        self.relGeom, before, after = deleteRelOrphans(self.relGeom, True)
-        self.relModel.setData(self.relGeom)
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rel/src-orphans')
+        self._applyConfiguredRelationFilter('rel_src_orphans', 'relGeom', self.relModel)
 
     def removeRelRecOrphans(self):
-        if self.relGeom is None:
+        self._applyConfiguredRelationFilter('rel_rec_orphans', 'relGeom', self.relModel)
+
+    def _applyConfiguredPointFilter(self, filterKey, arrayAttr, model, liveDeadAttrs, boundAttr=None):
+        array = getattr(self, arrayAttr)
+        result = self.filterService.applyFilter(filterKey, array)
+        if result is None:
             return
 
-        self.relGeom, before, after = deleteRelOrphans(self.relGeom, False)
-        self.relModel.setData(self.relGeom)
-        self.appendLogMessage(f'Filter : Filtered {before:,} records. Removed {(before - after):,} rel/rec-orphans')
+        setattr(self, arrayAttr, result.array)
+        model.setData(result.array)
+
+        if result.refreshLayout and result.derivedState is not None:
+            setattr(self, liveDeadAttrs[0], result.derivedState.liveE)
+            setattr(self, liveDeadAttrs[1], result.derivedState.liveN)
+            setattr(self, liveDeadAttrs[2], result.derivedState.deadE)
+            setattr(self, liveDeadAttrs[3], result.derivedState.deadN)
+            if boundAttr is not None:
+                setattr(self, boundAttr, result.derivedState.bound)
+            self.updateMenuStatus(False)
+            self.plotLayout()
+
+        self.appendLogMessage(result.message)
+
+    def _applyConfiguredRelationFilter(self, filterKey, arrayAttr, model):
+        array = getattr(self, arrayAttr)
+        result = self.filterService.applyFilter(filterKey, array)
+        if result is None:
+            return
+
+        setattr(self, arrayAttr, result.array)
+        model.setData(result.array)
+        self.appendLogMessage(result.message)
 
     # define file export functions
     def fileExportFoldMap(self):
@@ -2949,13 +2876,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         else:
             shownName = QFileInfo(fileName).fileName()
 
-            try:                                                                # if it is already somewhere in the MRU list, remove it
-                self.recentFileList.remove(fileName)
-            except ValueError:
-                pass
-
-            self.recentFileList.insert(0, fileName)                             # insert it at the top
-            del self.recentFileList[config.maxRecentFiles :]                    # make sure the list does not overgrow
+            self.recentFileList = self.sessionService.recordCurrentFile(self.recentFileList, fileName, config.maxRecentFiles)
 
             self.updateRecentFileActions()
             writeSettings(self)
@@ -2964,39 +2885,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.setWindowModified(False)                                           # reset document status
 
     def resolveRecentFileName(self, fileName):
-        if fileName and not os.path.isabs(fileName) and self.projectDirectory:
-            return os.path.join(self.projectDirectory, fileName)
-        return fileName
+        return self.sessionService.resolveRecentFileName(fileName, self.projectDirectory)
 
     def updateRecentFileActions(self):                                          # update the MRU file menu actions
-        prunedRecentFiles = []
-        visibleRecentFiles = []
-        for fileName in self.recentFileList:
-            resolvedName = self.resolveRecentFileName(fileName)
-            if os.path.isabs(fileName):
-                if resolvedName and os.path.exists(resolvedName):
-                    prunedRecentFiles.append(fileName)
-                    visibleRecentFiles.append((fileName, resolvedName))
-                continue
+        menuState = self.sessionService.buildRecentFileMenu(self.recentFileList, self.projectDirectory, config.maxRecentFiles)
 
-            # Keep relative entries in settings until the user explicitly opens or removes them.
-            # The startup projectDirectory may not match the original base path that was used.
-            prunedRecentFiles.append(fileName)
-            if resolvedName and os.path.exists(resolvedName):
-                visibleRecentFiles.append((fileName, resolvedName))
-
-        if prunedRecentFiles != self.recentFileList:
-            self.recentFileList = prunedRecentFiles
+        if menuState.changed:
+            self.recentFileList = menuState.recentFileList
             writeSettings(self)
 
-        numRecentFiles = min(len(visibleRecentFiles), config.maxRecentFiles)    # get actual number of recent files
+        numRecentFiles = len(menuState.visibleEntries)
 
         for i in range(numRecentFiles):
-            fileName, resolvedName = visibleRecentFiles[i]
-            showName = QFileInfo(resolvedName).fileName()
-            text = f'&{i + 1} {showName}'
+            entry = menuState.visibleEntries[i]
+            text = f'&{i + 1} {entry.displayName}'
             self.recentFileActions[i].setText(text)
-            self.recentFileActions[i].setData(fileName)
+            self.recentFileActions[i].setData(entry.storedName)
             self.recentFileActions[i].setVisible(True)
 
         for j in range(numRecentFiles, config.maxRecentFiles):
@@ -3534,13 +3438,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return self.fileLoad(fileName)
 
     def removeRecentFile(self, fileName):
-        removed = False
-        while True:
-            try:
-                self.recentFileList.remove(fileName)
-                removed = True
-            except ValueError:
-                break
+        self.recentFileList, removed = self.sessionService.removeRecentFile(self.recentFileList, fileName)
 
         if removed:
             self.updateRecentFileActions()
@@ -3556,14 +3454,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 return
             toString = getattr(data, 'toString', None)
             recentName = toString() if callable(toString) else str(data)
-            fileName = self.resolveRecentFileName(recentName)
+            resolution = self.sessionService.resolveRecentSelection(recentName, self.projectDirectory)
 
-            if not fileName or not os.path.exists(fileName):
+            if not resolution.exists:
                 self.removeRecentFile(recentName)
-                self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Recent file no longer exists and was removed from the list: {fileName}', MsgType.Error)
+                self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Recent file no longer exists and was removed from the list: {resolution.resolvedName}', MsgType.Error)
                 return
 
-            self.openFileByPath(fileName)
+            self.openFileByPath(resolution.resolvedName)
 
     def fileSave(self):
         if not self.fileName:                                                   # need to have a valid filename first, and set the projectDirectory
