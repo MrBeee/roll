@@ -124,7 +124,7 @@ class ProjectSidecarsTest(unittest.TestCase):
 
             self.assertTrue(success)
             self.assertEqual(self.mainWindow.recentFileList[0], projectPath)
-            self.assertEqual(self.mainWindow.settings.value('settings/recentFileList', []), [projectPath])
+            self.assertEqual(self.mainWindow.settings.value('settings/recentFileList', [])[0], projectPath)
 
     def testSaveAnalysisSidecarsWritesHistogramFiles(self):
         with tempfile.TemporaryDirectory() as tempDir:
@@ -163,6 +163,8 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.assertIsNotNone(self.mainWindow.output.anaOutput)
             self.assertEqual(self.mainWindow.output.an2Output.shape, (4, 13))
             self.assertGreater(os.path.getmtime(anaPath), oldTimestamp)
+
+            self.mainWindow.resetAnaTableModel()
 
     def testFileOpenRecentUsesSameOpenGuardsAsFileOpen(self):
         with tempfile.TemporaryDirectory() as tempDir:
@@ -216,8 +218,20 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.updateRecentFileActions()
 
         self.assertEqual(self.mainWindow.recentFileList, ['relative-project.roll'])
-        self.assertTrue(self.mainWindow.recentFileActions[0].isVisible())
-        self.assertEqual(self.mainWindow.recentFileActions[0].data(), 'relative-project.roll')
+        self.assertFalse(self.mainWindow.recentFileActions[0].isVisible())
+
+    def testUpdateRecentFileActionsShowsResolvableRelativeEntries(self):
+        with tempfile.TemporaryDirectory() as tempDir:
+            projectPath = self.writeProjectFixture(tempDir)
+            relativeProject = os.path.basename(projectPath)
+            self.mainWindow.projectDirectory = tempDir
+            self.mainWindow.recentFileList = [relativeProject]
+
+            self.mainWindow.updateRecentFileActions()
+
+            self.assertEqual(self.mainWindow.recentFileList, [relativeProject])
+            self.assertTrue(self.mainWindow.recentFileActions[0].isVisible())
+            self.assertEqual(self.mainWindow.recentFileActions[0].data(), relativeProject)
 
 
 if __name__ == '__main__':

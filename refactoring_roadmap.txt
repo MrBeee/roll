@@ -1,503 +1,244 @@
+D:\QGis\MyPlugins\roll\Refactoring_roadmap.txt
+
 **Refactoring Roadmap**
 
-The highest-value change is to shrink the orchestration burden in roll_main_window.py:172. Right now the main window is acting as controller, service layer, persistence layer, plot manager, import/export coordinator, and worker-thread owner. That makes almost every change risky. I would refactor in phases so behavior stays stable.
+Updated for the current codebase on 2026-03-27.
 
-1. Phase 1, extract pure application services without changing UI behavior.
-Create a ProjectService for load/save and XML conversion from roll_main_window.py:3031, roll_main_window.py:3673, roll_main_window.py:3735, and roll_main_window.py:3972.
-Create a GeometryService for survey rebuild, transform calculation, and validation from roll_main_window.py:3735 and roll_survey.py:560.
-Create a FilterService for the duplicated record cleanup handlers in roll_main_window.py:1059.
-Create a PlotService for layout and analysis rendering from roll_main_window.py:1951, roll_main_window.py:2292, roll_main_window.py:2342, and roll_main_window.py:2392.
+The broad direction is still correct: reduce the amount of orchestration living in `roll_main_window.py`, keep domain and persistence logic outside the UI, and make the remaining big refactors safer by growing tests first.
 
-2. Phase 2, replace mutable global runtime state with explicit state objects.
-Keep defaults and static constants in config.py, but move mutable runtime values such as surveyCrs, surveyTransform, timers, and debug/session flags out of globals around config.py:256, config.py:257, config.py:258, and config.py:287.
-Proposal:
-Introduce AppSettings for persisted settings from QSettings.
-Introduce SessionState for current open project, recent files, active arrays, and active plots.
-Introduce RenderSettings for LOD, colors, and image choices.
-This removes hidden coupling between roll_main_window.py, my_parameters.py:1932, and roll_survey.py:399.
+The roadmap below reflects what has already landed and what should move next from the current state, not from the earlier baseline.
 
-3. Phase 3, split UI update work from domain mutations.
-Methods like roll_main_window.py:841 are currently doing both domain mutation and screen refresh. Proposal:
-One method computes the new survey and returns a result object.
-One method applies side effects such as resetting arrays and files.
-One method refreshes UI models and plots.
-That separation will make failures easier to handle and much easier to test.
+**Current Status Summary**
 
-4. Phase 4, simplify worker-thread boundaries.
-The worker pattern in binning_worker_mixin.py and worker_threads.py is good enough to keep, but I would tighten contracts.
-Proposal:
-Workers should accept a small immutable snapshot rather than a full XML serialization when possible.
-Workers should return only owned output objects rather than writing back into a broad survey object.
-Finished handlers should validate shape and metadata once in one place.
+Completed or substantially landed:
+1. `ProjectService` now exists and owns project XML read/write plus the low-level `.npy` sidecar helpers.
+2. `roll_main_window.py` already delegates most direct sidecar `np.load` and `np.save` calls to `ProjectService`.
+3. Analysis sidecars now save at the right moment after full binning, including `.off.npy`, `.azi.npy`, and the refreshed `.ana.npy` timestamp/reopen path.
+4. The display and logging dock construction has already been extracted into dedicated builder modules.
+5. Worker-thread lifecycle code is already out of `RollMainWindow` and lives in `binning_worker_mixin.py`.
+6. The codebase already has a better test baseline than before: project round-trip, sidecar behavior, SPS filters, and recent `functions_numba` regression coverage.
 
-5. Phase 5, standardize error handling.
-Broad exception use in worker_threads.py:175, worker_threads.py:139, worker_threads.py:175, roll_survey.py:584, and roll_survey.py should be replaced with narrower operational exceptions.
-Proposal:
-Define a small application error model such as ValidationError, ImportError, GeometryError, and AnalysisError.
-Have the UI decide how to present them, but keep error formatting outside the core logic.
+Still unfinished:
+1. `fileLoad()` in `roll_main_window.py` is still doing a large amount of orchestration and post-load UI wiring.
+2. Duplicate/orphan filtering handlers are still highly repetitive in the main window.
+3. Mutable runtime state is still spread across `config.py` and `RollMainWindow`.
+4. Import/QC logic and plotting logic are still too close to the UI.
+5. Worker contracts still depend on broad survey state and XML snapshots.
 
-6. Phase 6, reduce duplication in import/export and filtering.
-The duplicated handlers in roll_main_window.py:1286, roll_main_window.py:1295, roll_main_window.py:1304, roll_main_window.py:1313, roll_main_window.py:1322, roll_main_window.py:1348, roll_main_window.py:1374, and roll_main_window.py:1399 are all good candidates for descriptor-driven helpers.
-Proposal:
-Use a small table of geometry type, model, getter/setter, export function, and label strings. That will cut repetition without changing behavior.
+**Recommended Order From Here**
 
-If I had to prioritize by impact versus cost, I would do:
-1. Extract FilterService and ProjectService first.
-2. Move runtime globals out of config.py.
-3. Split plot logic out of roll_main_window.py:1951.
-4. Standardize exceptions.
-5. Replace XML round-tripping for internal clones if profiling proves it matters.
+1. Extract `FilterService` next.
+2. 
+3. Introduce explicit session/runtime staFinish the `ProjectService` refactor by moving batch sidecar-load policy out of `fileLoad()`.te and remove mutable runtime state from `config.py`.
+4. Extract import/QC orchestration from the main window.
+5. Extract plot/input preparation from the main window.
+6. Clean up worker contracts only after the service boundaries are stable.
+7. Do performance work only after the above structure is in place.
 
-**Performance Review**
-
-The core performance risks are not random; they cluster around array churn, duplicate elimination, and UI responsiveness mechanisms.
-
-1. Repeated np.unique calls in geometry generation are likely expensive.
-The main ones are in roll_survey.py:663, roll_survey.py:911, and roll_survey.py:1028. Those are expensive because they sort and copy structured arrays, and they appear inside generation flows where data volume is already high.
-Proposal:
-Generate fewer duplicates up front by changing relation/receiver accumulation strategy.
-If duplicates are unavoidable, perform one dedup pass at the end of generation rather than several intermediate passes.
-Where only key fields matter, deduplicate on projected keys rather than whole structured rows.
-
-2. Worker completion does a lot of large array copying.
-See binning_worker_mixin.py:377, binning_worker_mixin.py:378, binning_worker_mixin.py:379, binning_worker_mixin.py:405, binning_worker_mixin.py:406, binning_worker_mixin.py:407, binning_worker_mixin.py:516, binning_worker_mixin.py:517, and binning_worker_mixin.py:518.
-Proposal:
-Return immutable result containers and transfer ownership instead of copying when the worker is done.
-Only copy arrays that must outlive the worker thread or are backed by temporary buffers.
-For memmap-backed outputs, prefer reopening by file path and shape rather than duplicating in memory.
-
-3. Event-loop pumping is being used as a control mechanism.
-There are many calls to QApplication.processEvents in roll_main_window.py:3447 through roll_main_window.py:3632, plus repeated calls in my_parameters.py. This can make the UI feel responsive, but it can also create reentrancy problems and unpredictable stalls.
-Proposal:
-Move long-running import and conversion loops into worker objects with explicit progress and cancellation signals.
-Reserve processEvents for narrow cases only, and not inside dense loops.
-
-4. XML is doing double duty as both persistence and in-memory transport.
-Deep-copy and worker handoff rely on XML conversion in roll_survey.py:262 and related XML methods around roll_survey.py:3108 and roll_survey.py:3271. That is defensible for correctness, but it is not cheap.
-Proposal:
-Keep XML for file persistence.
-Introduce an internal snapshot object for worker transfer and cloning, containing only fields needed for geometry/binning.
-
-5. Some numerical routines are still explicitly known slow paths.
-The comments in functions_numba.py:122 already identify the nested-loop 2D transform as slow. That is a good signal that this is understood but not fully addressed.
-Proposal:
-Profile actual production-sized inputs first.
-If this routine is hot, precompute reusable exponent terms or batch operations in numpy where memory allows.
-If memory does not allow vectorization, keep the numba path but isolate parameter grids so repeated runs can reuse them.
-
-6. Rendering is probably acceptable at moderate scales, but the repaint boundary is too coarse.
-The progressive painting system in roll_survey.py is a strength, but roll_main_window.py:1951 still appears to rebuild a lot of state. Global replotting after small operations such as duplicate removal is visible in roll_main_window.py:1059.
-Proposal:
-Invalidate only affected layers instead of calling a full layout replot after every small data mutation.
-Keep cached hulls, live/dead partitions, and image layers as separate invalidation domains.
-
-7. Memmap usage is good, but lifecycle handling could be tighter.
-Memmap allocation and reopening in binning_worker_mixin.py:182 and binning_worker_mixin.py:411, plus reopening in roll_main_window.py, indicate the right general approach for large analysis data.
-Proposal:
-Create one small MemmapManager abstraction to own file paths, shapes, modes, flushing, and close semantics.
-That will reduce leak risk and make interruption/reload paths easier to reason about.
-
-If you want the shortest list of performance actions with the best likely payoff:
-1. Remove repeated unique and copy work.
-2. Move import loops off the UI thread.
-3. Narrow redraw invalidation after filtering and imports.
-4. Replace XML transport for internal snapshots if profiling shows it is material.
-
-**First 15 Tests To Add**
-
-These are the first tests I would write, in this order. The goal is to protect geometry correctness, filtering correctness, and worker/output behavior before any refactor.
-
-1. Survey round-trip serialization test.
-Target roll_survey.py:3108 and roll_survey.py:3271.
-Build a minimal survey, serialize to XML, deserialize, and assert equality of survey type, CRS, block count, template count, pattern count, grid settings, and output rectangle.
-
-2. Survey deepcopy fidelity test.
-Target roll_survey.py:262.
-Assert that deepcopy preserves logical content but produces independent mutable collections.
-
-3. Geometry generation basic counts test.
-Target roll_survey.py:560 and roll_survey.py:646.
-Use a minimal known template and assert expected counts for srcGeom, recGeom, and relGeom.
-
-4. Geometry generation deduplication test.
-Target roll_survey.py:663.
-Construct a case that intentionally produces duplicate receivers and assert the final receiver array is unique and still complete.
-
-5. Bounding box correctness test.
-Target roll_survey.py around calcBoundingRect usage from roll_main_window.py:875.
-Assert the computed bounds contain all generated points and are stable after a round-trip.
-
-6. Transform calculation invariants test.
-Target roll_survey.py around calcTransforms and CRS usage.
-Assert local/global transforms compose as expected for a few known points and do not mutate unrelated survey state.
-
-7. Point duplicate filter test for SPS and RPS arrays.
-Target sps_io_and_qc.py:372 and sps_io_and_qc.py:390.
-Feed structured arrays with duplicates and assert before/after counts and retained records.
-
-8. Relation duplicate filter test for XPS and REL arrays.
-Target sps_io_and_qc.py:408 and sps_io_and_qc.py:660.
-Assert relation deduplication removes exact duplicates without altering unique rows.
-
-9. Orphan filtering test for point records.
-Target sps_io_and_qc.py orphan functions used from roll_main_window.py:1085 and roll_main_window.py:1098.
-Build points with and without matching relations and assert the orphan rows are removed correctly.
-
-10. Orphan filtering test for relation records.
-Target sps_io_and_qc.py:450, sps_io_and_qc.py:477, sps_io_and_qc.py:565, and sps_io_and_qc.py:616.
-Assert source-orphan and receiver-orphan removal both work and produce expected counts.
-
-11. Unique-offset filtering test.
-Target functions_numba.py:18, functions_numba.py:39, and functions_numba.py:94.
-Assert that unique mode includes only eligible traces and behaves correctly when no unique markers are present.
-
-12. Worker success path test.
-Target worker_threads.py:60, worker_threads.py:107, and worker_threads.py:148.
-Run a worker with a very small survey and assert finished emits success and output arrays have expected shapes.
-
-13. Worker failure propagation test.
-Target worker_threads.py:96, worker_threads.py:139, and worker_threads.py:175.
-Inject invalid survey data, assert finished emits failure, and assert errorText contains enough context to diagnose the failure.
-
-14. Full-binning memmap shape test.
-Target binning_worker_mixin.py:138 through binning_worker_mixin.py:193.
-Assert that nx, ny, fold, and channel count map to the expected memmap shape and that reset/reopen paths are consistent.
-
-15. Regression test for stale test scaffolding.
-Target test_roll_dialog.py:15.
-Replace this with a test that verifies a real, current UI entry point exists and can be instantiated in a minimal way. The current file references a non-existent dialog module and should not be the baseline.
-
-**Concrete Proposals**
-
-1. Introduce four new non-UI modules conceptually, even if you do it incrementally: project_service, geometry_service, filter_service, and plot_service. Their existence alone would remove a lot of pressure from roll_main_window.py:172.
-
-2. Convert config.py into two categories only:
-defaults and style constants stay,
-runtime state moves out.
-
-3. Create one generic filter application path to replace the duplicated cleanup handlers around roll_main_window.py:1059.
-
-4. Add a single profiling harness for three representative survey sizes:
-small interactive,
-medium realistic,
-large stress case.
-Measure time spent in geometry generation, deduplication, worker completion copies, and layout repaint.
-
-5. Replace stale template-era tests with domain tests first. The existing test folder is currently not protecting the code that matters most.
-
-If you want, I can take this one step further and turn these recommendations into:
-1. A phased implementation plan with estimated effort per phase.
-2. A proposed target architecture diagram for the plugin.
-3. A prioritized backlog of refactor tickets written as actionable work items.
-
-**Concrete Execution Plan**
-
-This is the order I would actually execute. The plan is intentionally biased toward creating testable seams before touching broader state or threading behavior.
+The reason for doing `FilterService` before more persistence work is simple: it is a low-risk, high-clarity refactor that removes a large amount of repetition without forcing a redesign of project loading. It also creates another clean service seam, which makes later extraction work easier.
 
 **Phase 0 - Baseline and Safety Net**
 
-Goal:
-Create enough protection to refactor without breaking project load/save, well transforms, and array handling.
+Status:
+Mostly complete.
 
-Work items:
-1. Keep the existing plugin bootstrap tests as smoke tests.
-2. Add domain tests for survey XML round-trip, survey deepcopy, sidecar array shape validation, and filter functions.
-3. Add one minimal project fixture that includes:
-	- a .roll file,
-	- one well reference,
-	- one small analysis area,
-	- optional .bin.npy and .ana.npy sidecars.
-4. Add a profiling script or test helper that can time:
-	- project load,
-	- project save,
-	- import QC,
-	- geometry generation,
-	- duplicate filtering.
+What is already in place:
+1. Direct tests for project persistence and sidecars.
+2. Direct tests for SPS filter logic.
+3. Project round-trip coverage.
+4. Regression tests for the recent numerical warning fixes.
 
-Files to add or update first:
-1. test/test_roll_project_roundtrip.py
-2. test/test_project_sidecars.py
-3. test/test_sps_filters.py
-4. test/fixtures/...
+What is still worth adding here:
+1. One or two geometry-generation correctness tests in `roll_survey.py`.
+2. One worker success/failure test around `worker_threads.py`.
+3. A small reusable project fixture that includes a valid `.roll` plus minimal sidecars.
 
 Exit criteria:
-1. A saved survey can be loaded again with matching survey metadata and output extents.
-2. Invalid sidecar dimensions are detected and ignored deterministically.
-3. Duplicate and orphan filters are covered by direct tests against sps_io_and_qc.py.
+1. Project persistence and filter behavior are protected.
+2. At least one geometry-generation path is covered by a direct test.
+3. At least one worker path is covered by a direct test.
 
-Estimated effort:
-1 to 2 days.
+**Phase 1 - Project Persistence Extraction**
 
-**Phase 1 - Extract Project Persistence First**
+Status:
+Partially complete.
 
-Goal:
-Remove file-system persistence and sidecar-array orchestration from RollMainWindow without changing UI behavior.
+What is already done:
+1. `ProjectService` handles XML read/write.
+2. `ProjectService` handles low-level sidecar save/load helpers.
+3. `ProjectService` handles memmap opening helpers.
+4. `roll_main_window.py` no longer performs most raw sidecar file I/O directly.
 
-New module:
-project_service.py
+What still remains:
+1. `fileLoad()` still contains a long sequence of per-sidecar orchestration, validation, normalization, and UI coupling.
+2. Sidecar load policy is still spread between `ProjectService` and `RollMainWindow`.
+3. The service does not yet return a structured “loaded project sidecars” result object.
 
-New types to introduce:
-1. ProjectLoadResult
-2. ProjectSaveResult
-3. SidecarLoadResult
-4. ProjectWarning or plain warning records
-
-Responsibilities for ProjectService:
-1. Read a .roll file from disk.
-2. Convert XML text into a RollSurvey instance.
-3. Load .bin.npy, .min.npy, .max.npy, .rms.npy, .off.npy, .azi.npy, .ana.npy, .rps.npy, .sps.npy, .xps.npy, .rec.npy, .rel.npy, and .src.npy.
-4. Validate expected shapes against survey output dimensions.
-5. Return structured results and warnings, not UI actions.
-6. Save project XML and sidecar arrays.
-
-Methods to move or split first from roll_main_window.py:
-1. fileLoad()
-	- extract raw file read,
-	- extract XML parse and survey creation,
-	- extract sidecar loading and dimension checks,
-	- extract numpy array reopening logic.
-2. fileSave()
-	- extract XML write,
-	- extract sidecar save policy,
-	- extract per-array save logic.
-3. fileSaveAs()
-	- keep dialog handling in UI,
-	- delegate actual persistence to ProjectService.
-
-What stays in RollMainWindow for now:
-1. QFileDialog interactions.
-2. Log message formatting.
-3. Model resets.
-4. Widget state updates.
-5. plotLayout(), handleImageSelection(), and property-tree refreshes.
-
-Suggested API shape:
-1. loadProject(fileName) -> ProjectLoadResult
-2. saveProject(fileName, survey, output, imports, geometry, useRelativePaths, projectDirectory) -> ProjectSaveResult
+Next sub-step for this phase:
+Create one higher-level `ProjectService` method that loads and validates all analysis/data sidecars and returns a structured result object plus warnings. Keep the UI-specific actions in `RollMainWindow`.
 
 Exit criteria:
-1. RollMainWindow no longer contains direct np.load/np.save logic for project sidecars.
-2. Project load/save can be exercised by tests without instantiating the full main window.
-3. Existing UI behavior remains unchanged.
+1. `fileLoad()` becomes much shorter and stops owning sidecar load policy.
+2. `ProjectService` becomes the single owner of sidecar naming, existence checks, validation, and load rules.
+3. UI code only applies results and refreshes widgets/models.
 
-Estimated effort:
-3 to 5 days.
+**Phase 2 - Extract FilterService**
 
-**Phase 2 - Introduce Explicit Session State**
+Status:
+Not started.
 
-Goal:
-Replace implicit shared runtime state with one explicit object owned by the main window.
+This is now the recommended next step.
 
-New module:
-session_state.py
+Why this should come next:
+1. The duplicate/orphan cleanup handlers are repetitive and already built on top of reusable functions in `sps_io_and_qc.py`.
+2. The work is relatively low risk because the core algorithms do not need to change.
+3. It will remove a large amount of controller noise from `roll_main_window.py`.
+4. It is easy to validate with direct unit tests.
 
-New types to introduce:
-1. SessionState
-2. ImportedDataState
-3. GeometryDataState
-4. AnalysisState
-
-SessionState should own:
-1. current survey
-2. output object
-3. rpsImport, spsImport, xpsImport
-4. recGeom, srcGeom, relGeom
-5. layout image selection state
-6. currently open project path and project directory
-7. recent file list
-8. interruption and processing flags that are truly session-specific
-
-Do not move into SessionState yet:
-1. persistent QSettings-backed preferences
-2. constants and SPS format defaults from config.py
-3. rendering style constants
-
-Refactor rule:
-RollMainWindow may still expose convenience properties, but the data owner becomes SessionState.
-
-Exit criteria:
-1. Main window initialization becomes simpler because grouped runtime state is created in one place.
-2. Future services receive state objects instead of many loosely related parameters.
-
-Estimated effort:
-2 to 3 days.
-
-**Phase 3 - Extract FilterService**
-
-Goal:
-Remove the repeated duplicate/orphan cleanup handlers and centralize data refresh rules.
-
-New module:
-filter_service.py
-
-Why this phase is early:
-The logic already exists in sps_io_and_qc.py, and the current UI layer repeats the same orchestration many times.
-
-Refactor target methods in roll_main_window.py:
-1. removeRpsDuplicates()
-2. removeSpsDuplicates()
-3. removeRpsOrphans()
-4. removeSpsOrphans()
-5. removeXpsDuplicates()
-6. removeXpsSpsOrphans()
-7. removeXpsRpsOrphans()
-8. removeRecDuplicates()
-9. removeSrcDuplicates()
-10. removeRecOrphans()
-11. removeSrcOrphans()
-12. removeRelDuplicates()
-13. removeRelSrcOrphans()
-14. removeRelRecOrphans()
+Scope:
+1. Replace the repeated `removeRpsDuplicates()`, `removeSpsDuplicates()`, `removeXpsDuplicates()`, `removeRecDuplicates()`, `removeSrcDuplicates()`, `removeRelDuplicates()`, and orphan variants with a descriptor-driven service.
+2. Keep UI logging, action state changes, and redraw calls in the main window initially.
+3. Move filter selection, data replacement, and derived-array refresh rules into `FilterService`.
 
 Implementation approach:
-1. Create a descriptor table that defines:
-	- source attribute name,
-	- model attribute name,
-	- filter function,
-	- whether hull/live-dead coordinates must be recomputed,
-	- log label,
-	- orphan mode if applicable.
-2. Create one generic applyPointFilter() path and one generic applyRelationFilter() path.
-3. Keep log-message wording stable to avoid confusing users.
+1. Define descriptors for point arrays, relation arrays, and orphan modes.
+2. Create generic apply methods for point and relation filters.
+3. Return updated arrays and a small summary object containing counts and labels.
 
 Exit criteria:
-1. The 14 handlers collapse into a small number of generic handlers plus descriptors.
-2. Filter functions are directly unit tested outside the UI.
-3. Layout refresh behavior remains unchanged.
+1. The 14 cleanup/orphan handlers collapse into a small generic dispatch layer.
+2. Filter orchestration becomes testable without a `QMainWindow`.
+3. `roll_main_window.py` becomes visibly smaller and less repetitive.
 
-Estimated effort:
-2 days.
+**Phase 3 - Explicit Runtime and Session State**
 
-**Phase 4 - Extract Import/QC Service**
+Status:
+Not started.
 
 Goal:
-Separate SPS/RPS/XPS parsing and QC from the UI so later worker-thread changes are low risk.
+Stop using `config.py` and the main window instance as a shared runtime message bus.
 
-New module:
-import_service.py
+What to introduce:
+1. `SessionState` for the open project, survey object, imported arrays, geometry arrays, analysis arrays, and project file paths.
+2. `AppSettings` for persisted settings backed by `QSettings`.
+3. A smaller object for transient profiling/timer state.
 
-Responsibilities:
-1. Parse SPS, RPS, and XPS text into structured arrays.
-2. Run QC passes:
-	- unique markers,
-	- CRS conversion,
-	- line/stake transform calculation,
-	- orphan analysis.
-3. Return a result object and progress events or callbacks.
-
-Methods to split:
-1. fileImportSpsData()
-	- keep dialog selection in UI,
-	- move parsing/QC loops to service.
-
-Important note:
-Do not move this to a worker first. First isolate the logic, then decide if it should run in a worker.
+What should move out of `config.py`:
+1. Mutable timer accumulators.
+2. Mutable runtime flags that are not true constants.
+3. Any project/session-specific runtime object.
 
 Exit criteria:
-1. Parsing and QC can be tested without a QMainWindow instance.
-2. Progress reporting is abstracted behind callbacks or signals.
-3. QApplication.processEvents is no longer required inside core parsing logic.
+1. `config.py` contains defaults, static formats, and style constants only.
+2. Services receive state objects rather than many loosely related arrays and flags.
 
-Estimated effort:
-3 to 5 days.
+**Phase 4 - Import/QC Service**
 
-**Phase 5 - Split Plot and UI Refresh Orchestration**
+Status:
+Not started.
 
 Goal:
-Separate domain mutation from redraw policy.
+Move SPS/RPS/XPS parsing and QC orchestration out of the main window.
 
-New module:
-plot_service.py
+Scope:
+1. File parsing.
+2. QC passes.
+3. Duplicate/orphan checks that are part of import workflows.
+4. Optional progress/cancellation plumbing that can later be moved to a worker.
 
-Responsibilities:
-1. Compute what needs redraw.
-2. Build image/colorbar inputs.
-3. Separate full layout refresh from partial invalidation.
-
-Near-term target methods:
-1. plotLayout() and its immediate helpers
-2. image selection handlers
-3. colorbar update logic used during load and analysis changes
-
-Refactor rule:
-The service computes plotting inputs; the main window still owns actual widget objects.
+Important constraint:
+Do not move this to a worker first. Extract the logic into a service first, then decide whether a worker is needed.
 
 Exit criteria:
-1. Data mutation no longer directly decides full redraw policy in many places.
-2. Small filters/import changes can invalidate only affected layers.
+1. Import/QC logic is testable without `RollMainWindow`.
+2. Core parsing logic no longer depends on `QApplication.processEvents`.
 
-Estimated effort:
-3 to 4 days.
+**Phase 5 - Plot and Redraw Service**
 
-**Phase 6 - Move Remaining Mutable Runtime State Out of config.py**
+Status:
+Not started.
 
 Goal:
-Leave config.py as defaults, constants, formatting tables, and style definitions only.
+Separate domain changes from redraw policy and image preparation.
 
-Move out of config.py:
-1. timers and timing accumulators
-2. debug/session flags if they are mutable runtime state rather than defaults
-3. any remaining project-specific runtime objects
+Scope:
+1. Layout image preparation.
+2. Analysis image preparation.
+3. Colorbar input generation.
+4. Partial invalidation rules versus full replot rules.
 
-Where to move them:
-1. timing state -> profiling helper or SessionState
-2. runtime flags -> SessionState or AppSettings depending on persistence needs
-
-Keep in config.py:
-1. SPS/RPS/XPS format definitions
-2. application identity strings
-3. display/style defaults
-4. constant limits and default values
+This phase should happen after `FilterService` and session state are in place, otherwise the plot logic will still be coupled to unstable controller state.
 
 Exit criteria:
-1. config.py no longer acts as a runtime message bus.
-2. Runtime mutations are visible through owned objects.
+1. Data mutations no longer directly decide full redraw policy in many places.
+2. Small data edits can invalidate only affected layers.
 
-Estimated effort:
-1 to 2 days.
+**Phase 6 - Worker Contract Cleanup**
 
-**Phase 7 - Worker Contract Cleanup**
+Status:
+Not started.
 
 Goal:
-Make workers consume explicit snapshots and return owned results.
+Make worker inputs and outputs explicit, smaller, and easier to validate.
 
-New modules or types:
-1. worker_models.py or snapshot types colocated with worker_threads.py
-2. BinningRequest
-3. BinningResult
+Current note:
+The worker setup is acceptable for now. This should not be the next refactor. It depends on earlier service and state extraction to avoid simply moving the same large implicit contract into new classes.
 
-Changes:
-1. Replace broad XML or survey handoff where practical with a smaller request snapshot.
-2. Centralize result validation in one place.
-3. Stop writing worker results directly into broad UI-owned state from scattered callbacks.
-
-Important dependency:
-Do this only after Phase 1 through Phase 4 are complete. Otherwise the worker contracts will still mirror the current god-object design.
+Future direction:
+1. Introduce request/result objects.
+2. Reduce XML round-tripping for internal worker handoff if profiling shows it matters.
+3. Centralize result validation after worker completion.
 
 Exit criteria:
 1. Worker inputs and outputs are explicit and documented.
 2. Completion handlers do less copying and less implicit mutation.
 
-Estimated effort:
-3 to 5 days.
+**Phase 7 - Performance Work After Structure Stabilizes**
 
-**Phase 8 - Performance Cleanup After Structure Is Stable**
+Status:
+Deferred by design.
 
-Goal:
-Only optimize after the architecture makes profiling results trustworthy.
+The main performance candidates are still:
+1. repeated `np.unique` work during geometry generation,
+2. large array copying on worker completion,
+3. broad redraw invalidation after small changes,
+4. XML used as both persistence format and internal transport.
 
-Targets:
-1. repeated np.unique passes in roll_survey.py
-2. memmap reopen/copy paths
-3. full replot after small data changes
-4. XML use for internal clone/transfer paths
+Do not optimize these speculatively. Measure them after the service boundaries and state ownership are clearer.
 
-Rule:
-Do not optimize speculative hotspots before the service boundaries are in place.
+**Tests To Add Next**
 
-Exit criteria:
-1. A before/after profile exists for at least three survey sizes.
-2. Every optimization is tied to measured hotspots.
+The earlier “first 15 tests” list is now outdated because several of those tests already exist.
+
+The best next tests are:
+1. geometry-generation correctness test for a minimal template,
+2. worker success/failure test,
+3. `FilterService` unit tests once that service exists,
+4. one batch project-sidecar load test once `ProjectService` grows a higher-level load method.
+
+**Outdated Items From The Previous Roadmap**
+
+The following items should be considered completed or reordered:
+1. “Create `ProjectService` first” is no longer future work; it is already in place.
+2. “Replace stale template-era tests” is no longer the main priority; the test suite now contains meaningful domain coverage.
+3. Worker cleanup should not be ahead of service extraction.
+4. Filter extraction should be earlier than originally planned.
+
+**Recommended Next Step**
+
+If choosing one next step only, do this:
+
+1. Extract `FilterService`.
+
+Why:
+1. It is the cleanest low-risk refactor available.
+2. It removes a large amount of repetition from `roll_main_window.py`.
+3. It improves testability immediately.
+4. It continues the same architectural direction already started by `ProjectService`, dock builders, and the existing mixins.
+
+After that, the next step should be:
+
+1. finish Phase 1 by adding a higher-level batch sidecar-load method to `ProjectService` and shrinking `fileLoad()` accordingly.
 
 Estimated effort:
 2 to 5 days depending on findings.

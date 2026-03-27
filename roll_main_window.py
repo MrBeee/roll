@@ -28,7 +28,6 @@ from math import atan2, ceil, degrees
 # PyQtGraph related imports
 import numpy as np  # Numpy functions needed for plot creation
 import pyqtgraph as pg
-from numpy.lib import recfunctions as rfn
 from qgis.core import QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (QDateTime, QEvent, QFileInfo, QPoint, QRectF,
@@ -65,8 +64,8 @@ from .land_wizard import LandSurveyWizard
 from .logging_dock import createLoggingDock
 from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
-from .property_dock import createPropertyDock
 from .project_service import ProjectService
+from .property_dock import createPropertyDock
 from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
                              exportPointLayerToQgis, exportSpsOutlinesToQgis,
                              exportSurveyOutlinesToQgis,
@@ -2977,13 +2976,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if os.path.isabs(fileName):
                 if resolvedName and os.path.exists(resolvedName):
                     prunedRecentFiles.append(fileName)
-                    visibleRecentFiles.append(fileName)
+                    visibleRecentFiles.append((fileName, resolvedName))
                 continue
 
             # Keep relative entries in settings until the user explicitly opens or removes them.
             # The startup projectDirectory may not match the original base path that was used.
             prunedRecentFiles.append(fileName)
-            visibleRecentFiles.append(fileName)
+            if resolvedName and os.path.exists(resolvedName):
+                visibleRecentFiles.append((fileName, resolvedName))
 
         if prunedRecentFiles != self.recentFileList:
             self.recentFileList = prunedRecentFiles
@@ -2992,8 +2992,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         numRecentFiles = min(len(visibleRecentFiles), config.maxRecentFiles)    # get actual number of recent files
 
         for i in range(numRecentFiles):
-            fileName = visibleRecentFiles[i]
-            showName = QFileInfo(fileName).fileName()
+            fileName, resolvedName = visibleRecentFiles[i]
+            showName = QFileInfo(resolvedName).fileName()
             text = f'&{i + 1} {showName}'
             self.recentFileActions[i].setText(text)
             self.recentFileActions[i].setData(fileName)
@@ -3087,294 +3087,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if success:                                                             # read the corresponding analysis files
             self.appendLogMessage(f'Loading: {fileName} analysis files')        # send status message
             self.setPlottingDetails()                                           # check if it is a marine survey; set seed plotting details accordingly
-
-            # continue loading the anaysis files that belong to this project
-            w = self.survey.output.rctOutput.width()                            # expected dimensions of analysis files
-            h = self.survey.output.rctOutput.height()
-            dx = self.survey.grid.binSize.x()
-            dy = self.survey.grid.binSize.y()
-            nx = ceil(w / dx)
-            ny = ceil(h / dy)
-
-            self.appendLogMessage(f'Analysis dims: nx={nx}, ny={ny}, binSize=({dx:.3f},{dy:.3f})')
-
-            for suffix in ('.bin.npy', '.min.npy', '.max.npy', '.rms.npy', '.off.npy', '.azi.npy', '.ana.npy'):
-                path = self.fileName + suffix
-                self.appendLogMessage(f'Analysis file: {suffix} exists={os.path.exists(path)}')
-
-            if os.path.exists(self.fileName + '.bin.npy'):                      # open the existing foldmap file
-                self.output.binOutput = np.load(self.fileName + '.bin.npy')
-                nX = self.output.binOutput.shape[0]                             # check against nx
-                nY = self.output.binOutput.shape[1]                             # check against ny
-
-                if nx != nX or ny != nY:
-                    self.appendLogMessage('Loaded : . . . Fold map&nbsp; : Wrong dimensions, compared to analysis area - file ignored')
-                    self.output.binOutput = None
-                else:
-                    self.output.maximumFold = self.output.binOutput.max()           # calc min/max fold is straightforward
-                    self.output.minimumFold = self.output.binOutput.min()
-
-                    self.actionFold.setChecked(True)
-                    self.imageType = 1                                              # set analysis type to one (fold map)
-
-                    self.layoutImg = self.output.binOutput                          # use fold map for image data np-array
-                    self.layoutMax = self.output.maximumFold                        # use appropriate maximum
-                    self.layoutImItem = pg.ImageItem()                              # create PyqtGraph image item
-                    self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
-
-                    label = 'fold'
-                    colorMapObj = self.resolveColorMapObject(config.foldDispCmap, fallback='viridis')
-                    if self.layoutColorBar is None:
-                        try:
-                            self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
-                                self.layoutImItem,
-                                colorMap=colorMapObj,
-                                label=label,
-                                limits=(0, None),
-                                rounding=10.0,
-                                values=(0.0, self.layoutMax),
-                            )
-                        except TypeError as exc:
-                            self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
-                            self.layoutColorBar = None
-                    else:
-                        self.layoutColorBar.setImageItem(self.layoutImItem)
-                        self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-                        try:
-                            self.layoutColorBar.setColorMap(colorMapObj)
-                        except TypeError as exc:
-                            self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
-                        self.setColorbarLabel(label)
-
-                    self.appendLogMessage(f'Loaded : . . . Fold map&nbsp; : Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ')
-            else:
-                self.output.binOutput = None
-                self.actionArea.setChecked(True)
-                self.imageType = 0                                              # set analysis type to zero (no analysis)
-
-            if os.path.exists(self.fileName + '.min.npy'):                      # load the existing min-offsets file
-                self.output.minOffset = np.load(self.fileName + '.min.npy')
-                nX = self.output.minOffset.shape[0]                             # check against nx, ny
-                nY = self.output.minOffset.shape[1]                             # check against nx, ny
-
-                if nx != nX or ny != nY:
-                    self.appendLogMessage('Loaded : . . . Min-offset: Wrong dimensions, compared to analysis area - file ignored')
-                    self.output.minOffset = None
-                else:
-                    self.output.minOffset[self.output.minOffset == -np.inf] = np.inf    # replace (-inf) by (inf) for min values
-                    self.output.minMinOffset = self.output.minOffset.min()          # calc min offset against max (inf) values
-
-                    self.output.minOffset[self.output.minOffset == np.inf] = -np.inf  # replace (inf) by (-inf) for max values
-                    self.output.maxMinOffset = self.output.minOffset.max()          # calc max values against (-inf) minimum
-                    self.output.maxMinOffset = max(self.output.maxMinOffset, 0)     # avoid -inf as maximum
-
-                    self.appendLogMessage(f'Loaded : . . . Min-offset: Min:{self.output.minMinOffset:.2f}m - Max:{self.output.maxMinOffset:.2f}m ')
-            else:
-                self.output.minOffset = None
-
-            if os.path.exists(self.fileName + '.max.npy'):                      # load the existing max-offsets file
-                self.output.maxOffset = np.load(self.fileName + '.max.npy')
-                nX = self.output.maxOffset.shape[0]                             # check against nx, ny
-                nY = self.output.maxOffset.shape[1]                             # check against nx, ny
-
-                if nx != nX or ny != nY:
-                    self.appendLogMessage('Loaded : . . . Max-offset: Wrong dimensions, compared to analysis area - file ignored')
-                    self.output.maxOffset = None
-                else:
-                    self.output.maxMaxOffset = self.output.maxOffset.max()          # calc max offset against max (-inf) values
-                    self.output.maxMaxOffset = max(self.output.maxMaxOffset, 0)     # avoid -inf as maximum
-                    self.output.maxOffset[self.output.maxOffset == -np.inf] = np.inf   # replace (-inf) by (inf) for min values
-
-                    self.output.minMaxOffset = self.output.maxOffset.min()          # calc min offset against min (inf) values
-                    self.output.maxOffset[self.output.maxOffset == np.inf] = -np.inf   # replace (inf) by (-inf) for max values
-                    self.appendLogMessage(f'Loaded : . . . Max-offset: Min:{self.output.minMaxOffset:.2f}m - Max:{self.output.maxMaxOffset:.2f}m ')
-            else:
-                self.output.maxOffset = None
-
-            if os.path.exists(self.fileName + '.rms.npy'):                      # load the existing max-offsets file
-                self.output.rmsOffset = np.load(self.fileName + '.rms.npy')
-                nX = self.output.rmsOffset.shape[0]                             # check against nx, ny
-                nY = self.output.rmsOffset.shape[1]                             # check against nx, ny
-
-                if nx != nX or ny != nY:
-                    self.appendLogMessage('Loaded : . . . Rms-offset: Wrong dimensions, compared to analysis area - file ignored')
-                    self.output.rmsOffset = None
-                else:
-                    self.output.maxRmsOffset = self.output.rmsOffset.max()          # calc max offset against max (-inf) values
-                    self.output.minRmsOffset = self.output.rmsOffset.min()          # calc min offset against min (inf) values
-                    self.output.minRmsOffset = max(self.output.minRmsOffset, 0)     # avoid -inf as maximum
-                    self.appendLogMessage(f'Loaded : . . . Rms-offset: Min:{self.output.minRmsOffset:.2f}m - Max:{self.output.maxRmsOffset:.2f}m ')
-            else:
-                self.output.rmsOffset = None
-
-            if os.path.exists(self.fileName + '.off.npy'):                      # load the existing azimuth/offset histogram file
-                self.output.offstHist = np.load(self.fileName + '.off.npy')
-                nX = self.output.offstHist.shape[0]                             # check against nx
-                # nY = self.output.offstHist.shape[1]                             # check against ny
-
-                if nX != 2:
-                    self.appendLogMessage('Loaded : . . . offset: Wrong dimensions of histogram - file ignored')
-                    self.output.offstHist = None
-                else:
-                    self.appendLogMessage('Loaded : . . . offset histogram')
-            else:
-                self.output.offstHist = None
-
-            if os.path.exists(self.fileName + '.azi.npy'):                      # load the existing azimuth/offset histogram file
-                self.output.ofAziHist = np.load(self.fileName + '.azi.npy')
-                nX = self.output.ofAziHist.shape[0]                             # check against nx
-                # nY = self.output.ofAziHist.shape[1]                             # check against ny
-
-                if nX != 360 // 5:
-                    self.appendLogMessage('Loaded : . . . azi-offset: Wrong dimensions of histogram - file ignored')
-                    self.output.ofAziHist = None
-                else:
-                    self.appendLogMessage('Loaded : . . . azi-offset histogram')
-            else:
-                self.output.ofAziHist = None
-
-            if self.output.binOutput is not None and os.path.exists(self.fileName + '.ana.npy'):   # only open the analysis file if binning file exists
-                try:
-
-                    if self.survey.grid.fold > 0:
-                        fold = self.survey.grid.fold                            # fold is defined by the grid's fold (preferred)
-                    else:
-                        fold = self.output.maximumFold                          # fold is defined by observed maxfold in bin file
-
-                    self.appendLogMessage(f'Analysis load: fold={fold}, maxFold={self.output.maximumFold}', MsgType.Info)
-
-                    # if we had a large memmap file open earlier; close it and call the garbage collector
-                    self.resetAnaTableModel()
-
-                    self.output.anaOutput = np.memmap(self.fileName + '.ana.npy', dtype=np.float32, mode='r+', shape=(nx, ny, fold, 13))
-                    nT = self.output.anaOutput.size                             # total size of array in Nr of elements
-
-                    # we know the (supposed) size of the binning area, and nr of columns in the file. Therefore
-                    delta = nT - (nx * ny * fold * 13)
-
-                    self.appendLogMessage(f'Analysis load: nT={nT}, expected={nx * ny * fold * 13}, delta={delta}', MsgType.Info)
-
-                    if delta != 0:
-                        self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: mismatch in trace table compared to fold {fold:,} x-size {nx}, and y-size {ny}. Please rerun extended analysis', MsgType.Error)
-                        self.output.an2Output = None                            # remove reference to self.output.anaOutput
-                        self.output.anaOutput = None                            # remove self.output.anaOutput itself
-                        self.anaModel.setData(None)                             # use this as the model data
-                    else:
-                        self.output.an2Output = self.output.anaOutput.reshape(nx * ny * fold, 13)   # create a 2 dim array for table access
-                        self.appendLogMessage(f'Analysis load: an2Output.shape={self.output.an2Output.shape}', MsgType.Info)
-
-                    if self.output.maximumFold > fold:
-                        self.appendLogMessage(
-                            f'Loaded : . . . Analysis &nbsp;: observed fold in binning file: {self.output.maximumFold:,}. This is larger than allowed in the trace table ({fold:,}), expect missing traces in spider plot !'
-                        )
-
-                    self.appendLogMessage(f'Loaded : . . . Analysis &nbsp;: {self.output.an2Output.shape[0]:,} traces (reserved space)')
-                except (ValueError, PermissionError) as error:
-                    self.appendLogMessage(f"Loaded : . . . Analysis &nbsp;: read error {self.fileName + '.ana.npy'}. A {type(error).__name__} has occurred ")
-                    self.anaModel.setData(None)
-                    self.output.an2Output = None
-                    self.output.anaOutput = None
-            else:
-                self.anaModel.setData(None)
-                self.output.an2Output = None
-                self.output.anaOutput = None
-
-            self.setDataAnaTableModel()                                         # sets model data, in a trunked manner if needed
-
-            if os.path.exists(self.fileName + '.rps.npy'):                      # open the existing rps-file
-                self.rpsImport = np.load(self.fileName + '.rps.npy')
-                self.rpsImport = rfn.rename_fields(self.rpsImport, {'Record': 'RecNum'})   # rename 'Record' field to 'RecNum' if found
-                self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
-                self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)        # get the convex hull of the rps points
-
-                nImport = self.rpsImport.shape[0]
-                self.actionRpsPoints.setChecked(nImport > 0)
-                self.actionRpsPoints.setEnabled(nImport > 0)
-
-                self.appendLogMessage(f'Loaded : . . . read {nImport:,} rps-records')
-            else:
-                self.rpsImport = None
-                self.actionRpsPoints.setChecked(False)
-                self.actionRpsPoints.setEnabled(False)
-
-            if os.path.exists(self.fileName + '.sps.npy'):                      # open the existing sps-file
-                self.spsImport = np.load(self.fileName + '.sps.npy')
-                self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
-                self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the sps points
-
-                nImport = self.spsImport.shape[0]
-                self.actionSpsPoints.setChecked(nImport > 0)
-                self.actionSpsPoints.setEnabled(nImport > 0)
-
-                self.appendLogMessage(f'Loaded : . . . read {nImport:,} sps-records')
-            else:
-                self.spsImport = None
-                self.actionSpsPoints.setChecked(False)
-                self.actionSpsPoints.setEnabled(False)
-
-            if os.path.exists(self.fileName + '.xps.npy'):                      # open the existing xps-file
-                self.xpsImport = np.load(self.fileName + '.xps.npy')
-
-                nImport = self.xpsImport.shape[0]
-                self.appendLogMessage(f'Loaded : . . . read {nImport:,} xps-records')
-            else:
-                self.xpsImport = None
-
-            if os.path.exists(self.fileName + '.rec.npy'):                      # open the existing rps-file
-                self.recGeom = np.load(self.fileName + '.rec.npy')
-                self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
-
-                nImport = self.recGeom.shape[0]
-                self.actionRecPoints.setChecked(nImport > 0)
-                self.actionRecPoints.setEnabled(nImport > 0)
-
-                self.appendLogMessage(f'Loaded : . . . read {nImport:,} rec-records')
-            else:
-                self.recGeom = None
-                self.actionRecPoints.setChecked(False)
-                self.actionRecPoints.setEnabled(False)
-
-            if os.path.exists(self.fileName + '.src.npy'):                      # open the existing rps-file
-                self.srcGeom = np.load(self.fileName + '.src.npy')
-                self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
-
-                nImport = self.srcGeom.shape[0]
-                self.actionSrcPoints.setChecked(nImport > 0)
-                self.actionSrcPoints.setEnabled(nImport > 0)
-
-                self.appendLogMessage(f'Loaded : . . . read {nImport:,} src-records')
-            else:
-                self.srcGeom = None
-                self.actionSrcPoints.setChecked(False)
-                self.actionSrcPoints.setEnabled(False)
-
-            if os.path.exists(self.fileName + '.rel.npy'):                      # open the existing xps-file
-                self.relGeom = np.load(self.fileName + '.rel.npy')
-                self.relGeom = rfn.rename_fields(self.relGeom, {'Record': 'RecNum'})   # rename 'Record' field to 'RecNum' if found
-                nImport = self.relGeom.shape[0]
-                self.appendLogMessage(f'Loaded : . . . read {nImport:,} rel-records')
-            else:
-                self.relGeom = None
-
-            self.rpsModel.setData(self.rpsImport)                               # update the three rps/sps/xps models
-            self.spsModel.setData(self.spsImport)
-            self.xpsModel.setData(self.xpsImport)
-            if self.rpsView is not None:
-                self.rpsView.reset()
-            if self.spsView is not None:
-                self.spsView.reset()
-            if self.xpsView is not None:
-                self.xpsView.reset()
-
-            self.recModel.setData(self.recGeom)                                 # update the three rec/rel/src models
-            self.relModel.setData(self.relGeom)
-            self.srcModel.setData(self.srcGeom)
-            if self.recView is not None:
-                self.recView.reset()
-            if self.relView is not None:
-                self.relView.reset()
-            if self.srcView is not None:
-                self.srcView.reset()
+            sidecarResult = self.projectService.loadProjectSidecars(self.fileName, self.survey)
+            self._appendProjectSidecarMessages(sidecarResult)
+            self._applyLoadedAnalysisSidecars(sidecarResult)
+            self._applyLoadedSurveyDataSidecars(sidecarResult)
 
             self.handleImageSelection()                                         # change selection and plot survey
 
@@ -3415,6 +3131,138 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         #     i += 1
 
         return success
+
+    def _appendProjectSidecarMessages(self, sidecarResult):
+        for message in sidecarResult.messages:
+            msgType = MsgType.Error if message.level == 'error' else MsgType.Info
+            self.appendLogMessage(message.text, msgType)
+
+    def _applyLoadedAnalysisSidecars(self, sidecarResult):
+        self.output.binOutput = sidecarResult.binOutput
+        self.output.minOffset = sidecarResult.minOffset
+        self.output.maxOffset = sidecarResult.maxOffset
+        self.output.rmsOffset = sidecarResult.rmsOffset
+        self.output.offstHist = sidecarResult.offstHist
+        self.output.ofAziHist = sidecarResult.ofAziHist
+        self.output.minimumFold = sidecarResult.minimumFold
+        self.output.maximumFold = sidecarResult.maximumFold
+        self.output.minMinOffset = sidecarResult.minMinOffset
+        self.output.maxMinOffset = sidecarResult.maxMinOffset
+        self.output.minMaxOffset = sidecarResult.minMaxOffset
+        self.output.maxMaxOffset = sidecarResult.maxMaxOffset
+        self.output.minRmsOffset = sidecarResult.minRmsOffset
+        self.output.maxRmsOffset = sidecarResult.maxRmsOffset
+
+        if self.output.binOutput is None:
+            self.actionArea.setChecked(True)
+            self.imageType = 0
+        else:
+            self.actionFold.setChecked(True)
+            self.imageType = 1
+            self.layoutImg = self.output.binOutput
+            self.layoutMax = self.output.maximumFold
+            self.layoutImItem = pg.ImageItem()
+            self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
+
+            label = 'fold'
+            colorMapObj = self.resolveColorMapObject(config.foldDispCmap, fallback='viridis')
+            if self.layoutColorBar is None:
+                try:
+                    self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
+                        self.layoutImItem,
+                        colorMap=colorMapObj,
+                        label=label,
+                        limits=(0, None),
+                        rounding=10.0,
+                        values=(0.0, self.layoutMax),
+                    )
+                except TypeError as exc:
+                    self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                    self.layoutColorBar = None
+            else:
+                self.layoutColorBar.setImageItem(self.layoutImItem)
+                self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
+                try:
+                    self.layoutColorBar.setColorMap(colorMapObj)
+                except TypeError as exc:
+                    self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
+                self.setColorbarLabel(label)
+
+        if sidecarResult.analysisMemmapResult is None:
+            self.anaModel.setData(None)
+            self.output.an2Output = None
+            self.output.anaOutput = None
+        else:
+            self.output.anaOutput = sidecarResult.analysisMemmapResult.memmap
+            self.output.an2Output = sidecarResult.analysisMemmapResult.an2Output
+
+        self.setDataAnaTableModel()
+
+    def _applyLoadedSurveyDataSidecars(self, sidecarResult):
+        self.rpsImport = sidecarResult.rpsImport
+        self.spsImport = sidecarResult.spsImport
+        self.xpsImport = sidecarResult.xpsImport
+        self.recGeom = sidecarResult.recGeom
+        self.srcGeom = sidecarResult.srcGeom
+        self.relGeom = sidecarResult.relGeom
+
+        if self.rpsImport is not None:
+            self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
+            self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)
+            nImport = self.rpsImport.shape[0]
+            self.actionRpsPoints.setChecked(nImport > 0)
+            self.actionRpsPoints.setEnabled(nImport > 0)
+        else:
+            self.actionRpsPoints.setChecked(False)
+            self.actionRpsPoints.setEnabled(False)
+
+        if self.spsImport is not None:
+            self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
+            self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)
+            nImport = self.spsImport.shape[0]
+            self.actionSpsPoints.setChecked(nImport > 0)
+            self.actionSpsPoints.setEnabled(nImport > 0)
+        else:
+            self.actionSpsPoints.setChecked(False)
+            self.actionSpsPoints.setEnabled(False)
+
+        if self.recGeom is not None:
+            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
+            nImport = self.recGeom.shape[0]
+            self.actionRecPoints.setChecked(nImport > 0)
+            self.actionRecPoints.setEnabled(nImport > 0)
+        else:
+            self.actionRecPoints.setChecked(False)
+            self.actionRecPoints.setEnabled(False)
+
+        if self.srcGeom is not None:
+            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
+            nImport = self.srcGeom.shape[0]
+            self.actionSrcPoints.setChecked(nImport > 0)
+            self.actionSrcPoints.setEnabled(nImport > 0)
+        else:
+            self.actionSrcPoints.setChecked(False)
+            self.actionSrcPoints.setEnabled(False)
+
+        self.rpsModel.setData(self.rpsImport)
+        self.spsModel.setData(self.spsImport)
+        self.xpsModel.setData(self.xpsImport)
+        if self.rpsView is not None:
+            self.rpsView.reset()
+        if self.spsView is not None:
+            self.spsView.reset()
+        if self.xpsView is not None:
+            self.xpsView.reset()
+
+        self.recModel.setData(self.recGeom)
+        self.relModel.setData(self.relGeom)
+        self.srcModel.setData(self.srcGeom)
+        if self.recView is not None:
+            self.recView.reset()
+        if self.relView is not None:
+            self.relView.reset()
+        if self.srcView is not None:
+            self.srcView.reset()
 
     def fileImportSpsData(self) -> bool:
         spsLines = 0
@@ -3728,42 +3576,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.appendLogMessage(f'Saved&nbsp;&nbsp;: {self.fileName}')
             self.textEdit.document().setModified(False)
 
-            # try to save the analysis files as well
-            if self.output.binOutput is not None:
-                np.save(self.fileName + '.bin.npy', self.output.binOutput)      # numpy array with fold map
-
-            if self.output.minOffset is not None:
-                np.save(self.fileName + '.min.npy', self.output.minOffset)      # numpy array with min-offset map
-
-            if self.output.maxOffset is not None:
-                np.save(self.fileName + '.max.npy', self.output.maxOffset)      # numpy array with max-offset map
-
-            if self.output.rmsOffset is not None:
-                np.save(self.fileName + '.rms.npy', self.output.rmsOffset)      # numpy array with max-offset map
-
-            if self.output.offstHist is not None:
-                np.save(self.fileName + '.off.npy', self.output.offstHist)      # numpy array with offset histogram
-
-            if self.output.ofAziHist is not None:
-                np.save(self.fileName + '.azi.npy', self.output.ofAziHist)      # numpy array with offset/azimuth histogram
-
-            if self.rpsImport is not None:
-                np.save(self.fileName + '.rps.npy', self.rpsImport)             # numpy array with list of RPS records
-
-            if self.spsImport is not None:
-                np.save(self.fileName + '.sps.npy', self.spsImport)             # numpy array with list of SPS records
-
-            if self.xpsImport is not None:
-                np.save(self.fileName + '.xps.npy', self.xpsImport)             # numpy array with list of XPS records
-
-            if self.recGeom is not None:
-                np.save(self.fileName + '.rec.npy', self.recGeom)               # numpy array with list of REC records
-
-            if self.relGeom is not None:
-                np.save(self.fileName + '.rel.npy', self.relGeom)               # numpy array with list of REL records
-
-            if self.srcGeom is not None:
-                np.save(self.fileName + '.src.npy', self.srcGeom)               # numpy array with list of SRC records
+            self.projectService.saveAnalysisSidecars(self.fileName, self.output, includeHistograms=True)
+            self.projectService.saveSurveyDataSidecars(
+                self.fileName,
+                rpsImport=self.rpsImport,
+                spsImport=self.spsImport,
+                xpsImport=self.xpsImport,
+                recGeom=self.recGeom,
+                relGeom=self.relGeom,
+                srcGeom=self.srcGeom,
+            )
         else:
             self.appendLogMessage(f'saving : Cannot save file: {self.fileName}. Error:{saveResult.errorText}', MsgType.Error)
             QMessageBox.information(self, 'Write error', f'Cannot save file:\n{self.fileName}')
