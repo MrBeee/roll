@@ -21,6 +21,41 @@ from .worker_threads import (BinFromGeometryWorker, BinningWorker,
 class BinningWorkerMixin:
     """Keeps the binning/geometry worker-thread lifecycle outside RollMainWindow."""
 
+    def finalizeAnalysisMemmap(self, shape):
+        if not self.fileName or self.output.anaOutput is None:
+            return False
+
+        anaFileName = self.fileName + '.ana.npy'
+        self.resetAnaTableModel()
+
+        if not os.path.exists(anaFileName):
+            return False
+
+        os.utime(anaFileName, None)
+        self.output.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r+', shape=shape)
+        self.output.an2Output = self.output.anaOutput.reshape(shape[0] * shape[1] * shape[2], shape[3])
+        self.setDataAnaTableModel()
+        return True
+
+    def saveAnalysisSidecars(self, includeHistograms=False):
+        if not self.fileName:
+            return False
+
+        np.save(self.fileName + '.bin.npy', self.output.binOutput)
+        np.save(self.fileName + '.min.npy', self.output.minOffset)
+        np.save(self.fileName + '.max.npy', self.output.maxOffset)
+
+        if self.output.rmsOffset is not None:
+            np.save(self.fileName + '.rms.npy', self.output.rmsOffset)
+
+        if includeHistograms and self.output.offstHist is not None:
+            np.save(self.fileName + '.off.npy', self.output.offstHist)
+
+        if includeHistograms and self.output.ofAziHist is not None:
+            np.save(self.fileName + '.azi.npy', self.output.ofAziHist)
+
+        return True
+
     def resolveColorMapName(self, value, fallback='CET-L1'):
         name = None
         if isinstance(value, pg.ColorMap):
@@ -406,11 +441,8 @@ class BinningWorkerMixin:
                 self.output.ofAziHist = self.worker.survey.output.ofAziHist.copy()
                 self.output.offstHist = self.worker.survey.output.offstHist.copy()
 
-                anaFileName = self.fileName + '.ana.npy'
                 shape = self.worker.survey.output.anaOutput.shape
-                self.output.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=shape)
-                self.output.an2Output = self.output.anaOutput.reshape(shape[0] * shape[1] * shape[2], shape[3])
-                self.setDataAnaTableModel()
+                self.finalizeAnalysisMemmap(shape)
 
             self.output.minimumFold = max(self.worker.survey.output.minimumFold, 0)
             self.output.maximumFold = max(self.worker.survey.output.maximumFold, 0)
@@ -483,11 +515,7 @@ class BinningWorkerMixin:
                 self.textEdit.document().setModified(True)
                 info = 'Analysis results are yet to be saved.'
             else:
-                np.save(self.fileName + '.bin.npy', self.output.binOutput)
-                np.save(self.fileName + '.min.npy', self.output.minOffset)
-                np.save(self.fileName + '.max.npy', self.output.maxOffset)
-                if self.output.rmsOffset is not None:
-                    np.save(self.fileName + '.rms.npy', self.output.rmsOffset)
+                self.saveAnalysisSidecars(includeHistograms=True)
                 info = 'Analysis results have been saved.'
 
             QMessageBox.information(self, 'Done', f'Worker thread completed. {info} ')

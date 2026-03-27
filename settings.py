@@ -378,7 +378,13 @@ def readSettings(self):
     path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
     self.projectDirectory = self.settings.value('settings/projectDirectory', path)   # start folder for SaveAs
     self.importDirectory = self.settings.value('settings/importDirectory', path)   # start folder for reading SPS files
-    self.recentFileList = self.settings.value('settings/recentFileList', [])
+    recentFileList = self.settings.value('settings/recentFileList', [])
+    if recentFileList is None:
+        self.recentFileList = []
+    elif isinstance(recentFileList, str):
+        self.recentFileList = [recentFileList] if recentFileList else []
+    else:
+        self.recentFileList = list(recentFileList)
 
     # color & pen information
     config.binAreaColor = self.settings.value('settings/colors/binAreaColor', '#20000000')  # argb - light grey

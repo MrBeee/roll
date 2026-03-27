@@ -31,9 +31,8 @@ import pyqtgraph as pg
 from numpy.lib import recfunctions as rfn
 from qgis.core import QgsApplication
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import (QDateTime, QEvent, QFile, QFileInfo, QIODevice,
-                              QPoint, QRectF, QSettings, QSize, Qt,
-                              QTextStream, QTimer)
+from qgis.PyQt.QtCore import (QDateTime, QEvent, QFileInfo, QPoint, QRectF,
+                              QSettings, QSize, Qt, QTimer)
 from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QImage, QPainter,
                              QTextCursor, QTransform)
 from qgis.PyQt.QtPrintSupport import QPrinter, QPrintPreviewDialog
@@ -67,6 +66,7 @@ from .logging_dock import createLoggingDock
 from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
 from .property_dock import createPropertyDock
+from .project_service import ProjectService
 from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
                              exportPointLayerToQgis, exportSpsOutlinesToQgis,
                              exportSurveyOutlinesToQgis,
@@ -209,6 +209,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # list with most recently used [mru] file actions
         self.recentFileActions = []
         self.recentFileList = []
+        self.projectService = ProjectService()
 
         # workerTread parameters
         self.worker = None                                                      # 'moveToThread' object
@@ -2958,6 +2959,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             del self.recentFileList[config.maxRecentFiles :]                    # make sure the list does not overgrow
 
             self.updateRecentFileActions()
+            writeSettings(self)
 
         self.setWindowTitle(self.tr(f'{shownName}[*] - Roll Survey'))           # update window name, with optional * for modified status
         self.setWindowModified(False)                                           # reset document status
@@ -2969,23 +2971,32 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def updateRecentFileActions(self):                                          # update the MRU file menu actions
         prunedRecentFiles = []
+        visibleRecentFiles = []
         for fileName in self.recentFileList:
             resolvedName = self.resolveRecentFileName(fileName)
-            if resolvedName and os.path.exists(resolvedName):
-                prunedRecentFiles.append(fileName)
+            if os.path.isabs(fileName):
+                if resolvedName and os.path.exists(resolvedName):
+                    prunedRecentFiles.append(fileName)
+                    visibleRecentFiles.append(fileName)
+                continue
+
+            # Keep relative entries in settings until the user explicitly opens or removes them.
+            # The startup projectDirectory may not match the original base path that was used.
+            prunedRecentFiles.append(fileName)
+            visibleRecentFiles.append(fileName)
 
         if prunedRecentFiles != self.recentFileList:
             self.recentFileList = prunedRecentFiles
             writeSettings(self)
 
-        numRecentFiles = min(len(self.recentFileList), config.maxRecentFiles)   # get actual number of recent files
+        numRecentFiles = min(len(visibleRecentFiles), config.maxRecentFiles)    # get actual number of recent files
 
         for i in range(numRecentFiles):
-            fileName = self.recentFileList[i]
+            fileName = visibleRecentFiles[i]
             showName = QFileInfo(fileName).fileName()
             text = f'&{i + 1} {showName}'
             self.recentFileActions[i].setText(text)
-            self.recentFileActions[i].setData(self.recentFileList[i])
+            self.recentFileActions[i].setData(fileName)
             self.recentFileActions[i].setVisible(True)
 
         for j in range(numRecentFiles, config.maxRecentFiles):
@@ -3051,24 +3062,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         config.resetTimers()    ###                                             # reset timers for debugging code
 
-        qFile = QFile(fileName)
-        if not qFile.open(QFile.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):   # report status message and return False
-            try:                                                                # remove from MRU in case of errors
-                self.recentFileList.remove(fileName)
-            except ValueError:
-                pass
-
-            self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Cannot open file:{fileName}. Error:{qFile.errorString()}', MsgType.Error)
+        readResult = self.projectService.readProjectText(fileName)
+        if not readResult.success:                                              # report status message and return False
+            self.removeRecentFile(fileName)
+            self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Cannot open file:{fileName}. Error:{readResult.errorText}', MsgType.Error)
             return False
 
         self.appendLogMessage(f'Opening: {fileName}')                           # send status message
 
         self.survey = RollSurvey()                                              # reset the survey object; get rid of all blocks in the list !
         self.setCurrentFileName(fileName)                                       # update self.fileName, set textEditModified(False) and setWindowModified(False)
-
-        stream = QTextStream(qFile)                                              # create a stream to read all the data
-        plainText = stream.readAll()                                            # load text in a string
-        qFile.close()                                                            # file object no longer needed
+        plainText = readResult.plainText
 
         # Xml tab
         self.appendLogMessage(f'Parsing: {fileName}')                           # send status message
@@ -3672,6 +3676,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if fn:
                 self.fileLoad(fn)                                               # load() does all the hard work
 
+    def openFileByPath(self, fileName):
+        if not fileName:
+            return False
+
+        if not (self.maybeKillThread() and self.maybeSave()):
+            return False
+
+        return self.fileLoad(fileName)
+
     def removeRecentFile(self, fileName):
         removed = False
         while True:
@@ -3702,25 +3715,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 self.appendLogMessage(f'Open&nbsp;&nbsp;&nbsp;: Recent file no longer exists and was removed from the list: {fileName}', MsgType.Error)
                 return
 
-            self.fileLoad(fileName)
+            self.openFileByPath(fileName)
 
     def fileSave(self):
         if not self.fileName:                                                   # need to have a valid filename first, and set the projectDirectory
             return self.fileSaveAs()
 
-        if config.useRelativePaths:
-            self.survey.makeWellPathsRelative(self.projectDirectory)            # make well paths relative to working directory
-
-        xmlText = self.survey.toXmlString(4)
-
-        qFile = QFile(self.fileName)
-        success = qFile.open(QIODevice.OpenModeFlag.WriteOnly | QIODevice.OpenModeFlag.Truncate)
+        saveResult = self.projectService.writeProjectXml(self.fileName, self.survey, self.projectDirectory, config.useRelativePaths, 4)
+        success = saveResult.success
 
         if success:
-            _ = QTextStream(qFile) << xmlText                                  # unused stream replaced by _ to make PyLint happy
             self.appendLogMessage(f'Saved&nbsp;&nbsp;: {self.fileName}')
             self.textEdit.document().setModified(False)
-            qFile.close()
 
             # try to save the analysis files as well
             if self.output.binOutput is not None:
@@ -3759,7 +3765,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if self.srcGeom is not None:
                 np.save(self.fileName + '.src.npy', self.srcGeom)               # numpy array with list of SRC records
         else:
-            self.appendLogMessage(f'saving : Cannot save file: {self.fileName}', MsgType.Error)
+            self.appendLogMessage(f'saving : Cannot save file: {self.fileName}. Error:{saveResult.errorText}', MsgType.Error)
             QMessageBox.information(self, 'Write error', f'Cannot save file:\n{self.fileName}')
 
         self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure

@@ -9,10 +9,10 @@ As a result, the decorated functions are no longer precompiled.
 See: https://numba.readthedocs.io/en/stable/user/jit.html for preferred way of using @jit
 See: https://stackoverflow.com/questions/57774497/how-do-i-make-a-dummy-do-nothing-jit-decorator
 """
-import importlib
-
 import numpy as np
 from qgis.PyQt.QtCore import QLineF, QRectF  # needed for pointsInRect
+
+LOG_RESPONSE_FLOOR = 1.0e-12
 
 try:
     from numba import jit
@@ -116,7 +116,7 @@ def numbaNdft1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarray
         n = np.count_nonzero(incRadial)                                         # normalize by actual  nr of available traces
         a = 1 / n if n > 0 else 0                                               # response will be zero for n = zero
         response = np.dot(incRadial, np.exp(2j * np.pi * kR * offRadial[:, np.newaxis])) * a
-        absResponse = np.abs(response)
+        absResponse = np.maximum(np.abs(response), LOG_RESPONSE_FLOOR)
         logResponse = np.log(absResponse) * 20.0
         radialStk[p, :] = logResponse
 
@@ -148,7 +148,7 @@ def numbaNdft2D(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offset
             for p in range(nP):
                 e = np.exp(2j * np.pi * (kX[x] * offsetX[p] + kY[y] * offsetY[p]))
                 response += e
-            absResponse = np.abs(response) / nP
+            absResponse = np.maximum(np.abs(response) / nP, LOG_RESPONSE_FLOOR)
             # logResponse = np.round(np.log(absResponse) * 20.0, 2)           # np.round is only handy to review array contents
             logResponse = np.log(absResponse) * 20.0
             xyCellStk[x, y] = logResponse
