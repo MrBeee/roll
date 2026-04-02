@@ -42,6 +42,17 @@ class BinningWorkerMixin:
     def saveAnalysisSidecars(self, includeHistograms=False):
         return self.projectService.saveAnalysisSidecars(self.fileName, self.output, includeHistograms=includeHistograms)
 
+    def saveSurveyDataSidecars(self):
+        return self.projectService.saveSurveyDataSidecars(
+            self.fileName,
+            rpsImport=self.rpsImport,
+            spsImport=self.spsImport,
+            xpsImport=self.xpsImport,
+            recGeom=self.recGeom,
+            relGeom=self.relGeom,
+            srcGeom=self.srcGeom,
+        )
+
     def resolveColorMapName(self, value, fallback='CET-L1'):
         name = None
         if isinstance(value, pg.ColorMap):
@@ -551,9 +562,7 @@ class BinningWorkerMixin:
                 self.textEdit.document().setModified(True)
                 info = 'Analysis results are yet to be saved.'
             else:
-                np.save(self.fileName + '.rec.npy', self.recGeom)
-                np.save(self.fileName + '.rel.npy', self.relGeom)
-                np.save(self.fileName + '.src.npy', self.srcGeom)
+                self.saveSurveyDataSidecars()
                 info = 'Analysis results have been saved.'
             QMessageBox.information(self, 'Done', f'Worker thread completed. {info} ')
 

@@ -17,10 +17,13 @@ QGIS_APP, _, IFACE, _ = getQgisApp()
 rollMainWindowModule = loadPluginModule('roll_main_window')
 rollSurveyModule = loadPluginModule('roll_survey')
 settingsModule = loadPluginModule('settings')
+spsModule = loadPluginModule('sps_io_and_qc')
 
 RollMainWindow = rollMainWindowModule.RollMainWindow
 RollSurvey = rollSurveyModule.RollSurvey
 readSettings = settingsModule.readSettings
+pntType1 = spsModule.pntType1
+relType2 = spsModule.relType2
 
 
 class ProjectSidecarsTest(unittest.TestCase):
@@ -82,6 +85,59 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.assertEqual(self.mainWindow.output.binOutput.shape, expected.shape)
             self.assertEqual(self.mainWindow.output.maximumFold, expected.max())
             self.assertEqual(self.mainWindow.imageType, 1)
+
+    def testFileLoadLoadsSurveySidecarsAndRebuildsPointState(self):
+        with tempfile.TemporaryDirectory() as tempDir:
+            projectPath = self.writeProjectFixture(tempDir)
+
+            rpsImport = np.zeros(2, dtype=pntType1)
+            rpsImport[0] = (100.0, 10.0, 1, 'AA', 0.0, 1000.0, 2000.0, 0.0, 1, 1, 1, 0.0, 0.0)
+            rpsImport[1] = (101.0, 11.0, 1, 'AA', 0.0, 1010.0, 2010.0, 0.0, 1, 1, 1, 0.0, 0.0)
+
+            spsImport = np.zeros(1, dtype=pntType1)
+            spsImport[0] = (200.0, 20.0, 1, 'BB', 0.0, 1100.0, 2100.0, 0.0, 1, 1, 1, 0.0, 0.0)
+
+            recGeom = np.zeros(1, dtype=pntType1)
+            recGeom[0] = (300.0, 30.0, 1, 'CC', 0.0, 1200.0, 2200.0, 0.0, 1, 1, 1, 0.0, 0.0)
+
+            srcGeom = np.zeros(1, dtype=pntType1)
+            srcGeom[0] = (400.0, 40.0, 1, 'DD', 0.0, 1300.0, 2300.0, 0.0, 1, 1, 1, 0.0, 0.0)
+
+            xpsImport = np.zeros(1, dtype=relType2)
+            xpsImport[0] = (200.0, 20.0, 1, 1, 100.0, 10.0, 11.0, 1, 1, 1, 1)
+
+            relGeom = np.zeros(1, dtype=relType2)
+            relGeom[0] = (400.0, 40.0, 1, 1, 300.0, 30.0, 31.0, 1, 1, 1, 1)
+
+            self.mainWindow.projectService.saveSurveyDataSidecars(
+                projectPath,
+                rpsImport=rpsImport,
+                spsImport=spsImport,
+                xpsImport=xpsImport,
+                recGeom=recGeom,
+                relGeom=relGeom,
+                srcGeom=srcGeom,
+            )
+
+            success = self.mainWindow.fileLoad(projectPath)
+
+            self.assertTrue(success)
+            self.assertEqual(self.mainWindow.rpsImport.shape[0], 2)
+            self.assertEqual(self.mainWindow.spsImport.shape[0], 1)
+            self.assertEqual(self.mainWindow.recGeom.shape[0], 1)
+            self.assertEqual(self.mainWindow.srcGeom.shape[0], 1)
+            self.assertEqual(self.mainWindow.relGeom.shape[0], 1)
+            self.assertEqual(self.mainWindow.xpsImport.shape[0], 1)
+            self.assertTrue(self.mainWindow.actionRpsPoints.isEnabled())
+            self.assertTrue(self.mainWindow.actionSpsPoints.isEnabled())
+            self.assertTrue(self.mainWindow.actionRecPoints.isEnabled())
+            self.assertTrue(self.mainWindow.actionSrcPoints.isEnabled())
+            self.assertEqual(self.mainWindow.rpsLiveE.shape[0], 2)
+            self.assertEqual(self.mainWindow.spsLiveE.shape[0], 1)
+            self.assertEqual(self.mainWindow.recLiveE.shape[0], 1)
+            self.assertEqual(self.mainWindow.srcLiveE.shape[0], 1)
+            self.assertIsNotNone(self.mainWindow.rpsBound)
+            self.assertIsNotNone(self.mainWindow.spsBound)
 
     def testFileOpenRecentRemovesMissingFileFromRecentList(self):
         with tempfile.TemporaryDirectory() as tempDir:
@@ -165,6 +221,25 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.assertGreater(os.path.getmtime(anaPath), oldTimestamp)
 
             self.mainWindow.resetAnaTableModel()
+
+    def testSaveSurveyDataSidecarsWritesGeometryFiles(self):
+        with tempfile.TemporaryDirectory() as tempDir:
+            projectPath = self.writeProjectFixture(tempDir)
+            self.mainWindow.fileName = projectPath
+
+            self.mainWindow.recGeom = np.zeros(1, dtype=pntType1)
+            self.mainWindow.recGeom[0] = (300.0, 30.0, 1, 'CC', 0.0, 1200.0, 2200.0, 0.0, 1, 1, 1, 0.0, 0.0)
+            self.mainWindow.srcGeom = np.zeros(1, dtype=pntType1)
+            self.mainWindow.srcGeom[0] = (400.0, 40.0, 1, 'DD', 0.0, 1300.0, 2300.0, 0.0, 1, 1, 1, 0.0, 0.0)
+            self.mainWindow.relGeom = np.zeros(1, dtype=relType2)
+            self.mainWindow.relGeom[0] = (400.0, 40.0, 1, 1, 300.0, 30.0, 31.0, 1, 1, 1, 1)
+
+            success = self.mainWindow.saveSurveyDataSidecars()
+
+            self.assertTrue(success)
+            np.testing.assert_array_equal(np.load(projectPath + '.rec.npy'), self.mainWindow.recGeom)
+            np.testing.assert_array_equal(np.load(projectPath + '.rel.npy'), self.mainWindow.relGeom)
+            np.testing.assert_array_equal(np.load(projectPath + '.src.npy'), self.mainWindow.srcGeom)
 
     def testFileOpenRecentUsesSameOpenGuardsAsFileOpen(self):
         with tempfile.TemporaryDirectory() as tempDir:

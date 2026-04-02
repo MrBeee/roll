@@ -1,5 +1,5 @@
 @echo off
-rem preferred usage: "run_pylint_qgis.bat --report pylint-report.txt"
+rem preferred usage: ".\run_pylint_qgis.bat --report pylint-report.txt"
 setlocal EnableExtensions
 
 set "rollDir=%~dp0"

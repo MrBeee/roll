@@ -18,7 +18,14 @@ def dist2(points, start, end):
     maxP1 = np.dot(start - points, d).max()
     maxP2 = np.dot(points - end, d).max()
 
-    return max(maxP1, maxP2, 0) ** 2 + np.cross(points - np.expand_dims(start, 0), np.expand_dims(d, 0)) ** 2
+    #     return max(maxP1, maxP2, 0) ** 2 + np.cross(points - np.expand_dims(start, 0), np.expand_dims(d, 0)) ** 2
+
+    # NumPy 2.x deprecates np.cross on 2D vectors; use the equivalent
+    # scalar determinant for the perpendicular area term.
+    delta = points - np.expand_dims(start, 0)
+    cross2 = delta[:, 0] * d[1] - delta[:, 1] * d[0]
+
+    return max(maxP1, maxP2, 0) ** 2 + cross2**2
 
 
 def _filter(points, threshold, dist2_fun):

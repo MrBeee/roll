@@ -30,12 +30,12 @@ aux_functions.py:692: [R1705(no-else-return), convexHull.dome] Unnecessary "else
 aux_functions.py:698: [R1705(no-else-return), convexHull] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 ************* Module roll.binning_worker_mixin
 binning_worker_mixin.py:21: [R0902(too-many-instance-attributes), BinningWorkerMixin] Too many instance attributes (19/7)
-binning_worker_mixin.py:45: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapName] Too many branches (14/12)
-binning_worker_mixin.py:105: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapObject] Too many branches (16/12)
-binning_worker_mixin.py:183: [R0914(too-many-locals), BinningWorkerMixin.prepFullBinningConditions] Too many local variables (17/15)
-binning_worker_mixin.py:388: [R0912(too-many-branches), BinningWorkerMixin.binningThreadFinished] Too many branches (17/12)
-binning_worker_mixin.py:388: [R0915(too-many-statements), BinningWorkerMixin.binningThreadFinished] Too many statements (88/50)
-binning_worker_mixin.py:21: [R0904(too-many-public-methods), BinningWorkerMixin] Too many public methods (25/20)
+binning_worker_mixin.py:56: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapName] Too many branches (14/12)
+binning_worker_mixin.py:116: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapObject] Too many branches (16/12)
+binning_worker_mixin.py:194: [R0914(too-many-locals), BinningWorkerMixin.prepFullBinningConditions] Too many local variables (17/15)
+binning_worker_mixin.py:399: [R0912(too-many-branches), BinningWorkerMixin.binningThreadFinished] Too many branches (17/12)
+binning_worker_mixin.py:399: [R0915(too-many-statements), BinningWorkerMixin.binningThreadFinished] Too many statements (88/50)
+binning_worker_mixin.py:21: [R0904(too-many-public-methods), BinningWorkerMixin] Too many public methods (26/20)
 ************* Module roll.config
 config.py:175: [R1735(use-dict-literal), ] Consider using '{"id": 'Record identification', "line": 'Line', "point": 'Point', "index": 'Point index', ... }' instead of a call to 'dict'.
 config.py:187: [R1735(use-dict-literal), ] Consider using '{"id": 'Record identification', "recNum": 'Field Record number', "srcLin": 'Source line number', ... }' instead of a call to 'dict'.
@@ -386,62 +386,60 @@ roll.py:186: [R0917(too-many-positional-arguments), Roll.addAction] Too many pos
 ************* Module roll.roll_bingrid
 roll_bingrid.py:11: [R0902(too-many-instance-attributes), RollBinGrid] Too many instance attributes (8/7)
 ************* Module roll.roll_main_window
-roll_main_window.py:163: [R0902(too-many-instance-attributes), RollMainWindow] Too many instance attributes (115/7)
-roll_main_window.py:174: [R1725(super-with-arguments), RollMainWindow.__init__] Consider using Python 3 style super() without arguments
-roll_main_window.py:172: [R0915(too-many-statements), RollMainWindow.__init__] Too many statements (305/50)
-roll_main_window.py:760: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey configuration', "type": 'myConfiguration', ... }' instead of a call to 'dict'.
-roll_main_window.py:761: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey analysis', "type": 'myAnalysis', "value": surveyCopy, ... }' instead of a call to 'dict'.
-roll_main_window.py:762: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey reflectors', "type": 'myReflectors', ... }' instead of a call to 'dict'.
-roll_main_window.py:763: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey grid', "type": 'myGrid', "value": surveyCopy.grid, ... }' instead of a call to 'dict'.
-roll_main_window.py:764: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Block list', "type": 'myBlockList', "value": surveyCopy.blockList, ... }' instead of a call to 'dict'.
-roll_main_window.py:765: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Pattern list', "type": 'myPatternList', "value": surveyCopy.patternList, ... }' instead of a call to 'dict'.
-roll_main_window.py:841: [R0914(too-many-locals), RollMainWindow.applyPropertyChanges] Too many local variables (16/15)
-roll_main_window.py:841: [R0915(too-many-statements), RollMainWindow.applyPropertyChanges] Too many statements (65/50)
-roll_main_window.py:945: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
-roll_main_window.py:1005: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
-roll_main_window.py:1005: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
-roll_main_window.py:1124: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
-roll_main_window.py:1124: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
-roll_main_window.py:1358: [R0915(too-many-statements), RollMainWindow.updateMenuStatus] Too many statements (68/50)
-roll_main_window.py:1474: [R0912(too-many-branches), RollMainWindow.handleImageSelection] Too many branches (14/12)
-roll_main_window.py:1474: [R0915(too-many-statements), RollMainWindow.handleImageSelection] Too many statements (55/50)
-roll_main_window.py:1578: [R0914(too-many-locals), RollMainWindow.mouseMovedInPlot] Too many local variables (21/15)
-roll_main_window.py:1627: [R1716(chained-comparison), RollMainWindow.mouseMovedInPlot] Simplify chained comparison between the operands
-roll_main_window.py:1578: [R0912(too-many-branches), RollMainWindow.mouseMovedInPlot] Too many branches (20/12)
-roll_main_window.py:1578: [R0915(too-many-statements), RollMainWindow.mouseMovedInPlot] Too many statements (60/50)
-roll_main_window.py:1651: [R1705(no-else-return), RollMainWindow.getVisiblePlotIndex] Unnecessary "elif" after "return", remove the leading "el" from "elif"
-roll_main_window.py:1650: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotIndex] Too many return statements (12/6)
-roll_main_window.py:1676: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotWidget] Too many return statements (12/6)
-roll_main_window.py:1702: [R0914(too-many-locals), RollMainWindow.updateVisiblePlotWidget] Too many local variables (17/15)
-roll_main_window.py:1702: [R0912(too-many-branches), RollMainWindow.updateVisiblePlotWidget] Too many branches (17/12)
-roll_main_window.py:1877: [R0914(too-many-locals), RollMainWindow.plotLayout] Too many local variables (40/15)
-roll_main_window.py:1877: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
-roll_main_window.py:1877: [R0915(too-many-statements), RollMainWindow.plotLayout] Too many statements (127/50)
-roll_main_window.py:2318: [R0914(too-many-locals), RollMainWindow.plotStkCel] Too many local variables (26/15)
-roll_main_window.py:2348: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
-roll_main_window.py:2352: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
-roll_main_window.py:2318: [R0915(too-many-statements), RollMainWindow.plotStkCel] Too many statements (54/50)
-roll_main_window.py:2419: [R0914(too-many-locals), RollMainWindow.plotOffAzi] Too many local variables (16/15)
-roll_main_window.py:2482: [R0914(too-many-locals), RollMainWindow.plotPatterns] Too many local variables (20/15)
-roll_main_window.py:2500: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2503: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2521: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2524: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2535: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2538: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2482: [R0912(too-many-branches), RollMainWindow.plotPatterns] Too many branches (14/12)
-roll_main_window.py:2482: [R0915(too-many-statements), RollMainWindow.plotPatterns] Too many statements (69/50)
-roll_main_window.py:2656: [R0915(too-many-statements), RollMainWindow.resetNumpyArraysAndModels] Too many statements (77/50)
-roll_main_window.py:2763: [R1705(no-else-return), RollMainWindow.fileNew] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:2856: [R1705(no-else-return), RollMainWindow.maybeKillThread] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:2938: [R1705(no-else-return), RollMainWindow.resetAnaTableModel] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:3113: [R0912(too-many-branches), RollMainWindow._applyLoadedSurveyDataSidecars] Too many branches (14/12)
-roll_main_window.py:3113: [R0915(too-many-statements), RollMainWindow._applyLoadedSurveyDataSidecars] Too many statements (59/50)
-roll_main_window.py:3179: [R0914(too-many-locals), RollMainWindow.fileImportSpsData] Too many local variables (37/15)
-roll_main_window.py:3179: [R0912(too-many-branches), RollMainWindow.fileImportSpsData] Too many branches (31/12)
-roll_main_window.py:3179: [R0915(too-many-statements), RollMainWindow.fileImportSpsData] Too many statements (177/50)
-roll_main_window.py:3637: [R0914(too-many-locals), RollMainWindow.printPreview] Too many local variables (20/15)
-roll_main_window.py:163: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (152/20)
+roll_main_window.py:164: [R0902(too-many-instance-attributes), RollMainWindow] Too many instance attributes (116/7)
+roll_main_window.py:175: [R1725(super-with-arguments), RollMainWindow.__init__] Consider using Python 3 style super() without arguments
+roll_main_window.py:173: [R0915(too-many-statements), RollMainWindow.__init__] Too many statements (306/50)
+roll_main_window.py:762: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey configuration', "type": 'myConfiguration', ... }' instead of a call to 'dict'.
+roll_main_window.py:763: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey analysis', "type": 'myAnalysis', "value": surveyCopy, ... }' instead of a call to 'dict'.
+roll_main_window.py:764: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey reflectors', "type": 'myReflectors', ... }' instead of a call to 'dict'.
+roll_main_window.py:765: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey grid', "type": 'myGrid', "value": surveyCopy.grid, ... }' instead of a call to 'dict'.
+roll_main_window.py:766: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Block list', "type": 'myBlockList', "value": surveyCopy.blockList, ... }' instead of a call to 'dict'.
+roll_main_window.py:767: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Pattern list', "type": 'myPatternList', "value": surveyCopy.patternList, ... }' instead of a call to 'dict'.
+roll_main_window.py:843: [R0914(too-many-locals), RollMainWindow.applyPropertyChanges] Too many local variables (16/15)
+roll_main_window.py:843: [R0915(too-many-statements), RollMainWindow.applyPropertyChanges] Too many statements (65/50)
+roll_main_window.py:947: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
+roll_main_window.py:1007: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
+roll_main_window.py:1007: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
+roll_main_window.py:1126: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
+roll_main_window.py:1126: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
+roll_main_window.py:1360: [R0915(too-many-statements), RollMainWindow.updateMenuStatus] Too many statements (68/50)
+roll_main_window.py:1476: [R0912(too-many-branches), RollMainWindow.handleImageSelection] Too many branches (14/12)
+roll_main_window.py:1476: [R0915(too-many-statements), RollMainWindow.handleImageSelection] Too many statements (55/50)
+roll_main_window.py:1580: [R0914(too-many-locals), RollMainWindow.mouseMovedInPlot] Too many local variables (21/15)
+roll_main_window.py:1629: [R1716(chained-comparison), RollMainWindow.mouseMovedInPlot] Simplify chained comparison between the operands
+roll_main_window.py:1580: [R0912(too-many-branches), RollMainWindow.mouseMovedInPlot] Too many branches (20/12)
+roll_main_window.py:1580: [R0915(too-many-statements), RollMainWindow.mouseMovedInPlot] Too many statements (60/50)
+roll_main_window.py:1653: [R1705(no-else-return), RollMainWindow.getVisiblePlotIndex] Unnecessary "elif" after "return", remove the leading "el" from "elif"
+roll_main_window.py:1652: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotIndex] Too many return statements (12/6)
+roll_main_window.py:1678: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotWidget] Too many return statements (12/6)
+roll_main_window.py:1704: [R0914(too-many-locals), RollMainWindow.updateVisiblePlotWidget] Too many local variables (17/15)
+roll_main_window.py:1704: [R0912(too-many-branches), RollMainWindow.updateVisiblePlotWidget] Too many branches (17/12)
+roll_main_window.py:1879: [R0914(too-many-locals), RollMainWindow.plotLayout] Too many local variables (40/15)
+roll_main_window.py:1879: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
+roll_main_window.py:1879: [R0915(too-many-statements), RollMainWindow.plotLayout] Too many statements (127/50)
+roll_main_window.py:2320: [R0914(too-many-locals), RollMainWindow.plotStkCel] Too many local variables (26/15)
+roll_main_window.py:2350: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
+roll_main_window.py:2354: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
+roll_main_window.py:2320: [R0915(too-many-statements), RollMainWindow.plotStkCel] Too many statements (54/50)
+roll_main_window.py:2421: [R0914(too-many-locals), RollMainWindow.plotOffAzi] Too many local variables (16/15)
+roll_main_window.py:2484: [R0914(too-many-locals), RollMainWindow.plotPatterns] Too many local variables (20/15)
+roll_main_window.py:2502: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2505: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2523: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2526: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2537: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2540: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2484: [R0912(too-many-branches), RollMainWindow.plotPatterns] Too many branches (14/12)
+roll_main_window.py:2484: [R0915(too-many-statements), RollMainWindow.plotPatterns] Too many statements (69/50)
+roll_main_window.py:2658: [R0915(too-many-statements), RollMainWindow.resetNumpyArraysAndModels] Too many statements (77/50)
+roll_main_window.py:2765: [R1705(no-else-return), RollMainWindow.fileNew] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:2858: [R1705(no-else-return), RollMainWindow.maybeKillThread] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:2940: [R1705(no-else-return), RollMainWindow.resetAnaTableModel] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:3058: [R0914(too-many-locals), RollMainWindow.fileImportSpsData] Too many local variables (37/15)
+roll_main_window.py:3058: [R0912(too-many-branches), RollMainWindow.fileImportSpsData] Too many branches (31/12)
+roll_main_window.py:3058: [R0915(too-many-statements), RollMainWindow.fileImportSpsData] Too many statements (177/50)
+roll_main_window.py:3516: [R0914(too-many-locals), RollMainWindow.printPreview] Too many local variables (20/15)
+roll_main_window.py:164: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (152/20)
 ************* Module roll.roll_main_window_create_geom_tab
 roll_main_window_create_geom_tab.py:12: [R0914(too-many-locals), createGeomTab] Too many local variables (16/15)
 roll_main_window_create_geom_tab.py:12: [R0915(too-many-statements), createGeomTab] Too many statements (157/50)
@@ -679,7 +677,6 @@ standalone.py:19: [R1732(consider-using-with), _logMessage] Consider using 'with
 ************* Module roll.survey_paint_mixin
 survey_paint_mixin.py:29: [R0912(too-many-branches), SurveyPaintMixin.updatePaintDetails] Too many branches (15/12)
 ************* Module roll.table_model_view
-table_model_view.py:231: [C0303(trailing-whitespace), ] Trailing whitespace
 table_model_view.py:58: [R1705(no-else-return), AnaTableModel.data] Unnecessary "elif" after "return", remove the leading "el" from "elif"
 table_model_view.py:107: [R1705(no-else-return), AnaTableModel.headerData] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 table_model_view.py:110: [R1705(no-else-return), AnaTableModel.headerData] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
@@ -1077,7 +1074,8 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
             self.setFont(c, font)
         self.titleChanged()  # sets the size hint for column 0 which is based on the new font
 
-
+    def contextMenuEvent(self, ev):
+        """method overloaded to allow for icons in the context menu"""
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.land_wizard:[2312:2340]
 ==roll.marine_wizard:[2507:2535]
@@ -1187,7 +1185,7 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
         # set the combined layouts to become this page's layout
         self.setLayout(vbl)
 
-        # set the combined layouts
+    def initializePage(self):                                                   # This routine is done each time before the page is activated
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.test.test_project_service:[27:44]
 ==roll.test.test_roll_project_roundtrip:[18:35]
@@ -1209,22 +1207,22 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 
     def assertRectAlmostEqual(self, left, right):
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.binning_worker_mixin:[452:466]
-==roll.roll_main_window:[1482:1496]
-            self.layoutImg = self.output.binOutput                              # don't make a copy, create a view
-            self.layoutMax = self.output.maximumFold
-            label = 'fold'
-        elif self.imageType == 2:
-            self.layoutImg = self.output.minOffset
-            self.layoutMax = self.output.maxMinOffset
-            label = 'minimum offset'
-        elif self.imageType == 3:
-            self.layoutImg = self.output.maxOffset
-            self.layoutMax = self.output.maxMaxOffset
-            label = 'maximum offset'
-        elif self.imageType == 4:
-            self.layoutImg = self.output.rmsOffset
-            self.layoutMax = self.output.maxRmsOffset
+==roll.binning_worker_mixin:[463:477]
+==roll.roll_main_window:[1484:1498]
+                self.layoutImg = self.output.binOutput
+                self.layoutMax = self.output.maximumFold
+                label = 'fold'
+            elif self.imageType == 2:
+                self.layoutImg = self.output.minOffset
+                self.layoutMax = self.output.maxMinOffset
+                label = 'minimum offset'
+            elif self.imageType == 3:
+                self.layoutImg = self.output.maxOffset
+                self.layoutMax = self.output.maxMaxOffset
+                label = 'maximum offset'
+            elif self.imageType == 4:
+                self.layoutImg = self.output.rmsOffset
+                self.layoutMax = self.output.maxRmsOffset
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.aux_functions:[449:466]
 ==roll.functions_numba:[374:389]
@@ -1296,8 +1294,8 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
     # » Yt = Yt0  –  Xs * k * mX * Ishift(phiX)  +  Ys * k * mY * cos(phiY)<br>
 
 
-# Page8 =======================================================================
-# 8. Summary information - Survey representation in xml-format
+# Page9 =======================================================================
+# 9. Summary information - Survey representation in xml-format
 
 
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
@@ -1341,8 +1339,8 @@ except ImportError as ie:
 
 
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.binning_worker_mixin:[467:480]
-==roll.roll_main_window:[1497:1511]
+==roll.binning_worker_mixin:[478:491]
+==roll.roll_main_window:[1499:1513]
             else:
                 raise NotImplementedError('selected analysis type currently not implemented.')
 
@@ -1406,9 +1404,8 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
         axRight = self.plotWidget.plotItem.getAxis('right')                     # get y axis
         axRight.setTickSpacing(yTicks[0], yTicks[1])                            # set y ticks (major and minor)
 
-        self.parent.survey.output.rctOutput = QRectF()                          # don't display this in this wizard page; instead, create empty rect
+        self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in this wizard page; instead, create empty rect
 
-        # make sure nothing 'rolls'; iterate over all blocks
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.land_wizard:[2285:2302]
 ==roll.marine_wizard:[2480:2497]
@@ -1425,8 +1422,8 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
         return False
 
 
-# Page8 =======================================================================
-# 8. Project Coordinate Reference System (CRS) - Enter the survey's coordinate transformation details
+# Page7 =======================================================================
+# 7. Project Coordinate Reference System (CRS) - Enter the survey's coordinate transformation details
 
 
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
@@ -1458,7 +1455,7 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
     label4.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     # create the three button layouts
-    grid1 = QGridLayout()                                                   # top row
+    grid1 = QGridLayout()                                                       # top row
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.roll_pattern_seed:[33:45]
 ==roll.roll_seed:[68:80]
@@ -1487,10 +1484,8 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
     sys.modules[qualifiedName] = module
     spec.loader.exec_module(module)
     return module
-
-
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.test.test_project_sidecars:[40:49]
+==roll.test.test_project_sidecars:[43:52]
 ==roll.test.test_roll_well_transform:[52:61]
         survey.grid.angle = 0.0
         survey.grid.scale.setX(1.0)
@@ -1514,6 +1509,17 @@ try:    # need to TRY importing debugpy, only to see if it is available
     haveDebugpy = True
     import debugpy  # pylint: disable=W0611
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
+==roll.binning_worker_mixin:[46:56]
+==roll.roll_main_window:[3365:3373]
+                self.fileName,
+                rpsImport=self.rpsImport,
+                spsImport=self.spsImport,
+                xpsImport=self.xpsImport,
+                recGeom=self.recGeom,
+                relGeom=self.relGeom,
+                srcGeom=self.srcGeom,
+            )
+test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.land_wizard:[44:53]
 ==roll.marine_wizard:[51:59]
         self.addPage(Page1(self))
@@ -1524,7 +1530,6 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
         self.addPage(Page6(self))
         self.addPage(Page7(self))
         self.addPage(Page8(self))
-
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.land_wizard:[1315:1337]
 ==roll.marine_wizard:[752:765]
@@ -1685,14 +1690,17 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.marine_wizard:[1173:1186]
         self.parent.survey.grid.binSize.setX(self.field('binI'))                # inline bin size [m]
         self.parent.survey.grid.binSize.setY(self.field('binX'))                # x-line bin size [m]
+
         self.parent.survey.grid.binShift.setX(self.field('binI') * 0.5)         # inline shift size [m]
         self.parent.survey.grid.binShift.setY(self.field('binX') * 0.5)         # x-line shift size [m]
+
         self.parent.survey.grid.stakeOrig.setX(1000)                            # set inline stake number @ grid origin
         self.parent.survey.grid.stakeOrig.setY(1000)                            # set x-line stake number @ grid origin
+
         self.parent.survey.grid.stakeSize.setX(self.field('binI'))              # inline stake interval
         self.parent.survey.grid.stakeSize.setY(self.field('binX'))              # x-line line interval
 
-    def alignBingrid(self):
+    def evtBingridAlignToggled(self):
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.roll_main_window_create_geom_tab:[0:13]
 ==roll.roll_main_window_create_sps_tab:[0:13]
@@ -1707,7 +1715,7 @@ from .table_model_view import (RpsTableModel, SpsTableModel, TableView,
                                XpsTableModel)
 
 
-def createGeomTab(self):
+def createSpsTab(self):
     # first create the main widgets
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.roll_main_window_create_pattern_tab:[80:89]
@@ -1750,6 +1758,18 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
         self.origin.setZ(toFloat(parent.attribute('z0')))
 
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
+==roll.test.test_project_service:[190:199]
+==roll.test.test_project_sidecars:[112:121]
+                projectPath,
+                rpsImport=rpsImport,
+                spsImport=spsImport,
+                xpsImport=xpsImport,
+                recGeom=recGeom,
+                relGeom=relGeom,
+                srcGeom=srcGeom,
+            )
+
+test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.land_wizard:[1337:1351]
 ==roll.marine_wizard:[945:959]
 class Page3(SurveyWizardPage):
@@ -1787,7 +1807,6 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 
     def evtBinXsizEditingFinished(self, plot=True):
         binX = self.field('binX')
-        # nrIntervals = round(self.binXsiz.value() / binX)
         nrIntervals = max(round(self.binXsiz.value() / binX), 1)
         binXsiz = nrIntervals * binX
         self.binXsiz.setValue(binXsiz)
@@ -1797,7 +1816,7 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
         self.parent.survey.output.rctOutput.setLeft(self.field('binImin'))
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.pg_toolbar:[54:63]
-==roll.roll_main_window:[449:458]
+==roll.roll_main_window:[451:460]
         self.actionZoomRect.setCheckable(True)
         self.actionZoomRect.setChecked(self.rect)
         self.actionZoomRect.triggered.connect(self.plotZoomRect)
@@ -1810,19 +1829,25 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.roll_grid:[148:159]
 ==roll.roll_pattern:[136:153]
-            g = growListElem.firstChildElement('translate')
-            if g.isNull():
-                return False  # We need at least one grow step
-            while not g.isNull():
-                translate = RollTranslate()
-                translate.readXml(g)
-                self.growList.append(translate)
-                g = g.nextSiblingElement('translate')
+        g = growListElem.firstChildElement('translate')
 
-            return True
+        if g.isNull():
+            return False  # We need at least one grow step
+
+        while not g.isNull():
+            translate = RollTranslate()
+            translate.readXml(g)
+            self.growList.append(translate)
+            g = g.nextSiblingElement('translate')
+
+        return True
+
+    def calcPatternPicture(self):
+        # pre-computing a QPicture object allows paint() to run much more quickly,
+        # rather than re-drawing the shapes every time. First create the point picture
 
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window:[101:110]
+==roll.roll_main_window:[102:111]
 ==roll.test.utilities:[34:45]
     qgsArgv = []
     for arg in argv:
@@ -1832,7 +1857,9 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
             qgsArgv.append(str(arg).encode('utf-8', errors='ignore'))
     return qgsArgv
 
-def getStandaloneQgisApp(argv=None):
+
+def getQgisApp():
+    """Start one QGIS application instance for tests."""
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.roll_main_window_create_geom_tab:[218:226]
 ==roll.roll_main_window_create_pattern_tab:[99:107]
@@ -1906,8 +1933,6 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
         self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
         self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
 
-        # self.parent.survey.paintMode = PaintMode.justLines
-        # self.parent.survey.paintMode = PaintMode.justTemplates
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.land_wizard:[1898:1908]
 ==roll.marine_wizard:[2669:2678]
@@ -1923,20 +1948,18 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.land_wizard:[1899:1911]
 ==roll.marine_wizard:[758:772]
-            self.parent.survey.lodScale = 6.0
-            item = self.parent.survey
+        self.parent.survey.lodScale = 6.0
+        item = self.parent.survey
 
-            # 2. Template Properties - Enter the towing configuration
-            self.plotWidget.plotItem.addItem(item)
+        # 4. roll along and binning area
+        self.plotWidget.plotItem.addItem(item)
 
-            # Add a marker for the origin
-            oriX = [0.0]
-            oriY = [0.0]
-            _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker; grey hexagon; 'orig' return value not used
+        # Add a marker for the origin
+        oriX = [0.0]
+        oriY = [0.0]
+        _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker 'orig' not used further
 
-    def updateParentSurvey(self, plotIndex):
-        # create / update the survey skeleton - Page2
-
+    def evtChkShiftSpreadToggled(self, chkd):
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.land_wizard:[1940:1950]
 ==roll.marine_wizard:[2113:2123]
@@ -2074,6 +2097,7 @@ from .roll_survey import RollSurvey
 currentDir = os.path.dirname(os.path.abspath(__file__))
 resourceDir = os.path.join(currentDir, 'resources')
 
+
 # WIZARD  =======================================================================
 
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
@@ -2116,11 +2140,13 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.land_wizard:[1314:1320]
 ==roll.marine_wizard:[2088:2096]
         styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)  # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)      # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)   # shows axis at the top, and shows the survey name
+        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
+        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
+        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
+        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
 
+        # self.parent.survey.paintMode = PaintMode.justLines
+        # self.parent.survey.paintMode = PaintMode.justTemplates
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.land_wizard:[1487:1493]
 ==roll.marine_wizard:[2415:2421]
@@ -2173,16 +2199,15 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
         self.hideWidget = False
         return w
 
-    def setValue(self, val):
+    def updateLimits(self, param, limits):
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.my_group:[54:61]
 ==roll.my_marker:[108:114]
-            layout = QHBoxLayout()                                              # do the "initialization work" here
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(2)                                                # spacing between elements
-
-            spacerItem = QSpacerItem(5, 5, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-            layout.addSpacerItem(spacerItem)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)                                                    # spacing between elements
+        spacerItem = QSpacerItem(5, 5, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        layout.addSpacerItem(spacerItem)
 
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.my_parameters:[32:37]
@@ -2206,14 +2231,14 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.roll_grid:[126:132]
 ==roll.roll_pattern:[141:147]
-            while not g.isNull():
-                translate = RollTranslate()
-                translate.readXml(g)
-                self.growList.append(translate)
-                g = g.nextSiblingElement('translate')
+        while not g.isNull():
+            translate = RollTranslate()
+            translate.readXml(g)
+            self.growList.append(translate)
+            g = g.nextSiblingElement('translate')
 
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window:[2420:2427]
+==roll.roll_main_window:[2422:2429]
 ==roll.roll_survey:[3085:3091]
             dA = 5.0                                                            # azimuth increments
             dO = 100.0                                                          # offsets increments
@@ -2233,7 +2258,7 @@ from qgis.PyQt.QtWidgets import (QActionGroup, QComboBox, QFrame, QGroupBox,
 from .config import toolButtonStyle
 
 
-def createPatternTab(self):
+def createStackResponseTab(self):
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.roll_pattern:[67:77]
 ==roll.roll_pattern_seed:[35:41]
@@ -2243,10 +2268,6 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
             nameElement.appendChild(text)
             seedElem.appendChild(nameElement)
 
-        # seedElem.setAttribute('x0', str(self.origin.x()))
-        # seedElem.setAttribute('y0', str(self.origin.y()))
-        # seedElem.setAttribute('z0', str(self.origin.z()))
-        # seedElem.setAttribute('argb', str(self.color.name(QColor.NameFormat.HexArgb)))
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.roll_pattern:[83:92]
 ==roll.roll_pattern_seed:[50:59]
@@ -2255,7 +2276,7 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
         return seedElem
 
     def readXml(self, parent: QDomNode):
-        nameElem = parent.namedItem('name').toElement()
+        nameElem = parent.namedItem('name').toElement()                         # get the name first
         if not nameElem.isNull():
             self.name = nameElem.text()
 
@@ -2274,14 +2295,15 @@ test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
         return self.boundingBox
 
     def boundingRect(self):
-        # required for painting a pg.GraphicsObject
-
+        """required for painting a pg.GraphicsObject"""
         if self.boundingBox.isEmpty():
             return self.calcBoundingRect()
         else:
-            return self.boundingBox                                             # earlier derived
+            # earlier derived result, from blocks -> templates -> seeds
+            return self.boundingBox
 
-    def writeXml(self, parent: QDomNode, doc: QDomDocument):
+    def lineWidthForScreen(self, screen) -> float:
+        # geometry() is logical (DIPs); multiply by DPR to get native pixels
 test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
 ==roll.settings:[22:29]
 ==roll.worker_threads:[13:30]
@@ -2322,6 +2344,7 @@ import sys
 import types
 import unittest
 
+
 ------------------------------------------------------------------
-Your code has been rated at 9.64/10 (previous run: 9.64/10, +0.00)
+Your code has been rated at 9.65/10 (previous run: 9.64/10, +0.00)
 

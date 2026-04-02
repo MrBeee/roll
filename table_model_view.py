@@ -228,7 +228,7 @@ class TableView(QTableView):
         elif action == actionSetOff:
             model.setInUseRows(rows, 0)
             self.inUseToggled.emit(rows)
-                
+
     @staticmethod
     def getFormat(entry):
         # fmt: off

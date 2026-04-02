@@ -65,6 +65,7 @@ from .land_wizard import LandSurveyWizard
 from .logging_dock import createLoggingDock
 from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
+from .project_load_applier import ProjectLoadApplier
 from .project_service import ProjectService
 from .property_dock import createPropertyDock
 from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
@@ -210,6 +211,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.recentFileList = []
         self.filterService = FilterService()
         self.projectService = ProjectService()
+        self.projectLoadApplier = ProjectLoadApplier(self)
         self.sessionService = SessionService()
 
         # workerTread parameters
@@ -2997,31 +2999,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.resetNumpyArraysAndModels()                                        # empty all arrays and reset plot titles
 
         if success:                                                             # read the corresponding analysis files
-            self.appendLogMessage(f'Loading: {fileName} analysis files')        # send status message
-            self.setPlottingDetails()                                           # check if it is a marine survey; set seed plotting details accordingly
-            sidecarResult = self.projectService.loadProjectSidecars(self.fileName, self.survey)
-            self._appendProjectSidecarMessages(sidecarResult)
-            self._applyLoadedAnalysisSidecars(sidecarResult)
-            self._applyLoadedSurveyDataSidecars(sidecarResult)
+            self._loadProjectSidecarsIntoWindow(fileName)
 
-            self.handleImageSelection()                                         # change selection and plot survey
-
-        self.spiderPoint = QPoint(-1, -1)                                       # reset the spider location
-        index = self.anaView.model().index(0, 0)                                # turn offset into index
-
-        self.anaView.scrollTo(index)                                            # scroll to the first trace in the trace table
-        self.anaView.selectRow(0)                                               # for the time being, *only* select first row of traces in a bin
-
-        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
-        self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
-
-        self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
-        self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the Layout tab
-
-        # self.plotLayout()                                                     # plot the survey object
-
-        self.resetSurveyProperties()                                            # get the new parameters into the parameter tree. Can be time consuming with many blocks and many seeds
-        self.survey.checkIntegrity(self.projectDirectory)                       # check for survey integrity after loading; in particular well file validity
+        self._finalizeLoadedProject()
 
         # self.appendLogMessage('RollMainWindow.parseText() profiling information', MsgType.Debug)
         # for i in range(0, 20):
@@ -3044,137 +3024,36 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         return success
 
+    def _loadProjectSidecarsIntoWindow(self, fileName):
+        self.appendLogMessage(f'Loading: {fileName} analysis files')            # send status message
+        self.setPlottingDetails()                                               # check if it is a marine survey; set seed plotting details accordingly
+        sidecarResult = self.projectService.loadProjectSidecars(self.fileName, self.survey)
+        self._appendProjectSidecarMessages(sidecarResult)
+        self.projectLoadApplier.apply(sidecarResult)
+        self.handleImageSelection()                                             # change selection and plot survey
+
+    def _finalizeLoadedProject(self):
+        self.spiderPoint = QPoint(-1, -1)                                       # reset the spider location
+        index = self.anaView.model().index(0, 0)                                # turn offset into index
+
+        self.anaView.scrollTo(index)                                            # scroll to the first trace in the trace table
+        self.anaView.selectRow(0)                                               # for the time being, *only* select first row of traces in a bin
+
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
+        self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
+
+        self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
+        self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the Layout tab
+
+        # self.plotLayout()                                                     # plot the survey object
+
+        self.resetSurveyProperties()                                            # get the new parameters into the parameter tree. Can be time consuming with many blocks and many seeds
+        self.survey.checkIntegrity(self.projectDirectory)                       # check for survey integrity after loading; in particular well file validity
+
     def _appendProjectSidecarMessages(self, sidecarResult):
         for message in sidecarResult.messages:
             msgType = MsgType.Error if message.level == 'error' else MsgType.Info
             self.appendLogMessage(message.text, msgType)
-
-    def _applyLoadedAnalysisSidecars(self, sidecarResult):
-        self.output.binOutput = sidecarResult.binOutput
-        self.output.minOffset = sidecarResult.minOffset
-        self.output.maxOffset = sidecarResult.maxOffset
-        self.output.rmsOffset = sidecarResult.rmsOffset
-        self.output.offstHist = sidecarResult.offstHist
-        self.output.ofAziHist = sidecarResult.ofAziHist
-        self.output.minimumFold = sidecarResult.minimumFold
-        self.output.maximumFold = sidecarResult.maximumFold
-        self.output.minMinOffset = sidecarResult.minMinOffset
-        self.output.maxMinOffset = sidecarResult.maxMinOffset
-        self.output.minMaxOffset = sidecarResult.minMaxOffset
-        self.output.maxMaxOffset = sidecarResult.maxMaxOffset
-        self.output.minRmsOffset = sidecarResult.minRmsOffset
-        self.output.maxRmsOffset = sidecarResult.maxRmsOffset
-
-        if self.output.binOutput is None:
-            self.actionArea.setChecked(True)
-            self.imageType = 0
-        else:
-            self.actionFold.setChecked(True)
-            self.imageType = 1
-            self.layoutImg = self.output.binOutput
-            self.layoutMax = self.output.maximumFold
-            self.layoutImItem = pg.ImageItem()
-            self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
-
-            label = 'fold'
-            colorMapObj = self.resolveColorMapObject(config.foldDispCmap, fallback='viridis')
-            if self.layoutColorBar is None:
-                try:
-                    self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
-                        self.layoutImItem,
-                        colorMap=colorMapObj,
-                        label=label,
-                        limits=(0, None),
-                        rounding=10.0,
-                        values=(0.0, self.layoutMax),
-                    )
-                except TypeError as exc:
-                    self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
-                    self.layoutColorBar = None
-            else:
-                self.layoutColorBar.setImageItem(self.layoutImItem)
-                self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-                try:
-                    self.layoutColorBar.setColorMap(colorMapObj)
-                except TypeError as exc:
-                    self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
-                self.setColorbarLabel(label)
-
-        if sidecarResult.analysisMemmapResult is None:
-            self.anaModel.setData(None)
-            self.output.an2Output = None
-            self.output.anaOutput = None
-        else:
-            self.output.anaOutput = sidecarResult.analysisMemmapResult.memmap
-            self.output.an2Output = sidecarResult.analysisMemmapResult.an2Output
-
-        self.setDataAnaTableModel()
-
-    def _applyLoadedSurveyDataSidecars(self, sidecarResult):
-        self.rpsImport = sidecarResult.rpsImport
-        self.spsImport = sidecarResult.spsImport
-        self.xpsImport = sidecarResult.xpsImport
-        self.recGeom = sidecarResult.recGeom
-        self.srcGeom = sidecarResult.srcGeom
-        self.relGeom = sidecarResult.relGeom
-
-        if self.rpsImport is not None:
-            self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
-            self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)
-            nImport = self.rpsImport.shape[0]
-            self.actionRpsPoints.setChecked(nImport > 0)
-            self.actionRpsPoints.setEnabled(nImport > 0)
-        else:
-            self.actionRpsPoints.setChecked(False)
-            self.actionRpsPoints.setEnabled(False)
-
-        if self.spsImport is not None:
-            self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
-            self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)
-            nImport = self.spsImport.shape[0]
-            self.actionSpsPoints.setChecked(nImport > 0)
-            self.actionSpsPoints.setEnabled(nImport > 0)
-        else:
-            self.actionSpsPoints.setChecked(False)
-            self.actionSpsPoints.setEnabled(False)
-
-        if self.recGeom is not None:
-            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
-            nImport = self.recGeom.shape[0]
-            self.actionRecPoints.setChecked(nImport > 0)
-            self.actionRecPoints.setEnabled(nImport > 0)
-        else:
-            self.actionRecPoints.setChecked(False)
-            self.actionRecPoints.setEnabled(False)
-
-        if self.srcGeom is not None:
-            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
-            nImport = self.srcGeom.shape[0]
-            self.actionSrcPoints.setChecked(nImport > 0)
-            self.actionSrcPoints.setEnabled(nImport > 0)
-        else:
-            self.actionSrcPoints.setChecked(False)
-            self.actionSrcPoints.setEnabled(False)
-
-        self.rpsModel.setData(self.rpsImport)
-        self.spsModel.setData(self.spsImport)
-        self.xpsModel.setData(self.xpsImport)
-        if self.rpsView is not None:
-            self.rpsView.reset()
-        if self.spsView is not None:
-            self.spsView.reset()
-        if self.xpsView is not None:
-            self.xpsView.reset()
-
-        self.recModel.setData(self.recGeom)
-        self.relModel.setData(self.relGeom)
-        self.srcModel.setData(self.srcGeom)
-        if self.recView is not None:
-            self.recView.reset()
-        if self.relView is not None:
-            self.relView.reset()
-        if self.srcView is not None:
-            self.srcView.reset()
 
     def fileImportSpsData(self) -> bool:
         spsLines = 0
