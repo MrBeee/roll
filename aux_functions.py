@@ -571,10 +571,11 @@ def countHeaderLines(filename):
 
     with open(filename, encoding='utf-8') as fp:
         for line in fp:
-            if line[0] == 'H':
+            if line.startswith('H'):
                 count += 1
             else:
                 return count
+    return count
 
 
 def countHeaderLines2(filename):
@@ -584,7 +585,7 @@ def countHeaderLines2(filename):
     with open(filename, encoding='utf-8') as fp:
         lines = fp.readlines()
         for line in lines:
-            if line[0] == 'H':
+            if line.startswith('H'):
                 count += 1
             else:
                 return count

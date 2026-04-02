@@ -2801,6 +2801,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.appendLogMessage(f'Wizard : created land survey: {self.survey.name}')
             config.surveyNumber += 1                                            # update global counter
 
+            return True
+
+        return False
+
     def fileNewMarineSurvey(self):
         if not self.fileNew():                                                  # user had 2nd thoughts and did not close the document; return False
             return False
@@ -2824,6 +2828,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             self.appendLogMessage(f'Wizard : created streamer survey: {self.survey.name}')
             config.surveyNumber += 1                                            # update global counter
+
+            return True
+
+        return False
 
     def maybeSave(self):
         if not self.textEdit.document().isModified():                           # no need to do anything, as the doc wasn't modified

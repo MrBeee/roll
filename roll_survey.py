@@ -3334,6 +3334,8 @@ class RollSurvey(pg.GraphicsObject):
                         p = p.nextSiblingElement('pattern')
             n = n.nextSibling()
 
+        return True
+
     def calcBoundingRect(self):
         """Calculate RollSurvey boundaries"""
 
@@ -3455,7 +3457,7 @@ class RollSurvey(pg.GraphicsObject):
         # device pixel ratio
         try:
             dpr = dev.devicePixelRatioF()
-        except Exception:
+        except AttributeError:
             dpr = float(getattr(dev, "devicePixelRatio", lambda: 1.0)())
 
         wLog = max(1, int(getattr(dev, "width", lambda: 0)()))
@@ -3607,7 +3609,7 @@ class RollSurvey(pg.GraphicsObject):
         # Ensure default blending for progressive content
         try:
             p.setOpacity(1.0)
-        except Exception:
+        except (AttributeError, TypeError, RuntimeError):
             pass
 
         b = self._ps["b"]; t = self._ps["t"]; i = self._ps["i"]; j = self._ps["j"]; k = self._ps["k"]
@@ -3694,7 +3696,7 @@ class RollSurvey(pg.GraphicsObject):
                         if seed.type < SeedType.circle:  # rolling/fixed grids
                             seed.rendered = False
                         # leave circle/spiral/well flags untouched; base pass handles them
-                    except Exception:
+                    except (AttributeError, TypeError):
                         pass
 
         # Determine the screen (for width choices if you use it)
@@ -3702,7 +3704,7 @@ class RollSurvey(pg.GraphicsObject):
         try:
             wh = widget.windowHandle() if widget is not None else None
             screen = wh.screen() if wh is not None else QGuiApplication.primaryScreen()
-        except Exception:
+        except (AttributeError, TypeError):
             screen = QGuiApplication.primaryScreen()
 
         penWidth = self.lineWidthForScreen(screen)

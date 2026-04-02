@@ -2,40 +2,41 @@ D:\QGis\MyPlugins\roll\Refactoring_roadmap.txt
 
 **Refactoring Roadmap**
 
-Updated for the current codebase on 2026-03-27.
+Updated for the current codebase on 2026-04-02.
 
-The broad direction is still correct: reduce the amount of orchestration living in `roll_main_window.py`, keep domain and persistence logic outside the UI, and make the remaining big refactors safer by growing tests first.
+The broad direction is unchanged: reduce orchestration in `roll_main_window.py`, keep persistence and domain logic out of the UI, and make the remaining large refactors safer by growing tests before moving behavior.
 
-The roadmap below reflects what has already landed and what should move next from the current state, not from the earlier baseline.
+This version reflects the live codebase, not the earlier baseline.
 
 **Current Status Summary**
 
 Completed or substantially landed:
-1. `ProjectService` now exists and owns project XML read/write plus the low-level `.npy` sidecar helpers.
-2. `roll_main_window.py` already delegates most direct sidecar `np.load` and `np.save` calls to `ProjectService`.
-3. Analysis sidecars now save at the right moment after full binning, including `.off.npy`, `.azi.npy`, and the refreshed `.ana.npy` timestamp/reopen path.
-4. The display and logging dock construction has already been extracted into dedicated builder modules.
+1. `ProjectService` owns project XML read/write, low-level sidecar helpers, memmap opening, and batch project-sidecar loading.
+2. `FilterService` exists and the duplicate/orphan handlers in `roll_main_window.py` are now thin dispatch wrappers.
+3. Analysis sidecars save at the right moment after binning, including `.off.npy`, `.azi.npy`, and the refreshed `.ana.npy` timestamp/reopen path.
+4. Display and logging dock construction has been extracted into dedicated builder modules.
 5. Worker-thread lifecycle code is already out of `RollMainWindow` and lives in `binning_worker_mixin.py`.
-6. The codebase already has a better test baseline than before: project round-trip, sidecar behavior, SPS filters, and recent `functions_numba` regression coverage.
+6. The test baseline is materially better: project round-trip, sidecar behavior, session-service behavior, filter-service coverage, and `functions_numba` regression coverage.
 
 Still unfinished:
-1. `fileLoad()` in `roll_main_window.py` is still doing a large amount of orchestration and post-load UI wiring.
-2. Duplicate/orphan filtering handlers are still highly repetitive in the main window.
-3. Mutable runtime state is still spread across `config.py` and `RollMainWindow`.
-4. Import/QC logic and plotting logic are still too close to the UI.
-5. Worker contracts still depend on broad survey state and XML snapshots.
+1. `fileLoad()` in `roll_main_window.py` still owns too much orchestration and post-load UI/data application.
+2. Loaded-sidecar application is still split across `_applyLoadedAnalysisSidecars()` and `_applyLoadedSurveyDataSidecars()` inside the main window.
+3. Mutable runtime state is still spread across `config.py` and many `RollMainWindow` instance attributes.
+4. SPS/RPS/XPS import and QC logic is still heavily UI-bound.
+5. There is still at least one persistence leak outside `ProjectService`: geometry sidecars are written directly from `binning_worker_mixin.py`.
+6. Worker contracts still depend on broad survey state and implicit mutation.
 
 **Recommended Order From Here**
 
-1. Extract `FilterService` next.
-2. 
-3. Introduce explicit session/runtime staFinish the `ProjectService` refactor by moving batch sidecar-load policy out of `fileLoad()`.te and remove mutable runtime state from `config.py`.
+1. Finish Phase 1 by extracting loaded-project apply logic out of `fileLoad()`.
+2. Remove the remaining direct geometry sidecar writes outside `ProjectService`.
+3. Introduce explicit session/runtime state and remove mutable runtime state from `config.py`.
 4. Extract import/QC orchestration from the main window.
-5. Extract plot/input preparation from the main window.
-6. Clean up worker contracts only after the service boundaries are stable.
+5. Extract plot/input preparation and redraw policy from the main window.
+6. Clean up worker contracts only after service boundaries and state ownership are stable.
 7. Do performance work only after the above structure is in place.
 
-The reason for doing `FilterService` before more persistence work is simple: it is a low-risk, high-clarity refactor that removes a large amount of repetition without forcing a redesign of project loading. It also creates another clean service seam, which makes later extraction work easier.
+The reason to finish the load/apply boundary before deeper state work is simple: the current bottleneck is no longer sidecar loading itself. The service already loads batch sidecars; the remaining complexity is how that loaded state gets applied to UI models, colorbars, derived arrays, and actions in `RollMainWindow`.
 
 **Phase 0 - Baseline and Safety Net**
 
@@ -45,75 +46,75 @@ Mostly complete.
 What is already in place:
 1. Direct tests for project persistence and sidecars.
 2. Direct tests for SPS filter logic.
-3. Project round-trip coverage.
-4. Regression tests for the recent numerical warning fixes.
+3. Direct tests for `FilterService` and `SessionService`.
+4. Project round-trip coverage.
+5. Regression tests for recent numerical warning fixes.
 
 What is still worth adding here:
 1. One or two geometry-generation correctness tests in `roll_survey.py`.
-2. One worker success/failure test around `worker_threads.py`.
+2. One worker success/failure test around `worker_threads.py` or the worker mixin boundary.
 3. A small reusable project fixture that includes a valid `.roll` plus minimal sidecars.
+4. One higher-level project-load test that exercises sidecar load plus apply behavior.
 
 Exit criteria:
 1. Project persistence and filter behavior are protected.
 2. At least one geometry-generation path is covered by a direct test.
 3. At least one worker path is covered by a direct test.
 
-**Phase 1 - Project Persistence Extraction**
+**Phase 1 - Project Persistence and Load Boundary**
 
 Status:
-Partially complete.
+Mostly complete, but not finished.
 
 What is already done:
 1. `ProjectService` handles XML read/write.
 2. `ProjectService` handles low-level sidecar save/load helpers.
 3. `ProjectService` handles memmap opening helpers.
-4. `roll_main_window.py` no longer performs most raw sidecar file I/O directly.
+4. `ProjectService.loadProjectSidecars()` returns a structured batch result with messages and loaded arrays.
+5. `roll_main_window.py` no longer performs most raw sidecar `np.load` calls directly.
 
 What still remains:
-1. `fileLoad()` still contains a long sequence of per-sidecar orchestration, validation, normalization, and UI coupling.
-2. Sidecar load policy is still spread between `ProjectService` and `RollMainWindow`.
-3. The service does not yet return a structured “loaded project sidecars” result object.
+1. `fileLoad()` still orchestrates parse, reset, batch load, sidecar apply, plotting selection, model setup, and final widget state.
+2. `_applyLoadedAnalysisSidecars()` still mixes domain-state application with UI setup such as image selection and colorbar initialization.
+3. `_applyLoadedSurveyDataSidecars()` still mixes loaded array assignment, derived-state recomputation, model refresh, and action toggles.
+4. `binning_worker_mixin.py` still writes `.rec.npy`, `.rel.npy`, and `.src.npy` directly instead of routing through `ProjectService`.
 
 Next sub-step for this phase:
-Create one higher-level `ProjectService` method that loads and validates all analysis/data sidecars and returns a structured result object plus warnings. Keep the UI-specific actions in `RollMainWindow`.
+Create a dedicated loaded-project applier, presenter, or similarly scoped helper that accepts the `ProjectSidecarLoadResult` and applies it to output state, derived arrays, and models. Keep final widget navigation and redraw calls in `RollMainWindow` for now.
 
 Exit criteria:
-1. `fileLoad()` becomes much shorter and stops owning sidecar load policy.
-2. `ProjectService` becomes the single owner of sidecar naming, existence checks, validation, and load rules.
-3. UI code only applies results and refreshes widgets/models.
+1. `fileLoad()` becomes much shorter and stops owning most loaded-state application logic.
+2. `ProjectService` remains the single owner of sidecar naming, existence checks, validation, and load rules.
+3. The remaining main-window code becomes mostly controller wiring: parse, call services, update top-level UI state, and trigger redraw.
+4. All sidecar writes go through `ProjectService`.
 
-**Phase 2 - Extract FilterService**
+**Phase 2 - Filter Extraction**
 
 Status:
-Not started.
+Complete enough for now.
 
-This is now the recommended next step.
+What has landed:
+1. `FilterService` exists and is descriptor-driven.
+2. Duplicate/orphan handlers in `roll_main_window.py` now delegate to generic point/relation filter dispatch helpers.
+3. The service returns structured filter results including summary text and derived spatial state.
+4. There is direct unit-test coverage for point duplicate, point orphan, and relation orphan filtering.
 
-Why this should come next:
-1. The duplicate/orphan cleanup handlers are repetitive and already built on top of reusable functions in `sps_io_and_qc.py`.
-2. The work is relatively low risk because the core algorithms do not need to change.
-3. It will remove a large amount of controller noise from `roll_main_window.py`.
-4. It is easy to validate with direct unit tests.
-
-Scope:
-1. Replace the repeated `removeRpsDuplicates()`, `removeSpsDuplicates()`, `removeXpsDuplicates()`, `removeRecDuplicates()`, `removeSrcDuplicates()`, `removeRelDuplicates()`, and orphan variants with a descriptor-driven service.
-2. Keep UI logging, action state changes, and redraw calls in the main window initially.
-3. Move filter selection, data replacement, and derived-array refresh rules into `FilterService`.
-
-Implementation approach:
-1. Define descriptors for point arrays, relation arrays, and orphan modes.
-2. Create generic apply methods for point and relation filters.
-3. Return updated arrays and a small summary object containing counts and labels.
+Remaining note:
+Do not spend more refactoring effort here unless new duplication appears. The architecture seam is good enough and no longer the next bottleneck.
 
 Exit criteria:
-1. The 14 cleanup/orphan handlers collapse into a small generic dispatch layer.
-2. Filter orchestration becomes testable without a `QMainWindow`.
-3. `roll_main_window.py` becomes visibly smaller and less repetitive.
+Already met for the current milestone:
+1. The 14 cleanup/orphan handlers collapsed into a small generic dispatch layer.
+2. Filter orchestration is testable without a `QMainWindow`.
+3. `roll_main_window.py` is materially less repetitive in this area.
 
 **Phase 3 - Explicit Runtime and Session State**
 
 Status:
-Not started.
+Not started in the intended sense.
+
+Important clarification:
+`SessionService` currently handles recent-file menu behavior only. It is not yet a runtime/session-state owner.
 
 Goal:
 Stop using `config.py` and the main window instance as a shared runtime message bus.
@@ -127,10 +128,15 @@ What should move out of `config.py`:
 1. Mutable timer accumulators.
 2. Mutable runtime flags that are not true constants.
 3. Any project/session-specific runtime object.
+4. Session counters such as `surveyNumber`.
+
+Why this should come after finishing Phase 1:
+If the current load/apply path stays tangled inside `RollMainWindow`, moving arrays into `SessionState` will mostly relocate the same coupling instead of reducing it.
 
 Exit criteria:
 1. `config.py` contains defaults, static formats, and style constants only.
 2. Services receive state objects rather than many loosely related arrays and flags.
+3. `RollMainWindow` stops owning most imported-array and geometry-array lifecycle directly.
 
 **Phase 4 - Import/QC Service**
 
@@ -139,6 +145,9 @@ Not started.
 
 Goal:
 Move SPS/RPS/XPS parsing and QC orchestration out of the main window.
+
+Current note:
+`fileImportSpsData()` is still a large UI-bound routine with repeated `QApplication.processEvents()` calls, direct array allocation, parsing loops, uniqueness checks, orphan checks, CRS conversion, transform calculation, and model refresh.
 
 Scope:
 1. File parsing.
@@ -151,7 +160,8 @@ Do not move this to a worker first. Extract the logic into a service first, then
 
 Exit criteria:
 1. Import/QC logic is testable without `RollMainWindow`.
-2. Core parsing logic no longer depends on `QApplication.processEvents`.
+2. Core parsing logic no longer depends directly on `QApplication.processEvents()`.
+3. The UI only owns file picking, progress display, and final message/reporting.
 
 **Phase 5 - Plot and Redraw Service**
 
@@ -167,11 +177,12 @@ Scope:
 3. Colorbar input generation.
 4. Partial invalidation rules versus full replot rules.
 
-This phase should happen after `FilterService` and session state are in place, otherwise the plot logic will still be coupled to unstable controller state.
+This phase should happen after the load/apply extraction and session-state work are in place, otherwise plot logic will still be coupled to unstable controller state.
 
 Exit criteria:
 1. Data mutations no longer directly decide full redraw policy in many places.
 2. Small data edits can invalidate only affected layers.
+3. Colorbar and image setup stop being scattered across controller methods.
 
 **Phase 6 - Worker Contract Cleanup**
 
@@ -182,7 +193,7 @@ Goal:
 Make worker inputs and outputs explicit, smaller, and easier to validate.
 
 Current note:
-The worker setup is acceptable for now. This should not be the next refactor. It depends on earlier service and state extraction to avoid simply moving the same large implicit contract into new classes.
+The worker setup is acceptable for now. This should still not be the next refactor. It depends on earlier service and state extraction to avoid simply moving the same large implicit contract into new classes.
 
 Future direction:
 1. Introduce request/result objects.
@@ -208,63 +219,64 @@ Do not optimize these speculatively. Measure them after the service boundaries a
 
 **Tests To Add Next**
 
-The earlier “first 15 tests” list is now outdated because several of those tests already exist.
+The earlier first-pass test list is now outdated because several of those tests already exist.
 
 The best next tests are:
 1. geometry-generation correctness test for a minimal template,
 2. worker success/failure test,
-3. `FilterService` unit tests once that service exists,
-4. one batch project-sidecar load test once `ProjectService` grows a higher-level load method.
+3. one higher-level test for loaded-sidecar apply behavior,
+4. one test that geometry sidecar saves go through `ProjectService`,
+5. one test for the future `SessionState` migration boundary.
 
 **Outdated Items From The Previous Roadmap**
 
-The following items should be considered completed or reordered:
+The following items should now be considered completed or reordered:
 1. “Create `ProjectService` first” is no longer future work; it is already in place.
-2. “Replace stale template-era tests” is no longer the main priority; the test suite now contains meaningful domain coverage.
-3. Worker cleanup should not be ahead of service extraction.
-4. Filter extraction should be earlier than originally planned.
+2. “Create a higher-level batch sidecar-load method” is no longer future work; `ProjectService.loadProjectSidecars()` already exists.
+3. “Extract `FilterService` next” is no longer correct; it is already in place.
+4. Worker cleanup should still not be ahead of service extraction and explicit state ownership.
 
 **Recommended Next Step**
 
 If choosing one next step only, do this:
 
-1. Extract `FilterService`.
+1. Finish Phase 1 by extracting the loaded-project apply path out of `fileLoad()`.
 
 Why:
-1. It is the cleanest low-risk refactor available.
-2. It removes a large amount of repetition from `roll_main_window.py`.
-3. It improves testability immediately.
-4. It continues the same architectural direction already started by `ProjectService`, dock builders, and the existing mixins.
+1. It is the clearest remaining bottleneck in `roll_main_window.py`.
+2. The loading service boundary already exists; what remains is the application boundary.
+3. It will shorten `fileLoad()` and make later session-state extraction much safer.
+4. It also exposes the remaining persistence leak in worker geometry saves, which should be cleaned up at the same time.
 
 After that, the next step should be:
 
-1. finish Phase 1 by adding a higher-level batch sidecar-load method to `ProjectService` and shrinking `fileLoad()` accordingly.
+1. introduce `SessionState` and migrate imported-array and geometry-array ownership out of `RollMainWindow`.
 
 Estimated effort:
-2 to 5 days depending on findings.
+2 to 5 days depending on findings and how much UI-specific apply logic can be cleanly isolated without changing behavior.
 
-**Backlog of First 12 Tickets**
+**Backlog of Next 12 Tickets**
 
-1. Add survey XML round-trip test.
-2. Add sidecar-dimension validation test.
-3. Add direct tests for deletePntDuplicates/deletePntOrphans/deleteRelDuplicates/deleteRelOrphans.
-4. Create project_service.py with loadProject() skeleton.
-5. Move raw .roll file reading and XML parse into ProjectService.
-6. Move sidecar load and validation into ProjectService.
-7. Move project save and sidecar save into ProjectService.
-8. Create SessionState and migrate main-window owned arrays into it.
-9. Create filter_service.py and replace duplicate/orphan handlers.
-10. Create import_service.py and move SPS/RPS/XPS parsing and QC logic.
-11. Split plot input computation from plot widget updates.
-12. Remove remaining mutable runtime state from config.py.
+1. Extract a loaded-project apply helper from `fileLoad()`.
+2. Move `_applyLoadedAnalysisSidecars()` responsibilities into that helper.
+3. Move `_applyLoadedSurveyDataSidecars()` responsibilities into that helper.
+4. Route geometry sidecar saves in `binning_worker_mixin.py` through `ProjectService`.
+5. Add a project-load apply regression test.
+6. Create `SessionState` and migrate imported arrays into it.
+7. Migrate geometry arrays and derived live/dead arrays into `SessionState`.
+8. Remove mutable session counters and timer accumulators from `config.py`.
+9. Create `import_service.py` and move SPS/RPS/XPS parsing and QC logic.
+10. Split plot input computation from plot widget updates.
+11. Introduce smaller worker request/result objects.
+12. Re-measure performance after the above structure stabilizes.
 
 **Definition of Done for the First Major Milestone**
 
 The first major milestone is complete when:
-1. RollMainWindow is no longer responsible for project persistence internals.
-2. Project load/save is covered by domain tests.
+1. `RollMainWindow` is no longer responsible for project persistence internals or most loaded-state application internals.
+2. Project load/save is covered by domain tests and at least one higher-level load/apply regression test.
 3. Filter actions no longer duplicate orchestration logic across many handlers.
 4. Session runtime state has a single explicit owner.
 
-Note: Need to check if crs coordinate transform goes in the right direction for well-files.
+Note: Need to check if CRS coordinate transform goes in the right direction for well-files.
 

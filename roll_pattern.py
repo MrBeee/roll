@@ -145,6 +145,8 @@ class RollPattern(pg.GraphicsObject):
             self.growList.append(translate)
             g = g.nextSiblingElement('translate')
 
+        return True
+
     def calcPatternPicture(self):
         # pre-computing a QPicture object allows paint() to run much more quickly,
         # rather than re-drawing the shapes every time. First create the point picture

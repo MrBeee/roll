@@ -57,12 +57,12 @@ class BinningWorkerMixin:
             if callable(toString):
                 try:
                     name = toString()
-                except Exception:
+                except (AttributeError, TypeError, ValueError):
                     name = None
             if name is None:
                 try:
                     name = str(value)
-                except Exception:
+                except (AttributeError, TypeError, ValueError):
                     name = None
 
         available = pg.colormap.listMaps()
@@ -88,7 +88,7 @@ class BinningWorkerMixin:
         name = None
         try:
             name = str(value)
-        except Exception:
+        except (AttributeError, TypeError, ValueError):
             name = None
 
         if name:
@@ -116,12 +116,12 @@ class BinningWorkerMixin:
             if callable(toString):
                 try:
                     name = toString()
-                except Exception:
+                except (AttributeError, TypeError, ValueError):
                     name = None
             if name is None:
                 try:
                     name = str(value)
-                except Exception:
+                except (AttributeError, TypeError, ValueError):
                     name = None
 
         if name:

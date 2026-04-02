@@ -64,6 +64,8 @@ class RollBlock:
         if not self.borders.readXml(parent):
             return False
 
+        return True
+
     def calcBoundingRect(self):
         self.srcBoundingRect = QRectF()  # reset it
         self.recBoundingRect = QRectF()  # reset it

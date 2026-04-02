@@ -57,25 +57,6 @@
     // [error] Active interpreter type is detected as Unknown {"id":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\python.exe","sysPrefix":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312","envType":"Unknown","envName":"","envPath":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\python.exe","path":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\python.exe","architecture":3,"sysVersion":"","version":{"raw":"3.12.7","major":3,"minor":12,"patch":7,"build":[],"prerelease":[]},"displayName":"Python 3.12.7","detailedDisplayName":"Python 3.12.7"}
     // According toChatGpt 4.1 this is because the Python interpreter being used is not part of a recognized virtual environment or conda environment. Since you are using the Python interpreter that comes bundled with QGIS, it may not be recognized by VS Code as a standard Python environment. If everything is working fine despite the error message, you can likely ignore it. However, if you want to get rid of the error message, you might consider creating a virtual environment specifically for your project and configuring VS Code to use that environment instead.
     "python.languageServer": "Jedi",
-    "pylint.args": [
-        "--max-line-length=210",
-        "--max-module-lines=4000",
-        "--disable=missing-module-docstring",
-        "--disable=missing-class-docstring",
-        "--disable=missing-function-docstring",
-        "--disable=unused-import",
-        "--disable=no-name-in-module",
-        "--disable=unrecognized-option",
-        "--disable=C0115",
-        "--disable=C0321",
-        "--disable=E1136",
-        "--disable=W0213",
-        "--enable=W0611",
-        "--enable=W0614",
-        "--disable=E1137",
-        "--disable=W0212"
-        // "--reportMissingImports=false"
-    ],
     "workbench.colorCustomizations": {
         "statusBar.background": "#f8ecf9",
         "statusBar.debuggingBackground": "#d7b64c"

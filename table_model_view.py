@@ -74,6 +74,8 @@ class AnaTableModel(QAbstractTableModel):
             # return QFont('Courier New', 8, QFont.Weight.Normal)
             return QFont('Arial', 8, QFont.Weight.Normal)
 
+        return QVariant()
+
     def setData(self, data):
         """Modified to reset chunked data when direct data is set"""
         # self.beginResetModel()                                                  # https://doc.qt.io/qt-6/qabstractitemmodel.html#beginResetModel
@@ -117,7 +119,8 @@ class AnaTableModel(QAbstractTableModel):
             return self._header[section]
         return super().setHeaderData(section, orientation, data, role)
 
-    def rowCount(self, parent=None):
+    # required 2nd parameter (index) not being used. See: https://gist.github.com/nbassler/342fc56c42df27239fa5276b79fca8e6
+    def rowCount(self, _=None):
         """Return row count based on whether we're using chunked data or not"""
         if self._chunkedData is not None:
             return self._chunkedData.getRowCount()
@@ -174,6 +177,32 @@ class TableView(QTableView):
         # context menu support
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.showContextMenu)
+
+    def _selectedRowForNavigation(self):
+        selectionModel = self.selectionModel()
+        if selectionModel is None:
+            return None
+
+        currentIndex = selectionModel.currentIndex()
+        if currentIndex.isValid():
+            return currentIndex.row()
+
+        indexes = selectionModel.selectedRows()
+        if not indexes:
+            return None
+
+        return indexes[0].row()
+
+    def _selectNavigationRow(self, row):
+        model = self.model()
+        if model is None or row is None:
+            return
+
+        targetIndex = model.index(row, 0)
+        self.clearSelection()
+        self.setCurrentIndex(targetIndex)
+        self.selectRow(row)
+        self.scrollTo(targetIndex, QAbstractItemView.ScrollHint.PositionAtCenter)
 
     def showContextMenu(self, pos):
         model = self.model()
@@ -297,92 +326,80 @@ class TableView(QTableView):
 
             if event.key() == Qt.Key.Key_PageDown:
                 myPrint('Move to next duplicate')
-                indexes = self.selectionModel().selectedRows()
-                # for index in sorted(indexes):
-                #     myPrint('Row %d is selected' % index.row())
-                index = indexes[0].row()
+                index = self._selectedRowForNavigation()
+                if index is None:
+                    return True
                 goTo = self.model().nextDuplicate(index)
-                self.clearSelection()
                 if goTo is not None:
-                    self.selectRow(goTo)
+                    self._selectNavigationRow(goTo)
                 else:
                     winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
-                    self.selectRow(index)
+                    self._selectNavigationRow(index)
                 return True
 
             if event.key() == Qt.Key.Key_PageUp:
                 myPrint('Move to previous duplicate')
-                indexes = self.selectionModel().selectedRows()
-                # for index in sorted(indexes):
-                #     myPrint('Row %d is selected' % index.row())
-                index = indexes[0].row()
+                index = self._selectedRowForNavigation()
+                if index is None:
+                    return True
                 goTo = self.model().prevDuplicate(index)
-                self.clearSelection()
                 if goTo is not None:
-                    self.selectRow(goTo)
+                    self._selectNavigationRow(goTo)
                 else:
                     winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
-                    self.selectRow(index)
+                    self._selectNavigationRow(index)
                 return True
 
             if event.key() == Qt.Key.Key_Down:
                 myPrint('Move to next src orphan')
-                indexes = self.selectionModel().selectedRows()
-                # for index in sorted(indexes):
-                #     myPrint('Row %d is selected' % index.row())
-                index = indexes[0].row()
+                index = self._selectedRowForNavigation()
+                if index is None:
+                    return True
                 goTo = self.model().nextSrcOrphan(index)
-                self.clearSelection()
                 if goTo is not None:
-                    self.selectRow(goTo)
+                    self._selectNavigationRow(goTo)
                 else:
                     winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
-                    self.selectRow(index)
+                    self._selectNavigationRow(index)
                 return True
 
             if event.key() == Qt.Key.Key_Up:
                 myPrint('Move to prev src orphan')
-                indexes = self.selectionModel().selectedRows()
-                # for index in sorted(indexes):
-                #     myPrint('Row %d is selected' % index.row())
-                index = indexes[0].row()
+                index = self._selectedRowForNavigation()
+                if index is None:
+                    return True
                 goTo = self.model().prevSrcOrphan(index)
-                self.clearSelection()
                 if goTo is not None:
-                    self.selectRow(goTo)
+                    self._selectNavigationRow(goTo)
                 else:
                     winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
-                    self.selectRow(index)
+                    self._selectNavigationRow(index)
                 return True
 
             if event.key() == Qt.Key.Key_Right:
                 myPrint('Move to next rec orphan')
-                indexes = self.selectionModel().selectedRows()
-                # for index in sorted(indexes):
-                #     myPrint('Row %d is selected' % index.row())
-                index = indexes[0].row()
+                index = self._selectedRowForNavigation()
+                if index is None:
+                    return True
                 goTo = self.model().nextRecOrphan(index)
-                self.clearSelection()
                 if goTo is not None:
-                    self.selectRow(goTo)
+                    self._selectNavigationRow(goTo)
                 else:
                     winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
-                    self.selectRow(index)
+                    self._selectNavigationRow(index)
                 return True
 
             if event.key() == Qt.Key.Key_Left:
                 myPrint('Move to prev rec orphan')
-                indexes = self.selectionModel().selectedRows()
-                # for index in sorted(indexes):
-                #     myPrint('Row %d is selected' % index.row())
-                index = indexes[0].row()
+                index = self._selectedRowForNavigation()
+                if index is None:
+                    return True
                 goTo = self.model().prevRecOrphan(index)
-                self.clearSelection()
                 if goTo is not None:
-                    self.selectRow(goTo)
+                    self._selectNavigationRow(goTo)
                 else:
                     winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
-                    self.selectRow(index)
+                    self._selectNavigationRow(index)
                 return True
 
         return super(TableView, self).eventFilter(source, event)
@@ -509,15 +526,15 @@ class TableView(QTableView):
         data = self.model().getData()                                           # get numpy data from the underlying model
         if data is None:
             winsound.PlaySound('SystemHand', winsound.SND_ALIAS | winsound.SND_ASYNC)
-            return
+            return False
 
         if self.model().rowCount(0) > 100_000:
             QMessageBox.warning(self, 'Select all', 'You want to select more than 100,000 records\nPlease use File->Export to export all records and make your selection in a text editor', QMessageBox.Close)
-            return True
+            return False
 
         # See: https://github.com/NextSaturday/myQT/blob/main/tSelection/tSelection/tSelection.cpp for alternative solution
         with pg.BusyCursor():                                                   # this could take some time. . .
-            self.selectAll()
+            super().selectAll()
 
         return True
 
@@ -636,6 +653,8 @@ class RpsTableModel(QAbstractTableModel):
             if not inUse:
                 return QBrush(QColor(160, 160, 160))                            # inactive -> grey
             return QVariant()
+
+        return QVariant()
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
@@ -896,6 +915,8 @@ class SpsTableModel(QAbstractTableModel):
                 return QBrush(QColor(160, 160, 160))                            # inactive -> grey
             return QVariant()
 
+        return QVariant()
+
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
@@ -1093,7 +1114,6 @@ class XpsTableModel(QAbstractTableModel):
         self._names = None              # Ordered list of field names, or None if there are no fields
         self._qSort = deque(maxlen=3)   # To support sorting on max 3 values
 
-        # todo: get rid of this hardcoded stuff; use the field names instead. See formatDict in TableView above
         # fmt: off
         self._format =  '%.2f',     '%.2f',      '%d',        '%d',       '%.2f',     '%.2f',    '%.2f',    '%d',        '%d',     '%d',           '%d'
         self._header = ['src line', 'src point', 'src index', 'record #', 'rec line', 'rec min', 'rec max', 'rec index', 'unique', 'in sps-table', 'in rps-table']
@@ -1137,6 +1157,8 @@ class XpsTableModel(QAbstractTableModel):
             # return QFont("Courier New", 10, QFont.Bold)
             # return QFont('Courier New', 8, QFont.Weight.Normal)
             return QFont('Arial', 8, QFont.Weight.Normal)
+
+        return QVariant()
 
     def getData(self):
         return self._data

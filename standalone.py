@@ -30,7 +30,7 @@ def _closeLogFile():
         return
     try:
         _LOG_FILE.flush()
-    except Exception:
+    except (ValueError, OSError, IOError):
         pass
     try:
         _LOG_FILE.close()
@@ -137,9 +137,9 @@ def logTopLevelWidgets():
                 visible = w.isVisible()
                 size = w.size()
                 _logMessage(f"  - {className} title='{title}' visible={visible} size={size.width()}x{size.height()}")
-            except Exception as exc:
+            except (AttributeError, TypeError, RuntimeError) as exc:
                 _logMessage(f"  - <error reading widget>: {exc}")
-    except Exception as exc:
+    except (ImportError, AttributeError, TypeError, RuntimeError) as exc:
         _logMessage(f"Failed to list top-level widgets: {exc}")
 
 def main(argv=None):

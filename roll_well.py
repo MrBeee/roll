@@ -82,7 +82,7 @@ class RollWell:
                 self.name = None
                 return
 
-        except Exception:
+        except (TypeError, ValueError, OSError):
             # Be conservative on unexpected errors
             self.name = None
 
@@ -103,7 +103,7 @@ class RollWell:
             else:
                 self.name = None
 
-        except Exception:
+        except (TypeError, ValueError):
             # Be conservative on unexpected errors
             self.name = None
 
