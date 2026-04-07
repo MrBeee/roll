@@ -16,6 +16,7 @@ Usage examples:
 
 import argparse
 from typing import Optional, Tuple
+
 import numpy as np
 import segyio
 
@@ -25,7 +26,7 @@ try:
 except ImportError:
     NUMBA_AVAILABLE = False
 
-    def njit(*args, **kwargs):
+    def njit(*_, **__):                          # dummy decorator when numba is not available: njit(*args, **kwargs)
         def decorator(func):
             return func
         return decorator

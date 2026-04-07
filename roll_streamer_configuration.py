@@ -1,6 +1,8 @@
+"""
+This module provides the streamer configuration class used in Roll
+"""
 import math
 
-from . import config  # used to pass initial settings
 from .aux_functions import (knotToMeterperSec, newtonToTonForce,
                             tonForceToNewton)
 

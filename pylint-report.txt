@@ -1,40 +1,24 @@
 ************* Module roll.aux_classes
-aux_classes.py:10: [R0903(too-few-public-methods), BlackLine] Too few public methods (0/2)
 aux_classes.py:27: [R1725(super-with-arguments), LineHighlighter.__init__] Consider using Python 3 style super() without arguments
-aux_classes.py:18: [R0903(too-few-public-methods), LineHighlighter] Too few public methods (1/2)
 aux_classes.py:64: [R1725(super-with-arguments), CustomPlainTextEdit.__init__] Consider using Python 3 style super() without arguments
 aux_classes.py:79: [R1725(super-with-arguments), CustomPlainTextEdit.paintEvent] Consider using Python 3 style super() without arguments
-aux_classes.py:58: [R0903(too-few-public-methods), CustomPlainTextEdit] Too few public methods (1/2)
-aux_classes.py:117: [R0903(too-few-public-methods), SurveyWizard] Too few public methods (0/2)
-aux_classes.py:128: [R0903(too-few-public-methods), SurveyWizardPage] Too few public methods (1/2)
-aux_classes.py:161: [R0903(too-few-public-methods), QButtonGroupEx] Too few public methods (1/2)
-aux_classes.py:170: [R0903(too-few-public-methods), QHLine] Too few public methods (0/2)
-aux_classes.py:177: [R0903(too-few-public-methods), QVLine] Too few public methods (0/2)
 ************* Module roll.aux_functions
 aux_functions.py:861: [C0301(line-too-long), ] Line too long (738/210)
 aux_functions.py:87: [R1705(no-else-return), toBool] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 aux_functions.py:136: [R1705(no-else-return), odd] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 aux_functions.py:143: [R1703(simplifiable-if-statement), even] The if statement can be replaced with 'return bool(test)'
 aux_functions.py:143: [R1705(no-else-return), even] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-aux_functions.py:169: [R0914(too-many-locals), lineturnDetour] Too many local variables (16/15)
-aux_functions.py:207: [R0914(too-many-locals), makePenFromParms] Too many local variables (16/15)
 aux_functions.py:262: [R1714(consider-using-in), getNameFromQtEnum] Consider merging these comparisons with 'in' by using 'value in (member.value, member)'. Use a set instead if elements are hashable.
-aux_functions.py:386: [R0914(too-many-locals), makeParmsFromPen] Too many local variables (16/15)
-aux_functions.py:436: [R0914(too-many-locals), clipLineF] Too many local variables (22/15)
 aux_functions.py:436: [R0912(too-many-branches), clipLineF] Too many branches (14/12)
-aux_functions.py:436: [R0915(too-many-statements), clipLineF] Too many statements (60/50)
 aux_functions.py:602: [R1705(no-else-return), isFileInUse] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 aux_functions.py:619: [R1701(consider-merging-isinstance), getUnpicklable] Consider merging these isinstance calls to isinstance(instance, (list, tuple))
 aux_functions.py:610: [R0912(too-many-branches), getUnpicklable] Too many branches (15/12)
 aux_functions.py:692: [R1705(no-else-return), convexHull.dome] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 aux_functions.py:698: [R1705(no-else-return), convexHull] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 ************* Module roll.binning_worker_mixin
-binning_worker_mixin.py:21: [R0902(too-many-instance-attributes), BinningWorkerMixin] Too many instance attributes (19/7)
 binning_worker_mixin.py:56: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapName] Too many branches (14/12)
 binning_worker_mixin.py:116: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapObject] Too many branches (16/12)
-binning_worker_mixin.py:194: [R0914(too-many-locals), BinningWorkerMixin.prepFullBinningConditions] Too many local variables (17/15)
 binning_worker_mixin.py:399: [R0912(too-many-branches), BinningWorkerMixin.binningThreadFinished] Too many branches (17/12)
-binning_worker_mixin.py:399: [R0915(too-many-statements), BinningWorkerMixin.binningThreadFinished] Too many statements (88/50)
 binning_worker_mixin.py:21: [R0904(too-many-public-methods), BinningWorkerMixin] Too many public methods (26/20)
 ************* Module roll.config
 config.py:175: [R1735(use-dict-literal), ] Consider using '{"id": 'Record identification', "line": 'Line', "point": 'Point', "index": 'Point index', ... }' instead of a call to 'dict'.
@@ -51,20 +35,10 @@ config.py:230: [R1735(use-dict-literal), ] Consider using '{"name": 'Netherlands
 config.py:231: [R1735(use-dict-literal), ] Consider using '{"name": 'New Zealand', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
 config.py:232: [R1735(use-dict-literal), ] Consider using '{"name": 'SEG rev2.1', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
 config.py:233: [R1735(use-dict-literal), ] Consider using '{"name": 'Sudan', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', "id": [0, 1], ... }' instead of a call to 'dict'.
-************* Module roll.display_dock
-display_dock.py:21: [R0903(too-few-public-methods), _DisplayDockBuilder] Too few public methods (1/2)
-************* Module roll.filter_service
-filter_service.py:23: [R0902(too-many-instance-attributes), FilterResult] Too many instance attributes (8/7)
-filter_service.py:42: [R0903(too-few-public-methods), FilterService] Too few public methods (1/2)
-************* Module roll.find
-find.py:153: [R0902(too-many-instance-attributes), FindNotepad] Too many instance attributes (12/7)
-find.py:159: [R0915(too-many-statements), FindNotepad.initUI] Too many statements (54/50)
 ************* Module roll.functions_numba
 functions_numba.py:41: [R1719(simplifiable-if-expression), numbaFilterSlice2D] The if expression can be replaced with 'test'
 functions_numba.py:58: [R1719(simplifiable-if-expression), numbaSlice3D] The if expression can be replaced with 'test'
 functions_numba.py:88: [R1719(simplifiable-if-expression), numbaSliceStats] The if expression can be replaced with 'test'
-functions_numba.py:106: [R0914(too-many-locals), numbaNdft1D] Too many local variables (16/15)
-functions_numba.py:135: [R0914(too-many-locals), numbaNdft2D] Too many local variables (18/15)
 functions_numba.py:227: [R1719(simplifiable-if-expression), numbaOffsetBin] The if expression can be replaced with 'test'
 functions_numba.py:320: [R0913(too-many-arguments), numbaSetPointRecord] Too many arguments (8/5)
 functions_numba.py:320: [R0917(too-many-positional-arguments), numbaSetPointRecord] Too many positional arguments (8/5)
@@ -72,76 +46,23 @@ functions_numba.py:352: [R0913(too-many-arguments), numbaSetRelationRecord] Too 
 functions_numba.py:352: [R0917(too-many-positional-arguments), numbaSetRelationRecord] Too many positional arguments (9/5)
 functions_numba.py:395: [R0913(too-many-arguments), numbaClipLineF] Too many arguments (8/5)
 functions_numba.py:395: [R0917(too-many-positional-arguments), numbaClipLineF] Too many positional arguments (8/5)
-functions_numba.py:395: [R0914(too-many-locals), numbaClipLineF] Too many local variables (20/15)
 functions_numba.py:489: [R1702(too-many-nested-blocks), pointInPolygon] Too many nested blocks (6/5)
 ************* Module roll.land_wizard
-land_wizard.py:38: [R0903(too-few-public-methods), LandSurveyWizard] Too few public methods (0/2)
-land_wizard.py:74: [R0902(too-many-instance-attributes), Page1] Too many instance attributes (31/7)
-land_wizard.py:75: [R0915(too-many-statements), Page1.__init__] Too many statements (169/50)
-land_wizard.py:368: [R0915(too-many-statements), Page1.evtTypeIndexChanged] Too many statements (60/50)
-land_wizard.py:559: [R0902(too-many-instance-attributes), Page2] Too many instance attributes (18/7)
-land_wizard.py:560: [R0915(too-many-statements), Page2.__init__] Too many statements (97/50)
-land_wizard.py:708: [R0914(too-many-locals), Page2.initializePage] Too many local variables (17/15)
-land_wizard.py:779: [R0914(too-many-locals), Page2.updateParentSurvey] Too many local variables (40/15)
 land_wizard.py:816: [R1714(consider-using-in), Page2.updateParentSurvey] Consider merging these comparisons with 'in' by using 'typ in (SurveyType.Parallel.code, SurveyType.Zigzag.code)'. Use a set instead if elements are hashable.
 land_wizard.py:779: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (16/12)
-land_wizard.py:779: [R0915(too-many-statements), Page2.updateParentSurvey] Too many statements (258/50)
-land_wizard.py:1339: [R0915(too-many-statements), Page3.__init__] Too many statements (56/50)
-land_wizard.py:1443: [R0914(too-many-locals), Page3.initializePage] Too many local variables (18/15)
-land_wizard.py:1506: [R0914(too-many-locals), Page3.updateParentSurvey] Too many local variables (17/15)
-land_wizard.py:1591: [R0902(too-many-instance-attributes), Page4] Too many instance attributes (11/7)
-land_wizard.py:1592: [R0915(too-many-statements), Page4.__init__] Too many statements (103/50)
-land_wizard.py:1779: [R0914(too-many-locals), Page4.updateParentSurvey] Too many local variables (21/15)
 land_wizard.py:1800: [R1714(consider-using-in), Page4.updateParentSurvey] Consider merging these comparisons with 'in' by using 'typ in (SurveyType.Orthogonal.code, SurveyType.Parallel.code)'. Use a set instead if elements are hashable.
-land_wizard.py:1779: [R0915(too-many-statements), Page4.updateParentSurvey] Too many statements (62/50)
-land_wizard.py:1971: [R0902(too-many-instance-attributes), Page5] Too many instance attributes (14/7)
-land_wizard.py:1972: [R0915(too-many-statements), Page5.__init__] Too many statements (98/50)
-land_wizard.py:2121: [R0914(too-many-locals), Page5.updateParentSurvey] Too many local variables (20/15)
-land_wizard.py:2121: [R0915(too-many-statements), Page5.updateParentSurvey] Too many statements (54/50)
-land_wizard.py:2304: [R0915(too-many-statements), Page7.__init__] Too many statements (68/50)
-************* Module roll.logging_dock
-logging_dock.py:18: [R0903(too-few-public-methods), _LoggingDockBuilder] Too few public methods (1/2)
 ************* Module roll.marine_wizard
-marine_wizard.py:48: [R0903(too-few-public-methods), MarineSurveyWizard] Too few public methods (0/2)
-marine_wizard.py:82: [R0902(too-many-instance-attributes), Page1] Too many instance attributes (20/7)
-marine_wizard.py:83: [R0915(too-many-statements), Page1.__init__] Too many statements (182/50)
-marine_wizard.py:339: [R0914(too-many-locals), Page1.updateParameters] Too many local variables (17/15)
-marine_wizard.py:428: [R0902(too-many-instance-attributes), Page2] Too many instance attributes (17/7)
-marine_wizard.py:429: [R0915(too-many-statements), Page2.__init__] Too many statements (114/50)
-marine_wizard.py:656: [R0914(too-many-locals), Page2.plot] Too many local variables (35/15)
-marine_wizard.py:656: [R0915(too-many-statements), Page2.plot] Too many statements (71/50)
-marine_wizard.py:770: [R0914(too-many-locals), Page2.updateParentSurvey] Too many local variables (40/15)
 marine_wizard.py:779: [R1719(simplifiable-if-expression), Page2.updateParentSurvey] The if expression can be replaced with 'test'
 marine_wizard.py:770: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (13/12)
-marine_wizard.py:770: [R0915(too-many-statements), Page2.updateParentSurvey] Too many statements (108/50)
-marine_wizard.py:947: [R0915(too-many-statements), Page3.__init__] Too many statements (58/50)
-marine_wizard.py:1088: [R0914(too-many-locals), Page3.updateParameters] Too many local variables (18/15)
-marine_wizard.py:1194: [R0902(too-many-instance-attributes), Page4] Too many instance attributes (28/7)
-marine_wizard.py:1195: [R0915(too-many-statements), Page4.__init__] Too many statements (195/50)
-marine_wizard.py:1459: [R0914(too-many-locals), Page4.updateParameters] Too many local variables (28/15)
-marine_wizard.py:1528: [R0914(too-many-locals), Page4.updateSailLineOverhead] Too many local variables (23/15)
 marine_wizard.py:1528: [R0912(too-many-branches), Page4.updateSailLineOverhead] Too many branches (13/12)
-marine_wizard.py:1528: [R0915(too-many-statements), Page4.updateSailLineOverhead] Too many statements (80/50)
 marine_wizard.py:1653: [R1705(no-else-return), Page4.isComplete] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-marine_wizard.py:1663: [R0902(too-many-instance-attributes), Page5] Too many instance attributes (10/7)
-marine_wizard.py:1664: [R0915(too-many-statements), Page5.__init__] Too many statements (73/50)
-marine_wizard.py:1792: [R0914(too-many-locals), Page5.updateParentSurvey] Too many local variables (63/15)
 marine_wizard.py:1833: [R1719(simplifiable-if-expression), Page5.updateParentSurvey] The if expression can be replaced with 'test'
-marine_wizard.py:1792: [R0915(too-many-statements), Page5.updateParentSurvey] Too many statements (161/50)
-marine_wizard.py:2164: [R0902(too-many-instance-attributes), Page6] Too many instance attributes (14/7)
-marine_wizard.py:2165: [R0915(too-many-statements), Page6.__init__] Too many statements (100/50)
-marine_wizard.py:2318: [R0914(too-many-locals), Page6.updateParentSurvey] Too many local variables (20/15)
-marine_wizard.py:2318: [R0915(too-many-statements), Page6.updateParentSurvey] Too many statements (54/50)
-marine_wizard.py:2499: [R0915(too-many-statements), Page8.__init__] Too many statements (66/50)
 ************* Module roll.my_crs2
 my_crs2.py:49: [R1735(use-dict-literal), MyCrs2Parameter.__init__] Consider using '{"name": 'CRS', "type": 'myCrs', "value": self.crs, "default": self.crs, ... }' instead of a call to 'dict'.
 my_crs2.py:50: [R1735(use-dict-literal), MyCrs2Parameter.__init__] Consider using '{"name": 'Description', "type": 'str', "value": self.crs.description(), ... }' instead of a call to 'dict'.
 my_crs2.py:51: [R1735(use-dict-literal), MyCrs2Parameter.__init__] Consider using '{"name": 'Authority ID', "type": 'str', "value": self.crs.authid(), ... }' instead of a call to 'dict'.
 my_crs2.py:52: [R1735(use-dict-literal), MyCrs2Parameter.__init__] Consider using '{"name": 'Projection type', "type": 'str', "value": self.crs.projectionAcronym(), ... }' instead of a call to 'dict'.
-************* Module roll.my_list
-my_list.py:39: [W0613(unused-argument), MyListParameterItem.updateLimits] Unused argument 'param'
 ************* Module roll.my_marker
-my_marker.py:53: [R0903(too-few-public-methods), SymbolPreviewLabel] Too few public methods (1/2)
 my_marker.py:143: [R1735(use-dict-literal), MyMarkerParameter.__init__] Consider using '{"name": 'Symbol', "value": self.marker.symbol(), "default": self.marker.symbol(), ... }' instead of a call to 'dict'.
 my_marker.py:144: [R1735(use-dict-literal), MyMarkerParameter.__init__] Consider using '{"name": 'Color', "value": self.marker.color(), "default": self.marker.color(), ... }' instead of a call to 'dict'.
 my_marker.py:145: [R1735(use-dict-literal), MyMarkerParameter.__init__] Consider using '{"name": 'Size', "value": self.marker.size(), "default": self.marker.size(), ... }' instead of a call to 'dict'.
@@ -189,7 +110,6 @@ my_parameters.py:440: [R1735(use-dict-literal), MyPlaneParameter.__init__] Consi
 my_parameters.py:441: [R1735(use-dict-literal), MyPlaneParameter.__init__] Consider using '{"name": 'Plane dip', "type": 'float', "value": self.plane.dip, "default": self.plane.dip, ... }' instead of a call to 'dict'.
 my_parameters.py:501: [R1735(use-dict-literal), MySphereParameter.__init__] Consider using '{"name": 'Sphere origin', "type": 'myPoint3D', "value": self.sphere.origin, ... }' instead of a call to 'dict'.
 my_parameters.py:502: [R1735(use-dict-literal), MySphereParameter.__init__] Consider using '{"name": 'Sphere radius', "type": 'float', "value": self.sphere.radius, ... }' instead of a call to 'dict'.
-my_parameters.py:544: [R0902(too-many-instance-attributes), MyLocalGridParameter] Too many instance attributes (10/7)
 my_parameters.py:564: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Bin size [x]', "value": self.binGrid.binSize.x(), "default": self.binGrid.binSize.x(), ... }' instead of a call to 'dict'.
 my_parameters.py:565: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Bin size [y]', "value": self.binGrid.binSize.y(), "default": self.binGrid.binSize.y(), ... }' instead of a call to 'dict'.
 my_parameters.py:566: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Bin offset [x]', "value": self.binGrid.binShift.x(), "default": self.binGrid.binShift.x(), ... }' instead of a call to 'dict'.
@@ -204,7 +124,6 @@ my_parameters.py:647: [R1735(use-dict-literal), MyGlobalGridParameter.__init__] 
 my_parameters.py:648: [R1735(use-dict-literal), MyGlobalGridParameter.__init__] Consider using '{"name": 'Scale factor [E]', "value": self.binGrid.scale.x(), "default": self.binGrid.scale.x(), ... }' instead of a call to 'dict'.
 my_parameters.py:649: [R1735(use-dict-literal), MyGlobalGridParameter.__init__] Consider using '{"name": 'Scale factor [N]', "value": self.binGrid.scale.y(), "default": self.binGrid.scale.y(), ... }' instead of a call to 'dict'.
 my_parameters.py:650: [R1735(use-dict-literal), MyGlobalGridParameter.__init__] Consider using '{"name": 'Azimuth', "value": self.binGrid.angle, "default": self.binGrid.angle, ... }' instead of a call to 'dict'.
-my_parameters.py:686: [R0914(too-many-locals), MyBlockParameterItem.showPreviewInformation] Too many local variables (17/15)
 my_parameters.py:690: [R1702(too-many-nested-blocks), MyBlockParameterItem.showPreviewInformation] Too many nested blocks (7/5)
 my_parameters.py:754: [R1735(use-dict-literal), MyBlockParameter.__init__] Consider using '{"name": 'Source boundary', "type": 'myRectF', "value": self.block.borders.srcBorder, ... }' instead of a call to 'dict'.
 my_parameters.py:755: [R1735(use-dict-literal), MyBlockParameter.__init__] Consider using '{"name": 'Receiver boundary', "type": 'myRectF', "value": self.block.borders.recBorder, ... }' instead of a call to 'dict'.
@@ -234,7 +153,6 @@ my_parameters.py:1289: [R1735(use-dict-literal), MySeedListParameter.contextMenu
 my_parameters.py:1339: [R1735(use-dict-literal), MyPatternSeedListParameter.__init__] Consider using '{"name": seed.name, "type": 'myPatternSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
 my_parameters.py:1368: [R1735(use-dict-literal), MyPatternSeedListParameter.contextMenu] Consider using '{"name": newName, "type": 'myPatternSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
 my_parameters.py:1390: [R1714(consider-using-in), MySeedParameterItem.showPreviewInformation] Consider merging these comparisons with 'in' by using 'seedType in ('Circle', 'Spiral', 'Well')'. Use a set instead if elements are hashable.
-my_parameters.py:1409: [R0902(too-many-instance-attributes), MySeedParameter] Too many instance attributes (13/7)
 my_parameters.py:1448: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Seed type', "type": 'myList', "value": self.seedTypes[self.seed.type], ... }' instead of a call to 'dict'.
 my_parameters.py:1449: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Source seed', "type": 'bool', "value": self.seed.bSource, ... }' instead of a call to 'dict'.
 my_parameters.py:1450: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Seed color', "type": 'color', "value": self.seed.color, "default": self.seed.color, ... }' instead of a call to 'dict'.
@@ -244,7 +162,6 @@ my_parameters.py:1454: [R1735(use-dict-literal), MySeedParameter.__init__] Consi
 my_parameters.py:1456: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Circle grow steps', "type": 'myCircle', "value": self.seed.circle, ... }' instead of a call to 'dict'.
 my_parameters.py:1457: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Spiral grow steps', "type": 'mySpiral', "value": self.seed.spiral, ... }' instead of a call to 'dict'.
 my_parameters.py:1458: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Well grow steps', "type": 'myWell', "value": self.seed.well, ... }' instead of a call to 'dict'.
-my_parameters.py:1413: [R0915(too-many-statements), MySeedParameter.__init__] Too many statements (53/50)
 my_parameters.py:1505: [R1714(consider-using-in), MySeedParameter.typeChanged] Consider merging these comparisons with 'in' by using 'seedType in ('Grid (roll along)', 'Grid (stationary)')'. Use a set instead if elements are hashable.
 my_parameters.py:1506: [R1714(consider-using-in), MySeedParameter.typeChanged] Consider merging these comparisons with 'in' by using 'seedType in ('Grid (roll along)', 'Grid (stationary)')'. Use a set instead if elements are hashable.
 my_parameters.py:1569: [R1735(use-dict-literal), MySeedParameter.contextMenu] Consider using '{"name": seed.name, "type": 'myTemplateSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
@@ -264,7 +181,6 @@ my_parameters.py:1814: [R1735(use-dict-literal), MySpiralParameter.__init__] Con
 my_parameters.py:1815: [R1735(use-dict-literal), MySpiralParameter.__init__] Consider using '{"name": 'Start angle', "value": self.spiral.azi0, "default": self.spiral.azi0, ... }' instead of a call to 'dict'.
 my_parameters.py:1816: [R1735(use-dict-literal), MySpiralParameter.__init__] Consider using '{"name": 'Point interval', "value": self.spiral.dist, "default": self.spiral.dist, ... }' instead of a call to 'dict'.
 my_parameters.py:1817: [R1735(use-dict-literal), MySpiralParameter.__init__] Consider using '{"name": 'Points', "value": self.spiral.points, "default": self.spiral.points, ... }' instead of a call to 'dict'.
-my_parameters.py:1878: [R0902(too-many-instance-attributes), MyWellParameter] Too many instance attributes (10/7)
 my_parameters.py:1909: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'Well file', "type": 'file', "value": f, "default": f, "selectFile": f, ... }' instead of a call to 'dict'.
 my_parameters.py:1911: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'Well CRS', "type": 'myCrs', "value": self.well.crs, "default": self.well.crs, ... }' instead of a call to 'dict'.
 my_parameters.py:1912: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'Origin [well]', "type": 'myPoint3D', "value": self.well.origW, ... }' instead of a call to 'dict'.
@@ -284,7 +200,6 @@ my_parameters.py:2378: [R1735(use-dict-literal), MyPatternListParameter.__init__
 my_parameters.py:2444: [R1735(use-dict-literal), MyPatternListParameter.contextMenu] Consider using '{"name": newName, "type": 'myPattern', "value": pattern, "default": pattern, ... }' instead of a call to 'dict'.
 my_parameters.py:2499: [R1735(use-dict-literal), MyGridParameter.__init__] Consider using '{"name": 'Local grid', "value": self.binGrid, "default": self.binGrid, ... }' instead of a call to 'dict'.
 my_parameters.py:2500: [R1735(use-dict-literal), MyGridParameter.__init__] Consider using '{"name": 'Global grid', "value": self.binGrid, "default": self.binGrid, ... }' instead of a call to 'dict'.
-my_parameters.py:2530: [R0902(too-many-instance-attributes), MyAnalysisParameter] Too many instance attributes (11/7)
 my_parameters.py:2557: [R1735(use-dict-literal), MyAnalysisParameter.__init__] Consider using '{"name": 'Binning area', "type": 'myRectF', "value": self.area, "default": self.area, ... }' instead of a call to 'dict'.
 my_parameters.py:2558: [R1735(use-dict-literal), MyAnalysisParameter.__init__] Consider using '{"name": 'Binning angles', "type": 'myBinAngles', "value": self.angles, ... }' instead of a call to 'dict'.
 my_parameters.py:2559: [R1735(use-dict-literal), MyAnalysisParameter.__init__] Consider using '{"name": 'Binning offsets', "type": 'myBinOffset', "value": self.offset, ... }' instead of a call to 'dict'.
@@ -308,8 +223,6 @@ my_point2D.py:47: [R1735(use-dict-literal), MyPoint2DParameter.__init__] Conside
 my_point3D.py:46: [R1735(use-dict-literal), MyPoint3DParameter.__init__] Consider using '{"name": 'X', "type": 'myFloat', "value": self.vector.x(), "default": self.vector.x(), ... }' instead of a call to 'dict'.
 my_point3D.py:47: [R1735(use-dict-literal), MyPoint3DParameter.__init__] Consider using '{"name": 'Y', "type": 'myFloat', "value": self.vector.y(), "default": self.vector.y(), ... }' instead of a call to 'dict'.
 my_point3D.py:48: [R1735(use-dict-literal), MyPoint3DParameter.__init__] Consider using '{"name": 'Z', "type": 'myFloat', "value": self.vector.z(), "default": self.vector.z(), ... }' instead of a call to 'dict'.
-************* Module roll.my_preview_label
-my_preview_label.py:9: [R0903(too-few-public-methods), MyPreviewLabel] Too few public methods (1/2)
 ************* Module roll.my_range
 my_range.py:42: [R1719(simplifiable-if-expression), MyRangeParameter.__init__] The if expression can be replaced with 'test'
 my_range.py:43: [R1719(simplifiable-if-expression), MyRangeParameter.__init__] The if expression can be replaced with 'test'
@@ -331,276 +244,152 @@ my_vector.py:48: [R1735(use-dict-literal), MyVectorParameter.__init__] Consider 
 my_vector.py:49: [R1735(use-dict-literal), MyVectorParameter.__init__] Consider using '{"name": 'dZ', "type": 'float', "value": self.vector.z(), "default": self.vector.z(), ... }' instead of a call to 'dict'.
 my_vector.py:50: [R1735(use-dict-literal), MyVectorParameter.__init__] Consider using '{"name": 'azimuth', "type": 'myFloat', "value": 0.0, "default": 0.0, ... }' instead of a call to 'dict'.
 my_vector.py:51: [R1735(use-dict-literal), MyVectorParameter.__init__] Consider using '{"name": 'tilt', "type": 'myFloat', "value": 0.0, "default": 0.0, "enabled": False, ... }' instead of a call to 'dict'.
-************* Module roll.pg_toolbar
-pg_toolbar.py:12: [R0902(too-many-instance-attributes), PgToolBar] Too many instance attributes (12/7)
 ************* Module roll.project_service
 project_service.py:305: [C0301(line-too-long), ] Line too long (236/210)
-project_service.py:56: [R0902(too-many-instance-attributes), ProjectSidecarLoadResult] Too many instance attributes (25/7)
 project_service.py:102: [R0913(too-many-arguments), ProjectService.writeProjectXml] Too many arguments (6/5)
 project_service.py:102: [R0917(too-many-positional-arguments), ProjectService.writeProjectXml] Too many positional arguments (6/5)
 project_service.py:207: [R0913(too-many-arguments), ProjectService.saveSurveyDataSidecars] Too many arguments (8/5)
-project_service.py:222: [R0914(too-many-locals), ProjectService._loadAnalysisArraySidecars] Too many local variables (17/15)
 project_service.py:222: [R0912(too-many-branches), ProjectService._loadAnalysisArraySidecars] Too many branches (16/12)
-project_service.py:222: [R0915(too-many-statements), ProjectService._loadAnalysisArraySidecars] Too many statements (69/50)
-************* Module roll.property_dock
-property_dock.py:20: [R0903(too-few-public-methods), _PropertyDockBuilder] Too few public methods (1/2)
 ************* Module roll.qgis_interface
-qgis_interface.py:44: [R1705(no-else-return), identifyQgisPointLayer] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-qgis_interface.py:30: [W0613(unused-argument), identifyQgisPointLayer] Unused argument 'iface'
-qgis_interface.py:184: [R0914(too-many-locals), exportPointLayerToQgis] Too many local variables (28/15)
-qgis_interface.py:184: [R0915(too-many-statements), exportPointLayerToQgis] Too many statements (86/50)
-qgis_interface.py:396: [R0914(too-many-locals), exportSurveyOutlinesToQgis] Too many local variables (23/15)
-qgis_interface.py:396: [R0915(too-many-statements), exportSurveyOutlinesToQgis] Too many statements (101/50)
-qgis_interface.py:548: [R0915(too-many-statements), exportSpsOutlinesToQgis] Too many statements (74/50)
-qgis_interface.py:736: [R0914(too-many-locals), ExportRasterLayerToQgis] Too many local variables (17/15)
-qgis_interface.py:790: [R0914(too-many-locals), readQgisPointLayer] Too many local variables (24/15)
-qgis_interface.py:846: [W0612(unused-variable), readQgisPointLayer] Unused variable 'used'
+qgis_interface.py:49: [R1705(no-else-return), identifyQgisPointLayer] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 ************* Module roll.qgis_layer_dialog
-qgis_layer_dialog.py:7: [R0902(too-many-instance-attributes), LayerDialog] Too many instance attributes (10/7)
 qgis_layer_dialog.py:8: [R0913(too-many-arguments), LayerDialog.__init__] Too many arguments (6/5)
 qgis_layer_dialog.py:8: [R0917(too-many-positional-arguments), LayerDialog.__init__] Too many positional arguments (6/5)
 ************* Module roll.radon_hr
-radon_hr.py:443: [C0305(trailing-newlines), ] Trailing newlines
-radon_hr.py:28: [W0613(unused-argument), njit] Unused argument 'args'
-radon_hr.py:28: [W0613(unused-argument), njit] Unused argument 'kwargs'
-radon_hr.py:128: [R0914(too-many-locals), _radon_forward_kernel] Too many local variables (17/15)
-radon_hr.py:152: [R0914(too-many-locals), _radon_adjoint_kernel] Too many local variables (18/15)
-radon_hr.py:218: [R0913(too-many-arguments), adjoint_test] Too many arguments (6/5)
-radon_hr.py:218: [R0917(too-many-positional-arguments), adjoint_test] Too many positional arguments (6/5)
-radon_hr.py:244: [R0913(too-many-arguments), _apply_A] Too many arguments (8/5)
-radon_hr.py:244: [R0917(too-many-positional-arguments), _apply_A] Too many positional arguments (8/5)
-radon_hr.py:261: [R0913(too-many-arguments), irls_radon] Too many arguments (9/5)
-radon_hr.py:261: [R0917(too-many-positional-arguments), irls_radon] Too many positional arguments (9/5)
-radon_hr.py:261: [R0914(too-many-locals), irls_radon] Too many local variables (22/15)
+radon_hr.py:444: [C0305(trailing-newlines), ] Trailing newlines
+radon_hr.py:219: [R0913(too-many-arguments), adjoint_test] Too many arguments (6/5)
+radon_hr.py:219: [R0917(too-many-positional-arguments), adjoint_test] Too many positional arguments (6/5)
+radon_hr.py:245: [R0913(too-many-arguments), _apply_A] Too many arguments (8/5)
+radon_hr.py:245: [R0917(too-many-positional-arguments), _apply_A] Too many positional arguments (8/5)
+radon_hr.py:262: [R0913(too-many-arguments), irls_radon] Too many arguments (9/5)
+radon_hr.py:262: [R0917(too-many-positional-arguments), irls_radon] Too many positional arguments (9/5)
 ************* Module roll.regex_testing
 regex_testing.py:15: [R1725(super-with-arguments), LineHighlighter.__init__] Consider using Python 3 style super() without arguments
-regex_testing.py:6: [R0903(too-few-public-methods), LineHighlighter] Too few public methods (1/2)
 regex_testing.py:52: [R1725(super-with-arguments), CustomPlainTextEdit.__init__] Consider using Python 3 style super() without arguments
 regex_testing.py:60: [R1725(super-with-arguments), CustomPlainTextEdit.paintEvent] Consider using Python 3 style super() without arguments
-regex_testing.py:46: [R0903(too-few-public-methods), CustomPlainTextEdit] Too few public methods (1/2)
 ************* Module roll.roll
 roll.py:120: [W0718(broad-exception-caught), enableRemoteDebugging] Catching too general exception Exception
 roll.py:107: [W0718(broad-exception-caught), enableRemoteDebugging] Catching too general exception Exception
 roll.py:186: [R0913(too-many-arguments), Roll.addAction] Too many arguments (10/5)
 roll.py:186: [R0917(too-many-positional-arguments), Roll.addAction] Too many positional arguments (10/5)
-************* Module roll.roll_bingrid
-roll_bingrid.py:11: [R0902(too-many-instance-attributes), RollBinGrid] Too many instance attributes (8/7)
 ************* Module roll.roll_main_window
-roll_main_window.py:164: [R0902(too-many-instance-attributes), RollMainWindow] Too many instance attributes (116/7)
-roll_main_window.py:175: [R1725(super-with-arguments), RollMainWindow.__init__] Consider using Python 3 style super() without arguments
-roll_main_window.py:173: [R0915(too-many-statements), RollMainWindow.__init__] Too many statements (306/50)
-roll_main_window.py:762: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey configuration', "type": 'myConfiguration', ... }' instead of a call to 'dict'.
-roll_main_window.py:763: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey analysis', "type": 'myAnalysis', "value": surveyCopy, ... }' instead of a call to 'dict'.
-roll_main_window.py:764: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey reflectors', "type": 'myReflectors', ... }' instead of a call to 'dict'.
-roll_main_window.py:765: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey grid', "type": 'myGrid', "value": surveyCopy.grid, ... }' instead of a call to 'dict'.
-roll_main_window.py:766: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Block list', "type": 'myBlockList', "value": surveyCopy.blockList, ... }' instead of a call to 'dict'.
-roll_main_window.py:767: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Pattern list', "type": 'myPatternList', "value": surveyCopy.patternList, ... }' instead of a call to 'dict'.
-roll_main_window.py:843: [R0914(too-many-locals), RollMainWindow.applyPropertyChanges] Too many local variables (16/15)
-roll_main_window.py:843: [R0915(too-many-statements), RollMainWindow.applyPropertyChanges] Too many statements (65/50)
-roll_main_window.py:947: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
-roll_main_window.py:1007: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
-roll_main_window.py:1007: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
-roll_main_window.py:1126: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
-roll_main_window.py:1126: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
-roll_main_window.py:1360: [R0915(too-many-statements), RollMainWindow.updateMenuStatus] Too many statements (68/50)
-roll_main_window.py:1476: [R0912(too-many-branches), RollMainWindow.handleImageSelection] Too many branches (14/12)
-roll_main_window.py:1476: [R0915(too-many-statements), RollMainWindow.handleImageSelection] Too many statements (55/50)
-roll_main_window.py:1580: [R0914(too-many-locals), RollMainWindow.mouseMovedInPlot] Too many local variables (21/15)
-roll_main_window.py:1629: [R1716(chained-comparison), RollMainWindow.mouseMovedInPlot] Simplify chained comparison between the operands
-roll_main_window.py:1580: [R0912(too-many-branches), RollMainWindow.mouseMovedInPlot] Too many branches (20/12)
-roll_main_window.py:1580: [R0915(too-many-statements), RollMainWindow.mouseMovedInPlot] Too many statements (60/50)
-roll_main_window.py:1653: [R1705(no-else-return), RollMainWindow.getVisiblePlotIndex] Unnecessary "elif" after "return", remove the leading "el" from "elif"
-roll_main_window.py:1652: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotIndex] Too many return statements (12/6)
-roll_main_window.py:1678: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotWidget] Too many return statements (12/6)
-roll_main_window.py:1704: [R0914(too-many-locals), RollMainWindow.updateVisiblePlotWidget] Too many local variables (17/15)
-roll_main_window.py:1704: [R0912(too-many-branches), RollMainWindow.updateVisiblePlotWidget] Too many branches (17/12)
-roll_main_window.py:1879: [R0914(too-many-locals), RollMainWindow.plotLayout] Too many local variables (40/15)
-roll_main_window.py:1879: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
-roll_main_window.py:1879: [R0915(too-many-statements), RollMainWindow.plotLayout] Too many statements (127/50)
-roll_main_window.py:2320: [R0914(too-many-locals), RollMainWindow.plotStkCel] Too many local variables (26/15)
-roll_main_window.py:2350: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
-roll_main_window.py:2354: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
-roll_main_window.py:2320: [R0915(too-many-statements), RollMainWindow.plotStkCel] Too many statements (54/50)
-roll_main_window.py:2421: [R0914(too-many-locals), RollMainWindow.plotOffAzi] Too many local variables (16/15)
-roll_main_window.py:2484: [R0914(too-many-locals), RollMainWindow.plotPatterns] Too many local variables (20/15)
-roll_main_window.py:2502: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2505: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2523: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:200: [R1725(super-with-arguments), RollMainWindow.__init__] Consider using Python 3 style super() without arguments
+roll_main_window.py:786: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey configuration', "type": 'myConfiguration', ... }' instead of a call to 'dict'.
+roll_main_window.py:787: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey analysis', "type": 'myAnalysis', "value": surveyCopy, ... }' instead of a call to 'dict'.
+roll_main_window.py:788: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey reflectors', "type": 'myReflectors', ... }' instead of a call to 'dict'.
+roll_main_window.py:789: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey grid', "type": 'myGrid', "value": surveyCopy.grid, ... }' instead of a call to 'dict'.
+roll_main_window.py:790: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Block list', "type": 'myBlockList', "value": surveyCopy.blockList, ... }' instead of a call to 'dict'.
+roll_main_window.py:791: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Pattern list', "type": 'myPatternList', "value": surveyCopy.patternList, ... }' instead of a call to 'dict'.
+roll_main_window.py:971: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
+roll_main_window.py:1031: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
+roll_main_window.py:1031: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
+roll_main_window.py:1150: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
+roll_main_window.py:1150: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
+roll_main_window.py:1500: [R0912(too-many-branches), RollMainWindow.handleImageSelection] Too many branches (14/12)
+roll_main_window.py:1653: [R1716(chained-comparison), RollMainWindow.mouseMovedInPlot] Simplify chained comparison between the operands
+roll_main_window.py:1604: [R0912(too-many-branches), RollMainWindow.mouseMovedInPlot] Too many branches (20/12)
+roll_main_window.py:1677: [R1705(no-else-return), RollMainWindow.getVisiblePlotIndex] Unnecessary "elif" after "return", remove the leading "el" from "elif"
+roll_main_window.py:1676: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotIndex] Too many return statements (12/6)
+roll_main_window.py:1702: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotWidget] Too many return statements (12/6)
+roll_main_window.py:1728: [R0912(too-many-branches), RollMainWindow.updateVisiblePlotWidget] Too many branches (17/12)
+roll_main_window.py:1903: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
+roll_main_window.py:2374: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
+roll_main_window.py:2378: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
 roll_main_window.py:2526: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2537: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2540: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2484: [R0912(too-many-branches), RollMainWindow.plotPatterns] Too many branches (14/12)
-roll_main_window.py:2484: [R0915(too-many-statements), RollMainWindow.plotPatterns] Too many statements (69/50)
-roll_main_window.py:2658: [R0915(too-many-statements), RollMainWindow.resetNumpyArraysAndModels] Too many statements (77/50)
-roll_main_window.py:2765: [R1705(no-else-return), RollMainWindow.fileNew] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:2858: [R1705(no-else-return), RollMainWindow.maybeKillThread] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:2940: [R1705(no-else-return), RollMainWindow.resetAnaTableModel] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:3058: [R0914(too-many-locals), RollMainWindow.fileImportSpsData] Too many local variables (37/15)
-roll_main_window.py:3058: [R0912(too-many-branches), RollMainWindow.fileImportSpsData] Too many branches (31/12)
-roll_main_window.py:3058: [R0915(too-many-statements), RollMainWindow.fileImportSpsData] Too many statements (177/50)
-roll_main_window.py:3516: [R0914(too-many-locals), RollMainWindow.printPreview] Too many local variables (20/15)
-roll_main_window.py:164: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (152/20)
-************* Module roll.roll_main_window_create_geom_tab
-roll_main_window_create_geom_tab.py:12: [R0914(too-many-locals), createGeomTab] Too many local variables (16/15)
-roll_main_window_create_geom_tab.py:12: [R0915(too-many-statements), createGeomTab] Too many statements (157/50)
-************* Module roll.roll_main_window_create_pattern_tab
-roll_main_window_create_pattern_tab.py:9: [R0915(too-many-statements), createPatternTab] Too many statements (75/50)
-************* Module roll.roll_main_window_create_sps_tab
-roll_main_window_create_sps_tab.py:12: [R0915(too-many-statements), createSpsTab] Too many statements (144/50)
-************* Module roll.roll_main_window_create_stack_response_tab
-roll_main_window_create_stack_response_tab.py:9: [R0915(too-many-statements), createStackResponseTab] Too many statements (75/50)
-************* Module roll.roll_main_window_create_trace_table_tab
-roll_main_window_create_trace_table_tab.py:248: [C0305(trailing-newlines), ] Trailing newlines
-roll_main_window_create_trace_table_tab.py:14: [R0915(too-many-statements), createTraceTableTab] Too many statements (71/50)
-************* Module roll.roll_output
-roll_output.py:11: [R0902(too-many-instance-attributes), RollOutput] Too many instance attributes (23/7)
+roll_main_window.py:2529: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2547: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2550: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2561: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2564: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2508: [R0912(too-many-branches), RollMainWindow.plotPatterns] Too many branches (14/12)
+roll_main_window.py:2787: [R1705(no-else-return), RollMainWindow.fileNew] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:2880: [R1705(no-else-return), RollMainWindow.maybeKillThread] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:2962: [R1705(no-else-return), RollMainWindow.resetAnaTableModel] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:3080: [R0912(too-many-branches), RollMainWindow.fileImportSpsData] Too many branches (31/12)
+roll_main_window.py:165: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (155/20)
 ************* Module roll.roll_pattern
 roll_pattern.py:214: [W0511(fixme), ] todo: merge calcPatternPointLists() into calcPatternPointArrays()
 roll_pattern.py:41: [R1705(no-else-return), RollPattern.boundingRect] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 ************* Module roll.roll_pattern_seed
 roll_pattern_seed.py:28: [W0511(fixme), ] todo: need to get rid of self.pointList at some point ! Immediately use numpy array instead
-roll_pattern_seed.py:14: [R0902(too-many-instance-attributes), RollPatternSeed] Too many instance attributes (10/7)
 ************* Module roll.roll_plane
 roll_plane.py:51: [R1705(no-else-return), RollPlane.depthAt] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 roll_plane.py:95: [R1705(no-else-return), RollPlane.IntersectLineAtPoint3D] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 roll_plane.py:125: [R1705(no-else-return), RollPlane.IntersectLineAtPointNp] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_plane.py:138: [R0914(too-many-locals), RollPlane.IntersectLinesAtPointNp] Too many local variables (16/15)
 ************* Module roll.roll_seed
 roll_seed.py:43: [W0511(fixme), ] todo: need to get rid of self.pointList at some point !
 roll_seed.py:85: [W0511(fixme), ] todo: solve the following issue:
-roll_seed.py:19: [R0902(too-many-instance-attributes), RollSeed] Too many instance attributes (19/7)
-************* Module roll.roll_sphere
-roll_sphere.py:23: [R1705(no-else-return), RollSphere.depthAt] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_sphere.py:51: [R1705(no-else-return), RollSphere.ReflectSphereAtPoint3D] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_sphere.py:56: [R0914(too-many-locals), RollSphere.ReflectSphereAtPointNp] Too many local variables (16/15)
-roll_sphere.py:82: [R1705(no-else-return), RollSphere.ReflectSphereAtPointNp] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 ************* Module roll.roll_spiral
-roll_spiral.py:14: [R0902(too-many-instance-attributes), RollSpiral] Too many instance attributes (8/7)
-roll_spiral.py:98: [R0914(too-many-locals), RollSpiral.calcPointList] Too many local variables (21/15)
 roll_spiral.py:159: [R0913(too-many-arguments), RollSpiral.createSpiral2] Too many arguments (8/5)
 roll_spiral.py:159: [R0917(too-many-positional-arguments), RollSpiral.createSpiral2] Too many positional arguments (8/5)
-roll_spiral.py:159: [R0914(too-many-locals), RollSpiral.createSpiral2] Too many local variables (27/15)
 roll_spiral.py:236: [R0913(too-many-arguments), RollSpiral.createSpiral1] Too many arguments (8/5)
 roll_spiral.py:236: [R0917(too-many-positional-arguments), RollSpiral.createSpiral1] Too many positional arguments (8/5)
-roll_spiral.py:236: [R0914(too-many-locals), RollSpiral.createSpiral1] Too many local variables (30/15)
 roll_spiral.py:315: [R0913(too-many-arguments), RollSpiral.createSpiral] Too many arguments (7/5)
 roll_spiral.py:315: [R0917(too-many-positional-arguments), RollSpiral.createSpiral] Too many positional arguments (7/5)
-roll_spiral.py:315: [R0914(too-many-locals), RollSpiral.createSpiral] Too many local variables (22/15)
 roll_spiral.py:382: [R1719(simplifiable-if-expression), RollSpiral.calcSpiralPath] The if expression can be replaced with 'test'
-************* Module roll.roll_streamer_configuration
-roll_streamer_configuration.py:8: [R0902(too-many-instance-attributes), RollStreamerConfiguration] Too many instance attributes (30/7)
-roll_streamer_configuration.py:8: [R0903(too-few-public-methods), RollStreamerConfiguration] Too few public methods (1/2)
-roll_streamer_configuration.py:3: [W0611(unused-import), ] Unused import config
 ************* Module roll.roll_survey
 roll_survey.py:339: [W0511(fixme), ] Todo: Need to add this for completeness; but consequently will have to test the code for every rollList appearance !!!
 roll_survey.py:608: [W0511(fixme), ] todo: search everywhere for "< 3" and insert assertions for length of list
 roll_survey.py:3356: [W0511(fixme), ] todo: initialize the seed's point figures and pattern figures just before they are painted (and NOT here).
-roll_survey.py:140: [R0902(too-many-instance-attributes), RollSurvey] Too many instance attributes (51/7)
-roll_survey.py:148: [R0915(too-many-statements), RollSurvey.__init__] Too many statements (53/50)
 roll_survey.py:282: [R1705(no-else-return), RollSurvey.deepcopy] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 roll_survey.py:315: [R0913(too-many-arguments), RollSurvey.createBasicSkeleton] Too many arguments (6/5)
 roll_survey.py:315: [R0917(too-many-positional-arguments), RollSurvey.createBasicSkeleton] Too many positional arguments (6/5)
-roll_survey.py:315: [R0914(too-many-locals), RollSurvey.createBasicSkeleton] Too many local variables (27/15)
-roll_survey.py:390: [R0914(too-many-locals), RollSurvey.calcTransforms] Too many local variables (36/15)
-roll_survey.py:390: [R0915(too-many-statements), RollSurvey.calcTransforms] Too many statements (65/50)
 roll_survey.py:508: [R1705(no-else-return), RollSurvey.noShotPoints] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 roll_survey.py:599: [R1702(too-many-nested-blocks), RollSurvey.geometryFromTemplates] Too many nested blocks (6/5)
 roll_survey.py:598: [R0912(too-many-branches), RollSurvey.geometryFromTemplates] Too many branches (15/12)
-roll_survey.py:598: [R0915(too-many-statements), RollSurvey.geometryFromTemplates] Too many statements (57/50)
 roll_survey.py:599: [R1702(too-many-nested-blocks), RollSurvey.geometryFromTemplates] Too many nested blocks (7/5)
-roll_survey.py:746: [R0914(too-many-locals), RollSurvey.geomTemplate] Too many local variables (31/15)
 roll_survey.py:749: [R1702(too-many-nested-blocks), RollSurvey.geomTemplate] Too many nested blocks (12/5)
 roll_survey.py:749: [R1702(too-many-nested-blocks), RollSurvey.geomTemplate] Too many nested blocks (11/5)
 roll_survey.py:746: [R0912(too-many-branches), RollSurvey.geomTemplate] Too many branches (23/12)
-roll_survey.py:746: [R0915(too-many-statements), RollSurvey.geomTemplate] Too many statements (91/50)
-roll_survey.py:926: [R0914(too-many-locals), RollSurvey.geomTemplate2] Too many local variables (29/15)
 roll_survey.py:997: [R1724(no-else-continue), RollSurvey.geomTemplate2] Unnecessary "else" after "continue", remove the "else" and de-indent the code inside it
 roll_survey.py:926: [R0912(too-many-branches), RollSurvey.geomTemplate2] Too many branches (17/12)
-roll_survey.py:926: [R0915(too-many-statements), RollSurvey.geomTemplate2] Too many statements (73/50)
-roll_survey.py:1064: [R0914(too-many-locals), RollSurvey.geomTemplate3] Too many local variables (40/15)
 roll_survey.py:1136: [R1724(no-else-continue), RollSurvey.geomTemplate3] Unnecessary "else" after "continue", remove the "else" and de-indent the code inside it
 roll_survey.py:1064: [R0912(too-many-branches), RollSurvey.geomTemplate3] Too many branches (21/12)
-roll_survey.py:1064: [R0915(too-many-statements), RollSurvey.geomTemplate3] Too many statements (74/50)
-roll_survey.py:1230: [R0914(too-many-locals), RollSurvey.geomTemplate4] Too many local variables (41/15)
 roll_survey.py:1230: [R0912(too-many-branches), RollSurvey.geomTemplate4] Too many branches (22/12)
-roll_survey.py:1230: [R0915(too-many-statements), RollSurvey.geomTemplate4] Too many statements (80/50)
 roll_survey.py:1367: [R1705(no-else-return), RollSurvey.setupBinFromGeometry] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 roll_survey.py:1374: [R1705(no-else-return), RollSurvey.setupBinFromGeometry] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_survey.py:1381: [R0914(too-many-locals), RollSurvey.binFromGeometryNoRel] Too many local variables (49/15)
 roll_survey.py:1433: [R1702(too-many-nested-blocks), RollSurvey.binFromGeometryNoRel] Too many nested blocks (6/5)
 roll_survey.py:1381: [R0912(too-many-branches), RollSurvey.binFromGeometryNoRel] Too many branches (28/12)
-roll_survey.py:1381: [R0915(too-many-statements), RollSurvey.binFromGeometryNoRel] Too many statements (135/50)
-roll_survey.py:1434: [W0612(unused-variable), RollSurvey.binFromGeometryNoRel] Unused variable 'index'
-roll_survey.py:1599: [R0914(too-many-locals), RollSurvey.binFromGeometry4] Too many local variables (65/15)
 roll_survey.py:1672: [R1702(too-many-nested-blocks), RollSurvey.binFromGeometry4] Too many nested blocks (6/5)
 roll_survey.py:1599: [R0912(too-many-branches), RollSurvey.binFromGeometry4] Too many branches (38/12)
-roll_survey.py:1599: [R0915(too-many-statements), RollSurvey.binFromGeometry4] Too many statements (179/50)
-roll_survey.py:1903: [W0613(unused-argument), RollSurvey.binFromGeometry5] Unused argument 'fullAnalysis'
-roll_survey.py:1912: [R0914(too-many-locals), RollSurvey.binFromGeometry6] Too many local variables (30/15)
 roll_survey.py:1912: [R0912(too-many-branches), RollSurvey.binFromGeometry6] Too many branches (18/12)
-roll_survey.py:1912: [R0915(too-many-statements), RollSurvey.binFromGeometry6] Too many statements (74/50)
-roll_survey.py:1912: [W0613(unused-argument), RollSurvey.binFromGeometry6] Unused argument 'fullAnalysis'
-roll_survey.py:2056: [R0914(too-many-locals), RollSurvey.binFromGeometry7] Too many local variables (39/15)
 roll_survey.py:2056: [R0912(too-many-branches), RollSurvey.binFromGeometry7] Too many branches (31/12)
-roll_survey.py:2056: [R0915(too-many-statements), RollSurvey.binFromGeometry7] Too many statements (134/50)
-roll_survey.py:2258: [R0914(too-many-locals), RollSurvey.binFromGeometry8] Too many local variables (52/15)
 roll_survey.py:2258: [R0912(too-many-branches), RollSurvey.binFromGeometry8] Too many branches (27/12)
-roll_survey.py:2258: [R0915(too-many-statements), RollSurvey.binFromGeometry8] Too many statements (142/50)
 roll_survey.py:2475: [R1705(no-else-return), RollSurvey.setupBinFromTemplates] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 roll_survey.py:2486: [R1702(too-many-nested-blocks), RollSurvey.binFromTemplates] Too many nested blocks (6/5)
 roll_survey.py:2486: [R1702(too-many-nested-blocks), RollSurvey.binFromTemplates] Too many nested blocks (7/5)
 roll_survey.py:2485: [R0912(too-many-branches), RollSurvey.binFromTemplates] Too many branches (17/12)
-roll_survey.py:2554: [R0914(too-many-locals), RollSurvey.binTemplate6] Too many local variables (38/15)
 roll_survey.py:2554: [R0912(too-many-branches), RollSurvey.binTemplate6] Too many branches (26/12)
-roll_survey.py:2554: [R0915(too-many-statements), RollSurvey.binTemplate6] Too many statements (105/50)
 roll_survey.py:2567: [R1702(too-many-nested-blocks), RollSurvey.binTemplate6] Too many nested blocks (7/5)
-roll_survey.py:2730: [R0914(too-many-locals), RollSurvey.binTemplate7] Too many local variables (30/15)
 roll_survey.py:2730: [R0912(too-many-branches), RollSurvey.binTemplate7] Too many branches (26/12)
-roll_survey.py:2730: [R0915(too-many-statements), RollSurvey.binTemplate7] Too many statements (99/50)
 roll_survey.py:2737: [R1702(too-many-nested-blocks), RollSurvey.binTemplate7] Too many nested blocks (6/5)
-roll_survey.py:2917: [R0914(too-many-locals), RollSurvey.calcUniqueFoldValues] Too many local variables (21/15)
-roll_survey.py:2917: [R0915(too-many-statements), RollSurvey.calcUniqueFoldValues] Too many statements (52/50)
 roll_survey.py:3026: [R1702(too-many-nested-blocks), RollSurvey.calcRmsOffsetValues] Too many nested blocks (6/5)
 roll_survey.py:3153: [R1714(consider-using-in), RollSurvey.checkIntegrity] Consider merging these comparisons with 'in' by using 'seed.type in (SeedType.rollingGrid, SeedType.fixedGrid)'. Use a set instead if elements are hashable.
 roll_survey.py:3132: [R0911(too-many-return-statements), RollSurvey.checkIntegrity] Too many return statements (7/6)
 roll_survey.py:3132: [R0912(too-many-branches), RollSurvey.checkIntegrity] Too many branches (16/12)
-roll_survey.py:3132: [W0613(unused-argument), RollSurvey.checkIntegrity] Unused argument 'projectDirectory'
 roll_survey.py:3273: [R0912(too-many-branches), RollSurvey.readXml] Too many branches (13/12)
 roll_survey.py:3393: [R1705(no-else-return), RollSurvey.boundingRect] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_survey.py:3545: [R0913(too-many-arguments), RollSurvey._renderInvariantSeedsIntoBase] Too many arguments (6/5)
-roll_survey.py:3545: [R0917(too-many-positional-arguments), RollSurvey._renderInvariantSeedsIntoBase] Too many positional arguments (6/5)
 roll_survey.py:3545: [R0912(too-many-branches), RollSurvey._renderInvariantSeedsIntoBase] Too many branches (17/12)
-roll_survey.py:3545: [W0613(unused-argument), RollSurvey._renderInvariantSeedsIntoBase] Unused argument 'viewbox'
-roll_survey.py:3592: [R0914(too-many-locals), RollSurvey._paintPassIntoProgressive] Too many local variables (20/15)
-roll_survey.py:3617: [R1702(too-many-nested-blocks), RollSurvey._paintPassIntoProgressive] Too many nested blocks (7/5)
-roll_survey.py:3592: [R0912(too-many-branches), RollSurvey._paintPassIntoProgressive] Too many branches (22/12)
-roll_survey.py:3592: [R0915(too-many-statements), RollSurvey._paintPassIntoProgressive] Too many statements (66/50)
-roll_survey.py:3685: [R0912(too-many-branches), RollSurvey.paint] Too many branches (13/12)
-roll_survey.py:3749: [R0913(too-many-arguments), RollSurvey._paintTemplate] Too many arguments (7/5)
-roll_survey.py:3749: [R0917(too-many-positional-arguments), RollSurvey._paintTemplate] Too many positional arguments (7/5)
-roll_survey.py:3749: [R0914(too-many-locals), RollSurvey._paintTemplate] Too many local variables (16/15)
-roll_survey.py:3756: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (8/5)
-roll_survey.py:3756: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (9/5)
-roll_survey.py:3756: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (10/5)
-roll_survey.py:3749: [R0912(too-many-branches), RollSurvey._paintTemplate] Too many branches (52/12)
-roll_survey.py:3749: [R0915(too-many-statements), RollSurvey._paintTemplate] Too many statements (101/50)
-roll_survey.py:3756: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (9/5)
+roll_survey.py:3622: [R1702(too-many-nested-blocks), RollSurvey._paintPassIntoProgressive] Too many nested blocks (7/5)
+roll_survey.py:3597: [R0912(too-many-branches), RollSurvey._paintPassIntoProgressive] Too many branches (22/12)
+roll_survey.py:3690: [R0912(too-many-branches), RollSurvey.paint] Too many branches (13/12)
+roll_survey.py:3754: [R0913(too-many-arguments), RollSurvey._paintTemplate] Too many arguments (7/5)
+roll_survey.py:3754: [R0917(too-many-positional-arguments), RollSurvey._paintTemplate] Too many positional arguments (7/5)
+roll_survey.py:3761: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (8/5)
+roll_survey.py:3761: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (9/5)
+roll_survey.py:3761: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (10/5)
+roll_survey.py:3754: [R0912(too-many-branches), RollSurvey._paintTemplate] Too many branches (52/12)
+roll_survey.py:3761: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (9/5)
 roll_survey.py:140: [R0904(too-many-public-methods), RollSurvey] Too many public methods (47/20)
 ************* Module roll.roll_template
-roll_template.py:13: [R0902(too-many-instance-attributes), RollTemplate] Too many instance attributes (12/7)
 roll_template.py:111: [R0912(too-many-branches), RollTemplate.calcBoundingRect] Too many branches (13/12)
 ************* Module roll.roll_well
-roll_well.py:16: [R0902(too-many-instance-attributes), RollWell] Too many instance attributes (13/7)
-roll_well.py:110: [R0914(too-many-locals), RollWell.readHeader] Too many local variables (16/15)
 roll_well.py:110: [R0911(too-many-return-statements), RollWell.readHeader] Too many return statements (10/6)
 roll_well.py:110: [R0912(too-many-branches), RollWell.readHeader] Too many branches (15/12)
-roll_well.py:110: [R0915(too-many-statements), RollWell.readHeader] Too many statements (55/50)
 roll_well.py:229: [R1723(no-else-break), RollWell.readWellHeader] Unnecessary "else" after "break", remove the "else" and de-indent the code inside it
-roll_well.py:291: [R0914(too-many-locals), RollWell.deviationFromXYZ] Too many local variables (21/15)
-roll_well.py:377: [R0914(too-many-locals), RollWell.calcPointList] Too many local variables (39/15)
-roll_well.py:377: [R0915(too-many-statements), RollWell.calcPointList] Too many statements (55/50)
+************* Module roll.session_state
+session_state.py:17: [C0304(missing-final-newline), ] Final newline missing
 ************* Module roll.settings
-settings.py:39: [R0914(too-many-locals), SettingsDialog.__init__] Too many local variables (25/15)
 settings.py:94: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Color Settings', "type": 'myGroup', "brush": '#add8e6', "children": [dict(name='Bin area color', type='color', value=QColor(config.binAreaColor), default=QColor(config.binAreaColor)), dict(name='Cmp area color', type='color', value=QColor(config.cmpAreaColor), default=QColor(config.cmpAreaColor)), dict(name='Rec area color', type='color', value=QColor(config.recAreaColor), default=QColor(config.recAreaColor)), dict(name='Src area color', type='color', value=QColor(config.srcAreaColor), default=QColor(config.srcAreaColor)), dict(name='Bin area pen', type='myPen', flat=True, expanded=False, value=binAreaPenParam, default=binAreaPenParam), dict(name='Cmp area pen', type='myPen', flat=True, expanded=False, value=cmpAreaPenParam, default=cmpAreaPenParam), dict(name='Rec area pen', type='myPen', flat=True, expanded=False, value=recAreaPenParam, default=recAreaPenParam), dict(name='Src area pen', type='myPen', flat=True, expanded=False, value=srcAreaPenParam, default=srcAreaPenParam), dict(name='Fold/offset color map', type='myCmap', value=config.foldDispCmap, default=config.foldDispCmap), dict(name='Analysis color map', type='myCmap', value=config.analysisCmap, default=config.analysisCmap)], ... }' instead of a call to 'dict'.
 settings.py:99: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Bin area color', "type": 'color', "value": QColor(config.binAreaColor), ... }' instead of a call to 'dict'.
 settings.py:100: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Cmp area color', "type": 'color', "value": QColor(config.cmpAreaColor), ... }' instead of a call to 'dict'.
@@ -637,41 +426,22 @@ settings.py:199: [R1735(use-dict-literal), SettingsDialog.__init__] Consider usi
 settings.py:200: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Use relative paths', "type": 'bool', "value": config.useRelativePaths, ... }' instead of a call to 'dict'.
 settings.py:201: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Show summary properties', "type": 'bool', "value": config.showSummaries, ... }' instead of a call to 'dict'.
 settings.py:202: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Show unfinished code', "type": 'bool', "value": config.showUnfinished, ... }' instead of a call to 'dict'.
-settings.py:39: [R0915(too-many-statements), SettingsDialog.__init__] Too many statements (54/50)
-settings.py:248: [R0914(too-many-locals), SettingsDialog.accepted] Too many local variables (18/15)
-settings.py:248: [R0915(too-many-statements), SettingsDialog.accepted] Too many statements (61/50)
-settings.py:370: [R0914(too-many-locals), readSettings] Too many local variables (16/15)
 settings.py:370: [R0912(too-many-branches), readSettings] Too many branches (15/12)
-settings.py:370: [R0915(too-many-statements), readSettings] Too many statements (83/50)
 ************* Module roll.simil
-simil.py:356: [C0305(trailing-newlines), ] Trailing newlines
 simil.py:177: [R0913(too-many-arguments), _getLambdaNext] Too many arguments (6/5)
 simil.py:177: [R0917(too-many-positional-arguments), _getLambdaNext] Too many positional arguments (6/5)
 simil.py:185: [R0913(too-many-arguments), _getSolution] Too many arguments (8/5)
 simil.py:185: [R0917(too-many-positional-arguments), _getSolution] Too many positional arguments (8/5)
 simil.py:189: [R1705(no-else-return), _getSolution] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 simil.py:193: [R1705(no-else-return), _getSolution] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-simil.py:223: [R0914(too-many-locals), process] Too many local variables (25/15)
 ************* Module roll.smooth_circle_item
 smooth_circle_item.py:13: [R0913(too-many-arguments), SmoothCircleItem.__init__] Too many arguments (6/5)
 smooth_circle_item.py:13: [R0917(too-many-positional-arguments), SmoothCircleItem.__init__] Too many positional arguments (6/5)
 ************* Module roll.spider_navigation_mixin
 spider_navigation_mixin.py:171: [W0718(broad-exception-caught), SpiderNavigationMixin._spiderLegArrays] Catching too general exception Exception
 ************* Module roll.sps_import_dialog
-sps_import_dialog.py:31: [R0902(too-many-instance-attributes), SpsImportDialog] Too many instance attributes (34/7)
-sps_import_dialog.py:32: [R0914(too-many-locals), SpsImportDialog.__init__] Too many local variables (45/15)
-sps_import_dialog.py:32: [R0915(too-many-statements), SpsImportDialog.__init__] Too many statements (235/50)
 sps_import_dialog.py:543: [R0912(too-many-branches), SpsImportDialog.onSpsFilesChanged] Too many branches (13/12)
-sps_import_dialog.py:734: [R0914(too-many-locals), SpsImportDialog.onAddSpsName] Too many local variables (16/15)
 sps_import_dialog.py:31: [R0904(too-many-public-methods), SpsImportDialog] Too many public methods (22/20)
-************* Module roll.sps_io_and_qc
-sps_io_and_qc.py:177: [R0914(too-many-locals), readRPSFiles] Too many local variables (17/15)
-sps_io_and_qc.py:222: [R0914(too-many-locals), readSPSFiles] Too many local variables (17/15)
-sps_io_and_qc.py:262: [R0914(too-many-locals), readXPSFiles] Too many local variables (17/15)
-sps_io_and_qc.py:464: [R0914(too-many-locals), findRecOrphansOld] Too many local variables (20/15)
-sps_io_and_qc.py:464: [R0915(too-many-statements), findRecOrphansOld] Too many statements (51/50)
-sps_io_and_qc.py:560: [R0914(too-many-locals), findRecOrphans] Too many local variables (26/15)
-sps_io_and_qc.py:924: [R0914(too-many-locals), calculateLineStakeTransform] Too many local variables (23/15)
 ************* Module roll.standalone
 standalone.py:19: [R1732(consider-using-with), _logMessage] Consider using 'with' for resource-allocating operations
 ************* Module roll.survey_paint_mixin
@@ -685,7 +455,6 @@ table_model_view.py:235: [R1735(use-dict-literal), TableView.getFormat] Consider
 table_model_view.py:405: [R1725(super-with-arguments), TableView.eventFilter] Consider using Python 3 style super() without arguments
 table_model_view.py:271: [R0911(too-many-return-statements), TableView.eventFilter] Too many return statements (19/6)
 table_model_view.py:271: [R0912(too-many-branches), TableView.eventFilter] Too many branches (31/12)
-table_model_view.py:271: [R0915(too-many-statements), TableView.eventFilter] Too many statements (85/50)
 table_model_view.py:467: [R1711(useless-return), TableView.paste] Useless return at end of function or method
 table_model_view.py:614: [R1705(no-else-return), RpsTableModel.data] Unnecessary "elif" after "return", remove the leading "el" from "elif"
 table_model_view.py:636: [R1705(no-else-return), RpsTableModel.data] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
@@ -711,16 +480,13 @@ table_model_view.py:1221: [R1705(no-else-return), XpsTableModel.headerData] Unne
 table_model_view.py:1234: [R1705(no-else-return), XpsTableModel.headerData] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 table_model_view.py:1218: [R0911(too-many-return-statements), XpsTableModel.headerData] Too many return statements (8/6)
 table_model_view.py:1249: [R1720(no-else-raise), XpsTableModel.columnCount] Unnecessary "else" after "raise", remove the "else" and de-indent the code inside it
-************* Module roll.worker_threads
-worker_threads.py:31: [R0903(too-few-public-methods), BinningThread] Too few public methods (1/2)
-worker_threads.py:152: [R0903(too-few-public-methods), GeometryWorker] Too few public methods (1/2)
 ************* Module roll.xml_code_editor
 xml_code_editor.py:58: [R1725(super-with-arguments), XMLHighlighter.__init__] Consider using Python 3 style super() without arguments
-xml_code_editor.py:50: [R0903(too-few-public-methods), XMLHighlighter] Too few public methods (1/2)
 xml_code_editor.py:251: [R1725(super-with-arguments), QCodeEditor.__init__] Consider using Python 3 style super() without arguments
-************* Module roll.test.test_project_service
-test\test_project_service.py:144: [R0914(too-many-locals), ProjectServiceTest.testLoadProjectSidecarsLoadsBatchState] Too many local variables (24/15)
-test\test_project_service.py:144: [R0915(too-many-statements), ProjectServiceTest.testLoadProjectSidecarsLoadsBatchState] Too many statements (54/50)
+************* Module roll.test.test_roll_survey_numpy_api
+test\test_roll_survey_numpy_api.py:35: [C0304(missing-final-newline), ] Final newline missing
+************* Module roll.test.test_session_state
+test\test_session_state.py:29: [C0304(missing-final-newline), ] Final newline missing
 ************* Module roll.test.test_table_model_view
 test\test_table_model_view.py:175: [C0304(missing-final-newline), ] Final newline missing
 ************* Module roll.test.test_translations
@@ -733,1618 +499,7 @@ test\test_translations.py:17: [C0411(wrong-import-order), ] standard import "uni
 test\test_translations.py:19: [C0411(wrong-import-order), ] third party import "qgis.PyQt.QtCore.QCoreApplication" should be placed before local import "utilities.getQgisApp"
 ************* Module roll.test.__init__
 test\__init__.py:2: [C0304(missing-final-newline), ] Final newline missing
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[2123:2250]
-==roll.marine_wizard:[2320:2445]
-        rUse = self.field('rUse')
-        sUse = self.field('sUse')
-
-        rNam = self.field('rNam')
-        sNam = self.field('sNam')
-
-        rBra = self.field('rBra')
-        sBra = self.field('sBra')
-        rEle = self.field('rEle')
-        sEle = self.field('sEle')
-
-        rBrI = self.field('rBrI')
-        sBrI = self.field('sBrI')
-        rElI = self.field('rElI')
-        sElI = self.field('sElI')
-
-        srcOriX = -0.5 * (sBra - 1) * sBrI
-        srcOriY = -0.5 * (sEle - 1) * sElI
-        recOriX = -0.5 * (rBra - 1) * rBrI
-        recOriY = -0.5 * (rEle - 1) * rElI
-
-        # source
-        self.parent.survey.patternList[0].name = sNam
-        self.parent.survey.patternList[0].seedList[0].color = QColor('red')
-
-        self.parent.survey.patternList[0].seedList[0].origin.setX(srcOriX)                      # Seed origin
-        self.parent.survey.patternList[0].seedList[0].origin.setY(srcOriY)                      # Seed origin
-
-        self.parent.survey.patternList[0].seedList[0].grid.growList[0].steps = sBra             # nr branches
-        self.parent.survey.patternList[0].seedList[0].grid.growList[0].increment.setX(sBrI)     # branch interval
-        self.parent.survey.patternList[0].seedList[0].grid.growList[0].increment.setY(0.0)      # horizontal
-
-        self.parent.survey.patternList[0].seedList[0].grid.growList[1].steps = sEle             # nr elements
-        self.parent.survey.patternList[0].seedList[0].grid.growList[1].increment.setX(0.0)      # vertical
-        self.parent.survey.patternList[0].seedList[0].grid.growList[1].increment.setY(sElI)     # element interval
-
-        self.parent.survey.patternList[0].calcPatternPicture()                                  # update pattern picture
-
-        # receiver
-        self.parent.survey.patternList[1].name = rNam
-        self.parent.survey.patternList[1].seedList[0].color = QColor('blue')
-
-        self.parent.survey.patternList[1].seedList[0].origin.setX(recOriX)                      # Seed origin
-        self.parent.survey.patternList[1].seedList[0].origin.setY(recOriY)                      # Seed origin
-
-        self.parent.survey.patternList[1].seedList[0].grid.growList[0].steps = rBra             # nr branches
-        self.parent.survey.patternList[1].seedList[0].grid.growList[0].increment.setX(rBrI)     # branch interval
-        self.parent.survey.patternList[1].seedList[0].grid.growList[0].increment.setY(0.0)      # horizontal
-
-        self.parent.survey.patternList[1].seedList[0].grid.growList[1].steps = rEle             # nr elements
-        self.parent.survey.patternList[1].seedList[0].grid.growList[1].increment.setX(0.0)      # vertical
-        self.parent.survey.patternList[1].seedList[0].grid.growList[1].increment.setY(rElI)     # element interval
-
-        self.parent.survey.patternList[1].calcPatternPicture()                                  # update pattern picture
-
-        # calculate the boundingBpx, now the patterns have been populated
-        self.parent.survey.patternList[0].calcBoundingRect()
-        self.parent.survey.patternList[1].calcBoundingRect()
-
-        # finally, we need to update the template-seeds giving them the right pattern type
-        for block in self.parent.survey.blockList:
-            for template in block.templateList:
-                for seed in template.seedList:
-                    if seed.bSource:
-                        if sUse:
-                            seed.patternNo = 0
-                            seed.patternPicture = self.parent.survey.patternList[0].patternPicture
-                        else:
-                            seed.patternNo = -1
-                            seed.patternPicture = None
-                    else:
-                        if rUse:
-                            seed.patternNo = 1
-                            seed.patternPicture = self.parent.survey.patternList[1].patternPicture
-                        else:
-                            seed.patternNo = -1
-                            seed.patternPicture = None
-
-    def plot(self):
-        """plot the pattern(s)"""
-
-        rUse = self.field('rUse')
-        sUse = self.field('sUse')
-
-        rNam = self.field('rNam')
-        sNam = self.field('sNam')
-
-        rNam = rNam if rUse else 'no rec pattern'
-        sNam = sNam if sUse else 'no src pattern'
-
-        connect = ' & ' if rUse and sUse else ' - '
-
-        self.plotWidget.plotItem.clear()
-        self.plotWidget.setTitle(f'{rNam}{connect}{sNam}', color='b', size='12pt')
-
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
-
-        srcPattern = RollPattern()
-        srcPattern = self.parent.survey.patternList[0]
-
-        recPattern = RollPattern()
-        recPattern = self.parent.survey.patternList[1]
-
-        if sUse:
-            item1 = srcPattern
-            self.plotWidget.plotItem.addItem(item1)
-
-        if rUse:
-            item2 = recPattern
-            self.plotWidget.plotItem.addItem(item2)
-
-        # Add a marker for the origin
-        # oriX = [0.0]
-        # oriY = [0.0]
-        # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
-
-
-# Page7 =======================================================================
-# 7. Project Coordinate Reference System (CRS)
-
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.aux_functions:[466:534]
-==roll.functions_numba:[410:478]
-        code = INSIDE
-        if x < xMin:                                                           # to the left of rectangle
-            code |= LEFT
-        elif x > xMax:                                                         # to the right of rectangle
-            code |= RIGHT
-        if y < yMin:                                                           # below the rectangle
-            code |= BOTTOM
-        elif y > yMax:                                                         # above the rectangle
-            code |= TOP
-        return code
-
-    # Compute region codes for P1, P2
-    code1 = computeCode(x1, y1)
-    code2 = computeCode(x2, y2)
-    accept = False
-
-    while True:                                                                 # Keep doing this, till we can escape
-
-        if code1 == 0 and code2 == 0:                                           # both endpoints lie within rectangle
-            accept = True
-            break
-
-        if (code1 & code2) != 0:                                                # both endpoints are outside rectangle
-            break
-
-        # If we get here, the line needs clipping
-        # At least one of the points is outside of rect, select it
-
-        x = 1.0
-        y = 1.0
-
-        if code1 != 0:
-            codeOut = code1
-        else:
-            codeOut = code2
-
-        # Find intersection point using formulas
-        #   y = y1 + slope * (x - x1),
-        #   x = x1 + (1 / slope) * (y - y1)
-        if codeOut & TOP:  		                                            # point is above the clip rectangle
-            x = x1 + (x2 - x1) * (yMax - y1) / (y2 - y1)
-            y = yMax
-
-        elif codeOut & BOTTOM:  		                                        # point is below the clip rectangle
-            x = x1 + (x2 - x1) * (yMin - y1) / (y2 - y1)
-            y = yMin
-
-        elif codeOut & RIGHT:  		                                        # point is to the right of the clip rectangle
-            y = y1 + (y2 - y1) * (xMax - x1) / (x2 - x1)
-            x = xMax
-
-        elif codeOut & LEFT:  		                                            # point is to the left of the clip rectangle
-            y = y1 + (y2 - y1) * (xMin - x1) / (x2 - x1)
-            x = xMin
-
-        # Now an intersection point (x, y) has been found,
-        # we replace the point outside clipping rectangle
-        # by the intersection point
-        if codeOut == code1:
-            x1 = x
-            y1 = y
-            code1 = computeCode(x1, y1)
-        else:
-            x2 = x
-            y2 = y
-            code2 = computeCode(x2, y2)
-
-    if accept:
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[2008:2113]
-==roll.marine_wizard:[2204:2309]
-        layout = QGridLayout()
-
-        row = 0
-        layout.addWidget(self.chkRecPattern, row, 0, 1, 2)
-        layout.addWidget(self.chkSrcPattern, row, 2, 1, 2)
-
-        row += 1
-        layout.addWidget(QLabel('<b>Receiver pattern</b>'), row, 0)
-        layout.addWidget(QLabel('<b>Source pattern</b>'), row, 2)
-
-        row += 1
-        layout.addWidget(self.recPatName, row, 0)
-        layout.addWidget(QLabel('Array name'), row, 1)
-        layout.addWidget(self.srcPatName, row, 2)
-        layout.addWidget(QLabel('Array name'), row, 3)
-
-        row += 1
-        layout.addWidget(self.recBranches, row, 0)
-        layout.addWidget(QLabel('<b></b>Nr inline [&#8594;]'), row, 1)
-        layout.addWidget(self.srcBranches, row, 2)
-        layout.addWidget(QLabel('<b></b>Nr inline [&#8594;]'), row, 3)
-
-        row += 1
-        layout.addWidget(self.recBrancInt, row, 0)
-        layout.addWidget(QLabel('Inline spacing [m]'), row, 1)
-        layout.addWidget(self.srcBrancInt, row, 2)
-        layout.addWidget(QLabel('Inline spacing [m]'), row, 3)
-
-        row += 1
-        layout.addWidget(self.recElements, row, 0)
-        layout.addWidget(QLabel('<b></b>Nr x-line [&#8593;]'), row, 1)
-        layout.addWidget(self.srcElements, row, 2)
-        layout.addWidget(QLabel('<b></b>Nr x-line [&#8593;]'), row, 3)
-
-        row += 1
-        layout.addWidget(self.recElemeInt, row, 0)
-        layout.addWidget(QLabel('X-line spacing [m]'), row, 1)
-        layout.addWidget(self.srcElemeInt, row, 2)
-        layout.addWidget(QLabel('X-line spacing [m]'), row, 3)
-
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
-
-        # create a vertical box layout widget (vbl)
-        vbl = QVBoxLayout()
-
-        # add the so far developed QGridLayout to the QVBoxLayout (layout)
-        vbl.addLayout(layout)
-
-        # insert PyQtGraph plotWidget                                           # See: https://groups.google.com/g/pyqtgraph/c/ls-9I2tHu2w
-        self.plotWidget = pg.PlotWidget(background='w')
-        self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
-        self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
-        self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
-        self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
-
-        self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
-        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
-
-        # add toolbar and plotwidget to the vertical box layout
-        vbl.addWidget(self.zoomBar)
-        vbl.addWidget(self.plotWidget)
-
-        # set the combined layouts to become this page's layout
-        self.setLayout(vbl)
-
-        # register fields for access in other Wizard Page
-        # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
-        self.registerField('rUse', self.chkRecPattern)                          # use the pattern
-        self.registerField('sUse', self.chkSrcPattern)                          # use the pattern
-
-        self.registerField('rNam', self.recPatName)                             # pattern name
-        self.registerField('sNam', self.srcPatName)
-
-        self.registerField('rBra', self.recBranches, 'value')                   # nr branches in pattern
-        self.registerField('sBra', self.srcBranches, 'value')
-
-        self.registerField('rEle', self.recElements, 'value')                   # nr elem in branch
-        self.registerField('sEle', self.srcElements, 'value')
-
-        self.registerField('rBrI', self.recBrancInt, 'value')                   # nr branches in pattern
-        self.registerField('sBrI', self.srcBrancInt, 'value')
-
-        self.registerField('rElI', self.recElemeInt, 'value')                   # nr elem in branch
-        self.registerField('sElI', self.srcElemeInt, 'value')
-
-        # connect signals to slots
-        self.chkRecPattern.stateChanged.connect(self.initializePage)
-        self.chkSrcPattern.stateChanged.connect(self.initializePage)
-
-        self.recPatName.editingFinished.connect(self.initializePage)
-        self.srcPatName.editingFinished.connect(self.initializePage)
-
-        self.recBranches.editingFinished.connect(self.initializePage)
-        self.srcBranches.editingFinished.connect(self.initializePage)
-        self.recElements.editingFinished.connect(self.initializePage)
-        self.srcElements.editingFinished.connect(self.initializePage)
-
-        self.recBrancInt.editingFinished.connect(self.initializePage)
-        self.srcBrancInt.editingFinished.connect(self.initializePage)
-        self.recElemeInt.editingFinished.connect(self.initializePage)
-        self.srcElemeInt.editingFinished.connect(self.initializePage)
-
-    def initializePage(self):                                                   # This routine is done each time before the page is activated
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.my_group:[85:118]
-==roll.my_pen:[18:50]
-        app = mkQApp()
-        palette = app.palette()
-        background = palette.base().color()
-
-        h, s, l, a = background.getHslF()
-        lightness = 0.5 + (l - 0.5) * 0.8
-        altBackground = QColor.fromHslF(h, s, lightness, a)
-
-        flat = self.param.opts.get('flat', False)
-        brush = self.param.opts.get('brush', None)
-
-        for c in [0, 1]:
-            font = self.font(c)
-            if not flat:
-                font.setBold(True)
-            if depth == 0:
-                if brush is not None:
-                    self.setBackground(c, fn.mkColor(brush))
-                elif not flat:
-                    self.setBackground(c, background)
-                    font.setPointSize(self.pointSize() + 1)
-            else:
-                if brush is not None:
-                    self.setBackground(c, fn.mkColor(brush))
-                elif not flat:
-                    self.setBackground(c, altBackground)
-
-            self.setForeground(c, palette.text().color())
-            self.setFont(c, font)
-        self.titleChanged()  # sets the size hint for column 0 which is based on the new font
-
-    def contextMenuEvent(self, ev):
-        """method overloaded to allow for icons in the context menu"""
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[2312:2340]
-==roll.marine_wizard:[2507:2535]
-        self.xOri = QDoubleSpinBox()
-        self.yOri = QDoubleSpinBox()
-
-        self.azim = QDoubleSpinBox()
-
-        self.scaX = QDoubleSpinBox()
-        self.scaY = QDoubleSpinBox()
-
-        # set ranges
-        self.xOri.setRange(-999_000, 999_000)
-        self.yOri.setRange(-999_000, 999_000)
-
-        self.azim.setRange(0, 360)
-        self.azim.setWrapping(True)
-        self.azim.setDecimals(6)
-
-        self.scaX.setRange(-10_000, 10_000)
-        self.scaY.setRange(-10_000, 10_000)
-        self.scaX.setDecimals(6)
-        self.scaY.setDecimals(6)
-
-        # set the page layout
-        layout = QGridLayout()
-
-        strGlobal = """
-        The <b>GLOBAL</b> bin grid is realized through an affine transformation.<br>
-        The transformation from source (Xs, Ys) to target (Xt, Yt) is represented by:<br>
-        » Xt =&nbsp;&nbsp;mX·cos(azim)·Xs +  mY·sin(azim)·Ys + Xt0<br>
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.test.test_roll_plugin:[17:40]
-==roll.test.test_roll_well_transform:[16:39]
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-PLUGIN_ROOT = os.path.dirname(TEST_DIR)
-FAKE_PACKAGE = 'roll_testpkg'
-
-
-def loadPluginModule(moduleName):
-    if FAKE_PACKAGE not in sys.modules:
-        package = types.ModuleType(FAKE_PACKAGE)
-        package.__path__ = [PLUGIN_ROOT]
-        sys.modules[FAKE_PACKAGE] = package
-
-    qualifiedName = f'{FAKE_PACKAGE}.{moduleName}'
-    if qualifiedName in sys.modules:
-        return sys.modules[qualifiedName]
-
-    filePath = os.path.join(PLUGIN_ROOT, f'{moduleName}.py')
-    spec = importlib.util.spec_from_file_location(qualifiedName, filePath)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[qualifiedName] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1652:1671]
-==roll.marine_wizard:[1713:1732]
-        layout.addWidget(QLabel('<b>Start corner</b> of binning area'), row, 0, 1, 2)
-        layout.addWidget(QLabel('<b>Size</b> of binning area'), row, 2, 1, 2)
-
-        row += 1
-        layout.addWidget(self.binImin, row, 0)
-        layout.addWidget(QLabel('Inline origin [m]'), row, 1)
-        layout.addWidget(self.binIsiz, row, 2)
-        layout.addWidget(QLabel('Inline size [m]'), row, 3)
-
-        row += 1
-        layout.addWidget(self.binXmin, row, 0)
-        layout.addWidget(QLabel('X-line origin [m]'), row, 1)
-        layout.addWidget(self.binXsiz, row, 2)
-        layout.addWidget(QLabel('X-line size [m]'), row, 3)
-
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
-
-        row += 1
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1673:1701]
-==roll.marine_wizard:[1740:1768]
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
-
-        # create a vertical box layout widget (vbl)
-        vbl = QVBoxLayout()
-
-        # add the so far developed QGridLayout to the QVBoxLayout (layout)
-        vbl.addLayout(layout)
-
-        # insert PyQtGraph plotWidget                                           # See: https://groups.google.com/g/pyqtgraph/c/ls-9I2tHu2w
-        self.plotWidget = pg.PlotWidget(background='w')
-        self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
-        self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
-        self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
-        self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
-
-        self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
-        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
-
-        # add toolbar and plotwidget to the vertical box layout
-        vbl.addWidget(self.zoomBar)
-        vbl.addWidget(self.plotWidget)
-
-        # set the combined layouts to become this page's layout
-        self.setLayout(vbl)
-
-    def initializePage(self):                                                   # This routine is done each time before the page is activated
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.test.test_project_service:[27:44]
-==roll.test.test_roll_project_roundtrip:[18:35]
-        survey.crs = QgsCoordinateReferenceSystem('EPSG:23095')
-        survey.grid.orig.setX(123.5)
-        survey.grid.orig.setY(456.25)
-        survey.grid.angle = 12.5
-        survey.grid.scale.setX(1.25)
-        survey.grid.scale.setY(1.25)
-        survey.grid.binSize.setX(10.0)
-        survey.grid.binSize.setY(20.0)
-        survey.grid.stakeOrig.setX(1000.0)
-        survey.grid.stakeOrig.setY(2000.0)
-        survey.grid.stakeSize.setX(25.0)
-        survey.grid.stakeSize.setY(50.0)
-        survey.output.rctOutput = QRectF(0.0, 0.0, 100.0, 80.0)
-        survey.calcTransforms()
-        return survey
-
-    def assertRectAlmostEqual(self, left, right):
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.binning_worker_mixin:[463:477]
-==roll.roll_main_window:[1484:1498]
-                self.layoutImg = self.output.binOutput
-                self.layoutMax = self.output.maximumFold
-                label = 'fold'
-            elif self.imageType == 2:
-                self.layoutImg = self.output.minOffset
-                self.layoutMax = self.output.maxMinOffset
-                label = 'minimum offset'
-            elif self.imageType == 3:
-                self.layoutImg = self.output.maxOffset
-                self.layoutMax = self.output.maxMaxOffset
-                label = 'maximum offset'
-            elif self.imageType == 4:
-                self.layoutImg = self.output.rmsOffset
-                self.layoutMax = self.output.maxRmsOffset
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.aux_functions:[449:466]
-==roll.functions_numba:[374:389]
-    if border.isNull():
-        return QLineF(line)                                                     # don't clip against an empty rect !
-    if line.isNull():
-        return QLineF()                                                         # null in ?  null out !
-
-    x1 = line.x1()                                                              # copy the line elements to individual float values
-    y1 = line.y1()
-    x2 = line.x2()
-    y2 = line.y2()
-
-    yMin = border.top()                                                        # copy the rect elements to individual float values
-    xMin = border.left()
-    yMax = border.bottom()
-    xMax = border.right()
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1982:1997]
-==roll.marine_wizard:[2175:2190]
-        self.chkRecPattern = QCheckBox('Use receiver patterns')
-        self.chkSrcPattern = QCheckBox('Use source patterns')
-        self.chkRecPattern.setChecked(True)
-        self.chkSrcPattern.setChecked(True)
-
-        self.recBranches = QSpinBox()
-        self.srcBranches = QSpinBox()
-        self.recElements = QSpinBox()
-        self.srcElements = QSpinBox()
-
-        self.recBrancInt = QDoubleSpinBox()
-        self.srcBrancInt = QDoubleSpinBox()
-        self.recElemeInt = QDoubleSpinBox()
-        self.srcElemeInt = QDoubleSpinBox()
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[2467:2503]
-==roll.marine_wizard:[2660:2696]
-        self.plotWidget.plotItem.clear()
-        self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
-
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'Easting', units='m', **styles)  # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'Northing', units='m', **styles)   # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'Easting', units='m', **styles)     # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'Northing', units='m', **styles)  # shows axis at the top, and shows the survey name
-
-        self.parent.survey.paintMode = PaintMode.justTemplates                  # .justTemplates justLines
-        self.parent.survey.lodScale = 6.0
-        item = self.parent.survey
-
-        # 6. Project Coordinate Reference System (CRS)
-        self.plotWidget.plotItem.addItem(item)
-        # Add a marker for the origin
-        oriX = [0.0]
-        oriY = [0.0]
-        orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
-
-        transform = item.transform()
-        orig.setTransform(transform)
-
-    # The global bin grid is realized through an affine transformation. See:<br>
-    # » <a href = "https://epsg.io/9623-method"> EPSG 9623</a> for an affine geometric transformation<br>
-    # » <a href = "https://epsg.io/9624-method"> EPSG 9624</a> for an affine parametric transformation<br>
-    # » <a href = "https://epsg.org/guidance-notes.html"> EPSG Guidance note 7.2</a> for supporting information
-    # <p>The affine geometric transformation of (Xs, Ys) to (Xt, Yt) is represented as:</p>
-    # » Xt = Xt0  +  Xs * k * mX * cos(phiX)  +  Ys * k * mY * Ishift(phiY)<br>
-    # » Yt = Yt0  –  Xs * k * mX * Ishift(phiX)  +  Ys * k * mY * cos(phiY)<br>
-
-
-# Page9 =======================================================================
-# 9. Summary information - Survey representation in xml-format
-
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.aux_classes:[47:68]
-==roll.regex_testing:[35:52]
-        if text.startswith('h') or text.startswith('H'):
-            self.setFormat(0, len(text), self.greyFormat)
-        elif text.startswith('s') or text.startswith('S'):
-            self.setFormat(0, len(text), self.darkRedFormat)
-        elif text.startswith('r') or text.startswith('R'):
-            self.setFormat(0, len(text), self.darkBlueFormat)
-        elif text.startswith('x') or text.startswith('X'):
-            self.setFormat(0, len(text), self.darkGreenFormat)
-
-
-class CustomPlainTextEdit(QPlainTextEdit):
-    """
-    Custom QPlainTextEdit with some vertical lines drawn at two locations.
-    """
-
-    def __init__(self, parent=None):
-        super(CustomPlainTextEdit, self).__init__(parent)
-        # font = QFont("Monospace")
-        # font.setStyleHint(QFont.TypeWriter)
-        # font.setWeight(18)
-        # self.setFont(font)  # Monospaced font for all text
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.aux_functions:[5:18]
-==roll.settings:[16:29]
-try:    # need to TRY importing numba, only to see if it is available
-    haveNumba = True
-    import numba  # pylint: disable=W0611
-except ImportError:
-    haveNumba = False
-
-try:    # need to TRY importing debugpy, only to see if it is available
-    haveDebugpy = True
-    import debugpy  # pylint: disable=W0611
-except ImportError as ie:
-    haveDebugpy = False
-
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.binning_worker_mixin:[478:491]
-==roll.roll_main_window:[1499:1513]
-            else:
-                raise NotImplementedError('selected analysis type currently not implemented.')
-
-            # Make no-data bins transparent.
-            if self.layoutImg is not None:
-                mask = self.output.binOutput == 0
-                if np.any(mask):
-                    img = self.layoutImg.astype(np.float32, copy=True)
-                    img[mask] = np.nan
-                    self.layoutImg = img
-
-            self.layoutImItem = pg.ImageItem()
-            self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1314:1337]
-==roll.marine_wizard:[1069:1083]
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
-
-        self.parent.survey.paintMode = PaintMode.justPoints                     # justPoints
-        self.parent.survey.lodScale = 6.0
-        item = self.parent.survey
-
-        # 3. Template Properties - Enter the bin grid properties
-        self.plotWidget.plotItem.addItem(item)
-
-        # Add a marker for the origin
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1355:1370]
-==roll.marine_wizard:[963:978]
-        self.binI.setDecimals(3)
-        self.binX.setDecimals(3)
-
-        self.chkBingridAlign = QCheckBox('Match bin grid to SPI && RPI')
-
-        self.msg = QLineEdit('Max fold:')
-        self.msg.setReadOnly(True)
-
-        # set the page layout
-        layout = QGridLayout()
-
-        row = 0
-        layout.addWidget(QLabel('<b>LOCAL</b> Bin grid definition'), row, 0, 1, 4)
-
-        strLocal = """
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1516:1530]
-==roll.marine_wizard:[1146:1161]
-        axBottom = self.plotWidget.plotItem.getAxis('bottom')                   # get x axis
-        axBottom.setTickSpacing(xTicks[0], xTicks[1])                           # set x ticks (major and minor)
-
-        axTop = self.plotWidget.plotItem.getAxis('top')                         # get x axis
-        axTop.setTickSpacing(xTicks[0], xTicks[1])                              # set x ticks (major and minor)
-
-        axLeft = self.plotWidget.plotItem.getAxis('left')                       # get y axis
-        axLeft.setTickSpacing(yTicks[0], yTicks[1])                             # set y ticks (major and minor)
-
-        axRight = self.plotWidget.plotItem.getAxis('right')                     # get y axis
-        axRight.setTickSpacing(yTicks[0], yTicks[1])                            # set y ticks (major and minor)
-
-        self.parent.survey.output.rctOutput = QRectF()                          # don't dislay this in this wizard page; instead, create empty rect
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[2285:2302]
-==roll.marine_wizard:[2480:2497]
-        if self.projectionSelector.crs().isGeographic():
-            QMessageBox.warning(self, 'Wrong CRS type', 'Please select a Projected Coordinate System to ensure valid distance and area measurements.')
-        else:
-            self.setField('crs', self.projectionSelector.crs())                       # Needed, as we have redefined isComplete()
-        self.completeChanged.emit()
-
-    def isComplete(self):
-        if self.projectionSelector.crs().isValid() and not self.projectionSelector.crs().isGeographic():
-            self.parent.survey.crs = self.field('crs')
-            return True
-        return False
-
-
-# Page7 =======================================================================
-# 7. Project Coordinate Reference System (CRS) - Enter the survey's coordinate transformation details
-
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[2512:2525]
-==roll.marine_wizard:[2705:2718]
-        self.xmlEdit = QPlainTextEdit('Element tree')
-        self.xmlEdit.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        self.xmlEdit.setWordWrapMode(QTextOption.WrapMode.NoWrap)
-
-        self.xmlEdit.setPlainText('show xml data here...')
-        self.xmlEdit.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
-        self.xmlEdit.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.xmlEdit)
-        self.setLayout(layout)
-
-    def initializePage(self):                                                   # This routine is done each time before the page is activated
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window_create_geom_tab:[134:145]
-==roll.roll_main_window_create_sps_tab:[125:136]
-    label1.setStyleSheet(purpleLabelStyle)
-    label1.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label2.setStyleSheet(purpleLabelStyle)
-    label2.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label3.setStyleSheet(purpleLabelStyle)
-    label3.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label4.setStyleSheet(purpleLabelStyle)
-    label4.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-    # create the three button layouts
-    grid1 = QGridLayout()                                                       # top row
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_pattern_seed:[33:45]
-==roll.roll_seed:[68:80]
-        seedElem = doc.createElement('seed')
-
-        if len(self.name) > 0:
-            nameElement = doc.createElement('name')
-            text = doc.createTextNode(self.name)
-            nameElement.appendChild(text)
-            seedElem.appendChild(nameElement)
-
-        seedElem.setAttribute('x0', str(round(self.origin.x(), 2)))
-        seedElem.setAttribute('y0', str(round(self.origin.y(), 2)))
-        seedElem.setAttribute('z0', str(round(self.origin.z(), 2)))
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.test.plugin_loader:[37:47]
-==roll.test.test_roll_plugin:[28:40]
-    qualifiedName = f'{FAKE_PACKAGE}.{moduleName}'
-    if qualifiedName in sys.modules:
-        return sys.modules[qualifiedName]
-
-    filePath = os.path.join(PLUGIN_ROOT, f'{moduleName}.py')
-    spec = importlib.util.spec_from_file_location(qualifiedName, filePath)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[qualifiedName] = module
-    spec.loader.exec_module(module)
-    return module
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.test.test_project_sidecars:[43:52]
-==roll.test.test_roll_well_transform:[52:61]
-        survey.grid.angle = 0.0
-        survey.grid.scale.setX(1.0)
-        survey.grid.scale.setY(1.0)
-        survey.grid.binSize.setX(10.0)
-        survey.grid.binSize.setY(10.0)
-        survey.grid.stakeOrig.setX(1000.0)
-        survey.grid.stakeOrig.setY(1000.0)
-        survey.grid.stakeSize.setX(10.0)
-        survey.grid.stakeSize.setY(10.0)
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.aux_functions:[5:14]
-==roll.roll_main_window:[5:14]
-try:    # need to TRY importing numba, only to see if it is available
-    haveNumba = True
-    import numba  # pylint: disable=W0611
-except ImportError:
-    haveNumba = False
-
-try:    # need to TRY importing debugpy, only to see if it is available
-    haveDebugpy = True
-    import debugpy  # pylint: disable=W0611
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.binning_worker_mixin:[46:56]
-==roll.roll_main_window:[3365:3373]
-                self.fileName,
-                rpsImport=self.rpsImport,
-                spsImport=self.spsImport,
-                xpsImport=self.xpsImport,
-                recGeom=self.recGeom,
-                relGeom=self.relGeom,
-                srcGeom=self.srcGeom,
-            )
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[44:53]
-==roll.marine_wizard:[51:59]
-        self.addPage(Page1(self))
-        self.addPage(Page2(self))
-        self.addPage(Page3(self))
-        self.addPage(Page4(self))
-        self.addPage(Page5(self))
-        self.addPage(Page6(self))
-        self.addPage(Page7(self))
-        self.addPage(Page8(self))
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1315:1337]
-==roll.marine_wizard:[752:765]
-            self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-            self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-            self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-            self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
-
-            self.parent.survey.paintMode = PaintMode.justPoints                     # justPoints
-            self.parent.survey.lodScale = 6.0
-            item = self.parent.survey
-
-            # 2. Template Properties - Enter the towing configuration
-            self.plotWidget.plotItem.addItem(item)
-
-            # Add a marker for the origin
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1372:1508]
-==roll.marine_wizard:[980:1083]
-        This implies the local origin (0, 0) is not at a bin center location.<br>
-        And the bingrid centers are therefore shifted by half the bin size.
-        """
-        row += 1
-        layout.addWidget(QLabel(strLocal), row, 0, 1, 4)
-
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
-
-        row += 1
-        layout.addWidget(QLabel('Bin grid <b>size</b>'), row, 0, 1, 2)
-        layout.addWidget(self.chkBingridAlign, row, 2, 1, 2)
-
-        row += 1
-        layout.addWidget(self.binI, row, 0)
-        layout.addWidget(QLabel('Inline size [m]'), row, 1)
-        layout.addWidget(self.binX, row, 2)
-        layout.addWidget(QLabel('X-line size [m]'), row, 3)
-
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
-
-        row += 1
-        layout.addWidget(self.msg, row, 0, 1, 4)
-
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
-
-        # create a vertical box layout widget (vbl)
-        vbl = QVBoxLayout()
-
-        # add the so far developed QGridLayout to the QVBoxLayout (layout)
-        vbl.addLayout(layout)
-
-        # insert PyQtGraph plotWidget                                           # See: https://groups.google.com/g/pyqtgraph/c/ls-9I2tHu2w
-        self.plotWidget = pg.PlotWidget(background='w')
-        self.plotWidget.setAspectLocked(True)                                   # setting can be changed through a toolbar
-        self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
-        self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
-        self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
-
-        # See: https://groups.google.com/g/pyqtgraph/c/3jWiatJPilc on how to disable context menu in a plotWidget
-        # See: https://stackoverflow.com/questions/64583563/whats-the-difference-between-qtcore-signal-and-signal for signal and slot stuff
-
-        self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
-        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
-
-        # add toolbar and plotwidget to the vertical box layout
-        vbl.addWidget(self.zoomBar)
-        vbl.addWidget(self.plotWidget)
-
-        # set the combined layouts to become this page's layout
-        self.setLayout(vbl)
-
-        # set default values for checkboxes
-        self.chkBingridAlign.setChecked(True)
-
-        # register fields for access in other Wizard Page
-        # see: https://stackoverflow.com/questions/35187729/pyqt5-double-spin-box-returning-none-value
-        self.registerField('binI', self.binI, 'value')   # Inline bin size [m]
-        self.registerField('binX', self.binX, 'value')   # X-line bin size [m]
-        self.registerField('chkBingridAlign', self.chkBingridAlign)
-
-        # connect signals to slots
-        self.binI.editingFinished.connect(self.evtBinEditingFinished)         # see when editing is finished for bin values
-        self.binX.editingFinished.connect(self.evtBinEditingFinished)
-
-        self.chkBingridAlign.toggled.connect(self.evtBingridAlignToggled)
-
-    def initializePage(self):                                                   # This routine is done each time before the page is activated
-        myPrint('initialize page 3')
-        self.alignBingrid()
-        self.updateParentSurvey()
-
-        # from other pages
-        nrl = self.field('nrl')
-        nrp = self.field('nrp')
-        nsl = self.field('nsl')
-        rpi = self.field('rpi')
-        sli = self.field('sli')
-        rlr = self.field('rlr')
-        slr = self.field('slr')
-        typ = self.field('type')
-
-        binI = self.field('binI')
-        binX = self.field('binX')
-
-        lenI = nrp * rpi
-        if typ == SurveyType.Parallel.code:                                    # make exeption for parallel template, as nrp will be excessive (whole spread)
-            spread = nrp * rpi
-            salvo = nsl * sli
-            lenI = max(abs(spread - salvo), 6000)                               # a least 6 km inline offset
-
-        foldI = 0.5 * lenI / (slr * sli)
-        foldX = 0.5 * nrl / rlr
-        foldT = foldI * foldX
-
-        foldText = f'Max fold: {foldI:.1f} inline, {foldX:.1f} x-line, {foldT:.1f} fold total in {binI:.1f} x {binX:.1f} m bins'
-
-        self.msg.setText(foldText)
-
-        self.plot()                                                             # refresh the plot
-
-    def cleanupPage(self):                                                      # needed to update previous page
-        # note page(x) starts with a ZERO index; therefore pag(0) == Page1
-        self.parent.page(1).plot()                                              # needed to update the plot
-        myPrint('cleanup of page 3')
-
-    def plot(self):
-        """plot a template"""
-
-        self.plotWidget.plotItem.clear()
-        self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
-
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
-
-        self.parent.survey.paintMode = PaintMode.justPoints                     # justLines
-        self.parent.survey.lodScale = 6.0
-        item = self.parent.survey
-
-        # 3. Template Properties - Enter the bin grid properties
-        self.plotWidget.plotItem.addItem(item)
-
-        # Add a marker for the origin
-        # oriX = [0.0]
-        # oriY = [0.0]
-        # orig = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
-
-    def updateParentSurvey(self):
-        # populate / update the survey skeleton
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1547:1557]
-==roll.marine_wizard:[1173:1186]
-        self.parent.survey.grid.binSize.setX(self.field('binI'))                # inline bin size [m]
-        self.parent.survey.grid.binSize.setY(self.field('binX'))                # x-line bin size [m]
-
-        self.parent.survey.grid.binShift.setX(self.field('binI') * 0.5)         # inline shift size [m]
-        self.parent.survey.grid.binShift.setY(self.field('binX') * 0.5)         # x-line shift size [m]
-
-        self.parent.survey.grid.stakeOrig.setX(1000)                            # set inline stake number @ grid origin
-        self.parent.survey.grid.stakeOrig.setY(1000)                            # set x-line stake number @ grid origin
-
-        self.parent.survey.grid.stakeSize.setX(self.field('binI'))              # inline stake interval
-        self.parent.survey.grid.stakeSize.setY(self.field('binX'))              # x-line line interval
-
-    def evtBingridAlignToggled(self):
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window_create_geom_tab:[0:13]
-==roll.roll_main_window_create_sps_tab:[0:13]
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QHeaderView,
-                                 QLabel, QPlainTextEdit, QPushButton,
-                                 QSplitter, QVBoxLayout, QWidget)
-
-from .config import (exportButtonStyle, labelStyle, purpleButtonStyle,
-                     purpleLabelStyle, tableStyle)
-from .table_model_view import (RpsTableModel, SpsTableModel, TableView,
-                               XpsTableModel)
-
-
-def createSpsTab(self):
-    # first create the main widgets
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window_create_pattern_tab:[80:89]
-==roll.roll_main_window_create_stack_response_tab:[83:92]
-    hbox0 = QHBoxLayout()                                          # Make the vertical layout centered horizontally
-    hbox0.addStretch()                                             # add some stretch to main center widget(s)
-    hbox0.addLayout(vbox0)                                         # add the center widget, which uses QVboxLayout
-    hbox0.addStretch()                                             # add some stretch to main center widget(s)
-
-    leftSide = QFrame()
-    leftSide.setFrameShape(QFrame.Shape.StyledPanel)
-    leftSide.setLayout(hbox0)
-    leftSide.setMaximumWidth(180)
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window_create_pattern_tab:[99:108]
-==roll.roll_main_window_create_stack_response_tab:[102:111]
-        tabLayout.setContentsMargins(0, 0, 0, 0)
-    else:
-        while tabLayout.count():
-            item = tabLayout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-
-    tabLayout.addWidget(splitter1)
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_pattern_seed:[50:63]
-==roll.roll_seed:[106:119]
-        parent.appendChild(seedElem)
-
-        return seedElem
-
-    def readXml(self, parent: QDomNode):
-        nameElem = parent.namedItem('name').toElement()
-        if not nameElem.isNull():
-            self.name = nameElem.text()
-
-        self.origin.setX(toFloat(parent.attribute('x0')))
-        self.origin.setY(toFloat(parent.attribute('y0')))
-        self.origin.setZ(toFloat(parent.attribute('z0')))
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.test.test_project_service:[190:199]
-==roll.test.test_project_sidecars:[112:121]
-                projectPath,
-                rpsImport=rpsImport,
-                spsImport=spsImport,
-                xpsImport=xpsImport,
-                recGeom=recGeom,
-                relGeom=relGeom,
-                srcGeom=srcGeom,
-            )
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1337:1351]
-==roll.marine_wizard:[945:959]
-class Page3(SurveyWizardPage):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        self.setTitle('3. Template Properties')
-        self.setSubTitle('Enter the bin grid properties')
-
-        myPrint('page 3 init')
-
-        # create some widgets
-        self.binI = QDoubleSpinBox()
-        self.binX = QDoubleSpinBox()
-
-        # set ranges
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1933:1944]
-==roll.marine_wizard:[2120:2133]
-        self.updateBinningArea(plot)
-
-    def evtBinIsizEditingFinished(self, plot=True):
-        binI = self.field('binI')
-        nrIntervals = max(round(self.binIsiz.value() / binI), 1)
-        binIsiz = nrIntervals * binI
-        self.binIsiz.setValue(binIsiz)
-        self.updateBinningArea(plot)
-
-    def evtBinXminEditingFinished(self, plot=True):
-        binX = self.field('binX')
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1947:1958]
-==roll.marine_wizard:[2128:2140]
-        self.updateBinningArea(plot)
-
-    def evtBinXsizEditingFinished(self, plot=True):
-        binX = self.field('binX')
-        nrIntervals = max(round(self.binXsiz.value() / binX), 1)
-        binXsiz = nrIntervals * binX
-        self.binXsiz.setValue(binXsiz)
-        self.updateBinningArea(plot)
-
-    def updateBinningArea(self, plot):
-        self.parent.survey.output.rctOutput.setLeft(self.field('binImin'))
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.pg_toolbar:[54:63]
-==roll.roll_main_window:[451:460]
-        self.actionZoomRect.setCheckable(True)
-        self.actionZoomRect.setChecked(self.rect)
-        self.actionZoomRect.triggered.connect(self.plotZoomRect)
-
-        self.actionAspectRatio.setCheckable(True)
-        self.actionAspectRatio.setChecked(self.XisY)
-        self.actionAspectRatio.triggered.connect(self.plotAspectRatio)
-
-        self.actionAntiAlias.setCheckable(True)
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_grid:[148:159]
-==roll.roll_pattern:[136:153]
-        g = growListElem.firstChildElement('translate')
-
-        if g.isNull():
-            return False  # We need at least one grow step
-
-        while not g.isNull():
-            translate = RollTranslate()
-            translate.readXml(g)
-            self.growList.append(translate)
-            g = g.nextSiblingElement('translate')
-
-        return True
-
-    def calcPatternPicture(self):
-        # pre-computing a QPicture object allows paint() to run much more quickly,
-        # rather than re-drawing the shapes every time. First create the point picture
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window:[102:111]
-==roll.test.utilities:[34:45]
-    qgsArgv = []
-    for arg in argv:
-        if isinstance(arg, bytes):
-            qgsArgv.append(arg)
-        else:
-            qgsArgv.append(str(arg).encode('utf-8', errors='ignore'))
-    return qgsArgv
-
-
-def getQgisApp():
-    """Start one QGIS application instance for tests."""
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window_create_geom_tab:[218:226]
-==roll.roll_main_window_create_pattern_tab:[99:107]
-        tabLayout.setContentsMargins(0, 0, 0, 0)
-    else:
-        while tabLayout.count():
-            item = tabLayout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[17:24]
-==roll.marine_wizard:[19:26]
-from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox,
-                                 QGridLayout, QLabel, QLineEdit, QMessageBox,
-                                 QPlainTextEdit, QSizePolicy, QSpinBox,
-                                 QVBoxLayout, QWizard)
-
-from . import config  # used to pass initial settings
-from .aux_classes import QHLine, SurveyWizard, SurveyWizardPage
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1484:1493]
-==roll.marine_wizard:[2085:2096]
-        self.plotWidget.plotItem.clear()
-        self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
-
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1889:1898]
-==roll.marine_wizard:[1066:1075]
-        self.plotWidget.plotItem.clear()
-        self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
-
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1685:1694]
-==roll.marine_wizard:[558:565]
-        self.plotWidget.showGrid(x=True, y=True, alpha=0.5)                     # shows the grey grid lines
-        self.plotWidget.setMinimumSize(150, 150)                                # prevent excessive widget shrinking
-        self.plotWidget.ctrlMenu = None                                         # get rid of 'Plot Options'
-        self.plotWidget.scene().contextMenu = None                              # get rid of 'Export'
-
-        self.zoomBar = PgToolBar('ZoomBar', plotWidget=self.plotWidget)
-        self.zoomBar.actionAntiAlias.setChecked(True)                           # toggle Anti-alias on
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1883:1898]
-==roll.marine_wizard:[2079:2096]
-        self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
-        self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
-
-    def plot(self):
-        """plot the survey area"""
-
-        self.plotWidget.plotItem.clear()
-        self.plotWidget.setTitle(self.field('name'), color='b', size='12pt')
-
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1898:1908]
-==roll.marine_wizard:[2669:2678]
-        self.parent.survey.paintMode = PaintMode.justTemplates                  # .justTemplates justLines
-        self.parent.survey.lodScale = 6.0
-        item = self.parent.survey
-
-        # 6. Project Coordinate Reference System (CRS)
-        self.plotWidget.plotItem.addItem(item)
-        # Add a marker for the origin
-        oriX = [0.0]
-        oriY = [0.0]
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1899:1911]
-==roll.marine_wizard:[758:772]
-        self.parent.survey.lodScale = 6.0
-        item = self.parent.survey
-
-        # 4. roll along and binning area
-        self.plotWidget.plotItem.addItem(item)
-
-        # Add a marker for the origin
-        oriX = [0.0]
-        oriY = [0.0]
-        _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker 'orig' not used further
-
-    def evtChkShiftSpreadToggled(self, chkd):
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1940:1950]
-==roll.marine_wizard:[2113:2123]
-        self.updateBinningArea(plot)
-
-    def evtBinXminEditingFinished(self, plot=True):
-        binX = self.field('binX')
-        nrIntervals = max(round(self.binXmin.value() / binX), 1)
-        binXmin = nrIntervals * binX
-        self.binXmin.setValue(binXmin)
-        self.updateBinningArea(plot)
-
-    def evtBinXsizEditingFinished(self, plot=True):
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[2260:2276]
-==roll.marine_wizard:[2455:2471]
-        self.projectionSelector = QgsProjectionSelectionTreeWidget()
-
-        # See: https://qgis.org/pyqgis/master/core/QgsProject.html#qgis.core.QgsProject.crs
-        # tmpCrs = QgsProject.instance().crs()
-        # if tmpCrs.isValid():
-        #    self.projectionSelector.setCrs(tmpCrs)
-
-        # set the page layout
-        layout = QVBoxLayout()
-        layout.addWidget(self.projectionSelector)
-        self.setLayout(layout)
-
-        self.registerField('crs', self.projectionSelector)
-        self.projectionSelector.crsSelected.connect(self.crsSelected)
-
-    def initializePage(self):                                                   # This routine is done each time before the page is activated
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.my_point2D:[10:20]
-==roll.my_point3D:[8:18]
-        super().__init__(param, depth)
-
-        self.createAndInitPreviewLabel(param)
-
-        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
-
-    def showPreviewInformation(self, param):
-        d = param.opts.get('decimals', 7)
-        x = param.child('X').opts['value']
-        y = param.child('Y').opts['value']
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_grid:[148:154]
-==roll.roll_pattern:[107:115]
-            g = growListElem.firstChildElement('translate')
-
-            if g.isNull():
-                return False  # We need at least one grow step
-
-            while not g.isNull():
-                translate = RollTranslate()                                     # create translation
-                translate.readXml(g)
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window_create_geom_tab:[219:226]
-==roll.roll_main_window_create_trace_table_tab:[104:111]
-    else:
-        while tabLayout.count():
-            item = tabLayout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_pattern_seed:[76:90]
-==roll.roll_seed:[167:183]
-        self.boundingBox = self.boundingBox.normalized()
-
-        # make sure that QRectF.intersected() '&' and united() '|' work as expected by giving seed a minimal size
-        # this is required for the subsequent roll-steps in the template
-        if self.boundingBox.width() == 0.0:
-            # give it very narrow width
-            self.boundingBox.setWidth(1.0e-6)
-
-        if self.boundingBox.height() == 0.0:
-            # give it very small height
-            self.boundingBox.setHeight(1.0e-6)
-
-        return self.boundingBox  # return  bounding rectangle
-
-    def calcPointArray(self):
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_pattern_seed:[90:97]
-==roll.roll_seed:[212:221]
-        length = max(len(self.pointList), 1)                                    # need 1 or more points for a valid numpy array
-        self.pointArray = np.zeros(shape=(length, 3), dtype=np.float32)         # start with empty array of the right size and type
-
-        for count, item in enumerate(self.pointList):
-            self.pointArray[count, 0] = item.x()
-            self.pointArray[count, 1] = item.y()
-            self.pointArray[count, 2] = item.z()
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_plane:[3:13]
-==roll.roll_sphere:[3:13]
-import math
-
-import numpy as np
-from qgis.PyQt.QtCore import QPointF
-from qgis.PyQt.QtGui import QVector3D
-from qgis.PyQt.QtXml import QDomDocument, QDomNode
-
-from .aux_functions import toFloat
-
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.aux_functions:[443:449]
-==roll.functions_numba:[402:410]
-    INSIDE = 0                                                                  # 0000
-    LEFT = 1                                                                    # 0001
-    RIGHT = 2                                                                   # 0010
-    BOTTOM = 4                                                                  # 0100
-    TOP = 8  	                                                                # 1000
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.aux_functions:[11:18]
-==roll.roll:[35:42]
-try:
-    haveDebugpy = True
-    import debugpy
-except ImportError as ie:
-    haveDebugpy = False
-
-# Import statement to acces the main window
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[27:37]
-==roll.marine_wizard:[38:47]
-from .pg_toolbar import PgToolBar
-from .roll_pattern import RollPattern
-from .roll_survey import RollSurvey
-
-currentDir = os.path.dirname(os.path.abspath(__file__))
-resourceDir = os.path.join(currentDir, 'resources')
-
-
-# WIZARD  =======================================================================
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[54:77]
-==roll.marine_wizard:[62:85]
-        self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
-
-        # self.setOption(QWizard.IndependentPages , True) # Don't use this option as fields are no longer updated !!! Make dummy cleanupPage(self) instead
-        logoImage = QImage(os.path.join(resourceDir, 'icon.png'))
-        self.setPixmap(QWizard.WizardPixmap.LogoPixmap, QPixmap.fromImage(logoImage))
-
-
-#        self.setOption(QWizard.NoCancelButton, True)
-#        self.setWindowFlags(self.windowFlags() | QtCore.Qt.CustomizeWindowHint)
-#        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowCloseButtonHint)
-
-# def reject(self):
-#        pass
-
-
-# Page1 =======================================================================
-# 1. Survey type, Nr lines, and line & point intervals
-
-
-class Page1(SurveyWizardPage):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[147:154]
-==roll.marine_wizard:[224:231]
-        row += 1
-        layout.addWidget(self.name, row, 0, 1, 4)
-
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
-
-        row += 1
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1314:1320]
-==roll.marine_wizard:[2088:2096]
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
-
-        # self.parent.survey.paintMode = PaintMode.justLines
-        # self.parent.survey.paintMode = PaintMode.justTemplates
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1487:1493]
-==roll.marine_wizard:[2415:2421]
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[2218:2224]
-==roll.marine_wizard:[1069:1075]
-        styles = {'color': '#646464', 'font-size': '10pt'}
-        self.plotWidget.setLabel('bottom', 'inline', units='m', **styles)       # shows axis at the bottom, and shows the units label
-        self.plotWidget.setLabel('left', 'crossline', units='m', **styles)      # shows axis at the left, and shows the units label
-        self.plotWidget.setLabel('top', 'inline', units='m', **styles)          # shows axis at the top, and shows the survey name
-        self.plotWidget.setLabel('right', 'crossline', units='m', **styles)     # shows axis at the top, and shows the survey name
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[1673:1684]
-==roll.marine_wizard:[546:557]
-        row += 1
-        layout.addWidget(QHLine(), row, 0, 1, 4)
-
-        # create a vertical box layout widget (vbl)
-        vbl = QVBoxLayout()
-
-        # add the so far developed QGridLayout to the QVBoxLayout (layout)
-        vbl.addLayout(layout)
-
-        # insert PyQtGraph plotWidget                                           # See: https://groups.google.com/g/pyqtgraph/c/ls-9I2tHu2w
-        self.plotWidget = pg.PlotWidget(background='w')
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.land_wizard:[2477:2485]
-==roll.marine_wizard:[758:767]
-        self.parent.survey.lodScale = 6.0
-        item = self.parent.survey
-
-        # 6. Project Coordinate Reference System (CRS)
-        self.plotWidget.plotItem.addItem(item)
-        # Add a marker for the origin
-        oriX = [0.0]
-        oriY = [0.0]
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.my_cmap:[43:50]
-==roll.my_list:[32:39]
-        w.sigChanged = w.currentIndexChanged
-        w.value = w.currentText
-        w.setValue = self.setValue                                              # the function defined below
-        self.hideWidget = False
-        return w
-
-    def updateLimits(self, param, limits):
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.my_group:[54:61]
-==roll.my_marker:[108:114]
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)                                                    # spacing between elements
-        spacerItem = QSpacerItem(5, 5, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        layout.addSpacerItem(spacerItem)
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.my_parameters:[32:37]
-==roll.roll_survey:[28:33]
-from .roll_pattern import RollPattern
-from .roll_pattern_seed import RollPatternSeed
-from .roll_plane import RollPlane
-from .roll_seed import RollSeed
-from .roll_sphere import RollSphere
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_block:[66:74]
-==roll.roll_survey:[3336:3348]
-        return True
-
-    def calcBoundingRect(self):
-        self.srcBoundingRect = QRectF()  # reset it
-        self.recBoundingRect = QRectF()  # reset it
-        self.cmpBoundingRect = QRectF()  # reset it
-        self.boundingBox = QRectF()  # reset it
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_grid:[126:132]
-==roll.roll_pattern:[141:147]
-        while not g.isNull():
-            translate = RollTranslate()
-            translate.readXml(g)
-            self.growList.append(translate)
-            g = g.nextSiblingElement('translate')
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window:[2422:2429]
-==roll.roll_survey:[3085:3091]
-            dA = 5.0                                                            # azimuth increments
-            dO = 100.0                                                          # offsets increments
-
-            aMin = 0.0                                                          # min x-scale
-            aMax = 360.0                                                        # max x-scale
-            aMax += dA                                                          # make sure end value is included
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_main_window_create_pattern_tab:[0:9]
-==roll.roll_main_window_create_stack_response_tab:[0:9]
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import (QActionGroup, QComboBox, QFrame, QGroupBox,
-                                 QHBoxLayout, QSplitter, QToolButton,
-                                 QVBoxLayout)
-
-from .config import toolButtonStyle
-
-
-def createStackResponseTab(self):
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_pattern:[67:77]
-==roll.roll_pattern_seed:[35:41]
-        if len(self.name) > 0:
-            nameElement = doc.createElement('name')
-            text = doc.createTextNode(self.name)
-            nameElement.appendChild(text)
-            seedElem.appendChild(nameElement)
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_pattern:[83:92]
-==roll.roll_pattern_seed:[50:59]
-        parent.appendChild(seedElem)
-
-        return seedElem
-
-    def readXml(self, parent: QDomNode):
-        nameElem = parent.namedItem('name').toElement()                         # get the name first
-        if not nameElem.isNull():
-            self.name = nameElem.text()
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_pattern:[0:6]
-==roll.roll_seed:[3:9]
-import numpy as np
-import pyqtgraph as pg
-from qgis.PyQt.QtCore import QRectF
-from qgis.PyQt.QtGui import QColor, QPainter, QPicture, QVector3D
-from qgis.PyQt.QtXml import QDomDocument, QDomNode
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.roll_pattern:[35:46]
-==roll.roll_survey:[3388:3400]
-        return self.boundingBox
-
-    def boundingRect(self):
-        """required for painting a pg.GraphicsObject"""
-        if self.boundingBox.isEmpty():
-            return self.calcBoundingRect()
-        else:
-            # earlier derived result, from blocks -> templates -> seeds
-            return self.boundingBox
-
-    def lineWidthForScreen(self, screen) -> float:
-        # geometry() is logical (DIPs); multiply by DPR to get native pixels
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.settings:[22:29]
-==roll.worker_threads:[13:30]
-try:
-    haveDebugpy = True
-    import debugpy
-except ImportError as ie:
-    haveDebugpy = False
-
-# See: https://stackoverflow.com/questions/20324804/how-to-use-qthread-correctly-in-pyqt-with-movetothread
-# See: https://realpython.com/python-pyqt-qthread/#using-qthread-vs-pythons-threading
-# See: https://mayaposch.wordpress.com/2011/11/01/how-to-really-truly-use-qthreads-the-full-explanation/
-# See: http://ilearnstuff.blogspot.com/2012/08/when-qthread-isnt-thread.html
-# See: http://ilearnstuff.blogspot.com/2012/09/qthread-best-practices-when-qthread.html
-
-# first approach; subclass QThread - no longer recommended with Python 3.0
-# See: https://stackoverflow.com/questions/9190169/threading-and-information-passing-how-to
-# See: https://www.programiz.com/python-programming/shallow-deep-copy for deep copy info
-
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.test.test_project_service:[7:15]
-==roll.test.test_roll_project_roundtrip:[3:11]
-from qgis.core import QgsCoordinateReferenceSystem
-from qgis.PyQt.QtCore import QRectF
-
-from .plugin_loader import loadPluginModule
-from .utilities import getQgisApp
-
-QGIS_APP = getQgisApp()
-
-test\__init__.py:1: [R0801(duplicate-code), ] Similar lines in 2 files
-==roll.test.test_roll_plugin:[7:13]
-==roll.test.test_roll_well_transform:[1:6]
-import importlib.util
-import os
-import sys
-import types
-import unittest
-
 
 ------------------------------------------------------------------
-Your code has been rated at 9.65/10 (previous run: 9.64/10, +0.00)
+Your code has been rated at 9.79/10 (previous run: 9.75/10, +0.04)
 

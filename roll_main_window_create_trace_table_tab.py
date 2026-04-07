@@ -240,9 +240,3 @@ def _goToSpecificRow(self):
                 self.appendLogMessage(f'Input&nbsp;&nbsp;: Trace number out of range (1-{totalRows})', MsgType.Error)
         except ValueError:
             self.appendLogMessage('Input&nbsp;&nbsp;: Please enter a valid trace number', MsgType.Error)
-
-
-
-
-
-

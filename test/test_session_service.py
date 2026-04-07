@@ -3,16 +3,69 @@ import os
 import tempfile
 import unittest
 
+import numpy as np
+
 from .plugin_loader import loadPluginModule
 
 sessionServiceModule = loadPluginModule('session_service')
+sessionStateModule = loadPluginModule('session_state')
 
 SessionService = sessionServiceModule.SessionService
+SessionState = sessionStateModule.SessionState
 
 
 class SessionServiceTest(unittest.TestCase):
     def setUp(self):
         self.service = SessionService()
+        self.state = SessionState()
+
+    def testSetArrayRefreshesImportedPointDerivedState(self):
+        rpsImport = np.array(
+            [
+                (10.0, 100.0, 1),
+                (20.0, 200.0, 0),
+            ],
+            dtype=[('East', 'f4'), ('North', 'f4'), ('InUse', 'i4')],
+        )
+
+        self.service.setArray(self.state, 'rpsImport', rpsImport)
+
+        self.assertIs(self.state.rpsImport, rpsImport)
+        self.assertEqual(self.state.rpsLiveE.tolist(), [10.0])
+        self.assertEqual(self.state.rpsLiveN.tolist(), [100.0])
+        self.assertEqual(self.state.rpsDeadE.tolist(), [20.0])
+        self.assertEqual(self.state.rpsDeadN.tolist(), [200.0])
+        self.assertIsNotNone(self.state.rpsBound)
+
+    def testSetArrayRefreshesGeometryDerivedState(self):
+        recGeom = np.array(
+            [
+                (10.0, 100.0, 1),
+                (20.0, 200.0, 1),
+            ],
+            dtype=[('East', 'f4'), ('North', 'f4'), ('InUse', 'i4')],
+        )
+
+        self.service.setArray(self.state, 'recGeom', recGeom)
+
+        self.assertIs(self.state.recGeom, recGeom)
+        self.assertEqual(self.state.recLiveE.tolist(), [10.0, 20.0])
+        self.assertEqual(self.state.recLiveN.tolist(), [100.0, 200.0])
+        self.assertIsNone(self.state.recDeadE)
+        self.assertIsNone(self.state.recDeadN)
+
+    def testClearSurveyArraysClearsImportedAndGeometryState(self):
+        self.state.rpsImport = np.zeros(1, dtype=np.float32)
+        self.state.recGeom = np.zeros(1, dtype=np.float32)
+        self.state.rpsLiveE = np.zeros(1, dtype=np.float32)
+        self.state.recLiveE = np.zeros(1, dtype=np.float32)
+
+        self.service.clearSurveyArrays(self.state)
+
+        self.assertIsNone(self.state.rpsImport)
+        self.assertIsNone(self.state.recGeom)
+        self.assertIsNone(self.state.rpsLiveE)
+        self.assertIsNone(self.state.recLiveE)
 
     def testRecordCurrentFileMovesEntryToFrontAndTruncates(self):
         recent = ['b.roll', 'a.roll', 'c.roll']

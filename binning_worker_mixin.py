@@ -13,7 +13,6 @@ from qgis.PyQt.QtWidgets import QMessageBox
 
 from . import config
 from .enums_and_int_flags import MsgType
-from .sps_io_and_qc import getAliveAndDead
 from .worker_threads import (BinFromGeometryWorker, BinningWorker,
                              GeometryWorker)
 
@@ -538,16 +537,13 @@ class BinningWorkerMixin:
             self.appendLogMessage(f'Thread : . . . {self.worker.survey.errorText}', MsgType.Error)
             QMessageBox.information(self, 'Interrupted', 'Worker thread aborted')
         else:
-            self.recGeom = self.worker.survey.output.recGeom.copy()
-            self.relGeom = self.worker.survey.output.relGeom.copy()
-            self.srcGeom = self.worker.survey.output.srcGeom.copy()
+            self.sessionService.setArray(self.sessionState, 'recGeom', self.worker.survey.output.recGeom.copy())
+            self.sessionService.setArray(self.sessionState, 'relGeom', self.worker.survey.output.relGeom.copy())
+            self.sessionService.setArray(self.sessionState, 'srcGeom', self.worker.survey.output.srcGeom.copy())
 
             self.recModel.setData(self.recGeom)
             self.relModel.setData(self.relGeom)
             self.srcModel.setData(self.srcGeom)
-
-            self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
-            self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
 
             endTime = timer()
             elapsed = timedelta(seconds=endTime - self.startTime)

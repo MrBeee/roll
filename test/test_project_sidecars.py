@@ -128,6 +128,12 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.assertEqual(self.mainWindow.srcGeom.shape[0], 1)
             self.assertEqual(self.mainWindow.relGeom.shape[0], 1)
             self.assertEqual(self.mainWindow.xpsImport.shape[0], 1)
+            self.assertIs(self.mainWindow.sessionState.rpsImport, self.mainWindow.rpsImport)
+            self.assertIs(self.mainWindow.sessionState.spsImport, self.mainWindow.spsImport)
+            self.assertIs(self.mainWindow.sessionState.xpsImport, self.mainWindow.xpsImport)
+            self.assertIs(self.mainWindow.sessionState.recGeom, self.mainWindow.recGeom)
+            self.assertIs(self.mainWindow.sessionState.srcGeom, self.mainWindow.srcGeom)
+            self.assertIs(self.mainWindow.sessionState.relGeom, self.mainWindow.relGeom)
             self.assertTrue(self.mainWindow.actionRpsPoints.isEnabled())
             self.assertTrue(self.mainWindow.actionSpsPoints.isEnabled())
             self.assertTrue(self.mainWindow.actionRecPoints.isEnabled())
@@ -138,6 +144,23 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.assertEqual(self.mainWindow.srcLiveE.shape[0], 1)
             self.assertIsNotNone(self.mainWindow.rpsBound)
             self.assertIsNotNone(self.mainWindow.spsBound)
+
+    def testResetNumpyArraysAndModelsClearsSurveyArraysFromSessionState(self):
+        self.mainWindow.rpsImport = np.zeros(1, dtype=pntType1)
+        self.mainWindow.spsImport = np.zeros(1, dtype=pntType1)
+        self.mainWindow.xpsImport = np.zeros(1, dtype=relType2)
+        self.mainWindow.recGeom = np.zeros(1, dtype=pntType1)
+        self.mainWindow.srcGeom = np.zeros(1, dtype=pntType1)
+        self.mainWindow.relGeom = np.zeros(1, dtype=relType2)
+
+        self.mainWindow.resetNumpyArraysAndModels()
+
+        self.assertIsNone(self.mainWindow.sessionState.rpsImport)
+        self.assertIsNone(self.mainWindow.sessionState.spsImport)
+        self.assertIsNone(self.mainWindow.sessionState.xpsImport)
+        self.assertIsNone(self.mainWindow.sessionState.recGeom)
+        self.assertIsNone(self.mainWindow.sessionState.srcGeom)
+        self.assertIsNone(self.mainWindow.sessionState.relGeom)
 
     def testFileOpenRecentRemovesMissingFileFromRecentList(self):
         with tempfile.TemporaryDirectory() as tempDir:

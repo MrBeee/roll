@@ -22,11 +22,11 @@ class RollSphere:
         length = vector.length()
         if length > self.radius:
             return float('inf')
-        else:
-            r = self.radius
-            l = length
-            z = math.sqrt(r * r - l * l)
-            return self.origin.z() + z
+
+        r = self.radius
+        l = length
+        z = math.sqrt(r * r - l * l)
+        return self.origin.z() + z
 
     def ReflectSphereAtPoint3D(self, ptFrom: QVector3D, ptTo: QVector3D, aoiMin: float = 0.0, aoiMax: float = 45.0) -> QVector3D:
         """calculate relection point for a single src, and rec QVector3D combination"""
@@ -50,8 +50,8 @@ class RollSphere:
 
         if aoi > aoiMax or aoi < aoiMin:
             return None
-        else:
-            return ptInt
+
+        return ptInt
 
     def ReflectSphereAtPointNp(self, ptFrom: np.ndarray, ptTo: np.ndarray, aoiMin: float = 0.0, aoiMax: float = 45.0) -> np.ndarray:
         """calculate relection point for a single src, and rec QVector3D combination"""
@@ -81,8 +81,8 @@ class RollSphere:
 
         if aoi > aoiMax or aoi < aoiMin:
             return None                                                         # AoI out of range
-        else:
-            return ptRef                                                        # AoI in valid range
+
+        return ptRef                                                            # AoI in valid range
 
     def ReflectSphereAtPointsNp(self, ptSrc: np.ndarray, ptRec: np.ndarray, aoiMin: float = 0.0, aoiMax: float = 45.0) -> np.ndarray:
         """calculate relection point for a single src, and rec QVector3D combination"""

@@ -342,15 +342,3 @@ def process(source_points, target_points, alpha_0=None, scale=True, lambda_0=1.0
     t_vector = np.array(_getTVector(r_quat, s_quat)).reshape(3, 1)
 
     return lambda_i, r_matrix, t_vector
-
-
-
-
-
-
-
-
-
-
-
-

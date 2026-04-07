@@ -48,9 +48,8 @@ from qgis.PyQt.QtXml import QDomDocument
 from . import config  # used to pass initial settings
 from . import functions_numba as fnb
 from .aux_classes import LineROI
-from .aux_functions import (aboutText, convexHull, exampleSurveyXmlText,
-                            highDpiText, licenseText, myPrint,
-                            qgisCheatSheetText)
+from .aux_functions import (aboutText, exampleSurveyXmlText, highDpiText,
+                            licenseText, myPrint, qgisCheatSheetText)
 from .binning_worker_mixin import BinningWorkerMixin
 from .chunked_data import ChunkedData
 from .display_dock import createDisplayDock
@@ -82,16 +81,17 @@ from .roll_main_window_create_trace_table_tab import createTraceTableTab
 from .roll_output import RollOutput
 from .roll_survey import RollSurvey
 from .session_service import SessionService
+from .session_state import SessionState
 from .settings import SettingsDialog, readSettings, writeSettings
 from .spider_navigation_mixin import SpiderNavigationMixin
 from .sps_import_dialog import SpsImportDialog
 from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
                             convertCrs, exportDataAsTxt, fileExportAsR01,
                             fileExportAsS01, fileExportAsX01, findRecOrphans,
-                            findSrcOrphans, getAliveAndDead,
-                            markUniqueRPSrecords, markUniqueSPSrecords,
-                            markUniqueXPSrecords, pntType1, readRpsLine,
-                            readSpsLine, readXpsLine, relType2)
+                            findSrcOrphans, markUniqueRPSrecords,
+                            markUniqueSPSrecords, markUniqueXPSrecords,
+                            pntType1, readRpsLine, readSpsLine, readXpsLine,
+                            relType2)
 from .survey_paint_mixin import SurveyPaintMixin
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
@@ -170,6 +170,198 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     * BinningWorkerMixin keeps the binning worker thread code out of RollMainWindow
     """
 
+    @property
+    def rpsImport(self):
+        return self.sessionState.rpsImport
+
+    @rpsImport.setter
+    def rpsImport(self, value):
+        self.sessionState.rpsImport = value
+
+    @property
+    def spsImport(self):
+        return self.sessionState.spsImport
+
+    @spsImport.setter
+    def spsImport(self, value):
+        self.sessionState.spsImport = value
+
+    @property
+    def xpsImport(self):
+        return self.sessionState.xpsImport
+
+    @xpsImport.setter
+    def xpsImport(self, value):
+        self.sessionState.xpsImport = value
+
+    @property
+    def recGeom(self):
+        return self.sessionState.recGeom
+
+    @recGeom.setter
+    def recGeom(self, value):
+        self.sessionState.recGeom = value
+
+    @property
+    def srcGeom(self):
+        return self.sessionState.srcGeom
+
+    @srcGeom.setter
+    def srcGeom(self, value):
+        self.sessionState.srcGeom = value
+
+    @property
+    def relGeom(self):
+        return self.sessionState.relGeom
+
+    @relGeom.setter
+    def relGeom(self, value):
+        self.sessionState.relGeom = value
+
+    @property
+    def rpsLiveE(self):
+        return self.sessionState.rpsLiveE
+
+    @rpsLiveE.setter
+    def rpsLiveE(self, value):
+        self.sessionState.rpsLiveE = value
+
+    @property
+    def rpsLiveN(self):
+        return self.sessionState.rpsLiveN
+
+    @rpsLiveN.setter
+    def rpsLiveN(self, value):
+        self.sessionState.rpsLiveN = value
+
+    @property
+    def rpsDeadE(self):
+        return self.sessionState.rpsDeadE
+
+    @rpsDeadE.setter
+    def rpsDeadE(self, value):
+        self.sessionState.rpsDeadE = value
+
+    @property
+    def rpsDeadN(self):
+        return self.sessionState.rpsDeadN
+
+    @rpsDeadN.setter
+    def rpsDeadN(self, value):
+        self.sessionState.rpsDeadN = value
+
+    @property
+    def spsLiveE(self):
+        return self.sessionState.spsLiveE
+
+    @spsLiveE.setter
+    def spsLiveE(self, value):
+        self.sessionState.spsLiveE = value
+
+    @property
+    def spsLiveN(self):
+        return self.sessionState.spsLiveN
+
+    @spsLiveN.setter
+    def spsLiveN(self, value):
+        self.sessionState.spsLiveN = value
+
+    @property
+    def spsDeadE(self):
+        return self.sessionState.spsDeadE
+
+    @spsDeadE.setter
+    def spsDeadE(self, value):
+        self.sessionState.spsDeadE = value
+
+    @property
+    def spsDeadN(self):
+        return self.sessionState.spsDeadN
+
+    @spsDeadN.setter
+    def spsDeadN(self, value):
+        self.sessionState.spsDeadN = value
+
+    @property
+    def recLiveE(self):
+        return self.sessionState.recLiveE
+
+    @recLiveE.setter
+    def recLiveE(self, value):
+        self.sessionState.recLiveE = value
+
+    @property
+    def recLiveN(self):
+        return self.sessionState.recLiveN
+
+    @recLiveN.setter
+    def recLiveN(self, value):
+        self.sessionState.recLiveN = value
+
+    @property
+    def recDeadE(self):
+        return self.sessionState.recDeadE
+
+    @recDeadE.setter
+    def recDeadE(self, value):
+        self.sessionState.recDeadE = value
+
+    @property
+    def recDeadN(self):
+        return self.sessionState.recDeadN
+
+    @recDeadN.setter
+    def recDeadN(self, value):
+        self.sessionState.recDeadN = value
+
+    @property
+    def srcLiveE(self):
+        return self.sessionState.srcLiveE
+
+    @srcLiveE.setter
+    def srcLiveE(self, value):
+        self.sessionState.srcLiveE = value
+
+    @property
+    def srcLiveN(self):
+        return self.sessionState.srcLiveN
+
+    @srcLiveN.setter
+    def srcLiveN(self, value):
+        self.sessionState.srcLiveN = value
+
+    @property
+    def srcDeadE(self):
+        return self.sessionState.srcDeadE
+
+    @srcDeadE.setter
+    def srcDeadE(self, value):
+        self.sessionState.srcDeadE = value
+
+    @property
+    def srcDeadN(self):
+        return self.sessionState.srcDeadN
+
+    @srcDeadN.setter
+    def srcDeadN(self, value):
+        self.sessionState.srcDeadN = value
+
+    @property
+    def rpsBound(self):
+        return self.sessionState.rpsBound
+
+    @rpsBound.setter
+    def rpsBound(self, value):
+        self.sessionState.rpsBound = value
+
+    @property
+    def spsBound(self):
+        return self.sessionState.spsBound
+
+    @spsBound.setter
+    def spsBound(self, value):
+        self.sessionState.spsBound = value
+
     def __init__(self, iface=None, parent=None, standaloneMode=False):
         """Constructor."""
         super(RollMainWindow, self).__init__(parent)
@@ -213,6 +405,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.projectService = ProjectService()
         self.projectLoadApplier = ProjectLoadApplier(self)
         self.sessionService = SessionService()
+        self.sessionState = SessionState()
 
         # workerTread parameters
         self.worker = None                                                      # 'moveToThread' object
@@ -259,10 +452,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.offAziColorBar = None
         self.kxyPatColorBar = None
 
-        # rps, sps, xps input arrays
-        self.rpsImport = None                                                   # numpy array with list of RPS records
-        self.spsImport = None                                                   # numpy array with list of SPS records
-        self.xpsImport = None                                                   # numpy array with list of XPS records
+        # imported SPS/RPS/XPS arrays are now owned by self.sessionState and
+        # exposed through properties for broad compatibility during migration.
 
         self.rpsLiveE = None                                                    # numpy array with list of live RPS coordinates
         self.rpsLiveN = None                                                    # numpy array with list of live RPS coordinates
@@ -867,7 +1058,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         surveyCopy.bindSeedsToSurvey()
 
         # first check survey integrity before committing to it.
-        if surveyCopy.checkIntegrity(self.projectDirectory) is False:
+        if surveyCopy.checkIntegrity() is False:
             return
 
         self.survey = surveyCopy.deepcopy()                                           # start using the updated survey object
@@ -1124,21 +1315,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self._applyConfiguredRelationFilter('rel_rec_orphans', 'relGeom', self.relModel)
 
     def _applyConfiguredPointFilter(self, filterKey, arrayAttr, model, liveDeadAttrs, boundAttr=None):
+        del liveDeadAttrs, boundAttr
         array = getattr(self, arrayAttr)
         result = self.filterService.applyFilter(filterKey, array)
         if result is None:
             return
 
-        setattr(self, arrayAttr, result.array)
+        self.sessionService.setArray(self.sessionState, arrayAttr, result.array)
         model.setData(result.array)
 
-        if result.refreshLayout and result.derivedState is not None:
-            setattr(self, liveDeadAttrs[0], result.derivedState.liveE)
-            setattr(self, liveDeadAttrs[1], result.derivedState.liveN)
-            setattr(self, liveDeadAttrs[2], result.derivedState.deadE)
-            setattr(self, liveDeadAttrs[3], result.derivedState.deadN)
-            if boundAttr is not None:
-                setattr(self, boundAttr, result.derivedState.bound)
+        if result.refreshLayout:
             self.updateMenuStatus(False)
             self.plotLayout()
 
@@ -1150,7 +1336,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if result is None:
             return
 
-        setattr(self, arrayAttr, result.array)
+        self.sessionService.setArray(self.sessionState, arrayAttr, result.array)
         model.setData(result.array)
         self.appendLogMessage(result.message)
 
@@ -1248,7 +1434,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.srcLayer = exportPointLayerToQgis(layerName, self.srcGeom, self.survey.crs, source=True)
 
     def importSpsFromQgis(self):
-        self.spsLayer, self.spsField = identifyQgisPointLayer(self.iface, self.spsLayer, self.spsField, self.survey.crs, 'Sps')
+        self.spsLayer, self.spsField = identifyQgisPointLayer(self.spsLayer, self.spsField, self.survey.crs, 'Sps')
 
         if self.spsLayer is None:
             return
@@ -1262,8 +1448,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
             return
 
-        self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
-        self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)            # get the convex hull of the sps points
+        self.sessionService.refreshArrayState(self.sessionState, 'spsImport')
 
         self.appendLogMessage(f'Import : SPS-records containing {self.spsLiveE.size:,} live records')
         self.appendLogMessage(f'Import : SPS-records containing {self.spsDeadE.size:,} dead records')
@@ -1274,7 +1459,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.plotLayout()
 
     def importRpsFromQgis(self):
-        self.rpsLayer, self.rpsField = identifyQgisPointLayer(self.iface, self.rpsLayer, self.rpsField, self.survey.crs, 'Rps')
+        self.rpsLayer, self.rpsField = identifyQgisPointLayer(self.rpsLayer, self.rpsField, self.survey.crs, 'Rps')
 
         if self.rpsLayer is None:
             return
@@ -1288,8 +1473,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
             return
 
-        self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
-        self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)            # get the convex hull of the rps points
+        self.sessionService.refreshArrayState(self.sessionState, 'rpsImport')
 
         self.appendLogMessage(f'Import : RPS-records containing {self.rpsLiveE.size:,} live records')
         self.appendLogMessage(f'Import : RPS-records containing {self.rpsDeadE.size:,} dead records')
@@ -1300,7 +1484,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.plotLayout()
 
     def importSrcFromQgis(self):
-        self.srcLayer, self.srcField = identifyQgisPointLayer(self.iface, self.srcLayer, self.srcField, self.survey.crs, 'Src')
+        self.srcLayer, self.srcField = identifyQgisPointLayer(self.srcLayer, self.srcField, self.survey.crs, 'Src')
 
         if self.srcLayer is None:
             return
@@ -1314,7 +1498,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
             return
 
-        self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
+        self.sessionService.refreshArrayState(self.sessionState, 'srcGeom')
 
         self.appendLogMessage(f'Import : SRC-records containing {self.srcLiveE.size:,} live records')
         self.appendLogMessage(f'Import : SRC-records containing {self.srcDeadE.size:,} dead records')
@@ -1325,7 +1509,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.plotLayout()
 
     def importRecFromQgis(self):
-        self.recLayer, self.recField = identifyQgisPointLayer(self.iface, self.recLayer, self.recField, self.survey.crs, 'Rec')
+        self.recLayer, self.recField = identifyQgisPointLayer(self.recLayer, self.recField, self.survey.crs, 'Rec')
 
         if self.recLayer is None:
             return
@@ -1339,7 +1523,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
             return
 
-        self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
+        self.sessionService.refreshArrayState(self.sessionState, 'recGeom')
 
         self.appendLogMessage(f'Import : REC-records containing {self.recLiveE.size:,} live records')
         self.appendLogMessage(f'Import : REC-records containing {self.recDeadE.size:,} dead records')
@@ -2675,35 +2859,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.offAziImItem = None
         self.kxyPatImItem = None
 
-        # rps, sps, xps input arrays
-        self.rpsImport = None                                                   # numpy array with list of RPS records
-        self.spsImport = None                                                   # numpy array with list of SPS records
-        self.xpsImport = None                                                   # numpy array with list of XPS records
-
-        self.rpsLiveE = None                                                    # numpy array with list of live RPS coordinates
-        self.rpsLiveN = None                                                    # numpy array with list of live RPS coordinates
-        self.rpsDeadE = None                                                    # numpy array with list of dead RPS coordinates
-        self.rpsDeadN = None                                                    # numpy array with list of dead RPS coordinates
-
-        self.spsLiveE = None                                                    # numpy array with list of live SPS coordinates
-        self.spsLiveN = None                                                    # numpy array with list of live SPS coordinates
-        self.spsDeadE = None                                                    # numpy array with list of dead SPS coordinates
-        self.spsDeadN = None                                                    # numpy array with list of dead SPS coordinates
-
-        # rel, src, rel input arrays
-        self.recGeom = None                                                     # numpy array with list of REC records
-        self.srcGeom = None                                                     # numpy array with list of SRC records
-        self.relGeom = None                                                     # numpy array with list of REL records
-
-        self.recLiveE = None                                                    # numpy array with list of live REC coordinates
-        self.recLiveN = None                                                    # numpy array with list of live REC coordinates
-        self.recDeadE = None                                                    # numpy array with list of dead REC coordinates
-        self.recDeadN = None                                                    # numpy array with list of dead REC coordinates
-
-        self.srcLiveE = None                                                    # numpy array with list of live SRC coordinates
-        self.srcLiveN = None                                                    # numpy array with list of live SRC coordinates
-        self.srcDeadE = None                                                    # numpy array with list of dead SRC coordinates
-        self.srcDeadN = None                                                    # numpy array with list of dead SRC coordinates
+        self.sessionService.clearSurveyArrays(self.sessionState)
 
         # spider plot settings
         self.spiderPoint = QPoint(-1, -1)                                       # spider point 'out of scope'
@@ -3048,7 +3204,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # self.plotLayout()                                                     # plot the survey object
 
         self.resetSurveyProperties()                                            # get the new parameters into the parameter tree. Can be time consuming with many blocks and many seeds
-        self.survey.checkIntegrity(self.projectDirectory)                       # check for survey integrity after loading; in particular well file validity
+        self.survey.checkIntegrity()                                            # check for survey integrity after loading; in particular well file validity
 
     def _appendProjectSidecarMessages(self, sidecarResult):
         for message in sidecarResult.messages:
@@ -3230,8 +3386,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
                 QApplication.processEvents()  # Ensure the UI updates in real-time
 
-                self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
-                self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)        # get the convex hull of the rps points
+                self.sessionService.refreshArrayState(self.sessionState, 'rpsImport')
                 self.tbRpsList.setChecked(True)                                 # set the RPS list to be visible
 
             if self.spsImport is not None:
@@ -3251,8 +3406,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 self.appendLogMessage(f'Import : . . . . . . Intervals for (line, point) in design (lin{dLint:,.2f}m, pnt{dPint:,.2f}m)')
                 self.appendLogMessage(f'Import : . . . . . . Increments for (line, point) in grid (lin{dLn:,.2f}m, pnt{dPn:,.2f}m)')
 
-                self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
-                self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)        # get the convex hull of the rps points
+                self.sessionService.refreshArrayState(self.sessionState, 'spsImport')
                 self.tbSpsList.setChecked(True)
 
             if self.xpsImport is not None:
@@ -3702,8 +3856,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if self.spsImport is None:
             return
 
-        self.spsLiveE, self.spsLiveN, self.spsDeadE, self.spsDeadN = getAliveAndDead(self.spsImport)
-        self.spsBound = convexHull(self.spsLiveE, self.spsLiveN)
+        self.sessionService.refreshArrayState(self.sessionState, 'spsImport')
         self.textEdit.document().setModified(True)
         self.updateMenuStatus(False)
         self.replotLayout()
@@ -3713,8 +3866,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if self.rpsImport is None:
             return
 
-        self.rpsLiveE, self.rpsLiveN, self.rpsDeadE, self.rpsDeadN = getAliveAndDead(self.rpsImport)
-        self.rpsBound = convexHull(self.rpsLiveE, self.rpsLiveN)
+        self.sessionService.refreshArrayState(self.sessionState, 'rpsImport')
         self.textEdit.document().setModified(True)
         self.updateMenuStatus(False)
         self.replotLayout()
@@ -3724,7 +3876,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if self.srcGeom is None:
             return
 
-        self.srcLiveE, self.srcLiveN, self.srcDeadE, self.srcDeadN = getAliveAndDead(self.srcGeom)
+        self.sessionService.refreshArrayState(self.sessionState, 'srcGeom')
         self.textEdit.document().setModified(True)
         self.updateMenuStatus(False)
         self.replotLayout()
@@ -3734,7 +3886,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if self.recGeom is None:
             return
 
-        self.recLiveE, self.recLiveN, self.recDeadE, self.recDeadN = getAliveAndDead(self.recGeom)
+        self.sessionService.refreshArrayState(self.sessionState, 'recGeom')
         self.textEdit.document().setModified(True)
         self.updateMenuStatus(False)
         self.replotLayout()

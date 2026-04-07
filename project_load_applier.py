@@ -3,9 +3,7 @@
 import pyqtgraph as pg
 
 from . import config
-from .aux_functions import convexHull
 from .enums_and_int_flags import MsgType
-from .sps_io_and_qc import getAliveAndDead
 
 
 class ProjectLoadApplier:
@@ -94,12 +92,12 @@ class ProjectLoadApplier:
     def _applySurveyDataState(self, sidecarResult):
         mainWindow = self.mainWindow
 
-        mainWindow.rpsImport = sidecarResult.rpsImport
-        mainWindow.spsImport = sidecarResult.spsImport
-        mainWindow.xpsImport = sidecarResult.xpsImport
-        mainWindow.recGeom = sidecarResult.recGeom
-        mainWindow.srcGeom = sidecarResult.srcGeom
-        mainWindow.relGeom = sidecarResult.relGeom
+        mainWindow.sessionService.setArray(mainWindow.sessionState, 'rpsImport', sidecarResult.rpsImport)
+        mainWindow.sessionService.setArray(mainWindow.sessionState, 'spsImport', sidecarResult.spsImport)
+        mainWindow.sessionService.setArray(mainWindow.sessionState, 'xpsImport', sidecarResult.xpsImport)
+        mainWindow.sessionService.setArray(mainWindow.sessionState, 'recGeom', sidecarResult.recGeom)
+        mainWindow.sessionService.setArray(mainWindow.sessionState, 'srcGeom', sidecarResult.srcGeom)
+        mainWindow.sessionService.setArray(mainWindow.sessionState, 'relGeom', sidecarResult.relGeom)
 
         self._applyPointArrayState('rpsImport', ('rpsLiveE', 'rpsLiveN', 'rpsDeadE', 'rpsDeadN'), 'actionRpsPoints', boundAttr='rpsBound')
         self._applyPointArrayState('spsImport', ('spsLiveE', 'spsLiveN', 'spsDeadE', 'spsDeadN'), 'actionSpsPoints', boundAttr='spsBound')
@@ -114,30 +112,16 @@ class ProjectLoadApplier:
         self._refreshModelAndView('srcModel', 'srcGeom', 'srcView')
 
     def _applyPointArrayState(self, arrayAttr, liveDeadAttrs, actionAttr, boundAttr=None):
+        del liveDeadAttrs, boundAttr
         mainWindow = self.mainWindow
         array = getattr(mainWindow, arrayAttr)
         action = getattr(mainWindow, actionAttr)
 
         if array is not None:
-            liveE, liveN, deadE, deadN = getAliveAndDead(array)
-            setattr(mainWindow, liveDeadAttrs[0], liveE)
-            setattr(mainWindow, liveDeadAttrs[1], liveN)
-            setattr(mainWindow, liveDeadAttrs[2], deadE)
-            setattr(mainWindow, liveDeadAttrs[3], deadN)
-
-            if boundAttr is not None:
-                setattr(mainWindow, boundAttr, convexHull(liveE, liveN))
-
             nImport = array.shape[0]
             action.setChecked(nImport > 0)
             action.setEnabled(nImport > 0)
         else:
-            setattr(mainWindow, liveDeadAttrs[0], None)
-            setattr(mainWindow, liveDeadAttrs[1], None)
-            setattr(mainWindow, liveDeadAttrs[2], None)
-            setattr(mainWindow, liveDeadAttrs[3], None)
-            if boundAttr is not None:
-                setattr(mainWindow, boundAttr, None)
             action.setChecked(False)
             action.setEnabled(False)
 

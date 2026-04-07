@@ -36,11 +36,11 @@ class MyListParameterItem(WidgetParameterItem):
         self.hideWidget = False
         return w
 
-    def updateLimits(self, param, limits):
+    def updateLimits(self, _, limits):                                          # param unused, but required by the signal
         self.lst = list(limits) if limits is not None else []
         self._rebuildCombo()
 
-    def optsChanged(self, param, opts):
+    def optsChanged(self, _, opts):                                             # param unused, but required by the signal
         if 'limits' in opts:
             self.lst = list(opts['limits']) if opts['limits'] is not None else []
             self._rebuildCombo()

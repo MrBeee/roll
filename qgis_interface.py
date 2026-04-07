@@ -27,7 +27,12 @@ from .sps_io_and_qc import pntType1
 # See: https://webgeodatavore.github.io/pyqgis-samples/gui-group/QgsMapLayerComboBox.html
 
 
-def identifyQgisPointLayer(iface, layer, field, rollCrs, kind):
+def identifyQgisPointLayer(layer, field, rollCrs, kind):
+
+    # code used to be: def identifyQgisPointLayer(iface, layer, field, rollCrs, kind):
+    # but iface is not used, and it is easier to pass the mainWindow, which is needed for the dialog, as parent
+    # therefore iface was removed from the function call.
+
     # See: https://gis.stackexchange.com/questions/412684/retrieving-qgsmaplayercomboboxs-currently-selected-layer-to-get-its-name-for-ed
 
     # to create a modal dialog, see here:
@@ -847,7 +852,7 @@ def readQgisPointLayer(layerId, selectionField=''):
             else:
                 used = feature[selectionField]
 
-            record = (line, stake, index, code, depth, east, north, elev, 1, 1, inuse, 0.0, 0.0)
+            record = (line, stake, index, code, depth, east, north, elev, 1, 1, used, 0.0, 0.0)
 
             pointArray[nRecord] = record
             nRecord += 1

@@ -1431,7 +1431,7 @@ class RollSurvey(pg.GraphicsObject):
         # but we are dealing with the "InUse" attribute, that allows for killing a point in QGIS
 
         try:
-            for index, srcRecord in enumerate(self.output.srcGeom):
+            for srcRecord in self.output.srcGeom:
 
                 if srcRecord['InUse'] == 0:                                     # this record has been disabled
                     continue
@@ -1900,7 +1900,7 @@ class RollSurvey(pg.GraphicsObject):
 
         return True
 
-    def binFromGeometry5(self, fullAnalysis) -> bool:
+    def binFromGeometry5(self, _) -> bool:
         """
         Optimized version of binFromGeometry4 by Gemini 2.5 Pro
         - Vectorized receiver selection.
@@ -1909,7 +1909,7 @@ class RollSurvey(pg.GraphicsObject):
         #  unfortunately; this version was completely faulty, trying to access non-existing methods & attributes.
         return True
 
-    def binFromGeometry6(self, fullAnalysis) -> bool:
+    def binFromGeometry6(self, _) -> bool:
         """
         Optimized version of binFromGeometry4 by GPT-4o
         - Vectorized receiver selection.
@@ -2303,8 +2303,8 @@ class RollSurvey(pg.GraphicsObject):
         relRecMaxI = np.rint(self.output.relGeom['RecMax']).astype(np.int32)
 
         # Build fast relation index lookup using searchsorted on integer keys
-        relKey = np.core.records.fromarrays([relSrcIndI, relSrcLinI, relSrcPntI], names='Ind,Lin,Pnt')
-        srcKey = np.core.records.fromarrays([srcIndI, srcLinI, srcPntI], names='Ind,Lin,Pnt')
+        relKey = np.rec.fromarrays([relSrcIndI, relSrcLinI, relSrcPntI], names='Ind,Lin,Pnt')
+        srcKey = np.rec.fromarrays([srcIndI, srcLinI, srcPntI], names='Ind,Lin,Pnt')
 
         relLeft = np.searchsorted(relKey, srcKey, side='left')
         relRight = np.searchsorted(relKey, srcKey, side='right')
@@ -3129,7 +3129,7 @@ class RollSurvey(pg.GraphicsObject):
             self.calcBoundingRect()                                             # (re)calculate the boundingBox as part of parsing the data
         return success
 
-    def checkIntegrity(self, projectDirectory=None) -> bool:
+    def checkIntegrity(self) -> bool:
         """this routine checks survey integrity, after edits have been made"""
 
         e = 'Survey format error'
@@ -3540,10 +3540,15 @@ class RollSurvey(pg.GraphicsObject):
             for template in block.templateList:
                 if not template.totTemplateRect.intersects(vb):
                     continue
-                self._renderInvariantSeedsIntoBase(p, vb, lod, template, penWidth=penWidth)
+                self._renderInvariantSeedsIntoBase(p, lod, template, penWidth=penWidth)
 
-    def _renderInvariantSeedsIntoBase(self, painter, viewbox, lod, template, penWidth=2):
+    def _renderInvariantSeedsIntoBase(self, painter, lod, template, penWidth=2):
         # Draw circle/spiral/well once into the base framebuffer
+        # As these seeds are invariant with respect to rolling, we can draw them once into the base framebuffer,
+        # and they will be reused for all rolled positions. This is a significant optimization,
+        # as it avoids redrawing these complex seeds for every rolled position, which can be very costly in terms of performance.
+        # For that reason, it isn't needed to test them against the viewbox, as they are only drawn once into the base framebuffer.
+
         for seed in getattr(template, 'seedList', []):
 
             if seed.type < SeedType.circle:             # rolling or fixed grid
