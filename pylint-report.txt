@@ -16,10 +16,10 @@ aux_functions.py:610: [R0912(too-many-branches), getUnpicklable] Too many branch
 aux_functions.py:692: [R1705(no-else-return), convexHull.dome] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 aux_functions.py:698: [R1705(no-else-return), convexHull] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 ************* Module roll.binning_worker_mixin
-binning_worker_mixin.py:56: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapName] Too many branches (14/12)
-binning_worker_mixin.py:116: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapObject] Too many branches (16/12)
-binning_worker_mixin.py:399: [R0912(too-many-branches), BinningWorkerMixin.binningThreadFinished] Too many branches (17/12)
-binning_worker_mixin.py:21: [R0904(too-many-public-methods), BinningWorkerMixin] Too many public methods (26/20)
+binning_worker_mixin.py:55: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapName] Too many branches (14/12)
+binning_worker_mixin.py:115: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapObject] Too many branches (16/12)
+binning_worker_mixin.py:398: [R0912(too-many-branches), BinningWorkerMixin.binningThreadFinished] Too many branches (17/12)
+binning_worker_mixin.py:20: [R0904(too-many-public-methods), BinningWorkerMixin] Too many public methods (26/20)
 ************* Module roll.config
 config.py:175: [R1735(use-dict-literal), ] Consider using '{"id": 'Record identification', "line": 'Line', "point": 'Point', "index": 'Point index', ... }' instead of a call to 'dict'.
 config.py:187: [R1735(use-dict-literal), ] Consider using '{"id": 'Record identification', "recNum": 'Field Record number', "srcLin": 'Source line number', ... }' instead of a call to 'dict'.
@@ -55,8 +55,7 @@ land_wizard.py:1800: [R1714(consider-using-in), Page4.updateParentSurvey] Consid
 marine_wizard.py:779: [R1719(simplifiable-if-expression), Page2.updateParentSurvey] The if expression can be replaced with 'test'
 marine_wizard.py:770: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (13/12)
 marine_wizard.py:1528: [R0912(too-many-branches), Page4.updateSailLineOverhead] Too many branches (13/12)
-marine_wizard.py:1653: [R1705(no-else-return), Page4.isComplete] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-marine_wizard.py:1833: [R1719(simplifiable-if-expression), Page5.updateParentSurvey] The if expression can be replaced with 'test'
+marine_wizard.py:1830: [R1719(simplifiable-if-expression), Page5.updateParentSurvey] The if expression can be replaced with 'test'
 ************* Module roll.my_crs2
 my_crs2.py:49: [R1735(use-dict-literal), MyCrs2Parameter.__init__] Consider using '{"name": 'CRS', "type": 'myCrs', "value": self.crs, "default": self.crs, ... }' instead of a call to 'dict'.
 my_crs2.py:50: [R1735(use-dict-literal), MyCrs2Parameter.__init__] Consider using '{"name": 'Description', "type": 'str', "value": self.crs.description(), ... }' instead of a call to 'dict'.
@@ -80,7 +79,6 @@ my_parameters.py:941: [C0301(line-too-long), ] Line too long (237/210)
 my_parameters.py:950: [C0301(line-too-long), ] Line too long (237/210)
 my_parameters.py:1248: [C0301(line-too-long), ] Line too long (215/210)
 my_parameters.py:1458: [C0301(line-too-long), ] Line too long (227/210)
-my_parameters.py:1545: [C0303(trailing-whitespace), ] Trailing whitespace
 my_parameters.py:1569: [C0301(line-too-long), ] Line too long (229/210)
 my_parameters.py:1578: [C0301(line-too-long), ] Line too long (229/210)
 my_parameters.py:2108: [C0301(line-too-long), ] Line too long (223/210)
@@ -250,8 +248,6 @@ project_service.py:102: [R0913(too-many-arguments), ProjectService.writeProjectX
 project_service.py:102: [R0917(too-many-positional-arguments), ProjectService.writeProjectXml] Too many positional arguments (6/5)
 project_service.py:207: [R0913(too-many-arguments), ProjectService.saveSurveyDataSidecars] Too many arguments (8/5)
 project_service.py:222: [R0912(too-many-branches), ProjectService._loadAnalysisArraySidecars] Too many branches (16/12)
-************* Module roll.qgis_interface
-qgis_interface.py:49: [R1705(no-else-return), identifyQgisPointLayer] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 ************* Module roll.qgis_layer_dialog
 qgis_layer_dialog.py:8: [R0913(too-many-arguments), LayerDialog.__init__] Too many arguments (6/5)
 qgis_layer_dialog.py:8: [R0917(too-many-positional-arguments), LayerDialog.__init__] Too many positional arguments (6/5)
@@ -273,49 +269,44 @@ roll.py:107: [W0718(broad-exception-caught), enableRemoteDebugging] Catching too
 roll.py:186: [R0913(too-many-arguments), Roll.addAction] Too many arguments (10/5)
 roll.py:186: [R0917(too-many-positional-arguments), Roll.addAction] Too many positional arguments (10/5)
 ************* Module roll.roll_main_window
-roll_main_window.py:200: [R1725(super-with-arguments), RollMainWindow.__init__] Consider using Python 3 style super() without arguments
-roll_main_window.py:786: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey configuration', "type": 'myConfiguration', ... }' instead of a call to 'dict'.
-roll_main_window.py:787: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey analysis', "type": 'myAnalysis', "value": surveyCopy, ... }' instead of a call to 'dict'.
-roll_main_window.py:788: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey reflectors', "type": 'myReflectors', ... }' instead of a call to 'dict'.
-roll_main_window.py:789: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey grid', "type": 'myGrid', "value": surveyCopy.grid, ... }' instead of a call to 'dict'.
-roll_main_window.py:790: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Block list', "type": 'myBlockList', "value": surveyCopy.blockList, ... }' instead of a call to 'dict'.
-roll_main_window.py:791: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Pattern list', "type": 'myPatternList', "value": surveyCopy.patternList, ... }' instead of a call to 'dict'.
-roll_main_window.py:971: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
-roll_main_window.py:1031: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
-roll_main_window.py:1031: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
-roll_main_window.py:1150: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
-roll_main_window.py:1150: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
-roll_main_window.py:1500: [R0912(too-many-branches), RollMainWindow.handleImageSelection] Too many branches (14/12)
-roll_main_window.py:1653: [R1716(chained-comparison), RollMainWindow.mouseMovedInPlot] Simplify chained comparison between the operands
-roll_main_window.py:1604: [R0912(too-many-branches), RollMainWindow.mouseMovedInPlot] Too many branches (20/12)
-roll_main_window.py:1677: [R1705(no-else-return), RollMainWindow.getVisiblePlotIndex] Unnecessary "elif" after "return", remove the leading "el" from "elif"
-roll_main_window.py:1676: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotIndex] Too many return statements (12/6)
-roll_main_window.py:1702: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotWidget] Too many return statements (12/6)
-roll_main_window.py:1728: [R0912(too-many-branches), RollMainWindow.updateVisiblePlotWidget] Too many branches (17/12)
-roll_main_window.py:1903: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
-roll_main_window.py:2374: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
-roll_main_window.py:2378: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
-roll_main_window.py:2526: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2529: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2547: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2550: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2561: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2564: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2508: [R0912(too-many-branches), RollMainWindow.plotPatterns] Too many branches (14/12)
-roll_main_window.py:2787: [R1705(no-else-return), RollMainWindow.fileNew] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:2880: [R1705(no-else-return), RollMainWindow.maybeKillThread] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:2962: [R1705(no-else-return), RollMainWindow.resetAnaTableModel] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:3080: [R0912(too-many-branches), RollMainWindow.fileImportSpsData] Too many branches (31/12)
-roll_main_window.py:165: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (155/20)
+roll_main_window.py:367: [R1725(super-with-arguments), RollMainWindow.__init__] Consider using Python 3 style super() without arguments
+roll_main_window.py:953: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey configuration', "type": 'myConfiguration', ... }' instead of a call to 'dict'.
+roll_main_window.py:954: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey analysis', "type": 'myAnalysis', "value": surveyCopy, ... }' instead of a call to 'dict'.
+roll_main_window.py:955: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey reflectors', "type": 'myReflectors', ... }' instead of a call to 'dict'.
+roll_main_window.py:956: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey grid', "type": 'myGrid', "value": surveyCopy.grid, ... }' instead of a call to 'dict'.
+roll_main_window.py:957: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Block list', "type": 'myBlockList', "value": surveyCopy.blockList, ... }' instead of a call to 'dict'.
+roll_main_window.py:958: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Pattern list', "type": 'myPatternList', "value": surveyCopy.patternList, ... }' instead of a call to 'dict'.
+roll_main_window.py:1138: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
+roll_main_window.py:1198: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
+roll_main_window.py:1198: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
+roll_main_window.py:1317: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
+roll_main_window.py:1317: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
+roll_main_window.py:1660: [R0912(too-many-branches), RollMainWindow.handleImageSelection] Too many branches (14/12)
+roll_main_window.py:1813: [R1716(chained-comparison), RollMainWindow.mouseMovedInPlot] Simplify chained comparison between the operands
+roll_main_window.py:1764: [R0912(too-many-branches), RollMainWindow.mouseMovedInPlot] Too many branches (20/12)
+roll_main_window.py:1837: [R1705(no-else-return), RollMainWindow.getVisiblePlotIndex] Unnecessary "elif" after "return", remove the leading "el" from "elif"
+roll_main_window.py:1836: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotIndex] Too many return statements (12/6)
+roll_main_window.py:1862: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotWidget] Too many return statements (12/6)
+roll_main_window.py:1888: [R0912(too-many-branches), RollMainWindow.updateVisiblePlotWidget] Too many branches (17/12)
+roll_main_window.py:2063: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
+roll_main_window.py:2534: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
+roll_main_window.py:2538: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
+roll_main_window.py:2686: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2689: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2707: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2710: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2721: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2724: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
+roll_main_window.py:2668: [R0912(too-many-branches), RollMainWindow.plotPatterns] Too many branches (14/12)
+roll_main_window.py:2921: [R1705(no-else-return), RollMainWindow.fileNew] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:3014: [R1705(no-else-return), RollMainWindow.maybeKillThread] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:3096: [R1705(no-else-return), RollMainWindow.resetAnaTableModel] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:3214: [R0912(too-many-branches), RollMainWindow.fileImportSpsData] Too many branches (31/12)
+roll_main_window.py:164: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (176/20)
 ************* Module roll.roll_pattern
-roll_pattern.py:214: [W0511(fixme), ] todo: merge calcPatternPointLists() into calcPatternPointArrays()
-roll_pattern.py:41: [R1705(no-else-return), RollPattern.boundingRect] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_pattern.py:211: [W0511(fixme), ] todo: merge calcPatternPointLists() into calcPatternPointArrays()
 ************* Module roll.roll_pattern_seed
 roll_pattern_seed.py:28: [W0511(fixme), ] todo: need to get rid of self.pointList at some point ! Immediately use numpy array instead
-************* Module roll.roll_plane
-roll_plane.py:51: [R1705(no-else-return), RollPlane.depthAt] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_plane.py:95: [R1705(no-else-return), RollPlane.IntersectLineAtPoint3D] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_plane.py:125: [R1705(no-else-return), RollPlane.IntersectLineAtPointNp] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 ************* Module roll.roll_seed
 roll_seed.py:43: [W0511(fixme), ] todo: need to get rid of self.pointList at some point !
 roll_seed.py:85: [W0511(fixme), ] todo: solve the following issue:
@@ -387,8 +378,6 @@ roll_template.py:111: [R0912(too-many-branches), RollTemplate.calcBoundingRect] 
 roll_well.py:110: [R0911(too-many-return-statements), RollWell.readHeader] Too many return statements (10/6)
 roll_well.py:110: [R0912(too-many-branches), RollWell.readHeader] Too many branches (15/12)
 roll_well.py:229: [R1723(no-else-break), RollWell.readWellHeader] Unnecessary "else" after "break", remove the "else" and de-indent the code inside it
-************* Module roll.session_state
-session_state.py:17: [C0304(missing-final-newline), ] Final newline missing
 ************* Module roll.settings
 settings.py:94: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Color Settings', "type": 'myGroup', "brush": '#add8e6', "children": [dict(name='Bin area color', type='color', value=QColor(config.binAreaColor), default=QColor(config.binAreaColor)), dict(name='Cmp area color', type='color', value=QColor(config.cmpAreaColor), default=QColor(config.cmpAreaColor)), dict(name='Rec area color', type='color', value=QColor(config.recAreaColor), default=QColor(config.recAreaColor)), dict(name='Src area color', type='color', value=QColor(config.srcAreaColor), default=QColor(config.srcAreaColor)), dict(name='Bin area pen', type='myPen', flat=True, expanded=False, value=binAreaPenParam, default=binAreaPenParam), dict(name='Cmp area pen', type='myPen', flat=True, expanded=False, value=cmpAreaPenParam, default=cmpAreaPenParam), dict(name='Rec area pen', type='myPen', flat=True, expanded=False, value=recAreaPenParam, default=recAreaPenParam), dict(name='Src area pen', type='myPen', flat=True, expanded=False, value=srcAreaPenParam, default=srcAreaPenParam), dict(name='Fold/offset color map', type='myCmap', value=config.foldDispCmap, default=config.foldDispCmap), dict(name='Analysis color map', type='myCmap', value=config.analysisCmap, default=config.analysisCmap)], ... }' instead of a call to 'dict'.
 settings.py:99: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Bin area color', "type": 'color', "value": QColor(config.binAreaColor), ... }' instead of a call to 'dict'.
@@ -485,8 +474,6 @@ xml_code_editor.py:58: [R1725(super-with-arguments), XMLHighlighter.__init__] Co
 xml_code_editor.py:251: [R1725(super-with-arguments), QCodeEditor.__init__] Consider using Python 3 style super() without arguments
 ************* Module roll.test.test_roll_survey_numpy_api
 test\test_roll_survey_numpy_api.py:35: [C0304(missing-final-newline), ] Final newline missing
-************* Module roll.test.test_session_state
-test\test_session_state.py:29: [C0304(missing-final-newline), ] Final newline missing
 ************* Module roll.test.test_table_model_view
 test\test_table_model_view.py:175: [C0304(missing-final-newline), ] Final newline missing
 ************* Module roll.test.test_translations
@@ -497,9 +484,7 @@ test\test_translations.py:35: [C2801(unnecessary-dunder-call), SafeTranslationsT
 test\test_translations.py:16: [C0411(wrong-import-order), ] standard import "os" should be placed before local import "utilities.getQgisApp"
 test\test_translations.py:17: [C0411(wrong-import-order), ] standard import "unittest" should be placed before local import "utilities.getQgisApp"
 test\test_translations.py:19: [C0411(wrong-import-order), ] third party import "qgis.PyQt.QtCore.QCoreApplication" should be placed before local import "utilities.getQgisApp"
-************* Module roll.test.__init__
-test\__init__.py:2: [C0304(missing-final-newline), ] Final newline missing
 
 ------------------------------------------------------------------
-Your code has been rated at 9.79/10 (previous run: 9.75/10, +0.04)
+Your code has been rated at 9.79/10 (previous run: 9.79/10, +0.00)
 

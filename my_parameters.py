@@ -1542,7 +1542,7 @@ class MySeedParameter(MyGroupParameter):
         self.parP.setLimits(patterns)
         idx = max(min(self.seed.patternNo + 1, len(patterns) - 1), 0)
         self.parP.setValue(patterns[idx], blockSignal=self.changed)
-        
+
     def contextMenu(self, name=None):
 
         parent = self.parent()

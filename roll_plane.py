@@ -50,10 +50,10 @@ class RollPlane:
     def depthAt(self, point2D: QPointF) -> float:
         if self.normal.z() == 0:
             return 0.0
-        else:
-            # make it a 3D point with z = 0
-            point3D = QVector3D(point2D)
-            return -(QVector3D.dotProduct(self.normal, point3D) + self.dist) / self.normal.z()
+
+        # make it a 3D point with z = 0
+        point3D = QVector3D(point2D)
+        return -(QVector3D.dotProduct(self.normal, point3D) + self.dist) / self.normal.z()
 
     def projectPoint(self, point3D: QVector3D) -> QVector3D:
         distance = self.distanceToPoint(point3D)
@@ -95,15 +95,15 @@ class RollPlane:
         if U < 0 or U > 1:
             # rec and src-mirror are at the same side of plane
             return None
-        else:
-            cosAoI = denominator / ray.length()
-            aoi = math.acos(cosAoI)
 
-            if aoi > aoiMax or aoi < aoiMin:
-                return None
+        cosAoI = denominator / ray.length()
+        aoi = math.acos(cosAoI)
 
-            ptInt = ptTo - ray * U
-            return ptInt
+        if aoi > aoiMax or aoi < aoiMin:
+            return None
+
+        ptInt = ptTo - ray * U
+        return ptInt
 
     def IntersectLineAtPointNp(self, ptFrom: np.ndarray, ptTo: np.ndarray, aoiMin: float = 0.0, aoiMax: float = 45.0) -> np.ndarray:
         # See: https://stackoverflow.com/questions/7168484/3d-line-segment-and-plane-intersection
@@ -125,15 +125,15 @@ class RollPlane:
         if U < 0 or U > 1:
             # rec and src-mirror are at the same side of plane
             return None
-        else:
-            cosAoI = denominator / np.sqrt(ray.dot(ray))                        # np.sqrt(ray.dot(ray)) to calculate the length of the ray
-            aoi = math.acos(cosAoI)
 
-            if aoi > aoiMax or aoi < aoiMin:                                    # check if AoI is in range
-                return None
+        cosAoI = denominator / np.sqrt(ray.dot(ray))                        # np.sqrt(ray.dot(ray)) to calculate the length of the ray
+        aoi = math.acos(cosAoI)
 
-            ptInt = ptTo - ray * U
-            return ptInt
+        if aoi > aoiMax or aoi < aoiMin:                                    # check if AoI is in range
+            return None
+
+        ptInt = ptTo - ray * U
+        return ptInt
 
     def IntersectLinesAtPointNp(self, ptFrom: np.ndarray, ptTo: np.ndarray, aoiMin: float = 0.0, aoiMax: float = 45.0) -> np.ndarray:
         # See: https://stackoverflow.com/questions/7168484/3d-line-segment-and-plane-intersection

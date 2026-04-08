@@ -38,10 +38,7 @@ class RollPattern(pg.GraphicsObject):
     def boundingRect(self):
         # required for painting a pg.GraphicsObject
 
-        if self.boundingBox.isEmpty():
-            return self.calcBoundingRect()
-        else:
-            return self.boundingBox                                             # earlier derived
+        return self.calcBoundingRect() if self.boundingBox.isEmpty() else self.boundingBox  # earlier derived
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
         patternElem = doc.createElement('pattern')

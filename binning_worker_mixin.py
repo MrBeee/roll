@@ -408,6 +408,14 @@ class BinningWorkerMixin:
             self.output.binOutput = self.worker.survey.output.binOutput.copy()
             self.output.minOffset = self.worker.survey.output.minOffset.copy()
             self.output.maxOffset = self.worker.survey.output.maxOffset.copy()
+            self.output.minimumFold = max(self.worker.survey.output.minimumFold, 0)
+            self.output.maximumFold = max(self.worker.survey.output.maximumFold, 0)
+            self.output.minMinOffset = max(self.worker.survey.output.minMinOffset, 0)
+            self.output.maxMinOffset = max(self.worker.survey.output.maxMinOffset, 0)
+            self.output.minMaxOffset = max(self.worker.survey.output.minMaxOffset, 0)
+            self.output.maxMaxOffset = max(self.worker.survey.output.maxMaxOffset, 0)
+            self.output.minRmsOffset = max(self.worker.survey.output.minRmsOffset, 0)
+            self.output.maxRmsOffset = max(self.worker.survey.output.maxRmsOffset, 0)
 
             endTime = timer()
             elapsed = timedelta(seconds=endTime - self.startTime)
@@ -439,15 +447,6 @@ class BinningWorkerMixin:
 
                 shape = self.worker.survey.output.anaOutput.shape
                 self.finalizeAnalysisMemmap(shape)
-
-            self.output.minimumFold = max(self.worker.survey.output.minimumFold, 0)
-            self.output.maximumFold = max(self.worker.survey.output.maximumFold, 0)
-            self.output.minMinOffset = max(self.worker.survey.output.minMinOffset, 0)
-            self.output.maxMinOffset = max(self.worker.survey.output.maxMinOffset, 0)
-            self.output.minMaxOffset = max(self.worker.survey.output.minMaxOffset, 0)
-            self.output.maxMaxOffset = max(self.worker.survey.output.maxMaxOffset, 0)
-            self.output.minRmsOffset = max(self.worker.survey.output.minRmsOffset, 0)
-            self.output.maxRmsOffset = max(self.worker.survey.output.maxRmsOffset, 0)
 
             if self.survey.grid.fold <= 0:
                 self.survey.grid.fold = self.output.maximumFold

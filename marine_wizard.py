@@ -1650,10 +1650,7 @@ class Page4(SurveyWizardPage):
         trackList = stringToIntList(lineSeries)
         nrSailLines = sum(trackList)
 
-        if nrSailLines == 0:
-            return False
-        else:
-            return True
+        return nrSailLines != 0
 
 
 # Page5 =======================================================================

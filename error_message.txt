@@ -1,1 +1,98 @@
 
+2026-04-07T17:36:01     info       Plugin : Started on Windows 11 v(10.0.26200)
+2026-04-07T17:36:01     info       Library: Numba version 0.64.0 available for JIT acceleration
+2026-04-07T17:36:01     info       Parsing: survey object succesfully parsed
+2026-04-07T17:36:01     info       Params : survey object read, containing 282 parameters
+2026-04-07T17:36:07     info       Opening: D:/Roll/roll_samples/Noordoostpolder/Noordoostpolder.roll
+2026-04-07T17:36:07     info       Parsing: D:/Roll/roll_samples/Noordoostpolder/Noordoostpolder.roll
+2026-04-07T17:36:07     info       Parsing: D:/Roll/roll_samples/Noordoostpolder/Noordoostpolder.roll survey object succesfully parsed
+2026-04-07T17:36:07     info       Reading: D:/Roll/roll_samples/Noordoostpolder/Noordoostpolder.roll, success: True
+2026-04-07T17:36:07     info       Loading: D:/Roll/roll_samples/Noordoostpolder/Noordoostpolder.roll analysis files
+2026-04-07T17:36:07     info       Analysis dims: nx=2630, ny=1215, binSize=(10.000,20.000)
+2026-04-07T17:36:07     info       Analysis file: .bin.npy exists=True
+2026-04-07T17:36:07     info       Analysis file: .min.npy exists=True
+2026-04-07T17:36:07     info       Analysis file: .max.npy exists=True
+2026-04-07T17:36:07     info       Analysis file: .rms.npy exists=True
+2026-04-07T17:36:07     info       Analysis file: .off.npy exists=True
+2026-04-07T17:36:07     info       Analysis file: .azi.npy exists=True
+2026-04-07T17:36:07     info       Analysis file: .ana.npy exists=True
+2026-04-07T17:36:07     info       Loaded : . . . Fold map  : Min:0 - Max:209 
+2026-04-07T17:36:07     info       Loaded : . . . Min-offset: Min:22.36m - Max:4998.13m 
+2026-04-07T17:36:07     info       Loaded : . . . Max-offset: Min:22.36m - Max:5158.34m 
+2026-04-07T17:36:07     info       Loaded : . . . Rms-offset: Min:0.00m - Max:1376.98m 
+2026-04-07T17:36:07     info       Loaded : . . . offset histogram
+2026-04-07T17:36:07     info       Loaded : . . . azi-offset histogram
+2026-04-07T17:36:07     info       Analysis load: fold=210, maxFold=209
+2026-04-07T17:36:07     info       Analysis load: nT=8723578500, expected=8723578500, delta=0
+2026-04-07T17:36:07     info       Analysis load: an2Output.shape=(671044500, 13)
+2026-04-07T17:36:07     info       Loaded : . . . Analysis  : 671,044,500 traces (reserved space)
+2026-04-07T17:36:07     info       Loaded : . . . read 161,894 rec-records
+2026-04-07T17:36:07     info       Loaded : . . . read 51,240 src-records
+2026-04-07T17:36:07     info       Loaded : . . . read 1,795,499 rel-records
+2026-04-07T17:36:07     info       Loaded : . . . Analysis: 671,044,500 traces available (showing 1,000,000 at a time)
+2026-04-07T17:36:11     info       Params : D:/Roll/roll_samples/Noordoostpolder/Noordoostpolder.roll survey object read, containing 282 parameters
+2026-04-07T17:36:24     info       Opening: D:/Roll/roll_testing/kapuni.roll
+2026-04-07T17:36:24     info       Parsing: D:/Roll/roll_testing/kapuni.roll
+2026-04-07T17:36:24     info       Parsing: D:/Roll/roll_testing/kapuni.roll survey object succesfully parsed
+2026-04-07T17:36:24     info       Reading: D:/Roll/roll_testing/kapuni.roll, success: True
+2026-04-07T17:36:24     info       Loading: D:/Roll/roll_testing/kapuni.roll analysis files
+2026-04-07T17:36:24     info       Analysis dims: nx=800, ny=1024, binSize=(25.000,25.000)
+2026-04-07T17:36:24     info       Analysis file: .bin.npy exists=True
+2026-04-07T17:36:24     info       Analysis file: .min.npy exists=True
+2026-04-07T17:36:24     info       Analysis file: .max.npy exists=True
+2026-04-07T17:36:24     info       Analysis file: .rms.npy exists=True
+2026-04-07T17:36:24     info       Analysis file: .off.npy exists=True
+2026-04-07T17:36:24     info       Analysis file: .azi.npy exists=True
+2026-04-07T17:36:24     info       Analysis file: .ana.npy exists=True
+2026-04-07T17:36:24     info       Loaded : . . . Fold map  : Min:0 - Max:189 
+2026-04-07T17:36:24     info       Loaded : . . . Min-offset: Min:10.00m - Max:4035.12m 
+2026-04-07T17:36:24     info       Loaded : . . . Max-offset: Min:35.51m - Max:4142.01m 
+2026-04-07T17:36:24     info       Loaded : . . . Rms-offset: Min:0.00m - Max:2024.36m 
+2026-04-07T17:36:24     info       Loaded : . . . offset histogram
+2026-04-07T17:36:24     info       Loaded : . . . azi-offset histogram
+2026-04-07T17:36:24     info       Analysis load: fold=160, maxFold=189
+2026-04-07T17:36:24     info       Analysis load: nT=1703936000, expected=1703936000, delta=0
+2026-04-07T17:36:24     info       Analysis load: an2Output.shape=(131072000, 13)
+2026-04-07T17:36:24     info       Loaded : . . . Analysis  : observed fold in binning file: 189. This is larger than allowed in the trace table (160), expect missing traces in spider plot !
+2026-04-07T17:36:24     info       Loaded : . . . Analysis  : 131,072,000 traces (reserved space)
+2026-04-07T17:36:24     info       Loaded : . . . read 76,119 rps-records
+2026-04-07T17:36:24     info       Loaded : . . . read 26,731 sps-records
+2026-04-07T17:36:24     info       Loaded : . . . read 598,465 xps-records
+2026-04-07T17:36:24     info       Loaded : . . . Analysis: 131,072,000 traces available (showing 1,000,000 at a time)
+2026-04-07T17:36:26     info       Params : D:/Roll/roll_testing/kapuni.roll survey object read, containing 282 parameters
+2026-04-07T20:31:05     info       Edited : Closing memory mapped file D:/Roll/roll_testing/kapuni.roll.ana.npy
+2026-04-07T20:31:06     info       Edited : D:/Roll/roll_testing/kapuni.roll survey object updated
+2026-04-07T20:31:18     binning    Thread : Prepare memory mapped file for 409,600,000 traces, with nx=2000, ny=1280, fold=160
+2026-04-07T20:31:23     binning    Thread : Started 'Bin from Imported SPS', using 26,731 shot points
+2026-04-07T20:36:22     binning    Thread : Binning completed. Elapsed time:0:04:59 
+2026-04-07T20:36:22     binning    Thread : . . . Fold       : Min:0 - Max:189 
+2026-04-07T20:36:22     binning    Thread : . . . Min-offsets: Min:10.00m - Max:4035.12m 
+2026-04-07T20:36:22     binning    Thread : . . . Max-offsets: Min:35.51m - Max:4142.01m 
+2026-04-07T20:36:22     info       Loaded : . . . Analysis: 409,600,000 traces available (showing 1,000,000 at a time)
+2026-04-07T23:04:53     info       Edited : Closing memory mapped file D:/Roll/roll_testing/kapuni.roll.ana.npy
+2026-04-07T23:04:53     info       Can't delete file, [WinError 32] The process cannot access the file because it is being used by another process: 'D:/Roll/roll_testing/kapuni.roll.ana.npy'
+2026-04-07T23:04:53     info       Edited : D:/Roll/roll_testing/kapuni.roll survey object updated
+2026-04-07T23:05:30     info       Can't delete file, [WinError 32] The process cannot access the file because it is being used by another process: 'D:/Roll/roll_testing/kapuni.roll.ana.npy'
+2026-04-07T23:05:30     info       Edited : D:/Roll/roll_testing/kapuni.roll survey object updated
+2026-04-07T23:06:11     info       Saved  : D:/Roll/roll_testing/kapuni.roll
+2026-04-07T23:06:50     binning    Thread : Prepare memory mapped file for 491,760,000 traces, with nx=2000, ny=1366, fold=180
+2026-04-07T23:06:55     binning    Thread : Started 'Bin from Imported SPS', using 26,731 shot points
+2026-04-07T23:11:42     binning    Thread : Binning completed. Elapsed time:0:04:47 
+2026-04-07T23:11:42     binning    Thread : . . . Fold       : Min:0 - Max:45 
+2026-04-07T23:11:42     binning    Thread : . . . Min-offsets: Min:10.00m - Max:4062.30m 
+2026-04-07T23:11:42     binning    Thread : . . . Max-offsets: Min:21.47m - Max:4142.01m 
+2026-04-07T23:11:42     info       Loaded : . . . Analysis: 491,760,000 traces available (showing 1,000,000 at a time)
+2026-04-07T23:12:54     info       Edited : D:/Roll/roll_testing/kapuni.roll survey object updated
+2026-04-07T23:13:04     info       Edited : D:/Roll/roll_testing/kapuni.roll survey object updated
+2026-04-07T23:13:19     binning    Thread : Prepare memory mapped file for 491,760,000 traces, with nx=2000, ny=1366, fold=180
+2026-04-07T23:13:24     binning    Thread : Started 'Bin from Imported SPS', using 26,731 shot points
+2026-04-07T23:30:23     binning    Thread : Binning completed. Elapsed time:0:16:59 
+2026-04-07T23:30:23     binning    Thread : . . . Fold       : Min:0 - Max:39 
+2026-04-07T23:30:23     binning    Thread : . . . Min-offsets: Min:10.00m - Max:4063.43m 
+2026-04-07T23:30:23     binning    Thread : . . . Max-offsets: Min:10.00m - Max:4142.01m 
+2026-04-07T23:30:23     binning    Thread : . . . Rms-offsets: Min:0.00m - Max:1688.10m 
+2026-04-07T23:30:23     info       Loaded : . . . Analysis: 491,760,000 traces available (showing 1,000,000 at a time)
+2026-04-07T23:34:06     info       Saved  : D:/Roll/roll_testing/kapuni.roll
+
+
+Fold is much larger; in the order of 118 - 129

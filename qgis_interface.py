@@ -48,9 +48,9 @@ def identifyQgisPointLayer(layer, field, rollCrs, kind):
 
     if isinstance(layer, QgsVectorLayer) and parentId.startswith('Roll'):       # we have the right one
         return (layer, field)
-    else:
-        QMessageBox.information(None, 'Please update metadata', "Please ensure the Parent Identifier in the metadata of the selected layer starts with 'Roll'", QMessageBox.Cancel)
-        return (None, None)
+
+    QMessageBox.information(None, 'Please update metadata', "Please ensure the Parent Identifier in the metadata of the selected layer starts with 'Roll'", QMessageBox.Cancel)
+    return (None, None)
 
 
 # def updateQgisPointLayer(layerId, spsRecords, crs=None, source=True) -> bool:
