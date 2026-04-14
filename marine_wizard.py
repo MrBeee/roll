@@ -22,7 +22,6 @@ from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox,
                                  QPlainTextEdit, QSizePolicy, QSpinBox,
                                  QVBoxLayout, QWizard)
 
-from . import config  # used to pass initial settings
 from .aux_classes import QHLine, SurveyWizard, SurveyWizardPage
 from .aux_functions import (even, intListToString, knotToMeterperSec,
                             lineturnDetour, maxCableLengthVsTurnSpeed,
@@ -46,9 +45,51 @@ resourceDir = os.path.join(currentDir, 'resources')
 # WIZARD  =======================================================================
 
 class MarineSurveyWizard(SurveyWizard):
+    DEFAULTS = {
+        'swDensity': 1029.0,
+        'cDrag': 0.0055,
+        'maxDragForce': 3.07,
+        'vSail': 4.60,
+        'vTurn': 4.47,
+        'vMinInner': 3.75,
+        'vCross': 0.0,
+        'vTail': 0.0,
+        'srcPopInt': 25.0,
+        'nSrc': 2,
+        'nCab': 10,
+        'srcLayback': 250.0,
+        'cabLayback': 450.0,
+        'cabLength': 8000.0,
+        'cabDiameter': 0.06,
+        'groupInt': 12.5,
+        'cabDepthHead': 8.0,
+        'cabDepthTail': 10.0,
+        'cabSepHead': 100.0,
+        'cabSepTail': 100.0,
+        'srcDepth': 10.0,
+        'recLength': 8.0,
+        'srcSepFactor': 1,
+        'srcSeparation': 50.0,
+        'cdpDepth': 2000.0,
+        'surveySizeI': 50_000.0,
+        'surveySizeX': 30_000.0,
+        'rName': 'streamer-group',
+        'sName': 'airgun-array',
+        'rBran': 6,
+        'sBran': 5,
+        'rElem': 1,
+        'sElem': 3,
+        'rBrIn': 12.5 / 6,
+        'sBrIn': 15.0 / 5,
+        'rElIn': 0.0,
+        'sElIn': 15.0,
+    }
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.surveyNumber = parent.sessionState.surveyNumber if parent is not None and hasattr(parent, 'sessionState') else 1
+        self.defaults = self.DEFAULTS.copy()
         self.addPage(Page1(self))
         self.addPage(Page2(self))
         self.addPage(Page3(self))
@@ -65,6 +106,13 @@ class MarineSurveyWizard(SurveyWizard):
         # self.setOption(QWizard.IndependentPages , True) # Don't use this option as fields are no longer updated !!! Make dummy cleanupPage(self) instead
         logoImage = QImage(os.path.join(resourceDir, 'icon.png'))
         self.setPixmap(QWizard.WizardPixmap.LogoPixmap, QPixmap.fromImage(logoImage))
+
+    @staticmethod
+    def defaultSurveyName(surveyNumber):
+        return f'{SurveyType.Streamer.name}_{surveyNumber:03d}'
+
+    def default(self, name):
+        return self.defaults[name]
 
 
 #        self.setOption(QWizard.NoCancelButton, True)
@@ -91,9 +139,7 @@ class Page1(SurveyWizardPage):
         # create some widgets
         self.name = QLineEdit()
         self.name.setStyleSheet(wizardEditHighlightStyle)
-        name = SurveyType.Streamer.name                       # get name from enum
-        number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
-        self.name.setText(f'{name}_{number}')                                   # show the new name
+        self.name.setText(self.parent.defaultSurveyName(parent.surveyNumber))
         self.registerField('name', self.name)                                   # Survey name
 
         # to register fields for variable access in other Wizard Pages
@@ -108,14 +154,14 @@ class Page1(SurveyWizardPage):
 
         self.vSail = QDoubleSpinBox()
         self.vSail.setRange(0.1, 10.0)
-        self.vSail.setValue(config.vSail)                                       # do this once in the constructor
+        self.vSail.setValue(self.parent.default('vSail'))                       # do this once in the constructor
         self.vSail.textChanged.connect(self.updateParameters)
         self.vSail.editingFinished.connect(self.updateParameters)
         self.registerField('vSail', self.vSail, 'value')                        # Vessel acquisition speed
 
         self.vTurn = QDoubleSpinBox()
         self.vTurn.setRange(0.1, 10.0)
-        self.vTurn.setValue(config.vTurn)                                       # do this once in the constructor
+        self.vTurn.setValue(self.parent.default('vTurn'))                       # do this once in the constructor
         self.vTurn.editingFinished.connect(self.evtVturnEditingFinished)
         self.registerField('vTurn', self.vTurn, 'value')                        # Vessel line turn speed
 
@@ -123,7 +169,7 @@ class Page1(SurveyWizardPage):
         self.vCross.textChanged.connect(self.updateParameters)
         self.vCross.editingFinished.connect(self.updateParameters)
         self.vCross.setRange(-5.0, 5.0)
-        self.vCross.setValue(0.0)
+        self.vCross.setValue(self.parent.default('vCross'))
         # self.vCross.setEnabled(False)
         # self.vCross.setToolTip('Template rotation due to crossline currents not yet implemented')
         self.registerField('vCross', self.vCross, 'value')                      # crosscurrent speed
@@ -132,7 +178,7 @@ class Page1(SurveyWizardPage):
         self.vTail.textChanged.connect(self.updateParameters)
         self.vTail.editingFinished.connect(self.updateParameters)
         self.vTail.setRange(-5.0, 5.0)
-        self.vTail.setValue(0.0)
+        self.vTail.setValue(self.parent.default('vTail'))
         self.registerField('vTail', self.vTail, 'value')                        # Tail current speed
 
         self.vCurrent = QDoubleSpinBox()                                        # readonly spinbox
@@ -149,34 +195,34 @@ class Page1(SurveyWizardPage):
 
         self.cabLength = QDoubleSpinBox()
         self.cabLength.setRange(100.0, 20_000.0)
-        self.cabLength.setValue(config.cabLength)
+        self.cabLength.setValue(self.parent.default('cabLength'))
         self.cabLength.setSingleStep(1000.0)                                    # increment by km extra streamer
         self.cabLength.editingFinished.connect(self.evtCabLengthEditingFinished)
         self.registerField('cabLength', self.cabLength, 'value')                # streamer length
 
         self.groupInt = QDoubleSpinBox()
         self.groupInt.setRange(3.125, 250.0)
-        self.groupInt.setValue(config.groupInt)
+        self.groupInt.setValue(self.parent.default('groupInt'))
         self.groupInt.textChanged.connect(self.updateParameters)
         self.groupInt.editingFinished.connect(self.updateParameters)
         self.registerField('groupInt', self.groupInt, 'value')                  # group interval
 
         self.nSrc = QSpinBox()
         self.nSrc.setRange(1, 50)
-        self.nSrc.setValue(config.nSrc)
+        self.nSrc.setValue(self.parent.default('nSrc'))
         self.nSrc.textChanged.connect(self.updateParameters)
         self.nSrc.editingFinished.connect(self.updateParameters)
         self.registerField('nSrc', self.nSrc, 'value')                          # number of sources deployed
 
         self.nCab = QSpinBox()
         self.nCab.setRange(1, 50)
-        self.nCab.setValue(config.nCab)
+        self.nCab.setValue(self.parent.default('nCab'))
         self.nCab.setSingleStep(2)                                              # we want to stick to an even number of streamers
         self.registerField('nCab', self.nCab, 'value')                          # number of cables deployed
 
         self.srcPopInt = QDoubleSpinBox()
         self.srcPopInt.setRange(0.0, 10_000.0)
-        self.srcPopInt.setValue(4.0 * 0.5 * config.groupInt)
+        self.srcPopInt.setValue(self.parent.default('srcPopInt'))
         self.srcPopInt.textChanged.connect(self.updateParameters)
         self.srcPopInt.editingFinished.connect(self.updateParameters)
         self.registerField('srcPopInt', self.srcPopInt, 'value')                # pop interval
@@ -184,7 +230,7 @@ class Page1(SurveyWizardPage):
         self.srcShtInt = QDoubleSpinBox()
         self.srcShtInt.setEnabled(False)
         self.srcShtInt.setRange(0.0, 10_000.0)
-        self.srcShtInt.setValue(4.0 * 0.5 * config.groupInt * config.nSrc)
+        self.srcShtInt.setValue(self.parent.default('srcPopInt') * self.parent.default('nSrc'))
         self.registerField('srcShtInt', self.srcShtInt, 'value')                # shot point interval (per cmp line)
 
         self.recTail = QDoubleSpinBox()
@@ -198,11 +244,11 @@ class Page1(SurveyWizardPage):
         self.registerField('recHead', self.recHead, 'value')                    # Clean record time, with head current
 
         self.srcDepth = QDoubleSpinBox()
-        self.srcDepth.setValue(config.srcDepth)
+        self.srcDepth.setValue(self.parent.default('srcDepth'))
         self.registerField('srcDepth', self.srcDepth, 'value')                  # source depth [m]
 
         self.recLength = QDoubleSpinBox()
-        self.recLength.setValue(config.recLength)
+        self.recLength.setValue(self.parent.default('recLength'))
         self.recLength.textChanged.connect(self.updateParameters)
         self.registerField('recLength', self.recLength, 'value')                # record length [s]
 
@@ -441,46 +487,46 @@ class Page2(SurveyWizardPage):
 
         self.srcLayback = QDoubleSpinBox()
         self.srcLayback.setRange(0.0, 5000.0)
-        self.srcLayback.setValue(config.srcLayback)
+        self.srcLayback.setValue(self.parent.default('srcLayback'))
 
         self.cabLayback = QDoubleSpinBox()
         self.cabLayback.setRange(0.0, 5000.0)
-        self.cabLayback.setValue(config.cabLayback)
+        self.cabLayback.setValue(self.parent.default('cabLayback'))
 
         self.cabSepHead = QDoubleSpinBox()
         self.cabSepHead.setRange(10.0, 1000.0)
-        self.cabSepHead.setValue(config.cabSepHead)
+        self.cabSepHead.setValue(self.parent.default('cabSepHead'))
         self.cabSepHead.textChanged.connect(self.updateCableSeparation)
         self.cabSepHead.editingFinished.connect(self.updateCableSeparation)
 
         self.cabSepTail = QDoubleSpinBox()
         self.cabSepTail.setRange(10.0, 1000.0)
-        self.cabSepTail.setValue(config.cabSepTail)
+        self.cabSepTail.setValue(self.parent.default('cabSepTail'))
         self.cabSepTail.textChanged.connect(self.updateCableSeparation)
         self.cabSepTail.editingFinished.connect(self.updateCableSeparation)
 
         self.cabDepthHead = QDoubleSpinBox()
         self.cabDepthHead.setRange(1.0, 100.0)
-        self.cabDepthHead.setValue(config.cabDepthHead)
+        self.cabDepthHead.setValue(self.parent.default('cabDepthHead'))
         self.cabDepthHead.textChanged.connect(self.updateCableDepth)
         self.cabDepthHead.editingFinished.connect(self.updateCableDepth)
 
         self.cabDepthTail = QDoubleSpinBox()
         self.cabDepthTail.setRange(1.0, 10000.0)
-        self.cabDepthTail.setValue(config.cabDepthTail)
+        self.cabDepthTail.setValue(self.parent.default('cabDepthTail'))
         self.cabDepthTail.textChanged.connect(self.updateCableDepth)
         self.cabDepthTail.editingFinished.connect(self.updateCableDepth)
 
         self.srcSepFactor = QSpinBox()
         self.srcSepFactor.setRange(1, 10)
-        self.srcSepFactor.setValue(config.srcSepFactor)
+        self.srcSepFactor.setValue(self.parent.default('srcSepFactor'))
         self.srcSepFactor.textChanged.connect(self.updateSourceSeparation)
         self.srcSepFactor.editingFinished.connect(self.updateSourceSeparation)
 
         self.srcSeparation = QDoubleSpinBox()
         self.srcSeparation.setEnabled(False)                                    # readonly
         self.srcSeparation.setRange(0.0, 1000.0)
-        self.srcSeparation.setValue(config.srcSeparation)
+        self.srcSeparation.setValue(self.parent.default('srcSeparation'))
 
         # set the page layout
         layout = QGridLayout()
@@ -695,7 +741,7 @@ class Page2(SurveyWizardPage):
 
             recZ0 = -self.field('cabDepthHead')
             srcZ = -self.field('srcDepth')
-            cmpZ = -config.cdpDepth
+            cmpZ = -self.parent.default('cdpDepth')
 
             rec0 = -0.5 * (nCab - 1) * dCab0                                    # first receiver
             src0 = -0.5 * (nSrc - 1) * dSrc                                     # first source actual location
@@ -1214,14 +1260,14 @@ class Page4(SurveyWizardPage):
         self.vMinInner = QDoubleSpinBox()                                       # min turn radius [m]
         self.vMinInner.setRange(1.0, 1_000_000.0)
         self.vMinInner.setSingleStep(0.1)                                       # increment by km 0.1 knot
-        self.vMinInner.setValue(config.vMinInner)
+        self.vMinInner.setValue(self.parent.default('vMinInner'))
         self.vMinInner.textChanged.connect(self.updateParameters)
         self.registerField('vMinInner', self.vMinInner, 'value')                # min cable velocity
 
         self.maxDragForce = QDoubleSpinBox()                                    # max tow force [tonF]
         self.maxDragForce.setRange(0.1, 100.0)
         self.maxDragForce.setSingleStep(0.1)                                    # increment by km 0.1 tonF
-        self.maxDragForce.setValue(config.maxDragForce)
+        self.maxDragForce.setValue(self.parent.default('maxDragForce'))
         self.maxDragForce.textChanged.connect(self.updateParameters)
         self.registerField('maxDragForce', self.maxDragForce, 'value')          # max towing force
 
@@ -1277,14 +1323,14 @@ class Page4(SurveyWizardPage):
         self.surIsiz = QDoubleSpinBox()
         self.surIsiz.setRange(1, 1000000)
         self.surIsiz.setSingleStep(1000.0)                                      # increment by km 1 km
-        self.surIsiz.setValue(config.surveySizeI)
+        self.surIsiz.setValue(self.parent.default('surveySizeI'))
         self.surIsiz.textChanged.connect(self.updateParameters)
         self.registerField('surIsiz', self.surIsiz, 'value')                    # inline survey size
 
         self.surXsiz = QDoubleSpinBox()
         self.surXsiz.setRange(1, 1000000)
         self.surXsiz.setSingleStep(1000.0)                                      # increment by km 1 km
-        self.surXsiz.setValue(config.surveySizeX)
+        self.surXsiz.setValue(self.parent.default('surveySizeX'))
         self.surXsiz.textChanged.connect(self.updateParameters)
         self.registerField('surXsiz', self.surXsiz, 'value')                    # x-line survey size
 
@@ -1475,8 +1521,8 @@ class Page4(SurveyWizardPage):
 
         self.runOut.setValue(0.5 * cL)
 
-        wetSurface = math.pi * cL * config.cabDiameter                          # wet area per streamer
-        dragPerMeter = 0.5 * wetSurface * config.swDensity * config.cDrag
+        wetSurface = math.pi * cL * self.parent.default('cabDiameter')          # wet area per streamer
+        dragPerMeter = 0.5 * wetSurface * self.parent.default('swDensity') * self.parent.default('cDrag')
         a = 1.0 - tonForceToNewton(maxDragForce) / (dragPerMeter * knotToMeterperSec(vTurn) ** 2.0)
         b = spreadWidth
         c = 0.25 * spreadWidth**2.0
@@ -2167,8 +2213,8 @@ class Page6(SurveyWizardPage):
         myPrint('page 6 init')
 
         # Add some widgets
-        self.recPatName = QLineEdit(config.rName)
-        self.srcPatName = QLineEdit(config.sName)
+        self.recPatName = QLineEdit(self.parent.default('rName'))
+        self.srcPatName = QLineEdit(self.parent.default('sName'))
 
         self.chkRecPattern = QCheckBox('Use receiver patterns')
         self.chkSrcPattern = QCheckBox('Use source patterns')
@@ -2185,15 +2231,15 @@ class Page6(SurveyWizardPage):
         self.recElemeInt = QDoubleSpinBox()
         self.srcElemeInt = QDoubleSpinBox()
 
-        self.recBranches.setValue(config.rBran)
-        self.srcBranches.setValue(config.sBran)
-        self.recElements.setValue(config.rElem)
-        self.srcElements.setValue(config.sElem)
+        self.recBranches.setValue(self.parent.default('rBran'))
+        self.srcBranches.setValue(self.parent.default('sBran'))
+        self.recElements.setValue(self.parent.default('rElem'))
+        self.srcElements.setValue(self.parent.default('sElem'))
 
-        self.recBrancInt.setValue(config.rBrIn)
-        self.srcBrancInt.setValue(config.sBrIn)
-        self.recElemeInt.setValue(config.rElIn)
-        self.srcElemeInt.setValue(config.sElIn)
+        self.recBrancInt.setValue(self.parent.default('rBrIn'))
+        self.srcBrancInt.setValue(self.parent.default('sBrIn'))
+        self.recElemeInt.setValue(self.parent.default('rElIn'))
+        self.srcElemeInt.setValue(self.parent.default('sElIn'))
 
         self.recElements.setEnabled(False)
         self.recElemeInt.setEnabled(False)

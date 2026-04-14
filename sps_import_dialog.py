@@ -15,6 +15,7 @@ from qgis.PyQt.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFrame,
                                  QVBoxLayout, QWidget)
 
 from . import config  # used to pass initial settings
+from .app_settings import AppSettings
 from .aux_classes import BlackLine, CustomPlainTextEdit, LineHighlighter
 
 currentDir = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +35,7 @@ class SpsImportDialog(QDialog):
 
         # to access the main window and its components
         self.parent = parent
+        self.appSettings = parent.appSettings if parent is not None and hasattr(parent, 'appSettings') else AppSettings()
         self.crs = crs
         self.oldCrs = crs
         self.setWindowTitle('SPS Import')
@@ -366,15 +368,15 @@ class SpsImportDialog(QDialog):
         self.spsFormatListInitializing = True
         prevBlocked = self.spsFormatList.blockSignals(True)
         self.spsFormatList.clear()
-        for fmt in config.spsFormatList:
+        for fmt in self.appSettings.spsFormatList:
             item = QListWidgetItem(fmt['name'])
-            item.setFlags(item.flags() | Qt.ItemIsEditable)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
             self.spsFormatList.addItem(item)
         self.spsFormatList.blockSignals(prevBlocked)
 
         targetRow = 0
-        if config.spsDialect:
-            matches = self.spsFormatList.findItems(config.spsDialect, Qt.MatchExactly)
+        if self.appSettings.spsDialect:
+            matches = self.spsFormatList.findItems(self.appSettings.spsDialect, Qt.MatchFlag.MatchExactly)
             if matches:
                 targetRow = self.spsFormatList.row(matches[0])
 
@@ -395,7 +397,8 @@ class SpsImportDialog(QDialog):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        config.resetSpsDatabase()
+        self.appSettings.resetSpsDatabase(preferredDialect=self.appSettings.spsDialect)
+        self.appSettings.activate()
 
         settings = QSettings(config.organization, config.application)
         for group in (
@@ -424,7 +427,7 @@ class SpsImportDialog(QDialog):
         spsFormatIndex = self.spsFormatList.currentRow()
         # print("SPS format number:", spsFormatIndex)
 
-        spsFormat = config.spsFormatList[spsFormatIndex]
+        spsFormat = self.appSettings.spsFormatList[spsFormatIndex]
         # print("SPS spsFormat:", spsFormat)
 
         self._setSpinValue(self.spsFromSpin, spsFormat[spsKey][0] + 1)          # +1 to convert from 0-based to 1-based indexing
@@ -449,7 +452,7 @@ class SpsImportDialog(QDialog):
         spsFormatIndex = self.spsFormatList.currentRow()
         # print("SPS format number:", spsFormatIndex)
 
-        if not config.xpsFormatList:
+        if not self.appSettings.xpsFormatList:
             QMessageBox.warning(
                 self,
                 'Missing XPS formats',
@@ -458,7 +461,7 @@ class SpsImportDialog(QDialog):
             )
             return
 
-        if not 0 <= spsFormatIndex < len(config.xpsFormatList):
+        if not 0 <= spsFormatIndex < len(self.appSettings.xpsFormatList):
             QMessageBox.warning(
                 self,
                 'Incompatible SPS/XPS formats',
@@ -468,7 +471,7 @@ class SpsImportDialog(QDialog):
             self.spsFormatList.setCurrentRow(0)
             return
 
-        xpsFormat = config.xpsFormatList[spsFormatIndex]
+        xpsFormat = self.appSettings.xpsFormatList[spsFormatIndex]
         # print("SPS spsFormat:", spsFormat)
 
         self._setSpinValue(self.xpsFromSpin, xpsFormat[xpsKey][0] + 1)          # +1 to convert from 0-based to 1-based indexing
@@ -492,7 +495,7 @@ class SpsImportDialog(QDialog):
         rpsFormatIndex = self.spsFormatList.currentRow()
         # print("SPS format number:", rpsFormatIndex)
 
-        rpsFormat = config.rpsFormatList[rpsFormatIndex]
+        rpsFormat = self.appSettings.rpsFormatList[rpsFormatIndex]
         # print("RPS rpsFormat:", rpsFormat)
 
         self._setSpinValue(self.rpsFromSpin, rpsFormat[rpsKey][0] + 1)     # +1 to convert from 0-based to 1-based indexing
@@ -511,7 +514,8 @@ class SpsImportDialog(QDialog):
 
     def accepted(self):
         # sps settings
-        config.spsDialect =  self.spsFormatList.currentItem().text()
+        self.appSettings.spsDialect = self.spsFormatList.currentItem().text()
+        self.appSettings.activate()
 
     def onSpsFormatChanged(self, row: int):
         if self.spsFormatListInitializing or row < 0:
@@ -660,11 +664,11 @@ class SpsImportDialog(QDialog):
         spsFormatIndex = self.spsFormatList.currentRow()
         spsKey = list(config.spsPointFormatDict.keys())[self.spsCombo.currentIndex()]
 
-        config.spsFormatList[spsFormatIndex][spsKey][0] = minCol2
-        config.spsFormatList[spsFormatIndex][spsKey][1] = maxCol2
+        self.appSettings.spsFormatList[spsFormatIndex][spsKey][0] = minCol2
+        self.appSettings.spsFormatList[spsFormatIndex][spsKey][1] = maxCol2
 
-        self.spsTab.line1 = config.spsFormatList[spsFormatIndex][spsKey][0]
-        self.spsTab.line2 = config.spsFormatList[spsFormatIndex][spsKey][1]
+        self.spsTab.line1 = self.appSettings.spsFormatList[spsFormatIndex][spsKey][0]
+        self.spsTab.line2 = self.appSettings.spsFormatList[spsFormatIndex][spsKey][1]
 
         self.tabWidget.setCurrentIndex(0)                                       # select SPS Tab
         self.spsTab.update()
@@ -691,11 +695,11 @@ class SpsImportDialog(QDialog):
         spsFormatIndex = self.spsFormatList.currentRow()
         spsKey = list(config.spsRelationFormatDict.keys())[self.xpsCombo.currentIndex()]
 
-        config.xpsFormatList[spsFormatIndex][spsKey][0] = minCol2
-        config.xpsFormatList[spsFormatIndex][spsKey][1] = maxCol2
+        self.appSettings.xpsFormatList[spsFormatIndex][spsKey][0] = minCol2
+        self.appSettings.xpsFormatList[spsFormatIndex][spsKey][1] = maxCol2
 
-        self.spsTab.line1 = config.xpsFormatList[spsFormatIndex][spsKey][0]
-        self.spsTab.line2 = config.xpsFormatList[spsFormatIndex][spsKey][1]
+        self.spsTab.line1 = self.appSettings.xpsFormatList[spsFormatIndex][spsKey][0]
+        self.spsTab.line2 = self.appSettings.xpsFormatList[spsFormatIndex][spsKey][1]
 
         self.tabWidget.setCurrentIndex(1)                                       # select XPS Tab
         self.xpsTab.update()
@@ -722,11 +726,11 @@ class SpsImportDialog(QDialog):
         spsFormatIndex = self.spsFormatList.currentRow()
         rpsKey = list(config.spsPointFormatDict.keys())[self.rpsCombo.currentIndex()]
 
-        config.rpsFormatList[spsFormatIndex][rpsKey][0] = minCol2
-        config.rpsFormatList[spsFormatIndex][rpsKey][1] = maxCol2
+        self.appSettings.rpsFormatList[spsFormatIndex][rpsKey][0] = minCol2
+        self.appSettings.rpsFormatList[spsFormatIndex][rpsKey][1] = maxCol2
 
-        self.rpsTab.line1 = config.rpsFormatList[spsFormatIndex][rpsKey][0]
-        self.rpsTab.line2 = config.rpsFormatList[spsFormatIndex][rpsKey][1]
+        self.rpsTab.line1 = self.appSettings.rpsFormatList[spsFormatIndex][rpsKey][0]
+        self.rpsTab.line2 = self.appSettings.rpsFormatList[spsFormatIndex][rpsKey][1]
 
         self.tabWidget.setCurrentIndex(2)                                       # select RPS Tab
         self.rpsTab.update()
@@ -743,7 +747,7 @@ class SpsImportDialog(QDialog):
         insertRow = currentRow + 1 if currentRow >= 0 else self.spsFormatList.count()
 
         newItem = QListWidgetItem(newName)
-        newItem.setFlags(newItem.flags() | Qt.ItemIsEditable)
+        newItem.setFlags(newItem.flags() | Qt.ItemFlag.ItemIsEditable)
 
         existingNames = [self.spsFormatList.item(i).text() for i in range(self.spsFormatList.count())]
         if newName in existingNames:
@@ -758,25 +762,25 @@ class SpsImportDialog(QDialog):
 
         newItem.setText(newName)
 
-        if not config.spsFormatList or not config.xpsFormatList:
+        if not self.appSettings.spsFormatList or not self.appSettings.xpsFormatList:
             QMessageBox.warning(self, 'Add SPS format', 'No reference SPS/XPS format is available to duplicate.')
             return
 
         referenceRow = currentRow if currentRow >= 0 else 0
-        referenceRow = min(referenceRow, len(config.spsFormatList) - 1)
+        referenceRow = min(referenceRow, len(self.appSettings.spsFormatList) - 1)
 
-        newSpsFormat = copy.deepcopy(config.spsFormatList[referenceRow])
-        newXpsFormat = copy.deepcopy(config.xpsFormatList[referenceRow])
-        newRpsFormat = copy.deepcopy(config.rpsFormatList[referenceRow])
+        newSpsFormat = copy.deepcopy(self.appSettings.spsFormatList[referenceRow])
+        newXpsFormat = copy.deepcopy(self.appSettings.xpsFormatList[referenceRow])
+        newRpsFormat = copy.deepcopy(self.appSettings.rpsFormatList[referenceRow])
         newSpsFormat['name'] = newName
         newXpsFormat['name'] = newName
         newRpsFormat['name'] = newName
 
         self.spsFormatList.insertItem(insertRow, newItem)
 
-        config.spsFormatList.insert(insertRow, newSpsFormat)
-        config.xpsFormatList.insert(insertRow, newXpsFormat)
-        config.rpsFormatList.insert(insertRow, newRpsFormat)
+        self.appSettings.spsFormatList.insert(insertRow, newSpsFormat)
+        self.appSettings.xpsFormatList.insert(insertRow, newXpsFormat)
+        self.appSettings.rpsFormatList.insert(insertRow, newRpsFormat)
 
         prevBlocked = self.spsFormatList.blockSignals(True)
         self.spsFormatList.setCurrentRow(insertRow)
@@ -793,12 +797,12 @@ class SpsImportDialog(QDialog):
 
         self.spsFormatList.takeItem(currentRow)
 
-        if 0 <= currentRow < len(config.spsFormatList):
-            del config.spsFormatList[currentRow]
-        if 0 <= currentRow < len(config.xpsFormatList):
-            del config.xpsFormatList[currentRow]
-        if 0 <= currentRow < len(config.rpsFormatList):
-            del config.rpsFormatList[currentRow]
+        if 0 <= currentRow < len(self.appSettings.spsFormatList):
+            del self.appSettings.spsFormatList[currentRow]
+        if 0 <= currentRow < len(self.appSettings.xpsFormatList):
+            del self.appSettings.xpsFormatList[currentRow]
+        if 0 <= currentRow < len(self.appSettings.rpsFormatList):
+            del self.appSettings.rpsFormatList[currentRow]
 
         nextRow = min(currentRow, self.spsFormatList.count() - 1)
         if nextRow >= 0:
@@ -826,10 +830,10 @@ class SpsImportDialog(QDialog):
             item.setText(name)
 
             index = self.spsFormatList.row(item)                                # make sure the config entries are also updated
-            if 0 <= index < len(config.spsFormatList):
-                config.spsFormatList[index]['name'] = name
-                config.xpsFormatList[index]['name'] = name
-                config.rpsFormatList[index]['name'] = name
+            if 0 <= index < len(self.appSettings.spsFormatList):
+                self.appSettings.spsFormatList[index]['name'] = name
+                self.appSettings.xpsFormatList[index]['name'] = name
+                self.appSettings.rpsFormatList[index]['name'] = name
             return
 
         match = re.match(r'^(.*?)(?:\s*\((\d+)\))?$', name)
@@ -848,7 +852,7 @@ class SpsImportDialog(QDialog):
             self.enforceUniqueName = True
 
         index = self.spsFormatList.row(item)
-        if 0 <= index < len(config.spsFormatList):
-            config.spsFormatList[index]['name'] = unique
-            config.xpsFormatList[index]['name'] = unique
-            config.rpsFormatList[index]['name'] = unique
+        if 0 <= index < len(self.appSettings.spsFormatList):
+            self.appSettings.spsFormatList[index]['name'] = unique
+            self.appSettings.xpsFormatList[index]['name'] = unique
+            self.appSettings.rpsFormatList[index]['name'] = unique

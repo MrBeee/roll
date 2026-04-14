@@ -15,7 +15,6 @@ from qgis.PyQt.QtCore import QFileInfo, QRectF, QVariant
 from qgis.PyQt.QtGui import QPolygonF, QTransform
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
 
-from . import config  # used to pass initial settings
 from .aux_functions import convexHullToQgisPolygon, isFileInUse, myPrint
 from .qgis_layer_dialog import LayerDialog
 from .sps_io_and_qc import pntType1
@@ -186,7 +185,7 @@ def identifyQgisPointLayer(layer, field, rollCrs, kind):
 # See: https://stackoverflow.com/questions/59314446/how-do-i-create-a-categorized-symbology-in-qgis-with-pyqt-programmatically
 
 
-def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> QgsVectorLayer:
+def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True, spsParallel=False) -> QgsVectorLayer:
 
     if crs is None:
         return None
@@ -327,7 +326,7 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True) -> QgsV
 
     # Configure label settings; start with the label expression
     settings = QgsPalLayerSettings()                                            # See: https://qgis.org/pyqgis/3.22/core/QgsPalLayerSettings.html#qgis.core.QgsPalLayerSettings.minimumScale
-    if source and not config.spsParallel:                                       # if we are exporting source points, and not in parallel mode
+    if source and not spsParallel:                                              # if we are exporting source points, and not in parallel mode
         settings.fieldName = """("stake" || '\n' || "line")"""
     else:
         settings.fieldName = """("line" || '\n' || "stake")"""

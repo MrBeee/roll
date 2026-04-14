@@ -16,8 +16,8 @@ from qgis.PyQt.QtGui import (QBrush, QColor, QGuiApplication, QImage, QPainter,
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
-from . import config  # used to pass initial settings
 from . import functions_numba as fnb
+from .app_settings import getActiveAppSettings
 from .aux_functions import containsPoint3D
 from .enums_and_int_flags import PaintDetails, PaintMode, SeedType, SurveyType
 from .roll_angles import RollAngles
@@ -3499,8 +3499,9 @@ class RollSurvey(pg.GraphicsObject):
         """
         vb: QRectF = self.viewRect()
         lod = option.levelOfDetailFromTransform(p.worldTransform()) * self.lodScale
+        appSettings = getActiveAppSettings()
 
-        if lod < config.lod0:
+        if lod < appSettings.lod0:
             p.setPen(pg.mkPen('k'))
             p.setBrush(pg.mkBrush((64, 64, 64, 255)))
             p.drawRect(self.boundingRect())                                     # draw survey bounding box
@@ -3520,20 +3521,20 @@ class RollSurvey(pg.GraphicsObject):
 
             if self.paintDetails & PaintDetails.recArea:
                 # p.setOpacity(1.0)
-                p.setPen(config.recAreaPen)
-                p.setBrush(QBrush(QColor(config.recAreaColor)))
+                p.setPen(appSettings.recAreaPen)
+                p.setBrush(QBrush(QColor(appSettings.recAreaColor)))
                 p.drawRect(block.recBoundingRect)
 
             if self.paintDetails & PaintDetails.srcArea:
                 # p.setOpacity(1.0)
-                p.setPen(config.srcAreaPen)
-                p.setBrush(QBrush(QColor(config.srcAreaColor)))
+                p.setPen(appSettings.srcAreaPen)
+                p.setBrush(QBrush(QColor(appSettings.srcAreaColor)))
                 p.drawRect(block.srcBoundingRect)
 
             if self.paintDetails & PaintDetails.cmpArea:
                 # p.setOpacity(1.0)
-                p.setPen(config.cmpAreaPen)
-                p.setBrush(QBrush(QColor(config.cmpAreaColor)))
+                p.setPen(appSettings.cmpAreaPen)
+                p.setBrush(QBrush(QColor(appSettings.cmpAreaColor)))
                 p.drawRect(block.cmpBoundingRect)
 
             # Draw invariant seeds once per template (circle/spiral/well)
@@ -3548,6 +3549,8 @@ class RollSurvey(pg.GraphicsObject):
         # and they will be reused for all rolled positions. This is a significant optimization,
         # as it avoids redrawing these complex seeds for every rolled position, which can be very costly in terms of performance.
         # For that reason, it isn't needed to test them against the viewbox, as they are only drawn once into the base framebuffer.
+
+        appSettings = getActiveAppSettings()
 
         for seed in getattr(template, 'seedList', []):
 
@@ -3565,7 +3568,7 @@ class RollSurvey(pg.GraphicsObject):
                     r = seed.circle.radius
                     o = seed.origin.toPointF()
                     painter.drawEllipse(o, r, r)
-                if lod >= config.lod2 and self.paintMode != PaintMode.justLines:
+                if lod >= appSettings.lod2 and self.paintMode != PaintMode.justLines:
                     if paintDetail & PaintDetails.recPnt:
                         for pt in seed.pointList:
                             painter.drawPicture(pt.toPointF(), seed.getPointPicture())
@@ -3574,7 +3577,7 @@ class RollSurvey(pg.GraphicsObject):
                 if paintDetail & PaintDetails.recLin:
                     painter.setBrush(QBrush())
                     painter.drawPath(seed.spiral.path)
-                if lod >= config.lod2 and self.paintMode != PaintMode.justLines:
+                if lod >= appSettings.lod2 and self.paintMode != PaintMode.justLines:
                     if paintDetail & PaintDetails.recPnt:
                         for pt in seed.pointList:
                             painter.drawPicture(pt.toPointF(), seed.getPointPicture())
@@ -3583,7 +3586,7 @@ class RollSurvey(pg.GraphicsObject):
                 if (paintDetail & PaintDetails.recLin) and getattr(seed.well, 'polygon', None) is not None:
                     painter.drawPolyline(seed.well.polygon)
                     painter.drawEllipse(seed.well.origL, 5.0, 5.0)
-                if lod >= config.lod2 and self.paintMode != PaintMode.justLines:
+                if lod >= appSettings.lod2 and self.paintMode != PaintMode.justLines:
                     if paintDetail & PaintDetails.recPnt:
                         for pt in getattr(seed, 'pointList', []):
                             painter.drawPicture(pt.toPointF(), seed.getPointPicture())
@@ -3604,6 +3607,7 @@ class RollSurvey(pg.GraphicsObject):
 
         vb: QRectF = self.viewRect()
         lod = option.levelOfDetailFromTransform(p.worldTransform()) * self.lodScale
+        appSettings = getActiveAppSettings()
 
         if self._ps is None:
             self._initPaintState()
@@ -3638,7 +3642,7 @@ class RollSurvey(pg.GraphicsObject):
                     offset = QVector3D()
                     rect = template.totTemplateRect
                     if rect.intersects(vb):
-                        if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:
+                        if lod < appSettings.lod1 or self.paintMode == PaintMode.justTemplates:
                             p.drawRect(rect & self.boundingRect())
                         else:
                             self._paintTemplate(p, vb, lod, template, offset, penWidth=penWidth)
@@ -3669,7 +3673,7 @@ class RollSurvey(pg.GraphicsObject):
 
                             rect = template.totTemplateRect.translated(offset.toPointF())
                             if rect.intersects(vb):
-                                if lod < config.lod1 or self.paintMode == PaintMode.justTemplates:
+                                if lod < appSettings.lod1 or self.paintMode == PaintMode.justTemplates:
                                     p.drawRect(rect & self.boundingRect())
                                 else:
                                     self._paintTemplate(p, vb, lod, template, offset, penWidth=penWidth)
@@ -3758,6 +3762,8 @@ class RollSurvey(pg.GraphicsObject):
         # we need to check the level-of-detail (lod) to decide whether to draw a line, a series of points or a series of patterns
         # this is controlled by the lod, the paintMode and the paintDetails flags
 
+        appSettings = getActiveAppSettings()
+
         for seed in template.seedList:                                          # iterate over all seeds in a template
             painter.setPen(pg.mkPen(seed.color, width=penWidth))                # use a solid pen, 2 pixels wide
 
@@ -3789,7 +3795,7 @@ class RollSurvey(pg.GraphicsObject):
                     if salvo.isNull():
                         return
 
-                    if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
+                    if lod < appSettings.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
                         if paintDetail & PaintDetails.recLin != PaintDetails.none:
                             painter.drawLine(salvo)
                     else:
@@ -3798,7 +3804,7 @@ class RollSurvey(pg.GraphicsObject):
                             if containsPoint3D(viewbox, seedOrigin):            # is it within the viewbox ?
                                 if paintDetail & PaintDetails.recPnt != PaintDetails.none:
                                     painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
-                                if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
+                                if lod > appSettings.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
                                     if paintDetail & PaintDetails.recPat != PaintDetails.none:
                                         painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
 
@@ -3812,7 +3818,7 @@ class RollSurvey(pg.GraphicsObject):
                     if salvo.isNull():
                         return
 
-                    if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
+                    if lod < appSettings.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
                         if paintDetail & PaintDetails.recLin != PaintDetails.none:
                             painter.drawLine(salvo)
                     else:
@@ -3823,7 +3829,7 @@ class RollSurvey(pg.GraphicsObject):
                                 if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
                                     if paintDetail & PaintDetails.recPnt != PaintDetails.none:
                                         painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())  # paint seed picture
-                                    if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
+                                    if lod > appSettings.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
                                         if paintDetail & PaintDetails.recPat != PaintDetails.none:
                                             painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
 
@@ -3839,7 +3845,7 @@ class RollSurvey(pg.GraphicsObject):
                         if salvo.isNull():
                             continue
 
-                        if lod < config.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
+                        if lod < appSettings.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
                             if paintDetail & PaintDetails.recLin != PaintDetails.none:
                                 painter.drawLine(salvo)
                         else:
@@ -3850,7 +3856,7 @@ class RollSurvey(pg.GraphicsObject):
                                     if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
                                         if paintDetail & PaintDetails.recPnt != PaintDetails.none:
                                             painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
-                                        if lod > config.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
+                                        if lod > appSettings.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
                                             if paintDetail & PaintDetails.recPat != PaintDetails.none:
                                                 painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)   # paint pattern picture
 
@@ -3871,7 +3877,7 @@ class RollSurvey(pg.GraphicsObject):
                             if paintDetail & PaintDetails.recLin != PaintDetails.none:
                                 painter.drawLine(salvo)                         # always draw a line, if the PaintDetails flag allow for this
 
-                            if lod < config.lod2 or self.paintMode == PaintMode.justLines:   # nothing else to do
+                            if lod < appSettings.lod2 or self.paintMode == PaintMode.justLines:   # nothing else to do
                                 continue
 
                             for k in range(seed.grid.growList[2].steps):            # we are about to draw the points now
@@ -3883,7 +3889,7 @@ class RollSurvey(pg.GraphicsObject):
                                         if paintDetail & PaintDetails.recPnt != PaintDetails.none:
                                             painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
 
-                                        if lod < config.lod3 or self.paintMode == PaintMode.justPoints:   # nothing else to do
+                                        if lod < appSettings.lod3 or self.paintMode == PaintMode.justPoints:   # nothing else to do
                                             continue
 
                                         if seed.patternPicture is not None and paintDetail & PaintDetails.recPat != PaintDetails.none:

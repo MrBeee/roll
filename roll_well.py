@@ -116,6 +116,7 @@ class RollWell:
         if surveyCrs is None or not surveyCrs.isValid():
             self.errorText = 'No valid survey CRS available'
             return False
+
         if glbTransform is None:
             self.errorText = 'No valid survey transform available'
             return False

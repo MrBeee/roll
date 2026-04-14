@@ -188,13 +188,13 @@ def _getSolution(am, bs, bm, cs, cm, scale, li, i):
     beta_1, r_quat = _getRQuat(d_matrix)
     if scale is False:
         return blc_matrix, d_matrix, beta_1, r_quat, li, i
-    else:
-        lambda_next = _getLambdaNext(am, bs, bm, cs, cm, r_quat)
-        if abs(li - lambda_next) < 0.000001:
-            return blc_matrix, d_matrix, beta_1, r_quat, li, i
-        else:
-            li, i = lambda_next, i + 1
-            return _getSolution(am, bs, bm, cs, cm, scale, li, i)
+
+    lambda_next = _getLambdaNext(am, bs, bm, cs, cm, r_quat)
+    if abs(li - lambda_next) < 0.000001:
+        return blc_matrix, d_matrix, beta_1, r_quat, li, i
+
+    li, i = lambda_next, i + 1
+    return _getSolution(am, bs, bm, cs, cm, scale, li, i)
 
 
 def _getRMatrix(r_quat):

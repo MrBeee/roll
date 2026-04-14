@@ -55,7 +55,7 @@ class XMLHighlighter(QSyntaxHighlighter):
 
     def __init__(self, parent=None):
 
-        super(XMLHighlighter, self).__init__(parent)
+        super().__init__(parent)
 
         self.highlightingRules = []
 
@@ -248,7 +248,7 @@ class QCodeEditor(QPlainTextEdit):
         SyntaxHighlighter : QSyntaxHighlighter
             should be inherited from QSyntaxHighlighter
         """
-        super(QCodeEditor, self).__init__()
+        super().__init__()
 
         self.setFont(QFont('Ubuntu Mono', 9))
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)

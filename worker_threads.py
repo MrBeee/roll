@@ -4,7 +4,6 @@ import time
 
 from qgis.PyQt.QtCore import QMutex, QObject, QThread, pyqtSignal
 
-from . import config  # used to pass initial settings
 from .aux_functions import myPrint
 from .roll_survey import RollSurvey
 
@@ -65,6 +64,7 @@ class BinFromGeometryWorker(QObject):
         super().__init__()
         self.survey = RollSurvey()
         self.extended = False
+        self.debugpyEnabled = False
         self.fileName = None
 
         # the following function also calculates the required transforms
@@ -81,6 +81,9 @@ class BinFromGeometryWorker(QObject):
         self.survey.output.relGeom = relGeom
         self.survey.output.recGeom = recGeom
 
+    def setDebugpyEnabled(self, enabled):
+        self.debugpyEnabled = enabled
+
     def run(self):
         """Long-running task."""
         self.survey.calcNoShotPoints()                                          # necessary step before calculating geometry
@@ -89,7 +92,7 @@ class BinFromGeometryWorker(QObject):
             # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
             # Things have changed a bit; see https://stackoverflow.com/questions/71834240/how-to-debug-pyqt5-threads-in-visual-studio-code
             # See also:https://code.visualstudio.com/docs/python/debugging#_troubleshooting
-            if haveDebugpy and config.debugpy:
+            if haveDebugpy and self.debugpyEnabled:
                 debugpy.debug_this_thread()
 
             success = self.survey.setupBinFromGeometry(self.extended)           # calculate fold map and min/max offsets
@@ -115,6 +118,7 @@ class BinningWorker(QObject):
         super().__init__()
         self.survey = RollSurvey()
         self.extended = False
+        self.debugpyEnabled = False
         self.fileName = None
 
         # the following function also calculates the required transforms, and optionally creates th binning arrays
@@ -126,13 +130,16 @@ class BinningWorker(QObject):
     def setMemMappedFile(self, analysisFile):
         self.survey.output.anaOutput = analysisFile
 
+    def setDebugpyEnabled(self, enabled):
+        self.debugpyEnabled = enabled
+
     def run(self):
         """Long-running task."""
         self.survey.calcNoShotPoints()                                          # necessary step before calculating geometry
 
         try:
             # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
-            if haveDebugpy and config.debugpy:
+            if haveDebugpy and self.debugpyEnabled:
                 debugpy.debug_this_thread()
 
             success = self.survey.setupBinFromTemplates(self.extended)          # calculate fold map and min/max offsets
@@ -156,10 +163,14 @@ class GeometryWorker(QObject):
         super().__init__()
         self.survey = RollSurvey()
         self.extended = False
+        self.debugpyEnabled = False
         self.fileName = None
 
         # the following function also calculates the required transforms
         self.survey.fromXmlString(xmlString, False)                             # populate the object; but don't need binning arrays
+
+    def setDebugpyEnabled(self, enabled):
+        self.debugpyEnabled = enabled
 
     def run(self):
         """Long-running task."""
@@ -168,7 +179,7 @@ class GeometryWorker(QObject):
 
         try:
             # Next line is needed to debug a 'native thread' in VS Code. See: https://github.com/microsoft/ptvsd/issues/1189
-            if haveDebugpy and config.debugpy:
+            if haveDebugpy and self.debugpyEnabled:
                 debugpy.debug_this_thread()                                       # uncomment to debug thread
 
             success = self.survey.setupGeometryFromTemplates()                  # calculate src, rel, rec geometry arrays

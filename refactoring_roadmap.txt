@@ -2,55 +2,84 @@ D:\QGis\MyPlugins\roll\Refactoring_roadmap.txt
 
 **Refactoring Roadmap**
 
-Updated for the current codebase on 2026-04-02.
+Updated for the current codebase on 2026-04-13.
 
-The broad direction is unchanged: reduce orchestration in `roll_main_window.py`, keep persistence and domain logic out of the UI, and make the remaining large refactors safer by growing tests before moving behavior.
+The broad direction is still the same: keep persistence, import/QC logic, mutable session/runtime state, and worker lifecycle concerns out of `roll_main_window.py`, then clean up plotting/redraw boundaries before touching worker contracts or performance.
 
-This version reflects the live codebase, not the earlier baseline.
+This document reflects the live codebase after the `SessionState`, `SessionService`, `ImportService`, `AppSettings`, `RuntimeState`, `ProjectService`, `ProjectLoadApplier`, and legacy-sidecar compatibility work.
+
+It also reflects the current UI split more accurately than the previous version: tab construction is no longer only an O/A-specific extraction. The layout, pattern, geometry, SPS, trace-table, stack-response, and O/A tab builders already live in separate `roll_main_window_create_*_tab.py` modules. What still remains in `roll_main_window.py` is the heavier plot-input computation, widget mutation, and surface-specific controller flow.
+
+It also reflects the wizard-default extraction work: land and marine wizard presets no longer live in `config.py`, and the old mutable `AppSettings -> config.py` compatibility bridge has been removed.
 
 **Current Status Summary**
 
 Completed or substantially landed:
-1. `ProjectService` owns project XML read/write, low-level sidecar helpers, memmap opening, and batch project-sidecar loading.
-2. `FilterService` exists and the duplicate/orphan handlers in `roll_main_window.py` are now thin dispatch wrappers.
-3. Analysis sidecars save at the right moment after binning, including `.off.npy`, `.azi.npy`, and the refreshed `.ana.npy` timestamp/reopen path.
-4. Display and logging dock construction has been extracted into dedicated builder modules.
-5. Worker-thread lifecycle code is already out of `RollMainWindow` and lives in `binning_worker_mixin.py`.
-6. The test baseline is materially better: project round-trip, sidecar behavior, session-service behavior, filter-service coverage, and `functions_numba` regression coverage.
+1. `ProjectService` owns project XML read/write, sidecar save/load helpers, memmap opening, and batch project-sidecar loading.
+2. `ProjectLoadApplier` owns the loaded-sidecar apply path instead of leaving that logic inline in `fileLoad()`.
+3. `FilterService` exists and the duplicate/orphan handlers in `roll_main_window.py` are thin dispatch wrappers.
+4. Analysis sidecars save at the right moment after binning, including `.off.npy`, `.azi.npy`, and the refreshed `.ana.npy` reopen path.
+5. `ProjectService` normalizes legacy point sidecars that predate the `InUse` field and logs the exact normalized sidecar file path.
+6. Display, logging, and property dock construction has been extracted into dedicated builder helpers.
+7. Worker-thread lifecycle code is already out of `RollMainWindow` and lives in `binning_worker_mixin.py`.
+8. `SessionState` owns imported arrays, geometry arrays, and derived live/dead and convex-hull state.
+9. `SessionService` owns canonical array refresh behavior, array clearing, timer/profiling helpers, and recent-file resolution/menu behavior.
+10. `ImportService` owns SPS/RPS/XPS text parsing, cancellation/progress callbacks, QC passes, duplicate/orphan checks, CRS conversion, and transform messaging.
+11. `AppSettings` and `RuntimeState` now exist, and `settings.py` loads/saves through them rather than only pushing mutable data directly into `config.py`.
+12. `sps_import_dialog.py` now takes editable SPS/RPS/XPS format ownership from `AppSettings` rather than treating `config.py` as the primary mutable owner.
+13. `AppSettings.activate()` provides the explicit runtime activation path instead of writing mutable settings back into `config.py`.
+14. Land and marine wizard defaults live in `LandSurveyWizard` and `MarineSurveyWizard` instead of `config.py`.
+15. Main-window tab construction is already split across `roll_main_window_create_layout_tab.py`, `roll_main_window_create_pattern_tab.py`, `roll_main_window_create_geom_tab.py`, `roll_main_window_create_sps_tab.py`, `roll_main_window_create_trace_table_tab.py`, `roll_main_window_create_stack_response_tab.py`, and `roll_main_window_create_off_azi_tab.py`.
+16. The O/A histogram now has explicit rectangular versus polar UI state, split render paths, and direct regression coverage for renderer dispatch.
+17. Stack-response and pattern-response plots now share a reusable analysis image/colorbar preparation helper instead of duplicating the full image-item and colorbar setup path in each controller.
+18. Pattern-response input gathering and Kx/Ky computation have been narrowed into dedicated helpers instead of leaving combo-box and response-array concerns mixed together in `plotPatterns()`.
+19. Stack-cell pattern selection and stack-cell response computation have been narrowed into dedicated helpers instead of leaving all selection and numerical work inline in `plotStkCel()`.
+20. A first analysis redraw dispatcher slice now exists for patterns, stack-response surfaces, and O/A, with typed redraw reasons and direction-aware stack-response gating.
+21. The O/A file-load/reset path now forces the next render back to the default `0/max` display range instead of preserving stale manual levels across files.
+22. Redraw reasons now drive real invalidation behavior for patterns, O/A, and stack-response instead of being pass-through metadata only.
+23. Pattern-response and stack-response surfaces now reuse cached responses for unchanged selections or navigation contexts, rather than recomputing on every redraw.
+24. `PlotRedrawHelper` now owns redraw invalidation policy, redraw cache-key state, surface cache reuse checks, and reused-axis reconstruction for pattern, inline, xline, and stack-cell analysis surfaces instead of leaving that policy inside `roll_main_window.py`.
+25. The test baseline is materially stronger than the earlier roadmap assumed: project round-trip, sidecar behavior, batch sidecar loading, higher-level file-load/apply behavior, legacy sidecar compatibility, session-service behavior, import-service coverage, filter-service coverage, settings/runtime ownership checks, and targeted plot/redraw regressions all exist.
 
 Still unfinished:
-1. Mutable runtime state is still spread across `config.py` and many `RollMainWindow` instance attributes.
-2. SPS/RPS/XPS import and QC logic is still heavily UI-bound.
-3. Plot/input preparation and redraw policy are still mixed into the main window.
+1. Plot/input preparation is still partly mixed into `roll_main_window.py`, especially for O/A and some remaining controller-owned plot setup.
+2. Colorbar setup is still duplicated across layout and parts of O/A, even though redraw policy and reused-axis reconstruction now sit behind `PlotRedrawHelper`.
+3. O/A still mixes histogram/input preparation with widget mutation more than the pattern and stack-response paths do.
 4. Worker contracts still depend on broad survey state and implicit mutation.
+5. `config.py` still serves as a broad shared constants/defaults module; that is acceptable for now, but it can be split by concern later if clearer module boundaries are wanted.
 
 **Recommended Order From Here**
 
-1. Introduce explicit session/runtime state and remove mutable runtime state from `config.py`.
-2. Extract import/QC orchestration from the main window.
-3. Extract plot/input preparation and redraw policy from the main window.
-4. Clean up worker contracts only after service boundaries and state ownership are stable.
-5. Do performance work only after the above structure is in place.
+1. Finish the remaining O/A plot-input and widget-mutation split so it matches the structure already used by pattern and stack-response redraws.
+2. Keep layout plots outside the full helper-backed redraw-policy model, but consider extracting a narrower shared image/colorbar preparation helper for the layout image path.
+3. Clean up worker contracts only after those redraw boundaries are stable.
+4. Do performance work only after the structure stops moving.
+5. Treat any further `config.py` work as optional organization, not as the main architectural blocker.
 
-The reason to move to explicit state ownership now is simple: the load/apply boundary is already in place. The next structural bottleneck is the number of imported arrays, geometry arrays, derived live/dead arrays, and timers that still live directly on `RollMainWindow` or in mutable globals.
+The earlier “create `SessionState` first” and “extract import/QC service first” recommendations are no longer current. Those seams are already good enough to move attention to plotting/redraw structure.
+
+The other important change is that the previous roadmap understated how much UI extraction has already landed. The remaining problem is not tab-builder setup anymore; it is the concentration of surface-specific plotting computations and widget mutation inside `roll_main_window.py` after redraw policy, cache state, and reused-axis reconstruction were moved into `PlotRedrawHelper`.
 
 **Phase 0 - Baseline and Safety Net**
 
 Status:
-Mostly complete.
+Substantially complete, with a few targeted gaps remaining.
 
 What is already in place:
 1. Direct tests for project persistence and sidecars.
 2. Direct tests for SPS filter logic.
-3. Direct tests for `FilterService` and `SessionService`.
-4. Project round-trip coverage.
-5. Regression tests for recent numerical warning fixes.
+3. Direct tests for `FilterService`, `SessionState`, and `SessionService`.
+4. Direct tests for `ImportService`.
+5. Project XML round-trip coverage.
+6. Regression coverage for recent numerical and legacy-sidecar fixes.
+7. Regression coverage for O/A display-mode defaults and rectangular-versus-polar renderer dispatch.
+8. Higher-level `fileLoad()` coverage that exercises survey sidecar loading plus session-state rebuild/application.
+9. Settings/runtime ownership regressions around `AppSettings`, `RuntimeState`, and the SPS import dialog.
 
 What is still worth adding here:
 1. One or two geometry-generation correctness tests in `roll_survey.py`.
 2. One worker success/failure test around `worker_threads.py` or the worker mixin boundary.
-3. A small reusable project fixture that includes a valid `.roll` plus minimal sidecars.
-4. One higher-level project-load test that exercises sidecar load plus apply behavior.
+3. A small reusable project fixture that includes a valid `.roll` plus minimal sidecars, if repeated setup starts to spread further.
 
 Exit criteria:
 1. Project persistence and filter behavior are protected.
@@ -68,20 +97,21 @@ What is already done:
 3. `ProjectService` handles memmap opening helpers.
 4. `ProjectService.loadProjectSidecars()` returns a structured batch result with messages and loaded arrays.
 5. `roll_main_window.py` no longer performs most raw sidecar `np.load` calls directly.
-6. Loaded-project sidecar application now goes through a dedicated helper instead of being implemented inline in `fileLoad()`.
-7. `fileLoad()` now delegates its load and post-load orchestration into smaller controller helpers.
-8. Geometry sidecar saves now route through `ProjectService` instead of direct `np.save` calls in the worker completion path.
+6. Loaded-project sidecar application goes through a dedicated helper instead of being implemented inline in `fileLoad()`.
+7. `fileLoad()` delegates load and post-load orchestration into smaller controller helpers.
+8. Geometry sidecar saves route through `ProjectService` instead of direct `np.save` calls in worker completion.
+9. Legacy point sidecars are normalized at the persistence boundary instead of weakening table-model assumptions.
 
 What remains in this phase:
-1. No further Phase 1 work is required before moving to Phase 3.
-2. Small cleanup opportunities may remain, but they are no longer on the critical path.
+1. No further Phase 1 work is required before moving to later phases.
+2. Only small cleanup/documentation opportunities remain.
 
 Exit criteria:
 Met for the current milestone:
 1. `fileLoad()` is much shorter and stops owning most loaded-state application logic.
-2. `ProjectService` remains the single owner of sidecar naming, existence checks, validation, and load rules.
+2. `ProjectService` remains the single owner of sidecar naming, existence checks, validation, compatibility normalization, and load rules.
 3. The remaining main-window code is mostly controller wiring: parse, call services, update top-level UI state, and trigger redraw.
-4. All project sidecar writes now go through `ProjectService`.
+4. All project sidecar writes go through `ProjectService`.
 
 **Phase 2 - Filter Extraction**
 
@@ -90,105 +120,130 @@ Complete enough for now.
 
 What has landed:
 1. `FilterService` exists and is descriptor-driven.
-2. Duplicate/orphan handlers in `roll_main_window.py` now delegate to generic point/relation filter dispatch helpers.
+2. Duplicate/orphan handlers in `roll_main_window.py` delegate to generic point/relation filter dispatch helpers.
 3. The service returns structured filter results including summary text and derived spatial state.
 4. There is direct unit-test coverage for point duplicate, point orphan, and relation orphan filtering.
 
 Remaining note:
-Do not spend more refactoring effort here unless new duplication appears. The architecture seam is good enough and no longer the next bottleneck.
+Do not spend more refactoring effort here unless new duplication appears.
 
 Exit criteria:
 Already met for the current milestone:
-1. The 14 cleanup/orphan handlers collapsed into a small generic dispatch layer.
+1. The many cleanup/orphan handlers collapsed into a small generic dispatch layer.
 2. Filter orchestration is testable without a `QMainWindow`.
 3. `roll_main_window.py` is materially less repetitive in this area.
 
 **Phase 3 - Explicit Runtime and Session State**
 
 Status:
-Not started in the intended sense.
+Substantially complete for the current milestone.
 
-Important clarification:
-`SessionService` currently handles recent-file menu behavior only. It is not yet a runtime/session-state owner.
+What has landed:
+1. `SessionState` owns imported arrays, geometry arrays, derived live/dead arrays, and convex-hull state.
+2. `SessionService.setArray()` and `refreshArrayState()` provide the canonical refresh path for those arrays.
+3. `RollMainWindow` property setters for `rpsImport`, `spsImport`, `xpsImport`, `recGeom`, `srcGeom`, and `relGeom` delegate into `SessionService`.
+4. `AppSettings` exists for persisted settings loaded from `QSettings`.
+5. `RuntimeState` exists for session-only values such as `surveyNumber`, `projectDirectory`, and `importDirectory`.
+6. `settings.py` loads/saves through `AppSettings` and `RuntimeState`, and runtime settings activation is explicit.
+7. Wizard naming/incrementing uses the runtime-state `surveyNumber` instead of a direct `config.surveyNumber` mutation path.
+8. `sps_import_dialog.py` edits SPS/RPS/XPS formats and dialect selection through `AppSettings` ownership, with tests covering the owner boundary.
+9. The old mutable `AppSettings -> config.py` write-back bridge has been removed.
+10. Timer/profiling ownership has moved into `SessionService`.
+11. Land and marine wizard defaults have moved out of `config.py` and into their respective wizard classes.
 
-Goal:
-Stop using `config.py` and the main window instance as a shared runtime message bus.
-
-What to introduce:
-1. `SessionState` for the open project, survey object, imported arrays, geometry arrays, analysis arrays, and project file paths.
-2. `AppSettings` for persisted settings backed by `QSettings`.
-3. A smaller object for transient profiling/timer state.
-
-What should move out of `config.py`:
-1. Mutable timer accumulators.
-2. Mutable runtime flags that are not true constants.
-3. Any project/session-specific runtime object.
-4. Session counters such as `surveyNumber`.
-
-Why this should come next:
-The load/apply path is now reduced to a manageable controller boundary. That makes it possible to move imported arrays, geometry arrays, derived point state, and other mutable runtime values into `SessionState` without simply relocating the previous FileLoad complexity.
+What remains in this phase:
+1. Decide whether project file paths belong permanently in `RuntimeState` or should be folded into a broader session object.
+2. Optionally reduce some remaining read-only `config.py` lookups into narrower constants modules if that later improves clarity.
 
 Exit criteria:
-1. `config.py` contains defaults, static formats, and style constants only.
-2. Services receive state objects rather than many loosely related arrays and flags.
-3. `RollMainWindow` stops owning most imported-array and geometry-array lifecycle directly.
+Met enough for the current milestone:
+1. `config.py` is no longer used as a mutable compatibility bridge for settings/session ownership.
+2. `AppSettings`, `RuntimeState`, and `SessionState` are the only owners of mutable persisted/session state.
+3. Services receive state objects rather than many loosely related arrays and flags.
+4. `RollMainWindow` stops owning most imported-array and geometry-array lifecycle directly.
 
 **Phase 4 - Import/QC Service**
 
 Status:
-Not started.
+Substantially landed.
 
-Goal:
-Move SPS/RPS/XPS parsing and QC orchestration out of the main window.
+What has landed:
+1. `ImportService` exists.
+2. SPS/RPS/XPS parsing loops moved out of `roll_main_window.py`.
+3. QC passes, duplicate/orphan checks, CRS conversion, transform calculation, and progress text generation moved into `ImportService`.
+4. Import cancellation is handled in the service boundary.
+5. `fileImportSpsData()` in `roll_main_window.py` now acts mainly as a controller for file picking, progress display, and committing final arrays into session state.
+6. There is direct unit-test coverage for import batching, cancellation, and QC behavior.
 
-Current note:
-`fileImportSpsData()` is still a large UI-bound routine with repeated `QApplication.processEvents()` calls, direct array allocation, parsing loops, uniqueness checks, orphan checks, CRS conversion, transform calculation, and model refresh.
-
-Scope:
-1. File parsing.
-2. QC passes.
-3. Duplicate/orphan checks that are part of import workflows.
-4. Optional progress/cancellation plumbing that can later be moved to a worker.
-
-Important constraint:
-Do not move this to a worker first. Extract the logic into a service first, then decide whether a worker is needed.
+What remains in this phase:
+1. The import dialog now uses `AppSettings` as the mutable owner, and its remaining `config.py` usage is mostly stable schema/default metadata.
+2. Some UI-bound progress/update code remains in the main window by design.
+3. A later worker-based import path can be considered, but only after the remaining settings/runtime ownership is stable.
 
 Exit criteria:
+Already met enough for the current milestone:
 1. Import/QC logic is testable without `RollMainWindow`.
-2. Core parsing logic no longer depends directly on `QApplication.processEvents()`.
-3. The UI only owns file picking, progress display, and final message/reporting.
+2. Core parsing/QC logic no longer depends directly on `QApplication.processEvents()`.
+3. The UI owns file picking, progress display, and final reporting/commit behavior only.
 
 **Phase 5 - Plot and Redraw Service**
 
 Status:
-Not started.
+In progress. The redraw/controller slice is now materially further along than the earlier roadmap described: reason-driven invalidation is active, cache reuse is live, and helper-owned redraw policy plus reused-parameter reconstruction are in place. The remaining gap is mainly O/A preparation/controller cleanup plus a smaller follow-up to reduce layout image/colorbar duplication without moving layout into the full redraw-policy helper model.
 
 Goal:
-Separate domain changes from redraw policy and image preparation.
+Separate domain changes from redraw policy, image preparation, and colorbar wiring.
 
 Scope:
 1. Layout image preparation.
 2. Analysis image preparation.
-3. Colorbar input generation.
+3. Colorbar input generation and reuse.
 4. Partial invalidation rules versus full replot rules.
 
-This phase should happen after the load/apply extraction and session-state work are in place, otherwise plot logic will still be coupled to unstable controller state.
+Why this is now the next structural phase:
+1. The main persistence, filter, import, and state seams already exist.
+2. The largest remaining concentration of controller complexity now lives in plotting and redraw decisions inside `roll_main_window.py`.
+3. Worker cleanup should still wait until redraw/state contracts are clearer.
+
+What has landed:
+1. Tab construction is already split out for layout, pattern, geometry, SPS, trace-table, stack-response, and O/A views.
+2. The O/A histogram has explicit display-mode UI state (`Rectangular` / `Polar`) instead of embedding that decision in a single plot path.
+3. O/A rendering has separate controller methods for rectangular and polar rendering, along with dedicated colorbar/update helpers.
+4. Stack-response and pattern-response plots now share `prepareAnalysisImageAndColorBar()` instead of duplicating the same image/colorbar wiring in each controller method.
+5. `plotPatterns()` no longer owns all pattern selection and Kx/Ky computation details inline; those concerns now sit behind dedicated helper methods.
+6. `plotStkCel()` no longer owns all stack-cell pattern selection and response computation details inline; those concerns now sit behind dedicated helper methods.
+7. A small dispatcher now routes `patterns`, `stack-inline`, `stack-xline`, `stack-cell`, and `off-azi` redraws through one controller entry point instead of leaving every trigger to call plot methods ad hoc.
+8. Stack-response redraws now honor navigation direction: inline reacts to vertical motion only, xline reacts to horizontal motion only, and stack-cell reacts to both.
+9. `AnalysisRedrawReason` now drives real invalidation behavior instead of acting as pass-through metadata only.
+10. Pattern-response redraws now invalidate cached Kx/Ky results on selection changes and reuse cached responses when the selected patterns are unchanged.
+11. O/A redraws now distinguish controller-driven invalidation from presentation-only redraws such as display-mode and polar colorbar level changes.
+12. Stack-response redraws now invalidate caches on controller-driven changes and stack-pattern changes, while reusing cached inline/xline/cell responses when the navigation context is unchanged.
+13. `PlotRedrawHelper` now owns surface invalidation policy, cache reset logic, cache-key storage, cache-key builders, and cached-axis reconstruction for pattern, inline, xline, and stack-cell redraw reuse.
+14. There is direct regression coverage for shared analysis image/colorbar preparation, dispatcher routing, stack-response redraw gating, stack-response cache reuse, helper-owned key/axis reconstruction, O/A renderer dispatch, O/A dispatcher routing, O/A display-range reset on file load, and reason-driven invalidation behavior.
+
+What remains in this phase:
+1. Finish moving O/A to the same input-preparation versus widget-mutation structure already used by the stack-response and pattern redraw paths.
+2. Reduce the remaining direct numerical plotting work in the O/A controller path by moving reusable preparation and any remaining redraw-state reconstruction behind helper/service code where it meaningfully improves symmetry.
+3. Extract a narrower shared image/colorbar preparation helper for layout only if it removes duplication cleanly without pulling layout into the analysis redraw-policy path.
+4. Review whether `plotOffset()` should adopt the same redraw/invalidation contract as O/A for consistency.
+5. Keep the helper boundary small unless a new repeated redraw-policy concern appears; do not expand it just to move code mechanically.
 
 Exit criteria:
 1. Data mutations no longer directly decide full redraw policy in many places.
 2. Small data edits can invalidate only affected layers.
 3. Colorbar and image setup stop being scattered across controller methods.
+4. O/A, patterns, and stack-response follow the same redraw/controller structure instead of relying on separate ad hoc trigger paths.
 
 **Phase 6 - Worker Contract Cleanup**
 
 Status:
-Not started.
+Not started in earnest.
 
 Goal:
 Make worker inputs and outputs explicit, smaller, and easier to validate.
 
 Current note:
-The worker setup is acceptable for now. This should still not be the next refactor. It depends on earlier service and state extraction to avoid simply moving the same large implicit contract into new classes.
+The worker setup is acceptable for now. This should still not be the next refactor. It depends on earlier plot/redraw extraction to avoid simply moving the same broad implicit contract into new classes.
 
 Future direction:
 1. Introduce request/result objects.
@@ -214,57 +269,60 @@ Do not optimize these speculatively. Measure them after the service boundaries a
 
 **Tests To Add Next**
 
-The earlier first-pass test list is now outdated because several of those tests already exist.
+The earlier test list is outdated because several of those tests already exist.
 
 The best next tests are:
-1. geometry-generation correctness test for a minimal template,
-2. worker success/failure test,
-3. one test for the future `SessionState` migration boundary,
-4. one focused regression test for extracted import/QC logic once that service exists,
-5. one worker request/result boundary test once worker contracts are narrowed.
+1. geometry-generation correctness test for a minimal template or block,
+2. worker success/failure test at the worker-thread or worker-mixin boundary,
+3. one plot/redraw regression that exercises O/A colorbar behavior across rectangular and polar mode switches,
+4. one direct O/A regression that proves presentation-only redraws skip histogram recomputation rather than only preserving the cached histogram object,
+5. one geometry-to-plot invalidation regression that exercises cache reset after a broader analysis refresh,
+6. one worker request/result boundary test once worker contracts are narrowed.
 
 **Outdated Items From The Previous Roadmap**
 
 The following items should now be considered completed or reordered:
-1. “Create `ProjectService` first” is no longer future work; it is already in place.
-2. “Create a higher-level batch sidecar-load method” is no longer future work; `ProjectService.loadProjectSidecars()` already exists.
-3. “Extract `FilterService` next” is no longer correct; it is already in place.
-4. “Finish the FileLoad apply-path extraction first” is no longer future work; it is already in place.
-5. Worker cleanup should still not be ahead of service extraction and explicit state ownership.
+1. “Create `ProjectService` first” is no longer future work.
+2. “Create a higher-level batch sidecar-load method” is no longer future work.
+3. “Extract `FilterService` next” is no longer future work.
+4. “Introduce `SessionState` first” is no longer future work in the strict sense; the phase is already substantially complete.
+5. “Create `ImportService` next” is no longer future work in the strict sense; the phase is already substantially landed.
+6. “Only the O/A builder extraction has started” is now outdated; the builder-module pattern already covers most main tabs.
+7. Worker cleanup should still not be ahead of plot/redraw extraction and final state-ownership cleanup.
 
 **Recommended Next Step**
 
 If choosing one next step only, do this:
-
-1. Introduce `SessionState` and migrate imported-array and geometry-array ownership out of `RollMainWindow`.
+1. Finish the remaining O/A input-preparation versus widget-mutation split so O/A matches the helper-backed redraw structure already used by pattern and stack-response surfaces.
 
 Why:
-1. It is now the clearest remaining structural bottleneck.
-2. The load/apply and sidecar persistence boundaries are already in place.
-3. It will reduce the number of mutable arrays and flags owned directly by `RollMainWindow`.
-4. It is the prerequisite for cleaner import/QC extraction and cleaner worker contracts.
+1. The dispatcher, reason-driven invalidation, helper-owned cache policy, and helper-owned redraw-parameter reconstruction already exist for patterns, O/A, and stack-response, so the biggest remaining inconsistency is that O/A still computes histogram inputs and mutates widgets inside one controller path.
+2. O/A is still the least factored analysis surface even after the recent dispatcher and invalidation work.
+3. Pulling the remaining O/A preparation behind a smaller helper/service boundary is the cleanest way to consolidate the new redraw contract before moving to worker cleanup.
+4. This keeps Phase 5 focused on finishing the redraw/plot boundary instead of diluting it with later-stage worker work.
 
 After that, the next step should be:
-
-1. extract import/QC orchestration from `fileImportSpsData()` into a dedicated service.
+1. review whether `plotOffset()` should adopt the same redraw/invalidation contract as O/A, and separately extract a smaller shared layout image/colorbar helper only if the duplication reduction is worth the extra seam.
 
 Estimated effort:
-2 to 5 days depending on findings and how much UI-specific apply logic can be cleanly isolated without changing behavior.
+1 to 2 days for the O/A input-preparation split,
+then 1 to 2 days for `plotOffset()` redraw-contract review plus any small layout image/colorbar helper extraction,
+then 2 to 4 days for the first worker contract narrowing pass.
 
 **Backlog of Next 12 Tickets**
 
-1. Create `SessionState` and migrate imported arrays into it.
-2. Migrate geometry arrays and derived live/dead arrays into `SessionState`.
-3. Move project file paths and related runtime file state into `SessionState` where appropriate.
-4. Remove mutable session counters and timer accumulators from `config.py`.
-5. Create `import_service.py` and move SPS/RPS/XPS parsing and QC logic.
-6. Move uniqueness/orphan import checks into that service.
-7. Split plot input computation from plot widget updates.
-8. Introduce smaller worker request/result objects.
-9. Replace broad worker state reads with explicit inputs.
-10. Add session-state migration regression tests.
-11. Add import/QC service regression tests.
-12. Re-measure performance after the above structure stabilizes.
+1. Finish the remaining O/A input-preparation versus widget-mutation split.
+2. Add a direct O/A regression that proves presentation-only redraw skips histogram recomputation.
+3. Review whether `plotOffset()` should adopt the same redraw/invalidation contract as O/A.
+4. Extract a narrower shared layout image/colorbar helper if the remaining duplication is still worth removing.
+5. Decide whether any remaining file/session values should move from `RollMainWindow` into a broader runtime/session object.
+6. Introduce smaller worker request/result objects.
+7. Replace broad worker state reads with explicit inputs.
+8. Add geometry-generation regression tests.
+9. Add worker success/failure coverage.
+10. Optionally split `config.py` into narrower read-only modules by concern if that improves navigation.
+11. Re-measure performance after the above structure stabilizes.
+12. Revisit helper scope only if a new repeated redraw-policy concern appears.
 
 **Definition of Done for the First Major Milestone**
 
@@ -272,7 +330,8 @@ The first major milestone is complete when:
 1. `RollMainWindow` is no longer responsible for project persistence internals or most loaded-state application internals.
 2. Project load/save is covered by domain tests and at least one higher-level load/apply regression test.
 3. Filter actions no longer duplicate orchestration logic across many handlers.
-4. Session runtime state has a single explicit owner.
+4. Session runtime state has explicit owners.
+5. Mutable settings state no longer depends on `config.py` as a compatibility bridge.
 
 Note: Need to check if CRS coordinate transform goes in the right direction for well-files.
 

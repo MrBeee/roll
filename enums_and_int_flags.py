@@ -20,6 +20,16 @@ class Direction(Enum):
     Lt = 3
     Rt = 4
 
+
+class AnalysisRedrawReason(Enum):
+    controller = 0
+    patternSelectionChanged = 1
+    patternDisplayModeChanged = 2
+    stackPatternChanged = 3
+    visiblePlotActivated = 4
+    offAziDisplayModeChanged = 5
+    offAziColorBarLevelsChanged = 6
+
 class SeedType(IntFlag):
     rollingGrid = 0
     fixedGrid = 1

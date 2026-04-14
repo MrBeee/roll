@@ -95,7 +95,7 @@ class SpiderNavigationMixin:
         if plotIndex == 0:
             self._updateLayoutSpiderOverlay(nX, nY, fold)
         else:
-            self.updateVisiblePlotWidget(plotIndex)
+            self.updateVisiblePlotWidget(plotIndex, direction=direction)
 
         self._syncTraceTableSelection(nX, nY, fold)
 

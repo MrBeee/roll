@@ -20,7 +20,6 @@ from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox,
                                  QPlainTextEdit, QSizePolicy, QSpinBox,
                                  QVBoxLayout, QWizard)
 
-from . import config  # used to pass initial settings
 from .aux_classes import QHLine, SurveyWizard, SurveyWizardPage
 from .aux_functions import myPrint
 from .config import wizardComboHighlightStyle, wizardEditHighlightStyle
@@ -36,11 +35,50 @@ resourceDir = os.path.join(currentDir, 'resources')
 # WIZARD  =======================================================================
 
 class LandSurveyWizard(SurveyWizard):
+    DEFAULTS = {
+        'surveyName': 'Orthogonal_001',
+        'deployXDir': 10000,
+        'deployYDir': 10000,
+        'nsl': 1,
+        'nslPar': 681,
+        'nsp': 4,
+        'sli': 250,
+        'sliPar': 50,
+        'spi': 50,
+        'slr': 1,
+        'sld': 41,
+        'nrl': 8,
+        'nrp': 240,
+        'nrpPar': 440,
+        'rli': 200,
+        'rpi': 50,
+        'rlr': 1,
+        'rld': 51,
+        'brick': 100,
+        'binImin': 4000,
+        'binXmin': 5000,
+        'binIsiz': 2000,
+        'binXsiz': 2000,
+        'rNam': 'rec-array',
+        'sNam': 'src-array',
+        'rBra': 4,
+        'sBra': 1,
+        'rEle': 6,
+        'sEle': 3,
+        'rBrI': 12.5,
+        'sBrI': 0.0,
+        'rElI': 25.0 / 3.0,
+        'sElI': 12.5,
+    }
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.surveyNumber = parent.sessionState.surveyNumber if parent is not None and hasattr(parent, 'sessionState') else 1
+        self.defaults = self.DEFAULTS.copy()
+        self.defaults['surveyName'] = self.defaultSurveyName(self.surveyNumber)
         self.nTemplates = 1                                                     # nr of templates in a design. Will be affected by brick, slant & zigzag geometries
-        self.surveySize = QSizeF(config.deployXDir, config.deployYDir)      # initial survey size; determined by src area for orthogonal surveys and rec area for parallel
+        self.surveySize = QSizeF(self.default('deployXDir'), self.default('deployYDir'))
 
         self.addPage(Page1(self))
         self.addPage(Page2(self))
@@ -57,6 +95,13 @@ class LandSurveyWizard(SurveyWizard):
         # self.setOption(QWizard.IndependentPages , True) # Don't use this option as fields are no longer updated !!! Make dummy cleanupPage(self) instead
         logoImage = QImage(os.path.join(resourceDir, 'icon.png'))
         self.setPixmap(QWizard.WizardPixmap.LogoPixmap, QPixmap.fromImage(logoImage))
+
+    @staticmethod
+    def defaultSurveyName(surveyNumber):
+        return f'Orthogonal_{surveyNumber:03d}'
+
+    def default(self, name):
+        return self.defaults[name]
 
 
 #        self.setOption(QWizard.NoCancelButton, True)
@@ -295,20 +340,20 @@ class Page1(SurveyWizardPage):
         self.slantS.valueChanged.connect(self.evtSlantValueChanged)
         self.brickS.editingFinished.connect(self.evtBrickEditingFinished)
 
-        # start values in the constructor, taken from config.py
-        self.nsl.setValue(config.nsl)
-        self.nrl.setValue(config.nrl)
-        self.sli.setValue(config.sli)
-        self.rli.setValue(config.rli)
-        self.spi.setValue(config.spi)
-        self.rpi.setValue(config.rpi)
-        self.name.setText(config.surveyName)
-        self.brickS.setValue(config.brick)
+        # start values in the constructor, owned by the wizard itself
+        self.nsl.setValue(self.parent.default('nsl'))
+        self.nrl.setValue(self.parent.default('nrl'))
+        self.sli.setValue(self.parent.default('sli'))
+        self.rli.setValue(self.parent.default('rli'))
+        self.spi.setValue(self.parent.default('spi'))
+        self.rpi.setValue(self.parent.default('rpi'))
+        self.name.setText(self.parent.default('surveyName'))
+        self.brickS.setValue(self.parent.default('brick'))
 
         # variables to keep survey dimensions more or less the same, when editing
-        self.oldRpi = config.rpi
-        self.oldRli = config.rli
-        self.oldSli = config.sli
+        self.oldRpi = self.parent.default('rpi')
+        self.oldRli = self.parent.default('rli')
+        self.oldSli = self.parent.default('sli')
 
         # hide optional controls for non-orthogonal surveys
         slanted = False
@@ -371,17 +416,17 @@ class Page1(SurveyWizardPage):
         self.sli.setEnabled(True)                                               # in case we disabled this earlier
         self.nsl.setEnabled(True)                                               # for instance with zigzag or parallel
 
-        self.sli.setValue(config.sli)                                           # in case we used parallel earlier
-        self.oldSli = config.sli                                               # in case we used parallel earlier
+        self.sli.setValue(self.parent.default('sli'))                           # in case we used parallel earlier
+        self.oldSli = self.parent.default('sli')                                # in case we used parallel earlier
 
-        self.nsl.setValue(config.nsl)
+        self.nsl.setValue(self.parent.default('nsl'))
         self.setField('rlr', 1)                                                 # One line to roll
         self.setField('slr', 1)                                                 # One line to roll
-        self.setField('sld', round(config.deployXDir / (config.slr * config.sli)) + 1)
-        self.setField('rld', round(config.deployYDir / (config.rlr * config.rli)) + 1)
+        self.setField('sld', round(self.parent.default('deployXDir') / (self.parent.default('slr') * self.parent.default('sli'))) + 1)
+        self.setField('rld', round(self.parent.default('deployYDir') / (self.parent.default('rlr') * self.parent.default('rli'))) + 1)
 
         name = SurveyType.fromCode(index).name                                # get name from enum
-        number = str(config.surveyNumber).zfill(3)                              # fill with leading zeroes
+        number = str(self.wizard().surveyNumber).zfill(3)                      # fill with leading zeroes
         self.name.setText(f'{name}_{number}')                                   # show the new name
 
         parallel = index == SurveyType.Parallel.code
@@ -390,9 +435,9 @@ class Page1(SurveyWizardPage):
             self.templateLabel.setText('In a <b>parallel</b> template, source points run <b>parallel</b> to the receiver lines')
             self.lineLabel.setText('<b>Point</b> spacing between sources and <b>line</b> spacing between receivers')
             self.pointLabel.setText('<b>Line</b> spacing between sources and <b>point</b> spacing between receivers')
-            self.sli.setValue(config.sliPar)
-            self.nsl.setValue(config.nslPar)
-            self.setField('nrp', config.nrpPar)
+            self.sli.setValue(self.parent.default('sliPar'))
+            self.nsl.setValue(self.parent.default('nslPar'))
+            self.setField('nrp', self.parent.default('nrpPar'))
 
             self.nslLabel.setText('<b>NSP</b> Nr Src Points [&#8594;]')
             self.sliLabel.setText('<b>SPI</b> Src Point Int [m&#8594;]')   ##
@@ -497,7 +542,7 @@ class Page1(SurveyWizardPage):
         if self.field('type') == SurveyType.Parallel.code:                     # in case of a parallel template
             pass
             # # set initial offset values
-            # lenS = self.parent.surveySize.width() + config.spreadlength
+            # lenS = self.parent.surveySize.width() + spreadLength
             # nsp = round(lenS / spi) + 1                                         # SPI has been altered; adjust the salvo length
         else:
             nrIntervals = max(round(rli / spi), 1)
@@ -653,9 +698,9 @@ class Page2(SurveyWizardPage):
         row += 1
         layout.addWidget(QHLine(), row, 0, 1, 4)
 
-        # start values in the constructor, taken from config.py                 # do this in the constructor, so it is only done ONCE
-        self.nsp.setValue(config.nsp)
-        self.nrp.setValue(config.nrp)
+        # start values in the constructor, owned by the wizard itself           # do this in the constructor, so it is only done ONCE
+        self.nsp.setValue(self.parent.default('nsp'))
+        self.nrp.setValue(self.parent.default('nrp'))
 
         # create a vertical box layout widget (vbl)
         vbl = QVBoxLayout()
@@ -681,8 +726,8 @@ class Page2(SurveyWizardPage):
         # set the combined layouts to become this page's layout
         self.setLayout(vbl)
 
-        ## self.nrp.setValue(round(config.spreadlength/config.rpi))
-        ## self.nsp.setValue(round(config.rli/config.spi))
+        ## self.nrp.setValue(round(spreadLength / self.parent.default('rpi')))
+        ## self.nsp.setValue(round(self.parent.default('rli') / self.parent.default('spi')))
 
         self.registerField('nsp', self.nsp, 'value')
         self.registerField('nrp', self.nrp, 'value')
@@ -806,18 +851,18 @@ class Page2(SurveyWizardPage):
         sNam = self.field('sNam')
 
         # orthogonal / slanted / brick source patterns
-        sBra = config.sBra
-        sBrI = config.sBrI
-        sEle = config.sEle
-        sElI = config.sElI
+        sBra = self.parent.default('sBra')
+        sBrI = self.parent.default('sBrI')
+        sEle = self.parent.default('sEle')
+        sElI = self.parent.default('sElI')
         srcOriX = -0.5 * (sBra - 1) * sBrI
         srcOriY = -0.5 * (sEle - 1) * sElI
 
         if typ == SurveyType.Parallel.code or typ == SurveyType.Zigzag.code:
-            sBra = config.sEle
-            sBrI = config.sElI
-            sEle = config.sBra
-            sElI = config.sBrI
+            sBra = self.parent.default('sEle')
+            sBrI = self.parent.default('sElI')
+            sEle = self.parent.default('sBra')
+            sElI = self.parent.default('sBrI')
             srcOriX = -0.5 * (sBra - 1) * sBrI
             srcOriY = -0.5 * (sEle - 1) * sElI
 
@@ -1728,17 +1773,17 @@ class Page4(SurveyWizardPage):
         self.chkShiftSpread.toggled.connect(self.evtChkShiftSpreadToggled)
 
         # give some initial values
-        self.rlr.setValue(config.rlr)       # moveup one line
-        self.slr.setValue(config.slr)       # moveup one line
-        self.sld.setValue(round(config.deployXDir / (config.slr * config.sli)) + 1)
-        self.rld.setValue(round(config.deployYDir / (config.rlr * config.rli)) + 1)
+        self.rlr.setValue(self.parent.default('rlr'))
+        self.slr.setValue(self.parent.default('slr'))
+        self.sld.setValue(round(self.parent.default('deployXDir') / (self.parent.default('slr') * self.parent.default('sli'))) + 1)
+        self.rld.setValue(round(self.parent.default('deployYDir') / (self.parent.default('rlr') * self.parent.default('rli'))) + 1)
 
         # initial bin analysis area
         shiftI = 6000 if shift else 0
-        self.binImin.setValue(config.binImin + shiftI)
-        self.binIsiz.setValue(config.binIsiz)
-        self.binXmin.setValue(config.binXmin)
-        self.binXsiz.setValue(config.binXsiz)
+        self.binImin.setValue(self.parent.default('binImin') + shiftI)
+        self.binIsiz.setValue(self.parent.default('binIsiz'))
+        self.binXmin.setValue(self.parent.default('binXmin'))
+        self.binXsiz.setValue(self.parent.default('binXsiz'))
 
     def initializePage(self):                                                   # This routine is done each time before the page is activated
         myPrint('initialize page 4')
@@ -1752,8 +1797,8 @@ class Page4(SurveyWizardPage):
         self.setField('slr', slr)
         self.setField('rlr', rlr)
 
-        sld = max(round(config.deployXDir / (slr * sli)), 1)
-        rld = max(round(config.deployYDir / (rlr * rli)), 1)
+        sld = max(round(self.parent.default('deployXDir') / (slr * sli)), 1)
+        rld = max(round(self.parent.default('deployYDir') / (rlr * rli)), 1)
         self.setField('sld', sld)
         self.setField('rld', rld)
 
@@ -1977,8 +2022,8 @@ class Page5(SurveyWizardPage):
         myPrint('page 5 init')
 
         # Add some widgets
-        self.recPatName = QLineEdit(config.rNam)
-        self.srcPatName = QLineEdit(config.sNam)
+        self.recPatName = QLineEdit(self.parent.default('rNam'))
+        self.srcPatName = QLineEdit(self.parent.default('sNam'))
 
         self.chkRecPattern = QCheckBox('Use receiver patterns')
         self.chkSrcPattern = QCheckBox('Use source patterns')
@@ -1995,15 +2040,15 @@ class Page5(SurveyWizardPage):
         self.recElemeInt = QDoubleSpinBox()
         self.srcElemeInt = QDoubleSpinBox()
 
-        self.recBranches.setValue(config.rBra)
-        self.srcBranches.setValue(config.sBra)
-        self.recElements.setValue(config.rEle)
-        self.srcElements.setValue(config.sEle)
+        self.recBranches.setValue(self.parent.default('rBra'))
+        self.srcBranches.setValue(self.parent.default('sBra'))
+        self.recElements.setValue(self.parent.default('rEle'))
+        self.srcElements.setValue(self.parent.default('sEle'))
 
-        self.recBrancInt.setValue(config.rBrI)
-        self.srcBrancInt.setValue(config.sBrI)
-        self.recElemeInt.setValue(config.rElI)
-        self.srcElemeInt.setValue(config.sElI)
+        self.recBrancInt.setValue(self.parent.default('rBrI'))
+        self.srcBrancInt.setValue(self.parent.default('sBrI'))
+        self.recElemeInt.setValue(self.parent.default('rElI'))
+        self.srcElemeInt.setValue(self.parent.default('sElI'))
 
         # set the page layout
         layout = QGridLayout()

@@ -7,6 +7,7 @@ import numpy as np
 
 @dataclass
 class SessionState:
+    surveyNumber: int = 1
     rpsImport: np.ndarray | None = None
     spsImport: np.ndarray | None = None
     xpsImport: np.ndarray | None = None

@@ -2,8 +2,10 @@
 
 import os
 from dataclasses import dataclass, field
+from time import perf_counter
 
 import numpy as np
+from qgis.PyQt.QtWidgets import QApplication
 
 
 @dataclass(frozen=True)
@@ -44,10 +46,30 @@ class SessionService:
         'srcGeom': _PointArraySpec('srcLiveE', 'srcLiveN', 'srcDeadE', 'srcDeadN'),
     }
 
+    def __init__(self):
+        self.resetTimers()
+
     def recordCurrentFile(self, recentFileList, fileName, maxRecentFiles):
         updated = [entry for entry in recentFileList if entry != fileName]
         updated.insert(0, fileName)
         return updated[:maxRecentFiles]
+
+    def elapsedTime(self, startTime, index: int):
+        currentTime = perf_counter()
+        deltaTime = currentTime - startTime
+
+        self.timerTmin[index] = min(deltaTime, self.timerTmin[index])
+        self.timerTmax[index] = max(deltaTime, self.timerTmax[index])
+        self.timerTtot[index] = self.timerTtot[index] + deltaTime
+        self.timerFreq[index] = self.timerFreq[index] + 1
+        QApplication.processEvents()
+        return perf_counter()
+
+    def resetTimers(self, timers=20):
+        self.timerTmin = [float('Inf') for _ in range(timers)]
+        self.timerTmax = [0.0 for _ in range(timers)]
+        self.timerTtot = [0.0 for _ in range(timers)]
+        self.timerFreq = [0 for _ in range(timers)]
 
     def setArray(self, state, arrayAttr, array):
         setattr(state, arrayAttr, array)

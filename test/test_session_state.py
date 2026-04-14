@@ -11,6 +11,11 @@ SessionState = sessionStateModule.SessionState
 
 
 class SessionStateTest(unittest.TestCase):
+    def testSurveyNumberStartsAtOneForNewSession(self):
+        state = SessionState()
+
+        self.assertEqual(state.surveyNumber, 1)
+
     def testClearSurveyArraysResetsImportedGeometryAndDerivedState(self):
         state = SessionState(
             rpsImport=np.zeros((1, 2), dtype=np.float32),

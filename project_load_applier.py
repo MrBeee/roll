@@ -2,7 +2,6 @@
 
 import pyqtgraph as pg
 
-from . import config
 from .enums_and_int_flags import MsgType
 
 
@@ -66,7 +65,7 @@ class ProjectLoadApplier:
         mainWindow.layoutImItem.setImage(mainWindow.layoutImg, levels=(0.0, mainWindow.layoutMax))
 
         label = 'fold'
-        colorMapObj = mainWindow.resolveColorMapObject(config.foldDispCmap, fallback='viridis')
+        colorMapObj = mainWindow.resolveColorMapObject(mainWindow.appSettings.foldDispCmap, fallback='viridis')
         if mainWindow.layoutColorBar is None:
             try:
                 mainWindow.layoutColorBar = mainWindow.layoutWidget.plotItem.addColorBar(

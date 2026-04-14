@@ -402,7 +402,7 @@ class TableView(QTableView):
                     self._selectNavigationRow(index)
                 return True
 
-        return super(TableView, self).eventFilter(source, event)
+        return super().eventFilter(source, event)
 
     def getFormatList(self):
         data = self.model().getData()                                           # get numpy data from the underlying model

@@ -24,7 +24,7 @@ class LineHighlighter(QSyntaxHighlighter):
     """
 
     def __init__(self, parent=None):
-        super(LineHighlighter, self).__init__(parent)
+        super().__init__(parent)
 
         # Define formats for each line type
         self.greyFormat = QTextCharFormat()
@@ -61,7 +61,7 @@ class CustomPlainTextEdit(QPlainTextEdit):
     """
 
     def __init__(self, parent=None):
-        super(CustomPlainTextEdit, self).__init__(parent)
+        super().__init__(parent)
         # font = QFont("Monospace")
         # font.setStyleHint(QFont.TypeWriter)
         # font.setWeight(18)
@@ -76,7 +76,7 @@ class CustomPlainTextEdit(QPlainTextEdit):
 
     def paintEvent(self, event):
         # Call the base class paintEvent to ensure the text is drawn as usual
-        super(CustomPlainTextEdit, self).paintEvent(event)
+        super().paintEvent(event)
 
         # Start preparing for the vertical lines
         painter = QPainter(self.viewport())

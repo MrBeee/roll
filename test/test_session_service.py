@@ -2,6 +2,7 @@
 import os
 import tempfile
 import unittest
+from time import perf_counter
 
 import numpy as np
 
@@ -106,6 +107,29 @@ class SessionServiceTest(unittest.TestCase):
 
             self.assertTrue(result.exists)
             self.assertEqual(result.resolvedName, relProject)
+
+    def testResetTimersInitializesRequestedTimerSlots(self):
+        self.service.resetTimers(3)
+
+        self.assertEqual(len(self.service.timerTmin), 3)
+        self.assertEqual(len(self.service.timerTmax), 3)
+        self.assertEqual(len(self.service.timerTtot), 3)
+        self.assertEqual(len(self.service.timerFreq), 3)
+        self.assertEqual(self.service.timerTmax, [0.0, 0.0, 0.0])
+        self.assertEqual(self.service.timerTtot, [0.0, 0.0, 0.0])
+        self.assertEqual(self.service.timerFreq, [0, 0, 0])
+        self.assertTrue(all(value == float('Inf') for value in self.service.timerTmin))
+
+    def testElapsedTimeAccumulatesTimingStats(self):
+        self.service.resetTimers(1)
+
+        nextStart = self.service.elapsedTime(perf_counter(), 0)
+
+        self.assertIsInstance(nextStart, float)
+        self.assertGreaterEqual(self.service.timerFreq[0], 1)
+        self.assertGreaterEqual(self.service.timerTmax[0], 0.0)
+        self.assertGreaterEqual(self.service.timerTtot[0], 0.0)
+        self.assertNotEqual(self.service.timerTmin[0], float('Inf'))
 
 
 if __name__ == '__main__':

@@ -186,6 +186,7 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 
 ### 8	Changelog
+- 2026-04-09 (0.6.4) Added polar diagram for offset/azimuth histogram and continued refactoring of code
 - 2026-03-10 (0.6.3) Some numpy attribute names needed to be changed for NumPy 2.0 compatibility in QGIS 4.0
 - 2026-03-08 (0.6.2) Reformatting of code to make attribute & variable names compatible with QGIS' use of camelCase, rather than snake_case. Some minor tweaks applied
 - 2026-02-25 (0.6.1) Fixed a bug related to reading boolean values reliably from xml text input

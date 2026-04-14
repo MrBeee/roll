@@ -9,6 +9,8 @@ import numpy as np
 from numpy.lib import recfunctions as rfn
 from qgis.PyQt.QtCore import QFile, QIODevice, QTextStream
 
+from .sps_io_and_qc import pntType1
+
 
 @dataclass
 class ProjectReadResult:
@@ -219,6 +221,46 @@ class ProjectService:
     def _appendMessage(self, result, level, text):
         result.messages.append(SidecarLoadMessage(level=level, text=text))
 
+    def _appendNormalizedSidecarMessage(self, result, fileName, suffix, recordLabel):
+        sidecarPath = self.sidecarPath(fileName, suffix)
+        self._appendMessage(result, 'info', f'Loaded : . . . normalized legacy {recordLabel} sidecar to current point schema: {sidecarPath}')
+
+    def _normalizePointArraySidecar(self, array):
+        if not isinstance(array, np.ndarray) or array.dtype.names is None:
+            return array, False
+
+        names = set(array.dtype.names)
+        if 'InUse' in names:
+            return array, False
+
+        requiredFields = {'Line', 'Point', 'Index', 'Code', 'Depth', 'East', 'North', 'Elev'}
+        if not requiredFields.issubset(names):
+            return array, False
+
+        normalized = np.zeros(shape=array.shape, dtype=pntType1)
+
+        for fieldName in ('Line', 'Point', 'Index', 'Code', 'Depth', 'East', 'North', 'Elev'):
+            normalized[fieldName] = array[fieldName]
+
+        if 'Uniq' in names:
+            normalized['Uniq'] = array['Uniq']
+        else:
+            normalized['Uniq'] = 1
+
+        if 'InXps' in names:
+            normalized['InXps'] = array['InXps']
+        else:
+            normalized['InXps'] = 1
+
+        normalized['InUse'] = 1
+
+        if 'LocX' in names:
+            normalized['LocX'] = array['LocX']
+        if 'LocY' in names:
+            normalized['LocY'] = array['LocY']
+
+        return normalized, True
+
     def _loadAnalysisArraySidecars(self, fileName, survey, result):
         nx = result.dimensions.nx
         ny = result.dimensions.ny
@@ -310,11 +352,16 @@ class ProjectService:
         rpsResult = self.loadArraySidecar(fileName, '.rps.npy')
         if rpsResult.valid and rpsResult.array is not None:
             result.rpsImport = rfn.rename_fields(rpsResult.array, {'Record': 'RecNum'})
+            result.rpsImport, normalized = self._normalizePointArraySidecar(result.rpsImport)
+            if normalized:
+                self._appendNormalizedSidecarMessage(result, fileName, '.rps.npy', 'rps-record')
             self._appendMessage(result, 'info', f'Loaded : . . . read {result.rpsImport.shape[0]:,} rps-records')
 
         spsResult = self.loadArraySidecar(fileName, '.sps.npy')
-        if spsResult.valid:
-            result.spsImport = spsResult.array
+        if spsResult.valid and spsResult.array is not None:
+            result.spsImport, normalized = self._normalizePointArraySidecar(spsResult.array)
+            if normalized:
+                self._appendNormalizedSidecarMessage(result, fileName, '.sps.npy', 'sps-record')
             self._appendMessage(result, 'info', f'Loaded : . . . read {result.spsImport.shape[0]:,} sps-records')
 
         xpsResult = self.loadArraySidecar(fileName, '.xps.npy')
@@ -323,13 +370,17 @@ class ProjectService:
             self._appendMessage(result, 'info', f'Loaded : . . . read {result.xpsImport.shape[0]:,} xps-records')
 
         recResult = self.loadArraySidecar(fileName, '.rec.npy')
-        if recResult.valid:
-            result.recGeom = recResult.array
+        if recResult.valid and recResult.array is not None:
+            result.recGeom, normalized = self._normalizePointArraySidecar(recResult.array)
+            if normalized:
+                self._appendNormalizedSidecarMessage(result, fileName, '.rec.npy', 'rec-record')
             self._appendMessage(result, 'info', f'Loaded : . . . read {result.recGeom.shape[0]:,} rec-records')
 
         srcResult = self.loadArraySidecar(fileName, '.src.npy')
-        if srcResult.valid:
-            result.srcGeom = srcResult.array
+        if srcResult.valid and srcResult.array is not None:
+            result.srcGeom, normalized = self._normalizePointArraySidecar(srcResult.array)
+            if normalized:
+                self._appendNormalizedSidecarMessage(result, fileName, '.src.npy', 'src-record')
             self._appendMessage(result, 'info', f'Loaded : . . . read {result.srcGeom.shape[0]:,} src-records')
 
         relResult = self.loadArraySidecar(fileName, '.rel.npy')

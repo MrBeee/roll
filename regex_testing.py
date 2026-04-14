@@ -12,7 +12,7 @@ class LineHighlighter(QSyntaxHighlighter):
     """
 
     def __init__(self, parent=None):
-        super(LineHighlighter, self).__init__(parent)
+        super().__init__(parent)
 
         # Define formats for each line type
         self.greyFormat = QTextCharFormat()
@@ -49,7 +49,7 @@ class CustomPlainTextEdit(QPlainTextEdit):
     """
 
     def __init__(self, parent=None):
-        super(CustomPlainTextEdit, self).__init__(parent)
+        super().__init__(parent)
         self.setFont(QFont('Courier New', 10))  # Monospaced font for all text
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.setWordWrapMode(QTextOption.WrapMode.NoWrap)
@@ -57,7 +57,7 @@ class CustomPlainTextEdit(QPlainTextEdit):
 
     def paintEvent(self, event):
         # Call the base class paintEvent to ensure the text is drawn
-        super(CustomPlainTextEdit, self).paintEvent(event)
+        super().paintEvent(event)
 
         # Draw the vertical line
         painter = QPainter(self.viewport())

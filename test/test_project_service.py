@@ -16,10 +16,12 @@ QGIS_APP = getQgisApp()
 projectServiceModule = loadPluginModule('project_service')
 rollOutputModule = loadPluginModule('roll_output')
 rollSurveyModule = loadPluginModule('roll_survey')
+spsModule = loadPluginModule('sps_io_and_qc')
 
 ProjectService = projectServiceModule.ProjectService
 RollOutput = rollOutputModule.RollOutput
 RollSurvey = rollSurveyModule.RollSurvey
+pntType4 = spsModule.pntType4
 
 
 class ProjectServiceTest(unittest.TestCase):
@@ -63,6 +65,22 @@ class ProjectServiceTest(unittest.TestCase):
             self.assertEqual(restored.name, survey.name)
             self.assertEqual(restored.crs.authid(), survey.crs.authid())
             self.assertEqual(restored.output.rctOutput, survey.output.rctOutput)
+
+    def testLoadProjectSidecarsLogsExactNormalizedLegacySidecarPath(self):
+        service = ProjectService()
+        survey = self.createSurvey()
+
+        with tempfile.TemporaryDirectory() as tempDir:
+            projectPath = os.path.join(tempDir, 'project_service.roll')
+            service.writeProjectXml(projectPath, survey, tempDir, False, 2)
+
+            legacyRps = np.zeros(1, dtype=pntType4)
+            legacyRps[0] = (100.0, 10.0, 1, 'AA', 0.0, 1000.0, 2000.0, 0.0, 100, 12, 30, 0, 0)
+            np.save(projectPath + '.rps.npy', legacyRps)
+
+            result = service.loadProjectSidecars(projectPath, survey)
+
+            self.assertTrue(any(message.text == f'Loaded : . . . normalized legacy rps-record sidecar to current point schema: {projectPath}.rps.npy' for message in result.messages))
 
     def testReadProjectTextReturnsErrorForMissingFile(self):
         service = ProjectService()

@@ -1,40 +1,14 @@
-************* Module roll.aux_classes
-aux_classes.py:27: [R1725(super-with-arguments), LineHighlighter.__init__] Consider using Python 3 style super() without arguments
-aux_classes.py:64: [R1725(super-with-arguments), CustomPlainTextEdit.__init__] Consider using Python 3 style super() without arguments
-aux_classes.py:79: [R1725(super-with-arguments), CustomPlainTextEdit.paintEvent] Consider using Python 3 style super() without arguments
 ************* Module roll.aux_functions
-aux_functions.py:861: [C0301(line-too-long), ] Line too long (738/210)
-aux_functions.py:87: [R1705(no-else-return), toBool] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-aux_functions.py:136: [R1705(no-else-return), odd] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-aux_functions.py:143: [R1703(simplifiable-if-statement), even] The if statement can be replaced with 'return bool(test)'
-aux_functions.py:143: [R1705(no-else-return), even] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-aux_functions.py:262: [R1714(consider-using-in), getNameFromQtEnum] Consider merging these comparisons with 'in' by using 'value in (member.value, member)'. Use a set instead if elements are hashable.
-aux_functions.py:436: [R0912(too-many-branches), clipLineF] Too many branches (14/12)
-aux_functions.py:602: [R1705(no-else-return), isFileInUse] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-aux_functions.py:619: [R1701(consider-merging-isinstance), getUnpicklable] Consider merging these isinstance calls to isinstance(instance, (list, tuple))
-aux_functions.py:610: [R0912(too-many-branches), getUnpicklable] Too many branches (15/12)
-aux_functions.py:692: [R1705(no-else-return), convexHull.dome] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-aux_functions.py:698: [R1705(no-else-return), convexHull] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+aux_functions.py:864: [C0301(line-too-long), ] Line too long (738/210)
+aux_functions.py:263: [R1714(consider-using-in), getNameFromQtEnum] Consider merging these comparisons with 'in' by using 'value in (member.value, member)'. Use a set instead if elements are hashable.
+aux_functions.py:437: [R0912(too-many-branches), clipLineF] Too many branches (14/12)
+aux_functions.py:621: [R1701(consider-merging-isinstance), getUnpicklable] Consider merging these isinstance calls to isinstance(instance, (list, tuple))
+aux_functions.py:612: [R0912(too-many-branches), getUnpicklable] Too many branches (15/12)
 ************* Module roll.binning_worker_mixin
-binning_worker_mixin.py:55: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapName] Too many branches (14/12)
-binning_worker_mixin.py:115: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapObject] Too many branches (16/12)
-binning_worker_mixin.py:398: [R0912(too-many-branches), BinningWorkerMixin.binningThreadFinished] Too many branches (17/12)
-binning_worker_mixin.py:20: [R0904(too-many-public-methods), BinningWorkerMixin] Too many public methods (26/20)
-************* Module roll.config
-config.py:175: [R1735(use-dict-literal), ] Consider using '{"id": 'Record identification', "line": 'Line', "point": 'Point', "index": 'Point index', ... }' instead of a call to 'dict'.
-config.py:187: [R1735(use-dict-literal), ] Consider using '{"id": 'Record identification', "recNum": 'Field Record number', "srcLin": 'Source line number', ... }' instead of a call to 'dict'.
-config.py:205: [R1735(use-dict-literal), ] Consider using '{"name": 'Netherlands', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
-config.py:206: [R1735(use-dict-literal), ] Consider using '{"name": 'New Zealand', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
-config.py:207: [R1735(use-dict-literal), ] Consider using '{"name": 'SEG rev2.1', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
-config.py:208: [R1735(use-dict-literal), ] Consider using '{"name": 'Sudan', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', "id": [0, 1], ... }' instead of a call to 'dict'.
-config.py:218: [R1735(use-dict-literal), ] Consider using '{"name": 'Netherlands', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
-config.py:219: [R1735(use-dict-literal), ] Consider using '{"name": 'New Zealand', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
-config.py:220: [R1735(use-dict-literal), ] Consider using '{"name": 'SEG rev2.1', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
-config.py:221: [R1735(use-dict-literal), ] Consider using '{"name": 'Sudan', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', "id": [0, 1], ... }' instead of a call to 'dict'.
-config.py:230: [R1735(use-dict-literal), ] Consider using '{"name": 'Netherlands', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
-config.py:231: [R1735(use-dict-literal), ] Consider using '{"name": 'New Zealand', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
-config.py:232: [R1735(use-dict-literal), ] Consider using '{"name": 'SEG rev2.1', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', ... }' instead of a call to 'dict'.
-config.py:233: [R1735(use-dict-literal), ] Consider using '{"name": 'Sudan', "hdr": 'H', "src": 'S', "rec": 'R', "rel": 'X', "id": [0, 1], ... }' instead of a call to 'dict'.
+binning_worker_mixin.py:57: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapName] Too many branches (14/12)
+binning_worker_mixin.py:117: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapObject] Too many branches (16/12)
+binning_worker_mixin.py:404: [R0912(too-many-branches), BinningWorkerMixin.binningThreadFinished] Too many branches (17/12)
+binning_worker_mixin.py:19: [R0904(too-many-public-methods), BinningWorkerMixin] Too many public methods (27/20)
 ************* Module roll.functions_numba
 functions_numba.py:41: [R1719(simplifiable-if-expression), numbaFilterSlice2D] The if expression can be replaced with 'test'
 functions_numba.py:58: [R1719(simplifiable-if-expression), numbaSlice3D] The if expression can be replaced with 'test'
@@ -47,29 +21,25 @@ functions_numba.py:352: [R0917(too-many-positional-arguments), numbaSetRelationR
 functions_numba.py:395: [R0913(too-many-arguments), numbaClipLineF] Too many arguments (8/5)
 functions_numba.py:395: [R0917(too-many-positional-arguments), numbaClipLineF] Too many positional arguments (8/5)
 functions_numba.py:489: [R1702(too-many-nested-blocks), pointInPolygon] Too many nested blocks (6/5)
+************* Module roll.import_service
+import_service.py:34: [R0913(too-many-arguments), ImportService.importTextData] Too many arguments (9/5)
+import_service.py:92: [R0913(too-many-arguments), ImportService.runQualityChecks] Too many arguments (7/5)
+import_service.py:159: [R0913(too-many-arguments), ImportService._importPointData] Too many arguments (8/5)
+import_service.py:191: [R0913(too-many-arguments), ImportService._reportQcProgress] Too many arguments (6/5)
+import_service.py:191: [R0917(too-many-positional-arguments), ImportService._reportQcProgress] Too many positional arguments (6/5)
+import_service.py:197: [R0913(too-many-arguments), ImportService._lineTransformMessages] Too many arguments (10/5)
+import_service.py:197: [R0917(too-many-positional-arguments), ImportService._lineTransformMessages] Too many positional arguments (10/5)
 ************* Module roll.land_wizard
-land_wizard.py:816: [R1714(consider-using-in), Page2.updateParentSurvey] Consider merging these comparisons with 'in' by using 'typ in (SurveyType.Parallel.code, SurveyType.Zigzag.code)'. Use a set instead if elements are hashable.
-land_wizard.py:779: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (16/12)
-land_wizard.py:1800: [R1714(consider-using-in), Page4.updateParentSurvey] Consider merging these comparisons with 'in' by using 'typ in (SurveyType.Orthogonal.code, SurveyType.Parallel.code)'. Use a set instead if elements are hashable.
+land_wizard.py:861: [R1714(consider-using-in), Page2.updateParentSurvey] Consider merging these comparisons with 'in' by using 'typ in (SurveyType.Parallel.code, SurveyType.Zigzag.code)'. Use a set instead if elements are hashable.
+land_wizard.py:824: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (16/12)
+land_wizard.py:1845: [R1714(consider-using-in), Page4.updateParentSurvey] Consider merging these comparisons with 'in' by using 'typ in (SurveyType.Orthogonal.code, SurveyType.Parallel.code)'. Use a set instead if elements are hashable.
 ************* Module roll.marine_wizard
-marine_wizard.py:779: [R1719(simplifiable-if-expression), Page2.updateParentSurvey] The if expression can be replaced with 'test'
-marine_wizard.py:770: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (13/12)
-marine_wizard.py:1528: [R0912(too-many-branches), Page4.updateSailLineOverhead] Too many branches (13/12)
-marine_wizard.py:1830: [R1719(simplifiable-if-expression), Page5.updateParentSurvey] The if expression can be replaced with 'test'
-************* Module roll.my_crs2
-my_crs2.py:49: [R1735(use-dict-literal), MyCrs2Parameter.__init__] Consider using '{"name": 'CRS', "type": 'myCrs', "value": self.crs, "default": self.crs, ... }' instead of a call to 'dict'.
-my_crs2.py:50: [R1735(use-dict-literal), MyCrs2Parameter.__init__] Consider using '{"name": 'Description', "type": 'str', "value": self.crs.description(), ... }' instead of a call to 'dict'.
-my_crs2.py:51: [R1735(use-dict-literal), MyCrs2Parameter.__init__] Consider using '{"name": 'Authority ID', "type": 'str', "value": self.crs.authid(), ... }' instead of a call to 'dict'.
-my_crs2.py:52: [R1735(use-dict-literal), MyCrs2Parameter.__init__] Consider using '{"name": 'Projection type', "type": 'str', "value": self.crs.projectionAcronym(), ... }' instead of a call to 'dict'.
-************* Module roll.my_marker
-my_marker.py:143: [R1735(use-dict-literal), MyMarkerParameter.__init__] Consider using '{"name": 'Symbol', "value": self.marker.symbol(), "default": self.marker.symbol(), ... }' instead of a call to 'dict'.
-my_marker.py:144: [R1735(use-dict-literal), MyMarkerParameter.__init__] Consider using '{"name": 'Color', "value": self.marker.color(), "default": self.marker.color(), ... }' instead of a call to 'dict'.
-my_marker.py:145: [R1735(use-dict-literal), MyMarkerParameter.__init__] Consider using '{"name": 'Size', "value": self.marker.size(), "default": self.marker.size(), ... }' instead of a call to 'dict'.
+marine_wizard.py:825: [R1719(simplifiable-if-expression), Page2.updateParentSurvey] The if expression can be replaced with 'test'
+marine_wizard.py:816: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (13/12)
+marine_wizard.py:1574: [R0912(too-many-branches), Page4.updateSailLineOverhead] Too many branches (13/12)
+marine_wizard.py:1876: [R1719(simplifiable-if-expression), Page5.updateParentSurvey] The if expression can be replaced with 'test'
 ************* Module roll.my_numerics
 my_numerics.py:33: [R1714(consider-using-in), MyNumericParameterItem.makeWidget] Consider merging these comparisons with 'in' by using 't in ('int', 'myInt')'. Use a set instead if elements are hashable.
-************* Module roll.my_n_vector
-my_n_vector.py:48: [R1735(use-dict-literal), MyNVectorParameter.__init__] Consider using '{"name": 'count', "type": 'int', "value": self.count, "default": self.count, ... }' instead of a call to 'dict'.
-my_n_vector.py:49: [R1735(use-dict-literal), MyNVectorParameter.__init__] Consider using '{"name": 'direction', "type": 'myVector', "value": self.vector, "default": self.vector, ... }' instead of a call to 'dict'.
 ************* Module roll.my_parameters
 my_parameters.py:756: [C0301(line-too-long), ] Line too long (253/210)
 my_parameters.py:803: [C0301(line-too-long), ] Line too long (225/210)
@@ -87,222 +57,61 @@ my_parameters.py:2181: [C0301(line-too-long), ] Line too long (218/210)
 my_parameters.py:1400: [W0511(fixme), ] todo: check why seed = 0 for circle, spiral and well
 my_parameters.py:1966: [W0511(fixme), ] todo: check necessity of this statement
 my_parameters.py:2000: [W0511(fixme), ] todo: check necessity of this statement
-my_parameters.py:150: [R1735(use-dict-literal), MyBinAnglesParameter.__init__] Consider using '{"name": 'Min azimuth', "value": self.angles.azimuthal.x(), "default": self.angles.azimuthal.x(), ... }' instead of a call to 'dict'.
-my_parameters.py:151: [R1735(use-dict-literal), MyBinAnglesParameter.__init__] Consider using '{"name": 'Max azimuth', "value": self.angles.azimuthal.y(), "default": self.angles.azimuthal.y(), ... }' instead of a call to 'dict'.
-my_parameters.py:152: [R1735(use-dict-literal), MyBinAnglesParameter.__init__] Consider using '{"name": 'Min inclination', "value": self.angles.reflection.x(), "default": self.angles.reflection.x(), ... }' instead of a call to 'dict'.
-my_parameters.py:153: [R1735(use-dict-literal), MyBinAnglesParameter.__init__] Consider using '{"name": 'Max inclination', "value": self.angles.reflection.y(), "default": self.angles.reflection.y(), ... }' instead of a call to 'dict'.
-my_parameters.py:228: [R1735(use-dict-literal), MyBinOffsetParameter.__init__] Consider using '{"name": 'Min x-offset', "value": self.offset.rctOffsets.left(), "default": self.offset.rctOffsets.left(), ... }' instead of a call to 'dict'.
-my_parameters.py:229: [R1735(use-dict-literal), MyBinOffsetParameter.__init__] Consider using '{"name": 'Max x-offset', "value": self.offset.rctOffsets.right(), "default": self.offset.rctOffsets.right(), ... }' instead of a call to 'dict'.
-my_parameters.py:230: [R1735(use-dict-literal), MyBinOffsetParameter.__init__] Consider using '{"name": 'Min y-offset', "value": self.offset.rctOffsets.top(), "default": self.offset.rctOffsets.top(), ... }' instead of a call to 'dict'.
-my_parameters.py:231: [R1735(use-dict-literal), MyBinOffsetParameter.__init__] Consider using '{"name": 'Max y-offset', "value": self.offset.rctOffsets.bottom()}' instead of a call to 'dict'.
-my_parameters.py:232: [R1735(use-dict-literal), MyBinOffsetParameter.__init__] Consider using '{"name": 'Min r-offset', "value": self.offset.radOffsets.x(), "default": self.offset.radOffsets.x(), ... }' instead of a call to 'dict'.
-my_parameters.py:233: [R1735(use-dict-literal), MyBinOffsetParameter.__init__] Consider using '{"name": 'Max r-offset', "value": self.offset.radOffsets.y(), "default": self.offset.radOffsets.y(), ... }' instead of a call to 'dict'.
-my_parameters.py:309: [R1735(use-dict-literal), MyUniqOffParameter.__init__] Consider using '{"name": 'Apply pruning', "value": self.unique.apply, "default": self.unique.apply, ... }' instead of a call to 'dict'.
-my_parameters.py:310: [R1735(use-dict-literal), MyUniqOffParameter.__init__] Consider using '{"name": 'Write rounded', "value": self.unique.write, "default": self.unique.write, ... }' instead of a call to 'dict'.
-my_parameters.py:311: [R1735(use-dict-literal), MyUniqOffParameter.__init__] Consider using '{"name": 'Delta offset', "value": self.unique.dOffset, "default": self.unique.dOffset, ... }' instead of a call to 'dict'.
-my_parameters.py:312: [R1735(use-dict-literal), MyUniqOffParameter.__init__] Consider using '{"name": 'Delta azimuth', "value": self.unique.dAzimuth, "default": self.unique.dAzimuth, ... }' instead of a call to 'dict'.
-my_parameters.py:373: [R1735(use-dict-literal), MyBinMethodParameter.__init__] Consider using '{"name": 'Binning method', "type": 'myList', "value": BinningList[binningMethod], ... }' instead of a call to 'dict'.
-my_parameters.py:374: [R1735(use-dict-literal), MyBinMethodParameter.__init__] Consider using '{"name": 'Interval velocity', "type": 'float', "value": self.binning.vint, ... }' instead of a call to 'dict'.
-my_parameters.py:439: [R1735(use-dict-literal), MyPlaneParameter.__init__] Consider using '{"name": 'Plane anchor', "type": 'myPoint3D', "value": self.plane.anchor, ... }' instead of a call to 'dict'.
-my_parameters.py:440: [R1735(use-dict-literal), MyPlaneParameter.__init__] Consider using '{"name": 'Plane azimuth', "type": 'float', "value": self.plane.azi, ... }' instead of a call to 'dict'.
-my_parameters.py:441: [R1735(use-dict-literal), MyPlaneParameter.__init__] Consider using '{"name": 'Plane dip', "type": 'float', "value": self.plane.dip, "default": self.plane.dip, ... }' instead of a call to 'dict'.
-my_parameters.py:501: [R1735(use-dict-literal), MySphereParameter.__init__] Consider using '{"name": 'Sphere origin', "type": 'myPoint3D', "value": self.sphere.origin, ... }' instead of a call to 'dict'.
-my_parameters.py:502: [R1735(use-dict-literal), MySphereParameter.__init__] Consider using '{"name": 'Sphere radius', "type": 'float', "value": self.sphere.radius, ... }' instead of a call to 'dict'.
-my_parameters.py:564: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Bin size [x]', "value": self.binGrid.binSize.x(), "default": self.binGrid.binSize.x(), ... }' instead of a call to 'dict'.
-my_parameters.py:565: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Bin size [y]', "value": self.binGrid.binSize.y(), "default": self.binGrid.binSize.y(), ... }' instead of a call to 'dict'.
-my_parameters.py:566: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Bin offset [x]', "value": self.binGrid.binShift.x(), "default": self.binGrid.binShift.x(), ... }' instead of a call to 'dict'.
-my_parameters.py:567: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Bin offset [y]', "value": self.binGrid.binShift.y(), "default": self.binGrid.binShift.y(), ... }' instead of a call to 'dict'.
-my_parameters.py:568: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Stake nr @ origin', "value": self.binGrid.stakeOrig.x()}' instead of a call to 'dict'.
-my_parameters.py:569: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Line nr @ origin', "value": self.binGrid.stakeOrig.y(), "default": self.binGrid.stakeOrig.y(), ... }' instead of a call to 'dict'.
-my_parameters.py:570: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Stake increments', "value": self.binGrid.stakeSize.x(), "default": self.binGrid.stakeSize.x(), ... }' instead of a call to 'dict'.
-my_parameters.py:571: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Line increments', "value": self.binGrid.stakeSize.y(), "default": self.binGrid.stakeSize.y(), ... }' instead of a call to 'dict'.
-my_parameters.py:572: [R1735(use-dict-literal), MyLocalGridParameter.__init__] Consider using '{"name": 'Max fold', "value": self.binGrid.fold, "default": self.binGrid.fold, ... }' instead of a call to 'dict'.
-my_parameters.py:646: [R1735(use-dict-literal), MyGlobalGridParameter.__init__] Consider using '{"name": 'Bin origin   [E]', "value": self.binGrid.orig.x(), "default": self.binGrid.orig.x(), ... }' instead of a call to 'dict'.
-my_parameters.py:647: [R1735(use-dict-literal), MyGlobalGridParameter.__init__] Consider using '{"name": 'Bin origin   [N]', "value": self.binGrid.orig.y(), "default": self.binGrid.orig.y(), ... }' instead of a call to 'dict'.
-my_parameters.py:648: [R1735(use-dict-literal), MyGlobalGridParameter.__init__] Consider using '{"name": 'Scale factor [E]', "value": self.binGrid.scale.x(), "default": self.binGrid.scale.x(), ... }' instead of a call to 'dict'.
-my_parameters.py:649: [R1735(use-dict-literal), MyGlobalGridParameter.__init__] Consider using '{"name": 'Scale factor [N]', "value": self.binGrid.scale.y(), "default": self.binGrid.scale.y(), ... }' instead of a call to 'dict'.
-my_parameters.py:650: [R1735(use-dict-literal), MyGlobalGridParameter.__init__] Consider using '{"name": 'Azimuth', "value": self.binGrid.angle, "default": self.binGrid.angle, ... }' instead of a call to 'dict'.
 my_parameters.py:690: [R1702(too-many-nested-blocks), MyBlockParameterItem.showPreviewInformation] Too many nested blocks (7/5)
-my_parameters.py:754: [R1735(use-dict-literal), MyBlockParameter.__init__] Consider using '{"name": 'Source boundary', "type": 'myRectF', "value": self.block.borders.srcBorder, ... }' instead of a call to 'dict'.
-my_parameters.py:755: [R1735(use-dict-literal), MyBlockParameter.__init__] Consider using '{"name": 'Receiver boundary', "type": 'myRectF', "value": self.block.borders.recBorder, ... }' instead of a call to 'dict'.
-my_parameters.py:756: [R1735(use-dict-literal), MyBlockParameter.__init__] Consider using '{"name": 'Template list', "type": 'myTemplateList', "value": self.block.templateList, ... }' instead of a call to 'dict'.
-my_parameters.py:803: [R1735(use-dict-literal), MyBlockParameter.contextMenu] Consider using '{"name": block.name, "type": 'myBlock', "value": block, "default": block, ... }' instead of a call to 'dict'.
-my_parameters.py:812: [R1735(use-dict-literal), MyBlockParameter.contextMenu] Consider using '{"name": block.name, "type": 'myBlock', "value": block, "default": block, ... }' instead of a call to 'dict'.
-my_parameters.py:897: [R1735(use-dict-literal), MyTemplateParameter.__init__] Consider using '{"name": 'Roll steps', "type": 'myRollList', "value": self.template.rollList, ... }' instead of a call to 'dict'.
-my_parameters.py:898: [R1735(use-dict-literal), MyTemplateParameter.__init__] Consider using '{"name": 'Seed list', "type": 'myTemplateSeedList', "value": self.template.seedList, ... }' instead of a call to 'dict'.
-my_parameters.py:941: [R1735(use-dict-literal), MyTemplateParameter.contextMenu] Consider using '{"name": template.name, "type": 'myTemplate', "value": template, "default": template, ... }' instead of a call to 'dict'.
-my_parameters.py:950: [R1735(use-dict-literal), MyTemplateParameter.contextMenu] Consider using '{"name": template.name, "type": 'myTemplate', "value": template, "default": template, ... }' instead of a call to 'dict'.
-my_parameters.py:1005: [R1735(use-dict-literal), MyRollListParameter.__init__] Consider using '{"name": 'Planes', "type": 'myRoll', "expanded": False, "flat": True, ... }' instead of a call to 'dict'.
-my_parameters.py:1006: [R1735(use-dict-literal), MyRollListParameter.__init__] Consider using '{"name": 'Lines', "type": 'myRoll', "expanded": False, "flat": True, ... }' instead of a call to 'dict'.
-my_parameters.py:1007: [R1735(use-dict-literal), MyRollListParameter.__init__] Consider using '{"name": 'Points', "type": 'myRoll', "expanded": False, "flat": True, ... }' instead of a call to 'dict'.
-my_parameters.py:1070: [R1735(use-dict-literal), MyRollParameter.__init__] Consider using '{"name": 'N', "type": 'int', "limits": [1, None], "value": self.row.steps, ... }' instead of a call to 'dict'.
-my_parameters.py:1071: [R1735(use-dict-literal), MyRollParameter.__init__] Consider using '{"name": 'dX', "type": 'float', "decimals": d, "suffix": s, "value": self.row.increment.x(), ... }' instead of a call to 'dict'.
-my_parameters.py:1072: [R1735(use-dict-literal), MyRollParameter.__init__] Consider using '{"name": 'dY', "type": 'float', "decimals": d, "suffix": s, "value": self.row.increment.y(), ... }' instead of a call to 'dict'.
-my_parameters.py:1073: [R1735(use-dict-literal), MyRollParameter.__init__] Consider using '{"name": 'dZ', "type": 'float', "decimals": d, "suffix": s, "value": self.row.increment.z(), ... }' instead of a call to 'dict'.
-my_parameters.py:1074: [R1735(use-dict-literal), MyRollParameter.__init__] Consider using '{"name": 'azim', "type": 'myFloat', "decimals": d, "suffix": 'deg', ... }' instead of a call to 'dict'.
-my_parameters.py:1075: [R1735(use-dict-literal), MyRollParameter.__init__] Consider using '{"name": 'tilt', "type": 'myFloat', "decimals": d, "suffix": 'deg', ... }' instead of a call to 'dict'.
-my_parameters.py:1147: [R1735(use-dict-literal), MyRollParameter.contextMenu] Consider using '{"name": name1, "type": 'myRoll', "value": move0, "default": move0, ... }' instead of a call to 'dict'.
-my_parameters.py:1148: [R1735(use-dict-literal), MyRollParameter.contextMenu] Consider using '{"name": name0, "type": 'myRoll', "value": move1, "default": move1, ... }' instead of a call to 'dict'.
-my_parameters.py:1171: [R1735(use-dict-literal), MyRollParameter.contextMenu] Consider using '{"name": name0, "type": 'myRoll', "value": move1, "default": move1, ... }' instead of a call to 'dict'.
-my_parameters.py:1172: [R1735(use-dict-literal), MyRollParameter.contextMenu] Consider using '{"name": name1, "type": 'myRoll', "value": move0, "default": move0, ... }' instead of a call to 'dict'.
 my_parameters.py:1211: [R1714(consider-using-in), MySeedListParameterItem.showPreviewInformation] Consider merging these comparisons with 'in' by using 'nSource in (0, nChilds)'. Use a set instead if elements are hashable.
-my_parameters.py:1248: [R1735(use-dict-literal), MySeedListParameter.__init__] Consider using '{"name": seed.name, "type": 'myTemplateSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
-my_parameters.py:1289: [R1735(use-dict-literal), MySeedListParameter.contextMenu] Consider using '{"name": newName, "type": 'myTemplateSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
-my_parameters.py:1339: [R1735(use-dict-literal), MyPatternSeedListParameter.__init__] Consider using '{"name": seed.name, "type": 'myPatternSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
-my_parameters.py:1368: [R1735(use-dict-literal), MyPatternSeedListParameter.contextMenu] Consider using '{"name": newName, "type": 'myPatternSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
 my_parameters.py:1390: [R1714(consider-using-in), MySeedParameterItem.showPreviewInformation] Consider merging these comparisons with 'in' by using 'seedType in ('Circle', 'Spiral', 'Well')'. Use a set instead if elements are hashable.
-my_parameters.py:1448: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Seed type', "type": 'myList', "value": self.seedTypes[self.seed.type], ... }' instead of a call to 'dict'.
-my_parameters.py:1449: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Source seed', "type": 'bool', "value": self.seed.bSource, ... }' instead of a call to 'dict'.
-my_parameters.py:1450: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Seed color', "type": 'color', "value": self.seed.color, "default": self.seed.color, ... }' instead of a call to 'dict'.
-my_parameters.py:1451: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Seed origin', "type": 'myPoint3D', "value": self.seed.origin, ... }' instead of a call to 'dict'.
-my_parameters.py:1453: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Seed pattern', "type": 'myList', "value": patterns[nPattern], ... }' instead of a call to 'dict'.
-my_parameters.py:1454: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Grid grow steps', "type": 'myRollList', "value": self.seed.grid.growList, ... }' instead of a call to 'dict'.
-my_parameters.py:1456: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Circle grow steps', "type": 'myCircle', "value": self.seed.circle, ... }' instead of a call to 'dict'.
-my_parameters.py:1457: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Spiral grow steps', "type": 'mySpiral', "value": self.seed.spiral, ... }' instead of a call to 'dict'.
-my_parameters.py:1458: [R1735(use-dict-literal), MySeedParameter.__init__] Consider using '{"name": 'Well grow steps', "type": 'myWell', "value": self.seed.well, ... }' instead of a call to 'dict'.
 my_parameters.py:1505: [R1714(consider-using-in), MySeedParameter.typeChanged] Consider merging these comparisons with 'in' by using 'seedType in ('Grid (roll along)', 'Grid (stationary)')'. Use a set instead if elements are hashable.
 my_parameters.py:1506: [R1714(consider-using-in), MySeedParameter.typeChanged] Consider merging these comparisons with 'in' by using 'seedType in ('Grid (roll along)', 'Grid (stationary)')'. Use a set instead if elements are hashable.
-my_parameters.py:1569: [R1735(use-dict-literal), MySeedParameter.contextMenu] Consider using '{"name": seed.name, "type": 'myTemplateSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
-my_parameters.py:1578: [R1735(use-dict-literal), MySeedParameter.contextMenu] Consider using '{"name": seed.name, "type": 'myTemplateSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
-my_parameters.py:1631: [R1735(use-dict-literal), MyPatternSeedParameter.__init__] Consider using '{"name": 'Seed color', "type": 'color', "value": self.seed.color, "default": self.seed.color, ... }' instead of a call to 'dict'.
-my_parameters.py:1632: [R1735(use-dict-literal), MyPatternSeedParameter.__init__] Consider using '{"name": 'Seed origin', "type": 'myPoint3D', "value": self.seed.origin, ... }' instead of a call to 'dict'.
-my_parameters.py:1633: [R1735(use-dict-literal), MyPatternSeedParameter.__init__] Consider using '{"name": 'Grid grow steps', "type": 'myRollList', "value": self.seed.grid.growList, ... }' instead of a call to 'dict'.
-my_parameters.py:1682: [R1735(use-dict-literal), MyPatternSeedParameter.contextMenu] Consider using '{"name": seed.name, "type": 'myPatternSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
-my_parameters.py:1691: [R1735(use-dict-literal), MyPatternSeedParameter.contextMenu] Consider using '{"name": seed.name, "type": 'myPatternSeed', "value": seed, "default": seed, ... }' instead of a call to 'dict'.
-my_parameters.py:1745: [R1735(use-dict-literal), MyCircleParameter.__init__] Consider using '{"name": 'Radius', "value": self.circle.radius, "default": self.circle.radius, ... }' instead of a call to 'dict'.
-my_parameters.py:1746: [R1735(use-dict-literal), MyCircleParameter.__init__] Consider using '{"name": 'Start angle', "value": self.circle.azi0, "default": self.circle.azi0, ... }' instead of a call to 'dict'.
-my_parameters.py:1747: [R1735(use-dict-literal), MyCircleParameter.__init__] Consider using '{"name": 'Point interval', "value": self.circle.dist, "default": self.circle.dist, ... }' instead of a call to 'dict'.
-my_parameters.py:1748: [R1735(use-dict-literal), MyCircleParameter.__init__] Consider using '{"name": 'Points', "value": self.circle.points, "default": self.circle.points, ... }' instead of a call to 'dict'.
-my_parameters.py:1812: [R1735(use-dict-literal), MySpiralParameter.__init__] Consider using '{"name": 'Min radius', "value": self.spiral.radMin, "default": self.spiral.radMin, ... }' instead of a call to 'dict'.
-my_parameters.py:1813: [R1735(use-dict-literal), MySpiralParameter.__init__] Consider using '{"name": 'Max radius', "value": self.spiral.radMax, "default": self.spiral.radMax, ... }' instead of a call to 'dict'.
-my_parameters.py:1814: [R1735(use-dict-literal), MySpiralParameter.__init__] Consider using '{"name": 'Radius incr', "value": self.spiral.radInc, "default": self.spiral.radInc, ... }' instead of a call to 'dict'.
-my_parameters.py:1815: [R1735(use-dict-literal), MySpiralParameter.__init__] Consider using '{"name": 'Start angle', "value": self.spiral.azi0, "default": self.spiral.azi0, ... }' instead of a call to 'dict'.
-my_parameters.py:1816: [R1735(use-dict-literal), MySpiralParameter.__init__] Consider using '{"name": 'Point interval', "value": self.spiral.dist, "default": self.spiral.dist, ... }' instead of a call to 'dict'.
-my_parameters.py:1817: [R1735(use-dict-literal), MySpiralParameter.__init__] Consider using '{"name": 'Points', "value": self.spiral.points, "default": self.spiral.points, ... }' instead of a call to 'dict'.
-my_parameters.py:1909: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'Well file', "type": 'file', "value": f, "default": f, "selectFile": f, ... }' instead of a call to 'dict'.
-my_parameters.py:1911: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'Well CRS', "type": 'myCrs', "value": self.well.crs, "default": self.well.crs, ... }' instead of a call to 'dict'.
-my_parameters.py:1912: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'Origin [well]', "type": 'myPoint3D', "value": self.well.origW, ... }' instead of a call to 'dict'.
-my_parameters.py:1913: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'Origin [global]', "type": 'myPoint2D', "value": self.well.origG, ... }' instead of a call to 'dict'.
-my_parameters.py:1914: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'Origin [local]', "type": 'myPoint2D', "value": self.well.origL, ... }' instead of a call to 'dict'.
-my_parameters.py:1916: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'AHD start', "type": 'float', "value": self.well.ahd0, "default": self.well.ahd0, ... }' instead of a call to 'dict'.
-my_parameters.py:1917: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'AHD interval', "type": 'float', "value": self.well.dAhd}' instead of a call to 'dict'.
-my_parameters.py:1918: [R1735(use-dict-literal), MyWellParameter.__init__] Consider using '{"name": 'Points', "type": 'int', "value": self.well.nAhd, "default": self.well.nAhd, ... }' instead of a call to 'dict'.
-my_parameters.py:2108: [R1735(use-dict-literal), MyTemplateListParameter.__init__] Consider using '{"name": template.name, "type": 'myTemplate', "value": template, "default": template, ... }' instead of a call to 'dict'.
-my_parameters.py:2143: [R1735(use-dict-literal), MyTemplateListParameter.contextMenu] Consider using '{"name": newName, "type": 'myTemplate', "value": template, "default": template, ... }' instead of a call to 'dict'.
-my_parameters.py:2181: [R1735(use-dict-literal), MyBlockListParameter.__init__] Consider using '{"name": block.name, "type": 'myBlock', "value": block, "default": block, ... }' instead of a call to 'dict'.
-my_parameters.py:2219: [R1735(use-dict-literal), MyBlockListParameter.contextMenu] Consider using '{"name": newName, "type": 'myBlock', "value": block, "default": block, ... }' instead of a call to 'dict'.
-my_parameters.py:2286: [R1735(use-dict-literal), MyPatternParameter.__init__] Consider using '{"name": 'Seed list', "type": 'myPatternSeedList', "value": self.pattern.seedList, ... }' instead of a call to 'dict'.
-my_parameters.py:2329: [R1735(use-dict-literal), MyPatternParameter.contextMenu] Consider using '{"name": pattern.name, "type": 'myPattern', "value": pattern, "default": pattern, ... }' instead of a call to 'dict'.
-my_parameters.py:2341: [R1735(use-dict-literal), MyPatternParameter.contextMenu] Consider using '{"name": pattern.name, "type": 'myPattern', "value": pattern, "default": pattern, ... }' instead of a call to 'dict'.
-my_parameters.py:2378: [R1735(use-dict-literal), MyPatternListParameter.__init__] Consider using '{"name": pattern.name, "type": 'myPattern', "value": pattern, "default": pattern, ... }' instead of a call to 'dict'.
-my_parameters.py:2444: [R1735(use-dict-literal), MyPatternListParameter.contextMenu] Consider using '{"name": newName, "type": 'myPattern', "value": pattern, "default": pattern, ... }' instead of a call to 'dict'.
-my_parameters.py:2499: [R1735(use-dict-literal), MyGridParameter.__init__] Consider using '{"name": 'Local grid', "value": self.binGrid, "default": self.binGrid, ... }' instead of a call to 'dict'.
-my_parameters.py:2500: [R1735(use-dict-literal), MyGridParameter.__init__] Consider using '{"name": 'Global grid', "value": self.binGrid, "default": self.binGrid, ... }' instead of a call to 'dict'.
-my_parameters.py:2557: [R1735(use-dict-literal), MyAnalysisParameter.__init__] Consider using '{"name": 'Binning area', "type": 'myRectF', "value": self.area, "default": self.area, ... }' instead of a call to 'dict'.
-my_parameters.py:2558: [R1735(use-dict-literal), MyAnalysisParameter.__init__] Consider using '{"name": 'Binning angles', "type": 'myBinAngles', "value": self.angles, ... }' instead of a call to 'dict'.
-my_parameters.py:2559: [R1735(use-dict-literal), MyAnalysisParameter.__init__] Consider using '{"name": 'Binning offsets', "type": 'myBinOffset', "value": self.offset, ... }' instead of a call to 'dict'.
-my_parameters.py:2560: [R1735(use-dict-literal), MyAnalysisParameter.__init__] Consider using '{"name": 'Unique offsets', "type": 'myUniqOff', "value": self.unique, ... }' instead of a call to 'dict'.
-my_parameters.py:2561: [R1735(use-dict-literal), MyAnalysisParameter.__init__] Consider using '{"name": 'Binning method', "type": 'myBinMethod', "value": self.binning, ... }' instead of a call to 'dict'.
-my_parameters.py:2607: [R1735(use-dict-literal), MyReflectorsParameter.__init__] Consider using '{"name": 'Dipping plane', "type": 'myPlane', "value": self.plane, "default": self.plane, ... }' instead of a call to 'dict'.
-my_parameters.py:2608: [R1735(use-dict-literal), MyReflectorsParameter.__init__] Consider using '{"name": 'Buried sphere', "type": 'mySphere', "value": self.sphere, ... }' instead of a call to 'dict'.
-my_parameters.py:2652: [R1735(use-dict-literal), MyConfigurationParameter.__init__] Consider using '{"name": 'Survey CRS', "type": 'myCrs2', "value": self.crs, "default": self.crs, ... }' instead of a call to 'dict'.
-my_parameters.py:2653: [R1735(use-dict-literal), MyConfigurationParameter.__init__] Consider using '{"name": 'Survey type', "type": 'myList', "value": self.typ.name, "default": self.typ.name, ... }' instead of a call to 'dict'.
-my_parameters.py:2654: [R1735(use-dict-literal), MyConfigurationParameter.__init__] Consider using '{"name": 'Survey name', "type": 'str', "value": self.nam, "default": self.nam, ... }' instead of a call to 'dict'.
-my_parameters.py:2714: [R1735(use-dict-literal), MySurveyParameter.__init__] Consider using '{"brush": brush, "name": 'Survey configuration', "type": 'myConfiguration', ... }' instead of a call to 'dict'.
-my_parameters.py:2715: [R1735(use-dict-literal), MySurveyParameter.__init__] Consider using '{"brush": brush, "name": 'Survey analysis', "type": 'myAnalysis', "value": self.survey, ... }' instead of a call to 'dict'.
-my_parameters.py:2716: [R1735(use-dict-literal), MySurveyParameter.__init__] Consider using '{"brush": brush, "name": 'Survey reflectors', "type": 'myReflectors', ... }' instead of a call to 'dict'.
-my_parameters.py:2717: [R1735(use-dict-literal), MySurveyParameter.__init__] Consider using '{"brush": brush, "name": 'Survey grid', "type": 'myGrid', "value": self.survey.grid, ... }' instead of a call to 'dict'.
-my_parameters.py:2718: [R1735(use-dict-literal), MySurveyParameter.__init__] Consider using '{"brush": brush, "name": 'Block list', "type": 'myBlockList', "value": self.survey.blockList, ... }' instead of a call to 'dict'.
-my_parameters.py:2719: [R1735(use-dict-literal), MySurveyParameter.__init__] Consider using '{"brush": brush, "name": 'Pattern list', "type": 'myPatternList', "value": self.survey.patternList, ... }' instead of a call to 'dict'.
-************* Module roll.my_point2D
-my_point2D.py:46: [R1735(use-dict-literal), MyPoint2DParameter.__init__] Consider using '{"name": 'X', "type": 'myFloat', "value": self.point.x(), "default": self.point.x(), ... }' instead of a call to 'dict'.
-my_point2D.py:47: [R1735(use-dict-literal), MyPoint2DParameter.__init__] Consider using '{"name": 'Y', "type": 'myFloat', "value": self.point.y(), "default": self.point.y(), ... }' instead of a call to 'dict'.
-************* Module roll.my_point3D
-my_point3D.py:46: [R1735(use-dict-literal), MyPoint3DParameter.__init__] Consider using '{"name": 'X', "type": 'myFloat', "value": self.vector.x(), "default": self.vector.x(), ... }' instead of a call to 'dict'.
-my_point3D.py:47: [R1735(use-dict-literal), MyPoint3DParameter.__init__] Consider using '{"name": 'Y', "type": 'myFloat', "value": self.vector.y(), "default": self.vector.y(), ... }' instead of a call to 'dict'.
-my_point3D.py:48: [R1735(use-dict-literal), MyPoint3DParameter.__init__] Consider using '{"name": 'Z', "type": 'myFloat', "value": self.vector.z(), "default": self.vector.z(), ... }' instead of a call to 'dict'.
 ************* Module roll.my_range
 my_range.py:42: [R1719(simplifiable-if-expression), MyRangeParameter.__init__] The if expression can be replaced with 'test'
 my_range.py:43: [R1719(simplifiable-if-expression), MyRangeParameter.__init__] The if expression can be replaced with 'test'
-my_range.py:52: [R1735(use-dict-literal), MyRangeParameter.__init__] Consider using '{"name": 'Min', "type": 'myFloat', "value": self.range.x(), "default": self.range.x(), ... }' instead of a call to 'dict'.
-my_range.py:53: [R1735(use-dict-literal), MyRangeParameter.__init__] Consider using '{"name": 'Max', "type": 'myFloat', "value": self.range.y(), "default": self.range.y(), ... }' instead of a call to 'dict'.
-my_range.py:54: [R1735(use-dict-literal), MyRangeParameter.__init__] Consider using '{"name": 'Step', "type": 'myFloat', "value": self.range.z(), "default": self.range.z(), ... }' instead of a call to 'dict'.
-my_range.py:55: [R1735(use-dict-literal), MyRangeParameter.__init__] Consider using '{"name": 'Points', "type": 'myInt', "value": pntRange, "default": pntRange, ... }' instead of a call to 'dict'.
-my_range.py:56: [R1735(use-dict-literal), MyRangeParameter.__init__] Consider using '{"name": 'Points 2D', "type": 'myInt', "value": pntRange**2, "default": pntRange**2, ... }' instead of a call to 'dict'.
-************* Module roll.my_rectf
-my_rectf.py:48: [R1735(use-dict-literal), MyRectParameter.__init__] Consider using '{"name": 'Xmin', "type": 'myFloat', "decimals": d, "enabled": e, "readonly": r, ... }' instead of a call to 'dict'.
-my_rectf.py:49: [R1735(use-dict-literal), MyRectParameter.__init__] Consider using '{"name": 'Xmax', "type": 'myFloat', "decimals": d, "enabled": e, "readonly": r, ... }' instead of a call to 'dict'.
-my_rectf.py:50: [R1735(use-dict-literal), MyRectParameter.__init__] Consider using '{"name": 'Ymin', "type": 'myFloat', "decimals": d, "enabled": e, "readonly": r, ... }' instead of a call to 'dict'.
-my_rectf.py:51: [R1735(use-dict-literal), MyRectParameter.__init__] Consider using '{"name": 'Ymax', "type": 'myFloat', "decimals": d, "enabled": e, "readonly": r, ... }' instead of a call to 'dict'.
-************* Module roll.my_slider
-my_slider.py:127: [R1735(use-dict-literal), MySliderParameterItem.limitsChanged] Consider using '{"limits": limits}' instead of a call to 'dict'.
-************* Module roll.my_vector
-my_vector.py:47: [R1735(use-dict-literal), MyVectorParameter.__init__] Consider using '{"name": 'dX', "type": 'float', "value": self.vector.x(), "default": self.vector.x(), ... }' instead of a call to 'dict'.
-my_vector.py:48: [R1735(use-dict-literal), MyVectorParameter.__init__] Consider using '{"name": 'dY', "type": 'float', "value": self.vector.y(), "default": self.vector.y(), ... }' instead of a call to 'dict'.
-my_vector.py:49: [R1735(use-dict-literal), MyVectorParameter.__init__] Consider using '{"name": 'dZ', "type": 'float', "value": self.vector.z(), "default": self.vector.z(), ... }' instead of a call to 'dict'.
-my_vector.py:50: [R1735(use-dict-literal), MyVectorParameter.__init__] Consider using '{"name": 'azimuth', "type": 'myFloat', "value": 0.0, "default": 0.0, ... }' instead of a call to 'dict'.
-my_vector.py:51: [R1735(use-dict-literal), MyVectorParameter.__init__] Consider using '{"name": 'tilt', "type": 'myFloat', "value": 0.0, "default": 0.0, "enabled": False, ... }' instead of a call to 'dict'.
+************* Module roll.plot_redraw_helper
+plot_redraw_helper.py:17: [R0904(too-many-public-methods), PlotRedrawHelper] Too many public methods (27/20)
 ************* Module roll.project_service
-project_service.py:305: [C0301(line-too-long), ] Line too long (236/210)
-project_service.py:102: [R0913(too-many-arguments), ProjectService.writeProjectXml] Too many arguments (6/5)
-project_service.py:102: [R0917(too-many-positional-arguments), ProjectService.writeProjectXml] Too many positional arguments (6/5)
-project_service.py:207: [R0913(too-many-arguments), ProjectService.saveSurveyDataSidecars] Too many arguments (8/5)
-project_service.py:222: [R0912(too-many-branches), ProjectService._loadAnalysisArraySidecars] Too many branches (16/12)
+project_service.py:347: [C0301(line-too-long), ] Line too long (236/210)
+project_service.py:104: [R0913(too-many-arguments), ProjectService.writeProjectXml] Too many arguments (6/5)
+project_service.py:104: [R0917(too-many-positional-arguments), ProjectService.writeProjectXml] Too many positional arguments (6/5)
+project_service.py:209: [R0913(too-many-arguments), ProjectService.saveSurveyDataSidecars] Too many arguments (8/5)
+project_service.py:264: [R0912(too-many-branches), ProjectService._loadAnalysisArraySidecars] Too many branches (16/12)
 ************* Module roll.qgis_layer_dialog
 qgis_layer_dialog.py:8: [R0913(too-many-arguments), LayerDialog.__init__] Too many arguments (6/5)
 qgis_layer_dialog.py:8: [R0917(too-many-positional-arguments), LayerDialog.__init__] Too many positional arguments (6/5)
-************* Module roll.radon_hr
-radon_hr.py:444: [C0305(trailing-newlines), ] Trailing newlines
-radon_hr.py:219: [R0913(too-many-arguments), adjoint_test] Too many arguments (6/5)
-radon_hr.py:219: [R0917(too-many-positional-arguments), adjoint_test] Too many positional arguments (6/5)
-radon_hr.py:245: [R0913(too-many-arguments), _apply_A] Too many arguments (8/5)
-radon_hr.py:245: [R0917(too-many-positional-arguments), _apply_A] Too many positional arguments (8/5)
-radon_hr.py:262: [R0913(too-many-arguments), irls_radon] Too many arguments (9/5)
-radon_hr.py:262: [R0917(too-many-positional-arguments), irls_radon] Too many positional arguments (9/5)
-************* Module roll.regex_testing
-regex_testing.py:15: [R1725(super-with-arguments), LineHighlighter.__init__] Consider using Python 3 style super() without arguments
-regex_testing.py:52: [R1725(super-with-arguments), CustomPlainTextEdit.__init__] Consider using Python 3 style super() without arguments
-regex_testing.py:60: [R1725(super-with-arguments), CustomPlainTextEdit.paintEvent] Consider using Python 3 style super() without arguments
 ************* Module roll.roll
-roll.py:120: [W0718(broad-exception-caught), enableRemoteDebugging] Catching too general exception Exception
-roll.py:107: [W0718(broad-exception-caught), enableRemoteDebugging] Catching too general exception Exception
-roll.py:186: [R0913(too-many-arguments), Roll.addAction] Too many arguments (10/5)
-roll.py:186: [R0917(too-many-positional-arguments), Roll.addAction] Too many positional arguments (10/5)
+roll.py:119: [W0718(broad-exception-caught), enableRemoteDebugging] Catching too general exception Exception
+roll.py:106: [W0718(broad-exception-caught), enableRemoteDebugging] Catching too general exception Exception
+roll.py:185: [R0913(too-many-arguments), Roll.addAction] Too many arguments (10/5)
+roll.py:185: [R0917(too-many-positional-arguments), Roll.addAction] Too many positional arguments (10/5)
 ************* Module roll.roll_main_window
-roll_main_window.py:367: [R1725(super-with-arguments), RollMainWindow.__init__] Consider using Python 3 style super() without arguments
-roll_main_window.py:953: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey configuration', "type": 'myConfiguration', ... }' instead of a call to 'dict'.
-roll_main_window.py:954: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey analysis', "type": 'myAnalysis', "value": surveyCopy, ... }' instead of a call to 'dict'.
-roll_main_window.py:955: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey reflectors', "type": 'myReflectors', ... }' instead of a call to 'dict'.
-roll_main_window.py:956: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Survey grid', "type": 'myGrid', "value": surveyCopy.grid, ... }' instead of a call to 'dict'.
-roll_main_window.py:957: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Block list', "type": 'myBlockList', "value": surveyCopy.blockList, ... }' instead of a call to 'dict'.
-roll_main_window.py:958: [R1735(use-dict-literal), RollMainWindow.resetSurveyProperties] Consider using '{"brush": brush, "name": 'Pattern list', "type": 'myPatternList', "value": surveyCopy.patternList, ... }' instead of a call to 'dict'.
-roll_main_window.py:1138: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
-roll_main_window.py:1198: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
-roll_main_window.py:1198: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
-roll_main_window.py:1317: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
-roll_main_window.py:1317: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
-roll_main_window.py:1660: [R0912(too-many-branches), RollMainWindow.handleImageSelection] Too many branches (14/12)
-roll_main_window.py:1813: [R1716(chained-comparison), RollMainWindow.mouseMovedInPlot] Simplify chained comparison between the operands
-roll_main_window.py:1764: [R0912(too-many-branches), RollMainWindow.mouseMovedInPlot] Too many branches (20/12)
-roll_main_window.py:1837: [R1705(no-else-return), RollMainWindow.getVisiblePlotIndex] Unnecessary "elif" after "return", remove the leading "el" from "elif"
-roll_main_window.py:1836: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotIndex] Too many return statements (12/6)
-roll_main_window.py:1862: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotWidget] Too many return statements (12/6)
-roll_main_window.py:1888: [R0912(too-many-branches), RollMainWindow.updateVisiblePlotWidget] Too many branches (17/12)
-roll_main_window.py:2063: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
-roll_main_window.py:2534: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
-roll_main_window.py:2538: [R1716(chained-comparison), RollMainWindow.plotStkCel] Simplify chained comparison between the operands
-roll_main_window.py:2686: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2689: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2707: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2710: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2721: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2724: [R1716(chained-comparison), RollMainWindow.plotPatterns] Simplify chained comparison between the operands
-roll_main_window.py:2668: [R0912(too-many-branches), RollMainWindow.plotPatterns] Too many branches (14/12)
-roll_main_window.py:2921: [R1705(no-else-return), RollMainWindow.fileNew] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:3014: [R1705(no-else-return), RollMainWindow.maybeKillThread] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:3096: [R1705(no-else-return), RollMainWindow.resetAnaTableModel] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_main_window.py:3214: [R0912(too-many-branches), RollMainWindow.fileImportSpsData] Too many branches (31/12)
-roll_main_window.py:164: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (176/20)
+roll_main_window.py:1: [C0302(too-many-lines), ] Too many lines in module (4130/4000)
+roll_main_window.py:902: [R0913(too-many-arguments), RollMainWindow.createOffAziSectorPath] Too many arguments (6/5)
+roll_main_window.py:902: [R0917(too-many-positional-arguments), RollMainWindow.createOffAziSectorPath] Too many positional arguments (6/5)
+roll_main_window.py:993: [R0913(too-many-arguments), RollMainWindow.renderOffAziRectangular] Too many arguments (6/5)
+roll_main_window.py:993: [R0917(too-many-positional-arguments), RollMainWindow.renderOffAziRectangular] Too many positional arguments (6/5)
+roll_main_window.py:1015: [R0913(too-many-arguments), RollMainWindow.renderOffAziPolar] Too many arguments (6/5)
+roll_main_window.py:1015: [R0917(too-many-positional-arguments), RollMainWindow.renderOffAziPolar] Too many positional arguments (6/5)
+roll_main_window.py:1330: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
+roll_main_window.py:1390: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
+roll_main_window.py:1390: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
+roll_main_window.py:1509: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
+roll_main_window.py:1509: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
+roll_main_window.py:1976: [R1716(chained-comparison), RollMainWindow.mouseMovedInPlot] Simplify chained comparison between the operands
+roll_main_window.py:1927: [R0912(too-many-branches), RollMainWindow.mouseMovedInPlot] Too many branches (20/12)
+roll_main_window.py:2000: [R1705(no-else-return), RollMainWindow.getVisiblePlotIndex] Unnecessary "elif" after "return", remove the leading "el" from "elif"
+roll_main_window.py:1999: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotIndex] Too many return statements (12/6)
+roll_main_window.py:2025: [R0911(too-many-return-statements), RollMainWindow.getVisiblePlotWidget] Too many return statements (12/6)
+roll_main_window.py:2156: [R0911(too-many-return-statements), RollMainWindow.updateVisiblePlotWidget] Too many return statements (8/6)
+roll_main_window.py:2156: [R0912(too-many-branches), RollMainWindow.updateVisiblePlotWidget] Too many branches (20/12)
+roll_main_window.py:2347: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
+roll_main_window.py:2688: [R0913(too-many-arguments), RollMainWindow.createAnalysisImageItem] Too many arguments (7/5)
+roll_main_window.py:2688: [R0917(too-many-positional-arguments), RollMainWindow.createAnalysisImageItem] Too many positional arguments (7/5)
+roll_main_window.py:2698: [R0913(too-many-arguments), RollMainWindow.prepareAnalysisImageAndColorBar] Too many arguments (13/5)
+roll_main_window.py:2698: [R0917(too-many-positional-arguments), RollMainWindow.prepareAnalysisImageAndColorBar] Too many positional arguments (13/5)
+roll_main_window.py:2747: [R0913(too-many-arguments), RollMainWindow.prepareLayoutImageAndColorBar] Too many arguments (7/5)
+roll_main_window.py:2747: [R0917(too-many-positional-arguments), RollMainWindow.prepareLayoutImageAndColorBar] Too many positional arguments (7/5)
+roll_main_window.py:3308: [R1705(no-else-return), RollMainWindow.fileNew] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:3401: [R1705(no-else-return), RollMainWindow.maybeKillThread] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:3483: [R1705(no-else-return), RollMainWindow.resetAnaTableModel] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_main_window.py:165: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (207/20)
 ************* Module roll.roll_pattern
 roll_pattern.py:211: [W0511(fixme), ] todo: merge calcPatternPointLists() into calcPatternPointArrays()
 ************* Module roll.roll_pattern_seed
@@ -360,77 +169,37 @@ roll_survey.py:3132: [R0911(too-many-return-statements), RollSurvey.checkIntegri
 roll_survey.py:3132: [R0912(too-many-branches), RollSurvey.checkIntegrity] Too many branches (16/12)
 roll_survey.py:3273: [R0912(too-many-branches), RollSurvey.readXml] Too many branches (13/12)
 roll_survey.py:3393: [R1705(no-else-return), RollSurvey.boundingRect] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_survey.py:3545: [R0912(too-many-branches), RollSurvey._renderInvariantSeedsIntoBase] Too many branches (17/12)
-roll_survey.py:3622: [R1702(too-many-nested-blocks), RollSurvey._paintPassIntoProgressive] Too many nested blocks (7/5)
-roll_survey.py:3597: [R0912(too-many-branches), RollSurvey._paintPassIntoProgressive] Too many branches (22/12)
-roll_survey.py:3690: [R0912(too-many-branches), RollSurvey.paint] Too many branches (13/12)
-roll_survey.py:3754: [R0913(too-many-arguments), RollSurvey._paintTemplate] Too many arguments (7/5)
-roll_survey.py:3754: [R0917(too-many-positional-arguments), RollSurvey._paintTemplate] Too many positional arguments (7/5)
-roll_survey.py:3761: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (8/5)
-roll_survey.py:3761: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (9/5)
-roll_survey.py:3761: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (10/5)
-roll_survey.py:3754: [R0912(too-many-branches), RollSurvey._paintTemplate] Too many branches (52/12)
-roll_survey.py:3761: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (9/5)
+roll_survey.py:3546: [R0912(too-many-branches), RollSurvey._renderInvariantSeedsIntoBase] Too many branches (17/12)
+roll_survey.py:3626: [R1702(too-many-nested-blocks), RollSurvey._paintPassIntoProgressive] Too many nested blocks (7/5)
+roll_survey.py:3600: [R0912(too-many-branches), RollSurvey._paintPassIntoProgressive] Too many branches (22/12)
+roll_survey.py:3694: [R0912(too-many-branches), RollSurvey.paint] Too many branches (13/12)
+roll_survey.py:3758: [R0913(too-many-arguments), RollSurvey._paintTemplate] Too many arguments (7/5)
+roll_survey.py:3758: [R0917(too-many-positional-arguments), RollSurvey._paintTemplate] Too many positional arguments (7/5)
+roll_survey.py:3767: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (8/5)
+roll_survey.py:3767: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (9/5)
+roll_survey.py:3767: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (10/5)
+roll_survey.py:3758: [R0912(too-many-branches), RollSurvey._paintTemplate] Too many branches (52/12)
+roll_survey.py:3767: [R1702(too-many-nested-blocks), RollSurvey._paintTemplate] Too many nested blocks (9/5)
 roll_survey.py:140: [R0904(too-many-public-methods), RollSurvey] Too many public methods (47/20)
 ************* Module roll.roll_template
 roll_template.py:111: [R0912(too-many-branches), RollTemplate.calcBoundingRect] Too many branches (13/12)
 ************* Module roll.roll_well
 roll_well.py:110: [R0911(too-many-return-statements), RollWell.readHeader] Too many return statements (10/6)
 roll_well.py:110: [R0912(too-many-branches), RollWell.readHeader] Too many branches (15/12)
-roll_well.py:229: [R1723(no-else-break), RollWell.readWellHeader] Unnecessary "else" after "break", remove the "else" and de-indent the code inside it
-************* Module roll.settings
-settings.py:94: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Color Settings', "type": 'myGroup', "brush": '#add8e6', "children": [dict(name='Bin area color', type='color', value=QColor(config.binAreaColor), default=QColor(config.binAreaColor)), dict(name='Cmp area color', type='color', value=QColor(config.cmpAreaColor), default=QColor(config.cmpAreaColor)), dict(name='Rec area color', type='color', value=QColor(config.recAreaColor), default=QColor(config.recAreaColor)), dict(name='Src area color', type='color', value=QColor(config.srcAreaColor), default=QColor(config.srcAreaColor)), dict(name='Bin area pen', type='myPen', flat=True, expanded=False, value=binAreaPenParam, default=binAreaPenParam), dict(name='Cmp area pen', type='myPen', flat=True, expanded=False, value=cmpAreaPenParam, default=cmpAreaPenParam), dict(name='Rec area pen', type='myPen', flat=True, expanded=False, value=recAreaPenParam, default=recAreaPenParam), dict(name='Src area pen', type='myPen', flat=True, expanded=False, value=srcAreaPenParam, default=srcAreaPenParam), dict(name='Fold/offset color map', type='myCmap', value=config.foldDispCmap, default=config.foldDispCmap), dict(name='Analysis color map', type='myCmap', value=config.analysisCmap, default=config.analysisCmap)], ... }' instead of a call to 'dict'.
-settings.py:99: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Bin area color', "type": 'color', "value": QColor(config.binAreaColor), ... }' instead of a call to 'dict'.
-settings.py:100: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Cmp area color', "type": 'color', "value": QColor(config.cmpAreaColor), ... }' instead of a call to 'dict'.
-settings.py:101: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Rec area color', "type": 'color', "value": QColor(config.recAreaColor), ... }' instead of a call to 'dict'.
-settings.py:102: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Src area color', "type": 'color', "value": QColor(config.srcAreaColor), ... }' instead of a call to 'dict'.
-settings.py:103: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Bin area pen', "type": 'myPen', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:104: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Cmp area pen', "type": 'myPen', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:105: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Rec area pen', "type": 'myPen', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:106: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Src area pen', "type": 'myPen', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:107: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Fold/offset color map', "type": 'myCmap', "value": config.foldDispCmap, ... }' instead of a call to 'dict'.
-settings.py:108: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Analysis color map', "type": 'myCmap', "value": config.analysisCmap, ... }' instead of a call to 'dict'.
-settings.py:114: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Level of Detail Settings', "type": 'myGroup', "brush": '#add8e6', ... }' instead of a call to 'dict'.
-settings.py:119: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'LOD 0 [survey]   ', "type": 'mySlider', "value": config.lod0, ... }' instead of a call to 'dict'.
-settings.py:120: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'LOD 1 [templates]', "type": 'mySlider', "value": config.lod1, ... }' instead of a call to 'dict'.
-settings.py:121: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'LOD 2 [points]   ', "type": 'mySlider', "value": config.lod2, ... }' instead of a call to 'dict'.
-settings.py:122: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'LOD 3 [patterns] ', "type": 'mySlider', "value": config.lod3, ... }' instead of a call to 'dict'.
-settings.py:135: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'SPS Settings', "type": 'myGroup', "brush": '#add8e6', "children": [dict(name='SPS implementation', type='list', limits=spsNames, value=config.spsDialect, default=config.spsDialect), dict(name='Parallel/NAZ geometry', type='bool', value=config.spsParallel, default=config.spsParallel, tip=tip0), dict(name='Rps point marker', type='myMarker', flat=True, expanded=False, symbol=config.rpsPointSymbol, color=QColor(config.rpsBrushColor), size=config.rpsSymbolSize), dict(name='Sps point marker', type='myMarker', flat=True, expanded=False, symbol=config.spsPointSymbol, color=QColor(config.spsBrushColor), size=config.spsSymbolSize)], ... }' instead of a call to 'dict'.
-settings.py:140: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'SPS implementation', "type": 'list', "limits": spsNames}' instead of a call to 'dict'.
-settings.py:141: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Parallel/NAZ geometry', "type": 'bool', "value": config.spsParallel, ... }' instead of a call to 'dict'.
-settings.py:142: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Rps point marker', "type": 'myMarker', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:143: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Sps point marker', "type": 'myMarker', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:149: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Geometry Settings', "type": 'myGroup', "brush": '#add8e6', ... }' instead of a call to 'dict'.
-settings.py:154: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Rec point marker', "type": 'myMarker', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:155: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Src point marker', "type": 'myMarker', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:161: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'K-response Settings', "type": 'myGroup', "brush": '#add8e6', ... }' instead of a call to 'dict'.
-settings.py:166: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Kr  stack response', "type": 'myRange', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:167: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Kxy stack response', "type": 'myRange', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:168: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Kxy array response', "type": 'myRange', "flat": True, "expanded": False, ... }' instead of a call to 'dict'.
-settings.py:176: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Debug Settings', "type": 'myGroup', "brush": '#add8e6', "children": [dict(name='Debug logging', type='bool', value=config.debug, default=config.debug, enabled=True, tip='show debug messages in Logging pane'), dict(name='Debug plugin threads', type='bool', value=useDebugpy, default=useDebugpy, enabled=haveDebugpy, tip='run plugin threads in debug mode using debugpy')], ... }' instead of a call to 'dict'.
-settings.py:181: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Debug logging', "type": 'bool', "value": config.debug, "default": config.debug, ... }' instead of a call to 'dict'.
-settings.py:182: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Debug plugin threads', "type": 'bool', "value": useDebugpy, ... }' instead of a call to 'dict'.
-settings.py:194: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Miscellaneous Settings', "type": 'myGroup', "brush": '#add8e6', ... }' instead of a call to 'dict'.
-settings.py:199: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Use Numba', "type": 'bool', "value": useNumba, "default": useNumba, ... }' instead of a call to 'dict'.
-settings.py:200: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Use relative paths', "type": 'bool', "value": config.useRelativePaths, ... }' instead of a call to 'dict'.
-settings.py:201: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Show summary properties', "type": 'bool', "value": config.showSummaries, ... }' instead of a call to 'dict'.
-settings.py:202: [R1735(use-dict-literal), SettingsDialog.__init__] Consider using '{"name": 'Show unfinished code', "type": 'bool', "value": config.showUnfinished, ... }' instead of a call to 'dict'.
-settings.py:370: [R0912(too-many-branches), readSettings] Too many branches (15/12)
+roll_well.py:230: [R1723(no-else-break), RollWell.readWellHeader] Unnecessary "else" after "break", remove the "else" and de-indent the code inside it
 ************* Module roll.simil
 simil.py:177: [R0913(too-many-arguments), _getLambdaNext] Too many arguments (6/5)
 simil.py:177: [R0917(too-many-positional-arguments), _getLambdaNext] Too many positional arguments (6/5)
 simil.py:185: [R0913(too-many-arguments), _getSolution] Too many arguments (8/5)
 simil.py:185: [R0917(too-many-positional-arguments), _getSolution] Too many positional arguments (8/5)
-simil.py:189: [R1705(no-else-return), _getSolution] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-simil.py:193: [R1705(no-else-return), _getSolution] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 ************* Module roll.smooth_circle_item
 smooth_circle_item.py:13: [R0913(too-many-arguments), SmoothCircleItem.__init__] Too many arguments (6/5)
 smooth_circle_item.py:13: [R0917(too-many-positional-arguments), SmoothCircleItem.__init__] Too many positional arguments (6/5)
 ************* Module roll.spider_navigation_mixin
 spider_navigation_mixin.py:171: [W0718(broad-exception-caught), SpiderNavigationMixin._spiderLegArrays] Catching too general exception Exception
 ************* Module roll.sps_import_dialog
-sps_import_dialog.py:543: [R0912(too-many-branches), SpsImportDialog.onSpsFilesChanged] Too many branches (13/12)
-sps_import_dialog.py:31: [R0904(too-many-public-methods), SpsImportDialog] Too many public methods (22/20)
+sps_import_dialog.py:547: [R0912(too-many-branches), SpsImportDialog.onSpsFilesChanged] Too many branches (13/12)
+sps_import_dialog.py:32: [R0904(too-many-public-methods), SpsImportDialog] Too many public methods (22/20)
 ************* Module roll.standalone
 standalone.py:19: [R1732(consider-using-with), _logMessage] Consider using 'with' for resource-allocating operations
 ************* Module roll.survey_paint_mixin
@@ -440,8 +209,6 @@ table_model_view.py:58: [R1705(no-else-return), AnaTableModel.data] Unnecessary 
 table_model_view.py:107: [R1705(no-else-return), AnaTableModel.headerData] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 table_model_view.py:110: [R1705(no-else-return), AnaTableModel.headerData] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 table_model_view.py:125: [R1705(no-else-return), AnaTableModel.rowCount] Unnecessary "elif" after "return", remove the leading "el" from "elif"
-table_model_view.py:235: [R1735(use-dict-literal), TableView.getFormat] Consider using '{"Code": '%s', "Depth": '%.1f', "East": '%.1f', "Elev": '%.1f', "Index": '%d', ... }' instead of a call to 'dict'.
-table_model_view.py:405: [R1725(super-with-arguments), TableView.eventFilter] Consider using Python 3 style super() without arguments
 table_model_view.py:271: [R0911(too-many-return-statements), TableView.eventFilter] Too many return statements (19/6)
 table_model_view.py:271: [R0912(too-many-branches), TableView.eventFilter] Too many branches (31/12)
 table_model_view.py:467: [R1711(useless-return), TableView.paste] Useless return at end of function or method
@@ -469,22 +236,9 @@ table_model_view.py:1221: [R1705(no-else-return), XpsTableModel.headerData] Unne
 table_model_view.py:1234: [R1705(no-else-return), XpsTableModel.headerData] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 table_model_view.py:1218: [R0911(too-many-return-statements), XpsTableModel.headerData] Too many return statements (8/6)
 table_model_view.py:1249: [R1720(no-else-raise), XpsTableModel.columnCount] Unnecessary "else" after "raise", remove the "else" and de-indent the code inside it
-************* Module roll.xml_code_editor
-xml_code_editor.py:58: [R1725(super-with-arguments), XMLHighlighter.__init__] Consider using Python 3 style super() without arguments
-xml_code_editor.py:251: [R1725(super-with-arguments), QCodeEditor.__init__] Consider using Python 3 style super() without arguments
-************* Module roll.test.test_roll_survey_numpy_api
-test\test_roll_survey_numpy_api.py:35: [C0304(missing-final-newline), ] Final newline missing
-************* Module roll.test.test_table_model_view
-test\test_table_model_view.py:175: [C0304(missing-final-newline), ] Final newline missing
-************* Module roll.test.test_translations
-test\test_translations.py:29: [C0201(consider-iterating-dictionary), SafeTranslationsTest.setUp] Consider iterating the dictionary directly instead of calling .keys()
-test\test_translations.py:30: [C2801(unnecessary-dunder-call), SafeTranslationsTest.setUp] Unnecessarily calls dunder method __delitem__. Use del keyword.
-test\test_translations.py:34: [C0201(consider-iterating-dictionary), SafeTranslationsTest.tearDown] Consider iterating the dictionary directly instead of calling .keys()
-test\test_translations.py:35: [C2801(unnecessary-dunder-call), SafeTranslationsTest.tearDown] Unnecessarily calls dunder method __delitem__. Use del keyword.
-test\test_translations.py:16: [C0411(wrong-import-order), ] standard import "os" should be placed before local import "utilities.getQgisApp"
-test\test_translations.py:17: [C0411(wrong-import-order), ] standard import "unittest" should be placed before local import "utilities.getQgisApp"
-test\test_translations.py:19: [C0411(wrong-import-order), ] third party import "qgis.PyQt.QtCore.QCoreApplication" should be placed before local import "utilities.getQgisApp"
+************* Module roll.test.test_project_sidecars
+test\test_project_sidecars.py:48: [R0904(too-many-public-methods), ProjectSidecarsTest] Too many public methods (81/20)
 
 ------------------------------------------------------------------
-Your code has been rated at 9.79/10 (previous run: 9.79/10, +0.00)
+Your code has been rated at 9.91/10 (previous run: 9.91/10, +0.00)
 

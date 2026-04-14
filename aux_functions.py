@@ -34,14 +34,14 @@ from qgis.PyQt.QtCore import (PYQT_VERSION_STR, QT_VERSION_STR, QLineF,
                               QPointF, QRectF, Qt)
 from qgis.PyQt.QtGui import QColor, QPen, QPolygonF, QTransform, QVector3D
 
-from . import config  # used to pass initial settings
+from .app_settings import isDebugLoggingEnabled
 
 
 def silentPrint(*_, **__):
     pass
 
 def myPrint(*args, **kwargs):                                                   # print function that can be suppressed
-    if config.debug:
+    if isDebugLoggingEnabled():
         print(*args, **kwargs)
 
 # See: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch14s08.html for introspective functions
@@ -84,10 +84,11 @@ def toBool(value: any, default=False) -> bool:
     try:
         if value.lower() in ['true', '1', 'yes']:
             return True
+
         if value.lower() in ['false', '0', 'no']:
             return False
-        else:
-            return default
+
+        return default
     except AttributeError:
         return default
 
@@ -135,15 +136,15 @@ def intListToString(intList):
 def odd(number):
     if number % 2 == 0:
         return False                                                            # even
-    else:
-        return True                                                             # odd
+
+    return True                                                             # odd
 
 
 def even(number):
     if number % 2 == 0:
         return True                                                             # even
-    else:
-        return False                                                            # odd
+
+    return False                                                            # odd
 
 
 def wideturnDetour(turnRadius, lineInterval):
@@ -587,8 +588,8 @@ def countHeaderLines2(filename):
         for line in lines:
             if line.startswith('H'):
                 count += 1
-            else:
-                return count
+
+            return count
     return count
 
 
@@ -596,15 +597,16 @@ def isFileInUse(filePath):
     path = Path(filePath)
 
     if not path.exists():
-        # raise FileNotFoundError
         return False
 
+    # try to rename the file to itself;
+    # if it is in use, this will raise a PermissionError
     try:
         path.rename(path)
     except PermissionError:
         return True
-    else:
-        return False
+
+    return False
 
 
 def getUnpicklable(instance, exception=None, string='', firstOnly=True):
@@ -679,6 +681,8 @@ def convexHull(x, y):
 
     points = np.column_stack((x, y))
 
+    # Three inner functions for the recursive dome algorithm;
+    # see: https://en.wikipedia.org/wiki/Convex_hull_algorithms#Dome_algorithm
     def link(a, b):
         return np.concatenate((a, b[1:]))
 
@@ -692,15 +696,14 @@ def convexHull(x, y):
         if len(outer):
             pivot = points[np.argmax(dists)]
             return link(dome(outer, edge(h, pivot)), dome(outer, edge(pivot, t)))
-        else:
-            return base
+        return base
 
     if len(points) > 2:
         axis = points[:, 0]
         base = np.take(points, [np.argmin(axis), np.argmax(axis)], 0)
         return link(dome(points, base), dome(points, base[::-1]))
-    else:
-        return points
+
+    return points
 
 
 def transformConvexHull(hullPoints, transform):

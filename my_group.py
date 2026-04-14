@@ -10,7 +10,7 @@ from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import (QHBoxLayout, QMenu, QSizePolicy, QSpacerItem,
                                  QWidget)
 
-from . import config  # used to pass initial settings
+from .app_settings import isShowSummariesEnabled
 from .aux_functions import lineNo, myPrint
 from .my_preview_label import MyPreviewLabel
 
@@ -45,9 +45,9 @@ class MyGroupParameterItem(GroupParameterItem):
         tw.setItemWidget(self, 1, self.itemWidget)
 
     def createAndInitPreviewLabel(self, param):
-        # we can skip creating the preview label if config.showSummaries is False, or param is None
+        # we can skip creating the preview label if summary previews are disabled, or param is None
 
-        if not config.showSummaries or param is None:                           # no need to do any real work (yet)
+        if not isShowSummariesEnabled() or param is None:                      # no need to do any real work (yet)
             return
 
         # at this point, we know param is valid, and a preview label is needed. Does it exist ?
@@ -69,13 +69,13 @@ class MyGroupParameterItem(GroupParameterItem):
         raise NotImplementedError()
 
     def onValueChanging(self, param, _):                                        # val unused and replaced  by _
-        if config.showSummaries:
+        if isShowSummariesEnabled():
             self.createAndInitPreviewLabel(param)                             # create the preview label if needed
             # self.showPreviewInformation(param)
         myPrint(f'>>>{lineNo():5d} MyGroupParameterItem.ValueChanging <<<')
 
     def onTreeStateChanged(self, param, _):                                     # unused changes replaced by _
-        if config.showSummaries:
+        if isShowSummariesEnabled():
             self.createAndInitPreviewLabel(param)                             # create the preview label if needed
             # self.showPreviewInformation(param)
         myPrint(f'>>>{lineNo():5d} MyGroupParameterItem.TreeStateChanged <<<')

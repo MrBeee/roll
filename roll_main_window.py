@@ -33,12 +33,13 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (QDateTime, QEvent, QFileInfo, QPoint, QRectF,
                               QSettings, QSize, Qt, QTimer)
 from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QImage, QPainter,
-                             QTextCursor, QTransform)
+                             QPainterPath, QPen, QTextCursor, QTransform)
 from qgis.PyQt.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from qgis.PyQt.QtWidgets import (QAction, QApplication, QFileDialog,
-                                 QGraphicsEllipseItem, QGraphicsRectItem,
-                                 QLabel, QMainWindow, QMessageBox,
-                                 QProgressBar, QTabWidget, QWidget)
+                                 QGraphicsEllipseItem, QGraphicsPathItem,
+                                 QGraphicsRectItem, QLabel, QMainWindow,
+                                 QMessageBox, QProgressBar, QTabWidget,
+                                 QWidget)
 from qgis.PyQt.QtXml import QDomDocument
 
 # from .functions_numba import (numbaAziInline, numbaAziXline,
@@ -47,23 +48,26 @@ from qgis.PyQt.QtXml import QDomDocument
 #                               numbaSlice3D, numbaSliceStats)
 from . import config  # used to pass initial settings
 from . import functions_numba as fnb
+from .app_settings import AppSettings
 from .aux_classes import LineROI
 from .aux_functions import (aboutText, exampleSurveyXmlText, highDpiText,
                             licenseText, myPrint, qgisCheatSheetText)
 from .binning_worker_mixin import BinningWorkerMixin
 from .chunked_data import ChunkedData
 from .display_dock import createDisplayDock
-from .enums_and_int_flags import (Direction, MsgType, PaintDetails, PaintMode,
-                                  SurveyType)
+from .enums_and_int_flags import (AnalysisRedrawReason, Direction, MsgType,
+                                  PaintDetails, PaintMode, SurveyType)
 from .filter_service import FilterService
 # from .find import Find.
 # Superseded by FindNotepad, which is more user friendly and has a better implementation.
 # The old Find class is still available in find.py, but not imported here.
 from .find import FindNotepad
+from .import_service import ImportService
 from .land_wizard import LandSurveyWizard
 from .logging_dock import createLoggingDock
 from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
+from .plot_redraw_helper import PlotRedrawHelper
 from .project_load_applier import ProjectLoadApplier
 from .project_service import ProjectService
 from .property_dock import createPropertyDock
@@ -74,24 +78,21 @@ from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
 from .roll_binning import BinningType
 from .roll_main_window_create_geom_tab import createGeomTab
 from .roll_main_window_create_layout_tab import createLayoutTab
+from .roll_main_window_create_off_azi_tab import createOffAziTab
 from .roll_main_window_create_pattern_tab import createPatternTab
 from .roll_main_window_create_sps_tab import createSpsTab
 from .roll_main_window_create_stack_response_tab import createStackResponseTab
 from .roll_main_window_create_trace_table_tab import createTraceTableTab
 from .roll_output import RollOutput
 from .roll_survey import RollSurvey
+from .runtime_state import RuntimeState
 from .session_service import SessionService
 from .session_state import SessionState
 from .settings import SettingsDialog, readSettings, writeSettings
 from .spider_navigation_mixin import SpiderNavigationMixin
 from .sps_import_dialog import SpsImportDialog
-from .sps_io_and_qc import (calcMaxXPStraces, calculateLineStakeTransform,
-                            convertCrs, exportDataAsTxt, fileExportAsR01,
-                            fileExportAsS01, fileExportAsX01, findRecOrphans,
-                            findSrcOrphans, markUniqueRPSrecords,
-                            markUniqueSPSrecords, markUniqueXPSrecords,
-                            pntType1, readRpsLine, readSpsLine, readXpsLine,
-                            relType2)
+from .sps_io_and_qc import (convertCrs, exportDataAsTxt, fileExportAsR01,
+                            fileExportAsS01, fileExportAsX01)
 from .survey_paint_mixin import SurveyPaintMixin
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
@@ -170,13 +171,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     * BinningWorkerMixin keeps the binning worker thread code out of RollMainWindow
     """
 
+    def _setSessionArray(self, arrayAttr, value):
+        self.sessionService.setArray(self.sessionState, arrayAttr, value)
+
     @property
     def rpsImport(self):
         return self.sessionState.rpsImport
 
     @rpsImport.setter
     def rpsImport(self, value):
-        self.sessionState.rpsImport = value
+        self._setSessionArray('rpsImport', value)
 
     @property
     def spsImport(self):
@@ -184,7 +188,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     @spsImport.setter
     def spsImport(self, value):
-        self.sessionState.spsImport = value
+        self._setSessionArray('spsImport', value)
 
     @property
     def xpsImport(self):
@@ -192,7 +196,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     @xpsImport.setter
     def xpsImport(self, value):
-        self.sessionState.xpsImport = value
+        self._setSessionArray('xpsImport', value)
 
     @property
     def recGeom(self):
@@ -200,7 +204,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     @recGeom.setter
     def recGeom(self, value):
-        self.sessionState.recGeom = value
+        self._setSessionArray('recGeom', value)
 
     @property
     def srcGeom(self):
@@ -208,7 +212,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     @srcGeom.setter
     def srcGeom(self, value):
-        self.sessionState.srcGeom = value
+        self._setSessionArray('srcGeom', value)
 
     @property
     def relGeom(self):
@@ -216,7 +220,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     @relGeom.setter
     def relGeom(self, value):
-        self.sessionState.relGeom = value
+        self._setSessionArray('relGeom', value)
 
     @property
     def rpsLiveE(self):
@@ -362,9 +366,33 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def spsBound(self, value):
         self.sessionState.spsBound = value
 
+    @property
+    def projectDirectory(self):
+        return self.runtimeState.projectDirectory
+
+    @projectDirectory.setter
+    def projectDirectory(self, value):
+        self.runtimeState.projectDirectory = value or ''
+
+    @property
+    def importDirectory(self):
+        return self.runtimeState.importDirectory
+
+    @importDirectory.setter
+    def importDirectory(self, value):
+        self.runtimeState.importDirectory = value or ''
+
+    @property
+    def surveyNumber(self):
+        return self.sessionState.surveyNumber
+
+    @surveyNumber.setter
+    def surveyNumber(self, value):
+        self.sessionState.surveyNumber = int(value)
+
     def __init__(self, iface=None, parent=None, standaloneMode=False):
         """Constructor."""
-        super(RollMainWindow, self).__init__(parent)
+        super().__init__(parent)
         # Set up the user interface from Designer through FORM_CLASS.
         # After self.setupUi() you can access any designer object by doing self.<objectname>,
         # and you can use autoconnect slots - see http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
@@ -402,10 +430,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.recentFileActions = []
         self.recentFileList = []
         self.filterService = FilterService()
+        self.importService = ImportService()
         self.projectService = ProjectService()
         self.projectLoadApplier = ProjectLoadApplier(self)
         self.sessionService = SessionService()
         self.sessionState = SessionState()
+        self.appSettings = AppSettings()
+        self.runtimeState = RuntimeState()
 
         # workerTread parameters
         self.worker = None                                                      # 'moveToThread' object
@@ -435,6 +466,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.x0lineStk = None                                                   # numpy array with x_line Kr stack reponse
         self.xyCellStk = None                                                   # numpy array with cell's KxKy stack response
         self.xyPatResp = None                                                   # numpy array with pattern's KxKy response
+        self.plotRedrawHelper = PlotRedrawHelper()
 
         # layout and analysis image-items
         self.layoutImItem = None                                                # pg ImageItems showing analysis result
@@ -450,38 +482,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.stkBinColorBar = None
         self.stkCelColorBar = None
         self.offAziColorBar = None
+        self.offAziPolarItems = []
+        self._updatingOffAziColorBarLevels = False
+        self._resetOffAziDisplayLevels = False
         self.kxyPatColorBar = None
 
-        # imported SPS/RPS/XPS arrays are now owned by self.sessionState and
-        # exposed through properties for broad compatibility during migration.
-
-        self.rpsLiveE = None                                                    # numpy array with list of live RPS coordinates
-        self.rpsLiveN = None                                                    # numpy array with list of live RPS coordinates
-        self.rpsDeadE = None                                                    # numpy array with list of dead RPS coordinates
-        self.rpsDeadN = None                                                    # numpy array with list of dead RPS coordinates
-
-        self.spsLiveE = None                                                    # numpy array with list of live SPS coordinates
-        self.spsLiveN = None                                                    # numpy array with list of live SPS coordinates
-        self.spsDeadE = None                                                    # numpy array with list of dead SPS coordinates
-        self.spsDeadN = None                                                    # numpy array with list of dead SPS coordinates
-
-        self.rpsBound = None                                                    # numpy array with list of RPS convex hull coordinates
-        self.spsBound = None                                                    # numpy array with list of SPS convex hull coordinates
-
-        # rel, src, rel input arrays
-        self.recGeom = None                                                     # numpy array with list of REC records
-        self.srcGeom = None                                                     # numpy array with list of SRC records
-        self.relGeom = None                                                     # numpy array with list of REL records
-
-        self.recLiveE = None                                                    # numpy array with list of live REC coordinates
-        self.recLiveN = None                                                    # numpy array with list of live REC coordinates
-        self.recDeadE = None                                                    # numpy array with list of dead REC coordinates
-        self.recDeadN = None                                                    # numpy array with list of dead REC coordinates
-
-        self.srcLiveE = None                                                    # numpy array with list of live SRC coordinates
-        self.srcLiveN = None                                                    # numpy array with list of live SRC coordinates
-        self.srcDeadE = None                                                    # numpy array with list of dead SRC coordinates
-        self.srcDeadN = None                                                    # numpy array with list of dead SRC coordinates
+        # Imported and geometry arrays, along with their derived live/dead and
+        # convex-hull state, are owned by self.sessionState.
 
         # spider plot settings
         self.spiderPoint = QPoint(-1, -1)                                       # spider point 'out of scope'
@@ -528,8 +535,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.settings = QSettings(config.organization, config.application)
         self.fileName = ''
-        self.projectDirectory = ''
-        self.importDirectory = ''
 
         self.survey = RollSurvey()                                              # (re)set the survey object; needed in property pane
         readSettings(self)                                                      # read settings from QSettings in an early stage
@@ -590,6 +595,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.tabSps = QWidget()
         self.tabTraces = QWidget()
         self.tabKxKyStack = QWidget()
+        self.tabOffAzi = QWidget()
 
         self.tabGeom.installEventFilter(self)                                   # catch the 'Show' event to connect to toolbar buttons
         self.tabSps.installEventFilter(self)                                    # catch the 'Show' event to connect to toolbar buttons
@@ -603,6 +609,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         createSpsTab(self)
         createTraceTableTab(self)
         createStackResponseTab(self)
+        createOffAziTab(self)
 
         # Add tabs to main tab widget
         self.mainTabWidget.addTab(self.layoutWidget, 'Layout')
@@ -623,7 +630,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.analysisTabWidget.addTab(self.stkBinWidget, 'Stack X-line')
         self.analysisTabWidget.addTab(self.tabKxKyStack, 'Kx-Ky Stack')
         self.analysisTabWidget.addTab(self.offsetWidget, '|O| Histogram')
-        self.analysisTabWidget.addTab(self.offAziWidget, 'O/A Histogram')
+        self.analysisTabWidget.addTab(self.tabOffAzi, 'O/A Histogram')
         # self.arraysWidget is embedded in the layout of the 'pattern' tab
         # self.analysisTabWidget.addTab(self.stkCelWidget, 'Kx-Ky Stack')
         # self.analysisTabWidget.currentChanged.connect(self.onAnalysisTabChange)   # active tab changed!
@@ -790,7 +797,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.appendLogMessage(f'Library: Numba version {numba.__version__} available for JIT acceleration')
             if numba.__version__ < '0.62.1':
                 self.appendLogMessage('Library: Numba version is not the latest version, consider upgrading to v0.62.1', MsgType.Warning)
-            if config.useNumba:
+            if self.appSettings.useNumba:
                 self.appendLogMessage('Library: Numba is enabled, running in JIT mode')
         else:
             self.appendLogMessage('Library: Numba not available, running pure Python code only', MsgType.Warning)
@@ -832,6 +839,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if action is not None:
             action.setEnabled(enabled)
 
+    def _processImportEvents(self):
+        QApplication.processEvents()
+        return self.interrupted
+
+    def _updateImportProgress(self, labelText, progress):
+        self.progressLabel.setText(labelText)
+        self.progressBar.setValue(progress)
+        QApplication.processEvents()
+
     def _configureStandaloneUi(self):
         actionNames = (
             'actionImportFromQgis',
@@ -846,38 +862,213 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     # deal with pattern selection for display & kxky plotting
     def onPattern1IndexChanged(self):
-        self.plotPatterns()
+        self.dispatchAnalysisRedraw('patterns', AnalysisRedrawReason.patternSelectionChanged)
 
     def onPattern2IndexChanged(self):
-        self.plotPatterns()
+        self.dispatchAnalysisRedraw('patterns', AnalysisRedrawReason.patternSelectionChanged)
 
     def onActionPatternLayoutTriggered(self):
         self.patternLayout = True
-        self.plotPatterns()
+        self.dispatchAnalysisRedraw('patterns', AnalysisRedrawReason.patternDisplayModeChanged)
 
     def onActionPatternKxKyTriggered(self):
         self.patternLayout = False
-        self.plotPatterns()
+        self.dispatchAnalysisRedraw('patterns', AnalysisRedrawReason.patternDisplayModeChanged)
 
     # deal with pattern selection for bin stack response
     def onStackPatternIndexChanged(self):
-        nX = self.spiderPoint.x()                                               # get x, y indices into bin array
-        nY = self.spiderPoint.y()
+        self.dispatchAnalysisRedraw('stack-cell', AnalysisRedrawReason.stackPatternChanged)
 
-        if self.spiderPoint.x() < 0:
+    def onOffAziDisplayMethodChanged(self):
+        if self.output.anaOutput is None and self.output.ofAziHist is None:
             return
 
-        if self.spiderPoint.y() < 0:
+        self.dispatchAnalysisRedraw('off-azi', AnalysisRedrawReason.offAziDisplayModeChanged)
+
+    def onOffAziColorBarLevelsChanged(self, *_):
+        if getattr(self, '_updatingOffAziColorBarLevels', False):
             return
 
-        if self.survey.binTransform is None:
+        if self.output.ofAziHist is None:
             return
 
-        invBinTransform, _ = self.survey.binTransform.inverted()                # need to go from bin nr's to cmp(x, y)
-        cmpX, cmpY = invBinTransform.map(nX, nY)                                # get local coordinates from line and point indices
-        stkX, stkY = self.survey.st2Transform.map(cmpX, cmpY)                   # get the corresponding bin and stake numbers
+        if self.isOffAziPolarMode():
+            self.dispatchAnalysisRedraw('off-azi', AnalysisRedrawReason.offAziColorBarLevelsChanged)
 
-        self.plotStkCel(nX, nY, stkX, stkY)
+    def isOffAziPolarMode(self):
+        action = getattr(self, 'actionOffAziPolar', None)
+        return action is not None and action.isChecked()
+
+    def createOffAziSectorPath(self, innerRadius, outerRadius, startAngleDeg, endAngleDeg, samples=8):
+        path = QPainterPath()
+        outerAngles = np.linspace(startAngleDeg, endAngleDeg, samples)
+        innerAngles = np.linspace(endAngleDeg, startAngleDeg, samples)
+
+        startAngleRad = np.deg2rad(outerAngles[0])
+        path.moveTo(outerRadius * np.cos(startAngleRad), outerRadius * np.sin(startAngleRad))
+
+        for angleDeg in outerAngles[1:]:
+            angleRad = np.deg2rad(angleDeg)
+            path.lineTo(outerRadius * np.cos(angleRad), outerRadius * np.sin(angleRad))
+
+        for angleDeg in innerAngles:
+            angleRad = np.deg2rad(angleDeg)
+            path.lineTo(innerRadius * np.cos(angleRad), innerRadius * np.sin(angleRad))
+
+        path.closeSubpath()
+        return path
+
+    def updateOffAziColorBar(self, colorMapObj, lowLevel, highLevel):
+        if self.offAziImItem is None:
+            return
+
+        label = 'frequency (x 1000)'
+        lowLevel = float(lowLevel)
+        highLevel = float(highLevel)
+        if highLevel <= lowLevel:
+            highLevel = lowLevel + 1.0
+
+        if self.offAziColorBar is None:
+            try:
+                self.offAziColorBar = self.offAziWidget.plotItem.addColorBar(
+                    self.offAziImItem,
+                    colorMap=colorMapObj,
+                    label=label,
+                    limits=(0.0, None),
+                    rounding=10.0,
+                    values=(0.0, highLevel),
+                )
+                self.offAziColorBar.sigLevelsChanged.connect(self.onOffAziColorBarLevelsChanged)
+            except TypeError as exc:
+                self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                self.offAziColorBar = None
+                return
+
+        try:
+            self.offAziColorBar.setImageItem(self.offAziImItem)
+            self._updatingOffAziColorBarLevels = True
+            self.offAziColorBar.setLevels(low=lowLevel, high=highLevel)
+            self.offAziColorBar.setColorMap(colorMapObj)
+            if self.offAziColorBar.horizontal:
+                self.offAziColorBar.getAxis('bottom').setLabel(label)
+            else:
+                self.offAziColorBar.getAxis('left').setLabel(label)
+        except TypeError as exc:
+            self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
+        finally:
+            self._updatingOffAziColorBarLevels = False
+
+    def clearOffAziGraphics(self):
+        if self.offAziImItem is not None:
+            with contextlib.suppress(Exception):
+                self.offAziWidget.plotItem.removeItem(self.offAziImItem)
+            self.offAziImItem = None
+
+        for item in self.offAziPolarItems:
+            with contextlib.suppress(Exception):
+                self.offAziWidget.plotItem.removeItem(item)
+
+        self.offAziPolarItems = []
+
+    def getOffAziDisplayLevels(self, defaultHigh):
+        defaultHigh = max(float(defaultHigh), 1.0)
+        if getattr(self, '_resetOffAziDisplayLevels', False):
+            self._resetOffAziDisplayLevels = False
+            return (0.0, defaultHigh)
+
+        if self.offAziColorBar is None:
+            return (0.0, defaultHigh)
+
+        try:
+            low, high = self.offAziColorBar.levels()
+        except TypeError:
+            return (0.0, defaultHigh)
+
+        low = float(low)
+        high = float(high)
+        if high <= low:
+            high = low + 1.0
+        return (low, high)
+
+    def renderOffAziRectangular(self, histogram, dA, dO, aMin, colorMapObj):
+        levelHigh = float(np.max(histogram)) if histogram.size else 0.0
+        lowLevel, highLevel = self.getOffAziDisplayLevels(levelHigh)
+
+        self.clearOffAziGraphics()
+
+        tr = QTransform()
+        tr.translate(aMin, 0)
+        tr.scale(dA, dO)
+
+        self.offAziImItem = pg.ImageItem()
+        self.offAziImItem.setImage(histogram, levels=(lowLevel, highLevel))
+        self.offAziImItem.setTransform(tr)
+
+        self.offAziWidget.plotItem.addItem(self.offAziImItem)
+        self.offAziWidget.showGrid(x=True, y=True, alpha=0.75)
+        self.offAziWidget.setLabel('bottom', 'azimuth', units='deg')
+        self.offAziWidget.setLabel('left', '|offset|', units='m')
+        self.offAziWidget.plotItem.getViewBox().setAspectLocked(False)
+        self.updateOffAziColorBar(colorMapObj, lowLevel, highLevel)
+        self.offAziWidget.autoRange()
+
+    def renderOffAziPolar(self, histogram, dA, dO, oMax, colorMapObj):
+        maxCount = float(np.max(histogram)) if histogram.size else 0.0
+        lowLevel, highLevel = self.getOffAziDisplayLevels(maxCount)
+
+        self.clearOffAziGraphics()
+
+        self.offAziImItem = pg.ImageItem()
+        self.offAziImItem.setImage(histogram, levels=(lowLevel, highLevel))
+
+        self.offAziWidget.showGrid(x=False, y=False)
+        self.offAziWidget.setLabel('bottom', ' ', units='')
+        self.offAziWidget.setLabel('left', ' ', units='')
+        self.offAziWidget.plotItem.getViewBox().setAspectLocked(True)
+
+        for offsetRadius in np.arange(dO, oMax + 0.5 * dO, dO):
+            ring = QGraphicsEllipseItem(-offsetRadius, -offsetRadius, 2.0 * offsetRadius, 2.0 * offsetRadius)
+            ring.setPen(pg.mkPen((160, 160, 160), width=1))
+            ring.setBrush(QBrush(Qt.BrushStyle.NoBrush))
+            self.offAziWidget.plotItem.addItem(ring)
+            self.offAziPolarItems.append(ring)
+
+        for angleDeg in range(0, 360, 45):
+            angleRad = np.deg2rad(angleDeg)
+            x2 = oMax * np.cos(angleRad)
+            y2 = oMax * np.sin(angleRad)
+            lineItem = self.offAziWidget.plot([0.0, x2], [0.0, y2], pen=pg.mkPen((185, 185, 185), width=1))
+            self.offAziPolarItems.append(lineItem)
+
+        for azimuthIndex in range(histogram.shape[0]):
+            startAngle = azimuthIndex * dA
+            endAngle = startAngle + dA
+
+            for offsetIndex in range(histogram.shape[1]):
+                count = float(histogram[azimuthIndex, offsetIndex])
+                if count <= 0.0:
+                    continue
+
+                innerRadius = offsetIndex * dO
+                outerRadius = innerRadius + dO
+                if count <= lowLevel:
+                    normalized = 0.0
+                elif count >= highLevel:
+                    normalized = 1.0
+                else:
+                    normalized = (count - lowLevel) / (highLevel - lowLevel)
+                color = colorMapObj.map(normalized, mode='qcolor')
+
+                sector = QGraphicsPathItem(self.createOffAziSectorPath(innerRadius, outerRadius, startAngle, endAngle))
+                sector.setBrush(QBrush(color))
+                sector.setPen(QPen(color))
+                self.offAziWidget.plotItem.addItem(sector)
+                self.offAziPolarItems.append(sector)
+
+        pad = 1.05 * oMax
+        self.offAziWidget.plotItem.setXRange(-pad, pad, padding=0.0)
+        self.offAziWidget.plotItem.setYRange(-pad, pad, padding=0.0)
+        self.updateOffAziColorBar(colorMapObj, lowLevel, highLevel)
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.Type.Show:                                             # do 'cheap' test first
@@ -1083,6 +1274,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.x0lineStk = None                                               # numpy array with x_line Kr stack reponse
             self.xyCellStk = None                                               # numpy array with cell's KxKy stack response
             self.xyPatResp = None                                               # numpy array with pattern's KxKy response
+            self.plotRedrawHelper.reset()
 
             # the following arrays are calculated in a separate binning thread and stored under the 'output' object
             self.output.binOutput = None                                        # numpy array with foldmap
@@ -1413,7 +1605,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             else:
                 layerName = QFileInfo(self.fileName).baseName()
             layerName += '-sps-data'
-            self.spsLayer = exportPointLayerToQgis(layerName, self.spsImport, self.survey.crs, source=True)
+            self.spsLayer = exportPointLayerToQgis(layerName, self.spsImport, self.survey.crs, source=True, spsParallel=self.appSettings.spsParallel)
 
     def exportRecToQgis(self):
         if self.recGeom is not None and self.survey is not None and self.survey.crs is not None:
@@ -1431,7 +1623,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             else:
                 layerName = QFileInfo(self.fileName).baseName()
             layerName += '-src-data'
-            self.srcLayer = exportPointLayerToQgis(layerName, self.srcGeom, self.survey.crs, source=True)
+            self.srcLayer = exportPointLayerToQgis(layerName, self.srcGeom, self.survey.crs, source=True, spsParallel=self.appSettings.spsParallel)
 
     def importSpsFromQgis(self):
         self.spsLayer, self.spsField = identifyQgisPointLayer(self.spsLayer, self.spsField, self.survey.crs, 'Sps')
@@ -1659,7 +1851,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
 
-        colorMap = self.resolveColorMapName(config.foldDispCmap, fallback='CET-L4')  # default fold & offset color map
+        colorMap = self.resolveColorMapName(self.appSettings.foldDispCmap, fallback='CET-L4')  # default fold & offset color map
         if self.imageType == 0:                                                 # now deal with all image types
             self.layoutImg = None                                               # no image to show
             label = 'N/A'
@@ -1692,43 +1884,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 img[mask] = np.nan
                 self.layoutImg = img
 
-        self.layoutImItem = pg.ImageItem()                                          # create a PyqtGraph image item
-        self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))    # set image and its range limits
-
-        colorMap = self.coerceColorMap(colorMap, fallback='CET-L1')
-        if not isinstance(colorMap, (str, pg.ColorMap)):
-            self.appendLogMessage(
-                f'Invalid colorMap type {type(colorMap)} value {colorMap!r};',
-                MsgType.Debug,
-            )
-            self.appendLogMessage(f'available maps={len(pg.colormap.listMaps())}', MsgType.Debug)
-        elif isinstance(colorMap, str):
-            colorMap = str(colorMap)
-
-        colorMapObj = self.resolveColorMapObject(colorMap, fallback='viridis')
-
-        if self.layoutColorBar is None:                                             # create colorbar with default values
-            try:
-                self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
-                    self.layoutImItem,
-                    colorMap=colorMapObj,
-                    label='N/A',
-                    limits=(0, None),
-                    rounding=10.0,
-                    values=(0, 10),
-                )
-            except TypeError as exc:
-                self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
-                self.layoutColorBar = None
-
-        if self.layoutColorBar is not None:
-            self.layoutColorBar.setImageItem(self.layoutImItem)                     # couple imageItem to the colorbar
-            self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-            try:
-                self.layoutColorBar.setColorMap(colorMapObj)
-            except TypeError as exc:
-                self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
-            self.setColorbarLabel(label)
+        self.prepareLayoutImageAndColorBar(
+            self.layoutImg,
+            colorMap,
+            label,
+            levels=(0.0, self.layoutMax),
+            limits=(0, None),
+            rounding=10.0,
+        )
 
         self.plotLayout()
 
@@ -1885,16 +2048,141 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         return (None, None)
 
-    def updateVisiblePlotWidget(self, index: int) -> None:
+    def getStackResponseRedrawContext(self):
+        if self.output.anaOutput is None or self.survey is None or self.survey.binTransform is None:
+            return None
+
+        xAnaSize = self.output.anaOutput.shape[0]
+        yAnaSize = self.output.anaOutput.shape[1]
+        if xAnaSize == 0 or yAnaSize == 0:
+            return None
+
+        if self.spiderPoint == QPoint(-1, -1):
+            self.spiderPoint = QPoint(xAnaSize // 2, yAnaSize // 2)
+
+        if self.spiderPoint.x() < 0:
+            self.spiderPoint.setX(0)
+
+        if self.spiderPoint.y() < 0:
+            self.spiderPoint.setY(0)
+
+        if self.spiderPoint.x() >= xAnaSize:
+            self.spiderPoint.setX(xAnaSize - 1)
+
+        if self.spiderPoint.y() >= yAnaSize:
+            self.spiderPoint.setY(yAnaSize - 1)
+
+        nX = self.spiderPoint.x()
+        nY = self.spiderPoint.y()
+
+        invBinTransform, _ = self.survey.binTransform.inverted()
+        cmpX, cmpY = invBinTransform.map(nX, nY)
+        stkX, stkY = self.survey.st2Transform.map(cmpX, cmpY)
+
+        return {
+            'nX': nX,
+            'nY': nY,
+            'stkX': stkX,
+            'stkY': stkY,
+            'x0': self.survey.output.rctOutput.left(),
+            'y0': self.survey.output.rctOutput.top(),
+            'dx': self.survey.grid.binSize.x(),
+            'dy': self.survey.grid.binSize.y(),
+        }
+
+    def redrawStackResponse(self, surface: str, context) -> None:
+        if surface == 'stack-inline':
+            self.plotStkTrk(context['nY'], context['stkY'], context['x0'], context['dx'])
+            return
+
+        if surface == 'stack-xline':
+            self.plotStkBin(context['nX'], context['stkX'], context['y0'], context['dy'])
+            return
+
+        if surface == 'stack-cell':
+            self.plotStkCel(context['nX'], context['nY'], context['stkX'], context['stkY'])
+            return
+
+        raise NotImplementedError(f'unsupported stack-response surface: {surface}')
+
+    @staticmethod
+    def shouldRedrawStackResponse(surface: str, direction: Direction) -> bool:
+        if direction == Direction.NA:
+            return True
+
+        if surface == 'stack-inline':
+            return direction in (Direction.Up, Direction.Dn)
+
+        if surface == 'stack-xline':
+            return direction in (Direction.Lt, Direction.Rt)
+
+        if surface == 'stack-cell':
+            return direction in (Direction.Up, Direction.Dn, Direction.Lt, Direction.Rt)
+
+        raise NotImplementedError(f'unsupported stack-response surface: {surface}')
+
+    def dispatchAnalysisRedraw(
+        self,
+        surface: str,
+        reason: AnalysisRedrawReason = AnalysisRedrawReason.controller,
+        direction: Direction = Direction.NA,
+    ) -> None:
+        self.plotRedrawHelper.applySurfaceInvalidation(self, surface, reason)
+
+        if surface == 'patterns':
+            self.plotPatterns()
+            return
+
+        if surface == 'off-azi':
+            self.redrawOffAzi()
+            return
+
+        if surface == 'offset':
+            self.redrawOffset()
+            return
+
+        if surface not in ('stack-inline', 'stack-xline', 'stack-cell'):
+            raise NotImplementedError(f'unsupported analysis redraw surface: {surface}')
+
+        if not self.shouldRedrawStackResponse(surface, direction):
+            return
+
+        context = self.getStackResponseRedrawContext()
+        if context is None:
+            return
+
+        self.redrawStackResponse(surface, context)
+
+    def updateVisiblePlotWidget(self, index: int, direction: Direction = Direction.NA) -> None:
         if index == 0:
             self.plotLayout()                                                   # no conditions to plot main layout plot
             return
 
         if index == 10:                                                         # no condition to plot patterns either
-            self.plotPatterns()
+            self.dispatchAnalysisRedraw('patterns', AnalysisRedrawReason.visiblePlotActivated)
             return
 
         if self.output.anaOutput is None:                                       # we need self.output.anaOutput to display meaningful ANALYSIS information
+            return
+
+        if index == 5:
+            self.dispatchAnalysisRedraw('stack-inline', AnalysisRedrawReason.visiblePlotActivated, direction=direction)
+            return
+
+        if index == 6:
+            self.dispatchAnalysisRedraw('stack-xline', AnalysisRedrawReason.visiblePlotActivated, direction=direction)
+            return
+
+        if index == 7:
+            self.dispatchAnalysisRedraw('stack-cell', AnalysisRedrawReason.visiblePlotActivated, direction=direction)
+            return
+
+        if index == 8:
+            self.dispatchAnalysisRedraw('offset', AnalysisRedrawReason.visiblePlotActivated)
+            return
+
+        if index == 9:
+            self.dispatchAnalysisRedraw('off-azi', AnalysisRedrawReason.visiblePlotActivated)
             return
 
         xAnaSize = self.output.anaOutput.shape[0]                               # make sure we have a valid self.spiderPoint, hence valid nx, ny
@@ -1944,10 +2232,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.plotStkBin(nX, stkX, y0, dy)
         elif index == 7:
             self.plotStkCel(nX, nY, stkX, stkY)
-        elif index == 8:
-            self.plotOffset()
-        elif index == 9:
-            self.plotOffAzi()
 
     def plotZoomRect(self):
         visiblePlot = self.getVisiblePlotWidget()[0]
@@ -2098,8 +2382,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if self.survey.output.rctOutput.isValid():
                 binRect = QGraphicsRectItem(self.survey.output.rctOutput)
                 binRect.setOpacity(1.0)
-                binRect.setPen(config.binAreaPen)
-                binRect.setBrush(QBrush(QColor(config.binAreaColor)))
+                binRect.setPen(self.appSettings.binAreaPen)
+                binRect.setBrush(QBrush(QColor(self.appSettings.binAreaColor)))
                 binRect.setTransform(transform)  # keeps the bin in the right coordinate space
                 self.layoutWidget.plotItem.addItem(binRect)
 
@@ -2130,10 +2414,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 connect='all',
                 pxMode=False,
                 pen=None,
-                symbol=config.spsPointSymbol,
+                symbol=self.appSettings.spsPointSymbol,
                 symbolPen=pg.mkPen('k'),
-                symbolSize=config.spsSymbolSize,
-                symbolBrush=QColor(config.spsBrushColor),
+                symbolSize=self.appSettings.spsSymbolSize,
+                symbolBrush=QColor(self.appSettings.spsBrushColor),
             )
             spsLive.setTransform(spsTransform)
 
@@ -2151,10 +2435,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 connect='all',
                 pxMode=False,
                 pen=None,
-                symbol=config.spsPointSymbol,
+                symbol=self.appSettings.spsPointSymbol,
                 symbolPen=pg.mkPen('k'),
-                symbolSize=config.spsSymbolSize,
-                symbolBrush=QColor(config.spsBrushColor),
+                symbolSize=self.appSettings.spsSymbolSize,
+                symbolBrush=QColor(self.appSettings.spsBrushColor),
             )
             spsDead.setTransform(spsTransform)
 
@@ -2169,10 +2453,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 connect='all',
                 pxMode=False,
                 pen=None,
-                symbol=config.rpsPointSymbol,
+                symbol=self.appSettings.rpsPointSymbol,
                 symbolPen=pg.mkPen('k'),
-                symbolSize=config.rpsSymbolSize,
-                symbolBrush=QColor(config.rpsBrushColor),
+                symbolSize=self.appSettings.rpsSymbolSize,
+                symbolBrush=QColor(self.appSettings.rpsBrushColor),
             )
             rpsLive.setTransform(rpsTransform)
 
@@ -2190,10 +2474,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 connect='all',
                 pxMode=False,
                 pen=None,
-                symbol=config.rpsPointSymbol,
+                symbol=self.appSettings.rpsPointSymbol,
                 symbolPen=pg.mkPen('k'),
-                symbolSize=config.rpsSymbolSize,
-                symbolBrush=QColor(config.rpsBrushColor),
+                symbolSize=self.appSettings.rpsSymbolSize,
+                symbolBrush=QColor(self.appSettings.rpsBrushColor),
             )
             rpsDead.setTransform(rpsTransform)
 
@@ -2208,10 +2492,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 connect='all',
                 pxMode=False,
                 pen=None,
-                symbol=config.srcPointSymbol,
+                symbol=self.appSettings.srcPointSymbol,
                 symbolPen=pg.mkPen('#bdbdbd'),
-                symbolSize=config.srcSymbolSize,
-                symbolBrush=QColor(config.srcBrushColor),
+                symbolSize=self.appSettings.srcSymbolSize,
+                symbolBrush=QColor(self.appSettings.srcBrushColor),
             )
             srcLive.setTransform(srcTransform)
 
@@ -2226,9 +2510,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 connect='all',
                 pxMode=False,
                 pen=None,
-                symbol=config.srcPointSymbol,
+                symbol=self.appSettings.srcPointSymbol,
                 symbolPen=pg.mkPen('#bdbdbd'),
-                symbolSize=config.srcSymbolSize,
+                symbolSize=self.appSettings.srcSymbolSize,
                 symbolBrush=QColor(config.srcBrushGrey),
             )
             srcDead.setTransform(srcTransform)
@@ -2244,10 +2528,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 connect='all',
                 pxMode=False,
                 pen=None,
-                symbol=config.recPointSymbol,
+                symbol=self.appSettings.recPointSymbol,
                 symbolPen=pg.mkPen('#bdbdbd'),
-                symbolSize=config.recSymbolSize,
-                symbolBrush=QColor(config.recBrushColor),
+                symbolSize=self.appSettings.recSymbolSize,
+                symbolBrush=QColor(self.appSettings.recBrushColor),
             )
             recLive.setTransform(recTransform)
 
@@ -2262,9 +2546,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 connect='all',
                 pxMode=False,
                 pen=None,
-                symbol=config.recPointSymbol,
+                symbol=self.appSettings.recPointSymbol,
                 symbolPen=pg.mkPen('#bdbdbd'),
-                symbolSize=config.recSymbolSize,
+                symbolSize=self.appSettings.recSymbolSize,
                 symbolBrush=QColor(config.recBrushGrey),
             )
             recDead.setTransform(recTransform)
@@ -2303,7 +2587,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             h = r * 2.0
             sphereArea = QGraphicsEllipseItem(x, y, w, h)
             sphereArea.setPen(pg.mkPen(100, 100, 100))
-            sphereArea.setBrush(QBrush(QColor(config.binAreaColor)))            # use same color as binning region
+            sphereArea.setBrush(QBrush(QColor(self.appSettings.binAreaColor)))  # use same color as binning region
             sphereArea.setTransform(transform)
             self.layoutWidget.plotItem.addItem(sphereArea)
 
@@ -2401,261 +2685,363 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             x, y = fnb.numbaAziXline(slice2D, oy)
             self.aziBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
+    def createAnalysisImageItem(self, imageData, x0: float, y0: float, dx: float, dy: float, levels=(-50.0, 0.0)):
+        tr = QTransform()
+        tr.translate(x0, y0)
+        tr.scale(dx, dy)
+
+        imageItem = pg.ImageItem()
+        imageItem.setImage(imageData, levels=levels)
+        imageItem.setTransform(tr)
+        return imageItem
+
+    def prepareAnalysisImageAndColorBar(
+        self,
+        plotWidget,
+        imageData,
+        x0: float,
+        y0: float,
+        dx: float,
+        dy: float,
+        imageAttr: str,
+        colorBarAttr: str,
+        levels=(-50.0, 0.0),
+        label='dB attenuation',
+        limits=(-100.0, 0.0),
+        rounding=10.0,
+    ):
+        imageItem = self.createAnalysisImageItem(imageData, x0, y0, dx, dy, levels=levels)
+
+        plotWidget.plotItem.clear()
+        plotWidget.plotItem.addItem(imageItem)
+        setattr(self, imageAttr, imageItem)
+
+        colorMapObj = self.resolveColorMapObject(self.appSettings.analysisCmap, fallback='viridis')
+        colorBar = getattr(self, colorBarAttr, None)
+
+        if colorBar is None:
+            try:
+                colorBar = plotWidget.plotItem.addColorBar(
+                    imageItem,
+                    colorMap=colorMapObj,
+                    label=label,
+                    limits=limits,
+                    rounding=rounding,
+                    values=levels,
+                )
+                colorBar.setLevels(low=levels[0], high=levels[1])
+            except TypeError as exc:
+                self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                colorBar = None
+        else:
+            try:
+                colorBar.setImageItem(imageItem)
+                colorBar.setLevels(low=levels[0], high=levels[1])
+                colorBar.setColorMap(colorMapObj)
+            except TypeError as exc:
+                self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
+
+        setattr(self, colorBarAttr, colorBar)
+        return imageItem
+
+    def prepareLayoutImageAndColorBar(
+        self,
+        imageData,
+        colorMap,
+        label,
+        levels=(0.0, 10.0),
+        limits=(0, None),
+        rounding=10.0,
+    ):
+        imageItem = pg.ImageItem()
+        imageItem.setImage(imageData, levels=levels)
+        self.layoutImItem = imageItem
+
+        colorMap = self.coerceColorMap(colorMap, fallback='CET-L1')
+        if not isinstance(colorMap, (str, pg.ColorMap)):
+            self.appendLogMessage(
+                f'Invalid colorMap type {type(colorMap)} value {colorMap!r};',
+                MsgType.Debug,
+            )
+            self.appendLogMessage(f'available maps={len(pg.colormap.listMaps())}', MsgType.Debug)
+        elif isinstance(colorMap, str):
+            colorMap = str(colorMap)
+
+        colorMapObj = self.resolveColorMapObject(colorMap, fallback='viridis')
+
+        if self.layoutColorBar is None:
+            try:
+                self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
+                    self.layoutImItem,
+                    colorMap=colorMapObj,
+                    label='N/A',
+                    limits=limits,
+                    rounding=rounding,
+                    values=levels,
+                )
+            except TypeError as exc:
+                self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
+                self.layoutColorBar = None
+
+        if self.layoutColorBar is not None:
+            self.layoutColorBar.setImageItem(self.layoutImItem)
+            self.layoutColorBar.setLevels(low=levels[0], high=levels[1])
+            try:
+                self.layoutColorBar.setColorMap(colorMapObj)
+            except TypeError as exc:
+                self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
+            self.setColorbarLabel(label)
+
+        return imageItem
+
     def plotStkTrk(self, nY: int, stkY: int, x0: float, dx: float):
         with pg.BusyCursor():
-            dK = 0.001 * config.kraStack.z()
-            kMax = 0.001 * config.kraStack.y() + dK
-            kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
-            kDelta = 1000.0 * dK                                                # same here
+            kMax, dK, kStart, kDelta = self.plotRedrawHelper.buildInlineStackAxisValues(self)
 
-            slice3D, I = fnb.numbaSlice3D(self.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
-            if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
-                return
+            responseKey = self.plotRedrawHelper.buildInlineResponseKey(nY)
+            if not self.plotRedrawHelper.canReuseInlineResponse(self, responseKey):
+                slice3D, I = fnb.numbaSlice3D(self.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
+                if slice3D.shape[0] == 0:                                       # empty array; nothing to see here...
+                    return
 
-            self.inlineStk = fnb.numbaNdft1D(kMax, dK, slice3D, I)
+                self.inlineStk = fnb.numbaNdft1D(kMax, dK, slice3D, I)
+                self.plotRedrawHelper.storeInlineResponseKey(responseKey)
 
-            tr = QTransform()                                                   # prepare ImageItem transformation:
-            tr.translate(x0, kStart)                                            # move image to correct location
-            tr.scale(dx, kDelta)                                                # scale horizontal and vertical axes
-
-            self.stkTrkImItem = pg.ImageItem()                                  # create PyqtGraph image item
-            self.stkTrkImItem.setImage(self.inlineStk, levels=(-50.0, 0.0))     # plot with log scale from -50 to 0
-            self.stkTrkImItem.setTransform(tr)
-
-            self.stkTrkWidget.plotItem.clear()                                  # clear first, then always add the image
-            self.stkTrkWidget.plotItem.addItem(self.stkTrkImItem)
-
-            colorMapObj = self.resolveColorMapObject(config.analysisCmap, fallback='viridis')
-            if self.stkTrkColorBar is None:
-                try:
-                    self.stkTrkColorBar = self.stkTrkWidget.plotItem.addColorBar(
-                        self.stkTrkImItem,
-                        colorMap=colorMapObj,
-                        label='dB attenuation',
-                        limits=(-100.0, 0.0),
-                        rounding=10.0,
-                        values=(-50.0, 0.0),
-                    )
-                    self.stkTrkColorBar.setLevels(low=-50.0, high=0.0)
-                except TypeError as exc:
-                    self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
-                    self.stkTrkColorBar = None
-            else:
-                try:
-                    self.stkTrkColorBar.setImageItem(self.stkTrkImItem)
-                    self.stkTrkColorBar.setLevels(low=-50.0, high=0.0)
-                    self.stkTrkColorBar.setColorMap(colorMapObj)                # in case the colorbar has been changed
-                except TypeError as exc:
-                    self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
+            self.prepareAnalysisImageAndColorBar(
+                self.stkTrkWidget,
+                self.inlineStk,
+                x0,
+                kStart,
+                dx,
+                kDelta,
+                'stkTrkImItem',
+                'stkTrkColorBar',
+            )
 
             plotTitle = f'{self.plotTitles[5]} [line={stkY}]'
             self.stkTrkWidget.setTitle(plotTitle, color='b', size='16pt')
 
     def plotStkBin(self, nX: int, stkX: int, y0: float, dy: float):
         with pg.BusyCursor():
-            dK = 0.001 * config.kraStack.z()
-            kMax = 0.001 * config.kraStack.y() + dK
-            kStart = 1000.0 * (0.0 - 0.5 * dK)                                  # scale by factor 1000 as we want to show [1/km] on scale
-            kDelta = 1000.0 * dK                                                # same here
+            kMax, dK, kStart, kDelta = self.plotRedrawHelper.buildXlineStackAxisValues(self)
 
-            slice3D, I = fnb.numbaSlice3D(self.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
-            if slice3D.shape[0] == 0:                                           # empty array; nothing to see here...
-                return
+            responseKey = self.plotRedrawHelper.buildXlineResponseKey(nX)
+            if not self.plotRedrawHelper.canReuseXlineResponse(self, responseKey):
+                slice3D, I = fnb.numbaSlice3D(self.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
+                if slice3D.shape[0] == 0:                                       # empty array; nothing to see here...
+                    return
 
-            self.x0lineStk = fnb.numbaNdft1D(kMax, dK, slice3D, I)
+                self.x0lineStk = fnb.numbaNdft1D(kMax, dK, slice3D, I)
+                self.plotRedrawHelper.storeXlineResponseKey(responseKey)
 
-            tr = QTransform()                                                   # prepare ImageItem transformation:
-            tr.translate(y0, kStart)                                            # move image to correct location
-            tr.scale(dy, kDelta)                                                # scale horizontal and vertical axes
-
-            self.stkBinImItem = pg.ImageItem()                                  # create PyqtGraph image item
-            self.stkBinImItem.setImage(self.x0lineStk, levels=(-50.0, 0.0))     # plot with log scale from -50 to 0
-            self.stkBinImItem.setTransform(tr)
-
-            self.stkBinWidget.plotItem.clear()                                  # clear first, then always add the image
-            self.stkBinWidget.plotItem.addItem(self.stkBinImItem)
-
-            colorMapObj = self.resolveColorMapObject(config.analysisCmap, fallback='viridis')
-            if self.stkBinColorBar is None:
-                try:
-                    self.stkBinColorBar = self.stkBinWidget.plotItem.addColorBar(
-                        self.stkBinImItem,
-                        colorMap=colorMapObj,
-                        label='dB attenuation',
-                        limits=(-100.0, 0.0),
-                        rounding=10.0,
-                        values=(-50.0, 0.0),
-                    )
-                    self.stkBinColorBar.setLevels(low=-50.0, high=0.0)
-                except TypeError as exc:
-                    self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
-                    self.stkBinColorBar = None
-            else:
-                try:
-                    self.stkBinColorBar.setImageItem(self.stkBinImItem)
-                    self.stkBinColorBar.setLevels(low=-50.0, high=0.0)
-                    self.stkBinColorBar.setColorMap(colorMapObj)                # in case the colorbar has been changed
-                except TypeError as exc:
-                    self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
+            self.prepareAnalysisImageAndColorBar(
+                self.stkBinWidget,
+                self.x0lineStk,
+                y0,
+                kStart,
+                dy,
+                kDelta,
+                'stkBinImItem',
+                'stkBinColorBar',
+            )
 
             plotTitle = f'{self.plotTitles[6]} [stake={stkX}]'
             self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
+
+    def getSelectedStackCellPatterns(self):
+        if not self.tbStackPatterns.isChecked():
+            return (None, None)
+
+        maxPatterns = len(self.survey.patternList)
+        patternIndex3 = self.pattern3.currentIndex() - 1
+        patternIndex4 = self.pattern4.currentIndex() - 1
+
+        pattern3 = self.survey.patternList[patternIndex3] if 0 <= patternIndex3 < maxPatterns else None
+        pattern4 = self.survey.patternList[patternIndex4] if 0 <= patternIndex4 < maxPatterns else None
+
+        return (pattern3, pattern4)
+
+    def computeStackCellResponse(self, nX: int, nY: int, pattern3=None, pattern4=None):
+        kMin = 0.001 * self.appSettings.kxyStack.x()
+        kMax = 0.001 * self.appSettings.kxyStack.y()
+        dK = 0.001 * self.appSettings.kxyStack.z()
+        kMax = kMax + dK
+
+        kStart = 1000.0 * (kMin - 0.5 * dK)
+        kDelta = 1000.0 * dK
+
+        offsetX, offsetY, noData = fnb.numbaOffsetBin(self.output.anaOutput[nX, nY, :, :], self.survey.unique.apply)
+        fold = 0 if noData else offsetX.shape[0]
+
+        if noData or offsetX.size == 0:
+            kX = np.arange(kMin, kMax, dK)
+            responseSize = kX.shape[0]
+            response = np.ones(shape=(responseSize, responseSize), dtype=np.float32) * -50.0
+        else:
+            response = fnb.numbaNdft2D(kMin, kMax, dK, offsetX, offsetY)
+
+        for pattern in (pattern3, pattern4):
+            if pattern is None:
+                continue
+            xPattern, yPattern = pattern.calcPatternPointArrays()
+            response = response + fnb.numbaNdft2D(kMin, kMax, dK, xPattern, yPattern)
+
+        return response, kStart, kDelta, fold
 
     def plotStkCel(self, nX: int, nY: int, stkX: int, stkY: int):
         if self.output.anaOutput is None or self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
             return
 
         with pg.BusyCursor():
-            kMin = 0.001 * config.kxyStack.x()
-            kMax = 0.001 * config.kxyStack.y()
-            dK = 0.001 * config.kxyStack.z()
-            kMax = kMax + dK
-
-            kStart = 1000.0 * (kMin - 0.5 * dK)                                 # scale by factor 1000 as we want to show [1/km] on scale
-            kDelta = 1000.0 * dK                                                # same here
-
-            offsetX, offsetY, noData = fnb.numbaOffsetBin(self.output.anaOutput[nX, nY, :, :], self.survey.unique.apply)
-            if noData:
-                fold = 0
+            pattern3, pattern4 = self.getSelectedStackCellPatterns()
+            responseKey = self.plotRedrawHelper.buildStackCellResponseKey(self, nX, nY)
+            if not self.plotRedrawHelper.canReuseStackCellResponse(self, responseKey):
+                self.xyCellStk, kStart, kDelta, fold = self.computeStackCellResponse(nX, nY, pattern3, pattern4)
+                self.plotRedrawHelper.storeStackCellResponse(responseKey, fold)
             else:
-                fold = offsetX.shape[0]
+                kStart, kDelta, fold = self.plotRedrawHelper.buildStackCellCachedAxisValues(self)
 
-            if noData or offsetX.size == 0:
-                kX = np.arange(kMin, kMax, dK)
-                nX = kX.shape[0]
-                self.xyCellStk = np.ones(shape=(nX, nX), dtype=np.float32) * -50.0           # create -50 dB array of the right size and type
-            else:
-                self.xyCellStk = fnb.numbaNdft2D(kMin, kMax, dK, offsetX, offsetY)
-
-            i3 = self.pattern3.currentIndex() - 1                               # turn <no pattern> into -1
-            i4 = self.pattern4.currentIndex() - 1
-            imax = len(self.survey.patternList)
-
-            if self.tbStackPatterns.isChecked() and i3 >= 0 and i3 < imax:
-                x3, y3 = self.survey.patternList[i3].calcPatternPointArrays()
-                self.xyCellStk = self.xyCellStk + fnb.numbaNdft2D(kMin, kMax, dK, x3, y3)
-
-            if self.tbStackPatterns.isChecked() and i4 >= 0 and i4 < imax:
-                x4, y4 = self.survey.patternList[i4].calcPatternPointArrays()
-                self.xyCellStk = self.xyCellStk + fnb.numbaNdft2D(kMin, kMax, dK, x4, y4)
-
-            tr = QTransform()                                               # prepare ImageItem transformation:
-            tr.translate(kStart, kStart)                                    # move image to correct location
-            tr.scale(kDelta, kDelta)                                        # scale horizontal and vertical axes
-
-            self.stkCelImItem = pg.ImageItem()                              # create PyqtGraph image item
-            self.stkCelImItem.setImage(self.xyCellStk, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
-            self.stkCelImItem.setTransform(tr)
-
-            self.stkCelWidget.plotItem.clear()                                  # clear first, then always add the image
-            self.stkCelWidget.plotItem.addItem(self.stkCelImItem)
-
-            colorMapObj = self.resolveColorMapObject(config.analysisCmap, fallback='viridis')
-            if self.stkCelColorBar is None:
-                try:
-                    self.stkCelColorBar = self.stkCelWidget.plotItem.addColorBar(
-                        self.stkCelImItem,
-                        colorMap=colorMapObj,
-                        label='dB attenuation',
-                        limits=(-100.0, 0.0),
-                        rounding=10.0,
-                        values=(-50.0, 0.0),
-                    )
-                    self.stkCelColorBar.setLevels(low=-50.0, high=0.0)
-                except TypeError as exc:
-                    self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
-                    self.stkCelColorBar = None
-            else:
-                try:
-                    self.stkCelColorBar.setImageItem(self.stkCelImItem)
-                    self.stkCelColorBar.setLevels(low=-50.0, high=0.0)
-                    self.stkCelColorBar.setColorMap(colorMapObj)                # in case the colorbar has been changed
-                except TypeError as exc:
-                    self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
+            self.prepareAnalysisImageAndColorBar(
+                self.stkCelWidget,
+                self.xyCellStk,
+                kStart,
+                kStart,
+                kDelta,
+                kDelta,
+                'stkCelImItem',
+                'stkCelColorBar',
+            )
 
             plotTitle = f'{self.plotTitles[7]} [stake={stkX}, line={stkY}, fold={fold}]'
             self.stkCelWidget.setTitle(plotTitle, color='b', size='16pt')
 
-    def plotOffset(self):
+    def prepareOffsetHistogramInputs(self):
+        dO = 50.0                                                               # offsets increments
+        oMax = ceil(self.output.maxMaxOffset / dO) * dO + dO                    # max y-scale; make sure end value is included
+        oR = np.arange(0, oMax, dO)                                             # numpy array with values [0 ... oMax]
+
+        if self.output.offstHist is None:
+            offsets, _, noData = fnb.numbaSliceStats(self.output.anaOutput, self.survey.unique.apply)
+            if noData:
+                return None
+
+            y, x = np.histogram(offsets, bins=oR)                               # create a histogram with 100m offset increments
+
+            y1 = np.append(y, 0)                                                # add a dummy value to make x- and y-arrays equal size
+            self.output.offstHist = np.stack((x, y1))                           # See: https://numpy.org/doc/stable/reference/generated/numpy.stack.html#numpy.stack
+
+        return {
+            'histogram': self.output.offstHist,
+            'count': np.sum(self.output.binOutput),
+        }
+
+    def prepareOffsetPlotInputs(self, histogramInputs=None):
+        if histogramInputs is None:
+            histogramInputs = self.prepareOffsetHistogramInputs()
+
+        if histogramInputs is None:
+            return None
+
+        histogram = histogramInputs['histogram']
+        return {
+            'xValues': histogram[0, :],
+            'yValues': histogram[1, :-1],
+            'plotTitle': f"{self.plotTitles[8]} [{histogramInputs['count']:,} traces]",
+        }
+
+    def renderPreparedOffsetPlot(self, plotInputs):
+        self.offsetWidget.plotItem.clear()
+        self.offsetWidget.plot(
+            plotInputs['xValues'],
+            plotInputs['yValues'],
+            stepMode='center',
+            fillLevel=0,
+            fillOutline=True,
+            brush=(0, 0, 255, 150),
+            pen=pg.mkPen('k', width=1),
+        )
+
+    def redrawOffset(self):
         with pg.BusyCursor():
+            plotInputs = self.prepareOffsetPlotInputs()
+            if plotInputs is None:
+                return
 
-            dO = 50.0                                                           # offsets increments
-            oMax = ceil(self.output.maxMaxOffset / dO) * dO + dO                # max y-scale; make sure end value is included
+            self.renderPreparedOffsetPlot(plotInputs)
+            self.offsetWidget.setTitle(plotInputs['plotTitle'], color='b', size='16pt')
+
+    def plotOffset(self):
+        self.redrawOffset()
+
+    def prepareOffAziHistogramInputs(self):
+        dA = 5.0                                                                # azimuth increments
+        dO = 100.0                                                              # offsets increments
+
+        aMin = 0.0                                                              # min x-scale
+        aMax = 360.0                                                            # max x-scale
+        aMax += dA                                                              # make sure end value is included
+
+        oMax = ceil(self.output.maxMaxOffset / dO) * dO + dO                    # max y-scale; make sure end value is included
+
+        if self.output.ofAziHist is None:                                       # calculate offset/azimuth distribution
+            offsets, azimuth, noData = fnb.numbaSliceStats(self.output.anaOutput, self.survey.unique.apply)
+            if noData:
+                return None
+
+            aR = np.arange(aMin, aMax, dA)                                      # numpy array with values [0 ... fMax]
             oR = np.arange(0, oMax, dO)                                         # numpy array with values [0 ... oMax]
+            self.output.ofAziHist = np.histogram2d(x=azimuth, y=offsets, bins=[aR, oR], range=None, density=None, weights=None)[0]
 
-            if self.output.offstHist is None:
-                offsets, _, noData = fnb.numbaSliceStats(self.output.anaOutput, self.survey.unique.apply)
-                if noData:
-                    return
+        return {
+            'histogram': self.output.ofAziHist,
+            'dA': dA,
+            'dO': dO,
+            'aMin': aMin,
+            'oMax': oMax,
+            'count': np.sum(self.output.binOutput),
+        }
 
-                y, x = np.histogram(offsets, bins=oR)                           # create a histogram with 100m offset increments
+    def prepareOffAziPlotInputs(self, histogramInputs=None):
+        if histogramInputs is None:
+            histogramInputs = self.prepareOffAziHistogramInputs()
 
-                y1 = np.append(y, 0)                                            # add a dummy value to make x- and y-arrays equal size
-                self.output.offstHist = np.stack((x, y1))                       # See: https://numpy.org/doc/stable/reference/generated/numpy.stack.html#numpy.stack
+        if histogramInputs is None:
+            return None
 
-            x2 = self.output.offstHist[0, :]                                    # x in the top row
-            y2 = self.output.offstHist[1, :-1]                                  # y in the bottom row, minus the phony last value
+        displayScale = 1000.0
+        isPolar = self.isOffAziPolarMode()
+        modeText = 'polar' if isPolar else 'rectangular'
 
-            count = np.sum(self.output.binOutput)                               # available traces
-            plotTitle = f'{self.plotTitles[8]} [{count:,} traces]'
-            self.offsetWidget.setTitle(plotTitle, color='b', size='16pt')
-            self.offsetWidget.plotItem.clear()
-            self.offsetWidget.plot(x2, y2, stepMode='center', fillLevel=0, fillOutline=True, brush=(0, 0, 255, 150), pen=pg.mkPen('k', width=1))
+        return {
+            'displayHistogram': histogramInputs['histogram'].astype(np.float32, copy=False) / displayScale,
+            'dA': histogramInputs['dA'],
+            'dO': histogramInputs['dO'],
+            'aMin': histogramInputs['aMin'],
+            'oMax': histogramInputs['oMax'],
+            'colorMapObj': self.resolveColorMapObject(self.appSettings.analysisCmap, fallback='viridis'),
+            'count': histogramInputs['count'],
+            'isPolar': isPolar,
+            'modeText': modeText,
+            'plotTitle': f"{self.plotTitles[9]} [{histogramInputs['count']:,} traces, {modeText}]",
+        }
+
+    def renderPreparedOffAziPlot(self, plotInputs):
+        if plotInputs['isPolar']:
+            self.renderOffAziPolar(plotInputs['displayHistogram'], plotInputs['dA'], plotInputs['dO'], plotInputs['oMax'], plotInputs['colorMapObj'])
+        else:
+            self.renderOffAziRectangular(plotInputs['displayHistogram'], plotInputs['dA'], plotInputs['dO'], plotInputs['aMin'], plotInputs['colorMapObj'])
+
+    def redrawOffAzi(self):
+        with pg.BusyCursor():
+            plotInputs = self.prepareOffAziPlotInputs()
+            if plotInputs is None:
+                return
+
+            self.renderPreparedOffAziPlot(plotInputs)
+            self.offAziWidget.setTitle(plotInputs['plotTitle'], color='b', size='16pt')
 
     def plotOffAzi(self):
-        with pg.BusyCursor():
-            dA = 5.0                                                            # azimuth increments
-            dO = 100.0                                                          # offsets increments
-
-            aMin = 0.0                                                          # min x-scale
-            aMax = 360.0                                                        # max x-scale
-            aMax += dA                                                          # make sure end value is included
-
-            oMax = ceil(self.output.maxMaxOffset / dO) * dO + dO                # max y-scale; make sure end value is included
-
-            if self.output.ofAziHist is None:                                   # calculate offset/azimuth distribution
-                offsets, azimuth, noData = fnb.numbaSliceStats(self.output.anaOutput, self.survey.unique.apply)
-                if noData:
-                    return
-
-                aR = np.arange(aMin, aMax, dA)                                  # numpy array with values [0 ... fMax]
-                oR = np.arange(0, oMax, dO)                                     # numpy array with values [0 ... oMax]
-                self.output.ofAziHist = np.histogram2d(x=azimuth, y=offsets, bins=[aR, oR], range=None, density=None, weights=None)[0]
-
-            tr = QTransform()                                                   # prepare ImageItem transformation:
-            tr.translate(aMin, 0)                                               # move image to correct location
-            tr.scale(dA, dO)                                                    # scale horizontal and vertical axes
-
-            self.offAziImItem = pg.ImageItem()                                  # create PyqtGraph image item
-            self.offAziImItem.setImage(self.output.ofAziHist)
-            self.offAziImItem.setTransform(tr)
-
-            self.offAziWidget.plotItem.clear()                                  # clear first, then always add the image
-            self.offAziWidget.plotItem.addItem(self.offAziImItem)
-
-            colorMapObj = self.resolveColorMapObject(config.analysisCmap, fallback='viridis')
-            if self.offAziColorBar is None:
-                try:
-                    self.offAziColorBar = self.offAziWidget.plotItem.addColorBar(
-                        self.offAziImItem,
-                        colorMap=colorMapObj,
-                        label='frequency',
-                        rounding=10.0,
-                    )
-                    self.offAziColorBar.setLevels(low=0.0)                      # , high=0.0
-                except TypeError as exc:
-                    self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
-                    self.offAziColorBar = None
-            else:
-                try:
-                    self.offAziColorBar.setImageItem(self.offAziImItem)
-                    self.offAziColorBar.setColorMap(colorMapObj)                # in case the colorbar has been changed
-                except TypeError as exc:
-                    self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
-
-            count = np.sum(self.output.binOutput)                               # available traces
-            plotTitle = f'{self.plotTitles[9]} [{count:,} traces]'
-            self.offAziWidget.setTitle(plotTitle, color='b', size='16pt')
+        self.redrawOffAzi()
 
         # For Polar Coordinates, see:
         # See: https://stackoverflow.com/questions/57174173/polar-coordinate-system-in-pyqtgraph
@@ -2664,6 +3050,53 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # See: https://www.youtube.com/watch?v=DyPjsj6azY4
         # See: https://stackoverflow.com/questions/50720719/how-to-create-a-color-circle-in-pyqt
         # See: https://stackoverflow.com/questions/70471687/pyqt-creating-color-circle
+
+    def getSelectedPatternInputs(self):
+        maxPatterns = len(self.survey.patternList)
+
+        patternIndex1 = self.pattern1.currentIndex() - 1
+        patternIndex2 = self.pattern2.currentIndex() - 1
+
+        pattern1 = self.survey.patternList[patternIndex1] if 0 <= patternIndex1 < maxPatterns else None
+        pattern2 = self.survey.patternList[patternIndex2] if 0 <= patternIndex2 < maxPatterns else None
+
+        text1 = self.pattern1.currentText()
+        text2 = self.pattern2.currentText()
+
+        return pattern1, pattern2, text1, text2
+
+    def computeKxyPatternResponse(self, pattern1, pattern2):
+        kMin = 0.001 * self.appSettings.kxyArray.x()
+        kMax = 0.001 * self.appSettings.kxyArray.y()
+        dK = 0.001 * self.appSettings.kxyArray.z()
+        kMax = kMax + dK
+
+        kStart = 1000.0 * (kMin - 0.5 * dK)
+        kDelta = 1000.0 * dK
+
+        x1 = y1 = x2 = y2 = None
+
+        if pattern1 is not None:
+            x1, y1 = pattern1.calcPatternPointArrays()
+
+        if pattern2 is not None:
+            x2, y2 = pattern2.calcPatternPointArrays()
+
+        kX = np.arange(kMin, kMax, dK)
+        nX = kX.shape[0]
+
+        if (x1 is None or len(x1) == 0) and (x2 is None or len(x2) == 0):
+            response = np.ones(shape=(nX, nX), dtype=np.float32) * -50.0
+        else:
+            response = np.zeros(shape=(nX, nX), dtype=np.float32)
+
+            if pattern1 is not None:
+                response = response + fnb.numbaNdft2D(kMin, kMax, dK, x1, y1)
+
+            if pattern2 is not None:
+                response = response + fnb.numbaNdft2D(kMin, kMax, dK, x2, y2)
+
+        return response, kStart, kDelta
 
     def plotPatterns(self):
 
@@ -2675,90 +3108,42 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.arraysWidget.setLabel('top', ' ', **styles)                        # shows axis at the top, no label, no tickmarks
         self.arraysWidget.setLabel('right', ' ', **styles)                      # shows axis at the right, no label, no tickmarks
 
-        i1 = self.pattern1.currentIndex() - 1                                   # turn <no pattern> into -1
-        i2 = self.pattern2.currentIndex() - 1
-        imax = len(self.survey.patternList)
+        pattern1, pattern2, text1, text2 = self.getSelectedPatternInputs()
 
         if self.patternLayout:                                                  # display the layout
             self.arraysWidget.setLabel('bottom', 'inline', units='m', **styles)   # shows axis at the bottom, and shows the units label
             self.arraysWidget.setLabel('left', 'crossline', units='m', **styles)  # shows axis at the left, and shows the units label
 
-            if i1 >= 0 and i1 < imax:
-                self.arraysWidget.plotItem.addItem(self.survey.patternList[i1])
+            if pattern1 is not None:
+                self.arraysWidget.plotItem.addItem(pattern1)
 
-            if i2 >= 0 and i2 < imax:
-                self.arraysWidget.plotItem.addItem(self.survey.patternList[i2])
+            if pattern2 is not None:
+                self.arraysWidget.plotItem.addItem(pattern2)
 
         else:                                                                   # calculate kxky pattern response of selected patterns
             self.arraysWidget.setLabel('bottom', 'Kx', units='1/km', **styles)  # shows axis at the bottom, and shows the units label
             self.arraysWidget.setLabel('left', 'Ky', units='1/km', **styles)    # shows axis at the left, and shows the units label
 
             with pg.BusyCursor():                                               # now do the real work
-                kMin = 0.001 * config.kxyArray.x()
-                kMax = 0.001 * config.kxyArray.y()
-                dK = 0.001 * config.kxyArray.z()
-                kMax = kMax + dK
-
-                kStart = 1000.0 * (kMin - 0.5 * dK)                             # scale by factor 1000 as we want to show [1/km] on scale
-                kDelta = 1000.0 * dK                                            # same here
-
-                x1 = y1 = x2 = y2 = None                                        # avoid these variables from being undefined
-
-                if i1 >= 0 and i1 < imax:
-                    x1, y1 = self.survey.patternList[i1].calcPatternPointArrays()
-
-                if i2 >= 0 and i2 < imax:
-                    x2, y2 = self.survey.patternList[i2].calcPatternPointArrays()
-
-                kX = np.arange(kMin, kMax, dK)                                  # setup k value array
-                nX = kX.shape[0]                                                # get array size
-
-                if (x1 is None or len(x1) == 0) and (x2 is None or len(x2) == 0):
-                    self.xyPatResp = np.ones(shape=(nX, nX), dtype=np.float32) * -50.0  # create -50 dB array of the right size and type
+                responseKey = self.plotRedrawHelper.buildPatternResponseKey(self)
+                if not self.plotRedrawHelper.canReusePatternResponse(self, responseKey):
+                    self.xyPatResp, kStart, kDelta = self.computeKxyPatternResponse(pattern1, pattern2)
+                    self.plotRedrawHelper.storePatternResponseKey(responseKey)
                 else:
-                    self.xyPatResp = np.zeros(shape=(nX, nX), dtype=np.float32)   # create zero array of the right size and type
+                    kStart, kDelta = self.plotRedrawHelper.buildPatternAxisValues(self)
 
-                    if i1 >= 0 and i1 < imax:                                   # multiply with array response (dB -> multiplication becomes summation)
-                        self.xyPatResp = self.xyPatResp + fnb.numbaNdft2D(kMin, kMax, dK, x1, y1)
+                self.prepareAnalysisImageAndColorBar(
+                    self.arraysWidget,
+                    self.xyPatResp,
+                    kStart,
+                    kStart,
+                    kDelta,
+                    kDelta,
+                    'kxyPatImItem',
+                    'kxyPatColorBar',
+                )
 
-                    if i2 >= 0 and i2 < imax:                                   # multiply with array response (dB -> multiplication becomes summation)
-                        self.xyPatResp = self.xyPatResp + fnb.numbaNdft2D(kMin, kMax, dK, x2, y2)
-
-                tr = QTransform()                                               # prepare ImageItem transformation:
-                tr.translate(kStart, kStart)                                    # move image to correct location
-                tr.scale(kDelta, kDelta)                                        # scale horizontal and vertical axes
-
-                self.kxyPatImItem = pg.ImageItem()                              # create PyqtGraph image item
-                self.kxyPatImItem.setImage(self.xyPatResp, levels=(-50.0, 0.0))   # plot with log scale from -50 to 0
-                self.kxyPatImItem.setTransform(tr)
-
-                self.arraysWidget.plotItem.clear()                              # clear first, then always add the image
-                self.arraysWidget.plotItem.addItem(self.kxyPatImItem)
-
-                colorMapObj = self.resolveColorMapObject(config.analysisCmap, fallback='viridis')
-                if self.kxyPatColorBar is None:
-                    try:
-                        self.kxyPatColorBar = self.arraysWidget.plotItem.addColorBar(
-                            self.kxyPatImItem,
-                            colorMap=colorMapObj,
-                            label='dB attenuation',
-                            limits=(-100.0, 0.0),
-                            rounding=10.0,
-                            values=(-50.0, 0.0),
-                        )
-                        self.kxyPatColorBar.setLevels(low=-50.0, high=0.0)
-                    except TypeError as exc:
-                        self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
-                        self.kxyPatColorBar = None
-                else:
-                    try:
-                        self.kxyPatColorBar.setImageItem(self.kxyPatImItem)
-                        self.kxyPatColorBar.setLevels(low=-50.0, high=0.0)
-                        self.kxyPatColorBar.setColorMap(colorMapObj)            # in case the colorbar has been changed
-                    except TypeError as exc:
-                        self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
-
-        plotTitle = f'{self.plotTitles[10]} [{self.pattern1.currentText()} * {self.pattern2.currentText()}]'
+        plotTitle = f'{self.plotTitles[10]} [{text1} * {text2}]'
         plotTitle = plotTitle.replace('<', '&lt;')                              # bummer; plotTitle is an html string
         plotTitle = plotTitle.replace('>', '&gt;')                              # we need to escape the angle brackets
 
@@ -2850,6 +3235,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.x0lineStk = None                                                   # numpy array with x_line Kr stack reponse
         self.xyCellStk = None                                                   # numpy array with cell's KxKy stack response
         self.xyPatResp = None                                                   # numpy array with pattern's KxKy response
+        self.plotRedrawHelper.reset()
 
         # layout and analysis image-items
         self.layoutImItem = None                                                # pg ImageItems showing analysis result
@@ -2901,6 +3287,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.output.rmsOffset = None
         self.output.ofAziHist = None
         self.output.offstHist = None
+        self._resetOffAziDisplayLevels = True
 
         self.resetAnaTableModel()
 
@@ -2957,7 +3344,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.updateAllViews()                                               # parse the textEdit; show the corresponding plot
 
             self.appendLogMessage(f'Wizard : created land survey: {self.survey.name}')
-            config.surveyNumber += 1                                            # update global counter
+            self.surveyNumber += 1                                              # update session counter
 
             return True
 
@@ -2985,7 +3372,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.updateAllViews()                                               # parse the textEdit; show the corresponding plot
 
             self.appendLogMessage(f'Wizard : created streamer survey: {self.survey.name}')
-            config.surveyNumber += 1                                            # update global counter
+            self.surveyNumber += 1                                              # update session counter
 
             return True
 
@@ -3127,10 +3514,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.projectDirectory = os.path.dirname(fileName)                       # retrieve the directory name
 
-        # make projectDirectory available outside of RollMainWindow
-        self.settings.setValue('settings/projectDirectory', self.projectDirectory)
-
-        config.resetTimers()    ###                                             # reset timers for debugging code
+        self.sessionService.resetTimers()    ###                                # reset timers for debugging code
 
         readResult = self.projectService.readProjectText(fileName)
         if not readResult.success:                                              # report status message and return False
@@ -3167,11 +3551,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         # self.appendLogMessage('RollMainWindow.resetSurveyProperties() profiling information', MsgType.Debug)
         # i = 0
-        # while i < len(config.timerTmin):                        # log some debug messages
-        #     tMin = config.timerTmin[i] if config.timerTmin[i] != float('Inf') else 0.0
-        #     tMax = config.timerTmax[i]
-        #     tTot = config.timerTtot[i]
-        #     freq = config.timerFreq[i]
+        # while i < len(self.sessionService.timerTmin):          # log some debug messages
+        #     tMin = self.sessionService.timerTmin[i] if self.sessionService.timerTmin[i] != float('Inf') else 0.0
+        #     tMax = self.sessionService.timerTmax[i]
+        #     tTot = self.sessionService.timerTtot[i]
+        #     freq = self.sessionService.timerFreq[i]
         #     tAvr = tTot / freq if freq > 0 else 0.0
         #     message = f'Index {i:02d}, min {tMin:011.3f}, max {tMax:011.3f}, tot {tTot:011.3f}, avr {tAvr:011.3f}, freq {freq:07d}'
         #     # message = f'{i:02d}: min:{tMin:11.3f}, max:{tMax:11.3f}, tot:{tTot:11.3f}, avr:{tAvr:11.3f}, freq:{freq:7d}'
@@ -3212,14 +3596,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.appendLogMessage(message.text, msgType)
 
     def fileImportSpsData(self) -> bool:
-        spsLines = 0
-        xpsLines = 0
-        rpsLines = 0
-
-        spsRead = 0
-        xpsRead = 0
-        rpsRead = 0
-
         # create the dialog to select SPS/RPS/XPS files to import, with dialog parent, current CRS and last used import directory
         dlg = SpsImportDialog(self, self.survey.crs, self.importDirectory)
 
@@ -3237,210 +3613,71 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.appendLogMessage(f"Import : importing SPS-data using the '{spsDialect}' SPS-dialect")
         self.appendLogMessage(f'Import : importing {len(dlg.rpsFiles)} rps-file(s), {len(dlg.spsFiles)} sps-file(s) and {len(dlg.xpsFiles)} xps-file(s)')
 
-        spsFormat = next((item for item in config.spsFormatList if item['name'] == spsDialect), None)
+        spsFormat = next((item for item in self.appSettings.spsFormatList if item['name'] == spsDialect), None)
         assert spsFormat is not None, f'No valid SPS dialect with name {spsDialect}'
 
-        xpsFormat = next((item for item in config.xpsFormatList if item['name'] == spsDialect), None)
+        xpsFormat = next((item for item in self.appSettings.xpsFormatList if item['name'] == spsDialect), None)
         assert xpsFormat is not None, f'No valid XPS dialect with name {spsDialect}'
 
-        rpsFormat = next((item for item in config.rpsFormatList if item['name'] == spsDialect), None)
+        rpsFormat = next((item for item in self.appSettings.rpsFormatList if item['name'] == spsDialect), None)
         assert rpsFormat is not None, f'No valid RPS dialect with name {spsDialect}'
 
-        if dlg.spsFiles:                                                        # import the SPS data
-            spsData = dlg.spsTab.toPlainText().splitlines()
-            spsLines = len(spsData)
-            self.spsImport = np.zeros(shape=spsLines, dtype=pntType1)
+        spsData = dlg.spsTab.toPlainText().splitlines() if dlg.spsFiles else None
+        xpsData = dlg.xpsTab.toPlainText().splitlines() if dlg.xpsFiles else None
+        rpsData = dlg.rpsTab.toPlainText().splitlines() if dlg.rpsFiles else None
 
-            self.progressLabel.setText(f'Importing {spsLines} lines of SPS data...')
-            self.showStatusbarWidgets()
+        self.showStatusbarWidgets()
+        self.interrupted = False
 
-            oldProgress = 0
-            self.interrupted = False
-            for line_number, line in enumerate(spsData):
-                QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
-                if self.interrupted is True:
-                    break
-
-                progress = (100 * line_number) // spsLines
-                if progress > oldProgress:
-                    oldProgress = progress
-                    self.progressBar.setValue(progress)
-                    QApplication.processEvents()  # Ensure the UI updates in real-time
-
-                spsRead += readSpsLine(spsRead, line, self.spsImport, spsFormat)
-
-            self.progressBar.setValue(100)
-
-            if spsRead < spsLines:
-                self.spsImport.resize(spsRead, refcheck=False)                  # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
-
-            if self.interrupted:
-                self.appendLogMessage('Import : importing SPS data canceled by user.')
-                self.hideStatusbarWidgets()
-                return False
-
-        if dlg.xpsFiles:                                                        # import the XPS data
-            xpsData = dlg.xpsTab.toPlainText().splitlines()
-            xpsLines = len(xpsData)
-            self.xpsImport = np.zeros(shape=xpsLines, dtype=relType2)
-
-            self.progressLabel.setText(f'Importing {xpsLines} lines of XPS data...')
-            self.showStatusbarWidgets()
-
-            oldProgress = 0
-            self.interrupted = False
-            for line_number, line in enumerate(xpsData):
-                QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
-                if self.interrupted is True:
-                    break
-
-                progress = (100 * line_number) // xpsLines
-                if progress > oldProgress:
-                    oldProgress = progress
-                    self.progressBar.setValue(progress)
-                    QApplication.processEvents()  # Ensure the UI updates in real-time
-
-                xpsRead += readXpsLine(xpsRead, line, self.xpsImport, xpsFormat)
-
-            self.progressBar.setValue(100)
-
-            if xpsRead < xpsLines:
-                self.xpsImport.resize(xpsRead, refcheck=False)                  # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
-
-            if self.interrupted:
-                self.appendLogMessage('Import : importing XPS data canceled by user.')
-                self.hideStatusbarWidgets()
-                return False
-
-        if dlg.rpsFiles:                                                        # import the RPS data
-            rpsData = dlg.rpsTab.toPlainText().splitlines()
-            rpsLines = len(rpsData)
-            self.rpsImport = np.zeros(shape=rpsLines, dtype=pntType1)
-
-            self.progressLabel.setText(f'Importing {rpsLines} lines of RPS data...')
-            self.showStatusbarWidgets()
-
-            oldProgress = 0
-            self.interrupted = False
-            for line_number, line in enumerate(rpsData):
-                QApplication.processEvents()  # Ensure the UI updates in real-time to check if the ESC key is pressed
-                if self.interrupted is True:
-                    break
-
-                progress = (100 * line_number) // rpsLines
-                if progress > oldProgress:
-                    oldProgress = progress
-                    self.progressBar.setValue(progress)
-                    QApplication.processEvents()  # Ensure the UI updates in real-time
-
-                rpsRead += readRpsLine(rpsRead, line, self.rpsImport, rpsFormat)
-
-            self.progressBar.setValue(100)
-
-            if rpsRead < rpsLines:
-                self.rpsImport.resize(rpsRead, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
-
-            if self.interrupted:
-                self.appendLogMessage('Import : importing RPS data canceled by user.')
-                self.hideStatusbarWidgets()
-                return False
-
-            self.appendLogMessage(f'Import : imported {spsLines} sps-records, {xpsLines} xps-records and {rpsLines} rps-records')
-            QApplication.processEvents()  # Ensure the UI updates in real-time
-
-        nQcStep = 0
-        nQcSteps = 0
-        if self.rpsImport is not None:
-            nQcSteps += 1
-        if self.spsImport is not None:
-            nQcSteps += 1
-        if self.xpsImport is not None:
-            nQcSteps += 1
-        if spsRead > 0 and xpsRead > 0:
-            nQcSteps += 1
-        if rpsRead > 0 and xpsRead > 0:
-            nQcSteps += 1
-        nQcIncrement = 100 // nQcSteps if nQcSteps > 0 else 0
-
-        if nQcSteps > 0:
-            self.progressBar.setValue(0)                                        # first reset to zero
-
-        # sort and analyse imported arrays
         with pg.BusyCursor():
-            if self.rpsImport is not None:
-                self.progressLabel.setText(f'Import QC step : ({nQcStep + 1} / {nQcSteps}) analysing rps-records')
-                self.progressBar.setValue(nQcIncrement * nQcStep)
-                nQcStep += 1
-                nImport = self.rpsImport.shape[0]
-                nUnique = markUniqueRPSrecords(self.rpsImport, sort=True)
-                self.appendLogMessage(f'Import : . . . analysed rps-records; found {nUnique:,} unique records and {(nImport - nUnique):,} duplicates')
-                QApplication.processEvents()  # Ensure the UI updates in real-time
+            importResult = self.importService.importTextData(
+                spsData=spsData,
+                xpsData=xpsData,
+                rpsData=rpsData,
+                spsFormat=spsFormat,
+                xpsFormat=xpsFormat,
+                rpsFormat=rpsFormat,
+                shouldCancel=self._processImportEvents,
+                progressCallback=self._updateImportProgress,
+            )
 
-                convertCrs(self.rpsImport, dlg.crs, self.survey.crs)  # convert the coordinates to the survey CRS
-                origX, origY, pMin, lMin, dPint, dLint, dPn, dLn, angle1 = calculateLineStakeTransform(self.rpsImport)
+        if importResult.cancelled:
+            self.appendLogMessage(importResult.cancelMessage)
+            self.hideStatusbarWidgets()
+            return False
 
-                self.appendLogMessage(f'Import : . . . . . . Origin: (E{origX:.2f}m, N{origY:.2f}m) @ (pnt{pMin:.1f}, lin{lMin:.1f})')
-                self.appendLogMessage(f'Import : . . . . . . Orientation {angle1:,.3f}deg for lines &#8741; x-axis')
-                self.appendLogMessage(f'Import : . . . . . . Intervals for (line, point) in design (lin{dLint:,.2f}m, pnt{dPint:,.2f}m)')
-                self.appendLogMessage(f'Import : . . . . . . Increments for (line, point) in grid (lin{dLn:,.2f}m, pnt{dPn:,.2f}m)')
+        spsImport = importResult.spsImport
+        xpsImport = importResult.xpsImport
+        rpsImport = importResult.rpsImport
 
-                QApplication.processEvents()  # Ensure the UI updates in real-time
+        self.appendLogMessage(
+            f'Import : imported {importResult.spsRead} sps-records, {importResult.xpsRead} xps-records and {importResult.rpsRead} rps-records'
+        )
 
-                self.sessionService.refreshArrayState(self.sessionState, 'rpsImport')
-                self.tbRpsList.setChecked(True)                                 # set the RPS list to be visible
+        if any(array is not None for array in (rpsImport, spsImport, xpsImport)):
+            self.progressBar.setValue(0)
 
-            if self.spsImport is not None:
-                self.progressLabel.setText(f'Import QC step : ({nQcStep + 1} / {nQcSteps}) analysing sps-records')
-                self.progressBar.setValue(nQcIncrement * nQcStep)
-                nQcStep += 1
-                nImport = self.spsImport.shape[0]
-                nUnique = markUniqueSPSrecords(self.spsImport, sort=True)
-                self.appendLogMessage(f'Import : . . . analysed sps-records; found {nUnique:,} unique records and {(nImport - nUnique):,} duplicates')
-                QApplication.processEvents()  # Ensure the UI updates in real-time
+        with pg.BusyCursor():
+            qcResult = self.importService.runQualityChecks(
+                rpsImport=rpsImport,
+                spsImport=spsImport,
+                xpsImport=xpsImport,
+                importCrs=dlg.crs,
+                surveyCrs=self.survey.crs,
+                progressCallback=self._updateImportProgress,
+            )
 
-                convertCrs(self.spsImport, dlg.crs, self.survey.crs)  # convert the coordinates to the survey CRS
-                origX, origY, pMin, lMin, dPint, dLint, dPn, dLn, angle1 = calculateLineStakeTransform(self.spsImport)
+        self.rpsImport = rpsImport
+        self.spsImport = spsImport
+        self.xpsImport = xpsImport
 
-                self.appendLogMessage(f'Import : . . . . . . Origin: (E{origX:.2f}m, N{origY:.2f}m) @ (pnt{pMin:.1f}, lin{lMin:.1f})')
-                self.appendLogMessage(f'Import : . . . . . . Orientation {angle1:,.3f}deg for lines &#8741; x-axis')
-                self.appendLogMessage(f'Import : . . . . . . Intervals for (line, point) in design (lin{dLint:,.2f}m, pnt{dPint:,.2f}m)')
-                self.appendLogMessage(f'Import : . . . . . . Increments for (line, point) in grid (lin{dLn:,.2f}m, pnt{dPn:,.2f}m)')
+        if qcResult.showRpsList:
+            self.tbRpsList.setChecked(True)
+        if qcResult.showSpsList:
+            self.tbSpsList.setChecked(True)
 
-                self.sessionService.refreshArrayState(self.sessionState, 'spsImport')
-                self.tbSpsList.setChecked(True)
-
-            if self.xpsImport is not None:
-                self.progressLabel.setText(f'Import QC step : ({nQcStep + 1} / {nQcSteps}) analysing xps-records')
-                self.progressBar.setValue(nQcIncrement * nQcStep)
-                nQcStep += 1
-                nImport = self.xpsImport.shape[0]
-                nUnique = markUniqueXPSrecords(self.xpsImport, sort=True)
-                self.appendLogMessage(f'Import : . . . analysed xps-records; found {nUnique:,} unique records and {(nImport - nUnique):,} duplicates')
-                QApplication.processEvents()                                    # Ensure the UI updates in real-time
-
-                traces = calcMaxXPStraces(self.xpsImport)
-                self.appendLogMessage(f'Import : . . . the xps-records define a maximum of {traces:,} traces')
-
-            # handle doublets  of RPS / XPS and SPS / XPS-files
-            if spsRead > 0 and xpsRead > 0:
-                self.progressLabel.setText(f'Import QC step : ({nQcStep + 1} / {nQcSteps}) analysing sps-xps orphans')
-                self.progressBar.setValue(nQcIncrement * nQcStep)
-                nQcStep += 1
-
-                nSpsOrphans, nXpsOrphans = findSrcOrphans(self.spsImport, self.xpsImport)
-                self.appendLogMessage(f'Import : . . . sps-records contain {nXpsOrphans:,} xps-orphans')
-                self.appendLogMessage(f'Import : . . . xps-records contain {nSpsOrphans:,} sps-orphans')
-                QApplication.processEvents()  # Ensure the UI updates in real-time
-
-            if rpsRead > 0 and xpsRead > 0:
-                self.progressLabel.setText(f'Import QC step : ({nQcStep + 1} / {nQcSteps}) analysing xps-rps orphans')
-                self.progressBar.setValue(nQcIncrement * nQcStep)
-                nQcStep += 1
-
-                nRpsOrphans, nXpsOrphans = findRecOrphans(self.rpsImport, self.xpsImport)
-                self.appendLogMessage(f'Import : . . . rps-records contain {nXpsOrphans:,} xps-orphans')
-                self.appendLogMessage(f'Import : . . . xps-records contain {nRpsOrphans:,} rps-orphans')
-                QApplication.processEvents()  # Ensure the UI updates in real-time
+        for message in qcResult.messages:
+            self.appendLogMessage(message)
 
         self.spsModel.setData(self.spsImport)                                   # update the three sps/rps/xps models
         self.xpsModel.setData(self.xpsImport)
@@ -3508,7 +3745,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if not self.fileName:                                                   # need to have a valid filename first, and set the projectDirectory
             return self.fileSaveAs()
 
-        saveResult = self.projectService.writeProjectXml(self.fileName, self.survey, self.projectDirectory, config.useRelativePaths, 4)
+        saveResult = self.projectService.writeProjectXml(self.fileName, self.survey, self.projectDirectory, self.appSettings.useRelativePaths, 4)
         success = saveResult.success
 
         if success:
@@ -3749,7 +3986,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # dateTime = QDateTime.currentDateTime().toString("dd-MM-yyyy hh:mm:ss")
         dateTime = QDateTime.currentDateTime().toString('yyyy-MM-ddTHH:mm:ss')  # UTC time; same format as is used in QGis
 
-        if index == MsgType.Debug and not config.debug:                         # debug message, which needs to be suppressed
+        if index == MsgType.Debug and not self.appSettings.debug:               # debug message, which needs to be suppressed
             return
 
         # use &nbsp; (non-breaking-space) to prevent html eating up subsequent spaces !

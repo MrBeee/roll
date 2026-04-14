@@ -53,6 +53,7 @@ class RollPluginTest(unittest.TestCase):
 
     def tearDown(self):
         if self.plugin.mainWindow is not None:
+            self.plugin.mainWindow.textEdit.document().setModified(False)
             self.plugin.mainWindow.close()
             self.plugin.mainWindow.deleteLater()
         self.plugin = None

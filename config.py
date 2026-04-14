@@ -1,9 +1,7 @@
 import copy
-from time import perf_counter
 
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QPen, QVector3D
-from qgis.PyQt.QtWidgets import QApplication
 
 # This module provides some default settings for variables used in Roll
 
@@ -13,81 +11,9 @@ from qgis.PyQt.QtWidgets import QApplication
 
 # general settings
 surveyNumber = 1                                                                # number increments within a session
-surveyName = 'Orthogonal_001'                                                   # initial survey name
 
 # most recently used (MRU) files
 maxRecentFiles = 9                                                              # used in the File -> Open Recent menu
-
-# deployment area
-deployXDir = 10000                                                              # inline deployment distance
-deployYDir = 10000                                                              # x-line deployment distance
-
-# source for land/obc templates
-nsl = 1                                                                         # nr. src lines in template
-nslPar = 681                                                                   # nr. src pointd in parallel template
-nsp = 4                                                                         # nr. src points in template
-sli = 250                                                                       # src line interval
-sliPar = 50                                                                    # src POINT interval in a parallel template
-spi = 50                                                                        # src point interval; src LINE interval in a parallel template
-slr = 1                                                                         # src line roll along
-sld = 41                                                                        # src line deployments (inline)
-
-# receiver for land/obc templates
-# spreadlength = 12000                                                          # initial spread length [m], before changes are made
-nrl = 8                                                                         # nr. rec lines in template
-nrp = 240                                                                       # nr. rec points in template
-nrpPar = 440                                                                   # nr. rec points in template
-rli = 200                                                                       # rec line interval
-rpi = 50                                                                        # rec point interval
-rlr = 1                                                                         # rec line roll along
-rld = 51                                                                        # rec line deployments (x-line)
-
-brick = 100                                                                     # offset of 2nd source line
-
-# binning area
-binImin = 4000                                                                  # x-min - of initial cmp analysis area
-binXmin = 5000                                                                  # x-size
-binIsiz = 2000                                                                  # y-min
-binXsiz = 2000                                                                  # y-size
-
-# General presets for towed marine settings
-swDensity = 1029.0                                                              # [kg/m3]   seawater density
-cDrag = 0.0055                                                                  # [-]       streamer drag coefficient
-maxDragForce = 3.07                                                             # [ton-force]   max force on streamer(s)
-vSail = 4.60                                                                    # [knot]    vessel's acquisition speed in water
-vTurn = 4.47                                                                    # [knot]    vessel's line turn speed in water
-vMinInner = 3.75                                                                # [knot]    min speed in water of inner streamer
-
-vCross = 0.0                                                                    # [knot]    cross current
-vTail = 0.0                                                                     # [knot]    tail current
-
-srcPopInt = 25.0                                                                # [m]       default pop-interval; impacts 'clean' record length
-nSrc = 2                                                                        # [#]       flip-flop shooting
-nCab = 10                                                                       # [#]       using 10 cables is quite normal
-
-srcLayback = 250.0                                                              # [m]       limited by umbilical length
-cabLayback = 450.0                                                              # [m]       approximately half the spreadwidth
-
-cabLength = 8000.0                                                              # [m]       8 km streamer per default
-cabDiameter = 0.06                                                              # [m]       cable diameter; for drag forces
-groupInt = 12.5                                                                 # [m]       group interval, 12.5 m is industry standard
-
-cabDepthHead = 8.0                                                              # [m]       streamer depth at head of spread
-cabDepthTail = 10.0                                                             # [m]       streamer depth at end of spread
-
-cabSepHead = 100.0                                                              # [m]       streamer inerval at head of spread
-cabSepTail = 100.0                                                              # [m]       streamer depth at end of spread
-
-srcDepth = 10.0                                                                 # [m]       source depth default
-recLength = 8.0                                                                 # [s]       record length
-
-srcSepFactor = 1                                                                # [#]       Source separation factor [1 ... nCab-1]
-srcSeparation = 50.0                                                            # [#]       Source separation interval
-
-cdpDepth = 2000.0                                                               # [m]       shown cdp depth in marine wizard
-
-surveySizeI = 50_000.0                                                          # [m]       inline survey size
-surveySizeX = 30_000.0                                                          # [m]       x-line survey size
 
 # Level of Detail (LOD) settings
 lod0 = 0.005                                                                    # Lowest level;  < lod0: paint survey as rect outline
@@ -101,30 +27,6 @@ lod0Range = [0.001, 0.025]
 lod1Range = [0.010, 0.250]
 lod2Range = [0.100, 2.500]
 lod3Range = [0.250, 6.250]
-
-# Source and receiver patterns land / obc
-rNam = 'rec-array'                                                              # pattern name
-sNam = 'src-array'                                                              # pattern name
-rBra = 4                                                                        # nr branches in pattern
-sBra = 1                                                                        # nr branches in pattern
-rEle = 6                                                                        # nr elem in branch
-sEle = 3                                                                        # nr elem in branch
-rBrI = 12.5                                                                     # branch interval
-sBrI = 0.0                                                                      # branch interval
-rElI = 25.0 / 3.0                                                               # element interval
-sElI = 12.5                                                                     # element interval
-
-# Source and receiver patterns streamers
-rName = 'streamer-group'                                                        # pattern name
-sName = 'airgun-array'                                                          # pattern name
-rBran = 6                                                                       # nr branches in pattern
-sBran = 5                                                                       # nr branches in pattern
-rElem = 1                                                                       # nr elem in branch
-sElem = 3                                                                       # nr elem in branch
-rBrIn = 12.5 / 6                                                                # branch interval
-sBrIn = 15.0 / 5                                                                # branch interval
-rElIn = 0.0                                                                     # element interval
-sElIn = 15.0                                                                    # element interval
 
 # Default color and pen parameters to display analysis areas, they can be altered in the settings dialog
 binAreaColor = '#20000000'                                                      # argb - light grey
@@ -166,10 +68,10 @@ srcPointSymbol = 'o'
 srcSymbolSize = 25
 
 # select true, in case you have parallel or zigzag geometries, where source lines follow the direction of the receiver lines
-spsParallel = False
+DEFAULT_SPS_PARALLEL = False
 
-# Default spsDialect should equal a name from the spsFormatList dicts
-spsDialect = 'New Zealand'
+# Default spsDialect should equal a name from the default SPS format dicts
+DEFAULT_SPS_DIALECT = 'New Zealand'
 
 # used in sps_import_dialog.py for human readable input
 spsPointFormatDict = dict(
@@ -197,7 +99,7 @@ spsRelationFormatDict = dict(
 )
 
 # fmt: off
-spsFormatList = [
+_spsFormatDefaults = [
     # configuration settings for locations of point fields in SPS files;
     # all indices are 'zero' based and the last number is not included
     # the first character on a line is therefore [0, 1], the last one is [79, 80]
@@ -210,7 +112,7 @@ spsFormatList = [
 # fmt: on
 
 # fmt: off
-rpsFormatList = [
+_rpsFormatDefaults = [
     # configuration settings for locations of point fields in RPS files;
     # all indices are 'zero' based and the last number is not included
     # the first character on a line is therefore [0, 1], the last one is [79, 80]
@@ -223,7 +125,7 @@ rpsFormatList = [
 # fmt: on
 
 # fmt: off
-xpsFormatList = [
+_xpsFormatDefaults = [
     # configuration settings for locations of fields in SPS data;
     # all indices are 'zero' based and the last number is not included
     # the first character on a line is therefore [0, 1], the last one is [79, 80]
@@ -234,15 +136,16 @@ xpsFormatList = [
 ]
 # fmt: on
 
-_spsFormatDefaults = copy.deepcopy(spsFormatList)
-_rpsFormatDefaults = copy.deepcopy(rpsFormatList)
-_xpsFormatDefaults = copy.deepcopy(xpsFormatList)
+def getDefaultSpsFormats():
+    return copy.deepcopy(_spsFormatDefaults)
 
-def resetSpsDatabase():
-    global spsFormatList, rpsFormatList, xpsFormatList                      # pylint: disable=W0603; need to update global variables
-    spsFormatList = copy.deepcopy(_spsFormatDefaults)
-    rpsFormatList = copy.deepcopy(_rpsFormatDefaults)
-    xpsFormatList = copy.deepcopy(_xpsFormatDefaults)
+
+def getDefaultRpsFormats():
+    return copy.deepcopy(_rpsFormatDefaults)
+
+
+def getDefaultXpsFormats():
+    return copy.deepcopy(_xpsFormatDefaults)
 
 
 # for access to QSettings()
@@ -258,15 +161,15 @@ kxyArray = QVector3D(-50.0, 50.0, 0.5)  # settings for pattern kxy plots (min, m
 useNumba = False
 
 # showUnfinished is used to indicate whether or not code "still under construction" is to be shown to end user
-showUnfinished = False
+DEFAULT_SHOW_UNFINISHED = False
 
 # showSummary is used to indicate whether or not to show summary info of underlying parameters in the property pane
-showSummaries = False
+DEFAULT_SHOW_SUMMARIES = False
 
 # debug parameters in settings menu
 # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
-debug = True                                                                    # show debug messages in Logging pane
-debugpy = False                                                                 # run worker threads in debug mode
+DEFAULT_DEBUG = True                                                            # show debug messages in Logging pane
+DEFAULT_DEBUGPY = False                                                         # run worker threads in debug mode
 
 # QTableView can handle a max number of rows without 'hanging' QGIS.
 # For this reason a chunked approach is used to show analysis results in the table view.
@@ -276,12 +179,6 @@ maxRowsPerChunk = 1_000_000
 
 # filename handling for wells in a .roll project
 useRelativePaths = True   # save well file names relative to .roll project file
-
-# timings for time critical functions, allowing for 20 steps, accessed through config.elapsedTime(startTime, index: int)
-timerTmin = [float('Inf') for _ in range(20)]
-timerTmax = [0.0 for _ in range(20)]
-timerTtot = [0.0 for _ in range(20)]
-timerFreq = [0 for _ in range(20)]
 
 # style definitions for consistent style across the application
 # toolButtonStyle = 'QToolButton { selection-background-color: blue } QToolButton:checked { background-color: lightblue } QToolButton:pressed { background-color: red }'
@@ -350,32 +247,6 @@ editNormalStyle = 'QLineEdit {color:black; background-color:white;}'
 # See: https://stackoverflow.com/questions/7840325/change-the-selection-color-of-a-qtablewidget
 tableStyle = 'QTableView::item:selected{background-color : #add8e6;selection-color : #000000;}'
 labelStyle = 'font-family: Arial; font-weight: bold; font-size: 16px;'
-
-
-def elapsedTime(startTime, index: int) -> None:
-    currentTime = perf_counter()
-    deltaTime = currentTime - startTime
-
-    timerTmin[index] = min(deltaTime, timerTmin[index])
-    timerTmax[index] = max(deltaTime, timerTmax[index])
-    timerTtot[index] = timerTtot[index] + deltaTime
-    timerFreq[index] = timerFreq[index] + 1
-    QApplication.processEvents()
-    return perf_counter()  # call again; to ignore any time spent in this funtion
-
-
-def resetTimers(timers=20) -> None:
-
-    # Need access to global variables to reset their values; disable pylint warning
-    global timerTmin                                                            # pylint: disable=W0603
-    global timerTmax                                                            # pylint: disable=W0603
-    global timerTtot                                                            # pylint: disable=W0603
-    global timerFreq                                                            # pylint: disable=W0603
-
-    timerTmin = [float('Inf') for _ in range(timers)]
-    timerTmax = [0.0 for _ in range(timers)]
-    timerTtot = [0.0 for _ in range(timers)]
-    timerFreq = [0 for _ in range(timers)]
 
 
 # Example on using config.py

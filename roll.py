@@ -31,7 +31,7 @@ from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-from . import config  # used to set up QSettings
+from .app_settings import readStoredDebugpySetting
 
 try:
     haveDebugpy = True
@@ -67,10 +67,9 @@ def enableRemoteDebugging():
     # Reload the plugin (or QGIS altogether), it should work now.
 
 
-    settings = QSettings(config.organization, config.application)               # needed here to access debug settings
-    config.debugpy = settings.value('settings/debug/debugpy', False, type=bool)     # default = False; assume no debugging in main/worker threads
+    debugpyEnabled = readStoredDebugpySetting()
 
-    if not (haveDebugpy and config.debugpy):
+    if not (haveDebugpy and debugpyEnabled):
         return
 
     # Configure Python interpreter

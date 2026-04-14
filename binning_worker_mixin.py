@@ -11,7 +11,6 @@ import pyqtgraph as pg
 from qgis.PyQt.QtCore import QThread
 from qgis.PyQt.QtWidgets import QMessageBox
 
-from . import config
 from .enums_and_int_flags import MsgType
 from .worker_threads import (BinFromGeometryWorker, BinningWorker,
                              GeometryWorker)
@@ -19,6 +18,9 @@ from .worker_threads import (BinFromGeometryWorker, BinningWorker,
 
 class BinningWorkerMixin:
     """Keeps the binning/geometry worker-thread lifecycle outside RollMainWindow."""
+
+    def configureWorkerDebugpy(self, worker):
+        worker.setDebugpyEnabled(self.appSettings.debugpy)
 
     def finalizeAnalysisMemmap(self, shape):
         if not self.fileName or self.output.anaOutput is None:
@@ -268,6 +270,7 @@ class BinningWorkerMixin:
         self.worker = BinningWorker(xmlString)
         self.worker.setExtended(fullAnalysis)
         self.worker.setMemMappedFile(self.output.anaOutput)
+        self.configureWorkerDebugpy(self.worker)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
@@ -305,6 +308,7 @@ class BinningWorkerMixin:
         self.worker.setExtended(fullAnalysis)
         self.worker.setMemMappedFile(self.output.anaOutput)
         self.worker.setGeometryArrays(self.srcGeom, self.relGeom, self.recGeom)
+        self.configureWorkerDebugpy(self.worker)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
@@ -347,6 +351,7 @@ class BinningWorkerMixin:
         self.worker.setExtended(fullAnalysis)
         self.worker.setMemMappedFile(self.output.anaOutput)
         self.worker.setGeometryArrays(self.spsImport, self.xpsImport, self.rpsImport)
+        self.configureWorkerDebugpy(self.worker)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
@@ -372,6 +377,7 @@ class BinningWorkerMixin:
         self.thread = QThread()
         xmlString = self.survey.toXmlString()
         self.worker = GeometryWorker(xmlString)
+        self.configureWorkerDebugpy(self.worker)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
@@ -492,7 +498,7 @@ class BinningWorkerMixin:
             if self.layoutColorBar is None:
                 self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
                     self.layoutImItem,
-                    colorMap=self.resolveColorMapName(config.foldDispCmap, fallback='CET-L4'),
+                    colorMap=self.resolveColorMapName(self.appSettings.foldDispCmap, fallback='CET-L4'),
                     label=label,
                     limits=(0, None),
                     rounding=10.0,
@@ -501,7 +507,7 @@ class BinningWorkerMixin:
             else:
                 self.layoutColorBar.setImageItem(self.layoutImItem)
                 self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-                self.layoutColorBar.setColorMap(self.resolveColorMapName(config.foldDispCmap, fallback='CET-L4'))
+                self.layoutColorBar.setColorMap(self.resolveColorMapName(self.appSettings.foldDispCmap, fallback='CET-L4'))
                 self.setColorbarLabel(label)
 
             self.plotLayout()
@@ -520,7 +526,7 @@ class BinningWorkerMixin:
         self.hideStatusbarWidgets()
 
     def geometryThreadFinished(self, success: bool):
-        if config.debug:
+        if self.appSettings.debug:
             self.appendLogMessage('geometryFromTemplates() profiling information', MsgType.Debug)
             for i, _ in enumerate(self.worker.survey.timerTmin):
                 tMin = self.worker.survey.timerTmin[i] * 1000.0 if self.worker.survey.timerTmin[i] != float('Inf') else 0.0

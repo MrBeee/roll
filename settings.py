@@ -28,8 +28,31 @@ except ImportError as ie:
 
 
 from . import config  # used to pass initial settings
+from .app_settings import AppSettings
 from .aux_functions import makeParmsFromPen, makePenFromParms
 from .my_range import MyRangeParameter as rng
+
+
+def _getAppSettings(self):
+    appSettings = getattr(self, 'appSettings', None)
+    if appSettings is None:
+        appSettings = AppSettings()
+        self.appSettings = appSettings
+        appSettings.activate()
+    return appSettings
+
+
+def _applyNumbaSetting(useNumba):
+    if not haveNumba:
+        return
+
+    numba.config.DISABLE_JIT = not useNumba                                    # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
+    moduleName = f'{__package__}.functions_numba'
+    module = sys.modules.get(moduleName)
+    if module is not None:
+        importlib.reload(module)                                                # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
+    else:
+        importlib.import_module(moduleName)                                     # load it for the first time, which will ensure proper value of numba.config.DISABLE_JIT is being used
 
 
 class SettingsDialog(QDialog):
@@ -72,6 +95,8 @@ class SettingsDialog(QDialog):
         # See: https://www.reddit.com/r/Python/comments/8qqznc/python_gui_and_parameter_tree_data_entered_by_the/
         # See: https://gist.github.com/blink1073/1b2f7ae3214742574d51
 
+        appSettings = _getAppSettings(parent)
+
         # See: https://github.com/cbrunet/fibermodes/blob/master/fibermodesgui/fieldvisualizer/colormapwidget.py
 
         # Try this nice example
@@ -81,13 +106,13 @@ class SettingsDialog(QDialog):
         # See: https://doc.qt.io/qtforpython-5/PySide2/QtGui/QColorConstants.html for color constants
 
         spsNames = []                                                           # create list of sps names to choose from
-        for n in config.spsFormatList:
+        for n in appSettings.spsFormatList:
             spsNames.append(n['name'])
 
-        binAreaPenParam = makeParmsFromPen(config.binAreaPen)                   # create parameter tuples from current pens
-        cmpAreaPenParam = makeParmsFromPen(config.cmpAreaPen)
-        recAreaPenParam = makeParmsFromPen(config.recAreaPen)
-        srcAreaPenParam = makeParmsFromPen(config.srcAreaPen)
+        binAreaPenParam = makeParmsFromPen(appSettings.binAreaPen)              # create parameter tuples from current pens
+        cmpAreaPenParam = makeParmsFromPen(appSettings.cmpAreaPen)
+        recAreaPenParam = makeParmsFromPen(appSettings.recAreaPen)
+        srcAreaPenParam = makeParmsFromPen(appSettings.srcAreaPen)
 
         # Note: QColor uses 'argb' in hex format, whereas pyqtgraph uses 'rgba' so first need to convert #hex value to a QColor()
         colorParams = [
@@ -96,16 +121,16 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[  # Qt light blue background
-                    dict(name='Bin area color', type='color', value=QColor(config.binAreaColor), default=QColor(config.binAreaColor)),
-                    dict(name='Cmp area color', type='color', value=QColor(config.cmpAreaColor), default=QColor(config.cmpAreaColor)),
-                    dict(name='Rec area color', type='color', value=QColor(config.recAreaColor), default=QColor(config.recAreaColor)),
-                    dict(name='Src area color', type='color', value=QColor(config.srcAreaColor), default=QColor(config.srcAreaColor)),
+                    dict(name='Bin area color', type='color', value=QColor(appSettings.binAreaColor), default=QColor(appSettings.binAreaColor)),
+                    dict(name='Cmp area color', type='color', value=QColor(appSettings.cmpAreaColor), default=QColor(appSettings.cmpAreaColor)),
+                    dict(name='Rec area color', type='color', value=QColor(appSettings.recAreaColor), default=QColor(appSettings.recAreaColor)),
+                    dict(name='Src area color', type='color', value=QColor(appSettings.srcAreaColor), default=QColor(appSettings.srcAreaColor)),
                     dict(name='Bin area pen', type='myPen', flat=True, expanded=False, value=binAreaPenParam, default=binAreaPenParam),
                     dict(name='Cmp area pen', type='myPen', flat=True, expanded=False, value=cmpAreaPenParam, default=cmpAreaPenParam),
                     dict(name='Rec area pen', type='myPen', flat=True, expanded=False, value=recAreaPenParam, default=recAreaPenParam),
                     dict(name='Src area pen', type='myPen', flat=True, expanded=False, value=srcAreaPenParam, default=srcAreaPenParam),
-                    dict(name='Fold/offset color map', type='myCmap', value=config.foldDispCmap, default=config.foldDispCmap),
-                    dict(name='Analysis color map', type='myCmap', value=config.analysisCmap, default=config.analysisCmap),
+                    dict(name='Fold/offset color map', type='myCmap', value=appSettings.foldDispCmap, default=appSettings.foldDispCmap),
+                    dict(name='Analysis color map', type='myCmap', value=appSettings.analysisCmap, default=appSettings.analysisCmap),
                 ],
             ),
         ]
@@ -116,10 +141,10 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='LOD 0 [survey]   ', type='mySlider', value=config.lod0, default=config.lod0, precision=4, limits=config.lod0Range, step=0.02 * config.lod0),  # config.lod0 = 0.005
-                    dict(name='LOD 1 [templates]', type='mySlider', value=config.lod1, default=config.lod1, precision=4, limits=config.lod1Range, step=0.02 * config.lod1),  # config.lod1 = 0.050
-                    dict(name='LOD 2 [points]   ', type='mySlider', value=config.lod2, default=config.lod2, precision=4, limits=config.lod2Range, step=0.02 * config.lod2),  # config.lod2 = 0.500
-                    dict(name='LOD 3 [patterns] ', type='mySlider', value=config.lod3, default=config.lod3, precision=4, limits=config.lod3Range, step=0.02 * config.lod3),  # config.lod3 = 1.250
+                    dict(name='LOD 0 [survey]   ', type='mySlider', value=appSettings.lod0, default=appSettings.lod0, precision=4, limits=config.lod0Range, step=0.02 * appSettings.lod0),
+                    dict(name='LOD 1 [templates]', type='mySlider', value=appSettings.lod1, default=appSettings.lod1, precision=4, limits=config.lod1Range, step=0.02 * appSettings.lod1),
+                    dict(name='LOD 2 [points]   ', type='mySlider', value=appSettings.lod2, default=appSettings.lod2, precision=4, limits=config.lod2Range, step=0.02 * appSettings.lod2),
+                    dict(name='LOD 3 [patterns] ', type='mySlider', value=appSettings.lod3, default=appSettings.lod3, precision=4, limits=config.lod3Range, step=0.02 * appSettings.lod3),
                 ],
             )
         ]
@@ -137,10 +162,10 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='SPS implementation', type='list', limits=spsNames, value=config.spsDialect, default=config.spsDialect),  # SPS 'flavor'
-                    dict(name='Parallel/NAZ geometry', type='bool', value=config.spsParallel, default=config.spsParallel, tip=tip0),
-                    dict(name='Rps point marker', type='myMarker', flat=True, expanded=False, symbol=config.rpsPointSymbol, color=QColor(config.rpsBrushColor), size=config.rpsSymbolSize),
-                    dict(name='Sps point marker', type='myMarker', flat=True, expanded=False, symbol=config.spsPointSymbol, color=QColor(config.spsBrushColor), size=config.spsSymbolSize),
+                    dict(name='SPS implementation', type='list', limits=spsNames, value=appSettings.spsDialect, default=appSettings.spsDialect),
+                    dict(name='Parallel/NAZ geometry', type='bool', value=appSettings.spsParallel, default=appSettings.spsParallel, tip=tip0),
+                    dict(name='Rps point marker', type='myMarker', flat=True, expanded=False, symbol=appSettings.rpsPointSymbol, color=QColor(appSettings.rpsBrushColor), size=appSettings.rpsSymbolSize),
+                    dict(name='Sps point marker', type='myMarker', flat=True, expanded=False, symbol=appSettings.spsPointSymbol, color=QColor(appSettings.spsBrushColor), size=appSettings.spsSymbolSize),
                 ],
             ),
         ]
@@ -151,8 +176,8 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Rec point marker', type='myMarker', flat=True, expanded=False, symbol=config.recPointSymbol, color=QColor(config.recBrushColor), size=config.recSymbolSize),
-                    dict(name='Src point marker', type='myMarker', flat=True, expanded=False, symbol=config.srcPointSymbol, color=QColor(config.srcBrushColor), size=config.srcSymbolSize),
+                    dict(name='Rec point marker', type='myMarker', flat=True, expanded=False, symbol=appSettings.recPointSymbol, color=QColor(appSettings.recBrushColor), size=appSettings.recSymbolSize),
+                    dict(name='Src point marker', type='myMarker', flat=True, expanded=False, symbol=appSettings.srcPointSymbol, color=QColor(appSettings.srcBrushColor), size=appSettings.srcSymbolSize),
                 ],
             ),
         ]
@@ -163,14 +188,14 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[
-                    dict(name='Kr  stack response', type='myRange', flat=True, expanded=False, value=config.kraStack, default=config.kraStack, suffix=' [1/km]'),  # fixedMin=True,
-                    dict(name='Kxy stack response', type='myRange', flat=True, expanded=False, value=config.kxyStack, default=config.kxyStack, suffix=' [1/km]', twoDim=True),
-                    dict(name='Kxy array response', type='myRange', flat=True, expanded=False, value=config.kxyArray, default=config.kxyArray, suffix=' [1/km]', twoDim=True),
+                    dict(name='Kr  stack response', type='myRange', flat=True, expanded=False, value=appSettings.kraStack, default=appSettings.kraStack, suffix=' [1/km]'),
+                    dict(name='Kxy stack response', type='myRange', flat=True, expanded=False, value=appSettings.kxyStack, default=appSettings.kxyStack, suffix=' [1/km]', twoDim=True),
+                    dict(name='Kxy array response', type='myRange', flat=True, expanded=False, value=appSettings.kxyArray, default=appSettings.kxyArray, suffix=' [1/km]', twoDim=True),
                 ],
             ),
         ]
 
-        useDebugpy = config.debugpy if haveDebugpy else False
+        useDebugpy = appSettings.debugpy if haveDebugpy else False
 
         dbgParams = [
             dict(
@@ -178,13 +203,13 @@ class SettingsDialog(QDialog):
                 type='myGroup',
                 brush='#add8e6',
                 children=[  # Qt light blue background
-                    dict(name='Debug logging', type='bool', value=config.debug, default=config.debug, enabled=True, tip='show debug messages in Logging pane'),
+                    dict(name='Debug logging', type='bool', value=appSettings.debug, default=appSettings.debug, enabled=True, tip='show debug messages in Logging pane'),
                     dict(name='Debug plugin threads', type='bool', value=useDebugpy, default=useDebugpy, enabled=haveDebugpy, tip='run plugin threads in debug mode using debugpy'),
                 ],
             ),
         ]
 
-        useNumba = config.useNumba if haveNumba else False
+        useNumba = appSettings.useNumba if haveNumba else False
         tip1 = 'Experimental option to speed up processing significantly.\nIt requires the Numba package to be installed'
         tip2 = 'Save well file names relative to .roll project file.\nThis makes moving the project folder easier.'
         tip3 = 'Show summary information of underlying parameters in the property pane'
@@ -197,9 +222,9 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[
                     dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip1),
-                    dict(name='Use relative paths', type='bool', value=config.useRelativePaths, default=config.useRelativePaths, enabled=True, tip=tip2),
-                    dict(name='Show summary properties', type='bool', value=config.showSummaries, default=config.showSummaries, enabled=True, tip=tip3),
-                    dict(name='Show unfinished code', type='bool', value=config.showUnfinished, default=config.showUnfinished, enabled=True, tip=tip4),
+                    dict(name='Use relative paths', type='bool', value=appSettings.useRelativePaths, default=appSettings.useRelativePaths, enabled=True, tip=tip2),
+                    dict(name='Show summary properties', type='bool', value=appSettings.showSummaries, default=appSettings.showSummaries, enabled=True, tip=tip3),
+                    dict(name='Show unfinished code', type='bool', value=appSettings.showUnfinished, default=appSettings.showUnfinished, enabled=True, tip=tip4),
                 ],
             ),
         ]
@@ -246,6 +271,8 @@ class SettingsDialog(QDialog):
         QDialog.accept(self)
 
     def accepted(self):
+        appSettings = _getAppSettings(self.parent)
+
         # categories
         COL = self.parameters.child('Color Settings')
         LOD = self.parameters.child('Level of Detail Settings')
@@ -256,27 +283,27 @@ class SettingsDialog(QDialog):
         MIS = self.parameters.child('Miscellaneous Settings')
 
         # sps settings
-        config.spsDialect = SPS.child('SPS implementation').value()
-        config.spsParallel = SPS.child('Parallel/NAZ geometry').value()
+        appSettings.spsDialect = SPS.child('SPS implementation').value()
+        appSettings.spsParallel = SPS.child('Parallel/NAZ geometry').value()
 
         rpsMarker = SPS.child('Rps point marker')
-        config.rpsPointSymbol = rpsMarker.marker.symbol()
-        config.rpsBrushColor = rpsMarker.marker.color().name(QColor.NameFormat.HexArgb)
-        config.rpsSymbolSize = rpsMarker.marker.size()
+        appSettings.rpsPointSymbol = rpsMarker.marker.symbol()
+        appSettings.rpsBrushColor = rpsMarker.marker.color().name(QColor.NameFormat.HexArgb)
+        appSettings.rpsSymbolSize = rpsMarker.marker.size()
 
         spsMarker = SPS.child('Sps point marker')
-        config.spsPointSymbol = spsMarker.marker.symbol()
-        config.spsBrushColor = spsMarker.marker.color().name(QColor.NameFormat.HexArgb)
-        config.spsSymbolSize = spsMarker.marker.size()
+        appSettings.spsPointSymbol = spsMarker.marker.symbol()
+        appSettings.spsBrushColor = spsMarker.marker.color().name(QColor.NameFormat.HexArgb)
+        appSettings.spsSymbolSize = spsMarker.marker.size()
 
         # color (map) settings
-        config.analysisCmap = COL.child('Analysis color map').value()
-        config.foldDispCmap = COL.child('Fold/offset color map').value()
+        appSettings.analysisCmap = COL.child('Analysis color map').value()
+        appSettings.foldDispCmap = COL.child('Fold/offset color map').value()
 
-        config.binAreaColor = COL.child('Bin area color').value().name(QColor.NameFormat.HexArgb)
-        config.cmpAreaColor = COL.child('Cmp area color').value().name(QColor.NameFormat.HexArgb)
-        config.recAreaColor = COL.child('Rec area color').value().name(QColor.NameFormat.HexArgb)
-        config.srcAreaColor = COL.child('Src area color').value().name(QColor.NameFormat.HexArgb)
+        appSettings.binAreaColor = COL.child('Bin area color').value().name(QColor.NameFormat.HexArgb)
+        appSettings.cmpAreaColor = COL.child('Cmp area color').value().name(QColor.NameFormat.HexArgb)
+        appSettings.recAreaColor = COL.child('Rec area color').value().name(QColor.NameFormat.HexArgb)
+        appSettings.srcAreaColor = COL.child('Src area color').value().name(QColor.NameFormat.HexArgb)
 
         # config.binAreaPen = COL.child('Bin area pen').value()                 # the pen value isn't properly updated
         # config.cmpAreaPen = COL.child('Cmp area pen').value()                 # use saveState()['value'] instead
@@ -288,51 +315,45 @@ class SettingsDialog(QDialog):
         recAreaPenParam = COL.child('Rec area pen').saveState()['value']
         srcAreaPenParam = COL.child('Src area pen').saveState()['value']
 
-        config.binAreaPen = makePenFromParms(binAreaPenParam)                   # final values
-        config.cmpAreaPen = makePenFromParms(cmpAreaPenParam)
-        config.recAreaPen = makePenFromParms(recAreaPenParam)
-        config.srcAreaPen = makePenFromParms(srcAreaPenParam)
+        appSettings.binAreaPen = makePenFromParms(binAreaPenParam)             # final values
+        appSettings.cmpAreaPen = makePenFromParms(cmpAreaPenParam)
+        appSettings.recAreaPen = makePenFromParms(recAreaPenParam)
+        appSettings.srcAreaPen = makePenFromParms(srcAreaPenParam)
 
-        config.lod0 = LOD.child('LOD 0 [survey]   ').value()
-        config.lod1 = LOD.child('LOD 1 [templates]').value()
-        config.lod2 = LOD.child('LOD 2 [points]   ').value()
-        config.lod3 = LOD.child('LOD 3 [patterns] ').value()
+        appSettings.lod0 = LOD.child('LOD 0 [survey]   ').value()
+        appSettings.lod1 = LOD.child('LOD 1 [templates]').value()
+        appSettings.lod2 = LOD.child('LOD 2 [points]   ').value()
+        appSettings.lod3 = LOD.child('LOD 3 [patterns] ').value()
 
         # geometry settings
         recValue = GEO.child('Rec point marker').value()
-        config.recPointSymbol = recValue.symbol()
-        config.recBrushColor = recValue.color().name(QColor.NameFormat.HexArgb)
-        config.recSymbolSize = recValue.size()
+        appSettings.recPointSymbol = recValue.symbol()
+        appSettings.recBrushColor = recValue.color().name(QColor.NameFormat.HexArgb)
+        appSettings.recSymbolSize = recValue.size()
 
         srcValue = GEO.child('Src point marker').value()
-        config.srcPointSymbol = srcValue.symbol()
-        config.srcBrushColor = srcValue.color().name(QColor.NameFormat.HexArgb)
-        config.srcSymbolSize = srcValue.size()
+        appSettings.srcPointSymbol = srcValue.symbol()
+        appSettings.srcBrushColor = srcValue.color().name(QColor.NameFormat.HexArgb)
+        appSettings.srcSymbolSize = srcValue.size()
 
         # k-plot settings
-        config.kraStack = KKK.child('Kr  stack response').value()
-        config.kxyStack = KKK.child('Kxy stack response').value()
-        config.kxyArray = KKK.child('Kxy array response').value()
+        appSettings.kraStack = KKK.child('Kr  stack response').value()
+        appSettings.kxyStack = KKK.child('Kxy stack response').value()
+        appSettings.kxyArray = KKK.child('Kxy array response').value()
 
         # debug settings
         # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
-        config.debug = DBG.child('Debug logging').value()
-        config.debugpy = DBG.child('Debug plugin threads').value()
+        appSettings.debug = DBG.child('Debug logging').value()
+        appSettings.debugpy = DBG.child('Debug plugin threads').value()
 
         # miscellaneous settings
-        config.useNumba = MIS.child('Use Numba').value()
-        if haveNumba:                                                           # can only do this when numba has been installed
-            numba.config.DISABLE_JIT = not config.useNumba                      # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
-            moduleName = f'{__package__}.functions_numba'
-            module = sys.modules.get(moduleName)
-            if module is not None:
-                importlib.reload(module)                                        # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
-            else:
-                importlib.import_module(moduleName)                             # load it for the first time, which will ensure proper value of numba.config.DISABLE_JIT is being used
+        appSettings.useNumba = MIS.child('Use Numba').value()
+        appSettings.useRelativePaths = MIS.child('Use relative paths').value()  # save well file names relative to .roll project file
+        appSettings.showUnfinished = MIS.child('Show unfinished code').value()  # show/hide "work in progress"
+        appSettings.showSummaries = MIS.child('Show summary properties').value()
 
-        config.useRelativePaths = MIS.child('Use relative paths').value()       # save well file names relative to .roll project file
-        config.showUnfinished = MIS.child('Show unfinished code').value()       # show/hide "work in progress"
-        config.showSummaries = MIS.child('Show summary properties').value()     # show/hide summary information in property pane
+        appSettings.activate()
+        _applyNumbaSetting(appSettings.useNumba)
 
 # Helper functions to read/clear format groups
 def _readFormatGroup(self, group):
@@ -368,6 +389,8 @@ def _writeFormatGroup(self, group, entries):
     self.settings.endGroup()
 
 def readSettings(self):
+    appSettings = _getAppSettings(self)
+
     # main window information
     geom = self.settings.value('mainWindow/geometry', bytes('', 'utf-8'))       # , bytes('', 'utf-8') prevents receiving a 'None' object
     self.restoreGeometry(geom)                                                  # https://gist.github.com/dgovil/d83e7ddc8f3fb4a28832ccc6f9c7f07b
@@ -376,8 +399,8 @@ def readSettings(self):
     self.restoreGeometry(state)                                                 # No longer needed to test: if geometry != None:
 
     path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
-    self.projectDirectory = self.settings.value('settings/projectDirectory', path)   # start folder for SaveAs
-    self.importDirectory = self.settings.value('settings/importDirectory', path)   # start folder for reading SPS files
+    self.projectDirectory = self.settings.value('settings/projectDirectory', path)  # start folder for SaveAs
+    self.importDirectory = self.settings.value('settings/importDirectory', path)    # start folder for reading SPS files
     recentFileList = self.settings.value('settings/recentFileList', [])
     if recentFileList is None:
         self.recentFileList = []
@@ -387,35 +410,35 @@ def readSettings(self):
         self.recentFileList = list(recentFileList)
 
     # color & pen information
-    config.binAreaColor = self.settings.value('settings/colors/binAreaColor', '#20000000')  # argb - light grey
-    config.cmpAreaColor = self.settings.value('settings/colors/cmpAreaColor', '#0800ff00')  # argb - light green
-    config.recAreaColor = self.settings.value('settings/colors/recAreaColor', '#080000ff')  # argb - light blue
-    config.srcAreaColor = self.settings.value('settings/colors/srcAreaColor', '#08ff0000')  # argb - light red
+    appSettings.binAreaColor = self.settings.value('settings/colors/binAreaColor', '#20000000')
+    appSettings.cmpAreaColor = self.settings.value('settings/colors/cmpAreaColor', '#0800ff00')
+    appSettings.recAreaColor = self.settings.value('settings/colors/recAreaColor', '#080000ff')
+    appSettings.srcAreaColor = self.settings.value('settings/colors/srcAreaColor', '#08ff0000')
 
-    binAreaPenParams = self.settings.value('settings/colors/binAreaPen', str(makeParmsFromPen(config.binAreaPen)))  # black
-    cmpAreaPenParams = self.settings.value('settings/colors/cmpAreaPen', str(makeParmsFromPen(config.cmpAreaPen)))  # green
-    recAreaPenParams = self.settings.value('settings/colors/recAreaPen', str(makeParmsFromPen(config.recAreaPen)))  # blue
-    srcAreaPenParams = self.settings.value('settings/colors/srcAreaPen', str(makeParmsFromPen(config.srcAreaPen)))  # red
+    binAreaPenParams = self.settings.value('settings/colors/binAreaPen', str(makeParmsFromPen(appSettings.binAreaPen)))
+    cmpAreaPenParams = self.settings.value('settings/colors/cmpAreaPen', str(makeParmsFromPen(appSettings.cmpAreaPen)))
+    recAreaPenParams = self.settings.value('settings/colors/recAreaPen', str(makeParmsFromPen(appSettings.recAreaPen)))
+    srcAreaPenParams = self.settings.value('settings/colors/srcAreaPen', str(makeParmsFromPen(appSettings.srcAreaPen)))
 
-    config.binAreaPen = makePenFromParms(literal_eval(binAreaPenParams))
-    config.cmpAreaPen = makePenFromParms(literal_eval(cmpAreaPenParams))
-    config.recAreaPen = makePenFromParms(literal_eval(recAreaPenParams))
-    config.srcAreaPen = makePenFromParms(literal_eval(srcAreaPenParams))
+    appSettings.binAreaPen = makePenFromParms(literal_eval(binAreaPenParams))
+    appSettings.cmpAreaPen = makePenFromParms(literal_eval(cmpAreaPenParams))
+    appSettings.recAreaPen = makePenFromParms(literal_eval(recAreaPenParams))
+    appSettings.srcAreaPen = makePenFromParms(literal_eval(srcAreaPenParams))
 
-    config.analysisCmap = self.settings.value('settings/colors/analysisCmap', 'CET-R4')     # from pg.colormap.listMaps()
-    config.foldDispCmap = self.settings.value('settings/colors/foldDispCmap', 'CET-L4')     # from pg.colormap.listMaps()
+    appSettings.analysisCmap = self.settings.value('settings/colors/analysisCmap', 'CET-R4')
+    appSettings.foldDispCmap = self.settings.value('settings/colors/foldDispCmap', 'CET-L4')
 
     # sps information
-    config.rpsBrushColor = self.settings.value('settings/sps/rpsBrushColor', '#772929FF')
-    config.rpsPointSymbol = self.settings.value('settings/sps/rpsPointSymbol', 'o')
-    config.rpsSymbolSize = self.settings.value('settings/sps/rpsSymbolSize', 25)
+    appSettings.rpsBrushColor = self.settings.value('settings/sps/rpsBrushColor', '#772929FF')
+    appSettings.rpsPointSymbol = self.settings.value('settings/sps/rpsPointSymbol', 'o')
+    appSettings.rpsSymbolSize = self.settings.value('settings/sps/rpsSymbolSize', 25)
 
-    config.spsBrushColor = self.settings.value('settings/sps/spsBrushColor', '#77FF2929')
-    config.spsPointSymbol = self.settings.value('settings/sps/spsPointSymbol', 'o')
-    config.spsSymbolSize = self.settings.value('settings/sps/spsSymbolSize', 25)
+    appSettings.spsBrushColor = self.settings.value('settings/sps/spsBrushColor', '#77FF2929')
+    appSettings.spsPointSymbol = self.settings.value('settings/sps/spsPointSymbol', 'o')
+    appSettings.spsSymbolSize = self.settings.value('settings/sps/spsSymbolSize', 25)
 
-    config.spsParallel = self.settings.value('settings/sps/spsParallel', False, type=bool)
-    config.spsDialect = self.settings.value('settings/sps/spsDialect', 'SEG rev2.1')
+    appSettings.spsParallel = self.settings.value('settings/sps/spsParallel', config.DEFAULT_SPS_PARALLEL, type=bool)
+    appSettings.spsDialect = self.settings.value('settings/sps/spsDialect', config.DEFAULT_SPS_DIALECT)
 
     # read custom SPS formats
     customSpsFormats = _readFormatGroup(self, 'settings/sps/spsFormatList')
@@ -426,63 +449,59 @@ def readSettings(self):
     if any(counts):
         if not all(counts) or len(set(counts)) != 1:
             print('Stored SPS/XPS/RPS formats are inconsistent; reverting to built-in defaults.')
-            config.resetSpsDatabase()
             for group in (
                 'settings/sps/spsFormatList',
                 'settings/sps/xpsFormatList',
                 'settings/sps/rpsFormatList',
             ):
                 _clearFormatGroup(self, group)
+            appSettings.resetSpsDatabase(preferredDialect=appSettings.spsDialect)
         else:
-            config.spsFormatList = customSpsFormats
-            config.xpsFormatList = customXpsFormats
-            config.rpsFormatList = customRpsFormats
+            appSettings.spsFormatList = customSpsFormats
+            appSettings.xpsFormatList = customXpsFormats
+            appSettings.rpsFormatList = customRpsFormats
 
     # geometry information
-    config.recBrushColor = self.settings.value('settings/geo/recBrushColor', '#772929FF')
-    config.recPointSymbol = self.settings.value('settings/geo/recPointSymbol', 'o')
-    config.recSymbolSize = self.settings.value('settings/geo/recSymbolSize', 25)
-    config.srcBrushColor = self.settings.value('settings/geo/srcBrushColor', '#77FF2929')
-    config.srcPointSymbol = self.settings.value('settings/geo/srcPointSymbol', 'o')
-    config.srcSymbolSize = self.settings.value('settings/geo/srcSymbolSize', 25)
+    appSettings.recBrushColor = self.settings.value('settings/geo/recBrushColor', '#772929FF')
+    appSettings.recPointSymbol = self.settings.value('settings/geo/recPointSymbol', 'o')
+    appSettings.recSymbolSize = self.settings.value('settings/geo/recSymbolSize', 25)
+    appSettings.srcBrushColor = self.settings.value('settings/geo/srcBrushColor', '#77FF2929')
+    appSettings.srcPointSymbol = self.settings.value('settings/geo/srcPointSymbol', 'o')
+    appSettings.srcSymbolSize = self.settings.value('settings/geo/srcSymbolSize', 25)
 
     # k-plot information
-    config.kraStack = rng.read(self.settings.value('settings/k-plots/kraStack', '0;20;0.1'))
-    config.kxyStack = rng.read(self.settings.value('settings/k-plots/kxyStack', '-5;5;0.05'))
-    config.kxyArray = rng.read(self.settings.value('settings/k-plots/kxyArray', '-50;50;0.5'))
+    appSettings.kraStack = rng.read(self.settings.value('settings/k-plots/kraStack', '0;20;0.1'))
+    appSettings.kxyStack = rng.read(self.settings.value('settings/k-plots/kxyStack', '-5;5;0.05'))
+    appSettings.kxyArray = rng.read(self.settings.value('settings/k-plots/kxyArray', '-50;50;0.5'))
 
     # debug information
     # See: https://forum.qt.io/topic/108622/how-to-get-a-boolean-value-from-qsettings-correctly/8
-    config.debug = self.settings.value('settings/debug/logging', False, type=bool)    # assume no debugging messages required
-    config.debugpy = self.settings.value('settings/debug/debugpy', False, type=bool)      # assume no debugging in main/worker threads
+    appSettings.debug = self.settings.value('settings/debug/logging', config.DEFAULT_DEBUG, type=bool)
+    appSettings.debugpy = self.settings.value('settings/debug/debugpy', False, type=bool)
 
-    if config.debug and console is not None:
+    # miscellaneous information
+    appSettings.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)
+    appSettings.useRelativePaths = self.settings.value('settings/misc/useRelativePaths', True, type=bool)
+    appSettings.showUnfinished = self.settings.value('settings/misc/showUnfinished', config.DEFAULT_SHOW_UNFINISHED, type=bool)
+    appSettings.showSummaries = self.settings.value('settings/misc/showSummaries', config.DEFAULT_SHOW_SUMMARIES, type=bool)
+
+    appSettings.activate()
+    _applyNumbaSetting(appSettings.useNumba)
+
+    if appSettings.debug and console is not None:
         if console._console is None:                                            # pylint: disable=W0212 # unfortunately need access to protected member
             console.show_console()                                              # opens the console for the first time
         else:
             console._console.setUserVisible(True)                               # pylint: disable=W0212 # unfortunately need access to protected member
         print('print() to Python console has been enabled; Python console is opened')   # this message should always be printed
-    elif config.debug:
+    elif appSettings.debug:
         print('print() to Python console has been enabled, but the QGIS console module is not available')
     else:
         print('print() to Python console has been disabled from now on')        # this message is the last one to be printed
 
-    # miscellaneous information
-    config.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)   # assume Numba not installed (and used) by default
-    if haveNumba:                                                               # can only do this when numba has been installed
-        numba.config.DISABLE_JIT = not config.useNumba                          # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
-        moduleName = f'{__package__}.functions_numba'
-        module = sys.modules.get(moduleName)
-        if module is not None:                                                  # If already imported, reload; otherwise, import
-            importlib.reload(module)                                            # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
-        else:
-            importlib.import_module(moduleName)                                 # load it for the first time, which will ensure proper value of numba.config.DISABLE_JIT is being used
-
-    config.useRelativePaths = self.settings.value('settings/misc/useRelativePaths', True, type=bool)    # save well file names relative to .roll project file
-    config.showUnfinished = self.settings.value('settings/misc/showUnfinished', False, type=bool)       # show unfinished code
-    config.showSummaries = self.settings.value('settings/misc/showSummaries', False, type=bool)         # show/hide summary information in property pane
-
 def writeSettings(self):
+    appSettings = _getAppSettings(self)
+
     # main window information
     self.settings.setValue('mainWindow/geometry', self.saveGeometry())          # save the main window geometry
     self.settings.setValue('mainWindow/state', self.saveState())                # and the window state too
@@ -491,53 +510,54 @@ def writeSettings(self):
     self.settings.setValue('settings/recentFileList', self.recentFileList)      # store list in settings
 
     # color and pen information
-    self.settings.setValue('settings/colors/binAreaColor', config.binAreaColor)
-    self.settings.setValue('settings/colors/cmpAreaColor', config.cmpAreaColor)
-    self.settings.setValue('settings/colors/recAreaColor', config.recAreaColor)
-    self.settings.setValue('settings/colors/srcAreaColor', config.srcAreaColor)
-    self.settings.setValue('settings/colors/binAreaPen', str(makeParmsFromPen(config.binAreaPen)))
-    self.settings.setValue('settings/colors/cmpAreaPen', str(makeParmsFromPen(config.cmpAreaPen)))
-    self.settings.setValue('settings/colors/recAreaPen', str(makeParmsFromPen(config.recAreaPen)))
-    self.settings.setValue('settings/colors/srcAreaPen', str(makeParmsFromPen(config.srcAreaPen)))
-    self.settings.setValue('settings/colors/analysisCmap', config.analysisCmap)
-    self.settings.setValue('settings/colors/foldDispCmap', config.foldDispCmap)
+    self.settings.setValue('settings/colors/binAreaColor', appSettings.binAreaColor)
+    self.settings.setValue('settings/colors/cmpAreaColor', appSettings.cmpAreaColor)
+    self.settings.setValue('settings/colors/recAreaColor', appSettings.recAreaColor)
+    self.settings.setValue('settings/colors/srcAreaColor', appSettings.srcAreaColor)
+    self.settings.setValue('settings/colors/binAreaPen', str(makeParmsFromPen(appSettings.binAreaPen)))
+    self.settings.setValue('settings/colors/cmpAreaPen', str(makeParmsFromPen(appSettings.cmpAreaPen)))
+    self.settings.setValue('settings/colors/recAreaPen', str(makeParmsFromPen(appSettings.recAreaPen)))
+    self.settings.setValue('settings/colors/srcAreaPen', str(makeParmsFromPen(appSettings.srcAreaPen)))
+    self.settings.setValue('settings/colors/analysisCmap', appSettings.analysisCmap)
+    self.settings.setValue('settings/colors/foldDispCmap', appSettings.foldDispCmap)
 
     # sps information
-    self.settings.setValue('settings/sps/rpsBrushColor', config.rpsBrushColor)
-    self.settings.setValue('settings/sps/rpsPointSymbol', config.rpsPointSymbol)
-    self.settings.setValue('settings/sps/rpsSymbolSize', config.rpsSymbolSize)
+    self.settings.setValue('settings/sps/rpsBrushColor', appSettings.rpsBrushColor)
+    self.settings.setValue('settings/sps/rpsPointSymbol', appSettings.rpsPointSymbol)
+    self.settings.setValue('settings/sps/rpsSymbolSize', appSettings.rpsSymbolSize)
 
-    self.settings.setValue('settings/sps/spsBrushColor', config.spsBrushColor)
-    self.settings.setValue('settings/sps/spsPointSymbol', config.spsPointSymbol)
-    self.settings.setValue('settings/sps/spsSymbolSize', config.spsSymbolSize)
+    self.settings.setValue('settings/sps/spsBrushColor', appSettings.spsBrushColor)
+    self.settings.setValue('settings/sps/spsPointSymbol', appSettings.spsPointSymbol)
+    self.settings.setValue('settings/sps/spsSymbolSize', appSettings.spsSymbolSize)
 
-    self.settings.setValue('settings/sps/spsParallel', config.spsParallel)
-    self.settings.setValue('settings/sps/spsDialect', config.spsDialect)
+    self.settings.setValue('settings/sps/spsParallel', appSettings.spsParallel)
+    self.settings.setValue('settings/sps/spsDialect', appSettings.spsDialect)
 
-    _writeFormatGroup(self, 'settings/sps/spsFormatList', config.spsFormatList)
-    _writeFormatGroup(self, 'settings/sps/xpsFormatList', config.xpsFormatList)
-    _writeFormatGroup(self, 'settings/sps/rpsFormatList', config.rpsFormatList)
+    _writeFormatGroup(self, 'settings/sps/spsFormatList', appSettings.spsFormatList)
+    _writeFormatGroup(self, 'settings/sps/xpsFormatList', appSettings.xpsFormatList)
+    _writeFormatGroup(self, 'settings/sps/rpsFormatList', appSettings.rpsFormatList)
 
     # geometry information
-    self.settings.setValue('settings/geo/recBrushColor', config.recBrushColor)
-    self.settings.setValue('settings/geo/recPointSymbol', config.recPointSymbol)
-    self.settings.setValue('settings/geo/recSymbolSize', config.recSymbolSize)
-    self.settings.setValue('settings/geo/srcBrushColor', config.srcBrushColor)
-    self.settings.setValue('settings/geo/srcPointSymbol', config.srcPointSymbol)
-    self.settings.setValue('settings/geo/srcSymbolSize', config.srcSymbolSize)
+    self.settings.setValue('settings/geo/recBrushColor', appSettings.recBrushColor)
+    self.settings.setValue('settings/geo/recPointSymbol', appSettings.recPointSymbol)
+    self.settings.setValue('settings/geo/recSymbolSize', appSettings.recSymbolSize)
+    self.settings.setValue('settings/geo/srcBrushColor', appSettings.srcBrushColor)
+    self.settings.setValue('settings/geo/srcPointSymbol', appSettings.srcPointSymbol)
+    self.settings.setValue('settings/geo/srcSymbolSize', appSettings.srcSymbolSize)
 
     # k-plot information
-    self.settings.setValue('settings/k-plots/kraStack', rng.write(config.kraStack))
-    self.settings.setValue('settings/k-plots/kxyStack', rng.write(config.kxyStack))
-    self.settings.setValue('settings/k-plots/kxyArray', rng.write(config.kxyArray))
+    self.settings.setValue('settings/k-plots/kraStack', rng.write(appSettings.kraStack))
+    self.settings.setValue('settings/k-plots/kxyStack', rng.write(appSettings.kxyStack))
+    self.settings.setValue('settings/k-plots/kxyArray', rng.write(appSettings.kxyArray))
 
     # debug information
-    self.settings.setValue('settings/debug/logging', config.debug)
-    self.settings.setValue('settings/debug/debugpy', config.debugpy)
+    self.settings.setValue('settings/debug/logging', appSettings.debug)
+    self.settings.setValue('settings/debug/debugpy', appSettings.debugpy)
 
     # miscellaneous information
-    self.settings.setValue('settings/misc/useNumba', config.useNumba)
-    self.settings.setValue('settings/misc/showUnfinished', config.showUnfinished)
-    self.settings.setValue('settings/misc/showSummaries', config.showSummaries)    # show/hide summary information in property pane
+    self.settings.setValue('settings/misc/useNumba', appSettings.useNumba)
+    self.settings.setValue('settings/misc/useRelativePaths', appSettings.useRelativePaths)
+    self.settings.setValue('settings/misc/showUnfinished', appSettings.showUnfinished)
+    self.settings.setValue('settings/misc/showSummaries', appSettings.showSummaries)
 
     self.settings.sync()
