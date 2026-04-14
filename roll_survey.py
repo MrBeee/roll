@@ -32,7 +32,6 @@ from .roll_plane import RollPlane
 from .roll_seed import RollSeed
 from .roll_sphere import RollSphere
 from .roll_template import RollTemplate
-from .roll_translate import RollTranslate
 from .roll_unique import RollUnique
 from .sps_io_and_qc import pntType1, relType2
 
@@ -331,15 +330,6 @@ class RollSurvey(pg.GraphicsObject):
                 templateName = f'template-{nTemplate + 1}'                      # get suitable template name
                 template = RollTemplate(templateName)                           # create template
 
-                roll1 = RollTranslate()                                         # create the 'first' roll object
-                template.rollList.append(roll1)                                 # add roll object to template's rollList
-                roll2 = RollTranslate()                                         # create a 'second' roll object
-                template.rollList.append(roll2)                                 # add roll object to template's rollList
-
-                # Todo: Need to add this for completeness; but consequently will have to test the code for every rollList appearance !!!
-                # roll3 = RollTranslate()                                         # create a 'second' roll object
-                # template.rollList.append(roll3)                                 # add roll object to template's rollList
-
                 block.templateList.append(template)                             # add template to block object
 
                 for nSrcSeed in range(nSrcSeeds):
@@ -348,13 +338,6 @@ class RollSurvey(pg.GraphicsObject):
                     seedSrc.bSource = True
                     seedSrc.color = QColor('#77FF8989')
 
-                    growR1 = RollTranslate()                                    # create a 'lines' grow object
-                    seedSrc.grid.growList.append(growR1)                        # add grow object to seed
-                    growR2 = RollTranslate()                                    # create a 'points' grow object
-                    seedSrc.grid.growList.append(growR2)                        # add grow object to seed
-                    growR3 = RollTranslate()                                    # create a 'points' grow object
-                    seedSrc.grid.growList.append(growR3)                        # add grow object to seed
-
                     template.seedList.append(seedSrc)                           # add seed object to template
 
                 for nRecSeed in range(nRecSeeds):
@@ -362,13 +345,6 @@ class RollSurvey(pg.GraphicsObject):
                     seedRec = RollSeed(seedName)
                     seedRec.bSource = False
                     seedRec.color = QColor('#7787A4D9')
-
-                    growR1 = RollTranslate()                                    # create a 'lines' grow object
-                    seedRec.grid.growList.append(growR1)                        # add grow object to seed's growlist
-                    growR2 = RollTranslate()                                    # create a 'points' grow object
-                    seedRec.grid.growList.append(growR2)                        # add grow object to seed
-                    growR3 = RollTranslate()                                    # create a 'points' grow object
-                    seedRec.grid.growList.append(growR3)                        # add grow object to seed
 
                     template.seedList.append(seedRec)                           # add seed object to template
 
@@ -380,10 +356,6 @@ class RollSurvey(pg.GraphicsObject):
 
             seed = RollPatternSeed()                                            # create a new seed (we need just one)
             pattern.seedList.append(seed)                                       # add this seed to pattern's seedList
-
-            for _ in range(3):                                                  # do this three times
-                growStep = RollTranslate()                                      # create a translation
-                seed.grid.growList.append(growStep)                             # add translation to seed's grid-growlist
 
         self.bindSeedsToSurvey()                                                # bind seeds to survey after creating skeleton
 
@@ -595,52 +567,42 @@ class RollSurvey(pg.GraphicsObject):
 
         return success
 
+    def iterTemplateRollOffsets(self, template):
+        length = len(template.rollList)
+        assert length == 3, 'there must always be 3 roll steps / grow steps'
+
+        for i in range(template.rollList[0].steps):
+            off0 = QVector3D()
+            off0 += template.rollList[0].increment * i
+
+            for j in range(template.rollList[1].steps):
+                off1 = off0 + template.rollList[1].increment * j
+
+                for k in range(template.rollList[2].steps):
+                    yield off1 + template.rollList[2].increment * k
+
+    def iterSeedGrowOffsets(self, seed, templateOffset):
+        length = len(seed.grid.growList)
+        assert length == 3, 'there must always be 3 grow steps / roll steps'
+
+        for i in range(seed.grid.growList[0].steps):
+            off0 = QVector3D(templateOffset)
+            off0 += seed.grid.growList[0].increment * i
+
+            for j in range(seed.grid.growList[1].steps):
+                off1 = off0 + seed.grid.growList[1].increment * j
+
+                for k in range(seed.grid.growList[2].steps):
+                    yield off1 + seed.grid.growList[2].increment * k
+
     def geometryFromTemplates(self) -> bool:
         try:
             self.calcPointArrays()                                              # first set up all point arrays
             # get all blocks
             for nBlock, block in enumerate(self.blockList):
                 for template in block.templateList:                             # get all templates
-                    # how deep is the list ?
-                    length = len(template.rollList)
-
-                    assert length == 3, 'there must always be 3 roll steps / grow steps'
-                    # todo: search everywhere for "< 3" and insert assertions for length of list
-
-                    if length == 0:
-                        off0 = QVector3D()                                      # always start at (0, 0, 0)
-                        self.geomTemplate4(nBlock, block, template, off0)
-
-                    elif length == 1:
-                        # get the template boundaries
-                        for i in range(template.rollList[0].steps):
-                            off0 = QVector3D()                                  # always start at (0, 0, 0)
-                            off0 += template.rollList[0].increment * i
-                            self.geomTemplate4(nBlock, block, template, off0)
-
-                    elif length == 2:
-                        for i in range(template.rollList[0].steps):
-                            off0 = QVector3D()                                  # always start at (0, 0, 0)
-                            off0 += template.rollList[0].increment * i
-                            for j in range(template.rollList[1].steps):
-                                off1 = off0 + template.rollList[1].increment * j
-                                self.geomTemplate4(nBlock, block, template, off1)
-
-                    elif length == 3:
-                        for i in range(template.rollList[0].steps):
-                            off0 = QVector3D()                                  # always start at (0, 0, 0)
-                            off0 += template.rollList[0].increment * i
-
-                            for j in range(template.rollList[1].steps):
-                                off1 = off0 + template.rollList[1].increment * j
-
-                                for k in range(template.rollList[2].steps):
-                                    off2 = off1 + template.rollList[2].increment * k
-
-                                    self.geomTemplate4(nBlock, block, template, off2)
-                    else:
-                        # do something recursively; not  implemented yet
-                        raise NotImplementedError('More than three roll steps currently not allowed.')
+                    for templateOffset in self.iterTemplateRollOffsets(template):
+                        self.geomTemplate4(nBlock, block, template, templateOffset)
 
         except StopIteration:
             self.errorText = 'geometry creation cancelled by user'
@@ -657,44 +619,7 @@ class RollSurvey(pg.GraphicsObject):
 
         # early completion emit removed
         # self.progress.emit(100)                                                 # make sure we stop at 100
-
-        # --- finalize geometry arrays ---
-        #  first remove all remaining receiver duplicates
-        self.message.emit('Post processing step 1/4 - remove receiver duplicates')
-        self.progress.emit(20)
-        self.output.recGeom = np.unique(self.output.recGeom)
-
-        # todo; because we keep track of 'self.nRelRecord'
-        # there's no need to shrink the array based on the 'Uniq' == 1 condition.
-        # need to change the code; resize the relGeom array based on self.nRelRecord
-
-        # trim rel & rec arrays removing any zeros, using the 'Uniq' == 1 condition.
-        self.message.emit('Post processing step 2/4 - remove zeros in relation & receiver arrays')
-        self.progress.emit(40)
-        self.output.relGeom = self.output.relGeom[self.output.relGeom['Uniq'] == 1]
-        self.output.recGeom = self.output.recGeom[self.output.recGeom['Uniq'] == 1]
-
-        # set all values in one go at the end
-        self.message.emit('Post processing step 3/4 - set source geometry flags')
-        self.progress.emit(60)
-        self.output.srcGeom['Uniq'] = 1
-        self.output.srcGeom['InXps'] = 1
-        self.output.srcGeom['Code'] = 'E1'
-
-        self.output.recGeom['Uniq'] = 1
-        self.output.recGeom['InXps'] = 1
-        self.output.recGeom['Code'] = 'G1'
-
-        self.output.relGeom['InSps'] = 1
-        self.output.relGeom['InRps'] = 1
-
-        # sort the three geometry arrays
-        self.message.emit('Post processing step 4/4 - sort geometry arrays')
-        self.progress.emit(80)
-        self.output.srcGeom.sort(order=['Index', 'Point', 'Line'])
-        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
-        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
-        self.progress.emit(100)
+        self.finalizeGeometryArrays()
 
         # --- DEBUG: validate rel coverage per shot ---
         # build counts of rel records per (SrcInd, SrcLin, SrcPnt)
@@ -733,6 +658,53 @@ class RollSurvey(pg.GraphicsObject):
 
         return True
 
+    def finalizeGeometryArrays(self) -> None:
+        #  first remove all remaining receiver duplicates
+        self.message.emit('Post processing step 1/4 - remove receiver duplicates')
+        self.progress.emit(20)
+        self.compactGeometryArrays()
+
+        # set all values in one go at the end
+        self.message.emit('Post processing step 3/4 - set source geometry flags')
+        self.progress.emit(60)
+        self.applyGeometryRecordFlags()
+
+        # sort the three geometry arrays
+        self.message.emit('Post processing step 4/4 - sort geometry arrays')
+        self.progress.emit(80)
+        self.sortGeometryArrays()
+        self.progress.emit(100)
+
+    def compactGeometryArrays(self) -> None:
+        self.output.recGeom = np.unique(self.output.recGeom)
+
+        # no longer needed, because we keep track of 'self.nRelRecord'
+        # there's no need to shrink the array based on the 'Uniq' == 1 condition.
+        # need to change the code; resize the relGeom array based on self.nRelRecord
+        # trim rel & rec arrays removing any zeros, using the 'Uniq' == 1 condition.
+
+        self.message.emit('Post processing step 2/4 - remove zeros in relation & receiver arrays')
+        self.progress.emit(40)
+        self.output.relGeom = self.output.relGeom[self.output.relGeom['Uniq'] == 1]
+        self.output.recGeom = self.output.recGeom[self.output.recGeom['Uniq'] == 1]
+
+    def applyGeometryRecordFlags(self) -> None:
+        self.output.srcGeom['Uniq'] = 1
+        self.output.srcGeom['InXps'] = 1
+        self.output.srcGeom['Code'] = 'E1'
+
+        self.output.recGeom['Uniq'] = 1
+        self.output.recGeom['InXps'] = 1
+        self.output.recGeom['Code'] = 'G1'
+
+        self.output.relGeom['InSps'] = 1
+        self.output.relGeom['InRps'] = 1
+
+    def sortGeometryArrays(self) -> None:
+        self.output.srcGeom.sort(order=['Index', 'Point', 'Line'])
+        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
+        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+
     def elapsedTime(self, startTime, index: int) -> None:
         currentTime = perf_counter()
         deltaTime = currentTime - startTime
@@ -747,9 +719,7 @@ class RollSurvey(pg.GraphicsObject):
         """iterate over all seeds in a template; make sure we start wih *source* seeds
         iterate using the three levels in the growList (slow approach)"""
         for srcSeed in template.seedList:
-            while len(srcSeed.grid.growList) < 3:
-                # First, make sure there are 3 grow steps for every srcSeed
-                srcSeed.grid.growList.insert(0, RollTranslate())
+            assert len(srcSeed.grid.growList) == 3, 'there must always be 3 grow steps for source seeds'
 
             if not srcSeed.bSource:                                             # work with source seeds here
                 continue
@@ -805,9 +775,7 @@ class RollSurvey(pg.GraphicsObject):
 
                             # now iterate over all seeds to find the receivers
                             for recSeed in template.seedList:                   # iterate over all seeds in a template
-                                while len(recSeed.grid.growList) < 3:
-                                    # First, make sure there are 3 grow steps for every recSeed
-                                    recSeed.grid.growList.insert(0, RollTranslate())
+                                assert len(recSeed.grid.growList) == 3, 'there must always be 3 grow steps for receiver seeds'
 
                                 if recSeed.bSource:                             # work with receiver seeds here
                                     continue
@@ -1269,6 +1237,31 @@ class RollSurvey(pg.GraphicsObject):
                 fnb.numbaSetPointRecord(self.output.srcGeom, self.nShotPoint, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
                 self.nShotPoint += 1
 
+        nRelRecord = self.populateTemplateReceiversInRelTemp(nBlock, block, template, npTemplateOffset)
+
+        if nRelRecord < 0:
+            self.errorText = 'geomTemplate4(): no relTemp records created for this template'
+            raise StopIteration
+
+        # -- Expand relTemp into relGeom for all shots in this template --
+        for i in range(nShotPoint, self.nShotPoint):
+            arraySize = self.output.relGeom.shape[0]
+            if self.nRelRecord + 1000 > arraySize:
+                self.output.relGeom.resize(arraySize + 10000, refcheck=False)
+
+            srcLin = self.output.srcGeom[i]['Line']
+            srcPnt = self.output.srcGeom[i]['Point']
+            srcInd = self.output.srcGeom[i]['Index']
+
+            for j in range(nRelRecord + 1):
+                recLin = self.output.relTemp[j]['RecLin']
+                recMin = self.output.relTemp[j]['RecMin']
+                recMax = self.output.relTemp[j]['RecMax']
+
+                fnb.numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
+                self.nRelRecord += 1
+
+    def populateTemplateReceiversInRelTemp(self, nBlock, block, template, npTemplateOffset):
         nRelRecord = -1
         nOldRecLine = -999999
 
@@ -1303,7 +1296,6 @@ class RollSurvey(pg.GraphicsObject):
                     _ = self.output.recDict[recInd][recLine][recPoint]
                 except KeyError:
                     self.output.recDict[recInd][recLine][recPoint] = self.nRecRecord
-
                     fnb.numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
                     # fnb.numbaSetPointRecord uses nBlock -> Index consistent with recInd
                     self.nRecRecord += 1
@@ -1332,27 +1324,7 @@ class RollSurvey(pg.GraphicsObject):
                     self.output.relTemp[nRelRecord]['RecMin'] = min(recStkX, self.output.relTemp[nRelRecord]['RecMin'])
                     self.output.relTemp[nRelRecord]['RecMax'] = max(recStkX, self.output.relTemp[nRelRecord]['RecMax'])
 
-        if nRelRecord < 0:
-            self.errorText = 'geomTemplate4(): no relTemp records created for this template'
-            raise StopIteration
-
-        # -- Expand relTemp into relGeom for all shots in this template --
-        for i in range(nShotPoint, self.nShotPoint):
-            arraySize = self.output.relGeom.shape[0]
-            if self.nRelRecord + 1000 > arraySize:
-                self.output.relGeom.resize(arraySize + 10000, refcheck=False)
-
-            srcLin = self.output.srcGeom[i]['Line']
-            srcPnt = self.output.srcGeom[i]['Point']
-            srcInd = self.output.srcGeom[i]['Index']
-
-            for j in range(nRelRecord + 1):
-                recLin = self.output.relTemp[j]['RecLin']
-                recMin = self.output.relTemp[j]['RecMin']
-                recMax = self.output.relTemp[j]['RecMax']
-
-                fnb.numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
-                self.nRelRecord += 1
+        return nRelRecord
 
     def setupBinFromGeometry(self, fullAnalysis) -> bool:
         """this routine is used for both geometry files and SPS files"""
@@ -2487,46 +2459,8 @@ class RollSurvey(pg.GraphicsObject):
             self.calcPointArrays()                                              # first set up all point arrays
             for block in self.blockList:                                        # get all blocks
                 for template in block.templateList:                             # get all templates
-                    # how deep is the list ?
-                    length = len(template.rollList)
-
-                    assert length == 3, 'there must always be 3 roll steps / grow steps'
-
-                    if length == 0:
-                        off0 = QVector3D()                                      # always start at (0, 0, 0)
-                        self.binTemplate7(block, template, off0, fullAnalysis)
-
-                    elif length == 1:
-                        # get the template boundaries
-                        for i in range(template.rollList[0].steps):
-                            off0 = QVector3D()                                  # always start at (0, 0, 0)
-                            off0 += template.rollList[0].increment * i
-                            self.binTemplate7(block, template, off0, fullAnalysis)
-
-                    elif length == 2:
-                        for i in range(template.rollList[0].steps):
-                            off0 = QVector3D()                                  # always start at (0, 0, 0)
-                            off0 += template.rollList[0].increment * i
-                            for j in range(template.rollList[1].steps):
-                                off1 = off0 + template.rollList[1].increment * j
-                                self.binTemplate7(block, template, off1, fullAnalysis)
-                                # print("length = 2. Template offset: ", off1.x(), off1.y() )
-
-                    elif length == 3:
-                        for i in range(template.rollList[0].steps):
-                            off0 = QVector3D()                                  # always start at (0, 0, 0)
-                            off0 += template.rollList[0].increment * i
-
-                            for j in range(template.rollList[1].steps):
-                                off1 = off0 + template.rollList[1].increment * j
-
-                                for k in range(template.rollList[2].steps):
-                                    off2 = off1 + template.rollList[2].increment * k
-
-                                    self.binTemplate7(block, template, off2, fullAnalysis)
-                    else:
-                        # do something recursively; not  implemented yet
-                        raise NotImplementedError('More than three roll steps currently not allowed.')
+                    for templateOffset in self.iterTemplateRollOffsets(template):
+                        self.binTemplate7(block, template, templateOffset, fullAnalysis)
 
         except StopIteration:
             self.errorText = 'binning from templates cancelled by user'
@@ -3145,14 +3079,15 @@ class RollSurvey(pg.GraphicsObject):
 
         for block in self.blockList:
             for template in block.templateList:
-
-                while len(template.rollList) < 3:                               # make sure there are always 3 roll steps in the list
-                    template.rollList.insert(0, RollTranslate())
+                if len(template.rollList) != 3:
+                    QMessageBox.warning(None, e, f'Template "{template.name}" should have exactly three roll steps')
+                    return False
 
                 for seed in template.seedList:
                     if seed.type == SeedType.rollingGrid or seed.type == SeedType.fixedGrid:    # rolling or fixed grid
-                        while len(seed.grid.growList) < 3:                      # make sure there are three grow steps for every grid seed
-                            seed.grid.growList.insert(0, RollTranslate())
+                        if len(seed.grid.growList) != 3:
+                            QMessageBox.warning(None, e, f'Seed "{seed.name}" should have exactly three grow steps')
+                            return False
 
                     elif seed.type == SeedType.well:                            # well site; check for errors
                         wellName = seed.well.name                                 # may be relative to projectDirectory
@@ -3349,13 +3284,13 @@ class RollSurvey(pg.GraphicsObject):
         for pattern in self.patternList:
             pattern.calcPatternPicture()
 
-        # we also need to update the template-seeds giving them the right pattern type
-        # here we need to make some uptimizations; with a marine survey you can easily get 16,000 templates, or 16,000 SPs, as there is one shot per template
+        # we also need to update the template-seeds giving them the right pattern type and picture
+        # here we need to make some optimizations; with a marine survey you can easily get 16,000 templates, or 16,000 SPs, as there is one shot per template
         # But each shot comes with some 11 seeds; one for the source and 10 for 10 streamers. This results in 176,000 seeds.
         # only a few seeds are shown at the same time, as it requires a signficant zoom to show individual seeds
-        # todo: initialize the seed's point figures and pattern figures just before they are painted (and NOT here).
-        # this should significantly speed up initial loading of an existing survey.
-        # Start with a None object, take it from there.
+        # We could initialize the seed's point figures and pattern figures just before they are painted (and NOT here).
+        # this could significantly speed up initial loading of an existing survey.
+        # In that case, start with a None object, take it from there.
 
         for block in self.blockList:
             for template in block.templateList:
@@ -3635,28 +3570,10 @@ class RollSurvey(pg.GraphicsObject):
             templates = block.templateList
             while t < len(templates):
                 template = templates[t]
-                length = len(template.rollList) if template.rollList else 0
-
-                # 0D roll: draw once if visible
-                if length == 0:
-                    offset = QVector3D()
-                    rect = template.totTemplateRect
-                    if rect.intersects(vb):
-                        if lod < appSettings.lod1 or self.paintMode == PaintMode.justTemplates:
-                            p.drawRect(rect & self.boundingRect())
-                        else:
-                            self._paintTemplate(p, vb, lod, template, offset, penWidth=penWidth)
-
-                    t += 1
-                    if self._shouldAbortPaint():
-                        self._ps.update({"b": b, "t": t, "i": 0, "j": 0, "k": 0})
-                        return False
-                    continue
-
-                # 1–3D roll: nested loops with resume indices
+                assert len(template.rollList) == 3, 'there must always be 3 roll steps / grow steps'
                 s0 = template.rollList[0].steps
-                s1 = template.rollList[1].steps if length > 1 else 1
-                s2 = template.rollList[2].steps if length > 2 else 1
+                s1 = template.rollList[1].steps
+                s2 = template.rollList[2].steps
 
                 while i < s0:
                     while j < s1:
@@ -3666,10 +3583,8 @@ class RollSurvey(pg.GraphicsObject):
                                 return False
 
                             offset = template.rollList[0].increment * i
-                            if length > 1:
-                                offset += template.rollList[1].increment * j
-                            if length > 2:
-                                offset += template.rollList[2].increment * k
+                            offset += template.rollList[1].increment * j
+                            offset += template.rollList[2].increment * k
 
                             rect = template.totTemplateRect.translated(offset.toPointF())
                             if rect.intersects(vb):
@@ -3785,118 +3700,41 @@ class RollSurvey(pg.GraphicsObject):
 
                 assert length == 3, 'there must always be 3 roll steps / grow steps'
 
-                if length == 0:
-                    offset = QVector3D()                                        # always start at (0, 0, 0)
-                    offset += templateOffset                                    # start here
-                    salvo = seed.grid.salvo.translated(offset.toPointF())       # move the line into place
-                    salvo = fnb.clipLineF(salvo, seed.blockBorder)                  # check line against block's src/rec border
-                    salvo = fnb.clipLineF(salvo, viewbox)                           # check line against viewbox
-
-                    if salvo.isNull():
-                        return
-
-                    if lod < appSettings.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
-                        if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                            painter.drawLine(salvo)
-                    else:
-                        seedOrigin = offset + seed.origin                       # start at templateOffset and add seed's origin
-                        if containsPoint3D(seed.blockBorder, seedOrigin):       # is it within block limits ?
-                            if containsPoint3D(viewbox, seedOrigin):            # is it within the viewbox ?
-                                if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                    painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
-                                if lod > appSettings.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
-                                    if paintDetail & PaintDetails.recPat != PaintDetails.none:
-                                        painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
-
-                elif length == 1:
-                    offset = QVector3D()                                        # always start at (0, 0, 0)
-                    offset += templateOffset                                    # start here
-                    salvo = seed.salvo.grid.translated(offset.toPointF())       # move the line into place
-                    salvo = fnb.clipLineF(salvo, seed.blockBorder)                  # check line against block's src/rec border
-                    salvo = fnb.clipLineF(salvo, viewbox)                           # check line against viewbox
-
-                    if salvo.isNull():
-                        return
-
-                    if lod < appSettings.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
-                        if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                            painter.drawLine(salvo)
-                    else:
-                        for i in range(seed.grid.growList[0].steps):            # iterate over 1st step
-                            seedOrigin = offset + seed.origin                   # start at templateOffset and add seed's origin
-                            seedOrigin += seed.grid.growList[0].increment * i   # we now have the correct location
-                            if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
-                                if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
-                                    if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                        painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())  # paint seed picture
-                                    if lod > appSettings.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
-                                        if paintDetail & PaintDetails.recPat != PaintDetails.none:
-                                            painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
-
-                elif length == 2:
-                    for i in range(seed.grid.growList[0].steps):                # iterate over 1st step
-                        offset = QVector3D()                                    # always start at (0, 0, 0)
-                        offset += templateOffset                                # start here
-                        offset += seed.grid.growList[0].increment * i           # we now have the correct location
-                        salvo = seed.grid.salvo.translated(offset.toPointF())   # move the line into place
-                        salvo = fnb.clipLineF(salvo, seed.blockBorder)              # check line against block's src/rec border
-                        salvo = fnb.clipLineF(salvo, viewbox)                       # check line against viewbox
+                for i in range(seed.grid.growList[0].steps):
+                    for j in range(seed.grid.growList[1].steps):
+                        offset = QVector3D(templateOffset)
+                        offset += seed.grid.growList[0].increment * i
+                        offset += seed.grid.growList[1].increment * j
+                        salvo = seed.grid.salvo.translated(offset.toPointF())
+                        salvo = fnb.clipLineF(salvo, seed.blockBorder)
+                        salvo = fnb.clipLineF(salvo, viewbox)
 
                         if salvo.isNull():
                             continue
 
-                        if lod < appSettings.lod2 or self.paintMode == PaintMode.justLines:  # just draw lines
-                            if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                                painter.drawLine(salvo)
-                        else:
-                            for j in range(seed.grid.growList[1].steps):
-                                seedOrigin = offset + seed.origin               # start at templateOffset and add seed's origin
-                                seedOrigin += seed.grid.growList[1].increment * j   # we now have the correct location
-                                if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
-                                    if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
-                                        if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                            painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
-                                        if lod > appSettings.lod3 and seed.patternPicture is not None and self.paintMode == PaintMode.all:       # paint pattern picture
-                                            if paintDetail & PaintDetails.recPat != PaintDetails.none:
-                                                painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)   # paint pattern picture
+                        if paintDetail & PaintDetails.recLin != PaintDetails.none:
+                            painter.drawLine(salvo)
 
-                elif length == 3:
-                    for i in range(seed.grid.growList[0].steps):
-                        for j in range(seed.grid.growList[1].steps):
-                            offset = QVector3D()                                # always start at (0, 0)
-                            offset += templateOffset                            # start here
-                            offset += seed.grid.growList[0].increment * i       # we now have the correct location
-                            offset += seed.grid.growList[1].increment * j       # we now have the correct location
-                            salvo = seed.grid.salvo.translated(offset.toPointF())   # move the line into place
-                            salvo = fnb.clipLineF(salvo, seed.blockBorder)          # check line against block's src/rec border
-                            salvo = fnb.clipLineF(salvo, viewbox)                   # check line against viewbox
+                if lod < appSettings.lod2 or self.paintMode == PaintMode.justLines:
+                    continue
 
-                            if salvo.isNull():
-                                continue
+                for seedOffset in self.iterSeedGrowOffsets(seed, templateOffset):
+                    seedOrigin = seedOffset + seed.origin
 
-                            if paintDetail & PaintDetails.recLin != PaintDetails.none:
-                                painter.drawLine(salvo)                         # always draw a line, if the PaintDetails flag allow for this
+                    if not containsPoint3D(seed.blockBorder, seedOrigin):
+                        continue
 
-                            if lod < appSettings.lod2 or self.paintMode == PaintMode.justLines:   # nothing else to do
-                                continue
+                    if not containsPoint3D(viewbox, seedOrigin):
+                        continue
 
-                            for k in range(seed.grid.growList[2].steps):            # we are about to draw the points now
-                                seedOrigin = offset + seed.origin                   # start at template offset and add seed's origin
-                                seedOrigin += seed.grid.growList[2].increment * k   # we now have the correct location
+                    if paintDetail & PaintDetails.recPnt != PaintDetails.none:
+                        painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())
 
-                                if containsPoint3D(seed.blockBorder, seedOrigin):   # is it within block limits ?
-                                    if containsPoint3D(viewbox, seedOrigin):        # is it within the viewbox ?
-                                        if paintDetail & PaintDetails.recPnt != PaintDetails.none:
-                                            painter.drawPicture(seedOrigin.toPointF(), seed.getPointPicture())   # paint seed picture
+                    if lod < appSettings.lod3 or self.paintMode == PaintMode.justPoints:
+                        continue
 
-                                        if lod < appSettings.lod3 or self.paintMode == PaintMode.justPoints:   # nothing else to do
-                                            continue
-
-                                        if seed.patternPicture is not None and paintDetail & PaintDetails.recPat != PaintDetails.none:
-                                            painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)   # paint pattern picture
-                else:
-                    # do something recursively; not  implemented yet
-                    raise NotImplementedError('More than three grow steps currently not allowed.')
+                    if seed.patternPicture is not None and paintDetail & PaintDetails.recPat != PaintDetails.none:
+                        painter.drawPicture(seedOrigin.toPointF(), seed.patternPicture)
 
     def generateSvg(self, nodes):
         pass                                                                    # for the time being don't do anything; just to keep PyLint happy

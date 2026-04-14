@@ -22,6 +22,8 @@ spsModule = loadPluginModule('sps_io_and_qc')
 configModule = loadPluginModule('config')
 appSettingsModule = loadPluginModule('app_settings')
 auxFunctionsModule = loadPluginModule('aux_functions')
+workerThreadsModule = loadPluginModule('worker_threads')
+binningWorkerMixinModule = loadPluginModule('binning_worker_mixin')
 
 RollMainWindow = rollMainWindowModule.RollMainWindow
 RollSurvey = rollSurveyModule.RollSurvey
@@ -43,6 +45,16 @@ readStoredShowUnfinishedSetting = appSettingsModule.readStoredShowUnfinishedSett
 setActiveDebugLogging = appSettingsModule.setActiveDebugLogging
 setActiveShowSummaries = appSettingsModule.setActiveShowSummaries
 setActiveShowUnfinished = appSettingsModule.setActiveShowUnfinished
+BinningFromTemplatesRequest = workerThreadsModule.BinningFromTemplatesRequest
+BinningFromTemplatesResult = workerThreadsModule.BinningFromTemplatesResult
+BinningFromGeometryRequest = workerThreadsModule.BinningFromGeometryRequest
+BinningFromGeometryResult = workerThreadsModule.BinningFromGeometryResult
+GeometryFromTemplatesRequest = workerThreadsModule.GeometryFromTemplatesRequest
+GeometryProfilingPayload = workerThreadsModule.GeometryProfilingPayload
+GeometryFromTemplatesResult = workerThreadsModule.GeometryFromTemplatesResult
+BinningWorker = workerThreadsModule.BinningWorker
+BinFromGeometryWorker = workerThreadsModule.BinFromGeometryWorker
+GeometryWorker = workerThreadsModule.GeometryWorker
 
 
 class ProjectSidecarsTest(unittest.TestCase):
@@ -1157,20 +1169,595 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.appSettings.activate()
         self.assertTrue(isShowUnfinishedEnabled())
 
-    def testConfigureWorkerDebugpyUsesAppSettingsOwner(self):
-        class Worker:
+    def testBinFromTemplatesUsesRequestObjectAndResultSignal(self):
+        class SignalStub:
             def __init__(self):
-                self.debugpyEnabled = False
+                self.connect = MagicMock()
 
-            def setDebugpyEnabled(self, enabled):
-                self.debugpyEnabled = enabled
+        class SurveyStub:
+            def __init__(self):
+                self.progress = SignalStub()
+                self.message = SignalStub()
 
-        worker = Worker()
-        self.mainWindow.appSettings.debugpy = True
+        class WorkerStub:
+            def __init__(self, request):
+                self.request = request
+                self.survey = SurveyStub()
+                self.resultReady = SignalStub()
+                self.finished = SignalStub()
+                self.run = MagicMock()
+                self.moveToThread = MagicMock()
 
-        self.mainWindow.configureWorkerDebugpy(worker)
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = False
+        threadStub.started = SignalStub()
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.survey.nShotPoints = 12
 
-        self.assertTrue(worker.debugpyEnabled)
+        with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
+            with patch.object(binningWorkerMixinModule, 'BinningWorker', side_effect=WorkerStub) as workerFactory:
+                self.mainWindow.binFromTemplates(False)
+
+        request = workerFactory.call_args.args[0]
+        self.assertIsInstance(request, BinningFromTemplatesRequest)
+        self.assertEqual(request.extended, False)
+        self.assertIs(request.analysisFile, self.mainWindow.output.anaOutput)
+        self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
+        self.mainWindow.worker.resultReady.connect.assert_called_once_with(self.mainWindow.binningTemplatesThreadFinished)
+        self.mainWindow.worker.finished.connect.assert_called_once_with(threadStub.quit)
+        self.mainWindow.thread = None
+        self.mainWindow.worker = None
+
+    def testBinningWorkerRunEmitsTypedResultsOnSuccessAndFailure(self):
+        class SurveyStub:
+            def __init__(self):
+                self.output = MagicMock()
+                self.output.anaOutput = None
+                self.output.binOutput = np.ones((2, 2), dtype=np.float32)
+                self.output.minOffset = np.full((2, 2), 10.0, dtype=np.float32)
+                self.output.maxOffset = np.full((2, 2), 20.0, dtype=np.float32)
+                self.output.minimumFold = 1
+                self.output.maximumFold = 4
+                self.output.minMinOffset = 10.0
+                self.output.maxMinOffset = 10.0
+                self.output.minMaxOffset = 20.0
+                self.output.maxMaxOffset = 20.0
+                self.output.minRmsOffset = 0.0
+                self.output.maxRmsOffset = 0.0
+                self.output.rmsOffset = None
+                self.output.ofAziHist = None
+                self.output.offstHist = None
+                self.cmpTransform = 'cmp-transform'
+                self.errorText = 'setup failed'
+                self.shouldSucceed = True
+                self.xmlString: str | None = None
+                self.createArrays: bool | None = None
+                self.calcCalled: bool = False
+                self.extended: bool | None = None
+
+            def fromXmlString(self, xmlString, createArrays):
+                self.xmlString = xmlString
+                self.createArrays = createArrays
+
+            def calcNoShotPoints(self):
+                self.calcCalled = True
+
+            def setupBinFromTemplates(self, extended):
+                self.extended = extended
+                return self.shouldSucceed
+
+        request = BinningFromTemplatesRequest(xmlString='<survey />', extended=True, analysisFile=None, debugpyEnabled=False)
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            worker = BinningWorker(request)
+
+            resultEvents = []
+            finishedEvents = []
+            worker.resultReady.connect(resultEvents.append)
+            worker.finished.connect(lambda: finishedEvents.append('finished'))
+
+            worker.run()
+
+            self.assertEqual(len(resultEvents), 1)
+            self.assertIsInstance(resultEvents[0], BinningFromTemplatesResult)
+            self.assertTrue(resultEvents[0].success)
+            self.assertIs(resultEvents[0].binOutput, worker.survey.output.binOutput)
+            self.assertIs(resultEvents[0].minOffset, worker.survey.output.minOffset)
+            self.assertIs(resultEvents[0].maxOffset, worker.survey.output.maxOffset)
+            self.assertIsNone(resultEvents[0].minRmsOffset)
+            self.assertIsNone(resultEvents[0].maxRmsOffset)
+            np.testing.assert_array_equal(resultEvents[0].binOutput, np.ones((2, 2), dtype=np.float32))
+            self.assertEqual(resultEvents[0].cmpTransform, 'cmp-transform')
+            self.assertEqual(finishedEvents, ['finished'])
+
+            worker.survey.shouldSucceed = False
+            resultEvents.clear()
+            finishedEvents.clear()
+
+            worker.run()
+
+        self.assertEqual(len(resultEvents), 1)
+        self.assertIsInstance(resultEvents[0], BinningFromTemplatesResult)
+        self.assertFalse(resultEvents[0].success)
+        self.assertEqual(resultEvents[0].errorText, 'setup failed')
+        self.assertEqual(finishedEvents, ['finished'])
+
+    def testBinningTemplatesThreadFinishedUsesResultObject(self):
+        result = BinningFromTemplatesResult(
+            success=True,
+            binOutput=np.ones((2, 2), dtype=np.float32),
+            minOffset=np.full((2, 2), 10.0, dtype=np.float32),
+            maxOffset=np.full((2, 2), 20.0, dtype=np.float32),
+            minimumFold=1,
+            maximumFold=4,
+            minMinOffset=10.0,
+            maxMinOffset=10.0,
+            minMaxOffset=20.0,
+            maxMaxOffset=20.0,
+            minRmsOffset=0.0,
+            maxRmsOffset=0.0,
+            rmsOffset=None,
+            ofAziHist=None,
+            offstHist=None,
+            cmpTransform='cmp-transform',
+            anaOutputShape=None,
+        )
+
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.imageType = 1
+        self.mainWindow.fileName = ''
+        self.mainWindow.startTime = 0.0
+
+        with patch.object(binningWorkerMixinModule, 'timer', return_value=1.0):
+            with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
+                with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                    with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                        with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                            with patch.object(binningWorkerMixinModule.QMessageBox, 'information') as information:
+                                self.mainWindow.binningTemplatesThreadFinished(result)
+
+        np.testing.assert_array_equal(self.mainWindow.output.binOutput, result.binOutput)
+        np.testing.assert_array_equal(self.mainWindow.output.minOffset, result.minOffset)
+        np.testing.assert_array_equal(self.mainWindow.output.maxOffset, result.maxOffset)
+        self.assertEqual(self.mainWindow.output.maximumFold, 4)
+        self.assertEqual(self.mainWindow.survey.cmpTransform, 'cmp-transform')
+        handleImageSelection.assert_called_once()
+        updateMenuStatus.assert_called_once_with(False)
+        enableProcessingMenuItems.assert_called_once()
+        hideStatusbarWidgets.assert_called_once()
+        information.assert_called_once()
+
+    def testBinningTemplatesThreadFinishedHandlesFailureResult(self):
+        result = BinningFromTemplatesResult(success=False, errorText='worker failed')
+
+        self.mainWindow.layoutImg = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.layoutImItem = object()
+
+        with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
+            with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                    with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                        with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+                            with patch.object(binningWorkerMixinModule.QMessageBox, 'information') as information:
+                                self.mainWindow.binningTemplatesThreadFinished(result)
+
+        self.assertIsNone(self.mainWindow.layoutImg)
+        self.assertIsNone(self.mainWindow.layoutImItem)
+        handleImageSelection.assert_called_once()
+        appendLogMessage.assert_any_call('Thread : . . . aborted binning operation', rollMainWindowModule.MsgType.Error)
+        appendLogMessage.assert_any_call('Thread : . . . worker failed', rollMainWindowModule.MsgType.Error)
+        information.assert_called_once_with(self.mainWindow, 'Interrupted', 'Worker thread aborted')
+        updateMenuStatus.assert_called_once_with(False)
+        enableProcessingMenuItems.assert_called_once()
+        hideStatusbarWidgets.assert_called_once()
+
+    def testBinFromGeometryUsesRequestObjectAndResultSignal(self):
+        class SignalStub:
+            def __init__(self):
+                self.connect = MagicMock()
+
+        class SurveyStub:
+            def __init__(self):
+                self.progress = SignalStub()
+                self.message = SignalStub()
+
+        class WorkerStub:
+            def __init__(self, request):
+                self.request = request
+                self.survey = SurveyStub()
+                self.resultReady = SignalStub()
+                self.finished = SignalStub()
+                self.run = MagicMock()
+                self.moveToThread = MagicMock()
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = False
+        threadStub.started = SignalStub()
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.srcGeom = np.zeros(1, dtype=pntType1)
+        self.mainWindow.relGeom = np.zeros(1, dtype=relType2)
+        self.mainWindow.recGeom = np.zeros(1, dtype=pntType1)
+
+        with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
+            with patch.object(binningWorkerMixinModule, 'BinFromGeometryWorker', side_effect=WorkerStub) as workerFactory:
+                self.mainWindow.binFromGeometry(False)
+
+        request = workerFactory.call_args.args[0]
+        self.assertIsInstance(request, BinningFromGeometryRequest)
+        self.assertEqual(request.extended, False)
+        self.assertIs(request.analysisFile, self.mainWindow.output.anaOutput)
+        self.assertIs(request.srcGeom, self.mainWindow.srcGeom)
+        self.assertIs(request.relGeom, self.mainWindow.relGeom)
+        self.assertIs(request.recGeom, self.mainWindow.recGeom)
+        self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
+        self.mainWindow.worker.resultReady.connect.assert_called_once_with(self.mainWindow.binningGeometryThreadFinished)
+        self.mainWindow.worker.finished.connect.assert_called_once_with(threadStub.quit)
+        self.mainWindow.thread = None
+        self.mainWindow.worker = None
+
+    def testBinFromSpsUsesRequestObjectAndResultSignal(self):
+        class SignalStub:
+            def __init__(self):
+                self.connect = MagicMock()
+
+        class SurveyStub:
+            def __init__(self):
+                self.progress = SignalStub()
+                self.message = SignalStub()
+
+        class WorkerStub:
+            def __init__(self, request):
+                self.request = request
+                self.survey = SurveyStub()
+                self.resultReady = SignalStub()
+                self.finished = SignalStub()
+                self.run = MagicMock()
+                self.moveToThread = MagicMock()
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = False
+        threadStub.started = SignalStub()
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.spsImport = np.zeros(1, dtype=pntType1)
+        self.mainWindow.xpsImport = np.zeros(1, dtype=relType2)
+        self.mainWindow.rpsImport = np.zeros(1, dtype=pntType1)
+
+        with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
+            with patch.object(binningWorkerMixinModule, 'BinFromGeometryWorker', side_effect=WorkerStub) as workerFactory:
+                self.mainWindow.binFromSps(False)
+
+        request = workerFactory.call_args.args[0]
+        self.assertIsInstance(request, BinningFromGeometryRequest)
+        self.assertEqual(request.extended, False)
+        self.assertIs(request.analysisFile, self.mainWindow.output.anaOutput)
+        self.assertIs(request.srcGeom, self.mainWindow.spsImport)
+        self.assertIs(request.relGeom, self.mainWindow.xpsImport)
+        self.assertIs(request.recGeom, self.mainWindow.rpsImport)
+        self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
+        self.mainWindow.worker.resultReady.connect.assert_called_once_with(self.mainWindow.binningGeometryThreadFinished)
+        self.mainWindow.worker.finished.connect.assert_called_once_with(threadStub.quit)
+        self.mainWindow.thread = None
+        self.mainWindow.worker = None
+
+    def testBinFromGeometryWorkerRunEmitsTypedResultsOnSuccessAndFailure(self):
+        class SurveyStub:
+            def __init__(self):
+                self.output = MagicMock()
+                self.output.anaOutput = np.zeros((3, 2), dtype=np.float32)
+                self.output.srcGeom = None
+                self.output.relGeom = None
+                self.output.recGeom = None
+                self.output.binOutput = np.full((2, 2), 5.0, dtype=np.float32)
+                self.output.minOffset = np.full((2, 2), 12.0, dtype=np.float32)
+                self.output.maxOffset = np.full((2, 2), 24.0, dtype=np.float32)
+                self.output.minimumFold = 2
+                self.output.maximumFold = 5
+                self.output.minMinOffset = 12.0
+                self.output.maxMinOffset = 12.0
+                self.output.minMaxOffset = 24.0
+                self.output.maxMaxOffset = 24.0
+                self.output.minRmsOffset = 0.0
+                self.output.maxRmsOffset = 0.0
+                self.output.rmsOffset = None
+                self.output.ofAziHist = np.ones((2, 3), dtype=np.float32)
+                self.output.offstHist = np.array([[0.0, 50.0], [1.0, 2.0]], dtype=np.float32)
+                self.cmpTransform = 'cmp-transform'
+                self.errorText = 'geometry failed'
+                self.shouldSucceed = True
+                self.xmlString: str | None = None
+                self.createArrays: bool | None = None
+                self.calcCalled: bool = False
+                self.extended: bool | None = None
+
+            def fromXmlString(self, xmlString, createArrays):
+                self.xmlString = xmlString
+                self.createArrays = createArrays
+
+            def calcNoShotPoints(self):
+                self.calcCalled = True
+
+            def setupBinFromGeometry(self, extended):
+                self.extended = extended
+                return self.shouldSucceed
+
+        srcGeom = np.zeros(1, dtype=pntType1)
+        relGeom = np.zeros(1, dtype=relType2)
+        recGeom = np.zeros(1, dtype=pntType1)
+        request = BinningFromGeometryRequest(
+            xmlString='<survey />',
+            srcGeom=srcGeom,
+            relGeom=relGeom,
+            recGeom=recGeom,
+            extended=True,
+            analysisFile=np.zeros((3, 2), dtype=np.float32),
+            debugpyEnabled=False,
+        )
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            worker = BinFromGeometryWorker(request)
+
+            resultEvents = []
+            finishedEvents = []
+            worker.resultReady.connect(resultEvents.append)
+            worker.finished.connect(lambda: finishedEvents.append('finished'))
+
+            worker.run()
+
+            self.assertEqual(worker.survey.xmlString, '<survey />')
+            self.assertTrue(worker.survey.createArrays)
+            self.assertIs(worker.survey.output.srcGeom, srcGeom)
+            self.assertIs(worker.survey.output.relGeom, relGeom)
+            self.assertIs(worker.survey.output.recGeom, recGeom)
+            self.assertTrue(worker.survey.calcCalled)
+            self.assertTrue(worker.survey.extended)
+
+            self.assertEqual(len(resultEvents), 1)
+            self.assertIsInstance(resultEvents[0], BinningFromGeometryResult)
+            self.assertTrue(resultEvents[0].success)
+            self.assertIs(resultEvents[0].binOutput, worker.survey.output.binOutput)
+            self.assertIs(resultEvents[0].minOffset, worker.survey.output.minOffset)
+            self.assertIs(resultEvents[0].maxOffset, worker.survey.output.maxOffset)
+            self.assertIs(resultEvents[0].ofAziHist, worker.survey.output.ofAziHist)
+            self.assertIs(resultEvents[0].offstHist, worker.survey.output.offstHist)
+            self.assertIsNone(resultEvents[0].minRmsOffset)
+            self.assertIsNone(resultEvents[0].maxRmsOffset)
+            self.assertEqual(resultEvents[0].anaOutputShape, (3, 2))
+            self.assertEqual(resultEvents[0].cmpTransform, 'cmp-transform')
+            self.assertEqual(finishedEvents, ['finished'])
+
+            worker.survey.shouldSucceed = False
+            resultEvents.clear()
+            finishedEvents.clear()
+
+            worker.run()
+
+        self.assertEqual(len(resultEvents), 1)
+        self.assertIsInstance(resultEvents[0], BinningFromGeometryResult)
+        self.assertFalse(resultEvents[0].success)
+        self.assertEqual(resultEvents[0].errorText, 'geometry failed')
+        self.assertEqual(finishedEvents, ['finished'])
+
+    def testBinningGeometryThreadFinishedUsesResultObject(self):
+        result = BinningFromGeometryResult(
+            success=True,
+            binOutput=np.ones((2, 2), dtype=np.float32),
+            minOffset=np.full((2, 2), 10.0, dtype=np.float32),
+            maxOffset=np.full((2, 2), 20.0, dtype=np.float32),
+            minimumFold=1,
+            maximumFold=4,
+            minMinOffset=10.0,
+            maxMinOffset=10.0,
+            minMaxOffset=20.0,
+            maxMaxOffset=20.0,
+            minRmsOffset=0.0,
+            maxRmsOffset=0.0,
+            rmsOffset=None,
+            ofAziHist=None,
+            offstHist=None,
+            cmpTransform='cmp-transform',
+            anaOutputShape=None,
+        )
+
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.imageType = 1
+        self.mainWindow.fileName = ''
+        self.mainWindow.startTime = 0.0
+
+        with patch.object(binningWorkerMixinModule, 'timer', return_value=1.0):
+            with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
+                with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                    with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                        with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                            with patch.object(binningWorkerMixinModule.QMessageBox, 'information') as information:
+                                self.mainWindow.binningGeometryThreadFinished(result)
+
+        np.testing.assert_array_equal(self.mainWindow.output.binOutput, result.binOutput)
+        np.testing.assert_array_equal(self.mainWindow.output.minOffset, result.minOffset)
+        np.testing.assert_array_equal(self.mainWindow.output.maxOffset, result.maxOffset)
+        self.assertEqual(self.mainWindow.output.maximumFold, 4)
+        self.assertEqual(self.mainWindow.survey.cmpTransform, 'cmp-transform')
+        handleImageSelection.assert_called_once()
+        updateMenuStatus.assert_called_once_with(False)
+        enableProcessingMenuItems.assert_called_once()
+        hideStatusbarWidgets.assert_called_once()
+        information.assert_called_once()
+
+    def testBinningGeometryThreadFinishedHandlesFailureResult(self):
+        result = BinningFromGeometryResult(success=False, errorText='geometry worker failed')
+
+        self.mainWindow.layoutImg = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.layoutImItem = object()
+
+        with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
+            with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                    with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                        with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+                            with patch.object(binningWorkerMixinModule.QMessageBox, 'information') as information:
+                                self.mainWindow.binningGeometryThreadFinished(result)
+
+        self.assertIsNone(self.mainWindow.layoutImg)
+        self.assertIsNone(self.mainWindow.layoutImItem)
+        handleImageSelection.assert_called_once()
+        appendLogMessage.assert_any_call('Thread : . . . aborted binning operation', rollMainWindowModule.MsgType.Error)
+        appendLogMessage.assert_any_call('Thread : . . . geometry worker failed', rollMainWindowModule.MsgType.Error)
+        information.assert_called_once_with(self.mainWindow, 'Interrupted', 'Worker thread aborted')
+        updateMenuStatus.assert_called_once_with(False)
+        enableProcessingMenuItems.assert_called_once()
+        hideStatusbarWidgets.assert_called_once()
+
+    def testCreateGeometryFromTemplatesUsesRequestObjectAndResultSignal(self):
+        class SignalStub:
+            def __init__(self):
+                self.connect = MagicMock()
+
+        class SurveyStub:
+            def __init__(self):
+                self.progress = SignalStub()
+                self.message = SignalStub()
+
+        class WorkerStub:
+            def __init__(self, request):
+                self.request = request
+                self.survey = SurveyStub()
+                self.resultReady = SignalStub()
+                self.finished = SignalStub()
+                self.run = MagicMock()
+                self.moveToThread = MagicMock()
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = False
+        threadStub.started = SignalStub()
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.survey.nShotPoints = 12
+
+        with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
+            with patch.object(binningWorkerMixinModule, 'GeometryWorker', side_effect=WorkerStub) as workerFactory:
+                self.mainWindow.createGeometryFromTemplates()
+
+        request = workerFactory.call_args.args[0]
+        self.assertIsInstance(request, GeometryFromTemplatesRequest)
+        self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
+        self.assertEqual(request.includeProfiling, self.mainWindow.appSettings.debug)
+        self.mainWindow.worker.resultReady.connect.assert_called_once_with(self.mainWindow.geometryThreadFinished)
+        self.mainWindow.worker.finished.connect.assert_called_once_with(threadStub.quit)
+        self.mainWindow.thread = None
+        self.mainWindow.worker = None
+
+    def testGeometryWorkerRunUsesOptionalProfilingPayload(self):
+        class SurveyStub:
+            def __init__(self):
+                self.output = MagicMock()
+                self.output.recGeom = np.zeros(1, dtype=pntType1)
+                self.output.relGeom = np.zeros(1, dtype=relType2)
+                self.output.srcGeom = np.zeros(1, dtype=pntType1)
+                self.errorText = 'geometry setup failed'
+                self.shouldSucceed = True
+                self.timerTmin = [0.0]
+                self.timerTmax = [1.0]
+                self.timerTtot = [2.0]
+                self.timerFreq = [3]
+                self.xmlString: str | None = None
+                self.createArrays: bool | None = None
+                self.calcCalled: bool = False
+
+            def fromXmlString(self, xmlString, createArrays):
+                self.xmlString = xmlString
+                self.createArrays = createArrays
+
+            def calcNoShotPoints(self):
+                self.calcCalled = True
+
+            def setupGeometryFromTemplates(self):
+                return self.shouldSucceed
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            worker = GeometryWorker(GeometryFromTemplatesRequest(xmlString='<survey />', includeProfiling=True))
+
+            resultEvents = []
+            worker.resultReady.connect(resultEvents.append)
+
+            worker.run()
+
+            self.assertEqual(len(resultEvents), 1)
+            self.assertIsInstance(resultEvents[0], GeometryFromTemplatesResult)
+            self.assertIsInstance(resultEvents[0].profiling, GeometryProfilingPayload)
+            self.assertEqual(resultEvents[0].profiling.timerTmin, (0.0,))
+            self.assertEqual(resultEvents[0].profiling.timerTmax, (1.0,))
+            self.assertEqual(resultEvents[0].profiling.timerTtot, (2.0,))
+            self.assertEqual(resultEvents[0].profiling.timerFreq, (3,))
+
+            worker = GeometryWorker(GeometryFromTemplatesRequest(xmlString='<survey />', includeProfiling=False))
+            resultEvents = []
+            worker.resultReady.connect(resultEvents.append)
+
+            worker.run()
+
+        self.assertEqual(len(resultEvents), 1)
+        self.assertIsNone(resultEvents[0].profiling)
+
+    def testGeometryThreadFinishedUsesResultObject(self):
+        result = GeometryFromTemplatesResult(
+            success=True,
+            recGeom=np.zeros(1, dtype=pntType1),
+            relGeom=np.zeros(1, dtype=relType2),
+            srcGeom=np.zeros(1, dtype=pntType1),
+            profiling=GeometryProfilingPayload(
+                timerTmin=(0.0,),
+                timerTmax=(0.0,),
+                timerTtot=(0.0,),
+                timerFreq=(1,),
+            ),
+        )
+
+        self.mainWindow.startTime = 0.0
+        self.mainWindow.fileName = ''
+
+        with patch.object(binningWorkerMixinModule, 'timer', return_value=1.0):
+            with patch.object(self.mainWindow.sessionService, 'setArray') as setArray:
+                with patch.object(self.mainWindow.recModel, 'setData') as recSetData:
+                    with patch.object(self.mainWindow.relModel, 'setData') as relSetData:
+                        with patch.object(self.mainWindow.srcModel, 'setData') as srcSetData:
+                            with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                                with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                                    with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                                        with patch.object(binningWorkerMixinModule.QMessageBox, 'information') as information:
+                                            self.mainWindow.geometryThreadFinished(result)
+
+        self.assertEqual(setArray.call_count, 3)
+        recSetData.assert_called_once()
+        relSetData.assert_called_once()
+        srcSetData.assert_called_once()
+        updateMenuStatus.assert_called_once_with(False)
+        enableProcessingMenuItems.assert_called_once()
+        hideStatusbarWidgets.assert_called_once()
+        information.assert_called_once()
+
+    def testGeometryThreadFinishedHandlesFailureResult(self):
+        result = GeometryFromTemplatesResult(
+            success=False,
+            errorText='geometry worker failed',
+            profiling=GeometryProfilingPayload(
+                timerTmin=(),
+                timerTmax=(),
+                timerTtot=(),
+                timerFreq=(),
+            ),
+        )
+
+        with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+            with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                    with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                        with patch.object(binningWorkerMixinModule.QMessageBox, 'information') as information:
+                            self.mainWindow.geometryThreadFinished(result)
+
+        appendLogMessage.assert_any_call('Thread : . . . aborted geometry creation', rollMainWindowModule.MsgType.Error)
+        appendLogMessage.assert_any_call('Thread : . . . geometry worker failed', rollMainWindowModule.MsgType.Error)
+        information.assert_called_once_with(self.mainWindow, 'Interrupted', 'Worker thread aborted')
+        updateMenuStatus.assert_called_once_with(False)
+        enableProcessingMenuItems.assert_called_once()
+        hideStatusbarWidgets.assert_called_once()
 
     def testReadStoredDebugpySettingUsesPersistedValue(self):
         originalValue = self.mainWindow.settings.value('settings/debug/debugpy', None)

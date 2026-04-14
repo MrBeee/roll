@@ -2,7 +2,7 @@ D:\QGis\MyPlugins\roll\Refactoring_roadmap.txt
 
 **Refactoring Roadmap**
 
-Updated for the current codebase on 2026-04-13.
+Updated for the current codebase on 2026-04-14.
 
 The broad direction is still the same: keep persistence, import/QC logic, mutable session/runtime state, and worker lifecycle concerns out of `roll_main_window.py`, then clean up plotting/redraw boundaries before touching worker contracts or performance.
 
@@ -34,27 +34,36 @@ Completed or substantially landed:
 17. Stack-response and pattern-response plots now share a reusable analysis image/colorbar preparation helper instead of duplicating the full image-item and colorbar setup path in each controller.
 18. Pattern-response input gathering and Kx/Ky computation have been narrowed into dedicated helpers instead of leaving combo-box and response-array concerns mixed together in `plotPatterns()`.
 19. Stack-cell pattern selection and stack-cell response computation have been narrowed into dedicated helpers instead of leaving all selection and numerical work inline in `plotStkCel()`.
-20. A first analysis redraw dispatcher slice now exists for patterns, stack-response surfaces, and O/A, with typed redraw reasons and direction-aware stack-response gating.
+20. A first analysis redraw dispatcher slice now exists for patterns, stack-response surfaces, O/A, and offset, with typed redraw reasons and direction-aware stack-response gating.
 21. The O/A file-load/reset path now forces the next render back to the default `0/max` display range instead of preserving stale manual levels across files.
 22. Redraw reasons now drive real invalidation behavior for patterns, O/A, and stack-response instead of being pass-through metadata only.
 23. Pattern-response and stack-response surfaces now reuse cached responses for unchanged selections or navigation contexts, rather than recomputing on every redraw.
 24. `PlotRedrawHelper` now owns redraw invalidation policy, redraw cache-key state, surface cache reuse checks, and reused-axis reconstruction for pattern, inline, xline, and stack-cell analysis surfaces instead of leaving that policy inside `roll_main_window.py`.
-25. The test baseline is materially stronger than the earlier roadmap assumed: project round-trip, sidecar behavior, batch sidecar loading, higher-level file-load/apply behavior, legacy sidecar compatibility, session-service behavior, import-service coverage, filter-service coverage, settings/runtime ownership checks, and targeted plot/redraw regressions all exist.
+25. O/A now follows the same input-preparation versus widget-mutation structure as the pattern and stack-response redraw paths.
+26. `plotOffset()` now follows the same redraw/controller contract as O/A, with dedicated offset histogram/input preparation, prepared render helpers, and dispatcher routing.
+27. Layout image creation and layout colorbar wiring now share a narrower `prepareLayoutImageAndColorBar()` helper without moving layout into the full redraw-policy model.
+28. The test baseline is materially stronger than the earlier roadmap assumed: project round-trip, sidecar behavior, batch sidecar loading, higher-level file-load/apply behavior, legacy sidecar compatibility, session-service behavior, import-service coverage, filter-service coverage, settings/runtime ownership checks, and targeted plot/redraw regressions all exist.
+29. The main worker launch paths now use explicit request/result contracts end to end for binning from templates, binning from geometry/imported SPS, and geometry creation from templates.
+30. Converted workers now emit typed `resultReady` payloads plus a narrowed no-argument `finished()` signal, instead of mixing typed results with a redundant success boolean on the completion signal.
+31. There is now direct worker-level success/failure regression coverage for two converted worker paths, in addition to the existing launcher/completion wiring regressions.
+32. Converted worker result payloads no longer copy the large analysis arrays a second time just to cross the worker boundary; geometry profiling now travels as one explicit optional payload, and RMS summary values are omitted when no RMS surface exists.
+33. The geometry binning completion path now has direct failure-boundary regression coverage at the main-window/mixin layer, so both emission-time and consumer-time behavior are protected on the converted binning paths.
+34. `roll_survey.py` now has direct regression coverage for the live geometry invariant work, including template/grow-step normalization behavior and direct geometry generation from templates.
+35. In `roll_survey.py`, `geomTemplate2()`, `geomTemplate3()`, `binFromGeometry4()`, `binFromGeometry5()`, `binFromGeometry6()`, `binFromGeometry7()`, and `binTemplate6()` are intentionally retained as dead reference implementations for future optimization comparison; the live geometry/binning paths currently run through `geomTemplate4()`, `binFromGeometryNoRel()`, `binFromGeometry8()`, and `binTemplate7()`.
 
 Still unfinished:
-1. Plot/input preparation is still partly mixed into `roll_main_window.py`, especially for O/A and some remaining controller-owned plot setup.
-2. Colorbar setup is still duplicated across layout and parts of O/A, even though redraw policy and reused-axis reconstruction now sit behind `PlotRedrawHelper`.
-3. O/A still mixes histogram/input preparation with widget mutation more than the pattern and stack-response paths do.
-4. Worker contracts still depend on broad survey state and implicit mutation.
-5. `config.py` still serves as a broad shared constants/defaults module; that is acceptable for now, but it can be split by concern later if clearer module boundaries are wanted.
+1. Worker launch and completion contracts are explicit on the main paths, but the cleanup is not finished until any leftover legacy worker scaffolding is either justified or removed and any further payload changes are driven by measured need rather than contract churn.
+2. A few plotting paths still contain controller-owned details, but the main Phase 5 redraw seams are now in place.
+3. `config.py` still serves as a broad shared constants/defaults module; that is acceptable for now, but it can be split by concern later if clearer module boundaries are wanted.
 
 **Recommended Order From Here**
 
-1. Finish the remaining O/A plot-input and widget-mutation split so it matches the structure already used by pattern and stack-response redraws.
-2. Keep layout plots outside the full helper-backed redraw-policy model, but consider extracting a narrower shared image/colorbar preparation helper for the layout image path.
-3. Clean up worker contracts only after those redraw boundaries are stable.
-4. Do performance work only after the structure stops moving.
-5. Treat any further `config.py` work as optional organization, not as the main architectural blocker.
+1. Keep the preserved reference implementations in `roll_survey.py` out of routine cleanup scope unless a change is specifically about comparing or replacing live algorithms.
+2. Next live-path refactoring step: narrow `geomTemplate4()` by extracting the receiver de-dup plus `relTemp` build path into a helper with direct regression coverage, because that is now the densest active geometry routine.
+3. After that, extract the shared live bin-write/update logic that still appears across `binFromGeometryNoRel()`, `binFromGeometry8()`, and `binTemplate7()`.
+4. Revisit worker payload shape only if a measured simplification remains after the active geometry/binning layer is easier to reason about.
+5. Do performance work only after the structure stops moving.
+6. Treat any further `config.py` work as optional organization, not as the main architectural blocker.
 
 The earlier “create `SessionState` first” and “extract import/QC service first” recommendations are no longer current. Those seams are already good enough to move attention to plotting/redraw structure.
 
@@ -77,13 +86,12 @@ What is already in place:
 9. Settings/runtime ownership regressions around `AppSettings`, `RuntimeState`, and the SPS import dialog.
 
 What is still worth adding here:
-1. One or two geometry-generation correctness tests in `roll_survey.py`.
-2. One worker success/failure test around `worker_threads.py` or the worker mixin boundary.
-3. A small reusable project fixture that includes a valid `.roll` plus minimal sidecars, if repeated setup starts to spread further.
+1. Add only further geometry-generation tests that protect the active path (`geometryFromTemplates()` -> `geomTemplate4()`), not the preserved reference implementations.
+2. A small reusable project fixture that includes a valid `.roll` plus minimal sidecars, if repeated setup starts to spread further.
 
 Exit criteria:
 1. Project persistence and filter behavior are protected.
-2. At least one geometry-generation path is covered by a direct test.
+2. At least one active geometry-generation path is covered by a direct test.
 3. At least one worker path is covered by a direct test.
 
 **Phase 1 - Project Persistence and Load Boundary**
@@ -189,7 +197,7 @@ Already met enough for the current milestone:
 **Phase 5 - Plot and Redraw Service**
 
 Status:
-In progress. The redraw/controller slice is now materially further along than the earlier roadmap described: reason-driven invalidation is active, cache reuse is live, and helper-owned redraw policy plus reused-parameter reconstruction are in place. The remaining gap is mainly O/A preparation/controller cleanup plus a smaller follow-up to reduce layout image/colorbar duplication without moving layout into the full redraw-policy helper model.
+Substantially complete for the current milestone. The redraw/controller slice now has helper-owned invalidation and cache reuse, O/A and offset both follow explicit preparation-versus-render boundaries, and layout image/colorbar duplication has been reduced with a smaller helper that does not pull layout into the full redraw-policy model.
 
 Goal:
 Separate domain changes from redraw policy, image preparation, and colorbar wiring.
@@ -219,14 +227,15 @@ What has landed:
 11. O/A redraws now distinguish controller-driven invalidation from presentation-only redraws such as display-mode and polar colorbar level changes.
 12. Stack-response redraws now invalidate caches on controller-driven changes and stack-pattern changes, while reusing cached inline/xline/cell responses when the navigation context is unchanged.
 13. `PlotRedrawHelper` now owns surface invalidation policy, cache reset logic, cache-key storage, cache-key builders, and cached-axis reconstruction for pattern, inline, xline, and stack-cell redraw reuse.
-14. There is direct regression coverage for shared analysis image/colorbar preparation, dispatcher routing, stack-response redraw gating, stack-response cache reuse, helper-owned key/axis reconstruction, O/A renderer dispatch, O/A dispatcher routing, O/A display-range reset on file load, and reason-driven invalidation behavior.
+14. O/A now has dedicated histogram-input preparation, prepared plot-input construction, prepared render dispatch, and a thin `plotOffAzi()` wrapper over `redrawOffAzi()`.
+15. Offset now has dedicated histogram-input preparation, prepared plot-input construction, prepared render dispatch, and dispatcher routing through the same analysis redraw entry point used by O/A.
+16. Layout image-item creation and layout colorbar wiring now go through a narrower shared helper instead of leaving the full setup inline in `handleImageSelection()`.
+17. There is direct regression coverage for shared analysis image/colorbar preparation, layout image/colorbar preparation, dispatcher routing, stack-response redraw gating, stack-response cache reuse, helper-owned key/axis reconstruction, O/A renderer dispatch, O/A dispatcher routing, offset dispatcher routing, O/A display-range reset on file load, and reason-driven invalidation behavior.
 
 What remains in this phase:
-1. Finish moving O/A to the same input-preparation versus widget-mutation structure already used by the stack-response and pattern redraw paths.
-2. Reduce the remaining direct numerical plotting work in the O/A controller path by moving reusable preparation and any remaining redraw-state reconstruction behind helper/service code where it meaningfully improves symmetry.
-3. Extract a narrower shared image/colorbar preparation helper for layout only if it removes duplication cleanly without pulling layout into the analysis redraw-policy path.
-4. Review whether `plotOffset()` should adopt the same redraw/invalidation contract as O/A for consistency.
-5. Keep the helper boundary small unless a new repeated redraw-policy concern appears; do not expand it just to move code mechanically.
+1. Keep the helper boundary small unless a new repeated redraw-policy concern appears; do not expand it just to move code mechanically.
+2. Add only the remaining high-value regressions that materially protect later worker-boundary refactors.
+3. Treat further plotting cleanup in this phase as optional polish, not the main architectural blocker anymore.
 
 Exit criteria:
 1. Data mutations no longer directly decide full redraw policy in many places.
@@ -237,22 +246,25 @@ Exit criteria:
 **Phase 6 - Worker Contract Cleanup**
 
 Status:
-Not started in earnest.
+Substantially in progress on the main paths.
 
 Goal:
 Make worker inputs and outputs explicit, smaller, and easier to validate.
 
 Current note:
-The worker setup is acceptable for now. This should still not be the next refactor. It depends on earlier plot/redraw extraction to avoid simply moving the same broad implicit contract into new classes.
+The narrow vertical-slice migration has landed for the three main launch paths: binning from templates, binning from geometry/imported SPS, and geometry creation from templates. The converted workers now emit typed results, use a no-argument `finished()` signal, avoid redundant array copies in the result payload, carry geometry profiling as one explicit optional sub-payload, and have direct worker-level plus consumer-boundary regressions on the converted binning paths. The remaining work here is selective cleanup only where it makes the boundary clearer; this phase no longer needs another contract-shape tweak just to keep moving. The old reference implementations still kept inside `roll_survey.py` should not be treated as part of this worker-cleanup scope unless a future optimization pass explicitly compares them with the live paths.
 
 Future direction:
-1. Introduce request/result objects.
-2. Reduce XML round-tripping for internal worker handoff if profiling shows it matters.
-3. Centralize result validation after worker completion.
+1. Keep worker inputs and outputs explicit on every converted path.
+2. Centralize result validation and shared completion behavior only where it removes real duplication.
+3. Keep trimming payload fields only when the completion handlers do not need them and the trim does not push derivation back into UI/controller code.
+4. Reduce XML round-tripping for internal worker handoff if profiling shows it matters.
 
 Exit criteria:
 1. Worker inputs and outputs are explicit and documented.
 2. Completion handlers do less copying and less implicit mutation.
+3. Compatibility-only worker APIs on the converted paths are gone.
+4. Remaining payload fields each have a clear owner-side reason to exist.
 
 **Phase 7 - Performance Work After Structure Stabilizes**
 
@@ -273,11 +285,10 @@ The earlier test list is outdated because several of those tests already exist.
 
 The best next tests are:
 1. geometry-generation correctness test for a minimal template or block,
-2. worker success/failure test at the worker-thread or worker-mixin boundary,
-3. one plot/redraw regression that exercises O/A colorbar behavior across rectangular and polar mode switches,
-4. one direct O/A regression that proves presentation-only redraws skip histogram recomputation rather than only preserving the cached histogram object,
-5. one geometry-to-plot invalidation regression that exercises cache reset after a broader analysis refresh,
-6. one worker request/result boundary test once worker contracts are narrowed.
+2. one direct O/A regression that proves presentation-only redraws skip histogram recomputation rather than only preserving the cached histogram object,
+3. one geometry-to-plot invalidation regression that exercises cache reset after a broader analysis refresh,
+4. one higher-level offset redraw regression that distinguishes controller invalidation from visible-activation reuse,
+5. a small reusable project fixture that includes a valid `.roll` plus minimal sidecars, if repeated setup starts to spread further.
 
 **Outdated Items From The Previous Roadmap**
 
@@ -293,36 +304,35 @@ The following items should now be considered completed or reordered:
 **Recommended Next Step**
 
 If choosing one next step only, do this:
-1. Finish the remaining O/A input-preparation versus widget-mutation split so O/A matches the helper-backed redraw structure already used by pattern and stack-response surfaces.
+1. Add one direct geometry-generation correctness test for a minimal template or block in `roll_survey.py`, then use that test to support only the smallest justified extraction in the geometry-generation path.
 
 Why:
-1. The dispatcher, reason-driven invalidation, helper-owned cache policy, and helper-owned redraw-parameter reconstruction already exist for patterns, O/A, and stack-response, so the biggest remaining inconsistency is that O/A still computes histogram inputs and mutates widgets inside one controller path.
-2. O/A is still the least factored analysis surface even after the recent dispatcher and invalidation work.
-3. Pulling the remaining O/A preparation behind a smaller helper/service boundary is the cleanest way to consolidate the new redraw contract before moving to worker cleanup.
-4. This keeps Phase 5 focused on finishing the redraw/plot boundary instead of diluting it with later-stage worker work.
+1. The worker-contract slice is now strong enough that additional payload trimming would mostly reshuffle responsibility rather than improve boundaries.
+2. The biggest remaining uncovered gap in the roadmap is still direct geometry-generation correctness coverage.
+3. A narrow `roll_survey.py` test strengthens the domain layer beneath the worker contracts instead of adding more protection around already-stable plumbing.
+4. That test creates a safer basis for any later extraction inside geometry generation without reopening Phase 5 or inventing a broader worker abstraction.
 
 After that, the next step should be:
-1. review whether `plotOffset()` should adopt the same redraw/invalidation contract as O/A, and separately extract a smaller shared layout image/colorbar helper only if the duplication reduction is worth the extra seam.
+1. review one geometry-generation block for the smallest extraction or naming cleanup that the new test makes safe.
 
 Estimated effort:
-1 to 2 days for the O/A input-preparation split,
-then 1 to 2 days for `plotOffset()` redraw-contract review plus any small layout image/colorbar helper extraction,
-then 2 to 4 days for the first worker contract narrowing pass.
+less than 1 day for one narrow geometry-generation regression,
+then another 1 to 2 days only if that test reveals a clearly bounded extraction opportunity in `roll_survey.py`.
 
 **Backlog of Next 12 Tickets**
 
-1. Finish the remaining O/A input-preparation versus widget-mutation split.
-2. Add a direct O/A regression that proves presentation-only redraw skips histogram recomputation.
-3. Review whether `plotOffset()` should adopt the same redraw/invalidation contract as O/A.
-4. Extract a narrower shared layout image/colorbar helper if the remaining duplication is still worth removing.
-5. Decide whether any remaining file/session values should move from `RollMainWindow` into a broader runtime/session object.
-6. Introduce smaller worker request/result objects.
-7. Replace broad worker state reads with explicit inputs.
-8. Add geometry-generation regression tests.
-9. Add worker success/failure coverage.
-10. Optionally split `config.py` into narrower read-only modules by concern if that improves navigation.
-11. Re-measure performance after the above structure stabilizes.
-12. Revisit helper scope only if a new repeated redraw-policy concern appears.
+1. Add one direct geometry-generation correctness test for a minimal template or block.
+2. Review one geometry-generation block for the smallest safe extraction supported by that test.
+3. Add a direct O/A regression that proves presentation-only redraw skips histogram recomputation.
+4. Add one higher-level offset redraw regression that distinguishes controller invalidation from visible-activation reuse.
+5. Add one geometry-to-plot invalidation regression that exercises cache reset after a broader analysis refresh.
+6. Decide whether any remaining file/session values should move from `RollMainWindow` into a broader runtime/session object.
+7. Optionally split `config.py` into narrower read-only modules by concern if that improves navigation.
+8. Re-measure performance after the above structure stabilizes.
+9. Profile worker result copying on the largest realistic survey inputs.
+10. Revisit XML as internal worker transport only if profiling shows it is still material.
+11. Keep Phase 5 follow-up work limited to protective tests and small cleanup only.
+12. Add a small reusable project fixture with minimal sidecars only if test setup starts spreading further.
 
 **Definition of Done for the First Major Milestone**
 

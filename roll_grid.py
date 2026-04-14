@@ -16,7 +16,7 @@ class RollGrid:
         # input variables
         self.name = name                                                        # Seed name
         self.bRoll = True                                                       # default is a rolling seed (type= 0)
-        self.growList: list[RollTranslate] = []                                 # list of (max 3) grow steps
+        self.growList: list[RollTranslate] = [RollTranslate(), RollTranslate(), RollTranslate()]   # list of exactly 3 grow steps
 
         # calculated variables
         self.salvo = QLineF()                                                   # draws line From FIRST to LAST point of FIRST grow step (quick draw)
@@ -24,8 +24,7 @@ class RollGrid:
 
     def calcPointList(self, origin):
         # This routine is only to be used for grids used within patterns
-        while len(self.growList) < 3:                                           # First, make sure there are three grow steps for every seed
-            self.growList.insert(0, RollTranslate())
+        assert len(self.growList) == 3, 'there must always be 3 grow steps for pattern grids'
 
         pointList = []
 
@@ -106,13 +105,15 @@ class RollGrid:
         gridElem.setAttribute('points', str(self.points))
 
         for grow in self.growList:
-            # if grow.steps > 1:
+            # if grow.steps > 1:                         # Only write grow steps that actually grow; otherwise we get too many empty grow steps in the XML
             grow.writeXml(gridElem, doc)
 
         parent.appendChild(gridElem)
         return gridElem
 
     def readXml(self, parent: QDomNode):
+        self.growList = []
+
         gridElem = parent.namedItem('grid').toElement()
         if not gridElem.isNull():
             nameElem = gridElem.namedItem('name').toElement()
@@ -154,6 +155,9 @@ class RollGrid:
                 translate.readXml(g)
                 self.growList.append(translate)
                 g = g.nextSiblingElement('translate')
+
+            while len(self.growList) < 3:                                       # Keep old project files and sparse XML grow steps compatible
+                self.growList.insert(0, RollTranslate())
 
             return True
 

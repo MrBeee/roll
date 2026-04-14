@@ -1,6 +1,8 @@
 import os
 import sys
 import time
+from dataclasses import dataclass
+from typing import Any
 
 from qgis.PyQt.QtCore import QMutex, QObject, QThread, pyqtSignal
 
@@ -25,6 +27,94 @@ except ImportError as ie:
 # first approach; subclass QThread - no longer recommended with Python 3.0
 # See: https://stackoverflow.com/questions/9190169/threading-and-information-passing-how-to
 # See: https://www.programiz.com/python-programming/shallow-deep-copy for deep copy info
+
+
+@dataclass
+class BinningFromTemplatesRequest:
+    xmlString: str
+    extended: bool = False
+    analysisFile: object = None
+    debugpyEnabled: bool = False
+
+
+@dataclass
+class BinningFromTemplatesResult:
+    success: bool
+    errorText: str = ''
+    binOutput: Any = None
+    minOffset: Any = None
+    maxOffset: Any = None
+    minimumFold: float = 0.0
+    maximumFold: float = 0.0
+    minMinOffset: float = 0.0
+    maxMinOffset: float = 0.0
+    minMaxOffset: float = 0.0
+    maxMaxOffset: float = 0.0
+    minRmsOffset: float | None = None
+    maxRmsOffset: float | None = None
+    rmsOffset: Any = None
+    ofAziHist: Any = None
+    offstHist: Any = None
+    cmpTransform: Any = None
+    anaOutputShape: tuple[int, ...] | None = None
+
+
+@dataclass
+class BinningFromGeometryRequest:
+    xmlString: str
+    srcGeom: Any
+    relGeom: Any
+    recGeom: Any
+    extended: bool = False
+    analysisFile: object = None
+    debugpyEnabled: bool = False
+
+
+@dataclass
+class BinningFromGeometryResult:
+    success: bool
+    errorText: str = ''
+    binOutput: Any = None
+    minOffset: Any = None
+    maxOffset: Any = None
+    minimumFold: float = 0.0
+    maximumFold: float = 0.0
+    minMinOffset: float = 0.0
+    maxMinOffset: float = 0.0
+    minMaxOffset: float = 0.0
+    maxMaxOffset: float = 0.0
+    minRmsOffset: float | None = None
+    maxRmsOffset: float | None = None
+    rmsOffset: Any = None
+    ofAziHist: Any = None
+    offstHist: Any = None
+    cmpTransform: Any = None
+    anaOutputShape: tuple[int, ...] | None = None
+
+
+@dataclass
+class GeometryFromTemplatesRequest:
+    xmlString: str
+    debugpyEnabled: bool = False
+    includeProfiling: bool = False
+
+
+@dataclass
+class GeometryProfilingPayload:
+    timerTmin: Any
+    timerTmax: Any
+    timerTtot: Any
+    timerFreq: Any
+
+
+@dataclass
+class GeometryFromTemplatesResult:
+    success: bool
+    errorText: str = ''
+    recGeom: Any = None
+    relGeom: Any = None
+    srcGeom: Any = None
+    profiling: GeometryProfilingPayload | None = None
 
 
 class BinningThread(QThread):
@@ -58,31 +148,21 @@ class BinningThread(QThread):
 
 
 class BinFromGeometryWorker(QObject):
-    finished = pyqtSignal(bool)
+    finished = pyqtSignal()
+    resultReady = pyqtSignal(object)
 
-    def __init__(self, xmlString):
+    def __init__(self, request: BinningFromGeometryRequest):
         super().__init__()
         self.survey = RollSurvey()
-        self.extended = False
-        self.debugpyEnabled = False
-        self.fileName = None
+        self.extended = request.extended
+        self.debugpyEnabled = request.debugpyEnabled
 
         # the following function also calculates the required transforms
-        self.survey.fromXmlString(xmlString, True)                              # fully populate the object AND create arrays
-
-    def setExtended(self, extended):
-        self.extended = extended
-
-    def setMemMappedFile(self, analysisFile):
-        self.survey.output.anaOutput = analysisFile
-
-    def setGeometryArrays(self, srcGeom, relGeom, recGeom):
-        self.survey.output.srcGeom = srcGeom
-        self.survey.output.relGeom = relGeom
-        self.survey.output.recGeom = recGeom
-
-    def setDebugpyEnabled(self, enabled):
-        self.debugpyEnabled = enabled
+        self.survey.fromXmlString(request.xmlString, True)                      # fully populate the object AND create arrays
+        self.survey.output.anaOutput = request.analysisFile
+        self.survey.output.srcGeom = request.srcGeom
+        self.survey.output.relGeom = request.relGeom
+        self.survey.output.recGeom = request.recGeom
 
     def run(self):
         """Long-running task."""
@@ -106,32 +186,50 @@ class BinFromGeometryWorker(QObject):
             del (fileName, funcName, lineNo)
             success = False
 
-        self.finished.emit(success)
+        self.resultReady.emit(self.buildResult(success))
+        self.finished.emit()
+
+    def buildResult(self, success: bool) -> BinningFromGeometryResult:
+        if not success:
+            return BinningFromGeometryResult(success=False, errorText=self.survey.errorText)
+
+        output = self.survey.output
+        minRmsOffset = None if output.rmsOffset is None else max(output.minRmsOffset, 0)
+        maxRmsOffset = None if output.rmsOffset is None else max(output.maxRmsOffset, 0)
+        return BinningFromGeometryResult(
+            success=True,
+            binOutput=output.binOutput,
+            minOffset=output.minOffset,
+            maxOffset=output.maxOffset,
+            minimumFold=max(output.minimumFold, 0),
+            maximumFold=max(output.maximumFold, 0),
+            minMinOffset=max(output.minMinOffset, 0),
+            maxMinOffset=max(output.maxMinOffset, 0),
+            minMaxOffset=max(output.minMaxOffset, 0),
+            maxMaxOffset=max(output.maxMaxOffset, 0),
+            minRmsOffset=minRmsOffset,
+            maxRmsOffset=maxRmsOffset,
+            rmsOffset=output.rmsOffset,
+            ofAziHist=output.ofAziHist,
+            offstHist=output.offstHist,
+            cmpTransform=self.survey.cmpTransform,
+            anaOutputShape=None if output.anaOutput is None else output.anaOutput.shape,
+        )
 
 
 class BinningWorker(QObject):
-    # Example Worker using getters and setter using a mutex
-    # See: https://stackoverflow.com/questions/9190169/threading-and-information-passing-how-to
-    finished = pyqtSignal(bool)
+    finished = pyqtSignal()
+    resultReady = pyqtSignal(object)
 
-    def __init__(self, xmlString):
+    def __init__(self, request: BinningFromTemplatesRequest):
         super().__init__()
         self.survey = RollSurvey()
-        self.extended = False
-        self.debugpyEnabled = False
-        self.fileName = None
+        self.extended = request.extended
+        self.debugpyEnabled = request.debugpyEnabled
 
         # the following function also calculates the required transforms, and optionally creates th binning arrays
-        self.survey.fromXmlString(xmlString, True)                              # fully populate the object AND create arrays
-
-    def setExtended(self, extended):
-        self.extended = extended
-
-    def setMemMappedFile(self, analysisFile):
-        self.survey.output.anaOutput = analysisFile
-
-    def setDebugpyEnabled(self, enabled):
-        self.debugpyEnabled = enabled
+        self.survey.fromXmlString(request.xmlString, True)                      # fully populate the object AND create arrays
+        self.survey.output.anaOutput = request.analysisFile
 
     def run(self):
         """Long-running task."""
@@ -153,24 +251,49 @@ class BinningWorker(QObject):
             del (fileName, funcName, lineNo)
             success = False
 
-        self.finished.emit(success)
+        self.resultReady.emit(self.buildResult(success))
+        self.finished.emit()
+
+    def buildResult(self, success: bool) -> BinningFromTemplatesResult:
+        if not success:
+            return BinningFromTemplatesResult(success=False, errorText=self.survey.errorText)
+
+        output = self.survey.output
+        minRmsOffset = None if output.rmsOffset is None else max(output.minRmsOffset, 0)
+        maxRmsOffset = None if output.rmsOffset is None else max(output.maxRmsOffset, 0)
+        return BinningFromTemplatesResult(
+            success=True,
+            binOutput=output.binOutput,
+            minOffset=output.minOffset,
+            maxOffset=output.maxOffset,
+            minimumFold=max(output.minimumFold, 0),
+            maximumFold=max(output.maximumFold, 0),
+            minMinOffset=max(output.minMinOffset, 0),
+            maxMinOffset=max(output.maxMinOffset, 0),
+            minMaxOffset=max(output.minMaxOffset, 0),
+            maxMaxOffset=max(output.maxMaxOffset, 0),
+            minRmsOffset=minRmsOffset,
+            maxRmsOffset=maxRmsOffset,
+            rmsOffset=output.rmsOffset,
+            ofAziHist=output.ofAziHist,
+            offstHist=output.offstHist,
+            cmpTransform=self.survey.cmpTransform,
+            anaOutputShape=None if output.anaOutput is None else output.anaOutput.shape,
+        )
 
 
 class GeometryWorker(QObject):
-    finished = pyqtSignal(bool)
+    finished = pyqtSignal()
+    resultReady = pyqtSignal(object)
 
-    def __init__(self, xmlString):
+    def __init__(self, request: GeometryFromTemplatesRequest):
         super().__init__()
         self.survey = RollSurvey()
-        self.extended = False
-        self.debugpyEnabled = False
-        self.fileName = None
+        self.debugpyEnabled = request.debugpyEnabled
+        self.includeProfiling = request.includeProfiling
 
         # the following function also calculates the required transforms
-        self.survey.fromXmlString(xmlString, False)                             # populate the object; but don't need binning arrays
-
-    def setDebugpyEnabled(self, enabled):
-        self.debugpyEnabled = enabled
+        self.survey.fromXmlString(request.xmlString, False)                     # populate the object; but don't need binning arrays
 
     def run(self):
         """Long-running task."""
@@ -193,7 +316,34 @@ class GeometryWorker(QObject):
             del (fileName, funcName, lineNo)
             success = False
 
-        self.finished.emit(success)
+        self.resultReady.emit(self.buildResult(success))
+        self.finished.emit()
+
+    def buildResult(self, success: bool) -> GeometryFromTemplatesResult:
+        profiling = None
+        if self.includeProfiling:
+            profiling = GeometryProfilingPayload(
+                timerTmin=tuple(self.survey.timerTmin),
+                timerTmax=tuple(self.survey.timerTmax),
+                timerTtot=tuple(self.survey.timerTtot),
+                timerFreq=tuple(self.survey.timerFreq),
+            )
+
+        if not success:
+            return GeometryFromTemplatesResult(
+                success=False,
+                errorText=self.survey.errorText,
+                profiling=profiling,
+            )
+
+        output = self.survey.output
+        return GeometryFromTemplatesResult(
+            success=True,
+            recGeom=output.recGeom,
+            relGeom=output.relGeom,
+            srcGeom=output.srcGeom,
+            profiling=profiling,
+        )
 
 
 class Worker(QObject):

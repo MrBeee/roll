@@ -12,7 +12,6 @@ from .enums_and_int_flags import SeedType
 from .roll_circle import RollCircle
 from .roll_grid import RollGrid
 from .roll_spiral import RollSpiral
-from .roll_translate import RollTranslate
 from .roll_well import RollWell
 
 
@@ -182,8 +181,7 @@ class RollSeed:
     def calcPointArray(self):
 
         if self.type < SeedType.circle:                                         # for grid based seeds, the point array can be calculated directly from the grow steps
-            while len(self.grid.growList) < 3:                                  # First, make sure there are always three grow steps for every seed
-                self.grid.growList.insert(0, RollTranslate())
+            assert len(self.grid.growList) == 3, 'there must always be 3 grow steps for grid seeds'
 
             nSteps = 1
             for growStep in self.grid.growList:                                 # iterate through all grow steps

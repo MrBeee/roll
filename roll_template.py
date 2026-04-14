@@ -17,7 +17,7 @@ class RollTemplate:
         self.nSrcSeeds = 0
         self.nRecSeeds = 0
 
-        self.rollList: list[RollTranslate] = []
+        self.rollList: list[RollTranslate] = [RollTranslate(), RollTranslate(), RollTranslate()]
         self.seedList: list[RollSeed] = []
 
         # spatial extent of this template formed by the contributing seeds
@@ -63,6 +63,7 @@ class RollTemplate:
         if not nameElem.isNull():
             self.name = nameElem.text()
 
+        self.rollList = []
         rollsElem = parent.namedItem('roll_list').toElement()                   # get the roll steps next
         r = rollsElem.firstChildElement('translate')
 

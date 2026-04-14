@@ -12,15 +12,16 @@ from qgis.PyQt.QtCore import QThread
 from qgis.PyQt.QtWidgets import QMessageBox
 
 from .enums_and_int_flags import MsgType
-from .worker_threads import (BinFromGeometryWorker, BinningWorker,
-                             GeometryWorker)
+from .worker_threads import (BinFromGeometryWorker, BinningFromGeometryRequest,
+                             BinningFromGeometryResult,
+                             BinningFromTemplatesRequest,
+                             BinningFromTemplatesResult, BinningWorker,
+                             GeometryFromTemplatesRequest,
+                             GeometryFromTemplatesResult, GeometryWorker)
 
 
 class BinningWorkerMixin:
     """Keeps the binning/geometry worker-thread lifecycle outside RollMainWindow."""
-
-    def configureWorkerDebugpy(self, worker):
-        worker.setDebugpyEnabled(self.appSettings.debugpy)
 
     def finalizeAnalysisMemmap(self, shape):
         if not self.fileName or self.output.anaOutput is None:
@@ -266,21 +267,106 @@ class BinningWorkerMixin:
         )
 
         self.thread = QThread()
-        xmlString = self.survey.toXmlString()
-        self.worker = BinningWorker(xmlString)
-        self.worker.setExtended(fullAnalysis)
-        self.worker.setMemMappedFile(self.output.anaOutput)
-        self.configureWorkerDebugpy(self.worker)
+        request = BinningFromTemplatesRequest(
+            xmlString=self.survey.toXmlString(),
+            extended=fullAnalysis,
+            analysisFile=self.output.anaOutput,
+            debugpyEnabled=self.appSettings.debugpy,
+        )
+        self.worker = BinningWorker(request)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
         self.worker.survey.progress.connect(self.threadProgress)
         self.worker.survey.message.connect(self.threadMessage)
-        self.worker.finished.connect(self.binningThreadFinished)
+        self.worker.resultReady.connect(self.binningTemplatesThreadFinished)
         self.worker.finished.connect(self.thread.quit)
 
         self.startTime = timer()
         self.thread.start(QThread.Priority.NormalPriority)
+
+    def binningTemplatesThreadFinished(self, result: BinningFromTemplatesResult):
+        self.binningResultThreadFinished(result)
+
+    def binningGeometryThreadFinished(self, result: BinningFromGeometryResult):
+        self.binningResultThreadFinished(result)
+
+    def binningResultThreadFinished(self, result):
+        if not result.success:
+            self.layoutImg = None
+            self.layoutImItem = None
+            self.handleImageSelection()
+
+            self.appendLogMessage('Thread : . . . aborted binning operation', MsgType.Error)
+            self.appendLogMessage(f'Thread : . . . {result.errorText}', MsgType.Error)
+            QMessageBox.information(self, 'Interrupted', 'Worker thread aborted')
+        else:
+            self.output.binOutput = result.binOutput
+            self.output.minOffset = result.minOffset
+            self.output.maxOffset = result.maxOffset
+            self.output.minimumFold = result.minimumFold
+            self.output.maximumFold = result.maximumFold
+            self.output.minMinOffset = result.minMinOffset
+            self.output.maxMinOffset = result.maxMinOffset
+            self.output.minMaxOffset = result.minMaxOffset
+            self.output.maxMaxOffset = result.maxMaxOffset
+            self.output.minRmsOffset = 0.0 if result.minRmsOffset is None else result.minRmsOffset
+            self.output.maxRmsOffset = 0.0 if result.maxRmsOffset is None else result.maxRmsOffset
+            self.output.rmsOffset = result.rmsOffset
+            self.output.ofAziHist = result.ofAziHist
+            self.output.offstHist = result.offstHist
+
+            endTime = timer()
+            elapsed = timedelta(seconds=endTime - self.startTime)
+            elapsed = timedelta(seconds=ceil(elapsed.total_seconds()))
+
+            self.appendLogMessage(f'Thread : Binning completed. Elapsed time:{elapsed} ', MsgType.Binning)
+            self.appendLogMessage(
+                f'Thread : . . . Fold&nbsp; &nbsp; &nbsp; &nbsp;: Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ',
+                MsgType.Binning,
+            )
+            self.appendLogMessage(
+                f'Thread : . . . Min-offsets: Min:{self.output.minMinOffset:.2f}m - Max:{self.output.maxMinOffset:.2f}m ',
+                MsgType.Binning,
+            )
+            self.appendLogMessage(
+                f'Thread : . . . Max-offsets: Min:{self.output.minMaxOffset:.2f}m - Max:{self.output.maxMaxOffset:.2f}m ',
+                MsgType.Binning,
+            )
+            if self.output.rmsOffset is not None:
+                self.appendLogMessage(
+                    f'Thread : . . . Rms-offsets: Min:{self.output.minRmsOffset:.2f}m - Max:{self.output.maxRmsOffset:.2f}m ',
+                    MsgType.Binning,
+                )
+
+            if result.anaOutputShape is not None:
+                self.finalizeAnalysisMemmap(result.anaOutputShape)
+
+            if self.survey.grid.fold <= 0:
+                self.survey.grid.fold = self.output.maximumFold
+                plainText = self.survey.toXmlString()
+                self.textEdit.setTextViaCursor(plainText)
+                self.textEdit.document().setModified(True)
+
+            if self.imageType == 0:
+                self.actionFold.setChecked(True)
+                self.imageType = 1
+
+            self.survey.cmpTransform = result.cmpTransform
+            self.handleImageSelection()
+
+            if not self.fileName:
+                self.textEdit.document().setModified(True)
+                info = 'Analysis results are yet to be saved.'
+            else:
+                self.saveAnalysisSidecars(includeHistograms=True)
+                info = 'Analysis results have been saved.'
+
+            QMessageBox.information(self, 'Done', f'Worker thread completed. {info} ')
+
+        self.updateMenuStatus(False)
+        self.enableProcessingMenuItems()
+        self.hideStatusbarWidgets()
 
     def binFromGeometry(self, fullAnalysis: bool):
         if self.srcGeom is None or self.relGeom is None or self.recGeom is None:
@@ -303,18 +389,22 @@ class BinningWorkerMixin:
         )
 
         self.thread = QThread()
-        xmlString = self.survey.toXmlString()
-        self.worker = BinFromGeometryWorker(xmlString)
-        self.worker.setExtended(fullAnalysis)
-        self.worker.setMemMappedFile(self.output.anaOutput)
-        self.worker.setGeometryArrays(self.srcGeom, self.relGeom, self.recGeom)
-        self.configureWorkerDebugpy(self.worker)
+        request = BinningFromGeometryRequest(
+            xmlString=self.survey.toXmlString(),
+            srcGeom=self.srcGeom,
+            relGeom=self.relGeom,
+            recGeom=self.recGeom,
+            extended=fullAnalysis,
+            analysisFile=self.output.anaOutput,
+            debugpyEnabled=self.appSettings.debugpy,
+        )
+        self.worker = BinFromGeometryWorker(request)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
         self.worker.survey.progress.connect(self.threadProgress)
         self.worker.survey.message.connect(self.threadMessage)
-        self.worker.finished.connect(self.binningThreadFinished)
+        self.worker.resultReady.connect(self.binningGeometryThreadFinished)
         self.worker.finished.connect(self.thread.quit)
 
         self.startTime = timer()
@@ -346,18 +436,22 @@ class BinningWorkerMixin:
             )
 
         self.thread = QThread()
-        xmlString = self.survey.toXmlString()
-        self.worker = BinFromGeometryWorker(xmlString)
-        self.worker.setExtended(fullAnalysis)
-        self.worker.setMemMappedFile(self.output.anaOutput)
-        self.worker.setGeometryArrays(self.spsImport, self.xpsImport, self.rpsImport)
-        self.configureWorkerDebugpy(self.worker)
+        request = BinningFromGeometryRequest(
+            xmlString=self.survey.toXmlString(),
+            srcGeom=self.spsImport,
+            relGeom=self.xpsImport,
+            recGeom=self.rpsImport,
+            extended=fullAnalysis,
+            analysisFile=self.output.anaOutput,
+            debugpyEnabled=self.appSettings.debugpy,
+        )
+        self.worker = BinFromGeometryWorker(request)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
         self.worker.survey.progress.connect(self.threadProgress)
         self.worker.survey.message.connect(self.threadMessage)
-        self.worker.finished.connect(self.binningThreadFinished)
+        self.worker.resultReady.connect(self.binningGeometryThreadFinished)
         self.worker.finished.connect(self.thread.quit)
 
         self.startTime = timer()
@@ -375,15 +469,18 @@ class BinningWorkerMixin:
         )
 
         self.thread = QThread()
-        xmlString = self.survey.toXmlString()
-        self.worker = GeometryWorker(xmlString)
-        self.configureWorkerDebugpy(self.worker)
+        request = GeometryFromTemplatesRequest(
+            xmlString=self.survey.toXmlString(),
+            debugpyEnabled=self.appSettings.debugpy,
+            includeProfiling=self.appSettings.debug,
+        )
+        self.worker = GeometryWorker(request)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
         self.worker.survey.progress.connect(self.threadProgress)
         self.worker.survey.message.connect(self.threadMessage)
-        self.worker.finished.connect(self.geometryThreadFinished)
+        self.worker.resultReady.connect(self.geometryThreadFinished)
         self.worker.finished.connect(self.thread.quit)
 
         self.startTime = timer()
@@ -401,150 +498,27 @@ class BinningWorkerMixin:
         if self.thread is not None and self.thread.isRunning():
             self.thread.requestInterruption()
 
-    def binningThreadFinished(self, success: bool):
-        if not success:
-            self.layoutImg = None
-            self.layoutImItem = None
-            self.handleImageSelection()
-
-            self.appendLogMessage('Thread : . . . aborted binning operation', MsgType.Error)
-            self.appendLogMessage(f'Thread : . . . {self.worker.survey.errorText}', MsgType.Error)
-            QMessageBox.information(self, 'Interrupted', 'Worker thread aborted')
-        else:
-            self.output.binOutput = self.worker.survey.output.binOutput.copy()
-            self.output.minOffset = self.worker.survey.output.minOffset.copy()
-            self.output.maxOffset = self.worker.survey.output.maxOffset.copy()
-            self.output.minimumFold = max(self.worker.survey.output.minimumFold, 0)
-            self.output.maximumFold = max(self.worker.survey.output.maximumFold, 0)
-            self.output.minMinOffset = max(self.worker.survey.output.minMinOffset, 0)
-            self.output.maxMinOffset = max(self.worker.survey.output.maxMinOffset, 0)
-            self.output.minMaxOffset = max(self.worker.survey.output.minMaxOffset, 0)
-            self.output.maxMaxOffset = max(self.worker.survey.output.maxMaxOffset, 0)
-            self.output.minRmsOffset = max(self.worker.survey.output.minRmsOffset, 0)
-            self.output.maxRmsOffset = max(self.worker.survey.output.maxRmsOffset, 0)
-
-            endTime = timer()
-            elapsed = timedelta(seconds=endTime - self.startTime)
-            elapsed = timedelta(seconds=ceil(elapsed.total_seconds()))
-
-            self.appendLogMessage(f'Thread : Binning completed. Elapsed time:{elapsed} ', MsgType.Binning)
-            self.appendLogMessage(
-                f'Thread : . . . Fold&nbsp; &nbsp; &nbsp; &nbsp;: Min:{self.output.minimumFold} - Max:{self.output.maximumFold} ',
-                MsgType.Binning,
-            )
-            self.appendLogMessage(
-                f'Thread : . . . Min-offsets: Min:{self.output.minMinOffset:.2f}m - Max:{self.output.maxMinOffset:.2f}m ',
-                MsgType.Binning,
-            )
-            self.appendLogMessage(
-                f'Thread : . . . Max-offsets: Min:{self.output.minMaxOffset:.2f}m - Max:{self.output.maxMaxOffset:.2f}m ',
-                MsgType.Binning,
-            )
-            if self.output.rmsOffset is not None:
-                self.appendLogMessage(
-                    f'Thread : . . . Rms-offsets: Min:{self.output.minRmsOffset:.2f}m - Max:{self.output.maxRmsOffset:.2f}m ',
-                    MsgType.Binning,
-                )
-
-            if self.worker.survey.output.anaOutput is not None:
-                self.output.rmsOffset = self.worker.survey.output.rmsOffset.copy()
-                self.output.ofAziHist = self.worker.survey.output.ofAziHist.copy()
-                self.output.offstHist = self.worker.survey.output.offstHist.copy()
-
-                shape = self.worker.survey.output.anaOutput.shape
-                self.finalizeAnalysisMemmap(shape)
-
-            if self.survey.grid.fold <= 0:
-                self.survey.grid.fold = self.output.maximumFold
-                plainText = self.survey.toXmlString()
-                self.textEdit.setTextViaCursor(plainText)
-                self.textEdit.document().setModified(True)
-
-            if self.imageType == 0:
-                self.actionFold.setChecked(True)
-                self.imageType = 1
-
-            if self.imageType == 1:
-                self.layoutImg = self.output.binOutput
-                self.layoutMax = self.output.maximumFold
-                label = 'fold'
-            elif self.imageType == 2:
-                self.layoutImg = self.output.minOffset
-                self.layoutMax = self.output.maxMinOffset
-                label = 'minimum offset'
-            elif self.imageType == 3:
-                self.layoutImg = self.output.maxOffset
-                self.layoutMax = self.output.maxMaxOffset
-                label = 'maximum offset'
-            elif self.imageType == 4:
-                self.layoutImg = self.output.rmsOffset
-                self.layoutMax = self.output.maxRmsOffset
-                label = 'rms delta-offset'
-            else:
-                raise NotImplementedError('selected analysis type currently not implemented.')
-
-            # Make no-data bins transparent.
-            if self.layoutImg is not None:
-                mask = self.output.binOutput == 0
-                if np.any(mask):
-                    img = self.layoutImg.astype(np.float32, copy=True)
-                    img[mask] = np.nan
-                    self.layoutImg = img
-
-            self.layoutImItem = pg.ImageItem()
-            self.layoutImItem.setImage(self.layoutImg, levels=(0.0, self.layoutMax))
-            self.survey.cmpTransform = self.worker.survey.cmpTransform
-
-            if self.layoutColorBar is None:
-                self.layoutColorBar = self.layoutWidget.plotItem.addColorBar(
-                    self.layoutImItem,
-                    colorMap=self.resolveColorMapName(self.appSettings.foldDispCmap, fallback='CET-L4'),
-                    label=label,
-                    limits=(0, None),
-                    rounding=10.0,
-                    values=(0.0, self.layoutMax),
-                )
-            else:
-                self.layoutColorBar.setImageItem(self.layoutImItem)
-                self.layoutColorBar.setLevels(low=0.0, high=self.layoutMax)
-                self.layoutColorBar.setColorMap(self.resolveColorMapName(self.appSettings.foldDispCmap, fallback='CET-L4'))
-                self.setColorbarLabel(label)
-
-            self.plotLayout()
-
-            if not self.fileName:
-                self.textEdit.document().setModified(True)
-                info = 'Analysis results are yet to be saved.'
-            else:
-                self.saveAnalysisSidecars(includeHistograms=True)
-                info = 'Analysis results have been saved.'
-
-            QMessageBox.information(self, 'Done', f'Worker thread completed. {info} ')
-
-        self.updateMenuStatus(False)
-        self.enableProcessingMenuItems()
-        self.hideStatusbarWidgets()
-
-    def geometryThreadFinished(self, success: bool):
+    def geometryThreadFinished(self, result: GeometryFromTemplatesResult):
+        profiling = result.profiling
         if self.appSettings.debug:
             self.appendLogMessage('geometryFromTemplates() profiling information', MsgType.Debug)
-            for i, _ in enumerate(self.worker.survey.timerTmin):
-                tMin = self.worker.survey.timerTmin[i] * 1000.0 if self.worker.survey.timerTmin[i] != float('Inf') else 0.0
-                tMax = self.worker.survey.timerTmax[i] * 1000.0
-                tTot = self.worker.survey.timerTtot[i] * 1000.0
-                freq = self.worker.survey.timerFreq[i]
+            for i, _ in enumerate(profiling.timerTmin if profiling is not None else ()): 
+                tMin = profiling.timerTmin[i] * 1000.0 if profiling.timerTmin[i] != float('Inf') else 0.0
+                tMax = profiling.timerTmax[i] * 1000.0
+                tTot = profiling.timerTtot[i] * 1000.0
+                freq = profiling.timerFreq[i]
                 tAvr = tTot / freq if freq > 0 else 0.0
                 message = f'{i:02d}: min:{tMin:011.3f}, max:{tMax:011.3f}, tot:{tTot:011.3f}, avr:{tAvr:011.3f}, freq:{freq:07d}'
                 self.appendLogMessage(message, MsgType.Debug)
 
-        if not success:
+        if not result.success:
             self.appendLogMessage('Thread : . . . aborted geometry creation', MsgType.Error)
-            self.appendLogMessage(f'Thread : . . . {self.worker.survey.errorText}', MsgType.Error)
+            self.appendLogMessage(f'Thread : . . . {result.errorText}', MsgType.Error)
             QMessageBox.information(self, 'Interrupted', 'Worker thread aborted')
         else:
-            self.sessionService.setArray(self.sessionState, 'recGeom', self.worker.survey.output.recGeom.copy())
-            self.sessionService.setArray(self.sessionState, 'relGeom', self.worker.survey.output.relGeom.copy())
-            self.sessionService.setArray(self.sessionState, 'srcGeom', self.worker.survey.output.srcGeom.copy())
+            self.sessionService.setArray(self.sessionState, 'recGeom', result.recGeom)
+            self.sessionService.setArray(self.sessionState, 'relGeom', result.relGeom)
+            self.sessionService.setArray(self.sessionState, 'srcGeom', result.srcGeom)
 
             self.recModel.setData(self.recGeom)
             self.relModel.setData(self.relGeom)
