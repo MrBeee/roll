@@ -1387,9 +1387,12 @@ class MySeedParameterItem(MyGroupParameterItem):
     def showPreviewInformation(self, param):
         bSource = param.child('Source seed').opts['value']
         seedType = param.child('Seed type').opts['value']
-        if seedType == 'Circle' or seedType == 'Spiral' or seedType == 'Well':
-            pointList = param.opts.get('value', None).pointList                 # at some point we need to get rid of the pointList -> pointArray
-            nSteps = len(pointList)
+        if seedType == 'Circle':
+            nSteps = param.child('Circle grow steps', 'Points').opts['value']
+        elif seedType == 'Spiral':
+            nSteps = param.child('Spiral grow steps', 'Points').opts['value']
+        elif seedType == 'Well':
+            nSteps = param.child('Well grow steps', 'Points').opts['value']
         else:
             # grid stationary or rolling
             nPlane = param.child('Grid grow steps', 'Planes', 'N').opts['value']
@@ -1397,7 +1400,6 @@ class MySeedParameterItem(MyGroupParameterItem):
             nPoint = param.child('Grid grow steps', 'Points', 'N').opts['value']
             nSteps = nPlane * nLines * nPoint
 
-        # todo: check why seed = 0 for circle, spiral and well
         seed = 'src' if bSource else 'rec'
         t = f'{seedType} seed, {nSteps} {seed} points'
 
@@ -1495,7 +1497,7 @@ class MySeedParameter(MyGroupParameter):
 
     def typeChanged(self):
         seedType = self.parT.value()
-        self.seed.type = self.seedTypes.index(seedType)
+        self.seed.type = SeedType(self.seedTypes.index(seedType))
 
         if seedType == 'Well':
             self.parO.show(False)
@@ -1962,8 +1964,6 @@ class MyWellParameter(MyGroupParameter):
 
         if success:
             self.changedA()                                                     # check ahd0 and nr of allowed intervals
-        else:
-            self.sigValueChanging.emit(self, self.value())                      # todo: check necessity of this statement
 
         QApplication.processEvents()
 
@@ -1996,8 +1996,6 @@ class MyWellParameter(MyGroupParameter):
 
         if success:
             self.changedA()                                                     # check ahd0 and nr of allowed intervals
-        else:
-            self.sigValueChanging.emit(self, self.value())                      # todo: check necessity of this statement
 
         QApplication.processEvents()
 

@@ -55,6 +55,7 @@ from .aux_functions import (aboutText, exampleSurveyXmlText, highDpiText,
 from .binning_worker_mixin import BinningWorkerMixin
 from .chunked_data import ChunkedData
 from .display_dock import createDisplayDock
+from .document_context_service import DocumentContextService
 from .enums_and_int_flags import (AnalysisRedrawReason, Direction, MsgType,
                                   PaintDetails, PaintMode, SurveyType)
 from .filter_service import FilterService
@@ -79,6 +80,7 @@ from .roll_binning import BinningType
 from .roll_main_window_create_geom_tab import createGeomTab
 from .roll_main_window_create_layout_tab import createLayoutTab
 from .roll_main_window_create_off_azi_tab import createOffAziTab
+from .roll_main_window_create_offset_tabs import createOffsetTabs
 from .roll_main_window_create_pattern_tab import createPatternTab
 from .roll_main_window_create_sps_tab import createSpsTab
 from .roll_main_window_create_stack_response_tab import createStackResponseTab
@@ -383,6 +385,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.runtimeState.importDirectory = value or ''
 
     @property
+    def fileName(self):
+        return self.runtimeState.fileName
+
+    @fileName.setter
+    def fileName(self, value):
+        self.runtimeState.fileName = value or ''
+
+    @property
+    def recentFileList(self):
+        return self.runtimeState.recentFileList
+
+    @recentFileList.setter
+    def recentFileList(self, value):
+        self.runtimeState.recentFileList = list(value or [])
+
+    @property
     def surveyNumber(self):
         return self.sessionState.surveyNumber
 
@@ -428,11 +446,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         # list with most recently used [mru] file actions
         self.recentFileActions = []
-        self.recentFileList = []
         self.filterService = FilterService()
         self.importService = ImportService()
         self.projectService = ProjectService()
         self.projectLoadApplier = ProjectLoadApplier(self)
+        self.documentContextService = DocumentContextService()
         self.sessionService = SessionService()
         self.sessionState = SessionState()
         self.appSettings = AppSettings()
@@ -534,7 +552,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # self.settings = QSettings()   ## doesn't work as expected with QCoreApplication.setXXX
 
         self.settings = QSettings(config.organization, config.application)
-        self.fileName = ''
 
         self.survey = RollSurvey()                                              # (re)set the survey object; needed in property pane
         readSettings(self)                                                      # read settings from QSettings in an early stage
@@ -595,6 +612,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.tabSps = QWidget()
         self.tabTraces = QWidget()
         self.tabKxKyStack = QWidget()
+        self.tabOffTrk = QWidget()
+        self.tabOffBin = QWidget()
         self.tabOffAzi = QWidget()
 
         self.tabGeom.installEventFilter(self)                                   # catch the 'Show' event to connect to toolbar buttons
@@ -609,6 +628,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         createSpsTab(self)
         createTraceTableTab(self)
         createStackResponseTab(self)
+        createOffsetTabs(self)
         createOffAziTab(self)
 
         # Add tabs to main tab widget
@@ -622,8 +642,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         # Add tabs to analysis tab widget
         self.analysisTabWidget.addTab(self.tabTraces, 'Trace table')
-        self.analysisTabWidget.addTab(self.offTrkWidget, 'Offset Inline')
-        self.analysisTabWidget.addTab(self.offBinWidget, 'Offset X-line')
+        self.analysisTabWidget.addTab(self.tabOffTrk, 'Offset Inline')
+        self.analysisTabWidget.addTab(self.tabOffBin, 'Offset X-line')
         self.analysisTabWidget.addTab(self.aziTrkWidget, 'Azi Inline')
         self.analysisTabWidget.addTab(self.aziBinWidget, 'Azi X-line')
         self.analysisTabWidget.addTab(self.stkTrkWidget, 'Stack Inline')
@@ -642,7 +662,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.setWindowModified(self.textEdit.document().isModified())                   # update window status based on document status
         self.textEdit.cursorPositionChanged.connect(self.cursorPositionChanged)         # to show cursor position in statusbar
 
-        self.layoutWidget.scene().sigMouseMoved.connect(self.mouseMovedInPlot)
         self.layoutWidget.plotItem.sigRangeChanged.connect(self.layoutRangeChanged)     # to handle changes in tickmarks when zooming
 
         # the following actions are related to the plotWidget
@@ -885,6 +904,44 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.dispatchAnalysisRedraw('off-azi', AnalysisRedrawReason.offAziDisplayModeChanged)
 
+    @staticmethod
+    def offsetComponentLabel(component: int) -> str:
+        if component == 1:
+            return 'inline'
+        if component == 2:
+            return 'x-line'
+        return '|offset|'
+
+    def getSelectedOffsetComponent(self, actionGroupName: str) -> int:
+        actionGroup = getattr(self, actionGroupName, None)
+        if actionGroup is None:
+            return 0
+
+        action = actionGroup.checkedAction()
+        data = action.data() if action is not None else 0
+        return int(data) if data is not None else 0
+
+    def updateOffsetPlotComponentLabel(self, plotWidget, component: int) -> None:
+        plotWidget.setLabel('left', self.offsetComponentLabel(component), units='m')
+
+    def onOffTrkComponentChanged(self):
+        component = self.getSelectedOffsetComponent('OffTrkComponentActionGroup')
+        self.updateOffsetPlotComponentLabel(self.offTrkWidget, component)
+
+        if self.output.anaOutput is None:
+            return
+
+        self.updateVisiblePlotWidget(1)
+
+    def onOffBinComponentChanged(self):
+        component = self.getSelectedOffsetComponent('OffBinComponentActionGroup')
+        self.updateOffsetPlotComponentLabel(self.offBinWidget, component)
+
+        if self.output.anaOutput is None:
+            return
+
+        self.updateVisiblePlotWidget(2)
+
     def onOffAziColorBarLevelsChanged(self, *_):
         if getattr(self, '_updatingOffAziColorBarLevels', False):
             return
@@ -995,6 +1052,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         lowLevel, highLevel = self.getOffAziDisplayLevels(levelHigh)
 
         self.clearOffAziGraphics()
+        self.offAziDisplayPolar = False
+        self.offAziDisplayDA = dA
+        self.offAziDisplayDO = dO
+        self.offAziDisplayAMin = aMin
+        self.offAziDisplayOMax = None
 
         tr = QTransform()
         tr.translate(aMin, 0)
@@ -1017,6 +1079,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         lowLevel, highLevel = self.getOffAziDisplayLevels(maxCount)
 
         self.clearOffAziGraphics()
+        self.offAziDisplayPolar = True
+        self.offAziDisplayDA = dA
+        self.offAziDisplayDO = dO
+        self.offAziDisplayAMin = None
+        self.offAziDisplayOMax = oMax
 
         self.offAziImItem = pg.ImageItem()
         self.offAziImItem.setImage(histogram, levels=(lowLevel, highLevel))
@@ -1416,6 +1483,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         w.setLabel('right', ' ', **styles)                                      # shows axis at the right, no label, no tickmarks
         w.setAspectLocked(aspectLocked)
 
+        w.scene().sigMouseMoved.connect(lambda pos, plotWidget=w: self.mouseMovedInPlot(plotWidget, pos))
         w.installEventFilter(self)                                              # filter the 'Show' event to connect to toolbar buttons
         return w
 
@@ -1924,77 +1992,159 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         col = self.textEdit.textCursor().columnNumber() + 1
         self.posWidgetStatusbar.setText(f'Line: {line} Col: {col}')
 
-    def mouseMovedInPlot(self, pos):                                            # See: https://stackoverflow.com/questions/46166205/display-coordinates-in-pyqtgraph
-        if self.layoutWidget.sceneBoundingRect().contains(pos):                 # is mouse moved within the scene area ?
+    def _formatSampledImageValue(self, imageItem, pos, label='value'):
+        if imageItem is None or getattr(imageItem, 'image', None) is None or imageItem.scene() is None:
+            return None
 
-            if self.survey is None or self.survey.glbTransform is None:
-                return
+        if not imageItem.sceneBoundingRect().contains(pos):
+            return None
 
-            mousePoint = self.layoutWidget.plotItem.vb.mapSceneToView(pos)      # get scene coordinates
+        imagePoint = imageItem.mapFromScene(pos)
+        ix = int(imagePoint.x())
+        iy = int(imagePoint.y())
+        imageData = imageItem.image
 
-            if self.glob:                                                       # plot is using global coordinates
-                toLocTransform, _ = self.survey.glbTransform.inverted()
-                globalPoint = mousePoint
-                localPoint = toLocTransform.map(globalPoint)
-            else:                                                               # plot is using local coordinates
-                localPoint = mousePoint
-                globalPoint = self.survey.glbTransform.map(localPoint)
+        if ix < 0 or iy < 0 or ix >= imageData.shape[0] or iy >= imageData.shape[1]:
+            return None
 
-            lx = localPoint.x()
-            ly = localPoint.y()
-            gx = globalPoint.x()
-            gy = globalPoint.y()
+        value = float(imageData[ix, iy])
+        if np.isnan(value):
+            return f'{label}: no data'
 
-            if self.survey.binning.method == BinningType.cmp:                   # calculate reflector depth at cursor
-                gz = 0.0
-                lz = 0.0
-            elif self.survey.binning.method == BinningType.plane:
-                gz = self.survey.globalPlane.depthAt(globalPoint)               # get global depth from defined plane
-                lz = self.survey.localPlane.depthAt(localPoint)                 # get local depth from transformed plane
-            elif self.survey.binning.method == BinningType.sphere:
-                gz = self.survey.globalSphere.depthAt(globalPoint)              # get global depth from defined sphere
-                lz = self.survey.localSphere.depthAt(localPoint)                # get local depth from transformed sphere
-            else:
-                raise ValueError('wrong binning method selected')
+        return f'{label}: {value:,.3f}'
 
-            if self.survey.binTransform is not None:
-                binPoint = self.survey.binTransform.map(localPoint)
-                bx = int(binPoint.x())
-                by = int(binPoint.y())
-            else:
-                bx = 0
-                by = 0
+    def _formatOffAziPolarValue(self, mousePoint):
+        if self.offAziImItem is None or getattr(self.offAziImItem, 'image', None) is None:
+            return None
 
-            if self.survey.stkTransform is not None:
-                stkPoint = self.survey.stkTransform.map(localPoint)
-                sx = int(stkPoint.x())
-                sy = int(stkPoint.y())
-            else:
-                sx = 0
-                sy = 0
+        dA = getattr(self, 'offAziDisplayDA', None)
+        dO = getattr(self, 'offAziDisplayDO', None)
+        oMax = getattr(self, 'offAziDisplayOMax', None)
+        if dA is None or dO is None or oMax is None:
+            return None
 
-            if self.layoutImg is not None and bx >= 0 and by >= 0 and bx < self.layoutImg.shape[0] and by < self.layoutImg.shape[1]:
-                # provide statusbar information within the analysis area
-                if self.imageType == 0:
-                    self.posWidgetStatusbar.setText(f'S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
-                elif self.imageType == 1:
-                    foldValue = float(self.layoutImg[bx, by])
-                    if np.isnan(foldValue):
-                        foldValue = 0.0
-                    fold = int(foldValue)                                       # fold value is float because of the NaN values for no-data bins. Integers don't understand NaN
-                    self.posWidgetStatusbar.setText(f'fold: {fold:,d}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
-                elif self.imageType == 2:
-                    offset = float(self.layoutImg[bx, by])
-                    self.posWidgetStatusbar.setText(f'|min offset|: {offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
-                elif self.imageType == 3:
-                    offset = float(self.layoutImg[bx, by])
-                    self.posWidgetStatusbar.setText(f'|max offset|: {offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
-                elif self.imageType == 4:
-                    offset = float(self.layoutImg[bx, by])
-                    self.posWidgetStatusbar.setText(f'rms offset inc: {offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
-            else:
-                # provide statusbar information outside the analysis area
+        radius = float(np.hypot(mousePoint.x(), mousePoint.y()))
+        if radius < 0.0 or radius >= float(oMax):
+            return None
+
+        angle = float(np.degrees(np.arctan2(mousePoint.y(), mousePoint.x())))
+        if angle < 0.0:
+            angle += 360.0
+
+        azimuthIndex = int(angle / dA)
+        offsetIndex = int(radius / dO)
+        imageData = self.offAziImItem.image
+
+        if azimuthIndex < 0 or offsetIndex < 0 or azimuthIndex >= imageData.shape[0] or offsetIndex >= imageData.shape[1]:
+            return None
+
+        value = float(imageData[azimuthIndex, offsetIndex])
+        if np.isnan(value):
+            return 'value: no data'
+
+        return f'value: {value:,.3f}'
+
+    def _formatPlotImageValue(self, plotWidget, pos, mousePoint):
+        if plotWidget == self.stkTrkWidget:
+            return self._formatSampledImageValue(self.stkTrkImItem, pos)
+        if plotWidget == self.stkBinWidget:
+            return self._formatSampledImageValue(self.stkBinImItem, pos)
+        if plotWidget == self.stkCelWidget:
+            return self._formatSampledImageValue(self.stkCelImItem, pos)
+        if plotWidget == self.arraysWidget:
+            return self._formatSampledImageValue(self.kxyPatImItem, pos)
+        if plotWidget == self.offAziWidget:
+            if getattr(self, 'offAziDisplayPolar', False):
+                return self._formatOffAziPolarValue(mousePoint)
+            return self._formatSampledImageValue(self.offAziImItem, pos)
+        return None
+
+    def _setGenericPlotMouseStatus(self, plotWidget, pos, mousePoint):
+        valueText = self._formatPlotImageValue(plotWidget, pos, mousePoint)
+        coordinateText = f'x={mousePoint.x():,.2f}, y={mousePoint.y():,.2f}'
+        if valueText is None:
+            self.posWidgetStatusbar.setText(coordinateText)
+        else:
+            self.posWidgetStatusbar.setText(f'{valueText}, {coordinateText}')
+
+    def _setLayoutMouseStatus(self, mousePoint):
+        if self.survey is None or self.survey.glbTransform is None:
+            return
+
+        if self.glob:                                                           # plot is using global coordinates
+            toLocTransform, _ = self.survey.glbTransform.inverted()
+            globalPoint = mousePoint
+            localPoint = toLocTransform.map(globalPoint)
+        else:                                                                   # plot is using local coordinates
+            localPoint = mousePoint
+            globalPoint = self.survey.glbTransform.map(localPoint)
+
+        lx = localPoint.x()
+        ly = localPoint.y()
+        gx = globalPoint.x()
+        gy = globalPoint.y()
+
+        if self.survey.binning.method == BinningType.cmp:                       # calculate reflector depth at cursor
+            gz = 0.0
+            lz = 0.0
+        elif self.survey.binning.method == BinningType.plane:
+            gz = self.survey.globalPlane.depthAt(globalPoint)                   # get global depth from defined plane
+            lz = self.survey.localPlane.depthAt(localPoint)                     # get local depth from transformed plane
+        elif self.survey.binning.method == BinningType.sphere:
+            gz = self.survey.globalSphere.depthAt(globalPoint)                  # get global depth from defined sphere
+            lz = self.survey.localSphere.depthAt(localPoint)                    # get local depth from transformed sphere
+        else:
+            raise ValueError('wrong binning method selected')
+
+        if self.survey.binTransform is not None:
+            binPoint = self.survey.binTransform.map(localPoint)
+            bx = int(binPoint.x())
+            by = int(binPoint.y())
+        else:
+            bx = 0
+            by = 0
+
+        if self.survey.stkTransform is not None:
+            stkPoint = self.survey.stkTransform.map(localPoint)
+            sx = int(stkPoint.x())
+            sy = int(stkPoint.y())
+        else:
+            sx = 0
+            sy = 0
+
+        if self.layoutImg is not None and bx >= 0 and by >= 0 and bx < self.layoutImg.shape[0] and by < self.layoutImg.shape[1]:
+            # provide statusbar information within the analysis area
+            if self.imageType == 0:
                 self.posWidgetStatusbar.setText(f'S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
+            elif self.imageType == 1:
+                foldValue = float(self.layoutImg[bx, by])
+                if np.isnan(foldValue):
+                    foldValue = 0.0
+                fold = int(foldValue)                                           # fold value is float because of the NaN values for no-data bins. Integers don't understand NaN
+                self.posWidgetStatusbar.setText(f'fold: {fold:,d}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
+            elif self.imageType == 2:
+                offset = float(self.layoutImg[bx, by])
+                self.posWidgetStatusbar.setText(f'|min offset|: {offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
+            elif self.imageType == 3:
+                offset = float(self.layoutImg[bx, by])
+                self.posWidgetStatusbar.setText(f'|max offset|: {offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
+            elif self.imageType == 4:
+                offset = float(self.layoutImg[bx, by])
+                self.posWidgetStatusbar.setText(f'rms offset inc: {offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
+        else:
+            # provide statusbar information outside the analysis area
+            self.posWidgetStatusbar.setText(f'S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
+
+    def mouseMovedInPlot(self, plotWidget, pos):                                # See: https://stackoverflow.com/questions/46166205/display-coordinates-in-pyqtgraph
+        viewBox = plotWidget.plotItem.vb
+        if not viewBox.sceneBoundingRect().contains(pos):
+            return
+
+        mousePoint = viewBox.mapSceneToView(pos)                                # get scene coordinates
+        if plotWidget == self.layoutWidget:
+            self._setLayoutMouseStatus(mousePoint)
+        else:
+            self._setGenericPlotMouseStatus(plotWidget, pos, mousePoint)
 
     def getVisiblePlotIndex(self, plotWidget):
         if plotWidget == self.layoutWidget:
@@ -2622,6 +2772,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def plotOffTrk(self, nY: int, stkY: int, ox: float):
         with pg.BusyCursor():
             plotTitle = f'{self.plotTitles[1]} [line={stkY}]'
+            component = self.getSelectedOffsetComponent('OffTrkComponentActionGroup')
 
             slice3D = self.output.anaOutput[:, nY, :, :]
             slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
@@ -2629,15 +2780,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             self.offTrkWidget.plotItem.clear()
             self.offTrkWidget.setTitle(plotTitle, color='b', size='16pt')
+            self.updateOffsetPlotComponentLabel(self.offTrkWidget, component)
             if slice2D.shape[0] == 0:                                           # empty array
                 return
 
-            x, y = fnb.numbaOffInline(slice2D, ox)
+            x, y = fnb.numbaOffInline(slice2D, ox, component)
             self.offTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotOffBin(self, nX: int, stkX: int, oy: float):
         with pg.BusyCursor():
             self.offBinWidget.plotItem.clear()
+            component = self.getSelectedOffsetComponent('OffBinComponentActionGroup')
 
             slice3D = self.output.anaOutput[nX, :, :, :]
             slice2D = slice3D.reshape(slice3D.shape[0] * slice3D.shape[1], slice3D.shape[2])           # convert to 2D
@@ -2645,11 +2798,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             plotTitle = f'{self.plotTitles[2]} [stake={stkX}]'
             self.offBinWidget.setTitle(plotTitle, color='b', size='16pt')
+            self.updateOffsetPlotComponentLabel(self.offBinWidget, component)
 
             if slice2D.shape[0] == 0:                                           # empty array; nothing to see here...
                 return
 
-            x, y = fnb.numbaOffXline(slice2D, oy)
+            x, y = fnb.numbaOffXline(slice2D, oy, component)
             self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotAziTrk(self, nY: int, stkY: int, ox: float):
@@ -3419,29 +3573,41 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         return True
 
-    def setCurrentFileName(self, fileName=''):                                  # update self.fileName, set textEditModified(False) and setWindowModified(False)
-        self.fileName = fileName
+    def commitOpenedFileContext(self, fileName):
+        self.documentContextService.commitOpenedFile(self.runtimeState, fileName, config.maxRecentFiles)
         self.textEdit.document().setModified(False)
-        # print(f'called: {whoamI()}() from: {callerName()}(), line {lineNo()}, filename = "{self.fileName}", isWindowModified = {self.isWindowModified()}')
+        self.updateRecentFileActions()
+        writeSettings(self)
+        self.updateWindowDocumentTitle()
 
-        if not self.fileName:                                                   # filename ="" normally indicates working with 'new' file !
-            shownName = self.survey.name
-        else:
-            shownName = QFileInfo(fileName).fileName()
+    def commitSavedFileContext(self, fileName):
+        self.documentContextService.commitSavedFile(self.runtimeState, fileName, config.maxRecentFiles)
+        self.textEdit.document().setModified(False)
+        self.updateRecentFileActions()
+        writeSettings(self)
+        self.updateWindowDocumentTitle()
 
-            self.recentFileList = self.sessionService.recordCurrentFile(self.recentFileList, fileName, config.maxRecentFiles)
+    def clearCurrentFileContext(self):
+        self.documentContextService.clearCurrentFile(self.runtimeState)
+        self.textEdit.document().setModified(False)
+        self.updateWindowDocumentTitle()
 
-            self.updateRecentFileActions()
-            writeSettings(self)
-
+    def updateWindowDocumentTitle(self):
+        shownName = self.survey.name if not self.fileName else QFileInfo(self.fileName).fileName()
         self.setWindowTitle(self.tr(f'{shownName}[*] - Roll Survey'))           # update window name, with optional * for modified status
         self.setWindowModified(False)                                           # reset document status
 
+    def setCurrentFileName(self, fileName=''):                                  # update self.fileName, set textEditModified(False) and setWindowModified(False)
+        if fileName:
+            self.commitSavedFileContext(fileName)
+        else:
+            self.clearCurrentFileContext()
+
     def resolveRecentFileName(self, fileName):
-        return self.sessionService.resolveRecentFileName(fileName, self.projectDirectory)
+        return self.documentContextService.resolveRecentFileName(fileName, self.projectDirectory)
 
     def updateRecentFileActions(self):                                          # update the MRU file menu actions
-        menuState = self.sessionService.buildRecentFileMenu(self.recentFileList, self.projectDirectory, config.maxRecentFiles)
+        menuState = self.documentContextService.buildRecentFileMenu(self.runtimeState, config.maxRecentFiles)
 
         if menuState.changed:
             self.recentFileList = menuState.recentFileList
@@ -3510,9 +3676,38 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.actionShowBlocks.setChecked(True)
             self.survey.paintMode = PaintMode.justBlocks
 
-    def fileLoad(self, fileName):
+    def saveProjectToPath(self, fileName, projectDirectory, commitCurrentPath=False):
+        saveResult = self.projectService.writeProjectXml(fileName, self.survey, projectDirectory, self.appSettings.useRelativePaths, 4)
+        success = saveResult.success
 
-        self.projectDirectory = os.path.dirname(fileName)                       # retrieve the directory name
+        if success:
+            self.appendLogMessage(f'Saved&nbsp;&nbsp;: {fileName}')
+
+            self.projectService.saveAnalysisSidecars(fileName, self.output, includeHistograms=True)
+            self.projectService.saveSurveyDataSidecars(
+                fileName,
+                rpsImport=self.rpsImport,
+                spsImport=self.spsImport,
+                xpsImport=self.xpsImport,
+                recGeom=self.recGeom,
+                relGeom=self.relGeom,
+                srcGeom=self.srcGeom,
+            )
+
+            if commitCurrentPath:
+                self.commitSavedFileContext(fileName)
+            else:
+                self.textEdit.document().setModified(False)
+        else:
+            self.appendLogMessage(f'saving : Cannot save file: {fileName}. Error:{saveResult.errorText}', MsgType.Error)
+            QMessageBox.information(self, 'Write error', f'Cannot save file:\n{fileName}')
+
+        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
+
+        return success
+
+    def fileLoad(self, fileName):
+        projectDirectory = os.path.dirname(fileName)                            # retrieve the directory name
 
         self.sessionService.resetTimers()    ###                                # reset timers for debugging code
 
@@ -3525,7 +3720,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.appendLogMessage(f'Opening: {fileName}')                           # send status message
 
         self.survey = RollSurvey()                                              # reset the survey object; get rid of all blocks in the list !
-        self.setCurrentFileName(fileName)                                       # update self.fileName, set textEditModified(False) and setWindowModified(False)
+        self.runtimeState.projectDirectory = projectDirectory
+        self.commitOpenedFileContext(fileName)
         plainText = readResult.plainText
 
         # Xml tab
@@ -3716,7 +3912,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return self.fileLoad(fileName)
 
     def removeRecentFile(self, fileName):
-        self.recentFileList, removed = self.sessionService.removeRecentFile(self.recentFileList, fileName)
+        removed = self.documentContextService.removeRecentFile(self.runtimeState, fileName)
 
         if removed:
             self.updateRecentFileActions()
@@ -3732,7 +3928,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 return
             toString = getattr(data, 'toString', None)
             recentName = toString() if callable(toString) else str(data)
-            resolution = self.sessionService.resolveRecentSelection(recentName, self.projectDirectory)
+            resolution = self.documentContextService.resolveRecentSelection(self.runtimeState, recentName)
 
             if not resolution.exists:
                 self.removeRecentFile(recentName)
@@ -3745,30 +3941,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if not self.fileName:                                                   # need to have a valid filename first, and set the projectDirectory
             return self.fileSaveAs()
 
-        saveResult = self.projectService.writeProjectXml(self.fileName, self.survey, self.projectDirectory, self.appSettings.useRelativePaths, 4)
-        success = saveResult.success
-
-        if success:
-            self.appendLogMessage(f'Saved&nbsp;&nbsp;: {self.fileName}')
-            self.textEdit.document().setModified(False)
-
-            self.projectService.saveAnalysisSidecars(self.fileName, self.output, includeHistograms=True)
-            self.projectService.saveSurveyDataSidecars(
-                self.fileName,
-                rpsImport=self.rpsImport,
-                spsImport=self.spsImport,
-                xpsImport=self.xpsImport,
-                recGeom=self.recGeom,
-                relGeom=self.relGeom,
-                srcGeom=self.srcGeom,
-            )
-        else:
-            self.appendLogMessage(f'saving : Cannot save file: {self.fileName}. Error:{saveResult.errorText}', MsgType.Error)
-            QMessageBox.information(self, 'Write error', f'Cannot save file:\n{self.fileName}')
-
-        self.updateMenuStatus(False)                                            # keep menu status in sync with program's state; don't reset analysis figure
-
-        return success
+        return self.saveProjectToPath(self.fileName, self.projectDirectory)
 
     def fileSaveAs(self):
         fileName = os.path.join(self.projectDirectory, self.survey.name)        # join dir & survey name, as proposed file path
@@ -3785,8 +3958,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if not fn.lower().endswith('.roll'):                                    # make sure file extension is okay
             fn += '.roll'                                                       # just add the file extension
 
-        self.setCurrentFileName(fn)                                             # update self.fileName, set textEditModified(False) and setWindowModified(False)
-        return self.fileSave()
+        projectDirectory = os.path.dirname(fn)
+        return self.saveProjectToPath(fn, projectDirectory, commitCurrentPath=True)
 
     def fileSettings(self):                                                     # dialog implementation modeled after https://github.com/dglent/meteo-qt/blob/master/meteo_qt/settings.py
         dlg = SettingsDialog(self)

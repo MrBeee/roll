@@ -128,7 +128,6 @@ roll_spiral.py:315: [R0913(too-many-arguments), RollSpiral.createSpiral] Too man
 roll_spiral.py:315: [R0917(too-many-positional-arguments), RollSpiral.createSpiral] Too many positional arguments (7/5)
 roll_spiral.py:382: [R1719(simplifiable-if-expression), RollSpiral.calcSpiralPath] The if expression can be replaced with 'test'
 ************* Module roll.roll_survey
-roll_survey.py:3287: [W0511(fixme), ] todo: initialize the seed's point figures and pattern figures just before they are painted (and NOT here).
 roll_survey.py:281: [R1705(no-else-return), RollSurvey.deepcopy] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
 roll_survey.py:314: [R0913(too-many-arguments), RollSurvey.createBasicSkeleton] Too many arguments (6/5)
 roll_survey.py:314: [R0917(too-many-positional-arguments), RollSurvey.createBasicSkeleton] Too many positional arguments (6/5)
@@ -140,35 +139,36 @@ roll_survey.py:965: [R1724(no-else-continue), RollSurvey.geomTemplate2] Unnecess
 roll_survey.py:894: [R0912(too-many-branches), RollSurvey.geomTemplate2] Too many branches (17/12)
 roll_survey.py:1104: [R1724(no-else-continue), RollSurvey.geomTemplate3] Unnecessary "else" after "continue", remove the "else" and de-indent the code inside it
 roll_survey.py:1032: [R0912(too-many-branches), RollSurvey.geomTemplate3] Too many branches (21/12)
-roll_survey.py:1198: [R0912(too-many-branches), RollSurvey.geomTemplate4] Too many branches (22/12)
-roll_survey.py:1335: [R1705(no-else-return), RollSurvey.setupBinFromGeometry] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_survey.py:1342: [R1705(no-else-return), RollSurvey.setupBinFromGeometry] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_survey.py:1401: [R1702(too-many-nested-blocks), RollSurvey.binFromGeometryNoRel] Too many nested blocks (6/5)
-roll_survey.py:1349: [R0912(too-many-branches), RollSurvey.binFromGeometryNoRel] Too many branches (28/12)
-roll_survey.py:1640: [R1702(too-many-nested-blocks), RollSurvey.binFromGeometry4] Too many nested blocks (6/5)
-roll_survey.py:1567: [R0912(too-many-branches), RollSurvey.binFromGeometry4] Too many branches (38/12)
-roll_survey.py:1880: [R0912(too-many-branches), RollSurvey.binFromGeometry6] Too many branches (18/12)
-roll_survey.py:2024: [R0912(too-many-branches), RollSurvey.binFromGeometry7] Too many branches (31/12)
-roll_survey.py:2226: [R0912(too-many-branches), RollSurvey.binFromGeometry8] Too many branches (27/12)
-roll_survey.py:2443: [R1705(no-else-return), RollSurvey.setupBinFromTemplates] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_survey.py:2484: [R0912(too-many-branches), RollSurvey.binTemplate6] Too many branches (26/12)
-roll_survey.py:2497: [R1702(too-many-nested-blocks), RollSurvey.binTemplate6] Too many nested blocks (7/5)
-roll_survey.py:2660: [R0912(too-many-branches), RollSurvey.binTemplate7] Too many branches (26/12)
-roll_survey.py:2667: [R1702(too-many-nested-blocks), RollSurvey.binTemplate7] Too many nested blocks (6/5)
-roll_survey.py:2956: [R1702(too-many-nested-blocks), RollSurvey.calcRmsOffsetValues] Too many nested blocks (6/5)
-roll_survey.py:3083: [R1714(consider-using-in), RollSurvey.checkIntegrity] Consider merging these comparisons with 'in' by using 'seed.type in (SeedType.rollingGrid, SeedType.fixedGrid)'. Use a set instead if elements are hashable.
-roll_survey.py:3062: [R0911(too-many-return-statements), RollSurvey.checkIntegrity] Too many return statements (9/6)
-roll_survey.py:3062: [R0912(too-many-branches), RollSurvey.checkIntegrity] Too many branches (16/12)
-roll_survey.py:3204: [R0912(too-many-branches), RollSurvey.readXml] Too many branches (13/12)
-roll_survey.py:3324: [R1705(no-else-return), RollSurvey.boundingRect] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
-roll_survey.py:3477: [R0912(too-many-branches), RollSurvey._renderInvariantSeedsIntoBase] Too many branches (17/12)
-roll_survey.py:3557: [R1702(too-many-nested-blocks), RollSurvey._paintPassIntoProgressive] Too many nested blocks (7/5)
-roll_survey.py:3531: [R0912(too-many-branches), RollSurvey._paintPassIntoProgressive] Too many branches (15/12)
-roll_survey.py:3605: [R0912(too-many-branches), RollSurvey.paint] Too many branches (13/12)
-roll_survey.py:3669: [R0913(too-many-arguments), RollSurvey._paintTemplate] Too many arguments (7/5)
-roll_survey.py:3669: [R0917(too-many-positional-arguments), RollSurvey._paintTemplate] Too many positional arguments (7/5)
-roll_survey.py:3669: [R0912(too-many-branches), RollSurvey._paintTemplate] Too many branches (17/12)
-roll_survey.py:139: [R0904(too-many-public-methods), RollSurvey] Too many public methods (53/20)
+roll_survey.py:1333: [R0913(too-many-arguments), RollSurvey.updateBinOutputsForValidCmpPoints] Too many arguments (7/5)
+roll_survey.py:1333: [R0917(too-many-positional-arguments), RollSurvey.updateBinOutputsForValidCmpPoints] Too many positional arguments (7/5)
+roll_survey.py:1377: [R0911(too-many-return-statements), RollSurvey.buildBinningArraysFromSelectedReceivers] Too many return statements (7/6)
+roll_survey.py:1442: [R1705(no-else-return), RollSurvey.setupBinFromGeometry] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_survey.py:1449: [R1705(no-else-return), RollSurvey.setupBinFromGeometry] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_survey.py:1508: [R1702(too-many-nested-blocks), RollSurvey.binFromGeometryNoRel] Too many nested blocks (6/5)
+roll_survey.py:1456: [R0912(too-many-branches), RollSurvey.binFromGeometryNoRel] Too many branches (28/12)
+roll_survey.py:1747: [R1702(too-many-nested-blocks), RollSurvey.binFromGeometry4] Too many nested blocks (6/5)
+roll_survey.py:1674: [R0912(too-many-branches), RollSurvey.binFromGeometry4] Too many branches (38/12)
+roll_survey.py:1987: [R0912(too-many-branches), RollSurvey.binFromGeometry6] Too many branches (18/12)
+roll_survey.py:2112: [R0912(too-many-branches), RollSurvey.binFromGeometry7] Too many branches (19/12)
+roll_survey.py:2228: [R0912(too-many-branches), RollSurvey.binFromGeometry8] Too many branches (27/12)
+roll_survey.py:2445: [R1705(no-else-return), RollSurvey.setupBinFromTemplates] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_survey.py:2486: [R0912(too-many-branches), RollSurvey.binTemplate6] Too many branches (26/12)
+roll_survey.py:2499: [R1702(too-many-nested-blocks), RollSurvey.binTemplate6] Too many nested blocks (7/5)
+roll_survey.py:2662: [R0912(too-many-branches), RollSurvey.binTemplate7] Too many branches (14/12)
+roll_survey.py:2875: [R1702(too-many-nested-blocks), RollSurvey.calcRmsOffsetValues] Too many nested blocks (6/5)
+roll_survey.py:3002: [R1714(consider-using-in), RollSurvey.checkIntegrity] Consider merging these comparisons with 'in' by using 'seed.type in (SeedType.rollingGrid, SeedType.fixedGrid)'. Use a set instead if elements are hashable.
+roll_survey.py:2981: [R0911(too-many-return-statements), RollSurvey.checkIntegrity] Too many return statements (9/6)
+roll_survey.py:2981: [R0912(too-many-branches), RollSurvey.checkIntegrity] Too many branches (16/12)
+roll_survey.py:3123: [R0912(too-many-branches), RollSurvey.readXml] Too many branches (13/12)
+roll_survey.py:3243: [R1705(no-else-return), RollSurvey.boundingRect] Unnecessary "else" after "return", remove the "else" and de-indent the code inside it
+roll_survey.py:3396: [R0912(too-many-branches), RollSurvey._renderInvariantSeedsIntoBase] Too many branches (17/12)
+roll_survey.py:3476: [R1702(too-many-nested-blocks), RollSurvey._paintPassIntoProgressive] Too many nested blocks (7/5)
+roll_survey.py:3450: [R0912(too-many-branches), RollSurvey._paintPassIntoProgressive] Too many branches (15/12)
+roll_survey.py:3524: [R0912(too-many-branches), RollSurvey.paint] Too many branches (13/12)
+roll_survey.py:3588: [R0913(too-many-arguments), RollSurvey._paintTemplate] Too many arguments (7/5)
+roll_survey.py:3588: [R0917(too-many-positional-arguments), RollSurvey._paintTemplate] Too many positional arguments (7/5)
+roll_survey.py:3588: [R0912(too-many-branches), RollSurvey._paintTemplate] Too many branches (17/12)
+roll_survey.py:139: [R0904(too-many-public-methods), RollSurvey] Too many public methods (58/20)
 ************* Module roll.roll_template
 roll_template.py:112: [R0912(too-many-branches), RollTemplate.calcBoundingRect] Too many branches (13/12)
 ************* Module roll.roll_well

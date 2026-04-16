@@ -502,7 +502,7 @@ class BinningWorkerMixin:
         profiling = result.profiling
         if self.appSettings.debug:
             self.appendLogMessage('geometryFromTemplates() profiling information', MsgType.Debug)
-            for i, _ in enumerate(profiling.timerTmin if profiling is not None else ()): 
+            for i, _ in enumerate(profiling.timerTmin if profiling is not None else ()):
                 tMin = profiling.timerTmin[i] * 1000.0 if profiling.timerTmin[i] != float('Inf') else 0.0
                 tMax = profiling.timerTmax[i] * 1000.0
                 tTot = profiling.timerTtot[i] * 1000.0

@@ -157,9 +157,14 @@ def numbaNdft2D(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offset
 
 
 @jit(nopython=True)
-def numbaOffInline(slice2D: np.ndarray, ox: float):
+def numbaOffInline(slice2D: np.ndarray, ox: float, component: int = 0):
     xInline = slice2D[:, 7]                                                     # get all available cmp values belonging to this row
-    oInline = slice2D[:, 10]                                                    # get all available offsets belonging to this row
+    if component == 1:
+        oInline = slice2D[:, 5] - slice2D[:, 3]                                 # inline offset component
+    elif component == 2:
+        oInline = slice2D[:, 6] - slice2D[:, 4]                                 # x-line offset component
+    else:
+        oInline = slice2D[:, 10]                                                # absolute offset magnitude
 
     x = np.empty((2 * xInline.size), dtype=xInline.dtype)
     x[0::2] = xInline - ox
@@ -173,9 +178,14 @@ def numbaOffInline(slice2D: np.ndarray, ox: float):
 
 
 @jit(nopython=True)
-def numbaOffXline(slice2D: np.ndarray, oy: float):
+def numbaOffXline(slice2D: np.ndarray, oy: float, component: int = 0):
     yInline = slice2D[:, 8]                                                     # get all available cmp values belonging to this row
-    oInline = slice2D[:, 10]                                                  # get all available offsets belonging to this row
+    if component == 1:
+        oInline = slice2D[:, 5] - slice2D[:, 3]                                 # inline offset component
+    elif component == 2:
+        oInline = slice2D[:, 6] - slice2D[:, 4]                                 # x-line offset component
+    else:
+        oInline = slice2D[:, 10]                                                # absolute offset magnitude
 
     x = np.empty((2 * yInline.size), dtype=yInline.dtype)
     x[0::2] = yInline - oy

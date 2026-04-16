@@ -390,24 +390,32 @@ def _writeFormatGroup(self, group, entries):
 
 def readSettings(self):
     appSettings = _getAppSettings(self)
+    documentContext = self.runtimeState
 
     # main window information
     geom = self.settings.value('mainWindow/geometry', bytes('', 'utf-8'))       # , bytes('', 'utf-8') prevents receiving a 'None' object
     self.restoreGeometry(geom)                                                  # https://gist.github.com/dgovil/d83e7ddc8f3fb4a28832ccc6f9c7f07b
 
     state = self.settings.value('mainWindow/state', bytes('', 'utf-8'))         # , bytes('', 'utf-8') prevents receiving a 'None' object
-    self.restoreGeometry(state)                                                 # No longer needed to test: if geometry != None:
+    self.restoreState(state)                                                    # No longer needed to test: if geometry != None:
 
     path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
-    self.projectDirectory = self.settings.value('settings/projectDirectory', path)  # start folder for SaveAs
-    self.importDirectory = self.settings.value('settings/importDirectory', path)    # start folder for reading SPS files
+    projectDirectory = self.settings.value('settings/projectDirectory', path)   # start folder for SaveAs
+    importDirectory = self.settings.value('settings/importDirectory', path)     # start folder for reading SPS files
     recentFileList = self.settings.value('settings/recentFileList', [])
     if recentFileList is None:
-        self.recentFileList = []
+        recentFileList = []
     elif isinstance(recentFileList, str):
-        self.recentFileList = [recentFileList] if recentFileList else []
+        recentFileList = [recentFileList] if recentFileList else []
     else:
-        self.recentFileList = list(recentFileList)
+        recentFileList = list(recentFileList)
+
+    self.documentContextService.loadStoredValues(
+        documentContext,
+        projectDirectory=projectDirectory,
+        importDirectory=importDirectory,
+        recentFileList=recentFileList,
+    )
 
     # color & pen information
     appSettings.binAreaColor = self.settings.value('settings/colors/binAreaColor', '#20000000')
@@ -501,13 +509,14 @@ def readSettings(self):
 
 def writeSettings(self):
     appSettings = _getAppSettings(self)
+    documentContext = self.runtimeState
 
     # main window information
     self.settings.setValue('mainWindow/geometry', self.saveGeometry())          # save the main window geometry
     self.settings.setValue('mainWindow/state', self.saveState())                # and the window state too
-    self.settings.setValue('settings/projectDirectory', self.projectDirectory)
-    self.settings.setValue('settings/importDirectory', self.importDirectory)
-    self.settings.setValue('settings/recentFileList', self.recentFileList)      # store list in settings
+    self.settings.setValue('settings/projectDirectory', documentContext.projectDirectory)
+    self.settings.setValue('settings/importDirectory', documentContext.importDirectory)
+    self.settings.setValue('settings/recentFileList', documentContext.recentFileList)      # store list in settings
 
     # color and pen information
     self.settings.setValue('settings/colors/binAreaColor', appSettings.binAreaColor)

@@ -2,13 +2,13 @@ D:\QGis\MyPlugins\roll\Refactoring_roadmap.txt
 
 **Refactoring Roadmap**
 
-Updated for the current codebase on 2026-04-14.
+Updated for the current codebase on 2026-04-16.
 
 The broad direction is still the same: keep persistence, import/QC logic, mutable session/runtime state, and worker lifecycle concerns out of `roll_main_window.py`, then clean up plotting/redraw boundaries before touching worker contracts or performance.
 
-This document reflects the live codebase after the `SessionState`, `SessionService`, `ImportService`, `AppSettings`, `RuntimeState`, `ProjectService`, `ProjectLoadApplier`, and legacy-sidecar compatibility work.
+This document reflects the live codebase after the `SessionState`, `SessionService`, `ImportService`, `AppSettings`, `RuntimeState`, `DocumentContextService`, `ProjectService`, `ProjectLoadApplier`, legacy-sidecar compatibility, offset-tab extraction, and broader plot-interaction/status-bar cleanup work.
 
-It also reflects the current UI split more accurately than the previous version: tab construction is no longer only an O/A-specific extraction. The layout, pattern, geometry, SPS, trace-table, stack-response, and O/A tab builders already live in separate `roll_main_window_create_*_tab.py` modules. What still remains in `roll_main_window.py` is the heavier plot-input computation, widget mutation, and surface-specific controller flow.
+It also reflects the current UI split more accurately than the previous version: tab construction is no longer only an O/A-specific extraction. The layout, pattern, geometry, SPS, trace-table, stack-response, offset-inline/xline, and O/A tab builders already live in separate `roll_main_window_create_*_tab.py` modules. What still remains in `roll_main_window.py` is the heavier plot-input computation, widget mutation, plot-interaction behavior, and surface-specific controller flow.
 
 It also reflects the wizard-default extraction work: land and marine wizard presets no longer live in `config.py`, and the old mutable `AppSettings -> config.py` compatibility bridge has been removed.
 
@@ -23,13 +23,13 @@ Completed or substantially landed:
 6. Display, logging, and property dock construction has been extracted into dedicated builder helpers.
 7. Worker-thread lifecycle code is already out of `RollMainWindow` and lives in `binning_worker_mixin.py`.
 8. `SessionState` owns imported arrays, geometry arrays, and derived live/dead and convex-hull state.
-9. `SessionService` owns canonical array refresh behavior, array clearing, timer/profiling helpers, and recent-file resolution/menu behavior.
+9. `SessionService` owns canonical array refresh behavior, array clearing, and timer/profiling helpers.
 10. `ImportService` owns SPS/RPS/XPS text parsing, cancellation/progress callbacks, QC passes, duplicate/orphan checks, CRS conversion, and transform messaging.
 11. `AppSettings` and `RuntimeState` now exist, and `settings.py` loads/saves through them rather than only pushing mutable data directly into `config.py`.
 12. `sps_import_dialog.py` now takes editable SPS/RPS/XPS format ownership from `AppSettings` rather than treating `config.py` as the primary mutable owner.
 13. `AppSettings.activate()` provides the explicit runtime activation path instead of writing mutable settings back into `config.py`.
 14. Land and marine wizard defaults live in `LandSurveyWizard` and `MarineSurveyWizard` instead of `config.py`.
-15. Main-window tab construction is already split across `roll_main_window_create_layout_tab.py`, `roll_main_window_create_pattern_tab.py`, `roll_main_window_create_geom_tab.py`, `roll_main_window_create_sps_tab.py`, `roll_main_window_create_trace_table_tab.py`, `roll_main_window_create_stack_response_tab.py`, and `roll_main_window_create_off_azi_tab.py`.
+15. Main-window tab construction is already split across `roll_main_window_create_layout_tab.py`, `roll_main_window_create_pattern_tab.py`, `roll_main_window_create_geom_tab.py`, `roll_main_window_create_sps_tab.py`, `roll_main_window_create_trace_table_tab.py`, `roll_main_window_create_stack_response_tab.py`, `roll_main_window_create_offset_tabs.py`, and `roll_main_window_create_off_azi_tab.py`.
 16. The O/A histogram now has explicit rectangular versus polar UI state, split render paths, and direct regression coverage for renderer dispatch.
 17. Stack-response and pattern-response plots now share a reusable analysis image/colorbar preparation helper instead of duplicating the full image-item and colorbar setup path in each controller.
 18. Pattern-response input gathering and Kx/Ky computation have been narrowed into dedicated helpers instead of leaving combo-box and response-array concerns mixed together in `plotPatterns()`.
@@ -50,6 +50,15 @@ Completed or substantially landed:
 33. The geometry binning completion path now has direct failure-boundary regression coverage at the main-window/mixin layer, so both emission-time and consumer-time behavior are protected on the converted binning paths.
 34. `roll_survey.py` now has direct regression coverage for the live geometry invariant work, including template/grow-step normalization behavior and direct geometry generation from templates.
 35. In `roll_survey.py`, `geomTemplate2()`, `geomTemplate3()`, `binFromGeometry4()`, `binFromGeometry5()`, `binFromGeometry6()`, `binFromGeometry7()`, and `binTemplate6()` are intentionally retained as dead reference implementations for future optimization comparison; the live geometry/binning paths currently run through `geomTemplate4()`, `binFromGeometryNoRel()`, `binFromGeometry8()`, and `binTemplate7()`.
+36. The active `geomTemplate4()` path is now helper-backed instead of carrying all source append, receiver de-dup, `relTemp` construction, and relation expansion inline.
+37. The active vectorized binning paths now share extracted live helpers for the final valid-CMP bin updates, CMP/offArray filtering plus radial pruning, and the relation-driven lookup/receiver-selection path inside `binFromGeometry8()`, all with direct regression coverage.
+38. The active geometry-generation path now has direct rolled-template correctness coverage, and `geometryFromTemplates()` uses a small helper to own template-roll dispatch instead of leaving that loop inline.
+39. The redraw/controller safety net is stronger than the previous roadmap version assumed: there are now direct regressions proving O/A presentation-only redraws skip histogram recomputation, offset visible-activation reuse differs from controller invalidation, broader analysis-refresh paths reset redraw caches when bin-area changes, and the live relation-driven versus no-relation binning paths populate missing local coordinates consistently.
+40. The live binning entry points now share an extracted completion-tail helper for fold/min-max post-processing plus the `fullAnalysis` branch, and there is direct regression coverage that proves the helper either runs RMS/unique/O-A post-processing or clears `anaOutput`.
+41. Document-context ownership is now narrower and more explicit: `RuntimeState` owns the current file path plus MRU-backed document context, `DocumentContextService` owns current-file commit/remove/recent-file resolution and menu-building behavior, `RollMainWindow` delegates open/save/MRU state transitions through that service, and `settings.py` reads/writes the runtime document context object directly.
+42. The offset-inline and offset-xline analysis tabs now use a dedicated wrapper builder with independent per-tab component controls instead of being added as bare plot widgets.
+43. `numbaOffInline()` and `numbaOffXline()` now support `|offset|`, `Inline`, and `X-line` component selection, and that numeric behavior has direct regression coverage.
+44. Plot mouse tracking is now wired centrally from `createPlotWidget()`, so non-layout plots show at least plot coordinates in the status bar and image-backed analysis surfaces expose sampled local values; the O/A polar view has explicit value sampling rather than relying on a scene-added image transform.
 
 Still unfinished:
 1. Worker launch and completion contracts are explicit on the main paths, but the cleanup is not finished until any leftover legacy worker scaffolding is either justified or removed and any further payload changes are driven by measured need rather than contract churn.
@@ -59,15 +68,15 @@ Still unfinished:
 **Recommended Order From Here**
 
 1. Keep the preserved reference implementations in `roll_survey.py` out of routine cleanup scope unless a change is specifically about comparing or replacing live algorithms.
-2. Next live-path refactoring step: narrow `geomTemplate4()` by extracting the receiver de-dup plus `relTemp` build path into a helper with direct regression coverage, because that is now the densest active geometry routine.
-3. After that, extract the shared live bin-write/update logic that still appears across `binFromGeometryNoRel()`, `binFromGeometry8()`, and `binTemplate7()`.
+2. Keep `binFromGeometry8()` stable for the moment unless a new correctness issue appears; the main live geometry/binning helper boundaries there are now in place.
+3. Keep the newly extracted live helper boundaries in `roll_survey.py` stable unless a remaining duplication seam is clearly bounded and covered by direct regression.
 4. Revisit worker payload shape only if a measured simplification remains after the active geometry/binning layer is easier to reason about.
 5. Do performance work only after the structure stops moving.
 6. Treat any further `config.py` work as optional organization, not as the main architectural blocker.
 
 The earlier “create `SessionState` first” and “extract import/QC service first” recommendations are no longer current. Those seams are already good enough to move attention to plotting/redraw structure.
 
-The other important change is that the previous roadmap understated how much UI extraction has already landed. The remaining problem is not tab-builder setup anymore; it is the concentration of surface-specific plotting computations and widget mutation inside `roll_main_window.py` after redraw policy, cache state, and reused-axis reconstruction were moved into `PlotRedrawHelper`.
+The other important change is that the previous roadmap understated how much UI extraction has already landed. The remaining problem is not tab-builder setup anymore; it is the concentration of surface-specific plotting computations, plot-interaction behavior, and widget mutation inside `roll_main_window.py` after redraw policy, cache state, and reused-axis reconstruction were moved into `PlotRedrawHelper`.
 
 **Phase 0 - Baseline and Safety Net**
 
@@ -84,9 +93,13 @@ What is already in place:
 7. Regression coverage for O/A display-mode defaults and rectangular-versus-polar renderer dispatch.
 8. Higher-level `fileLoad()` coverage that exercises survey sidecar loading plus session-state rebuild/application.
 9. Settings/runtime ownership regressions around `AppSettings`, `RuntimeState`, and the SPS import dialog.
+10. Direct redraw regressions that prove presentation-only O/A redraw reuse, controller-versus-visible offset invalidation behavior, and cache reset after broader analysis refresh.
+11. Direct live-binning localization coverage that proves both relation-driven and no-relation paths populate missing local source/receiver coordinates consistently.
+12. Direct live-binning completion-tail coverage that proves shared post-processing runs only for `fullAnalysis=True` and clears `anaOutput` otherwise.
+13. Direct document-context coverage that proves the helper owns file-path/MRU behavior and that settings/runtime ownership checks include MRU-backed runtime document state.
 
 What is still worth adding here:
-1. Add only further geometry-generation tests that protect the active path (`geometryFromTemplates()` -> `geomTemplate4()`), not the preserved reference implementations.
+1. Add only further geometry-generation tests if they cover a new live-path correctness seam beyond the existing minimal and rolled-template cases.
 2. A small reusable project fixture that includes a valid `.roll` plus minimal sidecars, if repeated setup starts to spread further.
 
 Exit criteria:
@@ -151,16 +164,17 @@ What has landed:
 2. `SessionService.setArray()` and `refreshArrayState()` provide the canonical refresh path for those arrays.
 3. `RollMainWindow` property setters for `rpsImport`, `spsImport`, `xpsImport`, `recGeom`, `srcGeom`, and `relGeom` delegate into `SessionService`.
 4. `AppSettings` exists for persisted settings loaded from `QSettings`.
-5. `RuntimeState` exists for session-only values such as `surveyNumber`, `projectDirectory`, and `importDirectory`.
-6. `settings.py` loads/saves through `AppSettings` and `RuntimeState`, and runtime settings activation is explicit.
-7. Wizard naming/incrementing uses the runtime-state `surveyNumber` instead of a direct `config.surveyNumber` mutation path.
-8. `sps_import_dialog.py` edits SPS/RPS/XPS formats and dialect selection through `AppSettings` ownership, with tests covering the owner boundary.
-9. The old mutable `AppSettings -> config.py` write-back bridge has been removed.
-10. Timer/profiling ownership has moved into `SessionService`.
-11. Land and marine wizard defaults have moved out of `config.py` and into their respective wizard classes.
+5. `RuntimeState` now owns the document-context values used across open/save/import flows: `fileName`, `projectDirectory`, `importDirectory`, and `recentFileList`.
+6. `DocumentContextService` now owns document-path commit behavior, MRU removal/resolution/menu building, and stored-value loading for the runtime document context.
+7. `settings.py` loads/saves through `AppSettings` and `RuntimeState`, and runtime settings activation is explicit.
+8. Wizard naming/incrementing uses the runtime-state `surveyNumber` instead of a direct `config.surveyNumber` mutation path.
+9. `sps_import_dialog.py` edits SPS/RPS/XPS formats and dialect selection through `AppSettings` ownership, with tests covering the owner boundary.
+10. The old mutable `AppSettings -> config.py` write-back bridge has been removed.
+11. Timer/profiling ownership has moved into `SessionService`.
+12. Land and marine wizard defaults have moved out of `config.py` and into their respective wizard classes.
 
 What remains in this phase:
-1. Decide whether project file paths belong permanently in `RuntimeState` or should be folded into a broader session object.
+1. Decide only if a broader naming/session seam later appears whether `surveyNumber` should stay in `SessionState` or move into a wider runtime/document context.
 2. Optionally reduce some remaining read-only `config.py` lookups into narrower constants modules if that later improves clarity.
 
 Exit criteria:
@@ -197,7 +211,7 @@ Already met enough for the current milestone:
 **Phase 5 - Plot and Redraw Service**
 
 Status:
-Substantially complete for the current milestone. The redraw/controller slice now has helper-owned invalidation and cache reuse, O/A and offset both follow explicit preparation-versus-render boundaries, and layout image/colorbar duplication has been reduced with a smaller helper that does not pull layout into the full redraw-policy model.
+Substantially complete for the current milestone. The redraw/controller slice now has helper-owned invalidation and cache reuse, O/A and offset both follow explicit preparation-versus-render boundaries, layout image/colorbar duplication has been reduced with a smaller helper that does not pull layout into the full redraw-policy model, and generic plot mouse/status handling now sits behind shared helpers instead of being layout-only wiring.
 
 Goal:
 Separate domain changes from redraw policy, image preparation, and colorbar wiring.
@@ -206,7 +220,8 @@ Scope:
 1. Layout image preparation.
 2. Analysis image preparation.
 3. Colorbar input generation and reuse.
-4. Partial invalidation rules versus full replot rules.
+4. Plot interaction and status sampling behavior.
+5. Partial invalidation rules versus full replot rules.
 
 Why this is now the next structural phase:
 1. The main persistence, filter, import, and state seams already exist.
@@ -230,12 +245,16 @@ What has landed:
 14. O/A now has dedicated histogram-input preparation, prepared plot-input construction, prepared render dispatch, and a thin `plotOffAzi()` wrapper over `redrawOffAzi()`.
 15. Offset now has dedicated histogram-input preparation, prepared plot-input construction, prepared render dispatch, and dispatcher routing through the same analysis redraw entry point used by O/A.
 16. Layout image-item creation and layout colorbar wiring now go through a narrower shared helper instead of leaving the full setup inline in `handleImageSelection()`.
-17. There is direct regression coverage for shared analysis image/colorbar preparation, layout image/colorbar preparation, dispatcher routing, stack-response redraw gating, stack-response cache reuse, helper-owned key/axis reconstruction, O/A renderer dispatch, O/A dispatcher routing, offset dispatcher routing, O/A display-range reset on file load, and reason-driven invalidation behavior.
+17. There is direct regression coverage for shared analysis image/colorbar preparation, layout image/colorbar preparation, dispatcher routing, stack-response redraw gating, stack-response cache reuse, helper-owned key/axis reconstruction, O/A renderer dispatch, O/A dispatcher routing, offset dispatcher routing, O/A display-range reset on file load, reason-driven invalidation behavior, presentation-only O/A redraw reuse, offset controller-versus-visible invalidation, and cache reset after broader analysis refresh.
+18. Offset-inline and offset-xline tab construction now use a dedicated builder module with independent component selectors per tab instead of leaving those controls inline in `roll_main_window.py`.
+19. Offset-inline and offset-xline controllers now support plotting absolute offset magnitude or either source/receiver coordinate component through shared selection helpers and the extended numeric helpers.
+20. Plot mouse tracking is now connected centrally for every plot widget, with shared helpers for generic coordinate display and image-value sampling on stack, pattern-response, and O/A surfaces, while preserving the richer layout-specific status readout.
 
 What remains in this phase:
 1. Keep the helper boundary small unless a new repeated redraw-policy concern appears; do not expand it just to move code mechanically.
 2. Add only the remaining high-value regressions that materially protect later worker-boundary refactors.
 3. Treat further plotting cleanup in this phase as optional polish, not the main architectural blocker anymore.
+4. If another plotting/controller seam is extracted, prefer one that removes a whole surface-specific controller cluster rather than moving small helper methods around.
 
 Exit criteria:
 1. Data mutations no longer directly decide full redraw policy in many places.
@@ -284,11 +303,9 @@ Do not optimize these speculatively. Measure them after the service boundaries a
 The earlier test list is outdated because several of those tests already exist.
 
 The best next tests are:
-1. geometry-generation correctness test for a minimal template or block,
-2. one direct O/A regression that proves presentation-only redraws skip histogram recomputation rather than only preserving the cached histogram object,
-3. one geometry-to-plot invalidation regression that exercises cache reset after a broader analysis refresh,
-4. one higher-level offset redraw regression that distinguishes controller invalidation from visible-activation reuse,
-5. a small reusable project fixture that includes a valid `.roll` plus minimal sidecars, if repeated setup starts to spread further.
+1. one redraw regression only if another controller-owned invalidation seam is extracted beyond the current O/A and offset coverage,
+2. one higher-level runtime/session ownership regression only if another document/session seam moves out of `RollMainWindow` beyond the current file-path/MRU ownership,
+3. one small reusable project fixture follow-up only if test setup starts spreading beyond the current shared helper coverage.
 
 **Outdated Items From The Previous Roadmap**
 
@@ -299,40 +316,46 @@ The following items should now be considered completed or reordered:
 4. “Introduce `SessionState` first” is no longer future work in the strict sense; the phase is already substantially complete.
 5. “Create `ImportService` next” is no longer future work in the strict sense; the phase is already substantially landed.
 6. “Only the O/A builder extraction has started” is now outdated; the builder-module pattern already covers most main tabs.
-7. Worker cleanup should still not be ahead of plot/redraw extraction and final state-ownership cleanup.
+7. “Add one direct geometry-generation correctness test for a minimal template or block” is no longer future work; both minimal and rolled-template active-path regressions now exist.
+8. “Add one direct O/A regression that proves presentation-only redraw skips histogram recomputation” is no longer future work.
+9. “Add one higher-level offset redraw regression that distinguishes controller invalidation from visible-activation reuse” is no longer future work.
+10. “Add one geometry-to-plot invalidation regression that exercises cache reset after a broader analysis refresh” is no longer future work.
+11. “Add one narrow regression for shared local-coordinate preparation from the live binning paths” is no longer future work.
+12. “Add one narrow regression for any future shared binning-completion helper” is no longer current future work; that helper and its direct regression now exist.
+13. Worker cleanup should still not be ahead of plot/redraw extraction and final state-ownership cleanup.
+14. “Decide whether project file paths belong permanently in `RuntimeState`” is no longer immediate future work; the runtime document-context decision has now been implemented with a dedicated service boundary.
 
 **Recommended Next Step**
 
 If choosing one next step only, do this:
-1. Add one direct geometry-generation correctness test for a minimal template or block in `roll_survey.py`, then use that test to support only the smallest justified extraction in the geometry-generation path.
+1. Stop the `roll_survey.py` live-path refactor here unless a new, clearly bounded duplication seam appears outside the preserved reference implementations.
 
 Why:
-1. The worker-contract slice is now strong enough that additional payload trimming would mostly reshuffle responsibility rather than improve boundaries.
-2. The biggest remaining uncovered gap in the roadmap is still direct geometry-generation correctness coverage.
-3. A narrow `roll_survey.py` test strengthens the domain layer beneath the worker contracts instead of adding more protection around already-stable plumbing.
-4. That test creates a safer basis for any later extraction inside geometry generation without reopening Phase 5 or inventing a broader worker abstraction.
+1. The active geometry-generation path, live localization seam, live bin-update seam, and live completion tail now all have direct regression coverage and extracted helper boundaries.
+2. The strongest remaining large functions in `roll_survey.py` are either preserved reference implementations or controller-style live orchestration whose remaining code is less obviously reusable.
+3. Another micro-extraction now risks chasing marginal line-count wins rather than improving the design materially.
+4. The better leverage has shifted back to broader architectural decisions, selective worker cleanup, or future measured performance work.
 
 After that, the next step should be:
-1. review one geometry-generation block for the smallest extraction or naming cleanup that the new test makes safe.
+1. keep the new document-context boundary stable and take only one broader, clearly bounded `RollMainWindow` seam next, most likely one remaining surface-specific plotting/controller cluster or selective worker cleanup where the simplification is measured.
 
 Estimated effort:
-less than 1 day for one narrow geometry-generation regression,
-then another 1 to 2 days only if that test reveals a clearly bounded extraction opportunity in `roll_survey.py`.
+no immediate `roll_survey.py` refactor is recommended; the next worthwhile step should be chosen from a broader seam with clearer leverage.
 
 **Backlog of Next 12 Tickets**
 
-1. Add one direct geometry-generation correctness test for a minimal template or block.
-2. Review one geometry-generation block for the smallest safe extraction supported by that test.
-3. Add a direct O/A regression that proves presentation-only redraw skips histogram recomputation.
-4. Add one higher-level offset redraw regression that distinguishes controller invalidation from visible-activation reuse.
-5. Add one geometry-to-plot invalidation regression that exercises cache reset after a broader analysis refresh.
-6. Decide whether any remaining file/session values should move from `RollMainWindow` into a broader runtime/session object.
-7. Optionally split `config.py` into narrower read-only modules by concern if that improves navigation.
-8. Re-measure performance after the above structure stabilizes.
-9. Profile worker result copying on the largest realistic survey inputs.
-10. Revisit XML as internal worker transport only if profiling shows it is still material.
+1. Keep the new document-context boundary stable and only move additional file/session values if another clearly bounded seam appears.
+2. Revisit worker payload shape only if a measured simplification remains after the live geometry/binning layer is easier to reason about.
+3. Optionally split `config.py` into narrower read-only modules by concern if that improves navigation.
+4. Re-measure performance after the above structure stabilizes.
+5. Profile worker result copying on the largest realistic survey inputs.
+6. Revisit XML as internal worker transport only if profiling shows it is still material.
+7. Add a small reusable project fixture follow-up only if test setup starts spreading further.
+8. Add redraw follow-up coverage only if another controller-owned invalidation seam is extracted.
+9. Extract one remaining surface-specific plotting/controller cluster from `roll_main_window.py` only if it can move as a coherent unit with existing coverage.
+10. Revisit preserved reference implementations only during a deliberate algorithm-comparison pass.
 11. Keep Phase 5 follow-up work limited to protective tests and small cleanup only.
-12. Add a small reusable project fixture with minimal sidecars only if test setup starts spreading further.
+12. Keep worker cleanup selective rather than reopening contract-shape churn.
 
 **Definition of Done for the First Major Milestone**
 

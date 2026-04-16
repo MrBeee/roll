@@ -54,6 +54,14 @@ class RollSeed:
         self.well.setSurvey(survey)
 
     @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        self._type = value if isinstance(value, SeedType) else SeedType(value)
+
+    @property
     def survey(self):
         return self._surveyRef() if self._surveyRef else None                 # return the referenced survey, or None if not set
 
@@ -80,13 +88,6 @@ class RollSeed:
         seedElem.setAttribute('src', str(self.bSource))
         seedElem.setAttribute('azi', str(self.bAzimuth))
         seedElem.setAttribute('patno', str(self.patternNo))
-
-        # todo: solve the following issue:
-        # **somewhere** in the code 'self.type' becomes an int instead of a SeedType
-        # most likely this occurs in the parameter handling
-        # workaround: first cast the int to a SeedType, before taking its value attribute
-
-        self.type = SeedType(self.type)                                         # ugly
 
         seedElem.setAttribute('typno', str(self.type.value))                    # make sure we save the **value** of the IntFlag (i.e. an integer number)
         seedElem.setAttribute('argb', str(self.color.name(QColor.NameFormat.HexArgb)))

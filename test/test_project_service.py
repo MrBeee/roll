@@ -5,11 +5,10 @@ import tempfile
 import unittest
 
 import numpy as np
-from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QRectF
 
 from .plugin_loader import loadPluginModule
-from .utilities import getQgisApp
+from .utilities import createTestSurvey, getQgisApp, writeMinimalProjectFixture
 
 QGIS_APP = getQgisApp()
 
@@ -26,8 +25,7 @@ pntType4 = spsModule.pntType4
 
 class ProjectServiceTest(unittest.TestCase):
     def createSurvey(self):
-        survey = RollSurvey('ProjectService-Test')
-        survey.crs = QgsCoordinateReferenceSystem('EPSG:23095')
+        survey = createTestSurvey('ProjectService-Test', QRectF(0.0, 0.0, 100.0, 80.0))
         survey.grid.orig.setX(123.5)
         survey.grid.orig.setY(456.25)
         survey.grid.angle = 12.5
@@ -39,9 +37,37 @@ class ProjectServiceTest(unittest.TestCase):
         survey.grid.stakeOrig.setY(2000.0)
         survey.grid.stakeSize.setX(25.0)
         survey.grid.stakeSize.setY(50.0)
-        survey.output.rctOutput = QRectF(0.0, 0.0, 100.0, 80.0)
         survey.calcTransforms()
         return survey
+
+    def testLoadProjectSidecarsLoadsReusableMinimalFixture(self):
+        service = ProjectService()
+        survey = self.createSurvey()
+
+        with tempfile.TemporaryDirectory() as tempDir:
+            projectPath = writeMinimalProjectFixture(
+                tempDir,
+                'project_service_fixture.roll',
+                survey=survey,
+                includeSurveySidecars=True,
+                includeAnalysisSidecars=True,
+                includeHistograms=True,
+            )
+
+            result = service.loadProjectSidecars(projectPath, survey)
+
+        self.assertIsNotNone(result.binOutput)
+        self.assertIsNotNone(result.minOffset)
+        self.assertIsNotNone(result.maxOffset)
+        self.assertIsNotNone(result.rmsOffset)
+        self.assertIsNotNone(result.offstHist)
+        self.assertIsNotNone(result.ofAziHist)
+        self.assertEqual(result.rpsImport.shape[0], 1)
+        self.assertEqual(result.spsImport.shape[0], 1)
+        self.assertEqual(result.recGeom.shape[0], 1)
+        self.assertEqual(result.srcGeom.shape[0], 1)
+        self.assertEqual(result.relGeom.shape[0], 1)
+        self.assertEqual(result.xpsImport.shape[0], 1)
 
     def testWriteAndReadProjectXml(self):
         service = ProjectService()

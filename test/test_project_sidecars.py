@@ -5,12 +5,11 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QRectF
 from qgis.PyQt.QtWidgets import QAction
 
 from .plugin_loader import loadPluginModule
-from .utilities import getQgisApp
+from .utilities import createTestSurvey, getQgisApp, writeMinimalProjectFixture
 
 QGIS_APP, _, IFACE, _ = getQgisApp()
 
@@ -69,29 +68,37 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow = None
 
     def createSurvey(self):
-        survey = RollSurvey('Phase0-Sidecars')
-        survey.crs = QgsCoordinateReferenceSystem('EPSG:23095')
-        survey.grid.orig.setX(0.0)
-        survey.grid.orig.setY(0.0)
-        survey.grid.angle = 0.0
-        survey.grid.scale.setX(1.0)
-        survey.grid.scale.setY(1.0)
-        survey.grid.binSize.setX(10.0)
-        survey.grid.binSize.setY(10.0)
-        survey.grid.stakeOrig.setX(1000.0)
-        survey.grid.stakeOrig.setY(1000.0)
-        survey.grid.stakeSize.setX(10.0)
-        survey.grid.stakeSize.setY(10.0)
-        survey.output.rctOutput = QRectF(0.0, 0.0, 100.0, 50.0)
-        survey.calcTransforms()
-        return survey
+        return createTestSurvey('Phase0-Sidecars', QRectF(0.0, 0.0, 100.0, 50.0))
 
     def writeProjectFixture(self, folder):
-        survey = self.createSurvey()
-        projectPath = os.path.join(folder, 'phase0_sidecars.roll')
-        with open(projectPath, 'w', encoding='utf-8') as handle:
-            handle.write(survey.toXmlString(2))
-        return projectPath
+        return writeMinimalProjectFixture(folder, 'phase0_sidecars.roll', survey=self.createSurvey())
+
+    def testMinimalProjectFixtureLoadsSurveyAndAnalysisSidecars(self):
+        with tempfile.TemporaryDirectory() as tempDir:
+            projectPath = writeMinimalProjectFixture(
+                tempDir,
+                'phase0_minimal_fixture.roll',
+                survey=self.createSurvey(),
+                includeSurveySidecars=True,
+                includeAnalysisSidecars=True,
+                includeHistograms=True,
+            )
+
+            success = self.mainWindow.fileLoad(projectPath)
+
+        self.assertTrue(success)
+        self.assertEqual(self.mainWindow.rpsImport.shape[0], 1)
+        self.assertEqual(self.mainWindow.spsImport.shape[0], 1)
+        self.assertEqual(self.mainWindow.recGeom.shape[0], 1)
+        self.assertEqual(self.mainWindow.srcGeom.shape[0], 1)
+        self.assertEqual(self.mainWindow.relGeom.shape[0], 1)
+        self.assertEqual(self.mainWindow.xpsImport.shape[0], 1)
+        self.assertIsNotNone(self.mainWindow.output.binOutput)
+        self.assertIsNotNone(self.mainWindow.output.minOffset)
+        self.assertIsNotNone(self.mainWindow.output.maxOffset)
+        self.assertIsNotNone(self.mainWindow.output.rmsOffset)
+        self.assertIsNotNone(self.mainWindow.output.offstHist)
+        self.assertIsNotNone(self.mainWindow.output.ofAziHist)
 
     def testFileLoadIgnoresFoldSidecarWithWrongDimensions(self):
         with tempfile.TemporaryDirectory() as tempDir:
@@ -284,6 +291,15 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.assertTrue(success)
             self.assertEqual(self.mainWindow.recentFileList[0], projectPath)
             self.assertEqual(self.mainWindow.settings.value('settings/recentFileList', [])[0], projectPath)
+
+    def testFileLoadReadFailurePreservesProjectDirectory(self):
+        originalProjectDirectory = self.mainWindow.projectDirectory
+
+        with patch.object(self.mainWindow.projectService, 'readProjectText', return_value=MagicMock(success=False, errorText='read failure')):
+            success = self.mainWindow.fileLoad(os.path.join('D:\\', 'missing', 'broken.roll'))
+
+        self.assertFalse(success)
+        self.assertEqual(self.mainWindow.projectDirectory, originalProjectDirectory)
 
     def testSaveAnalysisSidecarsWritesHistogramFiles(self):
         with tempfile.TemporaryDirectory() as tempDir:
@@ -559,6 +575,24 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIs(self.mainWindow.output.ofAziHist, histogram)
         redrawOffAzi.assert_called_once()
 
+    def testDispatchAnalysisRedrawOffAziPresentationReasonSkipsHistogramRecompute(self):
+        histogram = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.output.ofAziHist = histogram
+        self.mainWindow.output.maxMaxOffset = 400.0
+        self.mainWindow.output.binOutput = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.actionOffAziPolar.setChecked(True)
+
+        with patch.object(rollMainWindowModule.fnb, 'numbaSliceStats') as sliceStats:
+            with patch.object(self.mainWindow, 'renderOffAziPolar') as renderPolar:
+                with patch.object(self.mainWindow, 'renderOffAziRectangular') as renderRectangular:
+                    self.mainWindow.dispatchAnalysisRedraw('off-azi', rollMainWindowModule.AnalysisRedrawReason.offAziDisplayModeChanged)
+
+        sliceStats.assert_not_called()
+        self.assertIs(self.mainWindow.output.ofAziHist, histogram)
+        renderPolar.assert_called_once()
+        renderRectangular.assert_not_called()
+
     def testDispatchAnalysisRedrawRoutesOffsetToRedrawOffset(self):
         self.mainWindow.output.offstHist = np.array([[0.0, 50.0, 100.0], [1.0, 2.0, 0.0]], dtype=np.float32)
 
@@ -577,6 +611,28 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.assertIs(self.mainWindow.output.offstHist, histogram)
         redrawOffset.assert_called_once()
+
+    def testDispatchAnalysisRedrawOffsetVisibleActivationReusesHistogramButControllerRecomputes(self):
+        histogram = np.array([[0.0, 50.0, 100.0], [1.0, 2.0, 0.0]], dtype=np.float32)
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.output.offstHist = histogram
+        self.mainWindow.output.maxMaxOffset = 100.0
+        self.mainWindow.output.binOutput = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.anaOutput = np.ones((1, 1, 1, 12), dtype=np.float32)
+
+        with patch.object(rollMainWindowModule.fnb, 'numbaSliceStats', return_value=(np.array([10.0, 20.0], dtype=np.float32), np.array([0.0, 0.0], dtype=np.float32), False)) as sliceStats:
+            with patch.object(self.mainWindow, 'renderPreparedOffsetPlot') as renderPrepared:
+                with patch.object(self.mainWindow.offsetWidget, 'setTitle'):
+                    self.mainWindow.dispatchAnalysisRedraw('offset', rollMainWindowModule.AnalysisRedrawReason.visiblePlotActivated)
+
+                    self.assertIs(self.mainWindow.output.offstHist, histogram)
+                    sliceStats.assert_not_called()
+
+                    self.mainWindow.dispatchAnalysisRedraw('offset', rollMainWindowModule.AnalysisRedrawReason.controller)
+
+        sliceStats.assert_called_once_with(self.mainWindow.output.anaOutput, self.mainWindow.survey.unique.apply)
+        self.assertIsNot(self.mainWindow.output.offstHist, histogram)
+        self.assertEqual(renderPrepared.call_count, 2)
 
     def testDispatchAnalysisRedrawRoutesStackInlineUsingContext(self):
         context = {
@@ -1005,9 +1061,11 @@ class ProjectSidecarsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempDir:
             importDir = os.path.join(tempDir, 'imports')
             os.makedirs(importDir)
+            projectPath = self.writeProjectFixture(tempDir)
 
             self.mainWindow.settings.setValue('settings/projectDirectory', tempDir)
             self.mainWindow.settings.setValue('settings/importDirectory', importDir)
+            self.mainWindow.settings.setValue('settings/recentFileList', [projectPath])
             self.mainWindow.settings.setValue('settings/sps/spsDialect', 'SEG rev2.1')
             self.mainWindow.settings.setValue('settings/colors/analysisCmap', 'CET-L5')
 
@@ -1017,6 +1075,8 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.assertEqual(self.mainWindow.projectDirectory, tempDir)
             self.assertEqual(self.mainWindow.runtimeState.importDirectory, importDir)
             self.assertEqual(self.mainWindow.importDirectory, importDir)
+            self.assertEqual(self.mainWindow.runtimeState.recentFileList, [projectPath])
+            self.assertEqual(self.mainWindow.recentFileList, [projectPath])
             self.assertEqual(self.mainWindow.appSettings.spsDialect, 'SEG rev2.1')
             self.assertEqual(self.mainWindow.appSettings.analysisCmap, 'CET-L5')
 
@@ -1024,13 +1084,29 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.mainWindow.appSettings.spsDialect = 'New Zealand'
             self.mainWindow.projectDirectory = tempDir
             self.mainWindow.importDirectory = importDir
+            self.mainWindow.recentFileList = [projectPath]
 
             writeSettings(self.mainWindow)
 
             self.assertFalse(self.mainWindow.settings.value('settings/misc/useRelativePaths', True, type=bool))
             self.assertEqual(self.mainWindow.settings.value('settings/projectDirectory', ''), tempDir)
             self.assertEqual(self.mainWindow.settings.value('settings/importDirectory', ''), importDir)
+            self.assertEqual(self.mainWindow.settings.value('settings/recentFileList', []), [projectPath])
             self.assertEqual(self.mainWindow.settings.value('settings/sps/spsDialect', ''), 'New Zealand')
+
+    def testReadSettingsRestoresSavedWindowState(self):
+        geometryState = b'geometry-bytes'
+        windowState = b'window-state-bytes'
+
+        self.mainWindow.settings.setValue('mainWindow/geometry', geometryState)
+        self.mainWindow.settings.setValue('mainWindow/state', windowState)
+
+        with patch.object(self.mainWindow, 'restoreGeometry') as restoreGeometry:
+            with patch.object(self.mainWindow, 'restoreState') as restoreState:
+                readSettings(self.mainWindow)
+
+        restoreGeometry.assert_called_once_with(geometryState)
+        restoreState.assert_called_once_with(windowState)
 
     def testSpsImportDialogUsesAppSettingsAsFormatOwner(self):
         self.mainWindow.appSettings.spsDialect = 'New Zealand'
@@ -1350,6 +1426,51 @@ class ProjectSidecarsTest(unittest.TestCase):
         updateMenuStatus.assert_called_once_with(False)
         enableProcessingMenuItems.assert_called_once()
         hideStatusbarWidgets.assert_called_once()
+
+    def testApplyPropertyChangesResetsAnalysisCachesWhenBinAreaChanges(self):
+        self.mainWindow.fileName = os.path.join(tempfile.gettempdir(), 'phase0_refresh.roll')
+        self.mainWindow.inlineStk = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.x0lineStk = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.xyCellStk = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.xyPatResp = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.plotRedrawHelper.storeInlineResponseKey(3)
+        self.mainWindow.plotRedrawHelper.storeXlineResponseKey(4)
+        self.mainWindow.plotRedrawHelper.storeStackCellResponse((1, 2, False, 0, 0), 5)
+        self.mainWindow.plotRedrawHelper.storePatternResponseKey((6, 7))
+        self.mainWindow.output.binOutput = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.minOffset = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.maxOffset = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.rmsOffset = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.ofAziHist = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.offstHist = np.ones((2, 3), dtype=np.float32)
+        self.mainWindow.binAreaChanged = True
+
+        with patch.object(self.mainWindow, 'setPlottingDetails'):
+            with patch.object(self.mainWindow, 'resetAnaTableModel', return_value=False):
+                with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                    with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                        with patch.object(self.mainWindow, 'updatePatternList'):
+                            with patch.object(self.mainWindow, 'plotLayout'):
+                                self.mainWindow.applyPropertyChanges()
+
+        self.assertFalse(self.mainWindow.binAreaChanged)
+        self.assertIsNone(self.mainWindow.inlineStk)
+        self.assertIsNone(self.mainWindow.x0lineStk)
+        self.assertIsNone(self.mainWindow.xyCellStk)
+        self.assertIsNone(self.mainWindow.xyPatResp)
+        self.assertIsNone(self.mainWindow.plotRedrawHelper.cache.inlineStkKey)
+        self.assertIsNone(self.mainWindow.plotRedrawHelper.cache.xlineStkKey)
+        self.assertIsNone(self.mainWindow.plotRedrawHelper.cache.stackCellResponseKey)
+        self.assertIsNone(self.mainWindow.plotRedrawHelper.cache.stackCellFold)
+        self.assertIsNone(self.mainWindow.plotRedrawHelper.cache.patternResponseKey)
+        self.assertIsNone(self.mainWindow.output.binOutput)
+        self.assertIsNone(self.mainWindow.output.minOffset)
+        self.assertIsNone(self.mainWindow.output.maxOffset)
+        self.assertIsNone(self.mainWindow.output.rmsOffset)
+        self.assertIsNone(self.mainWindow.output.ofAziHist)
+        self.assertIsNone(self.mainWindow.output.offstHist)
+        updateMenuStatus.assert_called_once_with(True)
+        enableProcessingMenuItems.assert_called_once_with(True)
 
     def testBinFromGeometryUsesRequestObjectAndResultSignal(self):
         class SignalStub:
@@ -1900,6 +2021,44 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.assertFalse(cancelled)
         self.assertEqual(self.mainWindow.sessionState.surveyNumber, 4)
+
+    def testFileSaveAsCommitsDocumentContextOnlyAfterSuccessfulSave(self):
+        originalProjectDirectory = self.mainWindow.projectDirectory
+        self.mainWindow.fileName = ''
+        self.mainWindow.recentFileList = []
+        self.mainWindow.textEdit.document().setModified(True)
+
+        with tempfile.TemporaryDirectory() as tempDir:
+            targetFileName = os.path.join(tempDir, 'saved_as.roll')
+
+            with patch.object(rollMainWindowModule.QFileDialog, 'getSaveFileName', return_value=(targetFileName, '')):
+                with patch.object(self.mainWindow.projectService, 'writeProjectXml', return_value=MagicMock(success=False, errorText='write failure')):
+                    with patch.object(rollMainWindowModule.QMessageBox, 'information') as showWriteError:
+                        with patch.object(self.mainWindow.projectService, 'saveAnalysisSidecars') as saveAnalysisSidecars:
+                            with patch.object(self.mainWindow.projectService, 'saveSurveyDataSidecars') as saveSurveyDataSidecars:
+                                success = self.mainWindow.fileSaveAs()
+
+            self.assertFalse(success)
+            self.assertEqual(self.mainWindow.fileName, '')
+            self.assertEqual(self.mainWindow.projectDirectory, originalProjectDirectory)
+            self.assertEqual(self.mainWindow.recentFileList, [])
+            self.assertTrue(self.mainWindow.textEdit.document().isModified())
+            showWriteError.assert_called_once()
+            saveAnalysisSidecars.assert_not_called()
+            saveSurveyDataSidecars.assert_not_called()
+
+            with patch.object(rollMainWindowModule.QFileDialog, 'getSaveFileName', return_value=(targetFileName, '')):
+                with patch.object(self.mainWindow.projectService, 'saveAnalysisSidecars') as saveAnalysisSidecars:
+                    with patch.object(self.mainWindow.projectService, 'saveSurveyDataSidecars') as saveSurveyDataSidecars:
+                        success = self.mainWindow.fileSaveAs()
+
+            self.assertTrue(success)
+            self.assertEqual(self.mainWindow.fileName, targetFileName)
+            self.assertEqual(self.mainWindow.projectDirectory, tempDir)
+            self.assertEqual(self.mainWindow.recentFileList, [targetFileName])
+            self.assertFalse(self.mainWindow.textEdit.document().isModified())
+            saveAnalysisSidecars.assert_called_once_with(targetFileName, self.mainWindow.output, includeHistograms=True)
+            saveSurveyDataSidecars.assert_called_once()
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ name=Roll
 qgisMinimumVersion=3.34
 qgisMaximumVersion=4.99
 description=Design and analysis of 3D seismic survey geometries
-version=0.6.4
+version=0.6.5
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -47,7 +47,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:  <p>2026-04-09 (0.6.4) Added polar diagram for offset/azimuth histogram and continued refactoring of code
+changelog:  <p>2026-04-16 (0.6.5) Added inline and x-line offsets to |offset| plots and mouse tracking in statusbar for all plots. Continued refactoring code.
+  <p>2026-04-09 (0.6.4) Added a polar diagram for the offset/azimuth histogram and continued refactoring of code
   <p>2026-03-10 (0.6.3) Some numpy attribute names needed to be changed for NumPy 2.0 compatibility in QGIS 4.0
   <p>2026-03-08 (0.6.2) Mainly internal reformatting of code to make attribute & variable names compatible with QGIS' use of camelCase, rather than snake_case. Some minor tweaks applied
   <p>2026-02-25 (0.6.1) Fixed a bug related to reading boolean values reliably from xml text input

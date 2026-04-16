@@ -5,6 +5,7 @@ import math
 import os
 import sys
 from collections import defaultdict
+from dataclasses import dataclass
 from time import perf_counter
 
 import numpy as np
@@ -34,6 +35,19 @@ from .roll_sphere import RollSphere
 from .roll_template import RollTemplate
 from .roll_unique import RollUnique
 from .sps_io_and_qc import pntType1, relType2
+
+
+@dataclass(frozen=True)
+class GeometryRelationBinningLookup:
+    relLeft: np.ndarray
+    relRight: np.ndarray
+    recIndex: np.ndarray
+    recLineI: np.ndarray
+    recPointI: np.ndarray
+    relRecIndI: np.ndarray
+    relRecLinI: np.ndarray
+    relRecMinI: np.ndarray
+    relRecMaxI: np.ndarray
 
 # from .functions_numba import (clipLineF, numbaFixRelationRecord,
 #                               numbaSetPointRecord, numbaSetRelationRecord,
@@ -601,8 +615,7 @@ class RollSurvey(pg.GraphicsObject):
             # get all blocks
             for nBlock, block in enumerate(self.blockList):
                 for template in block.templateList:                             # get all templates
-                    for templateOffset in self.iterTemplateRollOffsets(template):
-                        self.geomTemplate4(nBlock, block, template, templateOffset)
+                    self.appendTemplateGeometryFromRolls(nBlock, block, template)
 
         except StopIteration:
             self.errorText = 'geometry creation cancelled by user'
@@ -657,6 +670,10 @@ class RollSurvey(pg.GraphicsObject):
         # --- END DEBUG: validate rel coverage per shot ---
 
         return True
+
+    def appendTemplateGeometryFromRolls(self, nBlock, block, template):
+        for templateOffset in self.iterTemplateRollOffsets(template):
+            self.geomTemplate4(nBlock, block, template, templateOffset)
 
     def finalizeGeometryArrays(self) -> None:
         #  first remove all remaining receiver duplicates
@@ -1214,7 +1231,17 @@ class RollSurvey(pg.GraphicsObject):
 
         nShotPoint = self.nShotPoint
 
-        # -- Source points --
+        self.appendTemplateSourceRecords(nBlock, block, template, npTemplateOffset)
+
+        nRelRecord = self.populateTemplateReceiversInRelTemp(nBlock, block, template, npTemplateOffset)
+
+        if nRelRecord < 0:
+            self.errorText = 'geomTemplate4(): no relTemp records created for this template'
+            raise StopIteration
+
+        self.appendTemplateRelationsFromRelTemp(nShotPoint, nRelRecord)
+
+    def appendTemplateSourceRecords(self, nBlock, block, template, npTemplateOffset):
         for srcSeed in template.seedList:
             if not srcSeed.bSource:
                 continue
@@ -1236,30 +1263,6 @@ class RollSurvey(pg.GraphicsObject):
 
                 fnb.numbaSetPointRecord(self.output.srcGeom, self.nShotPoint, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
                 self.nShotPoint += 1
-
-        nRelRecord = self.populateTemplateReceiversInRelTemp(nBlock, block, template, npTemplateOffset)
-
-        if nRelRecord < 0:
-            self.errorText = 'geomTemplate4(): no relTemp records created for this template'
-            raise StopIteration
-
-        # -- Expand relTemp into relGeom for all shots in this template --
-        for i in range(nShotPoint, self.nShotPoint):
-            arraySize = self.output.relGeom.shape[0]
-            if self.nRelRecord + 1000 > arraySize:
-                self.output.relGeom.resize(arraySize + 10000, refcheck=False)
-
-            srcLin = self.output.srcGeom[i]['Line']
-            srcPnt = self.output.srcGeom[i]['Point']
-            srcInd = self.output.srcGeom[i]['Index']
-
-            for j in range(nRelRecord + 1):
-                recLin = self.output.relTemp[j]['RecLin']
-                recMin = self.output.relTemp[j]['RecMin']
-                recMax = self.output.relTemp[j]['RecMax']
-
-                fnb.numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
-                self.nRelRecord += 1
 
     def populateTemplateReceiversInRelTemp(self, nBlock, block, template, npTemplateOffset):
         nRelRecord = -1
@@ -1326,6 +1329,202 @@ class RollSurvey(pg.GraphicsObject):
 
         return nRelRecord
 
+    def appendTemplateRelationsFromRelTemp(self, firstShotPoint, nRelRecord):
+        for i in range(firstShotPoint, self.nShotPoint):
+            arraySize = self.output.relGeom.shape[0]
+            if self.nRelRecord + 1000 > arraySize:
+                self.output.relGeom.resize(arraySize + 10000, refcheck=False)
+
+            srcLin = self.output.srcGeom[i]['Line']
+            srcPnt = self.output.srcGeom[i]['Point']
+            srcInd = self.output.srcGeom[i]['Index']
+
+            for j in range(nRelRecord + 1):
+                recLin = self.output.relTemp[j]['RecLin']
+                recMin = self.output.relTemp[j]['RecMin']
+                recMax = self.output.relTemp[j]['RecMax']
+
+                fnb.numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
+                self.nRelRecord += 1
+
+    def updateBinOutputsForValidCmpPoints(self, src, cmpPoints, recPoints, hypArray, aziArray, writeAnalysis):
+        mapped = np.array([self.binTransform.map(float(p[0]), float(p[1])) for p in cmpPoints], dtype=np.float32)
+        nx = mapped[:, 0].astype(int)
+        ny = mapped[:, 1].astype(int)
+
+        valid = (
+            (nx >= 0) & (ny >= 0)
+            & (nx < self.output.binOutput.shape[0])
+            & (ny < self.output.binOutput.shape[1])
+        )
+        if np.all(~valid):
+            return False
+
+        nx = nx[valid]
+        ny = ny[valid]
+        cmpPoints = cmpPoints[valid]
+        recPoints = recPoints[valid]
+        hypArray = hypArray[valid]
+        aziArray = aziArray[valid]
+
+        np.add.at(self.output.binOutput, (nx, ny), 1)
+        np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
+        np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
+
+        if writeAnalysis:
+            for idx, (x, y) in enumerate(zip(nx, ny)):
+                fold = self.output.binOutput[x, y] - 1
+                if fold < self.grid.fold:
+                    stkX, stkY = self.st2Transform.map(cmpPoints[idx, 0], cmpPoints[idx, 1])
+                    self.output.anaOutput[x, y, fold, 0] = int(stkX)
+                    self.output.anaOutput[x, y, fold, 1] = int(stkY)
+                    self.output.anaOutput[x, y, fold, 2] = fold + 1
+                    self.output.anaOutput[x, y, fold, 3] = src[0]
+                    self.output.anaOutput[x, y, fold, 4] = src[1]
+                    self.output.anaOutput[x, y, fold, 5] = recPoints[idx, 0]
+                    self.output.anaOutput[x, y, fold, 6] = recPoints[idx, 1]
+                    self.output.anaOutput[x, y, fold, 7] = cmpPoints[idx, 0]
+                    self.output.anaOutput[x, y, fold, 8] = cmpPoints[idx, 1]
+                    self.output.anaOutput[x, y, fold, 9] = 0.0
+                    self.output.anaOutput[x, y, fold, 10] = hypArray[idx]
+                    self.output.anaOutput[x, y, fold, 11] = aziArray[idx]
+
+        return True
+
+    def buildBinningArraysFromSelectedReceivers(self, src, recPoints):
+        if self.binning.method == BinningType.cmp:
+            cmpPoints = (recPoints + src) * 0.5
+            offArray = recPoints - src
+        elif self.binning.method == BinningType.plane:
+            srcMirrorNp = self.localPlane.mirrorPointNp(src)
+            cmpPoints, recPoints = self.localPlane.IntersectLinesAtPointNp(
+                srcMirrorNp, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
+            )
+            if cmpPoints is None:
+                return None
+            offArray = recPoints - src
+        elif self.binning.method == BinningType.sphere:
+            cmpPoints, recPoints = self.localSphere.ReflectSphereAtPointsNp(
+                src, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
+            )
+            if cmpPoints is None:
+                return None
+            offArray = recPoints - src
+        else:
+            return None
+
+        I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
+        if np.all(~I):
+            return None
+
+        cmpPoints = cmpPoints[I]
+        recPoints = recPoints[I]
+        offArray = offArray[I]
+
+        I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
+        if np.all(~I):
+            return None
+
+        cmpPoints = cmpPoints[I]
+        recPoints = recPoints[I]
+        offArray = offArray[I]
+
+        hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
+        aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
+        aziArray = (aziArray + 360.0) % 360.0
+
+        r1 = self.offset.radOffsets.x()
+        r2 = self.offset.radOffsets.y()
+        if r2 > 0:
+            I = (hypArray >= r1) & (hypArray <= r2)
+            if np.all(~I):
+                return None
+            cmpPoints = cmpPoints[I]
+            recPoints = recPoints[I]
+            hypArray = hypArray[I]
+            aziArray = aziArray[I]
+
+        return cmpPoints, recPoints, hypArray, aziArray
+
+    def ensurePointArrayLocalCoordinates(self, pointArray, toLocalTransform) -> None:
+        if pointArray is None or pointArray.shape[0] == 0:
+            return
+
+        if np.all(pointArray['LocX'] == 0.0) and np.all(pointArray['LocY'] == 0.0):
+            mapped = np.array(
+                [toLocalTransform.map(float(x), float(y)) for x, y in zip(pointArray['East'], pointArray['North'])],
+                dtype=np.float32,
+            )
+            pointArray['LocX'] = mapped[:, 0]
+            pointArray['LocY'] = mapped[:, 1]
+
+    def ensureGeometryLocalCoordinates(self) -> None:
+        toLocalTransform, _ = self.glbTransform.inverted()
+        self.ensurePointArrayLocalCoordinates(self.output.srcGeom, toLocalTransform)
+        self.ensurePointArrayLocalCoordinates(self.output.recGeom, toLocalTransform)
+
+    def finalizeLiveBinningOutputs(self, fullAnalysis) -> None:
+        self.calcFoldAndOffsetEssentials()
+
+        if fullAnalysis:
+            self.calcRmsOffsetValues()
+            self.calcUniqueFoldValues()
+            self.calcOffsetAndAzimuthDistribution()
+        else:
+            self.output.anaOutput = None
+
+    def prepareGeometryRelationBinningLookup(self):
+        self.ensureGeometryLocalCoordinates()
+
+        self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
+        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
+        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+
+        srcIndI = self.output.srcGeom['Index'].astype(np.int32)
+        srcLinI = np.rint(self.output.srcGeom['Line']).astype(np.int32)
+        srcPntI = np.rint(self.output.srcGeom['Point']).astype(np.int32)
+
+        relSrcIndI = self.output.relGeom['SrcInd'].astype(np.int32)
+        relSrcLinI = np.rint(self.output.relGeom['SrcLin']).astype(np.int32)
+        relSrcPntI = np.rint(self.output.relGeom['SrcPnt']).astype(np.int32)
+
+        relKey = np.rec.fromarrays([relSrcIndI, relSrcLinI, relSrcPntI], names='Ind,Lin,Pnt')
+        srcKey = np.rec.fromarrays([srcIndI, srcLinI, srcPntI], names='Ind,Lin,Pnt')
+
+        return GeometryRelationBinningLookup(
+            relLeft=np.searchsorted(relKey, srcKey, side='left'),
+            relRight=np.searchsorted(relKey, srcKey, side='right'),
+            recIndex=self.output.recGeom['Index'],
+            recLineI=np.rint(self.output.recGeom['Line']).astype(np.int32),
+            recPointI=np.rint(self.output.recGeom['Point']).astype(np.int32),
+            relRecIndI=self.output.relGeom['RecInd'].astype(np.int32),
+            relRecLinI=np.rint(self.output.relGeom['RecLin']).astype(np.int32),
+            relRecMinI=np.rint(self.output.relGeom['RecMin']).astype(np.int32),
+            relRecMaxI=np.rint(self.output.relGeom['RecMax']).astype(np.int32),
+        )
+
+    def selectReceiversForSourceRelationSlice(self, sourceIndex, lookup):
+        minRecord = lookup.relLeft[sourceIndex]
+        maxRecord = lookup.relRight[sourceIndex]
+        if maxRecord <= minRecord:
+            return None
+
+        recMask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
+        for relationIndex in range(minRecord, maxRecord):
+            recMask |= (
+                (lookup.recIndex == lookup.relRecIndI[relationIndex])
+                & (lookup.recLineI == lookup.relRecLinI[relationIndex])
+                & (lookup.recPointI >= lookup.relRecMinI[relationIndex])
+                & (lookup.recPointI <= lookup.relRecMaxI[relationIndex])
+            )
+
+        recArray = self.output.recGeom[recMask]
+        recArray = recArray[recArray['InUse'] > 0]
+        if recArray.shape[0] == 0:
+            return None
+
+        return np.vstack((recArray['LocX'], recArray['LocY'], recArray['Elev'])).T
+
     def setupBinFromGeometry(self, fullAnalysis) -> bool:
         """this routine is used for both geometry files and SPS files"""
 
@@ -1358,29 +1557,7 @@ class RollSurvey(pg.GraphicsObject):
         """
         self.threadProgress = 0                                                 # always start at zero
 
-        toLocalTransform = QTransform()                                         # setup empty (unit) transform
-        toLocalTransform, _ = self.glbTransform.inverted()                      # transform to local survey coordinates
-
-        # if needed, fill the source and receiver arrays with local coordinates
-        minLocX = np.min(self.output.srcGeom['LocX'])                           # determine if there's any data there...
-        maxLocX = np.max(self.output.srcGeom['LocY'])                           # determine if there's any data there...
-        if minLocX == 0.0 and maxLocX == 0.0:
-            for record in self.output.srcGeom:
-                srcX = record['East']
-                srcY = record['North']
-                x, y = toLocalTransform.map(srcX, srcY)
-                record['LocX'] = x
-                record['LocY'] = y
-
-        minLocX = np.min(self.output.recGeom['LocX'])                           # determine if there's any data there...
-        maxLocX = np.max(self.output.recGeom['LocY'])                           # determine if there's any data there...
-        if minLocX == 0.0 and maxLocX == 0.0:
-            for record in self.output.recGeom:
-                recX = record['East']
-                recY = record['North']
-                x, y = toLocalTransform.map(recX, recY)
-                record['LocX'] = x
-                record['LocY'] = y
+        self.ensureGeometryLocalCoordinates()
 
         # There is no relation file in this binning approach; iterate over all shots and find receivers based on proximity
 
@@ -1557,14 +1734,7 @@ class RollSurvey(pg.GraphicsObject):
             del (fileName, funcName, lineNo)
             return False
 
-        self.calcFoldAndOffsetEssentials()
-
-        if fullAnalysis:
-            self.calcRmsOffsetValues()
-            self.calcUniqueFoldValues()
-            self.calcOffsetAndAzimuthDistribution()
-        else:
-            self.output.anaOutput = None
+        self.finalizeLiveBinningOutputs(fullAnalysis)
 
         return True
 
@@ -1861,14 +2031,7 @@ class RollSurvey(pg.GraphicsObject):
             del (fileName, funcName, lineNo)
             return False
 
-        self.calcFoldAndOffsetEssentials()
-
-        if fullAnalysis:
-            self.calcRmsOffsetValues()
-            self.calcUniqueFoldValues()
-            self.calcOffsetAndAzimuthDistribution()
-        else:
-            self.output.anaOutput = None
+        self.finalizeLiveBinningOutputs(fullAnalysis)
 
         return True
 
@@ -1987,27 +2150,8 @@ class RollSurvey(pg.GraphicsObject):
                 aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
                 aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
 
-                # Map CMP points to bin grid coordinates
-                mappedCoords = np.array([self.binTransform.map(pt[0], pt[1]) for pt in cmpPoints])
-                nx = mappedCoords[:, 0].astype(int)
-                ny = mappedCoords[:, 1].astype(int)
-
-                # Create a mask for valid bins
-                validBinsMask = (nx >= 0) & (ny >= 0) & (nx < self.output.binOutput.shape[0]) & (ny < self.output.binOutput.shape[1])
-
-                # Filter arrays to include only valid bins
-                nx = nx[validBinsMask]
-                ny = ny[validBinsMask]
-                hypArray = hypArray[validBinsMask]
-                aziArray = aziArray[validBinsMask]
-
-                if nx.shape[0] == 0:
+                if not self.updateBinOutputsForValidCmpPoints(src, cmpPoints, recPoints, hypArray, aziArray, False):
                     continue
-
-                # Efficient bin assignment
-                np.add.at(self.output.binOutput, (nx, ny), 1)
-                np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
-                np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
 
                 # if fullAnalysis:
                 #     np.minimum.at(self.output.minAzimuth, (nx, ny), aziArray)
@@ -2111,100 +2255,14 @@ class RollSurvey(pg.GraphicsObject):
 
                 recPoints = np.vstack((recArray['LocX'], recArray['LocY'], recArray['Elev'])).T
 
-                if self.binning.method == BinningType.cmp:
-                    cmpPoints = (recPoints + src) * 0.5
-                    offArray = recPoints - src
-                elif self.binning.method == BinningType.plane:
-                    srcMirrorNp = self.localPlane.mirrorPointNp(src)
-                    cmpPoints, recPoints = self.localPlane.IntersectLinesAtPointNp(
-                        srcMirrorNp, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
-                    )
-                    if cmpPoints is None:
-                        continue
-                    offArray = recPoints - src
-                elif self.binning.method == BinningType.sphere:
-                    cmpPoints, recPoints = self.localSphere.ReflectSphereAtPointsNp(
-                        src, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
-                    )
-                    if cmpPoints is None:
-                        continue
-                    offArray = recPoints - src
-                else:
+                traceArrays = self.buildBinningArraysFromSelectedReceivers(src, recPoints)
+                if traceArrays is None:
                     continue
-
-                I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
-                if np.all(~I):
-                    continue
-
-                cmpPoints = cmpPoints[I]
-                recPoints = recPoints[I]
-                offArray = offArray[I]
-
-                I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
-                if np.all(~I):
-                    continue
-
-                cmpPoints = cmpPoints[I]
-                recPoints = recPoints[I]
-                offArray = offArray[I]
-
-                hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
-                aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
-                aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
-
-                r1 = self.offset.radOffsets.x()
-                r2 = self.offset.radOffsets.y()
-                if r2 > 0:
-                    I = (hypArray >= r1) & (hypArray <= r2)
-                    if np.all(~I):
-                        continue
-                    cmpPoints = cmpPoints[I]
-                    recPoints = recPoints[I]
-                    hypArray = hypArray[I]
-                    aziArray = aziArray[I]
+                cmpPoints, recPoints, hypArray, aziArray = traceArrays
 
                 # mapped = np.array([self.binTransform.map(p[0], p[1]) for p in cmpPoints])
-                mapped = np.array([self.binTransform.map(float(p[0]), float(p[1])) for p in cmpPoints], dtype=np.float32)
-
-                nx = mapped[:, 0].astype(int)
-                ny = mapped[:, 1].astype(int)
-
-                valid = (
-                    (nx >= 0) & (ny >= 0)
-                    & (nx < self.output.binOutput.shape[0])
-                    & (ny < self.output.binOutput.shape[1])
-                )
-                if np.all(~valid):
+                if not self.updateBinOutputsForValidCmpPoints(src, cmpPoints, recPoints, hypArray, aziArray, fullAnalysis):
                     continue
-
-                nx = nx[valid]
-                ny = ny[valid]
-                cmpPoints = cmpPoints[valid]
-                recPoints = recPoints[valid]
-                hypArray = hypArray[valid]
-                aziArray = aziArray[valid]
-
-                np.add.at(self.output.binOutput, (nx, ny), 1)
-                np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
-                np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
-
-                if fullAnalysis:
-                    for idx, (x, y) in enumerate(zip(nx, ny)):
-                        fold = self.output.binOutput[x, y] - 1
-                        if fold < self.grid.fold:
-                            stkX, stkY = self.st2Transform.map(cmpPoints[idx, 0], cmpPoints[idx, 1])
-                            self.output.anaOutput[x, y, fold, 0] = int(stkX)
-                            self.output.anaOutput[x, y, fold, 1] = int(stkY)
-                            self.output.anaOutput[x, y, fold, 2] = fold + 1
-                            self.output.anaOutput[x, y, fold, 3] = src[0]
-                            self.output.anaOutput[x, y, fold, 4] = src[1]
-                            self.output.anaOutput[x, y, fold, 5] = recPoints[idx, 0]
-                            self.output.anaOutput[x, y, fold, 6] = recPoints[idx, 1]
-                            self.output.anaOutput[x, y, fold, 7] = cmpPoints[idx, 0]
-                            self.output.anaOutput[x, y, fold, 8] = cmpPoints[idx, 1]
-                            self.output.anaOutput[x, y, fold, 9] = 0.0
-                            self.output.anaOutput[x, y, fold, 10] = hypArray[idx]
-                            self.output.anaOutput[x, y, fold, 11] = aziArray[idx]
 
         except StopIteration:
             self.errorText = 'binning from geometry cancelled by user'
@@ -2232,54 +2290,7 @@ class RollSurvey(pg.GraphicsObject):
         Optimized binning with integer-normalized relation indexing to avoid gaps.
         """
         self.threadProgress = 0
-
-        toLocalTransform, _ = self.glbTransform.inverted()
-
-        # Fill source and receiver arrays with local coordinates if needed
-        if np.all(self.output.srcGeom['LocX'] == 0.0) and np.all(self.output.srcGeom['LocY'] == 0.0):
-            mapped = np.array(
-                [toLocalTransform.map(float(x), float(y)) for x, y in zip(self.output.srcGeom['East'], self.output.srcGeom['North'])],
-                dtype=np.float32,
-            )
-            self.output.srcGeom['LocX'] = mapped[:, 0]
-            self.output.srcGeom['LocY'] = mapped[:, 1]
-
-        if np.all(self.output.recGeom['LocX'] == 0.0) and np.all(self.output.recGeom['LocY'] == 0.0):
-            mapped = np.array(
-                [toLocalTransform.map(float(x), float(y)) for x, y in zip(self.output.recGeom['East'], self.output.recGeom['North'])],
-                dtype=np.float32,
-            )
-            self.output.recGeom['LocX'] = mapped[:, 0]
-            self.output.recGeom['LocY'] = mapped[:, 1]
-
-        # Sort geometry arrays to ensure proper order
-        self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
-        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
-        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
-
-        # Integer-normalize for stable matching
-        srcIndI = self.output.srcGeom['Index'].astype(np.int32)
-        srcLinI = np.rint(self.output.srcGeom['Line']).astype(np.int32)
-        srcPntI = np.rint(self.output.srcGeom['Point']).astype(np.int32)
-
-        recIndex = self.output.recGeom['Index']
-        recLineI = np.rint(self.output.recGeom['Line']).astype(np.int32)
-        recPointI = np.rint(self.output.recGeom['Point']).astype(np.int32)
-
-        relSrcIndI = self.output.relGeom['SrcInd'].astype(np.int32)
-        relSrcLinI = np.rint(self.output.relGeom['SrcLin']).astype(np.int32)
-        relSrcPntI = np.rint(self.output.relGeom['SrcPnt']).astype(np.int32)
-        relRecIndI = self.output.relGeom['RecInd'].astype(np.int32)
-        relRecLinI = np.rint(self.output.relGeom['RecLin']).astype(np.int32)
-        relRecMinI = np.rint(self.output.relGeom['RecMin']).astype(np.int32)
-        relRecMaxI = np.rint(self.output.relGeom['RecMax']).astype(np.int32)
-
-        # Build fast relation index lookup using searchsorted on integer keys
-        relKey = np.rec.fromarrays([relSrcIndI, relSrcLinI, relSrcPntI], names='Ind,Lin,Pnt')
-        srcKey = np.rec.fromarrays([srcIndI, srcLinI, srcPntI], names='Ind,Lin,Pnt')
-
-        relLeft = np.searchsorted(relKey, srcKey, side='left')
-        relRight = np.searchsorted(relKey, srcKey, side='right')
+        lookup = self.prepareGeometryRelationBinningLookup()
 
         self.nShotPoint = 0
         self.nShotPoints = self.output.srcGeom.shape[0]
@@ -2300,120 +2311,17 @@ class RollSurvey(pg.GraphicsObject):
                     self.threadProgress = threadProgress
                     self.progress.emit(threadProgress + 1)
 
-                minRecord = relLeft[i]
-                maxRecord = relRight[i]
-                if maxRecord <= minRecord:
+                recPoints = self.selectReceiversForSourceRelationSlice(i, lookup)
+                if recPoints is None:
                     continue
 
-                # Vectorized receiver selection using integer-normalized arrays
-                recMask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
-                for j in range(minRecord, maxRecord):
-                    recMask |= (
-                        (recIndex == relRecIndI[j])
-                        & (recLineI == relRecLinI[j])
-                        & (recPointI >= relRecMinI[j])
-                        & (recPointI <= relRecMaxI[j])
-                    )
-
-                recArray = self.output.recGeom[recMask]
-                recArray = recArray[recArray['InUse'] > 0]
-                if recArray.shape[0] == 0:
+                traceArrays = self.buildBinningArraysFromSelectedReceivers(src, recPoints)
+                if traceArrays is None:
                     continue
+                cmpPoints, recPoints, hypArray, aziArray = traceArrays
 
-                recPoints = np.vstack((recArray['LocX'], recArray['LocY'], recArray['Elev'])).T
-
-                if self.binning.method == BinningType.cmp:
-                    cmpPoints = (recPoints + src) * 0.5
-                    offArray = recPoints - src
-                elif self.binning.method == BinningType.plane:
-                    srcMirrorNp = self.localPlane.mirrorPointNp(src)
-                    cmpPoints, recPoints = self.localPlane.IntersectLinesAtPointNp(
-                        srcMirrorNp, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
-                    )
-                    if cmpPoints is None:
-                        continue
-                    offArray = recPoints - src
-                elif self.binning.method == BinningType.sphere:
-                    cmpPoints, recPoints = self.localSphere.ReflectSphereAtPointsNp(
-                        src, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
-                    )
-                    if cmpPoints is None:
-                        continue
-                    offArray = recPoints - src
-                else:
+                if not self.updateBinOutputsForValidCmpPoints(src, cmpPoints, recPoints, hypArray, aziArray, fullAnalysis):
                     continue
-
-                I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
-                if np.all(~I):
-                    continue
-
-                cmpPoints = cmpPoints[I]
-                recPoints = recPoints[I]
-                offArray = offArray[I]
-
-                I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
-                if np.all(~I):
-                    continue
-
-                cmpPoints = cmpPoints[I]
-                recPoints = recPoints[I]
-                offArray = offArray[I]
-
-                hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
-                aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
-                aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
-
-                r1 = self.offset.radOffsets.x()
-                r2 = self.offset.radOffsets.y()
-                if r2 > 0:
-                    I = (hypArray >= r1) & (hypArray <= r2)
-                    if np.all(~I):
-                        continue
-                    cmpPoints = cmpPoints[I]
-                    recPoints = recPoints[I]
-                    hypArray = hypArray[I]
-                    aziArray = aziArray[I]
-
-                mapped = np.array([self.binTransform.map(float(p[0]), float(p[1])) for p in cmpPoints], dtype=np.float32)
-                nx = mapped[:, 0].astype(int)
-                ny = mapped[:, 1].astype(int)
-
-                valid = (
-                    (nx >= 0) & (ny >= 0)
-                    & (nx < self.output.binOutput.shape[0])
-                    & (ny < self.output.binOutput.shape[1])
-                )
-                if np.all(~valid):
-                    continue
-
-                nx = nx[valid]
-                ny = ny[valid]
-                cmpPoints = cmpPoints[valid]
-                recPoints = recPoints[valid]
-                hypArray = hypArray[valid]
-                aziArray = aziArray[valid]
-
-                np.add.at(self.output.binOutput, (nx, ny), 1)
-                np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
-                np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
-
-                if fullAnalysis:
-                    for idx, (x, y) in enumerate(zip(nx, ny)):
-                        fold = self.output.binOutput[x, y] - 1
-                        if fold < self.grid.fold:
-                            stkX, stkY = self.st2Transform.map(cmpPoints[idx, 0], cmpPoints[idx, 1])
-                            self.output.anaOutput[x, y, fold, 0] = int(stkX)
-                            self.output.anaOutput[x, y, fold, 1] = int(stkY)
-                            self.output.anaOutput[x, y, fold, 2] = fold + 1
-                            self.output.anaOutput[x, y, fold, 3] = src[0]
-                            self.output.anaOutput[x, y, fold, 4] = src[1]
-                            self.output.anaOutput[x, y, fold, 5] = recPoints[idx, 0]
-                            self.output.anaOutput[x, y, fold, 6] = recPoints[idx, 1]
-                            self.output.anaOutput[x, y, fold, 7] = cmpPoints[idx, 0]
-                            self.output.anaOutput[x, y, fold, 8] = cmpPoints[idx, 1]
-                            self.output.anaOutput[x, y, fold, 9] = 0.0
-                            self.output.anaOutput[x, y, fold, 10] = hypArray[idx]
-                            self.output.anaOutput[x, y, fold, 11] = aziArray[idx]
 
         except StopIteration:
             self.errorText = 'binning from geometry cancelled by user'
@@ -2475,14 +2383,7 @@ class RollSurvey(pg.GraphicsObject):
             del (fileName, funcName, lineNo)
             return False
 
-        self.calcFoldAndOffsetEssentials()
-
-        if fullAnalysis:
-            self.calcRmsOffsetValues()
-            self.calcUniqueFoldValues()
-            self.calcOffsetAndAzimuthDistribution()
-        else:
-            self.output.anaOutput = None
+        self.finalizeLiveBinningOutputs(fullAnalysis)
         return True
 
     def binTemplate6(self, block, template, templateOffset, fullAnalysis):
@@ -2705,96 +2606,13 @@ class RollSurvey(pg.GraphicsObject):
                     if recPoints.shape[0] == 0:
                         continue
 
-                    if self.binning.method == BinningType.cmp:
-                        cmpPoints = (recPoints + src) * 0.5
-                        offArray = recPoints - src
-                    elif self.binning.method == BinningType.plane:
-                        srcMirrorNp = self.localPlane.mirrorPointNp(src)
-                        cmpPoints, recPoints = self.localPlane.IntersectLinesAtPointNp(
-                            srcMirrorNp, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
-                        )
-                        if cmpPoints is None:
-                            continue
-                        offArray = recPoints - src
-                    elif self.binning.method == BinningType.sphere:
-                        cmpPoints, recPoints = self.localSphere.ReflectSphereAtPointsNp(
-                            src, recPoints, self.angles.reflection.x(), self.angles.reflection.y()
-                        )
-                        if cmpPoints is None:
-                            continue
-                        offArray = recPoints - src
-                    else:
+                    traceArrays = self.buildBinningArraysFromSelectedReceivers(src, recPoints)
+                    if traceArrays is None:
                         continue
+                    cmpPoints, recPoints, hypArray, aziArray = traceArrays
 
-                    I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
-                    if np.all(~I):
+                    if not self.updateBinOutputsForValidCmpPoints(src, cmpPoints, recPoints, hypArray, aziArray, fullAnalysis):
                         continue
-                    cmpPoints = cmpPoints[I]
-                    recPoints = recPoints[I]
-                    offArray = offArray[I]
-
-                    I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
-                    if np.all(~I):
-                        continue
-                    cmpPoints = cmpPoints[I]
-                    recPoints = recPoints[I]
-                    offArray = offArray[I]
-
-                    hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
-                    aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
-                    aziArray = (aziArray + 360.0) % 360.0                           # convert angles to 0-360 range
-
-                    r1 = self.offset.radOffsets.x()
-                    r2 = self.offset.radOffsets.y()
-                    if r2 > 0:
-                        I = (hypArray >= r1) & (hypArray <= r2)
-                        if np.all(~I):
-                            continue
-                        cmpPoints = cmpPoints[I]
-                        recPoints = recPoints[I]
-                        hypArray = hypArray[I]
-                        aziArray = aziArray[I]
-
-                    mapped = np.array([self.binTransform.map(float(p[0]), float(p[1])) for p in cmpPoints], dtype=np.float32)
-                    nx = mapped[:, 0].astype(int)
-                    ny = mapped[:, 1].astype(int)
-
-                    valid = (
-                        (nx >= 0) & (ny >= 0)
-                        & (nx < self.output.binOutput.shape[0])
-                        & (ny < self.output.binOutput.shape[1])
-                    )
-                    if np.all(~valid):
-                        continue
-
-                    nx = nx[valid]
-                    ny = ny[valid]
-                    cmpPoints = cmpPoints[valid]
-                    recPoints = recPoints[valid]
-                    hypArray = hypArray[valid]
-                    aziArray = aziArray[valid]
-
-                    np.add.at(self.output.binOutput, (nx, ny), 1)
-                    np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
-                    np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
-
-                    if fullAnalysis:
-                        for idx, (x, y) in enumerate(zip(nx, ny)):
-                            fold = self.output.binOutput[x, y] - 1
-                            if fold < self.grid.fold:
-                                stkX, stkY = self.st2Transform.map(cmpPoints[idx, 0], cmpPoints[idx, 1])
-                                self.output.anaOutput[x, y, fold, 0] = int(stkX)
-                                self.output.anaOutput[x, y, fold, 1] = int(stkY)
-                                self.output.anaOutput[x, y, fold, 2] = fold + 1
-                                self.output.anaOutput[x, y, fold, 3] = src[0]
-                                self.output.anaOutput[x, y, fold, 4] = src[1]
-                                self.output.anaOutput[x, y, fold, 5] = recPoints[idx, 0]
-                                self.output.anaOutput[x, y, fold, 6] = recPoints[idx, 1]
-                                self.output.anaOutput[x, y, fold, 7] = cmpPoints[idx, 0]
-                                self.output.anaOutput[x, y, fold, 8] = cmpPoints[idx, 1]
-                                self.output.anaOutput[x, y, fold, 9] = 0.0
-                                self.output.anaOutput[x, y, fold, 10] = hypArray[idx]
-                                self.output.anaOutput[x, y, fold, 11] = aziArray[idx]
 
         # In binFromTemplates(), replace calls to binTemplate6 with binTemplate7:
         # self.binTemplate6(...) -> self.binTemplate7(...)
