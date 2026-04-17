@@ -320,11 +320,6 @@ class RollSurvey(pg.GraphicsObject):
                     elif seed.type == SeedType.well:                            # well site
                         seed.pointList, seed.origin = seed.well.calcPointList(self.crs, self.glbTransform)  # calculate the well's point list
 
-        # Only for patterns create a pointlist in the grid-seed; don't use it for normal 'rolling' or 'fixed' seeds
-        for pattern in self.patternList:
-            for seed in pattern.seedList:
-                seed.pointList = seed.grid.calcPointList(seed.origin)           # calculate the point list for all seeds
-
     def createBasicSkeleton(self, nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=2):
 
         assert nBlocks > 0, 'Need at least 1 block'

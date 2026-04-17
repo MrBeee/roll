@@ -22,13 +22,16 @@ class RollGrid:
         self.salvo = QLineF()                                                   # draws line From FIRST to LAST point of FIRST grow step (quick draw)
         self.points = 0                                                         # nr of points on grid
 
-    def calcPointList(self, origin):
-        # This routine is only to be used for grids used within patterns
+    def normalizeGrowList(self):
+        while len(self.growList) < 3:                                           # Keep sparse XML compatible with the fixed three-step invariant
+            self.growList.insert(0, RollTranslate())
+
+        if len(self.growList) > 3:                                              # Legacy readers may append onto default grow steps; keep the effective last three
+            self.growList = self.growList[-3:]
+
+    def iterPoints(self, origin):
         assert len(self.growList) == 3, 'there must always be 3 grow steps for pattern grids'
 
-        pointList = []
-
-        # iterate over all three ranges
         for i in range(self.growList[0].steps):
             off0 = QVector3D(origin)
             off0 += self.growList[0].increment * i
@@ -37,11 +40,11 @@ class RollGrid:
                 off1 = off0 + self.growList[1].increment * j
 
                 for k in range(self.growList[2].steps):
-                    # we now have the correct location
-                    off2 = off1 + self.growList[2].increment * k
+                    yield off1 + self.growList[2].increment * k
 
-                    # append point to list
-                    pointList.append(off2)
+    def calcPointList(self, origin):
+        # This routine is only to be used for grids used within patterns
+        pointList = list(self.iterPoints(origin))
 
         # xMin = 1.0e34
         # xMax = -1.0e34
@@ -131,8 +134,7 @@ class RollGrid:
                 self.growList.append(translate)
                 g = g.nextSiblingElement('translate')
 
-            while len(self.growList) < 3:                                       # Make sure there are always three grow steps in every grid
-                self.growList.insert(0, RollTranslate())
+            self.normalizeGrowList()
 
             return True
 
@@ -156,8 +158,7 @@ class RollGrid:
                 self.growList.append(translate)
                 g = g.nextSiblingElement('translate')
 
-            while len(self.growList) < 3:                                       # Keep old project files and sparse XML grow steps compatible
-                self.growList.insert(0, RollTranslate())
+            self.normalizeGrowList()
 
             return True
 

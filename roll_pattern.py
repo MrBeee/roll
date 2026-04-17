@@ -1,7 +1,7 @@
 import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QRectF
-from qgis.PyQt.QtGui import QColor, QPainter, QPicture, QVector3D
+from qgis.PyQt.QtGui import QColor, QPainter, QPicture
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
 from .aux_functions import toFloat
@@ -58,30 +58,7 @@ class RollPattern(pg.GraphicsObject):
         parent.appendChild(patternElem)
 
         return patternElem
-
-    def writeXmlOld(self, parent: QDomNode, doc: QDomDocument):
-        seedElem = doc.createElement('pattern')
-
-        if len(self.name) > 0:
-            nameElement = doc.createElement('name')
-            text = doc.createTextNode(self.name)
-            nameElement.appendChild(text)
-            seedElem.appendChild(nameElement)
-
-        # seedElem.setAttribute('x0', str(self.origin.x()))
-        # seedElem.setAttribute('y0', str(self.origin.y()))
-        # seedElem.setAttribute('z0', str(self.origin.z()))
-        # seedElem.setAttribute('argb', str(self.color.name(QColor.NameFormat.HexArgb)))
-        growListElem = doc.createElement('grow_list')
-        seedElem.appendChild(growListElem)
-
-        for grow in self.growList:
-            grow.writeXml(growListElem, doc)
-
-        parent.appendChild(seedElem)
-
-        return seedElem
-
+    
     def readXml(self, parent: QDomNode):
         nameElem = parent.namedItem('name').toElement()                         # get the name first
         if not nameElem.isNull():
@@ -107,11 +84,14 @@ class RollPattern(pg.GraphicsObject):
             if g.isNull():
                 return False  # We need at least one grow step
 
+            seed.grid.growList = []
             while not g.isNull():
                 translate = RollTranslate()                                     # create translation
                 translate.readXml(g)
                 seed.grid.growList.append(translate)                            # add translation to seed grid-growlist
                 g = g.nextSiblingElement('translate')
+
+            seed.grid.normalizeGrowList()
 
             self.seedList.append(seed)
 
@@ -125,33 +105,16 @@ class RollPattern(pg.GraphicsObject):
 
         return True
 
-    def readXmlOld(self, parent: QDomNode):
-        nameElem = parent.namedItem('name').toElement()
-        if not nameElem.isNull():
-            self.name = nameElem.text()
-
-        growListElem = parent.namedItem('grow_list').toElement()
-        g = growListElem.firstChildElement('translate')
-
-        if g.isNull():
-            return False  # We need at least one grow step
-
-        while not g.isNull():
-            translate = RollTranslate()
-            translate.readXml(g)
-            self.growList.append(translate)
-            g = g.nextSiblingElement('translate')
-
-        return True
-
     def calcPatternPicture(self):
         # pre-computing a QPicture object allows paint() to run much more quickly,
         # rather than re-drawing the shapes every time. First create the point picture
 
+        self.patternPicture = QPicture()
         painter = QPainter(self.patternPicture)                                 # next create the pattern picture
         painter.setPen(pg.mkPen('k'))                                           # use a black pen for borders
 
         for seed in self.seedList:
+            self.pointPicture = QPicture()
             # first create a 'pointPicture', to build up a pattern by repeating this
             pointPainter = QPainter(self.pointPicture)                          # create painter object to draw against
             pointPainter.setPen(pg.mkPen('k'))                                  # use a black pen
@@ -159,46 +122,8 @@ class RollPattern(pg.GraphicsObject):
             pointPainter.drawRect(QRectF(-2, -2, 4, 4))                         # draw a 4 x 4 m square
             pointPainter.end()                                                  # ready creating 4 x 4 m square, that can be accessed through self.pointPicture
 
-            length = len(seed.grid.growList)                                    # how deep is the grow list ?
-            # assert length == 3, 'there always need to be 3 roll steps / grow steps'
-
-            if length == 0:
-                painter.drawLine(0, -7.5, 0, 7.5)
-                painter.drawLine(-7.5, 0, 7.5, 0)
-            elif length == 1:
-                for i in range(seed.grid.growList[0].steps):                    # iterate over 1st step
-                    off0 = QVector3D(0.0, 0.0, 0.0)                             # always start at (0, 0, 0)
-                    off0 += seed.grid.growList[0].increment * i                 # we now have the correct location
-                    origin = off0 + seed.origin                                 # we now have the correct location
-                    painter.drawPicture(origin.toPointF(), self.pointPicture)   # paint seed point picture
-
-            elif length == 2:
-                for i in range(seed.grid.growList[0].steps):                    # iterate over 1st step
-                    off0 = QVector3D(0.0, 0.0, 0.0)                             # always start at (0, 0, 0)
-                    off0 += seed.grid.growList[0].increment * i                 # we now have the correct location
-
-                    for j in range(seed.grid.growList[1].steps):
-                        off1 = off0 + seed.grid.growList[1].increment * j       # we now have the correct location
-
-                        origin = off1 + seed.origin                             # start at templateOffset and add seed's origin
-                        painter.drawPicture(origin.toPointF(), self.pointPicture)   # paint seed picture
-
-            elif length == 3:
-                for i in range(seed.grid.growList[0].steps):
-                    off0 = QVector3D(0.0, 0.0, 0.0)                             # always start at (0, 0, 0)
-                    off0 += seed.grid.growList[0].increment * i                 # we now have the correct location
-
-                    for j in range(seed.grid.growList[1].steps):
-                        off1 = off0 + seed.grid.growList[1].increment * j       # we now have the correct location
-
-                        for k in range(seed.grid.growList[2].steps):
-                            off2 = off1 + seed.grid.growList[2].increment * k   # we now have the correct location
-
-                            origin = off2 + seed.origin                         # start at templateOffset and add seed's origin
-                            painter.drawPicture(origin.toPointF(), self.pointPicture)   # paint seed picture
-            else:
-                # do something recursively; not implemented yet
-                raise NotImplementedError('More than three grow steps currently not allowed.')
+            for origin in seed.grid.iterPoints(seed.origin):
+                painter.drawPicture(origin.toPointF(), self.pointPicture)       # paint seed picture
 
         painter.end()
 
@@ -206,60 +131,25 @@ class RollPattern(pg.GraphicsObject):
         # the paint function actually is: paint(self, painter, option, widget) but option & widget are not being used
         painter.drawPicture(0, 0, self.patternPicture)
 
-    def calcPatternPointLists(self):
-        # Get two lists of all x- and y-locations; only used in calcPatternPointArrays()
-        # todo: merge calcPatternPointLists() into calcPatternPointArrays()
+    def calcPatternPointArrays(self):
+        # Calculate arrays directly for kx-ky response plots without building intermediate Python lists.
 
-        patternPointsX = []
-        patternPointsY = []
-
+        totalPoints = 0
         for seed in self.seedList:
-            length = len(seed.grid.growList)                                    # how deep is the grow list ?
+            growList = seed.grid.growList
+            totalPoints += growList[0].steps * growList[1].steps * growList[2].steps
 
-            assert length == 3, 'there always need to be 3 roll steps / grow steps'
+        patternPointsX = np.empty(totalPoints, dtype=np.float32)
+        patternPointsY = np.empty(totalPoints, dtype=np.float32)
 
-            if length == 0:
-                patternPointsX.append(0.0)                                      # add to the x-list
-                patternPointsY.append(0.0)                                      # add to the y-list
-
-            elif length == 1:
-                for i in range(seed.grid.growList[0].steps):                    # iterate over 1st step
-                    off0 = QVector3D(0.0, 0.0, 0.0)                             # always start at (0, 0, 0)
-                    off0 += seed.grid.growList[0].increment * i                 # we now have the correct offset
-                    origin = off0 + seed.origin                                 # we now have the correct location
-                    patternPointsX.append(origin.x())                           # add to the x-list
-                    patternPointsY.append(origin.y())                           # add to the y-list
-
-            elif length == 2:
-                for i in range(seed.grid.growList[0].steps):                    # iterate over 1st step
-                    off0 = QVector3D(0.0, 0.0, 0.0)                             # always start at (0, 0, 0)
-                    off0 += seed.grid.growList[0].increment * i                 # we now have the correct offset
-                    for j in range(seed.grid.growList[1].steps):                # we now have the correct location
-                        off1 = off0 + seed.grid.growList[1].increment * j       # iterate over 2nd step
-                        origin = off1 + seed.origin                             # start at offset and add seed's origin
-                        patternPointsX.append(origin.x())                       # add to the x-list
-                        patternPointsY.append(origin.y())                       # add to the y-list
-
-            elif length == 3:
-                for i in range(seed.grid.growList[0].steps):
-                    off0 = QVector3D(0.0, 0.0, 0.0)                             # always start at (0, 0, 0)
-                    off0 += seed.grid.growList[0].increment * i                 # we now have the correct location
-                    for j in range(seed.grid.growList[1].steps):
-                        off1 = off0 + seed.grid.growList[1].increment * j       # we now have the correct location
-                        for k in range(seed.grid.growList[2].steps):
-                            off2 = off1 + seed.grid.growList[2].increment * k   # we now have the correct location
-                            origin = off2 + seed.origin                         # start at templateOffset and add seed's origin
-                            patternPointsX.append(origin.x())                   # add to the x-list
-                            patternPointsY.append(origin.y())                   # add to the y-list
+        index = 0
+        for seed in self.seedList:
+            for origin in seed.grid.iterPoints(seed.origin):
+                patternPointsX[index] = origin.x()
+                patternPointsY[index] = origin.y()
+                index += 1
 
         return (patternPointsX, patternPointsY)
-
-    def calcPatternPointArrays(self):
-        # this uses calcPatternPointLists() to convert a list into an ndarray
-        # it is only used to calculate the kxky response of a pattern in 'Patterns' and the 'Analysis -> Kx-Ky Stack' tab
-
-        x, y = self.calcPatternPointLists()
-        return (np.array(x, dtype=np.float32), np.array(y, dtype=np.float32))
 
     def generateSvg(self, nodes):
         pass                                                                    # for the time being don't do anything; just to keep PyLint happy

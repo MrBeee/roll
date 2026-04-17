@@ -38,9 +38,8 @@ class RollSeed:
         # calculated variables
         self.boundingBox = QRectF()                                             # Constructs a null rectangle.size of the seed after all grow steps have been done
         # self.salvo = QLineF()                                                 # draws line From FIRST to LAST point of FIRST grow step (quick draw)
-        self.pointList = []                                                     # point list for non-grid seeds to display points and to derive cdp coverage from
-        # todo: need to get rid of self.pointList at some point !
-        self.pointArray = None                                                  # numpy array to derive cdp coverage from
+        self.pointList = []                                                     # paint-friendly, object-oriented point storage for circle/spiral/well rendering.
+        self.pointArray = None                                                  # compute-friendly NumPy storage for geometry and coverage calculations
         self.blockBorder = QRectF()                                             # inherited from seed -> template -> block's srcBorder / recBorder depending on seed type
 
         self.pointPicture = None                                                # calculated on the fly; with marine surveys the nr of seeds > 100,000, and only a few are rendered at the same time

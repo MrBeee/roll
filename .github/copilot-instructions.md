@@ -8,6 +8,11 @@
 
 ## Data formats and flows
 - Project files are XML “.roll” documents; they serialize the survey hierarchy (blocks/templates/seeds) and output extents. See the example in [Readme.md](Readme.md).
+- Seeds and templates use entities called "growList" and "rollList" to define how points are generated. each list contains exactly three entries that define a translation step
+- When serializing, we store the seed/grow/roll lists as comma-separated strings in XML attributes; when deserializing, we parse those strings back into lists of tuples. See `seedToXml`/`seedFromXml` and similar methods in [roll_survey.py](roll_survey.py).
+- When deserializing, we need to account for the possibility that there are less than three entries in the grow/roll lists (e.g., old project files or user edits). In those cases, we pad the lists with (0,0) entries until they have three items. See `padListToLength` in [roll_survey.py](roll_survey.py). This ensures that the rest of the code can always assume three entries without needing to check lengths.
+- This is also the case for RollGrids, which have a "gridList" attribute that follows the same pattern (three entries, padded with (0,0) if needed).
+
 - SPS/RPS/XPS import uses fixed-width formats and numpy structured dtypes defined in [sps_io_and_qc.py](sps_io_and_qc.py) (`pntType1`, `relType2`, etc.). Dialects are configured in [config.py](config.py) (`spsFormatList`, `rpsFormatList`, `xpsFormatList`).
 - QGIS integration for point I/O happens via `importSpsFromQgis`/`exportSpsToQgis` and similar methods in [roll_main_window.py](roll_main_window.py); those call helper functions in [qgis_interface.py](qgis_interface.py) and [qgis_layer_dialog.py](qgis_layer_dialog.py).
 

@@ -24,8 +24,6 @@ class RollPatternSeed:
 
         # calculated variables
         self.boundingBox = QRectF()                                             # Constructs a null rectangle.size of the seed after all grow steps have been done
-        self.pointList = []                                                     # point list derived from template seed(s)
-        # todo: need to get rid of self.pointList at some point ! Immediately use numpy array instead
         self.pointArray = None                                                  # numpy array derived from self.pointList
         self.pointPicture = QPicture()                                          # pre-computing a QPicture object allows paint() to run much more quickly
         self.patternPicture = QPicture()                                        # pre-computing a QPicture object allows paint() to run much more quickly

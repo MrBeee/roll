@@ -16,9 +16,11 @@ QGIS_APP = getQgisApp()
 
 rollSurveyModule = loadPluginModule('roll_survey')
 rollGridModule = loadPluginModule('roll_grid')
+rollPatternModule = loadPluginModule('roll_pattern')
 
 RollSurvey = rollSurveyModule.RollSurvey
 RollGrid = rollGridModule.RollGrid
+RollPattern = rollPatternModule.RollPattern
 
 
 class RollSurveyGeometryTest(unittest.TestCase):
@@ -156,6 +158,60 @@ class RollSurveyGeometryTest(unittest.TestCase):
         self.assertEqual(len(grid.growList), 3)
         self.assertEqual(grid.growList[2].steps, 2)
         self.assertAlmostEqual(grid.growList[2].increment.x(), 5.0, places=4)
+
+    def testLegacyPatternXmlNormalizesImplicitSeedGrowListToThreeSteps(self):
+        doc = QDomDocument()
+        result = doc.setContent(
+            '<pattern x0="10" y0="20" z0="0" rgb="#ff0000">'
+            '<grow_list>'
+            '<translate n="2" dx="5" dy="0" dz="0"/>'
+            '</grow_list>'
+            '</pattern>'
+        )
+        success = result[0] if isinstance(result, tuple) else result
+
+        self.assertTrue(success)
+
+        pattern = RollPattern()
+        readSuccess = pattern.readXml(doc.documentElement())
+
+        self.assertTrue(readSuccess)
+        self.assertEqual(len(pattern.seedList), 1)
+        self.assertEqual(len(pattern.seedList[0].grid.growList), 3)
+        self.assertEqual(pattern.seedList[0].grid.growList[2].steps, 2)
+        self.assertAlmostEqual(pattern.seedList[0].grid.growList[2].increment.x(), 5.0, places=4)
+
+    def testCalcPatternPointArraysBuildsFloat32ArraysDirectlyFromGridTraversal(self):
+        pattern = RollPattern()
+
+        doc = QDomDocument()
+        result = doc.setContent(
+            '<pattern>'
+            '<seed_list>'
+            '<seed x0="10" y0="20" z0="0" azi="False" argb="#ffff0000">'
+            '<grid roll="True" points="0">'
+            '<translate n="1" dx="0" dy="0" dz="0"/>'
+            '<translate n="2" dx="5" dy="0" dz="0"/>'
+            '<translate n="2" dx="0" dy="10" dz="0"/>'
+            '</grid>'
+            '</seed>'
+            '</seed_list>'
+            '</pattern>'
+        )
+        success = result[0] if isinstance(result, tuple) else result
+
+        self.assertTrue(success)
+
+        readSuccess = pattern.readXml(doc.documentElement())
+
+        self.assertTrue(readSuccess)
+
+        x, y = pattern.calcPatternPointArrays()
+
+        self.assertEqual(x.dtype, np.float32)
+        self.assertEqual(y.dtype, np.float32)
+        np.testing.assert_array_equal(x, np.array([10.0, 10.0, 15.0, 15.0], dtype=np.float32))
+        np.testing.assert_array_equal(y, np.array([20.0, 30.0, 20.0, 30.0], dtype=np.float32))
 
     def testCalcPointListAssertsOnMalformedGrowList(self):
         grid = RollGrid()
