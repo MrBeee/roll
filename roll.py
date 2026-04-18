@@ -46,8 +46,12 @@ currentDir = os.path.dirname(os.path.abspath(__file__))
 resourceDir = os.path.join(currentDir, 'resources')
 
 MESSAGE_CATEGORY = 'Messages'
+_debugpyConfigured = False
+_debugpyListenerStarted = False
 
 def enableRemoteDebugging():
+
+    global _debugpyConfigured, _debugpyListenerStarted
 
     # See: https://medium.com/@45364/debugging-qgis-plugin-using-vs-code-33319de9d638
     # See: https://duijndam.dev/debugging-qgis-python-plugins/
@@ -70,7 +74,10 @@ def enableRemoteDebugging():
     debugpyEnabled = readStoredDebugpySetting()
 
     if not (haveDebugpy and debugpyEnabled):
-        return
+        return False
+
+    if _debugpyListenerStarted:
+        return True
 
     # Configure Python interpreter
     pythonPath = shutil.which("python")
@@ -85,41 +92,44 @@ def enableRemoteDebugging():
     print(f"Python  on PATH     : {shutil.which('python')}")
     print(f"Python3 on PATH     : {shutil.which('python3')}")
 
-    try:
-        # This can help if you're running different Python versions
-        # Cross-platform method to replace executable with python
-
-        QgsMessageLog.logMessage(f"Configure debugpy with python path: {pythonPath}", MESSAGE_CATEGORY, Qgis.Info)
-        print(f"Configure debugpy with python path: {pythonPath}")
-
-        debugpy.configure(python=pythonPath)
-
+    if not _debugpyConfigured:
         try:
-            QgsMessageLog.logMessage("Try to listen", MESSAGE_CATEGORY, Qgis.Info)
-            print("Try to listen")
+            # This can help if you're running different Python versions
+            # Cross-platform method to replace executable with python
 
-            debugpy.listen(("localhost", 5678))
+            QgsMessageLog.logMessage(f"Configure debugpy with python path: {pythonPath}", MESSAGE_CATEGORY, Qgis.Info)
+            print(f"Configure debugpy with python path: {pythonPath}")
 
-            print("Debugpy server started, waiting for connection...")
-            # debugpy.wait_for_client()
-            # print("Debugger connected!")
-        except Exception as e:
-            # If listening fails, try to connect (client mode)
+            debugpy.configure(python=pythonPath)
+            _debugpyConfigured = True
+        except (OSError, RuntimeError, ValueError) as exc:
+            QgsMessageLog.logMessage(f"Could not configure debugpy: {exc}", MESSAGE_CATEGORY, Qgis.Info)
+            print(f"Could not configure debugpy: {exc}")
+            return False
 
-            QgsMessageLog.logMessage(f"Couldn't start debugpy server: {e}", MESSAGE_CATEGORY, Qgis.Info)
-            print(f"Couldn't start debugpy server: {e}")
+    try:
+        QgsMessageLog.logMessage("Try to listen", MESSAGE_CATEGORY, Qgis.Info)
+        print("Try to listen")
 
-            QgsMessageLog.logMessage("Trying to connect as client...", MESSAGE_CATEGORY, Qgis.Info)
-            print("Trying to connect as client...")
+        debugpy.listen(("localhost", 5678))
+        _debugpyListenerStarted = True
 
-            debugpy.connect(("localhost", 5678))
+        print("Debugpy server started, waiting for connection...")
+        # debugpy.wait_for_client()
+        # print("Debugger connected!")
+    except (OSError, RuntimeError) as exc:
+        excText = str(exc)
+        if 'already' in excText.lower() and 'listen' in excText.lower():
+            _debugpyListenerStarted = True
+            QgsMessageLog.logMessage('Debugpy server already active in this QGIS session', MESSAGE_CATEGORY, Qgis.Info)
+            print('Debugpy server already active in this QGIS session')
+            return True
 
-            QgsMessageLog.logMessage("Connected to debugpy server", MESSAGE_CATEGORY, Qgis.Info)
-            print("Connected to debugpy server")
-    except Exception as e:
-        QgsMessageLog.logMessage(f"Could not configure debugpy: {e}", MESSAGE_CATEGORY, Qgis.Info)
-        print(f"Could not configure debugpy: {e}")
-    return
+        QgsMessageLog.logMessage(f"Couldn't start debugpy server: {exc}", MESSAGE_CATEGORY, Qgis.Info)
+        print(f"Couldn't start debugpy server: {exc}")
+        return False
+
+    return True
 
 class Roll:
     """QGIS Plugin Implementation."""
@@ -282,6 +292,8 @@ class Roll:
     # required for a minimal QGIS plugin
     def run(self):
         """Run method that performs all the real work"""
+
+        enableRemoteDebugging()
 
         # Added Bart.
         # See: https://pyqtgraph.readthedocs.io/en/latest/getting_started/how_to_use.html

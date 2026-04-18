@@ -2,7 +2,7 @@ D:\QGis\MyPlugins\roll\Refactoring_roadmap.txt
 
 **Refactoring Roadmap**
 
-Updated for the current codebase on 2026-04-16.
+Updated for the current codebase on 2026-04-18.
 
 The broad direction is still the same: keep persistence, import/QC logic, mutable session/runtime state, and worker lifecycle concerns out of `roll_main_window.py`, then clean up plotting/redraw boundaries before touching worker contracts or performance.
 
@@ -59,6 +59,16 @@ Completed or substantially landed:
 42. The offset-inline and offset-xline analysis tabs now use a dedicated wrapper builder with independent per-tab component controls instead of being added as bare plot widgets.
 43. `numbaOffInline()` and `numbaOffXline()` now support `|offset|`, `Inline`, and `X-line` component selection, and that numeric behavior has direct regression coverage.
 44. Plot mouse tracking is now wired centrally from `createPlotWidget()`, so non-layout plots show at least plot coordinates in the status bar and image-backed analysis surfaces expose sampled local values; the O/A polar view has explicit value sampling rather than relying on a scene-added image transform.
+45. Pattern-grid traversal now has one canonical owner: `RollGrid.iterPoints()` owns the fixed three-grow-step iteration used by both pattern painting and pattern-response extraction.
+46. `RollPattern.readXml()` now normalizes legacy implicit-seed grow lists back to exactly three entries before any assertion-backed traversal runs, instead of letting old XML shapes leak into live rendering or analysis code.
+47. `RollPattern.calcPatternPointArrays()` now allocates exact-size `float32` arrays directly from shared grid traversal rather than building intermediate Python lists first, and the old list helper has been removed.
+48. Pattern seeds no longer carry stale cached point-list or point-array state that the live code does not consume; the dead pattern-only point-list setup in `roll_survey.py` and obsolete `RollPatternSeed` conversion path have been removed.
+49. The remaining stack-response controller cluster is no longer implemented inline in `roll_main_window.py`; `StackResponseController` now owns stack redraw-context building, stack-surface routing, inline/xline/cell plotting, and stack-cell pattern/response computation, while `RollMainWindow` keeps thin delegating wrappers.
+50. The visible-plot and analysis-navigation switchboard is no longer implemented inline in `roll_main_window.py`; `PlotNavigationController` now owns plot-widget lookup, plot-mouse routing, shared visible-analysis context derivation, and visible-plot activation routing, while `RollMainWindow` keeps thin delegating wrappers.
+51. The plot-toolbar and view-state synchronization cluster is no longer implemented inline in `roll_main_window.py`; `PlotViewStateController` now owns show-event toolbar synchronization plus the active-plot zoom-rect, aspect-ratio, anti-alias, and grid-toggle actions, while `RollMainWindow` keeps thin delegating wrappers.
+52. The broader action/menu state synchronization cluster is no longer implemented inline in `roll_main_window.py`; `ActionStateController` now owns representative export/process enablement, processing-menu gating, focus-routed cut/copy/paste/select-all handling, and active-plot lookup for clipboard/print routing, while `RollMainWindow` keeps thin delegating wrappers.
+53. The print/export presentation cluster is no longer implemented inline in `roll_main_window.py`; `PrintPresentationController` now owns print-preview setup, printer-versus-plot fallback routing, plot-to-device rendering, and PDF export output-device configuration, while `RollMainWindow` keeps thin delegating wrappers.
+54. The property-panel survey edit/apply cluster is no longer implemented inline in `roll_main_window.py`; `PropertyPanelController` now owns property-tree rebuild, pattern-combo synchronization, parameter-to-survey reconstruction, XML-backed survey commit via `survey.deepcopy()`, and analysis-reset sidecar cleanup orchestration, while `RollMainWindow` keeps thin delegating wrappers.
 
 Still unfinished:
 1. Worker launch and completion contracts are explicit on the main paths, but the cleanup is not finished until any leftover legacy worker scaffolding is either justified or removed and any further payload changes are driven by measured need rather than contract churn.
@@ -97,6 +107,8 @@ What is already in place:
 11. Direct live-binning localization coverage that proves both relation-driven and no-relation paths populate missing local source/receiver coordinates consistently.
 12. Direct live-binning completion-tail coverage that proves shared post-processing runs only for `fullAnalysis=True` and clears `anaOutput` otherwise.
 13. Direct document-context coverage that proves the helper owns file-path/MRU behavior and that settings/runtime ownership checks include MRU-backed runtime document state.
+14. Direct pattern-geometry coverage now proves legacy implicit pattern XML is normalized to three grow steps and that pattern-response arrays are built directly as `float32` arrays from the shared grid traversal.
+15. Direct property-panel regressions now prove the working-copy path goes through `survey.deepcopy()` and that `applyPropertyChanges()` preserves or clears analysis caches correctly based on the bin-area-changed boundary.
 
 What is still worth adding here:
 1. Add only further geometry-generation tests if they cover a new live-path correctness seam beyond the existing minimal and rolled-template cases.
@@ -211,7 +223,7 @@ Already met enough for the current milestone:
 **Phase 5 - Plot and Redraw Service**
 
 Status:
-Substantially complete for the current milestone. The redraw/controller slice now has helper-owned invalidation and cache reuse, O/A and offset both follow explicit preparation-versus-render boundaries, layout image/colorbar duplication has been reduced with a smaller helper that does not pull layout into the full redraw-policy model, and generic plot mouse/status handling now sits behind shared helpers instead of being layout-only wiring.
+Substantially complete for the current milestone. The redraw/controller slice now has helper-owned invalidation and cache reuse, O/A and offset both follow explicit preparation-versus-render boundaries, the remaining stack-response controller cluster now lives in `StackResponseController`, layout image/colorbar duplication has been reduced with a smaller helper that does not pull layout into the full redraw-policy model, and generic plot mouse/status handling now sits behind shared helpers instead of being layout-only wiring.
 
 Goal:
 Separate domain changes from redraw policy, image preparation, and colorbar wiring.
@@ -249,12 +261,17 @@ What has landed:
 18. Offset-inline and offset-xline tab construction now use a dedicated builder module with independent component selectors per tab instead of leaving those controls inline in `roll_main_window.py`.
 19. Offset-inline and offset-xline controllers now support plotting absolute offset magnitude or either source/receiver coordinate component through shared selection helpers and the extended numeric helpers.
 20. Plot mouse tracking is now connected centrally for every plot widget, with shared helpers for generic coordinate display and image-value sampling on stack, pattern-response, and O/A surfaces, while preserving the richer layout-specific status readout.
+21. `StackResponseController` now owns the previously inline stack-response controller seam: redraw-context derivation, stack-surface redraw routing, direction gating, inline/xline/cell rendering, and stack-cell pattern-response combination all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
+22. `PlotNavigationController` now owns the previously inline visible-plot/navigation seam: plot-widget index lookup, first-visible plot discovery, plot-mouse routing, shared visible-analysis context derivation, and the `updateVisiblePlotWidget()` switchboard all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
+23. `PlotViewStateController` now owns the previously inline plot-toolbar/view-state seam: show-event toolbar synchronization, zoom-all rebinding, active-plot toolbar-state refresh, and the active-plot zoom-rect / aspect-ratio / anti-alias / grid toggle actions all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
+24. `ActionStateController` now owns the previously inline action/menu state seam: representative menu/button enablement, processing-menu gating, focus-based edit routing, clipboard-aware plot-copy fallback, and active-plot lookup for print/copy helpers all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
+25. `PrintPresentationController` now owns the previously inline print/export presentation seam: print-preview dialog setup, XML-versus-plot print routing, plot-to-printer page layout/header rendering, and PDF export output-device configuration all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
 
 What remains in this phase:
 1. Keep the helper boundary small unless a new repeated redraw-policy concern appears; do not expand it just to move code mechanically.
 2. Add only the remaining high-value regressions that materially protect later worker-boundary refactors.
 3. Treat further plotting cleanup in this phase as optional polish, not the main architectural blocker anymore.
-4. If another plotting/controller seam is extracted, prefer one that removes a whole surface-specific controller cluster rather than moving small helper methods around.
+4. The small document-tab focus/selection tail around `onMainTabChange()` and `find()` is still not a worthwhile controller extraction target by itself, and the previously stronger property-panel survey edit/apply seam has now already been moved as one coherent unit.
 
 Exit criteria:
 1. Data mutations no longer directly decide full redraw policy in many places.
@@ -324,6 +341,9 @@ The following items should now be considered completed or reordered:
 12. “Add one narrow regression for any future shared binning-completion helper” is no longer current future work; that helper and its direct regression now exist.
 13. Worker cleanup should still not be ahead of plot/redraw extraction and final state-ownership cleanup.
 14. “Decide whether project file paths belong permanently in `RuntimeState`” is no longer immediate future work; the runtime document-context decision has now been implemented with a dedicated service boundary.
+15. “Merge `calcPatternPointLists()` into `calcPatternPointArrays()`” is no longer future work; the direct-array path now exists and the list helper has been removed.
+16. “Keep pattern-seed cached point arrays for later use” is no longer current design guidance; that cache path turned out to be dead code after pattern rendering and analysis moved to shared grid traversal.
+17. “Prefer the property-panel survey edit/apply cluster as the next `RollMainWindow` seam” is no longer future work; that controller boundary has now landed with regression coverage and continues to rely on the existing XML-backed `survey.deepcopy()` copy path.
 
 **Recommended Next Step**
 
@@ -337,7 +357,7 @@ Why:
 4. The better leverage has shifted back to broader architectural decisions, selective worker cleanup, or future measured performance work.
 
 After that, the next step should be:
-1. keep the new document-context boundary stable and take only one broader, clearly bounded `RollMainWindow` seam next, most likely one remaining surface-specific plotting/controller cluster or selective worker cleanup where the simplification is measured.
+1. keep the new document-context boundary and the new property-panel boundary stable, and prefer only selective worker cleanup or measured performance work before reopening `RollMainWindow` for another extraction.
 
 Estimated effort:
 no immediate `roll_survey.py` refactor is recommended; the next worthwhile step should be chosen from a broader seam with clearer leverage.
@@ -352,7 +372,7 @@ no immediate `roll_survey.py` refactor is recommended; the next worthwhile step 
 6. Revisit XML as internal worker transport only if profiling shows it is still material.
 7. Add a small reusable project fixture follow-up only if test setup starts spreading further.
 8. Add redraw follow-up coverage only if another controller-owned invalidation seam is extracted.
-9. Extract one remaining surface-specific plotting/controller cluster from `roll_main_window.py` only if it can move as a coherent unit with existing coverage.
+9. Keep the new `PropertyPanelController` boundary small and stable unless a further coherent parameter-tree or survey-commit seam appears with clear regression value.
 10. Revisit preserved reference implementations only during a deliberate algorithm-comparison pass.
 11. Keep Phase 5 follow-up work limited to protective tests and small cleanup only.
 12. Keep worker cleanup selective rather than reopening contract-shape churn.

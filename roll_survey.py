@@ -295,8 +295,7 @@ class RollSurvey(pg.GraphicsObject):
         if succes:
             surveyCopy.bindSeedsToSurvey()                                      # bind seeds to survey after creating copy. This restores weakrefs
             return surveyCopy
-        else:
-            return None
+        return None
 
     def calcSeedData(self):
         # this routine relies on self.checkIntegrity() to spot any errors
@@ -488,8 +487,7 @@ class RollSurvey(pg.GraphicsObject):
     def noShotPoints(self):
         if self.nShotPoints == -1:
             return self.calcNoShotPoints()
-        else:
-            return self.nShotPoints
+        return self.nShotPoints
 
     def calcNoShotPoints(self) -> int:
         self.nShotPoints = 0
@@ -976,10 +974,9 @@ class RollSurvey(pg.GraphicsObject):
                         I = fnb.pointsInRect(recPoints, block.borders.recBorder)
                         if I.shape[0] == 0:
                             continue
-                        else:
-                            time = self.elapsedTime(time, 5)    ###
-                            recPoints = recPoints[I, :]
-                            time = self.elapsedTime(time, 6)    ###
+                        time = self.elapsedTime(time, 5)    ###
+                        recPoints = recPoints[I, :]
+                        time = self.elapsedTime(time, 6)    ###
 
                     for rec in recPoints:                                       # iterate over all receivers
 
@@ -1115,8 +1112,7 @@ class RollSurvey(pg.GraphicsObject):
                 I = fnb.pointsInRect(recPoints, block.borders.recBorder)
                 if I.shape[0] == 0:
                     continue
-                else:
-                    recPoints = recPoints[I, :]
+                recPoints = recPoints[I, :]
 
             for rec in recPoints:                                               # iterate over all receivers
                 # determine line & stake nrs for receiver point
@@ -1534,15 +1530,12 @@ class RollSurvey(pg.GraphicsObject):
                 success = self.binFromGeometry8(True)
                 self.output.anaOutput.flush()                                   # flush results to hard disk
                 return success
-            else:
-                return self.binFromGeometry8(False)
-        else:                                                                  # no relation file available
-            if fullAnalysis:
-                success = self.binFromGeometryNoRel(True)
-                self.output.anaOutput.flush()                                   # flush results to hard disk
-                return success
-            else:
-                return self.binFromGeometryNoRel(False)
+            return self.binFromGeometry8(False)
+        if fullAnalysis:                                                        # no relation file available
+            success = self.binFromGeometryNoRel(True)
+            self.output.anaOutput.flush()                                       # flush results to hard disk
+            return success
+        return self.binFromGeometryNoRel(False)
 
     def binFromGeometryNoRel(self, fullAnalysis) -> bool:
         """
@@ -2351,8 +2344,7 @@ class RollSurvey(pg.GraphicsObject):
             success = self.binFromTemplates(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
             return success
-        else:
-            return self.binFromTemplates(False)
+        return self.binFromTemplates(False)
 
     # can't use @jit here, as numba does not support handling exceptions (try -> except)
     # See: http://numba.pydata.org/numba-doc/dev/reference/pysupported.html
@@ -3140,9 +3132,8 @@ class RollSurvey(pg.GraphicsObject):
         """required for painting a pg.GraphicsObject"""
         if self.boundingBox.isEmpty():
             return self.calcBoundingRect()
-        else:
-            # earlier derived result, from blocks -> templates -> seeds
-            return self.boundingBox
+        # earlier derived result, from blocks -> templates -> seeds
+        return self.boundingBox
 
     def lineWidthForScreen(self, screen) -> float:
         # geometry() is logical (DIPs); multiply by DPR to get native pixels

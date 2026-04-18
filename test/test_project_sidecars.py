@@ -5,7 +5,8 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-from qgis.PyQt.QtCore import QRectF
+import pyqtgraph as pg
+from qgis.PyQt.QtCore import QEvent, QRectF
 from qgis.PyQt.QtWidgets import QAction
 
 from .plugin_loader import loadPluginModule
@@ -23,6 +24,8 @@ appSettingsModule = loadPluginModule('app_settings')
 auxFunctionsModule = loadPluginModule('aux_functions')
 workerThreadsModule = loadPluginModule('worker_threads')
 binningWorkerMixinModule = loadPluginModule('binning_worker_mixin')
+workerOperationControllerModule = loadPluginModule('worker_operation_controller')
+printPresentationControllerModule = loadPluginModule('print_presentation_controller')
 
 RollMainWindow = rollMainWindowModule.RollMainWindow
 RollSurvey = rollSurveyModule.RollSurvey
@@ -785,6 +788,28 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         dispatcher.assert_called_once_with('off-azi', rollMainWindowModule.AnalysisRedrawReason.offAziColorBarLevelsChanged)
 
+    def testGetVisiblePlotIndexMapsPatternResponseWidget(self):
+        self.assertEqual(self.mainWindow.getVisiblePlotIndex(self.mainWindow.arraysWidget), 10)
+
+    def testGetVisiblePlotWidgetReturnsFirstVisiblePlot(self):
+        with patch.object(self.mainWindow.layoutWidget, 'isVisible', return_value=False):
+            with patch.object(self.mainWindow.offTrkWidget, 'isVisible', return_value=True):
+                plotWidget, index = self.mainWindow.getVisiblePlotWidget()
+
+        self.assertIs(plotWidget, self.mainWindow.offTrkWidget)
+        self.assertEqual(index, 1)
+
+    def testUpdateVisiblePlotWidgetRoutesOffsetInlineUsingDerivedContext(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.output.anaOutput = np.zeros((2, 2, 1, 1), dtype=np.float32)
+
+        with patch.object(self.mainWindow, 'plotOffTrk') as plotOffTrk:
+            self.mainWindow.updateVisiblePlotWidget(1)
+
+        plotOffTrk.assert_called_once()
+        self.assertEqual(plotOffTrk.call_args[0][0], 1)
+        self.assertEqual(plotOffTrk.call_args[0][2], 5.0)
+
     def testUpdateVisiblePlotWidgetUsesAnalysisDispatcherForStackInline(self):
         self.mainWindow.output.anaOutput = np.zeros((2, 2, 1, 1), dtype=np.float32)
 
@@ -812,6 +837,178 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.mainWindow.updateVisiblePlotWidget(8)
 
         dispatcher.assert_called_once_with('offset', rollMainWindowModule.AnalysisRedrawReason.visiblePlotActivated)
+
+    def testEventFilterSyncsToolbarStateForVisiblePlot(self):
+        self.mainWindow.offTrkWidget.showGrid(x=False, y=False)
+        self.mainWindow.offTrkWidget.setAspectLocked(False)
+        self.mainWindow.offTrkWidget.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+
+        with patch.object(self.mainWindow, 'updateVisiblePlotWidget') as updater:
+            handled = self.mainWindow.eventFilter(self.mainWindow.offTrkWidget, QEvent(QEvent.Type.Show))
+
+        self.assertTrue(handled)
+        self.assertTrue(self.mainWindow.actionZoomAll.isEnabled())
+        self.assertTrue(self.mainWindow.actionZoomRect.isEnabled())
+        self.assertTrue(self.mainWindow.actionAspectRatio.isEnabled())
+        self.assertTrue(self.mainWindow.actionAntiAlias.isEnabled())
+        self.assertFalse(self.mainWindow.actionRuler.isEnabled())
+        self.assertFalse(self.mainWindow.actionProjected.isEnabled())
+        self.assertFalse(self.mainWindow.actionPlotGridX.isChecked())
+        self.assertFalse(self.mainWindow.actionPlotGridY.isChecked())
+        self.assertFalse(self.mainWindow.actionAspectRatio.isChecked())
+        self.assertTrue(self.mainWindow.actionZoomRect.isChecked())
+        updater.assert_called_once_with(1)
+
+    def testEventFilterDisablesPlotToolbarActionsForNonPlotWidget(self):
+        self.mainWindow.actionZoomAll.setEnabled(True)
+        self.mainWindow.actionZoomRect.setEnabled(True)
+        self.mainWindow.actionAspectRatio.setEnabled(True)
+        self.mainWindow.actionAntiAlias.setEnabled(True)
+        self.mainWindow.actionRuler.setEnabled(True)
+        self.mainWindow.actionProjected.setEnabled(True)
+
+        handled = self.mainWindow.eventFilter(self.mainWindow.tabGeom, QEvent(QEvent.Type.Show))
+
+        self.assertTrue(handled)
+        self.assertFalse(self.mainWindow.actionZoomAll.isEnabled())
+        self.assertFalse(self.mainWindow.actionZoomRect.isEnabled())
+        self.assertFalse(self.mainWindow.actionAspectRatio.isEnabled())
+        self.assertFalse(self.mainWindow.actionAntiAlias.isEnabled())
+        self.assertFalse(self.mainWindow.actionRuler.isEnabled())
+        self.assertFalse(self.mainWindow.actionProjected.isEnabled())
+
+    def testPlotZoomRectTogglesMouseModeOnVisiblePlot(self):
+        with patch.object(self.mainWindow, 'getVisiblePlotWidget', return_value=(self.mainWindow.offTrkWidget, 1)):
+            self.mainWindow.offTrkWidget.getViewBox().setMouseMode(pg.ViewBox.PanMode)
+
+            self.mainWindow.plotZoomRect()
+            self.assertEqual(self.mainWindow.offTrkWidget.getViewBox().getState()['mouseMode'], pg.ViewBox.RectMode)
+
+            self.mainWindow.plotZoomRect()
+            self.assertEqual(self.mainWindow.offTrkWidget.getViewBox().getState()['mouseMode'], pg.ViewBox.PanMode)
+
+    def testPlotAntiAliasTogglesStoredStateForVisiblePlot(self):
+        self.mainWindow.antiA[1] = False
+
+        with patch.object(self.mainWindow, 'getVisiblePlotWidget', return_value=(self.mainWindow.offTrkWidget, 1)):
+            self.mainWindow.plotAntiAlias()
+            self.assertTrue(self.mainWindow.antiA[1])
+
+            self.mainWindow.plotAntiAlias()
+            self.assertFalse(self.mainWindow.antiA[1])
+
+    def testPlotGridActionsToggleVisiblePlotGridState(self):
+        with patch.object(self.mainWindow, 'getVisiblePlotWidget', return_value=(self.mainWindow.offTrkWidget, 1)):
+            self.mainWindow.offTrkWidget.showGrid(x=True, y=True, alpha=0.75)
+
+            self.mainWindow.plotGridX()
+            self.mainWindow.plotGridY()
+
+            state = self.mainWindow.offTrkWidget.getPlotItem().saveState()
+            self.assertFalse(state['xGridCheck'])
+            self.assertFalse(state['yGridCheck'])
+
+    def testUpdateMenuStatusResetsAnalysisAndSyncsRepresentativeActions(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.output.binOutput = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.anaOutput = np.zeros((2, 2, 1, 1), dtype=np.float32)
+        self.mainWindow.recGeom = np.zeros(1, dtype=pntType1)
+        self.mainWindow.fileName = 'example.roll'
+        self.mainWindow.imageType = 4
+
+        with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
+            self.mainWindow.updateMenuStatus(True)
+
+        handleImageSelection.assert_called_once()
+        self.assertEqual(self.mainWindow.imageType, 0)
+        self.assertTrue(self.mainWindow.actionExportFoldMap.isEnabled())
+        self.assertTrue(self.mainWindow.actionExportRecAsCsv.isEnabled())
+        self.assertTrue(self.mainWindow.actionExportAreasToQGIS.isEnabled())
+        self.assertTrue(self.mainWindow.actionMoveLt.isEnabled())
+        self.assertFalse(self.mainWindow.actionSrcPoints.isEnabled())
+
+    def testEnableProcessingMenuItemsUsesAvailableInputs(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.srcGeom = np.zeros(1, dtype=pntType1)
+        self.mainWindow.recGeom = np.zeros(1, dtype=pntType1)
+        self.mainWindow.spsImport = np.zeros(1, dtype=pntType1)
+        self.mainWindow.rpsImport = np.zeros(1, dtype=pntType1)
+
+        with patch.object(self.mainWindow.survey, 'calcNoTemplates', return_value=2):
+            self.mainWindow.enableProcessingMenuItems(True)
+
+        self.assertTrue(self.mainWindow.actionBasicBinFromTemplates.isEnabled())
+        self.assertTrue(self.mainWindow.actionFullBinFromGeometry.isEnabled())
+        self.assertTrue(self.mainWindow.actionFullBinFromSps.isEnabled())
+        self.assertFalse(self.mainWindow.actionStopThread.isEnabled())
+
+        with patch.object(self.mainWindow.survey, 'calcNoTemplates', return_value=0):
+            self.mainWindow.enableProcessingMenuItems(False)
+
+        self.assertFalse(self.mainWindow.actionBasicBinFromTemplates.isEnabled())
+        self.assertFalse(self.mainWindow.actionFullBinFromGeometry.isEnabled())
+        self.assertFalse(self.mainWindow.actionFullBinFromSps.isEnabled())
+        self.assertTrue(self.mainWindow.actionStopThread.isEnabled())
+
+    def testCopyFallsBackToPlotClipboardWhenFocusCopyUnavailable(self):
+        with patch.object(self.mainWindow.actionStateController, 'invokeFocusMethod', return_value=False) as invokeFocusMethod:
+            with patch.object(self.mainWindow.actionStateController, 'copyPlotWidgetToClipboard', return_value=True) as copyPlotWidgetToClipboard:
+                with patch.object(self.mainWindow.actionStateController, 'clipboardHasText', return_value=True):
+                    self.mainWindow.copy()
+
+        invokeFocusMethod.assert_called_once_with('copy')
+        copyPlotWidgetToClipboard.assert_called_once_with()
+        self.assertTrue(self.mainWindow.actionPaste.isEnabled())
+
+    def testGrabPlotWidgetForPrintReturnsActiveAnalysisPlot(self):
+        with patch.object(self.mainWindow.mainTabWidget, 'currentWidget', return_value=self.mainWindow.analysisTabWidget):
+            with patch.object(self.mainWindow.analysisTabWidget, 'currentWidget', return_value=self.mainWindow.offTrkWidget):
+                plotWidget = self.mainWindow._grabPlotWidgetForPrint()
+
+        self.assertIs(plotWidget, self.mainWindow.offTrkWidget)
+
+    def testFilePrintDelegatesToPrintPresentationController(self):
+        with patch.object(self.mainWindow.printPresentationController, 'filePrint') as filePrint:
+            self.mainWindow.filePrint()
+
+        filePrint.assert_called_once_with()
+
+    def testPrintPreviewPrintsXmlWhenXmlTabIsActive(self):
+        printer = MagicMock()
+
+        with patch.object(self.mainWindow.mainTabWidget, 'currentWidget', return_value=self.mainWindow.textEdit):
+            with patch.object(self.mainWindow.textEdit, 'print') as textPrint:
+                self.mainWindow.printPreview(printer)
+
+        textPrint.assert_called_once_with(printer)
+
+    def testPrintPreviewUsesPlotBranchWhenActivePlotExists(self):
+        printer = MagicMock()
+
+        with patch.object(self.mainWindow.mainTabWidget, 'currentWidget', return_value=self.mainWindow.tabGeom):
+            with patch.object(self.mainWindow, '_grabPlotWidgetForPrint', return_value=self.mainWindow.offTrkWidget):
+                with patch.object(self.mainWindow.printPresentationController, '_printPlotWidget') as printPlotWidget:
+                    self.mainWindow.printPreview(printer)
+
+        printPlotWidget.assert_called_once_with(printer, self.mainWindow.offTrkWidget)
+
+    def testFilePrintPdfAppendsPdfSuffixBeforePrinting(self):
+        printer = MagicMock()
+        qprinterFactory = MagicMock(return_value=printer)
+        qprinterFactory.PrinterMode = MagicMock(HighResolution='high-resolution')
+        qprinterFactory.OutputFormat = MagicMock(PdfFormat='pdf-format')
+        document = MagicMock()
+
+        with patch.object(printPresentationControllerModule.QFileDialog, 'getSaveFileName', return_value=('report', 'PDF files (*.pdf)')):
+            with patch.object(printPresentationControllerModule, 'QPrinter', qprinterFactory):
+                with patch.object(self.mainWindow.textEdit, 'document', return_value=document):
+                    self.mainWindow.filePrintPdf()
+
+        qprinterFactory.assert_called_once_with(qprinterFactory.PrinterMode.HighResolution)
+        printer.setOutputFormat.assert_called_once_with(qprinterFactory.OutputFormat.PdfFormat)
+        printer.setOutputFileName.assert_called_once_with('report.pdf')
+        document.print.assert_called_once_with(printer)
+
 
     def testPlotStkTrkUsesSharedAnalysisImageHelper(self):
         self.mainWindow.survey = self.createSurvey()
@@ -1263,10 +1460,12 @@ class ProjectSidecarsTest(unittest.TestCase):
                 self.finished = SignalStub()
                 self.run = MagicMock()
                 self.moveToThread = MagicMock()
+                self.deleteLater = MagicMock()
 
         threadStub = MagicMock()
         threadStub.isRunning.return_value = False
         threadStub.started = SignalStub()
+        threadStub.finished = SignalStub()
         self.mainWindow.survey = self.createSurvey()
         self.mainWindow.survey.nShotPoints = 12
 
@@ -1279,8 +1478,10 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertEqual(request.extended, False)
         self.assertIs(request.analysisFile, self.mainWindow.output.anaOutput)
         self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
-        self.mainWindow.worker.resultReady.connect.assert_called_once_with(self.mainWindow.binningTemplatesThreadFinished)
-        self.mainWindow.worker.finished.connect.assert_called_once_with(threadStub.quit)
+        self.mainWindow.worker.resultReady.connect.assert_called_once()
+        self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
+        self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
+        threadStub.finished.connect.assert_called_once_with(threadStub.deleteLater)
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
@@ -1383,6 +1584,8 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.imageType = 1
         self.mainWindow.fileName = ''
         self.mainWindow.startTime = 0.0
+        self.mainWindow.thread = object()
+        self.mainWindow.worker = object()
 
         with patch.object(binningWorkerMixinModule, 'timer', return_value=1.0):
             with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
@@ -1398,8 +1601,10 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertEqual(self.mainWindow.output.maximumFold, 4)
         self.assertEqual(self.mainWindow.survey.cmpTransform, 'cmp-transform')
         handleImageSelection.assert_called_once()
+        self.assertIsNone(self.mainWindow.thread)
+        self.assertIsNone(self.mainWindow.worker)
         updateMenuStatus.assert_called_once_with(False)
-        enableProcessingMenuItems.assert_called_once()
+        enableProcessingMenuItems.assert_called_once_with(True)
         hideStatusbarWidgets.assert_called_once()
         information.assert_called_once()
 
@@ -1408,6 +1613,8 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.mainWindow.layoutImg = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.layoutImItem = object()
+        self.mainWindow.thread = object()
+        self.mainWindow.worker = object()
 
         with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
             with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
@@ -1420,11 +1627,13 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIsNone(self.mainWindow.layoutImg)
         self.assertIsNone(self.mainWindow.layoutImItem)
         handleImageSelection.assert_called_once()
+        self.assertIsNone(self.mainWindow.thread)
+        self.assertIsNone(self.mainWindow.worker)
         appendLogMessage.assert_any_call('Thread : . . . aborted binning operation', rollMainWindowModule.MsgType.Error)
         appendLogMessage.assert_any_call('Thread : . . . worker failed', rollMainWindowModule.MsgType.Error)
         information.assert_called_once_with(self.mainWindow, 'Interrupted', 'Worker thread aborted')
         updateMenuStatus.assert_called_once_with(False)
-        enableProcessingMenuItems.assert_called_once()
+        enableProcessingMenuItems.assert_called_once_with(True)
         hideStatusbarWidgets.assert_called_once()
 
     def testApplyPropertyChangesResetsAnalysisCachesWhenBinAreaChanges(self):
@@ -1472,6 +1681,55 @@ class ProjectSidecarsTest(unittest.TestCase):
         updateMenuStatus.assert_called_once_with(True)
         enableProcessingMenuItems.assert_called_once_with(True)
 
+    def testResetSurveyPropertiesUsesSurveyDeepcopyForWorkingCopy(self):
+        survey = self.createSurvey()
+        surveyCopy = survey.deepcopy()
+        self.mainWindow.survey = survey
+
+        with patch.object(self.mainWindow.survey, 'deepcopy', return_value=surveyCopy) as deepcopy:
+            with patch.object(self.mainWindow, 'updatePatternList') as updatePatternList:
+                self.mainWindow.resetSurveyProperties()
+
+        deepcopy.assert_called_once_with()
+        updatePatternList.assert_called_once_with(surveyCopy)
+
+    def testApplyPropertyChangesKeepsAnalysisCachesWhenBinAreaUnchanged(self):
+        self.mainWindow.fileName = os.path.join(tempfile.gettempdir(), 'phase0_keep_caches.roll')
+        self.mainWindow.inlineStk = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.x0lineStk = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.xyCellStk = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.xyPatResp = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.binOutput = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.minOffset = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.maxOffset = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.rmsOffset = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.ofAziHist = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.offstHist = np.ones((2, 3), dtype=np.float32)
+        self.mainWindow.binAreaChanged = False
+
+        with patch.object(self.mainWindow, 'setPlottingDetails'):
+            with patch.object(self.mainWindow, 'resetAnaTableModel', return_value=False) as resetAnaTableModel:
+                with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                    with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                        with patch.object(self.mainWindow, 'updatePatternList'):
+                            with patch.object(self.mainWindow, 'plotLayout'):
+                                self.mainWindow.applyPropertyChanges()
+
+        resetAnaTableModel.assert_not_called()
+        self.assertFalse(self.mainWindow.binAreaChanged)
+        self.assertIsNotNone(self.mainWindow.inlineStk)
+        self.assertIsNotNone(self.mainWindow.x0lineStk)
+        self.assertIsNotNone(self.mainWindow.xyCellStk)
+        self.assertIsNotNone(self.mainWindow.xyPatResp)
+        self.assertIsNotNone(self.mainWindow.output.binOutput)
+        self.assertIsNotNone(self.mainWindow.output.minOffset)
+        self.assertIsNotNone(self.mainWindow.output.maxOffset)
+        self.assertIsNotNone(self.mainWindow.output.rmsOffset)
+        self.assertIsNotNone(self.mainWindow.output.ofAziHist)
+        self.assertIsNotNone(self.mainWindow.output.offstHist)
+        updateMenuStatus.assert_called_once_with(False)
+        enableProcessingMenuItems.assert_called_once_with(True)
+
     def testBinFromGeometryUsesRequestObjectAndResultSignal(self):
         class SignalStub:
             def __init__(self):
@@ -1490,10 +1748,12 @@ class ProjectSidecarsTest(unittest.TestCase):
                 self.finished = SignalStub()
                 self.run = MagicMock()
                 self.moveToThread = MagicMock()
+                self.deleteLater = MagicMock()
 
         threadStub = MagicMock()
         threadStub.isRunning.return_value = False
         threadStub.started = SignalStub()
+        threadStub.finished = SignalStub()
         self.mainWindow.survey = self.createSurvey()
         self.mainWindow.srcGeom = np.zeros(1, dtype=pntType1)
         self.mainWindow.relGeom = np.zeros(1, dtype=relType2)
@@ -1511,8 +1771,10 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIs(request.relGeom, self.mainWindow.relGeom)
         self.assertIs(request.recGeom, self.mainWindow.recGeom)
         self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
-        self.mainWindow.worker.resultReady.connect.assert_called_once_with(self.mainWindow.binningGeometryThreadFinished)
-        self.mainWindow.worker.finished.connect.assert_called_once_with(threadStub.quit)
+        self.mainWindow.worker.resultReady.connect.assert_called_once()
+        self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
+        self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
+        threadStub.finished.connect.assert_called_once_with(threadStub.deleteLater)
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
@@ -1534,10 +1796,12 @@ class ProjectSidecarsTest(unittest.TestCase):
                 self.finished = SignalStub()
                 self.run = MagicMock()
                 self.moveToThread = MagicMock()
+                self.deleteLater = MagicMock()
 
         threadStub = MagicMock()
         threadStub.isRunning.return_value = False
         threadStub.started = SignalStub()
+        threadStub.finished = SignalStub()
         self.mainWindow.survey = self.createSurvey()
         self.mainWindow.spsImport = np.zeros(1, dtype=pntType1)
         self.mainWindow.xpsImport = np.zeros(1, dtype=relType2)
@@ -1555,8 +1819,10 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIs(request.relGeom, self.mainWindow.xpsImport)
         self.assertIs(request.recGeom, self.mainWindow.rpsImport)
         self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
-        self.mainWindow.worker.resultReady.connect.assert_called_once_with(self.mainWindow.binningGeometryThreadFinished)
-        self.mainWindow.worker.finished.connect.assert_called_once_with(threadStub.quit)
+        self.mainWindow.worker.resultReady.connect.assert_called_once()
+        self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
+        self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
+        threadStub.finished.connect.assert_called_once_with(threadStub.deleteLater)
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
@@ -1683,6 +1949,8 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.imageType = 1
         self.mainWindow.fileName = ''
         self.mainWindow.startTime = 0.0
+        self.mainWindow.thread = object()
+        self.mainWindow.worker = object()
 
         with patch.object(binningWorkerMixinModule, 'timer', return_value=1.0):
             with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
@@ -1698,8 +1966,10 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertEqual(self.mainWindow.output.maximumFold, 4)
         self.assertEqual(self.mainWindow.survey.cmpTransform, 'cmp-transform')
         handleImageSelection.assert_called_once()
+        self.assertIsNone(self.mainWindow.thread)
+        self.assertIsNone(self.mainWindow.worker)
         updateMenuStatus.assert_called_once_with(False)
-        enableProcessingMenuItems.assert_called_once()
+        enableProcessingMenuItems.assert_called_once_with(True)
         hideStatusbarWidgets.assert_called_once()
         information.assert_called_once()
 
@@ -1708,6 +1978,8 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.mainWindow.layoutImg = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.layoutImItem = object()
+        self.mainWindow.thread = object()
+        self.mainWindow.worker = object()
 
         with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
             with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
@@ -1720,11 +1992,13 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIsNone(self.mainWindow.layoutImg)
         self.assertIsNone(self.mainWindow.layoutImItem)
         handleImageSelection.assert_called_once()
+        self.assertIsNone(self.mainWindow.thread)
+        self.assertIsNone(self.mainWindow.worker)
         appendLogMessage.assert_any_call('Thread : . . . aborted binning operation', rollMainWindowModule.MsgType.Error)
         appendLogMessage.assert_any_call('Thread : . . . geometry worker failed', rollMainWindowModule.MsgType.Error)
         information.assert_called_once_with(self.mainWindow, 'Interrupted', 'Worker thread aborted')
         updateMenuStatus.assert_called_once_with(False)
-        enableProcessingMenuItems.assert_called_once()
+        enableProcessingMenuItems.assert_called_once_with(True)
         hideStatusbarWidgets.assert_called_once()
 
     def testCreateGeometryFromTemplatesUsesRequestObjectAndResultSignal(self):
@@ -1745,10 +2019,12 @@ class ProjectSidecarsTest(unittest.TestCase):
                 self.finished = SignalStub()
                 self.run = MagicMock()
                 self.moveToThread = MagicMock()
+                self.deleteLater = MagicMock()
 
         threadStub = MagicMock()
         threadStub.isRunning.return_value = False
         threadStub.started = SignalStub()
+        threadStub.finished = SignalStub()
         self.mainWindow.survey = self.createSurvey()
         self.mainWindow.survey.nShotPoints = 12
 
@@ -1760,8 +2036,10 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIsInstance(request, GeometryFromTemplatesRequest)
         self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
         self.assertEqual(request.includeProfiling, self.mainWindow.appSettings.debug)
-        self.mainWindow.worker.resultReady.connect.assert_called_once_with(self.mainWindow.geometryThreadFinished)
-        self.mainWindow.worker.finished.connect.assert_called_once_with(threadStub.quit)
+        self.mainWindow.worker.resultReady.connect.assert_called_once()
+        self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
+        self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
+        threadStub.finished.connect.assert_called_once_with(threadStub.deleteLater)
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
@@ -1833,6 +2111,8 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.mainWindow.startTime = 0.0
         self.mainWindow.fileName = ''
+        self.mainWindow.thread = object()
+        self.mainWindow.worker = object()
 
         with patch.object(binningWorkerMixinModule, 'timer', return_value=1.0):
             with patch.object(self.mainWindow.sessionService, 'setArray') as setArray:
@@ -1849,8 +2129,10 @@ class ProjectSidecarsTest(unittest.TestCase):
         recSetData.assert_called_once()
         relSetData.assert_called_once()
         srcSetData.assert_called_once()
+        self.assertIsNone(self.mainWindow.thread)
+        self.assertIsNone(self.mainWindow.worker)
         updateMenuStatus.assert_called_once_with(False)
-        enableProcessingMenuItems.assert_called_once()
+        enableProcessingMenuItems.assert_called_once_with(True)
         hideStatusbarWidgets.assert_called_once()
         information.assert_called_once()
 
@@ -1865,6 +2147,8 @@ class ProjectSidecarsTest(unittest.TestCase):
                 timerFreq=(),
             ),
         )
+        self.mainWindow.thread = object()
+        self.mainWindow.worker = object()
 
         with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
             with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
@@ -1876,8 +2160,61 @@ class ProjectSidecarsTest(unittest.TestCase):
         appendLogMessage.assert_any_call('Thread : . . . aborted geometry creation', rollMainWindowModule.MsgType.Error)
         appendLogMessage.assert_any_call('Thread : . . . geometry worker failed', rollMainWindowModule.MsgType.Error)
         information.assert_called_once_with(self.mainWindow, 'Interrupted', 'Worker thread aborted')
+        self.assertIsNone(self.mainWindow.thread)
+        self.assertIsNone(self.mainWindow.worker)
         updateMenuStatus.assert_called_once_with(False)
-        enableProcessingMenuItems.assert_called_once()
+        enableProcessingMenuItems.assert_called_once_with(True)
+        hideStatusbarWidgets.assert_called_once()
+
+    def testStopWorkerThreadIgnoresLateResultAndResetsIdleUi(self):
+        controller = self.mainWindow.workerOperationController or binningWorkerMixinModule.WorkerOperationController(
+            self.mainWindow,
+            self.mainWindow._getWorkerRuntimeDependencies,
+        )
+        self.mainWindow.workerOperationController = controller
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = True
+        workerStub = MagicMock()
+        controller.activeOperation = workerOperationControllerModule.ActiveWorkerOperation(
+            job=workerOperationControllerModule.WorkerJobSpec(
+                name='bin-from-templates',
+                progressLabelText='x',
+                startMessage='y',
+                startMessageType=rollMainWindowModule.MsgType.Binning,
+                workerFactory=lambda request: workerStub,
+                request=object(),
+                resultHandler=self.mainWindow.applyBinningWorkerResult,
+            ),
+            thread=threadStub,
+            worker=workerStub,
+        )
+        self.mainWindow.thread = threadStub
+        self.mainWindow.worker = workerStub
+        self.mainWindow.layoutImg = np.ones((1, 1), dtype=np.float32)
+        self.mainWindow.layoutImItem = object()
+
+        with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
+            with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                    with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                        with patch.object(self.mainWindow, 'applyBinningWorkerResult') as applyBinningWorkerResult:
+                            self.mainWindow.stopWorkerThread()
+                            controller.finishCurrentOperation(
+                                BinningFromTemplatesResult(success=True),
+                                self.mainWindow.applyBinningWorkerResult,
+                                resetAnalysis=False,
+                            )
+
+        threadStub.requestInterruption.assert_called_once_with()
+        applyBinningWorkerResult.assert_not_called()
+        self.assertIsNone(self.mainWindow.thread)
+        self.assertIsNone(self.mainWindow.worker)
+        self.assertIsNone(self.mainWindow.layoutImg)
+        self.assertIsNone(self.mainWindow.layoutImItem)
+        handleImageSelection.assert_called_once()
+        updateMenuStatus.assert_called_once_with(True)
+        enableProcessingMenuItems.assert_called_once_with(True)
         hideStatusbarWidgets.assert_called_once()
 
     def testReadStoredDebugpySettingUsesPersistedValue(self):

@@ -58,7 +58,7 @@ class RollPattern(pg.GraphicsObject):
         parent.appendChild(patternElem)
 
         return patternElem
-    
+
     def readXml(self, parent: QDomNode):
         nameElem = parent.namedItem('name').toElement()                         # get the name first
         if not nameElem.isNull():

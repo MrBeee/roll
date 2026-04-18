@@ -2,7 +2,6 @@
 This module provides Seed Class, core of the placement of src & rec points in a survey area
 """
 
-import numpy as np
 from qgis.PyQt.QtCore import QRectF
 from qgis.PyQt.QtGui import QColor, QPicture, QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
@@ -24,7 +23,6 @@ class RollPatternSeed:
 
         # calculated variables
         self.boundingBox = QRectF()                                             # Constructs a null rectangle.size of the seed after all grow steps have been done
-        self.pointArray = None                                                  # numpy array derived from self.pointList
         self.pointPicture = QPicture()                                          # pre-computing a QPicture object allows paint() to run much more quickly
         self.patternPicture = QPicture()                                        # pre-computing a QPicture object allows paint() to run much more quickly
 
@@ -84,15 +82,6 @@ class RollPatternSeed:
             self.boundingBox.setHeight(1.0e-6)                                  # give it very small height
 
         return self.boundingBox  # return  bounding rectangle
-
-    def calcPointArray(self):
-        length = max(len(self.pointList), 1)                                    # need 1 or more points for a valid numpy array
-        self.pointArray = np.zeros(shape=(length, 3), dtype=np.float32)         # start with empty array of the right size and type
-
-        for count, item in enumerate(self.pointList):
-            self.pointArray[count, 0] = item.x()
-            self.pointArray[count, 1] = item.y()
-            self.pointArray[count, 2] = item.z()
 
     # def calcPointPicture(self):
     #     # create painter object to draw against

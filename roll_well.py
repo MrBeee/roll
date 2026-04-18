@@ -229,8 +229,7 @@ class RollWell:
                     nExclamation += 1
                     if nExclamation == 2:
                         break                                               # time to start reading the data
-                    else:
-                        continue
+                    continue
 
                 for i, k in enumerate(keywords):
                     if k in line:

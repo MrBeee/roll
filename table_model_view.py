@@ -67,9 +67,9 @@ class AnaTableModel(QAbstractTableModel):
             else:
                 value = '  n/a  '
             return value
-        elif role == Qt.ItemDataRole.TextAlignmentRole:
+        if role == Qt.ItemDataRole.TextAlignmentRole:
             return Qt.AlignmentFlag.AlignCenter
-        elif role == Qt.ItemDataRole.FontRole:
+        if role == Qt.ItemDataRole.FontRole:
             # return QFont("Courier New", 10, QFont.Weight.Bold)
             # return QFont('Courier New', 8, QFont.Weight.Normal)
             return QFont('Arial', 8, QFont.Weight.Normal)
@@ -106,11 +106,9 @@ class AnaTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
                 return self._header[section]
-            else:
-                if self._chunkedData is not None:
-                    return f'{(self._chunkedData.currentChunk * self._chunkedData.chunkSize) + section + 1:,}'
-                else:
-                    return f'{section + 1:,}'
+            if self._chunkedData is not None:
+                return f'{(self._chunkedData.currentChunk * self._chunkedData.chunkSize) + section + 1:,}'
+            return f'{section + 1:,}'
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
@@ -124,7 +122,7 @@ class AnaTableModel(QAbstractTableModel):
         """Return row count based on whether we're using chunked data or not"""
         if self._chunkedData is not None:
             return self._chunkedData.getRowCount()
-        elif self._data is not None:
+        if self._data is not None:
             return self._data.shape[0]
         return 20
 
@@ -624,9 +622,9 @@ class RpsTableModel(QAbstractTableModel):
             else:
                 value = 'n/a'
             return value
-        elif role == Qt.ItemDataRole.TextAlignmentRole:
+        if role == Qt.ItemDataRole.TextAlignmentRole:
             return Qt.AlignmentFlag.AlignCenter
-        elif role == Qt.ItemDataRole.BackgroundRole:
+        if role == Qt.ItemDataRole.BackgroundRole:
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
@@ -635,17 +633,15 @@ class RpsTableModel(QAbstractTableModel):
             if uniq == 0:
                 if inXps == 0:
                     return QBrush(QColor(255, 200, 200))                        # duplicate AND orphan -> red
-                else:
-                    return QBrush(QColor(255, 230, 130))                        # duplicate -> orange
-            elif inXps == 0:
+                return QBrush(QColor(255, 230, 130))                            # duplicate -> orange
+            if inXps == 0:
                 return QBrush(QColor(155, 200, 255))                            # orphan -> blue-ish
-            else:
-                return QVariant()
-        elif role == Qt.ItemDataRole.FontRole:
+            return QVariant()
+        if role == Qt.ItemDataRole.FontRole:
             # return QFont("Courier New", 10, QFont.Weight.Bold)
             # return QFont('Courier New', 8, QFont.Weight.Normal)
             return QFont('Arial', 8, QFont.Weight.Normal)
-        elif role == Qt.ItemDataRole.ForegroundRole:
+        if role == Qt.ItemDataRole.ForegroundRole:
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
@@ -662,12 +658,10 @@ class RpsTableModel(QAbstractTableModel):
                 field = self._displayFields[section]
                 if field in ('Index', 'InUse'):
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
-                elif field == 'Code':
+                if field == 'Code':
                     return self._header[section] + '\n« min »\n« max »'
-                else:
-                    return self._header[section] + f'\n[{ self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
-            else:
-                return f'{section + 1:,}'
+                return self._header[section] + f'\n[{ self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
+            return f'{section + 1:,}'
 
         if role == Qt.ItemDataRole.BackgroundRole:                                           # highlight sorting column(s)
             if orientation == Qt.Orientation.Horizontal:
@@ -677,8 +671,7 @@ class RpsTableModel(QAbstractTableModel):
                     return QBrush(QColor(255, 255, 160))                        # lightyellow
                 if len(self._qSort) > 2 and section == self._qSort[-3]:
                     return QBrush(QColor(250, 250, 210))                        # lightgoldenrodyellow
-                else:
-                    return QVariant()
+                return QVariant()
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
@@ -749,8 +742,7 @@ class RpsTableModel(QAbstractTableModel):
         # required 2nd parameter (index) not being used. See: https://gist.github.com/nbassler/342fc56c42df27239fa5276b79fca8e6
         if self._header is None or len(self._header) == 0:
             raise ValueError('Table header cannot be empty list')
-        else:
-            return len(self._header)                                        # exclude 'unique', 'InXps'
+        return len(self._header)                                            # exclude 'unique', 'InXps'
 
     def nextDuplicate(self, index):
         if self._data is None:
@@ -885,9 +877,9 @@ class SpsTableModel(QAbstractTableModel):
             else:
                 value = 'n/a'
             return value
-        elif role == Qt.ItemDataRole.TextAlignmentRole:
+        if role == Qt.ItemDataRole.TextAlignmentRole:
             return Qt.AlignmentFlag.AlignCenter
-        elif role == Qt.ItemDataRole.BackgroundRole:
+        if role == Qt.ItemDataRole.BackgroundRole:
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
@@ -896,17 +888,15 @@ class SpsTableModel(QAbstractTableModel):
             if uniq == 0:
                 if inXps == 0:
                     return QBrush(QColor(255, 200, 200))                        # duplicate AND orphan -> red
-                else:
-                    return QBrush(QColor(255, 230, 130))                        # duplicate -> orange
-            elif inXps == 0:
+                return QBrush(QColor(255, 230, 130))                            # duplicate -> orange
+            if inXps == 0:
                 return QBrush(QColor(200, 200, 255))                            # orphan -> blue
-            else:
-                return QVariant()
-        elif role == Qt.ItemDataRole.FontRole:
+            return QVariant()
+        if role == Qt.ItemDataRole.FontRole:
             # return QFont("Courier New", 10, QFont.Bold)
             # return QFont('Courier New', 8, QFont.Weight.Normal)
             return QFont('Arial', 8, QFont.Weight.Normal)
-        elif role == Qt.ItemDataRole.ForegroundRole:
+        if role == Qt.ItemDataRole.ForegroundRole:
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
@@ -923,12 +913,10 @@ class SpsTableModel(QAbstractTableModel):
                 field = self._displayFields[section]
                 if field in ('Index', 'InUse'):
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
-                elif field == 'Code':
+                if field == 'Code':
                     return self._header[section] + '\n« min »\n« max »'
-                else:
-                    return self._header[section] + f'\n[{ self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
-            else:
-                return f'{section + 1:,}'
+                return self._header[section] + f'\n[{ self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
+            return f'{section + 1:,}'
 
         if role == Qt.ItemDataRole.BackgroundRole:                                           # highlight sorting column(s)
             if orientation == Qt.Orientation.Horizontal:
@@ -938,8 +926,7 @@ class SpsTableModel(QAbstractTableModel):
                     return QBrush(QColor(255, 255, 160))                        # lightyellow
                 if len(self._qSort) > 2 and section == self._qSort[-3]:
                     return QBrush(QColor(250, 250, 210))                        # lightgoldenrodyellow
-                else:
-                    return QVariant()
+                return QVariant()
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
@@ -1010,8 +997,7 @@ class SpsTableModel(QAbstractTableModel):
         # required 2nd parameter (index) not being used. See: https://gist.github.com/nbassler/342fc56c42df27239fa5276b79fca8e6
         if self._header is None or len(self._header) == 0:
             raise ValueError('Table header cannot be empty list')
-        else:
-            return len(self._header)                                            # exclude 'unique', 'inXps'
+        return len(self._header)                                                # exclude 'unique', 'inXps'
 
     def nextDuplicate(self, index):
         if self._data is None:
@@ -1133,9 +1119,9 @@ class XpsTableModel(QAbstractTableModel):
             else:
                 value = 'n/a'
             return value
-        elif role == Qt.ItemDataRole.TextAlignmentRole:
+        if role == Qt.ItemDataRole.TextAlignmentRole:
             return Qt.AlignmentFlag.AlignCenter
-        elif role == Qt.ItemDataRole.BackgroundRole:
+        if role == Qt.ItemDataRole.BackgroundRole:
             if self._data is None:
                 return QVariant()
             record = self._data[index.row()]
@@ -1145,15 +1131,13 @@ class XpsTableModel(QAbstractTableModel):
             if uniq == 0:
                 if inSps == 0 or inRps == 0:
                     return QBrush(QColor(255, 200, 200))                        # duplicate AND orphan -> red
-                else:
-                    return QBrush(QColor(255, 230, 130))                        # duplicate -> orange
-            elif inSps == 0 and index.column() < 4:
+                return QBrush(QColor(255, 230, 130))                            # duplicate -> orange
+            if inSps == 0 and index.column() < 4:
                 return QBrush(QColor(200, 200, 255))                            # orphan -> blue
-            elif inRps == 0 and index.column() > 3:
+            if inRps == 0 and index.column() > 3:
                 return QBrush(QColor(155, 200, 255))                            # orphan -> blue-ish
-            else:
-                return QVariant()
-        elif role == Qt.ItemDataRole.FontRole:
+            return QVariant()
+        if role == Qt.ItemDataRole.FontRole:
             # return QFont("Courier New", 10, QFont.Bold)
             # return QFont('Courier New', 8, QFont.Weight.Normal)
             return QFont('Arial', 8, QFont.Weight.Normal)
@@ -1220,10 +1204,8 @@ class XpsTableModel(QAbstractTableModel):
             if orientation == Qt.Orientation.Horizontal:
                 if section in (0, 3, 7):                                        # format depends on column number; int here
                     return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
-                else:                                                           # format depends on column number; float here
-                    return self._header[section] + f'\n[{ self._minMax[0][section]}]:\n[{self._minMax[1][section]}]'
-            else:
-                return f'{section + 1:,}'                                       # 1-based index for columns, using 1000 indicator
+                return self._header[section] + f'\n[{ self._minMax[0][section]}]:\n[{self._minMax[1][section]}]'
+            return f'{section + 1:,}'                                           # 1-based index for columns, using 1000 indicator
 
         if role == Qt.ItemDataRole.BackgroundRole:                                           # highlight sorting column(s)
             if orientation == Qt.Orientation.Horizontal:
@@ -1233,8 +1215,7 @@ class XpsTableModel(QAbstractTableModel):
                     return QBrush(QColor(255, 255, 160))                        # lightyellow
                 if len(self._qSort) > 2 and section == self._qSort[-3]:
                     return QBrush(QColor(250, 250, 210))                        # lightgoldenrodyellow
-                else:
-                    return QVariant()
+                return QVariant()
 
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
@@ -1248,8 +1229,7 @@ class XpsTableModel(QAbstractTableModel):
         # required 2nd parameter (index) not being used. See: https://gist.github.com/nbassler/342fc56c42df27239fa5276b79fca8e6
         if self._header is None or len(self._header) == 0:
             raise ValueError('Table header cannot be empty list')
-        else:
-            return len(self._header) - 3                                        # do not display the 3 [unique, inSps, inRps] attributes
+        return len(self._header) - 3                                            # do not display the 3 [unique, inSps, inRps] attributes
 
     def nextDuplicate(self, index):
         if self._data is None:

@@ -30,11 +30,10 @@ import numpy as np  # Numpy functions needed for plot creation
 import pyqtgraph as pg
 from qgis.core import QgsApplication
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import (QDateTime, QEvent, QFileInfo, QPoint, QRectF,
+from qgis.PyQt.QtCore import (QDateTime, QEvent, QFileInfo, QPoint,
                               QSettings, QSize, Qt, QTimer)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QImage, QPainter,
+from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon,
                              QPainterPath, QPen, QTextCursor, QTransform)
-from qgis.PyQt.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from qgis.PyQt.QtWidgets import (QAction, QApplication, QFileDialog,
                                  QGraphicsEllipseItem, QGraphicsPathItem,
                                  QGraphicsRectItem, QLabel, QMainWindow,
@@ -49,6 +48,7 @@ from qgis.PyQt.QtXml import QDomDocument
 from . import config  # used to pass initial settings
 from . import functions_numba as fnb
 from .app_settings import AppSettings
+from .action_state_controller import ActionStateController
 from .aux_classes import LineROI
 from .aux_functions import (aboutText, exampleSurveyXmlText, highDpiText,
                             licenseText, myPrint, qgisCheatSheetText)
@@ -68,7 +68,11 @@ from .land_wizard import LandSurveyWizard
 from .logging_dock import createLoggingDock
 from .marine_wizard import MarineSurveyWizard
 from .my_parameters import registerAllParameterTypes
+from .plot_navigation_controller import PlotNavigationController
 from .plot_redraw_helper import PlotRedrawHelper
+from .plot_view_state_controller import PlotViewStateController
+from .print_presentation_controller import PrintPresentationController
+from .property_panel_controller import PropertyPanelController
 from .project_load_applier import ProjectLoadApplier
 from .project_service import ProjectService
 from .property_dock import createPropertyDock
@@ -95,6 +99,7 @@ from .spider_navigation_mixin import SpiderNavigationMixin
 from .sps_import_dialog import SpsImportDialog
 from .sps_io_and_qc import (convertCrs, exportDataAsTxt, fileExportAsR01,
                             fileExportAsS01, fileExportAsX01)
+from .stack_response_controller import StackResponseController
 from .survey_paint_mixin import SurveyPaintMixin
 from .xml_code_editor import QCodeEditor, XMLHighlighter
 
@@ -455,12 +460,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.sessionState = SessionState()
         self.appSettings = AppSettings()
         self.runtimeState = RuntimeState()
+        self.actionStateController = ActionStateController(self)
+        self.printPresentationController = PrintPresentationController(self)
 
         # workerTread parameters
         self.worker = None                                                      # 'moveToThread' object
         self.thread = None                                                      # corresponding worker thread
         self.startTime = None                                                   # thread start time
         self.interrupted = False                                                # set to True when the main thread is interrupted
+        self.workerOperationController = None
+        self.binningResultApplier = None
+        self.geometryResultApplier = None
 
         # statusbar widgets
         self.posWidgetStatusbar = QLabel('(x, y): (0.00, 0.00)')                # mouse' position label, in bottom right corner
@@ -485,6 +495,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.xyCellStk = None                                                   # numpy array with cell's KxKy stack response
         self.xyPatResp = None                                                   # numpy array with pattern's KxKy response
         self.plotRedrawHelper = PlotRedrawHelper()
+        self.plotNavigationController = PlotNavigationController(self)
+        self.plotViewStateController = PlotViewStateController(self)
+        self.propertyPanelController = PropertyPanelController(self)
+        self.stackResponseController = StackResponseController(self)
 
         # layout and analysis image-items
         self.layoutImItem = None                                                # pg ImageItems showing analysis result
@@ -503,6 +517,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.offAziPolarItems = []
         self._updatingOffAziColorBarLevels = False
         self._resetOffAziDisplayLevels = False
+        self.offAziDisplayPolar = False
+        self.offAziDisplayDA = None
+        self.offAziDisplayDO = None
+        self.offAziDisplayAMin = None
+        self.offAziDisplayOMax = None
         self.kxyPatColorBar = None
 
         # Imported and geometry arrays, along with their derived live/dead and
@@ -1139,45 +1158,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.Type.Show:                                             # do 'cheap' test first
-            if isinstance(source, pg.PlotWidget):                                   # do 'expensive' test next
-
-                with contextlib.suppress(RuntimeError):                             # rewire zoomAll button
-                    self.actionZoomAll.triggered.disconnect()
-                self.actionZoomAll.triggered.connect(source.autoRange)
-
-                plotIndex = self.getVisiblePlotIndex(source)                        # update toolbar status
-                if plotIndex is not None:
-                    self.actionZoomAll.setEnabled(True)                             # useful for all plots
-                    self.actionZoomRect.setEnabled(True)                            # useful for all plots
-                    self.actionAspectRatio.setEnabled(True)                         # useful for all plots
-                    self.actionAntiAlias.setEnabled(True)                           # useful for plots only
-                    self.actionRuler.setEnabled(plotIndex == 0)                     # useful for 1st plot only
-                    self.actionProjected.setEnabled(plotIndex == 0)                 # useful for 1st plot only
-
-                    self.actionAntiAlias.setChecked(self.antiA[plotIndex])          # useful for all plots
-
-                    plotItem = source.getPlotItem()
-                    self.gridX = plotItem.saveState()['xGridCheck']                 # update x-gridline status
-                    self.actionPlotGridX.setChecked(self.gridX)
-
-                    self.gridY = plotItem.saveState()['yGridCheck']                 # update y-gridline status
-                    self.actionPlotGridY.setChecked(self.gridY)
-
-                    self.XisY = plotItem.saveState()['view']['aspectLocked']        # update XisY status
-                    self.actionAspectRatio.setChecked(self.XisY)
-
-                    viewBox = plotItem.getViewBox()
-                    self.rect = viewBox.getState()['mouseMode'] == pg.ViewBox.RectMode  # update rect status
-                    self.actionZoomRect.setChecked(self.rect)
-                    self.updateVisiblePlotWidget(plotIndex)
-                    return True
-            else:                                                                   # QEvent.Show; but for different widgets
-                self.actionZoomAll.setEnabled(False)                                # useful for plots only
-                self.actionZoomRect.setEnabled(False)                               # useful for plots only
-                self.actionAspectRatio.setEnabled(False)                            # useful for plots only
-                self.actionAntiAlias.setEnabled(False)                              # useful for plots only
-                self.actionRuler.setEnabled(False)                                  # useful for 1st plot only
-                self.actionProjected.setEnabled(False)                              # useful for 1st plot only
+            if self.plotViewStateController.handleShownWidget(source):
                 return True
 
         return super().eventFilter(source, event)
@@ -1195,193 +1176,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         registerAllParameterTypes()
 
     def resetSurveyProperties(self):
-
-        self.paramTree.clear()
-
-        # set the survey object in the property pane using current survey properties
-        surveyCopy = self.survey.deepcopy()
-
-        # create valid pattern list, before using it in property panel
-        self.updatePatternList(surveyCopy)
-
-        # brush color for main parameter categories
-        brush = '#add8e6'
-
-        surveyParams = [
-            dict(brush=brush, name='Survey configuration', type='myConfiguration', value=surveyCopy, default=surveyCopy),
-            dict(brush=brush, name='Survey analysis', type='myAnalysis', value=surveyCopy, default=surveyCopy),
-            dict(brush=brush, name='Survey reflectors', type='myReflectors', value=surveyCopy, default=surveyCopy),
-            dict(brush=brush, name='Survey grid', type='myGrid', value=surveyCopy.grid, default=surveyCopy.grid),
-            dict(brush=brush, name='Block list', type='myBlockList', value=surveyCopy.blockList, default=surveyCopy.blockList, directory=self.projectDirectory, survey=surveyCopy),
-            dict(brush=brush, name='Pattern list', type='myPatternList', value=surveyCopy.patternList, default=surveyCopy.patternList, survey=surveyCopy),
-        ]
-
-        self.parameters = pg.parametertree.Parameter.create(name='Survey Properties', type='group', children=surveyParams)
-        self.parameters.sigTreeStateChanged.connect(self.propertyTreeStateChanged)
-
-        # Block signals to speed up parameter tree setup
-        self.paramTree.blockSignals(True)
-        self.paramTree.setParameters(self.parameters, showTop=False)
-        self.paramTree.blockSignals(False)
-
-        # Make sure we get a notification, when the binning area or the survey grid has changed, to ditch the analysis files
-        self.binChild = self.parameters.child('Survey analysis', 'Binning area')
-        self.binChild.sigTreeStateChanged.connect(self.binningSettingsHaveChanged)
-
-        self.grdChild = self.parameters.child('Survey grid')
-        self.grdChild.sigTreeStateChanged.connect(self.binningSettingsHaveChanged)
-
-        # deal with a bug, not showing tooltip information in the list of parameterItems
-        # make sure the default buttons are greyed out in the parameter tree and count the items
-        nItem = 0
-        for item in self.paramTree.listAllItems():                              # Bug. See: https://github.com/pyqtgraph/pyqtgraph/issues/2744
-            p = item.param                                                      # get parameter belonging to parameterItem
-            if 'tip' in p.opts:                                                 # this solves the above mentioned bug
-                item.setToolTip(0, p.opts['tip'])                               # the widgets now get their tooltips
-            if hasattr(item, 'updateDefaultBtn'):                               # note: not all parameterItems have this method
-                p.setToDefault()                                                # set parameters to its default value
-                item.updateDefaultBtn()                                         # reset the default-button to its grey value
-            nItem += 1
-        self.appendLogMessage(f'Params : {self.fileName} survey object read, containing {nItem} parameters')
-        self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
+        self.propertyPanelController.resetSurveyProperties()
 
     def updatePatternList(self, survey):
-
-        assert isinstance(survey, RollSurvey), 'make sure we have a RollSurvey object here'
-
-        patterns = survey.patternList                                           # use survey as source of truth (no longer using config.patternList)
-        names = [p.name for p in patterns]
-
-        combos = [self.pattern1, self.pattern2, self.pattern3, self.pattern4]
-
-        for combo in combos:
-            combo.blockSignals(True)
-        try:
-            # for pattern response display and kxky response
-            self.pattern1.clear()
-            self.pattern1.addItem('<no pattern>')
-            for name in names:
-                self.pattern1.addItem(name)
-
-            self.pattern2.clear()
-            self.pattern2.addItem('<no pattern>')                               # setup second pattern list in pattern tab
-            for name in names:
-                self.pattern2.addItem(name)
-
-            listSize = len(names)                                               # show the first two paterns (if available)
-            self.pattern1.setCurrentIndex(min(listSize, 1))                     # select first pattern in list
-            self.pattern2.setCurrentIndex(min(listSize, 2))                     # select first pattern in list
-
-            # for convolution of stack response with pattern response
-            self.pattern3.clear()
-            self.pattern3.addItem('<no pattern>')                               # setup first pattern list in pattern tab
-            for name in names:
-                self.pattern3.addItem(name)
-
-            self.pattern4.clear()
-            self.pattern4.addItem('<no pattern>')                               # setup second pattern list in pattern tab
-            for name in names:
-                self.pattern4.addItem(name)
-
-            self.pattern3.setCurrentIndex(min(listSize, 1))                     # select first pattern in list
-            self.pattern4.setCurrentIndex(min(listSize, 2))                     # select first pattern in list
-        finally:
-            for combo in combos:
-                combo.blockSignals(False)
+        self.propertyPanelController.updatePatternList(survey)
 
     def applyPropertyChanges(self):
-        # build new survey object from scratch, and start adding to it
-        surveyCopy = RollSurvey()
-
-        CFG = self.parameters.child('Survey configuration')
-
-        surveyCopy.crs, surType, surveyCopy.name = CFG.value()                              # get tuple of data from parameter
-        surveyCopy.type = SurveyType[surType]                                        # SurveyType is an enum
-
-        ANA = self.parameters.child('Survey analysis')
-        surveyCopy.output.rctOutput, surveyCopy.angles, surveyCopy.binning, surveyCopy.offset, surveyCopy.unique = ANA.value()
-
-        REF = self.parameters.child('Survey reflectors')
-        surveyCopy.globalPlane, surveyCopy.globalSphere = REF.value()
-
-        GRD = self.parameters.child('Survey grid')
-        surveyCopy.grid = GRD.value()
-
-        BLK = self.parameters.child('Block list')
-        surveyCopy.blockList = BLK.value()
-
-        PAT = self.parameters.child('Pattern list')
-        surveyCopy.patternList = PAT.value()
-
-        surveyCopy.bindSeedsToSurvey()
-
-        # first check survey integrity before committing to it.
-        if surveyCopy.checkIntegrity() is False:
-            return
-
-        self.survey = surveyCopy.deepcopy()                                           # start using the updated survey object
-
-        # update the survey object with the necessary steps
-        self.survey.calcTransforms()                                            # (re)calculate the transforms being used
-        self.survey.calcSeedData()                                              # needed for circles, spirals & well-seeds; may affect bounding box
-        self.survey.calcBoundingRect()                                          # (re)calculate the boundingBox as part of parsing the data
-        self.survey.calcNoShotPoints()                                          # (re)calculate nr of shot points
-
-        # check if it is a marine survey; set seed plotting details accordingly
-        self.setPlottingDetails()
-
-        plainText = self.survey.toXmlString()                                   # convert the survey object itself to an Xml string
-        self.textEdit.setTextViaCursor(plainText)                               # get text into the textEdit, NOT resetting its doc status
-        self.textEdit.document().setModified(True)                              # we edited the document; so it's been modified
-
-        if self.binAreaChanged:                                                 # we need to throw away the analysis results
-            self.binAreaChanged = False                                         # reset this flag
-
-            self.inlineStk = None                                               # numpy array with inline Kr stack reponse
-            self.x0lineStk = None                                               # numpy array with x_line Kr stack reponse
-            self.xyCellStk = None                                               # numpy array with cell's KxKy stack response
-            self.xyPatResp = None                                               # numpy array with pattern's KxKy response
-            self.plotRedrawHelper.reset()
-
-            # the following arrays are calculated in a separate binning thread and stored under the 'output' object
-            self.output.binOutput = None                                        # numpy array with foldmap
-            self.output.minOffset = None                                        # numpy array with minimum offset
-            self.output.maxOffset = None                                        # numpy array with maximum offset
-            self.output.rmsOffset = None                                        # numpy array with rms delta offset
-            self.output.ofAziHist = None                                        # numpy array with offset/azimuth distribution
-            self.output.offstHist = None                                        # numpy array with offset distribution
-
-            if self.resetAnaTableModel():
-                self.appendLogMessage(f"Edited : Closing memory mapped file {self.fileName + '.ana.npy'}")
-
-            binFileName = self.fileName + '.bin.npy'                            # file names for analysis files
-            minFileName = self.fileName + '.min.npy'
-            maxFileName = self.fileName + '.max.npy'
-            rmsFileName = self.fileName + '.rms.npy'
-            anaFileName = self.fileName + '.ana.npy'
-
-            try:
-                if os.path.exists(binFileName):
-                    os.remove(binFileName)                                      # remove file names, if possible
-                if os.path.exists(minFileName):
-                    os.remove(minFileName)
-                if os.path.exists(maxFileName):
-                    os.remove(maxFileName)
-                if os.path.exists(rmsFileName):
-                    os.remove(rmsFileName)
-                if os.path.exists(anaFileName):
-                    os.remove(anaFileName)
-            except OSError as e:
-                self.appendLogMessage(f"Can't delete file, {e}")
-            self.updateMenuStatus(True)                                         # keep menu status in sync with program's state; analysis files have been deleted !
-        else:
-            self.updateMenuStatus(False)                                        # keep menu status in sync with program's state; analysis files have not been deleted
-        self.enableProcessingMenuItems(True)                                    # enable processing menu items; disable 'stop processing thread'
-
-        self.appendLogMessage(f'Edited : {self.fileName} survey object updated')
-
-        self.updatePatternList(self.survey)                                     # pattern list may be altered during parameter editing session
-        self.plotLayout()
+        self.propertyPanelController.applyPropertyChanges()
 
     def binningSettingsHaveChanged(self, *_):                                   # param, changes unused; replaced by *_
         self.binAreaChanged = True
@@ -1418,32 +1219,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.actionCopy.setEnabled(True)
 
     def _invokeFocusMethod(self, methodName: str) -> bool:
-        obj = QApplication.focusWidget()
-        if obj is None:
-            obj = QApplication.focusObject()
-        if obj is None:
-            return False
-
-        method = getattr(obj, methodName, None)
-        if callable(method):
-            method()
-            return True
-        return False
+        return self.actionStateController.invokeFocusMethod(methodName)
 
     def cut(self):
-        self._invokeFocusMethod('cut')
-        self.actionPaste.setEnabled(self.clipboardHasText())
+        self.actionStateController.cut()
 
     def copy(self):
-        if not self._invokeFocusMethod('copy'):
-            self._copyPlotWidgetToClipboard()
-        self.actionPaste.setEnabled(self.clipboardHasText())
+        self.actionStateController.copy()
 
     def paste(self):
-        self._invokeFocusMethod('paste')
+        self.actionStateController.paste()
 
     def selectAll(self):
-        self._invokeFocusMethod('selectAll')
+        self.actionStateController.selectAll()
 
     def find(self):
         # find only operates on the xml-text edit
@@ -1802,89 +1590,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         exportSpsOutlinesToQgis(layerName, self.survey, self.rpsBound, self.spsBound)
 
     def updateMenuStatus(self, resetAnalysis=True):
-        if resetAnalysis:
-            self.actionArea.setChecked(True)                                    # coupled with tbNone; reset analysis figure
-            self.imageType = 0                                                  # reset analysis type to zero
-            self.handleImageSelection()                                         # change image (if available) and finally plot survey layout
-
-        self.actionExportFoldMap.setEnabled(self.output.binOutput is not None)
-        self.actionExportMinOffsets.setEnabled(self.output.minOffset is not None)
-        self.actionExportMaxOffsets.setEnabled(self.output.maxOffset is not None)
-        self.actionExportRmsOffsets.setEnabled(self.output.rmsOffset is not None)
-        self.actionExportAnaAsCsv.setEnabled(self.output.anaOutput is not None)
-
-        self.actionExportRecAsCsv.setEnabled(self.recGeom is not None)
-        self.actionExportSrcAsCsv.setEnabled(self.srcGeom is not None)
-        self.actionExportRelAsCsv.setEnabled(self.relGeom is not None)
-        self.actionExportRecAsR01.setEnabled(self.recGeom is not None)
-        self.actionExportSrcAsS01.setEnabled(self.srcGeom is not None)
-        self.actionExportRelAsX01.setEnabled(self.relGeom is not None)
-        self.actionExportSrcToQGIS.setEnabled(self.srcGeom is not None)
-        self.actionExportRecToQGIS.setEnabled(self.recGeom is not None)
-
-        self.actionExportRpsAsCsv.setEnabled(self.rpsImport is not None)
-        self.actionExportSpsAsCsv.setEnabled(self.spsImport is not None)
-        self.actionExportXpsAsCsv.setEnabled(self.xpsImport is not None)
-        self.actionExportRpsAsR01.setEnabled(self.rpsImport is not None)
-        self.actionExportSpsAsS01.setEnabled(self.spsImport is not None)
-        self.actionExportXpsAsX01.setEnabled(self.xpsImport is not None)
-        self.actionExportSpsToQGIS.setEnabled(self.spsImport is not None)
-        self.actionExportRpsToQGIS.setEnabled(self.rpsImport is not None)
-
-        self.btnSrcRemoveDuplicates.setEnabled(self.srcGeom is not None)
-        self.btnSrcRemoveOrphans.setEnabled(self.srcGeom is not None)
-        self.btnSrcExportToQGIS.setEnabled(self.srcGeom is not None)
-
-        self.btnRecRemoveDuplicates.setEnabled(self.recGeom is not None)
-        self.btnRecRemoveOrphans.setEnabled(self.recGeom is not None)
-        self.btnRecExportToQGIS.setEnabled(self.recGeom is not None)
-
-        self.btnRelRemoveSrcOrphans.setEnabled(self.relGeom is not None)
-        self.btnRelRemoveDuplicates.setEnabled(self.relGeom is not None)
-        self.btnRelRemoveRecOrphans.setEnabled(self.relGeom is not None)
-
-        self.actionExportAreasToQGIS.setEnabled(len(self.fileName) > 0)         # test if file name isn't empty
-        self.btnRelExportToQGIS.setEnabled(len(self.fileName) > 0)              # test if file name isn't empty
-
-        self.btnSpsExportToQGIS.setEnabled(self.spsImport is not None)
-        self.btnRpsExportToQGIS.setEnabled(self.rpsImport is not None)
-
-        self.actionFold.setEnabled(self.output.binOutput is not None)
-        self.actionMinO.setEnabled(self.output.minOffset is not None)
-        self.actionMaxO.setEnabled(self.output.maxOffset is not None)
-        self.actionRmsO.setEnabled(self.output.rmsOffset is not None)
-
-        self.actionSpider.setEnabled(self.output.anaOutput is not None and self.output.binOutput is not None)  # the spider button in the display pane
-        self.actionMoveLt.setEnabled(self.output.anaOutput is not None)  # the navigation buttons in the Display pane AND on toolbar (moveBar)
-        self.actionMoveRt.setEnabled(self.output.anaOutput is not None)
-        self.actionMoveUp.setEnabled(self.output.anaOutput is not None)
-        self.actionMoveDn.setEnabled(self.output.anaOutput is not None)
-
-        self.btnBinToQGIS.setEnabled(self.output.binOutput is not None)
-        self.btnMinToQGIS.setEnabled(self.output.minOffset is not None)
-        self.btnMaxToQGIS.setEnabled(self.output.maxOffset is not None)
-        self.btnRmsToQGIS.setEnabled(self.output.rmsOffset is not None)
-
-        self.actionExportFoldMapToQGIS.setEnabled(self.output.binOutput is not None)
-        self.actionExportMinOffsetsToQGIS.setEnabled(self.output.minOffset is not None)
-        self.actionExportMaxOffsetsToQGIS.setEnabled(self.output.maxOffset is not None)
-        self.actionExportRmsOffsetsToQGIS.setEnabled(self.output.rmsOffset is not None)
-
-        self.actionRecPoints.setEnabled(self.recGeom is not None)
-        self.actionSrcPoints.setEnabled(self.srcGeom is not None)
-        self.actionRpsPoints.setEnabled(self.rpsImport is not None)
-        self.actionSpsPoints.setEnabled(self.spsImport is not None)
-        self.actionAllPoints.setEnabled(self.recGeom is not None or self.srcGeom is not None or self.rpsImport is not None or self.spsImport is not None)
-
-        if self.survey is None:                                                 # can't do the following
-            return
-
-        self.actionShowSrcPatterns.setChecked(self.survey.paintDetails & PaintDetails.srcPat != PaintDetails.none)
-        self.actionShowSrcPoints.setChecked(self.survey.paintDetails & PaintDetails.srcPnt != PaintDetails.none)
-        self.actionShowSrcLines.setChecked(self.survey.paintDetails & PaintDetails.srcLin != PaintDetails.none)
-        self.actionShowRecPatterns.setChecked(self.survey.paintDetails & PaintDetails.recPat != PaintDetails.none)
-        self.actionShowRecPoints.setChecked(self.survey.paintDetails & PaintDetails.recPnt != PaintDetails.none)
-        self.actionShowRecLines.setChecked(self.survey.paintDetails & PaintDetails.recLin != PaintDetails.none)
+        self.actionStateController.updateMenuStatus(resetAnalysis)
 
     def setColorbarLabel(self, label):                                          # I should really subclass colorbarItem to properly set the text label
         if label is not None:
@@ -2136,140 +1842,23 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.posWidgetStatusbar.setText(f'S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
 
     def mouseMovedInPlot(self, plotWidget, pos):                                # See: https://stackoverflow.com/questions/46166205/display-coordinates-in-pyqtgraph
-        viewBox = plotWidget.plotItem.vb
-        if not viewBox.sceneBoundingRect().contains(pos):
-            return
-
-        mousePoint = viewBox.mapSceneToView(pos)                                # get scene coordinates
-        if plotWidget == self.layoutWidget:
-            self._setLayoutMouseStatus(mousePoint)
-        else:
-            self._setGenericPlotMouseStatus(plotWidget, pos, mousePoint)
+        self.plotNavigationController.mouseMovedInPlot(plotWidget, pos)
 
     def getVisiblePlotIndex(self, plotWidget):
-        if plotWidget == self.layoutWidget:
-            return 0
-        elif plotWidget == self.offTrkWidget:
-            return 1
-        elif plotWidget == self.offBinWidget:
-            return 2
-        elif plotWidget == self.aziTrkWidget:
-            return 3
-        elif plotWidget == self.aziBinWidget:
-            return 4
-        elif plotWidget == self.stkTrkWidget:
-            return 5
-        elif plotWidget == self.stkBinWidget:
-            return 6
-        elif plotWidget == self.stkCelWidget:
-            return 7
-        elif plotWidget == self.offsetWidget:
-            return 8
-        elif plotWidget == self.offAziWidget:
-            return 9
-        elif plotWidget == self.arraysWidget:
-            return 10
-
-        return None
+        return self.plotNavigationController.getVisiblePlotIndex(plotWidget)
 
     def getVisiblePlotWidget(self):
-        if self.layoutWidget.isVisible():
-            return (self.layoutWidget, 0)
-        if self.offTrkWidget.isVisible():
-            return (self.offTrkWidget, 1)
-        if self.offBinWidget.isVisible():
-            return (self.offBinWidget, 2)
-        if self.aziTrkWidget.isVisible():
-            return (self.aziTrkWidget, 3)
-        if self.aziBinWidget.isVisible():
-            return (self.aziBinWidget, 4)
-        if self.stkTrkWidget.isVisible():
-            return (self.stkTrkWidget, 5)
-        if self.stkBinWidget.isVisible():
-            return (self.stkBinWidget, 6)
-        if self.stkCelWidget.isVisible():
-            return (self.stkCelWidget, 7)
-        if self.offsetWidget.isVisible():
-            return (self.offsetWidget, 8)
-        if self.offAziWidget.isVisible():
-            return (self.offAziWidget, 9)
-        if self.arraysWidget.isVisible():
-            return (self.arraysWidget, 10)
-
-        return (None, None)
+        return self.plotNavigationController.getVisiblePlotWidget()
 
     def getStackResponseRedrawContext(self):
-        if self.output.anaOutput is None or self.survey is None or self.survey.binTransform is None:
-            return None
-
-        xAnaSize = self.output.anaOutput.shape[0]
-        yAnaSize = self.output.anaOutput.shape[1]
-        if xAnaSize == 0 or yAnaSize == 0:
-            return None
-
-        if self.spiderPoint == QPoint(-1, -1):
-            self.spiderPoint = QPoint(xAnaSize // 2, yAnaSize // 2)
-
-        if self.spiderPoint.x() < 0:
-            self.spiderPoint.setX(0)
-
-        if self.spiderPoint.y() < 0:
-            self.spiderPoint.setY(0)
-
-        if self.spiderPoint.x() >= xAnaSize:
-            self.spiderPoint.setX(xAnaSize - 1)
-
-        if self.spiderPoint.y() >= yAnaSize:
-            self.spiderPoint.setY(yAnaSize - 1)
-
-        nX = self.spiderPoint.x()
-        nY = self.spiderPoint.y()
-
-        invBinTransform, _ = self.survey.binTransform.inverted()
-        cmpX, cmpY = invBinTransform.map(nX, nY)
-        stkX, stkY = self.survey.st2Transform.map(cmpX, cmpY)
-
-        return {
-            'nX': nX,
-            'nY': nY,
-            'stkX': stkX,
-            'stkY': stkY,
-            'x0': self.survey.output.rctOutput.left(),
-            'y0': self.survey.output.rctOutput.top(),
-            'dx': self.survey.grid.binSize.x(),
-            'dy': self.survey.grid.binSize.y(),
-        }
+        return self.stackResponseController.getStackResponseRedrawContext()
 
     def redrawStackResponse(self, surface: str, context) -> None:
-        if surface == 'stack-inline':
-            self.plotStkTrk(context['nY'], context['stkY'], context['x0'], context['dx'])
-            return
-
-        if surface == 'stack-xline':
-            self.plotStkBin(context['nX'], context['stkX'], context['y0'], context['dy'])
-            return
-
-        if surface == 'stack-cell':
-            self.plotStkCel(context['nX'], context['nY'], context['stkX'], context['stkY'])
-            return
-
-        raise NotImplementedError(f'unsupported stack-response surface: {surface}')
+        self.stackResponseController.redrawStackResponse(surface, context)
 
     @staticmethod
     def shouldRedrawStackResponse(surface: str, direction: Direction) -> bool:
-        if direction == Direction.NA:
-            return True
-
-        if surface == 'stack-inline':
-            return direction in (Direction.Up, Direction.Dn)
-
-        if surface == 'stack-xline':
-            return direction in (Direction.Lt, Direction.Rt)
-
-        if surface == 'stack-cell':
-            return direction in (Direction.Up, Direction.Dn, Direction.Lt, Direction.Rt)
-
-        raise NotImplementedError(f'unsupported stack-response surface: {surface}')
+        return StackResponseController.shouldRedrawStackResponse(surface, direction)
 
     def dispatchAnalysisRedraw(
         self,
@@ -2304,127 +1893,22 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.redrawStackResponse(surface, context)
 
     def updateVisiblePlotWidget(self, index: int, direction: Direction = Direction.NA) -> None:
-        if index == 0:
-            self.plotLayout()                                                   # no conditions to plot main layout plot
-            return
-
-        if index == 10:                                                         # no condition to plot patterns either
-            self.dispatchAnalysisRedraw('patterns', AnalysisRedrawReason.visiblePlotActivated)
-            return
-
-        if self.output.anaOutput is None:                                       # we need self.output.anaOutput to display meaningful ANALYSIS information
-            return
-
-        if index == 5:
-            self.dispatchAnalysisRedraw('stack-inline', AnalysisRedrawReason.visiblePlotActivated, direction=direction)
-            return
-
-        if index == 6:
-            self.dispatchAnalysisRedraw('stack-xline', AnalysisRedrawReason.visiblePlotActivated, direction=direction)
-            return
-
-        if index == 7:
-            self.dispatchAnalysisRedraw('stack-cell', AnalysisRedrawReason.visiblePlotActivated, direction=direction)
-            return
-
-        if index == 8:
-            self.dispatchAnalysisRedraw('offset', AnalysisRedrawReason.visiblePlotActivated)
-            return
-
-        if index == 9:
-            self.dispatchAnalysisRedraw('off-azi', AnalysisRedrawReason.visiblePlotActivated)
-            return
-
-        xAnaSize = self.output.anaOutput.shape[0]                               # make sure we have a valid self.spiderPoint, hence valid nx, ny
-        yAnaSize = self.output.anaOutput.shape[1]
-
-        if self.spiderPoint == QPoint(-1, -1):                                  # no valid position yet; move to center
-            self.spiderPoint = QPoint(xAnaSize // 2, yAnaSize // 2)
-
-        if self.spiderPoint.x() < 0:                                            # build in some safety settings
-            self.spiderPoint.setX(0)
-
-        if self.spiderPoint.y() < 0:
-            self.spiderPoint.setY(0)
-
-        if self.spiderPoint.x() >= xAnaSize:
-            self.spiderPoint.setX(xAnaSize - 1)
-
-        if self.spiderPoint.y() >= yAnaSize:
-            self.spiderPoint.setY(yAnaSize - 1)
-
-        nX = self.spiderPoint.x()                                               # get x, y indices into bin array
-        nY = self.spiderPoint.y()
-
-        invBinTransform, _ = self.survey.binTransform.inverted()                # need to go from bin nr's to cmp(x, y)
-        cmpX, cmpY = invBinTransform.map(nX, nY)                                # get local coordinates from line and point indices
-        stkX, stkY = self.survey.st2Transform.map(cmpX, cmpY)                   # get the corresponding bin and stake numbers
-
-        x0 = self.survey.output.rctOutput.left()                                # x origin of binning area
-        y0 = self.survey.output.rctOutput.top()                                 # y origin of binning area
-
-        dx = self.survey.grid.binSize.x()                                       # x bin size
-        dy = self.survey.grid.binSize.y()                                       # y bin size
-        ox = 0.5 * dx                                                           # half the x bin size
-        oy = 0.5 * dy                                                           # half the y bin size
-
-        if index == 1:
-            self.plotOffTrk(nY, stkY, ox)
-        elif index == 2:
-            self.plotOffBin(nX, stkX, oy)
-        elif index == 3:
-            self.plotAziTrk(nY, stkY, ox)
-        elif index == 4:
-            self.plotAziBin(nX, stkX, oy)
-        elif index == 5:
-            self.plotStkTrk(nY, stkY, x0, dx)
-        elif index == 6:
-            self.plotStkBin(nX, stkX, y0, dy)
-        elif index == 7:
-            self.plotStkCel(nX, nY, stkX, stkY)
+        self.plotNavigationController.updateVisiblePlotWidget(index, direction)
 
     def plotZoomRect(self):
-        visiblePlot = self.getVisiblePlotWidget()[0]
-        if visiblePlot is not None:
-            viewBox = visiblePlot.getViewBox()
-            self.rect = viewBox.getState()['mouseMode'] == pg.ViewBox.RectMode   # get rect status
-            if self.rect:
-                viewBox.setMouseMode(pg.ViewBox.PanMode)
-            else:
-                viewBox.setMouseMode(pg.ViewBox.RectMode)
+        self.plotViewStateController.plotZoomRect()
 
     def plotAspectRatio(self):
-        visiblePlot = self.getVisiblePlotWidget()[0]
-        if visiblePlot is not None:
-            plotItem = visiblePlot.getPlotItem()
-            self.XisY = not plotItem.saveState()['view']['aspectLocked']        # get XisY status
-            visiblePlot.setAspectLocked(self.XisY)
+        self.plotViewStateController.plotAspectRatio()
 
     def plotAntiAlias(self):
-        visiblePlot, index = self.getVisiblePlotWidget()
-        if visiblePlot is not None:                                             # there's no internal AA state
-            self.antiA[index] = not self.antiA[index]                           # maintain status externally
-            visiblePlot.setAntialiasing(self.antiA[index])                      # enable/disable aa plotting
+        self.plotViewStateController.plotAntiAlias()
 
     def plotGridX(self):
-        visiblePlot = self.getVisiblePlotWidget()[0]
-        if visiblePlot is not None:
-            plotItem = visiblePlot.getPlotItem()
-            self.gridX = not plotItem.saveState()['xGridCheck']                 # update x-gridline status
-            if self.gridX:
-                visiblePlot.showGrid(x=True, alpha=0.75)                        # show the grey grid lines
-            else:
-                visiblePlot.showGrid(x=False)                                   # don't show the grey grid lines
+        self.plotViewStateController.plotGridX()
 
     def plotGridY(self):
-        visiblePlot = self.getVisiblePlotWidget()[0]
-        if visiblePlot is not None:
-            plotItem = visiblePlot.getPlotItem()
-            self.gridY = not plotItem.saveState()['yGridCheck']                 # update y-gridline status
-            if self.gridY:
-                visiblePlot.showGrid(y=True, alpha=0.75)                        # show the grey grid lines
-            else:
-                visiblePlot.showGrid(y=False)                                   # don't show the grey grid lines
+        self.plotViewStateController.plotGridY()
 
     def plotProjected(self):
         self.glob = self.actionProjected.isChecked()
@@ -2949,125 +2433,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return imageItem
 
     def plotStkTrk(self, nY: int, stkY: int, x0: float, dx: float):
-        with pg.BusyCursor():
-            kMax, dK, kStart, kDelta = self.plotRedrawHelper.buildInlineStackAxisValues(self)
-
-            responseKey = self.plotRedrawHelper.buildInlineResponseKey(nY)
-            if not self.plotRedrawHelper.canReuseInlineResponse(self, responseKey):
-                slice3D, I = fnb.numbaSlice3D(self.output.anaOutput[:, nY, :, :], self.survey.unique.apply)
-                if slice3D.shape[0] == 0:                                       # empty array; nothing to see here...
-                    return
-
-                self.inlineStk = fnb.numbaNdft1D(kMax, dK, slice3D, I)
-                self.plotRedrawHelper.storeInlineResponseKey(responseKey)
-
-            self.prepareAnalysisImageAndColorBar(
-                self.stkTrkWidget,
-                self.inlineStk,
-                x0,
-                kStart,
-                dx,
-                kDelta,
-                'stkTrkImItem',
-                'stkTrkColorBar',
-            )
-
-            plotTitle = f'{self.plotTitles[5]} [line={stkY}]'
-            self.stkTrkWidget.setTitle(plotTitle, color='b', size='16pt')
+        self.stackResponseController.plotStkTrk(nY, stkY, x0, dx)
 
     def plotStkBin(self, nX: int, stkX: int, y0: float, dy: float):
-        with pg.BusyCursor():
-            kMax, dK, kStart, kDelta = self.plotRedrawHelper.buildXlineStackAxisValues(self)
-
-            responseKey = self.plotRedrawHelper.buildXlineResponseKey(nX)
-            if not self.plotRedrawHelper.canReuseXlineResponse(self, responseKey):
-                slice3D, I = fnb.numbaSlice3D(self.output.anaOutput[nX, :, :, :], self.survey.unique.apply)
-                if slice3D.shape[0] == 0:                                       # empty array; nothing to see here...
-                    return
-
-                self.x0lineStk = fnb.numbaNdft1D(kMax, dK, slice3D, I)
-                self.plotRedrawHelper.storeXlineResponseKey(responseKey)
-
-            self.prepareAnalysisImageAndColorBar(
-                self.stkBinWidget,
-                self.x0lineStk,
-                y0,
-                kStart,
-                dy,
-                kDelta,
-                'stkBinImItem',
-                'stkBinColorBar',
-            )
-
-            plotTitle = f'{self.plotTitles[6]} [stake={stkX}]'
-            self.stkBinWidget.setTitle(plotTitle, color='b', size='16pt')
+        self.stackResponseController.plotStkBin(nX, stkX, y0, dy)
 
     def getSelectedStackCellPatterns(self):
-        if not self.tbStackPatterns.isChecked():
-            return (None, None)
-
-        maxPatterns = len(self.survey.patternList)
-        patternIndex3 = self.pattern3.currentIndex() - 1
-        patternIndex4 = self.pattern4.currentIndex() - 1
-
-        pattern3 = self.survey.patternList[patternIndex3] if 0 <= patternIndex3 < maxPatterns else None
-        pattern4 = self.survey.patternList[patternIndex4] if 0 <= patternIndex4 < maxPatterns else None
-
-        return (pattern3, pattern4)
+        return self.stackResponseController.getSelectedStackCellPatterns()
 
     def computeStackCellResponse(self, nX: int, nY: int, pattern3=None, pattern4=None):
-        kMin = 0.001 * self.appSettings.kxyStack.x()
-        kMax = 0.001 * self.appSettings.kxyStack.y()
-        dK = 0.001 * self.appSettings.kxyStack.z()
-        kMax = kMax + dK
-
-        kStart = 1000.0 * (kMin - 0.5 * dK)
-        kDelta = 1000.0 * dK
-
-        offsetX, offsetY, noData = fnb.numbaOffsetBin(self.output.anaOutput[nX, nY, :, :], self.survey.unique.apply)
-        fold = 0 if noData else offsetX.shape[0]
-
-        if noData or offsetX.size == 0:
-            kX = np.arange(kMin, kMax, dK)
-            responseSize = kX.shape[0]
-            response = np.ones(shape=(responseSize, responseSize), dtype=np.float32) * -50.0
-        else:
-            response = fnb.numbaNdft2D(kMin, kMax, dK, offsetX, offsetY)
-
-        for pattern in (pattern3, pattern4):
-            if pattern is None:
-                continue
-            xPattern, yPattern = pattern.calcPatternPointArrays()
-            response = response + fnb.numbaNdft2D(kMin, kMax, dK, xPattern, yPattern)
-
-        return response, kStart, kDelta, fold
+        return self.stackResponseController.computeStackCellResponse(nX, nY, pattern3, pattern4)
 
     def plotStkCel(self, nX: int, nY: int, stkX: int, stkY: int):
-        if self.output.anaOutput is None or self.output.anaOutput.shape[0] == 0 or self.output.anaOutput.shape[1] == 0:
-            return
-
-        with pg.BusyCursor():
-            pattern3, pattern4 = self.getSelectedStackCellPatterns()
-            responseKey = self.plotRedrawHelper.buildStackCellResponseKey(self, nX, nY)
-            if not self.plotRedrawHelper.canReuseStackCellResponse(self, responseKey):
-                self.xyCellStk, kStart, kDelta, fold = self.computeStackCellResponse(nX, nY, pattern3, pattern4)
-                self.plotRedrawHelper.storeStackCellResponse(responseKey, fold)
-            else:
-                kStart, kDelta, fold = self.plotRedrawHelper.buildStackCellCachedAxisValues(self)
-
-            self.prepareAnalysisImageAndColorBar(
-                self.stkCelWidget,
-                self.xyCellStk,
-                kStart,
-                kStart,
-                kDelta,
-                kDelta,
-                'stkCelImItem',
-                'stkCelColorBar',
-            )
-
-            plotTitle = f'{self.plotTitles[7]} [stake={stkX}, line={stkY}, fold={fold}]'
-            self.stkCelWidget.setTitle(plotTitle, color='b', size='16pt')
+        self.stackResponseController.plotStkCel(nX, nY, stkX, stkY)
 
     def prepareOffsetHistogramInputs(self):
         dO = 50.0                                                               # offsets increments
@@ -3366,10 +2744,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # See: https://doc.qt.io/qt-6/qcoreapplication.html#aboutToQuit
         # intended to shut down quickly in standaloneme mode,
         # without going through the closeEvent (which is not triggered when the main window is closed in standalone mode)
-        if self.thread is not None and self.thread.isRunning():
-            self.thread.requestInterruption()
-            self.thread.quit()
-            self.thread.wait(2000)
+        self._ensureWorkerOperationComponents()
+        self.workerOperationController.shutdownCurrentOperation(waitTimeout=2000)
         self.resetAnaTableModel()
         gc.collect()
 
@@ -3478,8 +2854,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.plotProjected()                                                # enforce 'local' plotting and plotLayout()
 
             return True                                                         # we emptied the document, and reset the survey object
-        else:
-            return False                                                        # user had 2nd thoughts and did not close the document
+        return False                                                            # user had 2nd thoughts and did not close the document
 
     def fileNewLandSurvey(self):
         if not self.fileNew():                                                  # user had 2nd thoughts and did not close the document; return False
@@ -3549,27 +2924,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return True                                                             # we're done dealing with the current document
 
     def maybeKillThread(self) -> bool:
-        if self.thread is not None and self.thread.isRunning():
+        self._ensureWorkerOperationComponents()
+
+        if self.workerOperationController.hasRunningOperation():
             reply = QMessageBox.question(self, 'Please confirm', 'Cancel work in progress and lose results ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.Cancel)
 
             if reply == QMessageBox.StandardButton.Cancel:
                 return False
-            else:
-                self.thread.requestInterruption()
-                self.thread.quit()
-                self.thread.wait()
-
-        # by now the thread has finished, so clean up and return 'True'
-        self.worker = None                                                      # moveToThread object
-        self.thread = None                                                      # corresponding worker thread
-
-        self.hideStatusbarWidgets()                                             # remove temporary widgets from statusbar (don't kill 'm)
-
-        self.layoutImg = None                                                   # numpy array to be displayed
-        self.layoutImItem = None                                                # pg ImageItem showing analysis result
-
-        self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
-        self.handleImageSelection()                                             # update the colorbar accordingly
+            self.workerOperationController.cancelCurrentOperation(waitTimeout=None, clearLayoutImage=True)
+        else:
+            self.workerOperationController.cancelCurrentOperation(waitTimeout=None, clearLayoutImage=True)
 
         return True
 
@@ -3656,8 +3020,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
             gc.collect()                                                        # get the garbage collector going
             return True                                                         # we emptied the document, and reset the survey object
-        else:
-            return False                                                        # nothing to reset
+        return False                                                            # nothing to reset
 
     def setPlottingDetails(self):
         # actionTemplates is still handy to show the survey's origin, so don't disable it
@@ -4032,128 +3395,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.appendLogMessage(f"Export : exported {records:,} lines to '{fn}'")
 
     def _grabPlotWidgetForPrint(self):
-        currentWidget = self.mainTabWidget.currentWidget()
-        if isinstance(currentWidget, pg.PlotWidget):
-            return currentWidget
-
-        # If we're on the Analysis tab, drill down to the active analysis widget
-        if currentWidget is self.analysisTabWidget:
-            currentWidget = self.analysisTabWidget.currentWidget()
-
-        if currentWidget is None:
-            return None
-
-        if isinstance(currentWidget, pg.PlotWidget):
-            return currentWidget
-
-        return currentWidget.findChild(pg.PlotWidget)
+        return self.actionStateController.grabPlotWidgetForPrint()
 
     def _copyPlotWidgetToClipboard(self) -> bool:
-        plotWidget = self._grabPlotWidgetForPrint()
-        if plotWidget is None:
-            return False
-
-        source = plotWidget.rect()
-        if source.isEmpty():
-            return False
-
-        image = QImage(source.size(), QImage.Format.Format_ARGB32_Premultiplied)
-        image.fill(Qt.GlobalColor.white)
-
-        painter = QPainter(image)
-        try:
-            plotWidget.render(painter)
-        finally:
-            painter.end()
-
-        QApplication.clipboard().setImage(image)
-        return True
+        return self.actionStateController.copyPlotWidgetToClipboard()
 
     def filePrint(self):
-        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
-        # printer.setDocName("My Custom Title")
-        preview = QPrintPreviewDialog(printer, self)
-        preview.paintRequested.connect(self.printPreview)
-        preview.setWindowTitle('Print Preview')
-        preview.exec()
+        self.printPresentationController.filePrint()
 
     def printPreview(self, printer):
-        currentWidget = self.mainTabWidget.currentWidget()
-
-        if currentWidget is self.textEdit:
-            self.textEdit.print(printer)
-            return
-
-        plotWidget = self._grabPlotWidgetForPrint()
-        if plotWidget is not None:
-
-            painter = QPainter(printer)
-            try:
-                target = printer.pageLayout().paintRectPixels(printer.resolution())
-                source = plotWidget.rect()
-                if source.isEmpty() or target.isEmpty():
-                    return
-
-                margin = int(min(target.width(), target.height()) * 0.10)
-                target = target.adjusted(margin, margin, -margin, -margin)
-                if target.isEmpty():
-                    return
-
-                # provide a header with the file name, if available
-                headerText = QFileInfo(self.fileName).fileName() if self.fileName else 'Untitled'
-                if headerText:
-                    painter.save()
-                    headerFont = QFont(painter.font())
-                    headerFont.setBold(True)
-                    headerFont.setPointSize(max(8, int(headerFont.pointSize() * 1.2)))
-                    painter.setFont(headerFont)
-
-                    headerHeight = painter.fontMetrics().height()
-                    headerRect = QRectF(target.x(), target.y(), target.width(), headerHeight)
-                    painter.drawText(headerRect, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop, headerText)
-
-                    gap = max(2, int(headerHeight * 0.35))
-                    lineY = int(headerRect.bottom() + (gap * 0.5))
-                    painter.drawLine(int(target.x()), lineY, int(target.x() + target.width()), lineY)
-
-                    target = target.adjusted(0, headerHeight + gap, 0, 0)
-                    painter.restore()
-
-                    if target.isEmpty():
-                        return
-
-                image = QImage(source.size(), QImage.Format.Format_ARGB32_Premultiplied)
-                image.fill(Qt.GlobalColor.white)
-                imagePainter = QPainter(image)
-                try:
-                    plotWidget.render(imagePainter)
-                finally:
-                    imagePainter.end()
-
-                scale = min(target.width() / image.width(), target.height() / image.height())
-                x = target.x() + (target.width() - image.width() * scale) / 2.0
-                y = target.y() + (target.height() - image.height() * scale) / 2.0
-                drawRect = QRectF(x, y, image.width() * scale, image.height() * scale)
-
-                painter.drawImage(drawRect, image)
-            finally:
-                painter.end()
-            return
-
-        # fallback: print XML if other tabs are active
-        self.textEdit.print(printer)
+        self.printPresentationController.printPreview(printer)
 
     def filePrintPdf(self):
-        fn, _ = QFileDialog.getSaveFileName(self, 'Export PDF', None, 'PDF files (*.pdf);;All Files (*)')
-
-        if fn:
-            if QFileInfo(fn).suffix().isEmpty():
-                fn += '.pdf'
-
-            printer = QPrinter(QPrinter.PrinterMode.HighResolution)
-            printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
-            printer.setOutputFileName(fn)
-            self.textEdit.document().print(printer)
+        self.printPresentationController.filePrintPdf()
 
     def appendLogMessage(self, message: str = 'test', index: MsgType = MsgType.Info):
         # dateTime = QDateTime.currentDateTime().toString("dd-MM-yyyy hh:mm:ss")
@@ -4229,38 +3483,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             webbrowser.open(urlName, new=0, autoraise=True)
 
     def clipboardHasText(self):
-        return len(QApplication.clipboard().text()) != 0
+        return self.actionStateController.clipboardHasText()
 
     def enableProcessingMenuItems(self, enable=True):
         """Enable or disable the processing menu items, depending on the state of the survey object."""
-
-        nTemplates = self.survey.calcNoTemplates() if self.survey is not None else 0
-        if nTemplates > 0:
-            self.actionBasicBinFromTemplates.setEnabled(enable)
-            self.actionFullBinFromTemplates.setEnabled(enable)
-            self.actionGeometryFromTemplates.setEnabled(enable)
-        else:
-            self.actionBasicBinFromTemplates.setEnabled(False)
-            self.actionFullBinFromTemplates.setEnabled(False)
-            self.actionGeometryFromTemplates.setEnabled(False)
-
-        if enable is True and self.srcGeom is not None and self.recGeom is not None:
-        # if enable is True and self.srcGeom is not None and self.relGeom is not None and self.recGeom is not None:
-            self.actionBasicBinFromGeometry.setEnabled(enable)
-            self.actionFullBinFromGeometry.setEnabled(enable)
-        else:
-            self.actionBasicBinFromGeometry.setEnabled(False)
-            self.actionFullBinFromGeometry.setEnabled(False)
-
-        if enable is True and self.spsImport is not None and self.rpsImport is not None:
-        # if enable is True and self.spsImport is not None and self.xpsImport is not None and self.rpsImport is not None:
-            self.actionBasicBinFromSps.setEnabled(enable)
-            self.actionFullBinFromSps.setEnabled(enable)
-        else:
-            self.actionBasicBinFromSps.setEnabled(False)
-            self.actionFullBinFromSps.setEnabled(False)
-
-        self.actionStopThread.setEnabled(not enable)
+        self.actionStateController.enableProcessingMenuItems(enable)
 
     def onSpsInUseToggled(self, rows):
         if self.spsImport is None:
