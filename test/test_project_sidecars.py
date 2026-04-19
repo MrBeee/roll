@@ -73,6 +73,18 @@ class ProjectSidecarsTest(unittest.TestCase):
     def createSurvey(self):
         return createTestSurvey('Phase0-Sidecars', QRectF(0.0, 0.0, 100.0, 50.0))
 
+    def suppressModalDialogs(self):
+        messageBox = rollMainWindowModule.QMessageBox
+        dialogPatches = (
+            patch.object(messageBox, 'information', return_value=messageBox.StandardButton.Ok),
+            patch.object(messageBox, 'warning', return_value=messageBox.StandardButton.Discard),
+            patch.object(messageBox, 'question', return_value=messageBox.StandardButton.Yes),
+        )
+
+        for dialogPatch in dialogPatches:
+            dialogPatch.start()
+            self.addCleanup(dialogPatch.stop)
+
     def writeProjectFixture(self, folder):
         return writeMinimalProjectFixture(folder, 'phase0_sidecars.roll', survey=self.createSurvey())
 
@@ -2167,6 +2179,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         hideStatusbarWidgets.assert_called_once()
 
     def testStopWorkerThreadIgnoresLateResultAndResetsIdleUi(self):
+        self.suppressModalDialogs()
         controller = self.mainWindow.workerOperationController or binningWorkerMixinModule.WorkerOperationController(
             self.mainWindow,
             self.mainWindow._getWorkerRuntimeDependencies,
@@ -2216,6 +2229,72 @@ class ProjectSidecarsTest(unittest.TestCase):
         updateMenuStatus.assert_called_once_with(True)
         enableProcessingMenuItems.assert_called_once_with(True)
         hideStatusbarWidgets.assert_called_once()
+
+    def testCancelCurrentOperationWaitTimeoutKeepsUiAliveUntilThreadStops(self):
+        self.suppressModalDialogs()
+        controller = self.mainWindow.workerOperationController or binningWorkerMixinModule.WorkerOperationController(
+            self.mainWindow,
+            self.mainWindow._getWorkerRuntimeDependencies,
+        )
+        self.mainWindow.workerOperationController = controller
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = True
+        threadStub.wait.return_value = False
+        workerStub = MagicMock()
+        controller.activeOperation = workerOperationControllerModule.ActiveWorkerOperation(
+            job=workerOperationControllerModule.WorkerJobSpec(
+                name='bin-from-templates',
+                progressLabelText='x',
+                startMessage='y',
+                startMessageType=rollMainWindowModule.MsgType.Binning,
+                workerFactory=lambda request: workerStub,
+                request=object(),
+                resultHandler=self.mainWindow.applyBinningWorkerResult,
+            ),
+            thread=threadStub,
+            worker=workerStub,
+        )
+        self.mainWindow.thread = threadStub
+        self.mainWindow.worker = workerStub
+        self.mainWindow.layoutImg = np.ones((1, 1), dtype=np.float32)
+        self.mainWindow.layoutImItem = object()
+
+        with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+            with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
+                with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                    with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                        with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                            stopped = controller.cancelCurrentOperation(waitTimeout=25, clearLayoutImage=True)
+
+        self.assertFalse(stopped)
+        threadStub.requestInterruption.assert_called_once_with()
+        threadStub.quit.assert_called_once_with()
+        threadStub.wait.assert_called_once_with(25)
+        appendLogMessage.assert_called_once_with(
+            'Thread : cancellation is still in progress; delaying cleanup until the worker thread finishes',
+            rollMainWindowModule.MsgType.Warning,
+        )
+        self.assertIs(controller.activeOperation.thread, threadStub)
+        self.assertIs(self.mainWindow.thread, threadStub)
+        self.assertIs(self.mainWindow.worker, workerStub)
+        self.assertIsNotNone(self.mainWindow.layoutImg)
+        self.assertIsNotNone(self.mainWindow.layoutImItem)
+        handleImageSelection.assert_not_called()
+        updateMenuStatus.assert_not_called()
+        enableProcessingMenuItems.assert_not_called()
+        hideStatusbarWidgets.assert_not_called()
+
+    def testOnAppAboutToQuitSkipsResetWhenWorkerShutdownTimesOut(self):
+        self.suppressModalDialogs()
+        self.mainWindow.workerOperationController = MagicMock()
+        self.mainWindow.workerOperationController.shutdownCurrentOperation.return_value = False
+
+        with patch.object(self.mainWindow, 'resetAnaTableModel') as resetAnaTableModel:
+            self.mainWindow.onAppAboutToQuit()
+
+        self.mainWindow.workerOperationController.shutdownCurrentOperation.assert_called_once_with(waitTimeout=2000)
+        resetAnaTableModel.assert_not_called()
 
     def testReadStoredDebugpySettingUsesPersistedValue(self):
         originalValue = self.mainWindow.settings.value('settings/debug/debugpy', None)

@@ -30,10 +30,10 @@ import numpy as np  # Numpy functions needed for plot creation
 import pyqtgraph as pg
 from qgis.core import QgsApplication
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import (QDateTime, QEvent, QFileInfo, QPoint,
-                              QSettings, QSize, Qt, QTimer)
-from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon,
-                             QPainterPath, QPen, QTextCursor, QTransform)
+from qgis.PyQt.QtCore import (QDateTime, QEvent, QFileInfo, QPoint, QSettings,
+                              QSize, Qt, QTimer)
+from qgis.PyQt.QtGui import (QBrush, QColor, QFont, QIcon, QPainterPath, QPen,
+                             QTextCursor, QTransform)
 from qgis.PyQt.QtWidgets import (QAction, QApplication, QFileDialog,
                                  QGraphicsEllipseItem, QGraphicsPathItem,
                                  QGraphicsRectItem, QLabel, QMainWindow,
@@ -47,8 +47,8 @@ from qgis.PyQt.QtXml import QDomDocument
 #                               numbaSlice3D, numbaSliceStats)
 from . import config  # used to pass initial settings
 from . import functions_numba as fnb
-from .app_settings import AppSettings
 from .action_state_controller import ActionStateController
+from .app_settings import AppSettings
 from .aux_classes import LineROI
 from .aux_functions import (aboutText, exampleSurveyXmlText, highDpiText,
                             licenseText, myPrint, qgisCheatSheetText)
@@ -72,10 +72,10 @@ from .plot_navigation_controller import PlotNavigationController
 from .plot_redraw_helper import PlotRedrawHelper
 from .plot_view_state_controller import PlotViewStateController
 from .print_presentation_controller import PrintPresentationController
-from .property_panel_controller import PropertyPanelController
 from .project_load_applier import ProjectLoadApplier
 from .project_service import ProjectService
 from .property_dock import createPropertyDock
+from .property_panel_controller import PropertyPanelController
 from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
                              exportPointLayerToQgis, exportSpsOutlinesToQgis,
                              exportSurveyOutlinesToQgis,
@@ -1166,6 +1166,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:  # Check if the ESC key is pressed
             self.interrupted = True
+            if self.actionStopThread.isEnabled():
+                self.stopWorkerThread()
         super().keyPressEvent(event)
 
     def applyPropertyChangesAndHide(self):
@@ -2745,8 +2747,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # intended to shut down quickly in standaloneme mode,
         # without going through the closeEvent (which is not triggered when the main window is closed in standalone mode)
         self._ensureWorkerOperationComponents()
-        self.workerOperationController.shutdownCurrentOperation(waitTimeout=2000)
-        self.resetAnaTableModel()
+        if self.workerOperationController.shutdownCurrentOperation(waitTimeout=2000):
+            self.resetAnaTableModel()
         gc.collect()
 
     def newFile(self):                                                          # wrapper around fileNew; used to create a log message

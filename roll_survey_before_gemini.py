@@ -1530,7 +1530,6 @@ class RollSurvey(pg.GraphicsObject):
                 success = self.binFromGeometry8(True)
                 self.output.anaOutput.flush()                                   # flush results to hard disk
                 return success
-
             return self.binFromGeometry8(False)
         if fullAnalysis:                                                        # no relation file available
             success = self.binFromGeometryNoRel(True)
@@ -2284,8 +2283,6 @@ class RollSurvey(pg.GraphicsObject):
         self.nShotPoint = 0
         self.nShotPoints = self.output.srcGeom.shape[0]
 
-
-
         try:
             for i, srcRecord in enumerate(self.output.srcGeom):
                 if srcRecord['InUse'] == 0:
@@ -2303,108 +2300,18 @@ class RollSurvey(pg.GraphicsObject):
                     self.progress.emit(threadProgress + 1)
 
                 recPoints = self.selectReceiversForSourceRelationSlice(i, lookup)
-                if QThread.currentThread().isInterruptionRequested():
-                    raise StopIteration
                 if recPoints is None:
                     continue
 
                 traceArrays = self.buildBinningArraysFromSelectedReceivers(src, recPoints)
-                if QThread.currentThread().isInterruptionRequested():
-                    raise StopIteration
                 if traceArrays is None:
                     continue
                 cmpPoints, recPoints, hypArray, aziArray = traceArrays
 
                 if not self.updateBinOutputsForValidCmpPoints(src, cmpPoints, recPoints, hypArray, aziArray, fullAnalysis):
                     continue
-                if QThread.currentThread().isInterruptionRequested():
-                    raise StopIteration
 
         except StopIteration:
-            self.errorText = 'binning from geometry cancelled by user'
-            return False
-        except BaseException as e:
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
-            return False
-
-        self.calcFoldAndOffsetEssentials()
-
-        if fullAnalysis:
-            self.calcRmsOffsetValues()
-            self.calcUniqueFoldValues()
-            self.calcOffsetAndAzimuthDistribution()
-        else:
-            self.output.anaOutput = None
-
-        return True
-
-    def binFromGeometry9(self, fullAnalysis) -> bool:
-        """
-        Optimized binning with integer-normalized relation indexing to avoid gaps.
-        """
-        self.threadProgress = 0
-        lookup = self.prepareGeometryRelationBinningLookup()
-
-        self.nShotPoint = 0
-        self.nShotPoints = self.output.srcGeom.shape[0]
-
-        # Pre-extract data for Numba (cannot pass 'self')
-        srcLocs = np.column_stack((self.output.srcGeom['LocX'], self.output.srcGeom['LocY'], self.output.srcGeom['Elev'], self.output.srcGeom['Line'], self.output.srcGeom['Point']))
-        relFileIndices = np.column_stack((lookup.relLeft, lookup.relRight))
-        recLocs = np.column_stack((self.output.recGeom['LocX'], self.output.recGeom['LocY'], self.output.recGeom['Elev']))
-
-        # Extract Transform Matrix as raw array
-        T = self.binTransform
-        binMat = np.array([[T.m11(), T.m21(), T.m31()], [T.m12(), T.m22(), T.m32()], [0, 0, 1]], dtype=np.float32)
-        S = self.st2Transform
-        st2Mat = np.array([[S.m11(), S.m21(), S.m31()], [S.m12(), S.m22(), S.m32()], [0, 0, 1]], dtype=np.float32)
-
-        # PRE-CALCULATE RECEIVER LINE BOUNDARIES
-        # Create unique keys for (Index, Line) combinations
-        recKeys = self.output.recGeom['Index'].astype(np.int64) * 1000000 + np.rint(self.output.recGeom['Line']).astype(np.int64)
-        relKeys = lookup.relRecIndI.astype(np.int64) * 1000000 + lookup.relRecLinI.astype(np.int64)
-
-        # Find start and end of every line in the receiver array
-        relRecStartI = np.searchsorted(recKeys, relKeys, side='left').astype(np.int32)
-        relRecEndI = np.searchsorted(recKeys, relKeys, side='right').astype(np.int32)
-
-        maxFold = self.grid.fold if self.grid.fold > 0 else 1000
-
-        try:
-            batchSize = 500  # Larger batch size for better throughput
-            for i in range(0, self.nShotPoints, batchSize):
-                if QThread.currentThread().isInterruptionRequested(): raise StopIteration
-                
-                end = min(i + batchSize, self.nShotPoints)
-                
-                # Call the Parallel Kernel for this batch
-                fnb.numbaBinBatchParallel(
-                    srcLocs[i:end], # Pass srcLocs as a slice
-                    relFileIndices[i:end],
-                    recLocs,
-                    self.output.recGeom['InUse'],
-                    lookup.recPointI,
-                    lookup.relRecMinI,
-                    lookup.relRecMaxI,
-                    relRecStartI,
-                    relRecEndI,
-                    self.output.binOutput,
-                    self.output.minOffset,
-                    self.output.maxOffset,
-                    self.output.anaOutput,
-                    binMat,
-                    st2Mat,
-                    fullAnalysis,
-                    maxFold
-                )
-
-                self.nShotPoint = end
-                self.progress.emit(int(100 * end / self.nShotPoints))
-
-        except Exception as e: # Catch generic exceptions, but not StopIteration for interruption
             self.errorText = 'binning from geometry cancelled by user'
             return False
         except BaseException as e:
