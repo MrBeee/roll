@@ -7,10 +7,7 @@ from .my_group import MyGroupParameter, MyGroupParameterItem
 class MyRectParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-
-        self.createAndInitPreviewLabel(param)
-
-        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+        self.initializePreviewItem(param)
 
     def showPreviewInformation(self, param):
         d = param.opts.get('decimals', 7)
@@ -24,8 +21,7 @@ class MyRectParameterItem(MyGroupParameterItem):
         else:
             t = f'x:({xMin:.{d}g}¦{xMax:.{d}g}), y:({yMin:.{d}g}¦{yMax:.{d}g})'
 
-        self.previewLabel.setText(t)
-        self.previewLabel.update()
+        self.updatePreviewLabelText(t)
 
 
 class MyRectParameter(MyGroupParameter):

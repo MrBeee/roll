@@ -7,7 +7,7 @@ from timeit import default_timer as timer
 
 import numpy as np
 import pyqtgraph as pg
-from qgis.PyQt.QtCore import QThread
+from qgis.PyQt.QtCore import QThread, QTimer
 from qgis.PyQt.QtWidgets import QMessageBox
 
 from .enums_and_int_flags import MsgType
@@ -25,6 +25,7 @@ class BinningWorkerMixin:
     def _getWorkerRuntimeDependencies(self):
         return {
             'QThread': QThread,
+            'QTimer': QTimer,
             'BinningWorker': BinningWorker,
             'BinFromGeometryWorker': BinFromGeometryWorker,
             'GeometryWorker': GeometryWorker,

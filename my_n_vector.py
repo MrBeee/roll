@@ -7,10 +7,7 @@ from .my_group import MyGroupParameter, MyGroupParameterItem
 class MyNVectorParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-
-        self.createAndInitPreviewLabel(param)
-
-        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+        self.initializePreviewItem(param)
 
     def showPreviewInformation(self, param):
         d = param.opts.get('decimals', 3)
@@ -20,8 +17,7 @@ class MyNVectorParameterItem(MyGroupParameterItem):
         z = param.child('direction').opts['value'].z()
         t = f'{n} : ({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
 
-        self.previewLabel.setText(t)
-        self.previewLabel.update()
+        self.updatePreviewLabelText(t)
 
 
 class MyNVectorParameter(MyGroupParameter):

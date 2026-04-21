@@ -65,6 +65,21 @@ class MyGroupParameterItem(GroupParameterItem):
 
         self.showPreviewInformation(param)                                      # show the preview information (subclassed routine)
 
+    def initializePreviewItem(self, param):
+        self.createAndInitPreviewLabel(param)
+        if param is not None:
+            param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+
+    def updatePreviewLabelText(self, text, *, errorCondition=None):
+        if self.previewLabel is None:
+            return
+
+        if errorCondition is not None:
+            self.previewLabel.setErrorCondition(errorCondition)
+
+        self.previewLabel.setText(text)
+        self.previewLabel.update()
+
     def showPreviewInformation(self, param):
         raise NotImplementedError()
 

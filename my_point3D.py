@@ -7,10 +7,7 @@ from .my_group import MyGroupParameter, MyGroupParameterItem
 class MyPoint3DParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-
-        self.createAndInitPreviewLabel(param)
-
-        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+        self.initializePreviewItem(param)
 
     def showPreviewInformation(self, param):
         d = param.opts.get('decimals', 7)
@@ -19,8 +16,7 @@ class MyPoint3DParameterItem(MyGroupParameterItem):
         z = param.child('Z').opts['value']
         t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
 
-        self.previewLabel.setText(t)
-        self.previewLabel.update()
+        self.updatePreviewLabelText(t)
 
 
 class MyPoint3DParameter(MyGroupParameter):

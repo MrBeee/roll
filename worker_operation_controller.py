@@ -44,6 +44,7 @@ class ActiveWorkerOperation:
     thread: WorkerThreadProtocol
     worker: object
     cancelRequested: bool = False
+    cancellationWarningShown: bool = False
 
 
 class WorkerOperationController:
@@ -115,29 +116,31 @@ class WorkerOperationController:
         except RuntimeError:
             # QThread C++ object already deleted; clean up references
             self.activeOperation = None
-            if hasattr(self, 'worker'):
-                self.worker = None
-            if hasattr(self, 'thread'):
-                self.thread = None
+            self.window.worker = None
+            self.window.thread = None
+            return
+
+        if activeOperation.cancelRequested:
             return
 
         activeOperation.cancelRequested = True
         self.window.progressLabel.setText('Cancelling work in progress...')
+        self.window.appendLogMessage('Thread : User interrupted worker thread', MsgType.Warning)
         try:
             if hasattr(activeOperation.thread, 'requestInterruption'):
                 activeOperation.thread.requestInterruption()
         except RuntimeError:
             # QThread C++ object already deleted; clean up references
             self.activeOperation = None
-            if hasattr(self, 'worker'):
-                self.worker = None
-            if hasattr(self, 'thread'):
-                self.thread = None
+            self.window.worker = None
+            self.window.thread = None
             return
+
+        self._scheduleCancellationWarning(activeOperation)
 
     def cancelCurrentOperation(self, waitTimeout: int | None = None, clearLayoutImage: bool = True) -> bool:
         activeOperation = self.activeOperation
-        if activeOperation is not None and activeOperation.thread.isRunning():
+        if activeOperation is not None and self._threadIsRunning(activeOperation.thread):
             self.stopCurrentOperation()
             activeOperation.thread.quit()
             threadWait = activeOperation.thread.wait
@@ -146,14 +149,11 @@ class WorkerOperationController:
             else:
                 threadWait(waitTimeout)
 
-            if activeOperation.thread.isRunning():
-                self.window.appendLogMessage(
-                    'Thread : cancellation is still in progress; delaying cleanup until the worker thread finishes',
-                    MsgType.Warning,
-                )
+            if self._threadIsRunning(activeOperation.thread):
                 return False
 
-        self._cleanupAfterOperation(resetAnalysis=True, clearLayoutImage=clearLayoutImage)
+        if activeOperation is not None and self.activeOperation is activeOperation:
+            self._finalizeCancelledOperation(activeOperation, clearLayoutImage=clearLayoutImage)
         return True
 
     def shutdownCurrentOperation(self, waitTimeout: int = 2000) -> bool:
@@ -289,20 +289,18 @@ class WorkerOperationController:
 
     def _onThreadFinished(self):
         # Defensive: only clean up if there is an active operation
-        if self.activeOperation is not None:
-            self._cleanupAfterOperation(resetAnalysis=True, clearLayoutImage=True)
+        activeOperation = self.activeOperation
+        if activeOperation is not None:
+            if activeOperation.cancelRequested:
+                self._finalizeCancelledOperation(activeOperation, clearLayoutImage=True)
+            else:
+                self._cleanupAfterOperation(resetAnalysis=True, clearLayoutImage=True)
 
     def finishCurrentOperation(self, result, resultHandler: Callable[[object, timedelta], None], *, resetAnalysis: bool, completionTabIndex: int | None = None) -> None:
         activeOperation = self.activeOperation
         if activeOperation is not None and activeOperation.cancelRequested:
-            # Only clean up if the thread is fully stopped
-            if not activeOperation.thread.isRunning():
-                self._cleanupAfterOperation(resetAnalysis=True, clearLayoutImage=True)
-            else:
-                self.window.appendLogMessage(
-                    'Thread : finishCurrentOperation called while thread is still running; delaying cleanup until the worker thread finishes',
-                    MsgType.Warning,
-                )
+            if not self._threadIsRunning(activeOperation.thread):
+                self._finalizeCancelledOperation(activeOperation, clearLayoutImage=True)
             return
 
         resultHandler(result, self.elapsedTime())
@@ -324,6 +322,33 @@ class WorkerOperationController:
         self.window.progressLabel.setText(labelText)
         self.window.showStatusbarWidgets()
         self.window.enableProcessingMenuItems(False)
+
+    def _threadIsRunning(self, thread: WorkerThreadProtocol) -> bool:
+        try:
+            return thread.isRunning()
+        except RuntimeError:
+            return False
+
+    def _scheduleCancellationWarning(self, activeOperation: ActiveWorkerOperation) -> None:
+        timerType = self.runtimeDependenciesProvider().get('QTimer')
+        singleShot = getattr(timerType, 'singleShot', None)
+        if callable(singleShot):
+            singleShot(4000, lambda operation=activeOperation: self._warnIfCancellationStillRunning(operation))
+
+    def _warnIfCancellationStillRunning(self, activeOperation: ActiveWorkerOperation) -> None:
+        if self.activeOperation is not activeOperation or not activeOperation.cancelRequested or activeOperation.cancellationWarningShown:
+            return
+
+        if self._threadIsRunning(activeOperation.thread):
+            activeOperation.cancellationWarningShown = True
+            self.window.appendLogMessage('Thread : worker thread is still running; waiting for thread to finish', MsgType.Warning)
+
+    def _finalizeCancelledOperation(self, activeOperation: ActiveWorkerOperation, *, clearLayoutImage: bool) -> None:
+        if self.activeOperation is not activeOperation:
+            return
+
+        self.window.appendLogMessage('Thread : Worker thread has  stopped', MsgType.Info)
+        self._cleanupAfterOperation(resetAnalysis=True, clearLayoutImage=clearLayoutImage)
 
     def _cleanupAfterOperation(self, *, resetAnalysis: bool, clearLayoutImage: bool = False, completionTabIndex: int | None = None) -> None:
         self.activeOperation = None

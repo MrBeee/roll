@@ -1,3 +1,4 @@
+import math
 import os
 import weakref
 
@@ -45,6 +46,11 @@ class RollWell:
     def setSurvey(self, survey):
         self._surveyRef = weakref.ref(survey) if survey is not None else None
 
+        # Newly created seeds start with an unconfigured well path, so default
+        # their well CRS to the survey CRS as soon as survey context is known.
+        if survey is not None and not self.name and survey.crs is not None and survey.crs.isValid():
+            self.crs = QgsCoordinateReferenceSystem(survey.crs)
+
     @property
     def survey(self):
         return self._surveyRef() if self._surveyRef else None                 # return the referenced survey, or None if not set
@@ -59,6 +65,59 @@ class RollWell:
             glbTransform = survey.glbTransform
 
         return surveyCrs, glbTransform
+
+    def clearOrigins(self):
+        self.origW = QVector3D(-999.0, -999.0, -999.0)
+        self.origG = QPointF(-999.0, -999.0)
+        self.origL = QPointF(-999.0, -999.0)
+
+    def refreshHeaderFromCurrentState(self, *, name=None, crs=None, survey=None, surveyCrs=None, glbTransform=None, recalcSurveyTransforms=True):
+        if name is not None:
+            self.name = name
+
+        if crs is not None:
+            self.crs = crs
+
+        if survey is None:
+            survey = self.survey
+
+        if survey is not None and recalcSurveyTransforms:
+            survey.calcTransforms()
+
+        if surveyCrs is None and survey is not None:
+            surveyCrs = survey.crs
+
+        if glbTransform is None and survey is not None:
+            glbTransform = survey.glbTransform
+
+        success = self.readHeader(surveyCrs=surveyCrs, glbTransform=glbTransform)
+        if not success:
+            self.clearOrigins()
+
+        return success
+
+    def applySamplingConstraints(self, *, ahd0=None, dAhd=None, nAhd=None):
+        if ahd0 is not None:
+            self.ahd0 = ahd0
+
+        if dAhd is not None:
+            self.dAhd = dAhd
+
+        if nAhd is not None:
+            self.nAhd = nAhd
+
+        if self.ahdMax < 0.0:
+            return self.ahd0, self.dAhd, self.nAhd
+
+        td = math.floor(self.ahdMax)
+        if self.ahd0 >= td:
+            self.ahd0 = td
+            self.nAhd = 1
+            return self.ahd0, self.dAhd, self.nAhd
+
+        nMax = int((self.ahdMax - self.ahd0 + self.dAhd) / self.dAhd)
+        self.nAhd = min(self.nAhd, nMax)
+        return self.ahd0, self.dAhd, self.nAhd
 
     def makePathRelative(self, basePath: str):
         """ convert self.name to a relative path upon saving the project """

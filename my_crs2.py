@@ -10,10 +10,7 @@ registerParameterType('myGroup', MyGroupParameter, override=True)
 class MyCrs2ParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-
-        self.createAndInitPreviewLabel(param)
-
-        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+        self.initializePreviewItem(param)
 
     def showPreviewInformation(self, param):
         crs = param.child('CRS').opts['value']
@@ -25,9 +22,7 @@ class MyCrs2ParameterItem(MyGroupParameterItem):
         if crs.isGeographic():
             t = 'Geographic CRS (lat/long)'
 
-        self.previewLabel.setErrorCondition(e)
-        self.previewLabel.setText(t)
-        self.previewLabel.update()
+        self.updatePreviewLabelText(t, errorCondition=e)
 
 
 class MyCrs2Parameter(MyGroupParameter):

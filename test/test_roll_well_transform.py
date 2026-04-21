@@ -123,6 +123,72 @@ class RollWellTransformTest(unittest.TestCase):
         remappedPoint = survey.glbTransform.map(QPointF(well.origL.x(), well.origL.y()))
         self.assertPointAlmostEqual(remappedPoint, well.origG.x(), well.origG.y())
 
+    def testRefreshHeaderFromCurrentStateClearsOriginsOnFailure(self):
+        survey = self.createSurvey()
+        well = self.createWell(survey)
+        well.setSurvey(survey)
+        well.origW = rollWellModule.QVector3D(1.0, 2.0, 3.0)
+        well.origG = QPointF(4.0, 5.0)
+        well.origL = QPointF(6.0, 7.0)
+
+        with patch.object(well, 'readHeader', return_value=False):
+            success = well.refreshHeaderFromCurrentState()
+
+        self.assertFalse(success)
+        self.assertEqual((well.origW.x(), well.origW.y(), well.origW.z()), (-999.0, -999.0, -999.0))
+        self.assertEqual((well.origG.x(), well.origG.y()), (-999.0, -999.0))
+        self.assertEqual((well.origL.x(), well.origL.y()), (-999.0, -999.0))
+
+    def testRefreshHeaderFromCurrentStateUsesExplicitSurveyContext(self):
+        survey = self.createSurvey(originX=1000.0, originY=2000.0)
+        well = self.createWell(survey)
+        header = {
+            'datum': 'dfe',
+            'elevation_units': 'm',
+            'elevation': 100.0,
+            'surface_coordinates_units': 'm',
+            'surface_easting': 1250.0,
+            'surface_northing': 2360.0,
+        }
+
+        well._surveyRef = None
+
+        sampleData = np.array([[0.0, 0.0, 0.0, 10.0]])
+
+        def pathExists(path):
+            return path == well.name
+
+        with patch.object(rollWellModule.os.path, 'exists', side_effect=pathExists):
+            with patch.object(rollWellModule.np, 'loadtxt', return_value=sampleData):
+                with patch.object(well, 'readWellHeader', return_value=(header, 1)):
+                    success = well.refreshHeaderFromCurrentState(
+                        survey=survey,
+                        surveyCrs=survey.crs,
+                        glbTransform=survey.glbTransform,
+                    )
+
+        self.assertTrue(success)
+        self.assertPointAlmostEqual(well.origG, 1250.0, 2360.0)
+        self.assertPointAlmostEqual(well.origL, 250.0, 360.0)
+
+    def testApplySamplingConstraintsClampsStartAndCount(self):
+        well = RollWell()
+        well.ahdMax = 100.9
+
+        ahd0, dAhd, nAhd = well.applySamplingConstraints(ahd0=150.0, dAhd=15.0, nAhd=12)
+
+        self.assertEqual((ahd0, dAhd, nAhd), (100, 15.0, 1))
+        self.assertEqual((well.ahd0, well.dAhd, well.nAhd), (100, 15.0, 1))
+
+    def testApplySamplingConstraintsLimitsPointCountToAvailableDepth(self):
+        well = RollWell()
+        well.ahdMax = 100.9
+
+        ahd0, dAhd, nAhd = well.applySamplingConstraints(ahd0=10.0, dAhd=15.0, nAhd=12)
+
+        self.assertEqual((ahd0, dAhd, nAhd), (10.0, 15.0, 7))
+        self.assertEqual((well.ahd0, well.dAhd, well.nAhd), (10.0, 15.0, 7))
+
 
 if __name__ == '__main__':
     unittest.main()

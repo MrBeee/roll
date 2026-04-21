@@ -467,7 +467,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.worker = None                                                      # 'moveToThread' object
         self.thread = None                                                      # corresponding worker thread
         self.startTime = None                                                   # thread start time
-        self.interrupted = False                                                # set to True when the main thread is interrupted
+        self.cancelImportRequested = False                                      # set to True when SPS import should be canceled
         self.workerOperationController = None
         self.binningResultApplier = None
         self.geometryResultApplier = None
@@ -879,7 +879,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def _processImportEvents(self):
         QApplication.processEvents()
-        return self.interrupted
+        return self.cancelImportRequested
 
     def _updateImportProgress(self, labelText, progress):
         self.progressLabel.setText(labelText)
@@ -1164,8 +1164,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return super().eventFilter(source, event)
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key.Key_Escape:  # Check if the ESC key is pressed
-            self.interrupted = True
+        if event.key() == Qt.Key.Key_Escape:    # Check if the ESC key is pressed
+            self.cancelImportRequested = True
             if self.actionStopThread.isEnabled():
                 self.stopWorkerThread()
         super().keyPressEvent(event)
@@ -3188,7 +3188,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         rpsData = dlg.rpsTab.toPlainText().splitlines() if dlg.rpsFiles else None
 
         self.showStatusbarWidgets()
-        self.interrupted = False
+        self.cancelImportRequested = False
 
         with pg.BusyCursor():
             importResult = self.importService.importTextData(

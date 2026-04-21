@@ -13,7 +13,13 @@ if defined qgisRoot (
     call :tryFindPythonQgis "%qgisRoot%\bin"
     if not defined envBat if exist "%qgisRoot%\bin\o4w_env.bat" set "envBat=%qgisRoot%\bin\o4w_env.bat"
 ) else (
-    for /f "delims=" %%D in ('dir /b /ad "C:\Program Files\QGIS*" ^| sort /r') do (
+    for /f "delims=" %%D in ('dir /b /ad "C:\Program Files\QGIS 3*" 2^>nul ^| sort /r') do (
+        call :tryFindPythonQgis "C:\Program Files\%%~D\bin"
+        if not defined envBat if exist "C:\Program Files\%%~D\bin\o4w_env.bat" set "envBat=C:\Program Files\%%~D\bin\o4w_env.bat"
+        if defined pyQgisBat goto :afterQgisScan
+    )
+
+    for /f "delims=" %%D in ('dir /b /ad "C:\Program Files\QGIS*" 2^>nul ^| sort /r') do (
         call :tryFindPythonQgis "C:\Program Files\%%~D\bin"
         if not defined envBat if exist "C:\Program Files\%%~D\bin\o4w_env.bat" set "envBat=C:\Program Files\%%~D\bin\o4w_env.bat"
         if defined pyQgisBat goto :afterQgisScan
@@ -32,7 +38,7 @@ if not defined pyQgisBat for %%D in ("C:\OSGeo4W" "C:\OSGeo4W64") do (
 )
 
 if "%~1"=="" (
-    set "TEST_TARGETS=test.test_roll_plugin test.test_roll_well_transform"
+    set "TEST_TARGETS=discover -s test -t . -p test_*.py"
 ) else (
     set "TEST_TARGETS=%*"
 )

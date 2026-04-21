@@ -11,10 +11,7 @@ registerParameterType('myGroup', MyGroupParameter, override=True)
 class MyVectorParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-
-        self.createAndInitPreviewLabel(param)
-
-        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+        self.initializePreviewItem(param)
 
     def showPreviewInformation(self, param):
         d = param.opts.get('decimals', 3)
@@ -23,8 +20,7 @@ class MyVectorParameterItem(MyGroupParameterItem):
         z = param.child('dZ').opts['value']
         t = f'({x:.{d}g}, {y:.{d}g}, {z:.{d}g})'
 
-        self.previewLabel.setText(t)
-        self.previewLabel.update()
+        self.updatePreviewLabelText(t)
 
 
 class MyVectorParameter(MyGroupParameter):

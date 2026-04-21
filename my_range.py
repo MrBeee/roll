@@ -7,10 +7,7 @@ from .my_group import MyGroupParameter, MyGroupParameterItem
 class MyRangeParameterItem(MyGroupParameterItem):
     def __init__(self, param, depth):
         super().__init__(param, depth)
-
-        self.createAndInitPreviewLabel(param)
-
-        param.sigTreeStateChanged.connect(self.onTreeStateChanged)
+        self.initializePreviewItem(param)
 
     def showPreviewInformation(self, param):
         d = param.opts.get('decimals', 3)
@@ -21,8 +18,7 @@ class MyRangeParameterItem(MyGroupParameterItem):
         pntRange = round((maxRange - minRange) / stpRange) + 1
         t = f'[{minRange:.{d}g} to {maxRange:.{d}g}] {pntRange:.{d}g} steps @ {stpRange:.{d}g}'
 
-        self.previewLabel.setText(t)
-        self.previewLabel.update()
+        self.updatePreviewLabelText(t)
 
 
 class MyRangeParameter(MyGroupParameter):

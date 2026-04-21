@@ -1493,7 +1493,9 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.worker.resultReady.connect.assert_called_once()
         self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
         self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
-        threadStub.finished.connect.assert_called_once_with(threadStub.deleteLater)
+        self.assertEqual(threadStub.finished.connect.call_count, 2)
+        threadStub.finished.connect.assert_any_call(threadStub.deleteLater)
+        threadStub.finished.connect.assert_any_call(self.mainWindow.workerOperationController._onThreadFinished)
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
@@ -1786,7 +1788,9 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.worker.resultReady.connect.assert_called_once()
         self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
         self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
-        threadStub.finished.connect.assert_called_once_with(threadStub.deleteLater)
+        self.assertEqual(threadStub.finished.connect.call_count, 2)
+        threadStub.finished.connect.assert_any_call(threadStub.deleteLater)
+        threadStub.finished.connect.assert_any_call(self.mainWindow.workerOperationController._onThreadFinished)
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
@@ -1834,7 +1838,9 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.worker.resultReady.connect.assert_called_once()
         self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
         self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
-        threadStub.finished.connect.assert_called_once_with(threadStub.deleteLater)
+        self.assertEqual(threadStub.finished.connect.call_count, 2)
+        threadStub.finished.connect.assert_any_call(threadStub.deleteLater)
+        threadStub.finished.connect.assert_any_call(self.mainWindow.workerOperationController._onThreadFinished)
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
@@ -2051,7 +2057,9 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.worker.resultReady.connect.assert_called_once()
         self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
         self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
-        threadStub.finished.connect.assert_called_once_with(threadStub.deleteLater)
+        self.assertEqual(threadStub.finished.connect.call_count, 2)
+        threadStub.finished.connect.assert_any_call(threadStub.deleteLater)
+        threadStub.finished.connect.assert_any_call(self.mainWindow.workerOperationController._onThreadFinished)
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
@@ -2207,20 +2215,27 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.layoutImg = np.ones((1, 1), dtype=np.float32)
         self.mainWindow.layoutImItem = object()
 
-        with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
-            with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
-                with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
-                    with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
-                        with patch.object(self.mainWindow, 'applyBinningWorkerResult') as applyBinningWorkerResult:
-                            self.mainWindow.stopWorkerThread()
-                            controller.finishCurrentOperation(
-                                BinningFromTemplatesResult(success=True),
-                                self.mainWindow.applyBinningWorkerResult,
-                                resetAnalysis=False,
-                            )
+        qTimerStub = type('QTimerStub', (), {'singleShot': MagicMock()})
+        with patch.object(binningWorkerMixinModule, 'QTimer', qTimerStub):
+            with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+                with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
+                    with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                        with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                            with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                                with patch.object(self.mainWindow, 'applyBinningWorkerResult') as applyBinningWorkerResult:
+                                    self.mainWindow.stopWorkerThread()
+                                    threadStub.isRunning.return_value = False
+                                    controller.finishCurrentOperation(
+                                        BinningFromTemplatesResult(success=True),
+                                        self.mainWindow.applyBinningWorkerResult,
+                                        resetAnalysis=False,
+                                    )
 
         threadStub.requestInterruption.assert_called_once_with()
+        qTimerStub.singleShot.assert_called_once()
         applyBinningWorkerResult.assert_not_called()
+        appendLogMessage.assert_any_call('Thread : User interrupted worker thread', rollMainWindowModule.MsgType.Warning)
+        appendLogMessage.assert_any_call('Thread : Worker thread has  stopped', rollMainWindowModule.MsgType.Info)
         self.assertIsNone(self.mainWindow.thread)
         self.assertIsNone(self.mainWindow.worker)
         self.assertIsNone(self.mainWindow.layoutImg)
@@ -2260,21 +2275,21 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.layoutImg = np.ones((1, 1), dtype=np.float32)
         self.mainWindow.layoutImItem = object()
 
-        with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
-            with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
-                with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
-                    with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
-                        with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
-                            stopped = controller.cancelCurrentOperation(waitTimeout=25, clearLayoutImage=True)
+        qTimerStub = type('QTimerStub', (), {'singleShot': MagicMock()})
+        with patch.object(binningWorkerMixinModule, 'QTimer', qTimerStub):
+            with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+                with patch.object(self.mainWindow, 'handleImageSelection') as handleImageSelection:
+                    with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                        with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                            with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                                stopped = controller.cancelCurrentOperation(waitTimeout=25, clearLayoutImage=True)
 
         self.assertFalse(stopped)
         threadStub.requestInterruption.assert_called_once_with()
         threadStub.quit.assert_called_once_with()
         threadStub.wait.assert_called_once_with(25)
-        appendLogMessage.assert_called_once_with(
-            'Thread : cancellation is still in progress; delaying cleanup until the worker thread finishes',
-            rollMainWindowModule.MsgType.Warning,
-        )
+        qTimerStub.singleShot.assert_called_once()
+        appendLogMessage.assert_called_once_with('Thread : User interrupted worker thread', rollMainWindowModule.MsgType.Warning)
         self.assertIs(controller.activeOperation.thread, threadStub)
         self.assertIs(self.mainWindow.thread, threadStub)
         self.assertIs(self.mainWindow.worker, workerStub)
@@ -2284,6 +2299,50 @@ class ProjectSidecarsTest(unittest.TestCase):
         updateMenuStatus.assert_not_called()
         enableProcessingMenuItems.assert_not_called()
         hideStatusbarWidgets.assert_not_called()
+
+    def testStopCurrentOperationWarnsOnlyAfterDelayIfThreadStillRunning(self):
+        self.suppressModalDialogs()
+        controller = self.mainWindow.workerOperationController or binningWorkerMixinModule.WorkerOperationController(
+            self.mainWindow,
+            self.mainWindow._getWorkerRuntimeDependencies,
+        )
+        self.mainWindow.workerOperationController = controller
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = True
+        workerStub = MagicMock()
+        controller.activeOperation = workerOperationControllerModule.ActiveWorkerOperation(
+            job=workerOperationControllerModule.WorkerJobSpec(
+                name='bin-from-templates',
+                progressLabelText='x',
+                startMessage='y',
+                startMessageType=rollMainWindowModule.MsgType.Binning,
+                workerFactory=lambda request: workerStub,
+                request=object(),
+                resultHandler=self.mainWindow.applyBinningWorkerResult,
+            ),
+            thread=threadStub,
+            worker=workerStub,
+        )
+
+        scheduledCallbacks = []
+
+        class QTimerStub:
+            @staticmethod
+            def singleShot(timeout, callback):
+                scheduledCallbacks.append((timeout, callback))
+
+        with patch.object(binningWorkerMixinModule, 'QTimer', QTimerStub):
+            with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+                controller.stopCurrentOperation()
+
+                self.assertEqual(len(scheduledCallbacks), 1)
+                self.assertEqual(scheduledCallbacks[0][0], 4000)
+                appendLogMessage.assert_called_once_with('Thread : User interrupted worker thread', rollMainWindowModule.MsgType.Warning)
+
+                scheduledCallbacks[0][1]()
+
+        appendLogMessage.assert_any_call('Thread : worker thread is still running; waiting for thread to finish', rollMainWindowModule.MsgType.Warning)
 
     def testOnAppAboutToQuitSkipsResetWhenWorkerShutdownTimesOut(self):
         self.suppressModalDialogs()
