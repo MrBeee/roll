@@ -1,5 +1,6 @@
 # survey_paint_mixin.py
 from .enums_and_int_flags import PaintDetails, PaintMode
+from .roll_main_window_create_layout_tab import refreshLayout3DFromSurvey
 
 
 class SurveyPaintMixin:
@@ -76,3 +77,7 @@ class SurveyPaintMixin:
         self.survey.paintDetails = details
         self.survey.invalidatePaintCache()
         self.plotLayout()
+
+        # Keep the 3D Subset view (if visible) in sync with the
+        # *Show Points / Patterns* toggles.
+        refreshLayout3DFromSurvey(self)

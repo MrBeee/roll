@@ -9,6 +9,7 @@ appendManagedParameterItem = helpersModule.appendManagedParameterItem
 moveManagedParameterItem = helpersModule.moveManagedParameterItem
 nextManagedChildName = helpersModule.nextManagedChildName
 removeManagedParameterItem = helpersModule.removeManagedParameterItem
+swapManagedParameterItems = helpersModule.swapManagedParameterItems
 
 
 class _FakeSignal:
@@ -20,11 +21,15 @@ class _FakeSignal:
 
 
 class _FakeItem:
-    def __init__(self):
+    def __init__(self, name=None):
         self.removed = False
+        self._name = name
 
     def remove(self):
         self.removed = True
+
+    def name(self):
+        return self._name
 
 
 class _FakeParent:
@@ -32,6 +37,7 @@ class _FakeParent:
         self.addCalls = []
         self.callbackCalls = []
         self.insertCalls = []
+        self.childs = []
         self.sigAddNew = _FakeSignal()
         self.sigChildRemoved = _FakeSignal()
         self.sigValueChanging = _FakeSignal()
@@ -144,6 +150,50 @@ class ParameterListHelpersTest(unittest.TestCase):
         )
 
         self.assertEqual(parent.callbackCalls, [('moved', 0, 1, 'a')])
+
+    def testSwapManagedParameterItemsSwapsValuesAndPreservesSlotNames(self):
+        parent = _FakeParent()
+        parent.childs = [_FakeItem('Planes'), _FakeItem('Lines'), _FakeItem('Points')]
+        collection = ['plane-value', 'line-value', 'point-value']
+
+        swapped = swapManagedParameterItems(
+            parent,
+            collection,
+            1,
+            offset=-1,
+            childFactory=lambda name, value: {'name': name, 'value': value},
+        )
+
+        self.assertTrue(swapped)
+        self.assertTrue(parent.childs[0].removed)
+        self.assertTrue(parent.childs[1].removed)
+        self.assertEqual(collection, ['line-value', 'plane-value', 'point-value'])
+        self.assertEqual(
+            parent.insertCalls,
+            [
+                (0, {'name': 'Planes', 'value': 'line-value'}),
+                (1, {'name': 'Lines', 'value': 'plane-value'}),
+            ],
+        )
+
+    def testSwapManagedParameterItemsSkipsOutOfRangeSwap(self):
+        parent = _FakeParent()
+        parent.childs = [_FakeItem('Planes'), _FakeItem('Lines')]
+        collection = ['plane-value', 'line-value']
+
+        swapped = swapManagedParameterItems(
+            parent,
+            collection,
+            0,
+            offset=-1,
+            childFactory=lambda name, value: {'name': name, 'value': value},
+        )
+
+        self.assertFalse(swapped)
+        self.assertFalse(parent.childs[0].removed)
+        self.assertFalse(parent.childs[1].removed)
+        self.assertEqual(collection, ['plane-value', 'line-value'])
+        self.assertEqual(parent.insertCalls, [])
 
     def testNextManagedChildNameSkipsExistingNames(self):
         newName = nextManagedChildName({'Seed-1': None, 'Seed-2': None, 'Seed-4': None}, 'Seed')

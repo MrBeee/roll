@@ -286,10 +286,6 @@ class BinningWorkerMixin:
         self._ensureWorkerOperationComponents()
         self.workerOperationController.finishCurrentOperation(result, self.applyBinningWorkerResult, resetAnalysis=False)
 
-    def binningResultThreadFinished(self, result):
-        self._ensureWorkerOperationComponents()
-        self.workerOperationController.finishCurrentOperation(result, self.applyBinningWorkerResult, resetAnalysis=False)
-
     def binFromGeometry(self, fullAnalysis: bool):
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startBinningFromGeometry(fullAnalysis)

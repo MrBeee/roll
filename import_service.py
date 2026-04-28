@@ -139,20 +139,20 @@ class ImportService:
             result.messages.append(f'Import : . . . analysed xps-records; found {nUnique:,} unique records and {(nImport - nUnique):,} duplicates')
 
             traces = calcMaxXPStraces(xpsImport)
-            result.messages.append(f'Import : . . . the xps-records define a maximum of {traces:,} traces')
+            result.messages.append(f'Import : . . . . . . the xps-records define a maximum of {traces:,} traces')
 
-        if spsImport is not None and xpsImport is not None:
-            self._reportQcProgress(progressCallback, nQcStep, nQcSteps, nQcIncrement, 'analysing sps-xps orphans')
-            nQcStep += 1
-            nSpsOrphans, nXpsOrphans = findSrcOrphans(spsImport, xpsImport)
-            result.messages.append(f'Import : . . . sps-records contain {nXpsOrphans:,} xps-orphans')
-            result.messages.append(f'Import : . . . xps-records contain {nSpsOrphans:,} sps-orphans')
+            if spsImport is not None:
+                self._reportQcProgress(progressCallback, nQcStep, nQcSteps, nQcIncrement, 'analysing sps-xps orphans')
+                nQcStep += 1
+                nSpsOrphans, nXpsOrphans = findSrcOrphans(spsImport, xpsImport)
+                result.messages.append(f'Import : . . . . . . sps-records contain {nXpsOrphans:,} xps-orphans')
+                result.messages.append(f'Import : . . . . . . xps-records contain {nSpsOrphans:,} sps-orphans')
 
-        if rpsImport is not None and xpsImport is not None:
-            self._reportQcProgress(progressCallback, nQcStep, nQcSteps, nQcIncrement, 'analysing xps-rps orphans')
-            nRpsOrphans, nXpsOrphans = findRecOrphans(rpsImport, xpsImport)
-            result.messages.append(f'Import : . . . rps-records contain {nXpsOrphans:,} xps-orphans')
-            result.messages.append(f'Import : . . . xps-records contain {nRpsOrphans:,} rps-orphans')
+            if rpsImport is not None:
+                self._reportQcProgress(progressCallback, nQcStep, nQcSteps, nQcIncrement, 'analysing xps-rps orphans')
+                nRpsOrphans, nXpsOrphans = findRecOrphans(rpsImport, xpsImport)
+                result.messages.append(f'Import : . . . . . . rps-records contain {nXpsOrphans:,} xps-orphans')
+                result.messages.append(f'Import : . . . . . . xps-records contain {nRpsOrphans:,} rps-orphans')
 
         return result
 

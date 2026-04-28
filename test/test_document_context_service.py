@@ -63,6 +63,26 @@ class DocumentContextServiceTest(unittest.TestCase):
         self.assertEqual(result.recentFileList, ['relative.roll', existingProject])
         self.assertEqual([entry.storedName for entry in result.visibleEntries], [existingProject])
 
+    def testResolveRecentSelectionReturnsResolvedExistingPath(self):
+        with tempfile.TemporaryDirectory() as tempDir:
+            relProject = os.path.join(tempDir, 'relative.roll')
+            with open(relProject, 'w', encoding='utf-8') as handle:
+                handle.write('rel')
+
+            self.state.projectDirectory = tempDir
+
+            result = self.service.resolveRecentSelection(self.state, 'relative.roll')
+
+        self.assertTrue(result.exists)
+        self.assertEqual(result.storedName, 'relative.roll')
+        self.assertEqual(result.resolvedName, relProject)
+
+    def testResolveRecentFileNameResolvesRelativePathAgainstProjectDirectory(self):
+        self.assertEqual(
+            self.service.resolveRecentFileName('relative.roll', 'D:\\projects'),
+            os.path.join('D:\\projects', 'relative.roll'),
+        )
+
     def testRemoveRecentFileUpdatesOwnedList(self):
         self.state.recentFileList = ['a.roll', 'b.roll']
 

@@ -2,11 +2,12 @@
 import os
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pyqtgraph as pg
-from qgis.PyQt.QtCore import QEvent, QRectF
+from qgis.PyQt.QtCore import QEvent, QPointF, QRectF
 from qgis.PyQt.QtWidgets import QAction
 
 from .plugin_loader import loadPluginModule
@@ -25,6 +26,7 @@ auxFunctionsModule = loadPluginModule('aux_functions')
 workerThreadsModule = loadPluginModule('worker_threads')
 binningWorkerMixinModule = loadPluginModule('binning_worker_mixin')
 workerOperationControllerModule = loadPluginModule('worker_operation_controller')
+propertyPanelControllerModule = loadPluginModule('property_panel_controller')
 printPresentationControllerModule = loadPluginModule('print_presentation_controller')
 
 RollMainWindow = rollMainWindowModule.RollMainWindow
@@ -112,8 +114,18 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIsNotNone(self.mainWindow.output.minOffset)
         self.assertIsNotNone(self.mainWindow.output.maxOffset)
         self.assertIsNotNone(self.mainWindow.output.rmsOffset)
+        self.assertIsNotNone(self.mainWindow.output.offsetGap)
         self.assertIsNotNone(self.mainWindow.output.offstHist)
         self.assertIsNotNone(self.mainWindow.output.ofAziHist)
+
+    def testCreatePlotWidgetDisablesPyqtgraphExportContextMenu(self):
+        plotWidget = self.mainWindow.createPlotWidget('Context menu test')
+
+        try:
+            self.assertIsNone(plotWidget.scene().contextMenu)
+        finally:
+            plotWidget.close()
+            plotWidget.deleteLater()
 
     def testFileLoadIgnoresFoldSidecarWithWrongDimensions(self):
         with tempfile.TemporaryDirectory() as tempDir:
@@ -325,12 +337,14 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.mainWindow.output.minOffset = np.full((10, 5), 100.0, dtype=np.float32)
             self.mainWindow.output.maxOffset = np.full((10, 5), 250.0, dtype=np.float32)
             self.mainWindow.output.rmsOffset = np.full((10, 5), 175.0, dtype=np.float32)
+            self.mainWindow.output.offsetGap = np.full((10, 5), 80.0, dtype=np.float32)
             self.mainWindow.output.offstHist = np.array([[0.0, 50.0, 100.0], [1.0, 2.0, 0.0]], dtype=np.float32)
             self.mainWindow.output.ofAziHist = np.ones((360 // 5, 4), dtype=np.float32)
 
             success = self.mainWindow.saveAnalysisSidecars(includeHistograms=True)
 
             self.assertTrue(success)
+            np.testing.assert_array_equal(np.load(projectPath + '.gap.npy'), self.mainWindow.output.offsetGap)
             np.testing.assert_array_equal(np.load(projectPath + '.off.npy'), self.mainWindow.output.offstHist)
             np.testing.assert_array_equal(np.load(projectPath + '.azi.npy'), self.mainWindow.output.ofAziHist)
 
@@ -539,6 +553,41 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIs(self.mainWindow.layoutImItem, imageItem)
         self.assertIsNotNone(self.mainWindow.layoutColorBar)
 
+    def testProjectLoadApplierUsesLayoutImageHelperForAnalysisState(self):
+        sidecarResult = SimpleNamespace(
+            binOutput=np.ones((2, 3), dtype=np.float32),
+            minOffset=None,
+            maxOffset=None,
+            rmsOffset=None,
+            offsetGap=None,
+            offstHist=None,
+            ofAziHist=None,
+            minimumFold=1,
+            maximumFold=8,
+            minMinOffset=0.0,
+            maxMinOffset=0.0,
+            minMaxOffset=0.0,
+            maxMaxOffset=0.0,
+            minRmsOffset=0.0,
+            maxRmsOffset=0.0,
+            minOffsetGap=0.0,
+            maxOffsetGap=0.0,
+            analysisMemmapResult=None,
+        )
+
+        with patch.object(self.mainWindow, 'prepareLayoutImageAndColorBar') as layoutHelper:
+            self.mainWindow.projectLoadApplier.applyAnalysisState(sidecarResult)
+
+        layoutHelper.assert_called_once_with(
+            sidecarResult.binOutput,
+            self.mainWindow.appSettings.foldDispCmap,
+            'fold',
+            levels=(0.0, sidecarResult.maximumFold),
+        )
+        self.assertEqual(self.mainWindow.imageType, 1)
+        self.assertIs(self.mainWindow.layoutImg, sidecarResult.binOutput)
+        self.assertEqual(self.mainWindow.layoutMax, sidecarResult.maximumFold)
+
     def testHandleImageSelectionUsesLayoutImageHelper(self):
         self.mainWindow.imageType = 1
         self.mainWindow.output.binOutput = np.ones((2, 3), dtype=np.float32)
@@ -553,6 +602,47 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertEqual(layoutHelper.call_args.args[2], 'fold')
         self.assertEqual(layoutHelper.call_args.kwargs['levels'], (0.0, 8))
         plotLayout.assert_called_once()
+
+    def testHandleImageSelectionUsesLayoutMetadataForGapSurface(self):
+        self.mainWindow.imageType = 5
+        self.mainWindow.output.binOutput = np.ones((2, 3), dtype=np.float32)
+        self.mainWindow.output.offsetGap = np.full((2, 3), 4.5, dtype=np.float32)
+        self.mainWindow.output.maxOffsetGap = 9.0
+
+        with patch.object(self.mainWindow, 'prepareLayoutImageAndColorBar') as layoutHelper:
+            with patch.object(self.mainWindow, 'plotLayout') as plotLayout:
+                self.mainWindow.handleImageSelection()
+
+        layoutHelper.assert_called_once()
+        np.testing.assert_array_equal(layoutHelper.call_args.args[0], self.mainWindow.layoutImg)
+        self.assertEqual(layoutHelper.call_args.args[2], 'maximum offset gap')
+        self.assertEqual(layoutHelper.call_args.kwargs['levels'], (0.0, 9.0))
+        plotLayout.assert_called_once()
+
+    def testFileExportOffsetGapsUsesLayoutMetadata(self):
+        self.mainWindow.fileName = os.path.join('D:\\temp', 'layout-metadata')
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.output.offsetGap = np.full((2, 3), 2.5, dtype=np.float32)
+
+        with patch.object(rollMainWindowModule, 'CreateQgisRasterLayer', return_value=self.mainWindow.fileName + '.gap.tif') as exportRaster:
+            self.mainWindow.fileExportOffsetGaps()
+
+        exportRaster.assert_called_once_with(self.mainWindow.fileName + '.gap.tif', self.mainWindow.output.offsetGap, self.mainWindow.survey)
+
+    def testSetLayoutMouseStatusUsesLayoutMetadataForGapSurface(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.imageType = 5
+        self.mainWindow.output.binOutput = np.ones((10, 5), dtype=np.uint32)
+        self.mainWindow.output.offsetGap = np.full((10, 5), 4.5, dtype=np.float32)
+        self.mainWindow.output.maxOffsetGap = 9.0
+        self.mainWindow.layoutImg = self.mainWindow.output.offsetGap
+
+        self.mainWindow._setLayoutMouseStatus(QPointF(5.0, 5.0))
+
+        statusText = self.mainWindow.posWidgetStatusbar.text()
+        self.assertIn('max offset gap: 4.50', statusText)
+        self.assertIn('L:(5.00, 5.00, 0.00)', statusText)
+        self.assertIn('W:(5.00, 5.00, 0.00)', statusText)
 
     def testDispatchAnalysisRedrawRoutesPatternsToPlotPatterns(self):
         with patch.object(self.mainWindow, 'plotPatterns') as plotPatterns:
@@ -1358,6 +1448,43 @@ class ProjectSidecarsTest(unittest.TestCase):
             dialog.close()
             dialog.deleteLater()
 
+    def testSpsImportDialogShowsFileLoadProgressWhilePopulatingPreviewTabs(self):
+        dialog = SpsImportDialog(self.mainWindow, self.mainWindow.survey.crs, self.mainWindow.importDirectory)
+        try:
+            with tempfile.TemporaryDirectory() as tempDir:
+                spsPath = os.path.join(tempDir, 'example.sps')
+                rpsPath = os.path.join(tempDir, 'example.rps')
+                with open(spsPath, 'w', encoding='utf-8') as handle:
+                    handle.write('SPS-LINE-1\n' * 20000)
+
+                with open(rpsPath, 'w', encoding='utf-8') as handle:
+                    handle.write('RPS-LINE-1\n' * 20000)
+
+                with patch.object(dialog, '_updateFileLoadProgress', wraps=dialog._updateFileLoadProgress) as progressMock:
+                    with patch.object(dialog, '_showPreviewPopulateProgress', wraps=dialog._showPreviewPopulateProgress) as previewMock:
+                        dialog.onSpsFilesChanged(f'"{spsPath}" "{rpsPath}"')
+
+                self.assertTrue(dialog.spsTab.toPlainText().startswith('SPS-LINE-1\n'))
+                self.assertTrue(dialog.rpsTab.toPlainText().startswith('RPS-LINE-1\n'))
+                self.assertEqual(dialog.progressLabel.text(), 'Ready reading input data')
+                self.assertEqual(dialog.progressBar.value(), 0)
+                self.assertFalse(dialog.progressBar.isVisible())
+                self.assertEqual(previewMock.call_count, 1)
+                self.assertTrue(any(call.args[0] == spsPath for call in progressMock.call_args_list))
+                self.assertTrue(any(call.args[0] == rpsPath for call in progressMock.call_args_list))
+                self.assertTrue(any(0 < call.args[1] < 100 for call in progressMock.call_args_list))
+
+                spsCalls = [call.args[1] for call in progressMock.call_args_list if call.args[0] == spsPath]
+                rpsCalls = [call.args[1] for call in progressMock.call_args_list if call.args[0] == rpsPath]
+
+                self.assertIn(0, spsCalls)
+                self.assertIn(100, spsCalls)
+                self.assertIn(0, rpsCalls)
+                self.assertIn(100, rpsCalls)
+        finally:
+            dialog.close()
+            dialog.deleteLater()
+
     def testReadSettingsResetsInvalidStoredSpsFormatsToBuiltInDefaults(self):
         self.mainWindow.settings.beginGroup('settings/sps/spsFormatList')
         self.mainWindow.settings.setValue('Broken', '{"name": "Broken"}')
@@ -1453,6 +1580,30 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.appSettings.showUnfinished = True
         self.mainWindow.appSettings.activate()
         self.assertTrue(isShowUnfinishedEnabled())
+
+    def testLayoutMethodControlsAreHiddenWhenUnfinishedCodeIsDisabled(self):
+        self.mainWindow.appSettings.showUnfinished = False
+        self.mainWindow.appSettings.activate()
+
+        with patch.object(self.mainWindow, 'handleImageSelection'), patch.object(self.mainWindow, 'plotLayout'):
+            self.mainWindow.updateSettings()
+
+        self.assertTrue(self.mainWindow.layoutMethodSidePanel.isHidden())
+        self.assertTrue(self.mainWindow.layoutMethodChoice.isHidden())
+        self.assertEqual(0, self.mainWindow.layoutMethodSplitter.sizes()[0])
+        self.assertTrue(self.mainWindow.actionLayout2D.isChecked())
+
+    def testLayoutMethodControlsAreShownWhenUnfinishedCodeIsEnabled(self):
+        self.mainWindow.appSettings.showUnfinished = True
+        self.mainWindow.appSettings.activate()
+
+        with patch.object(self.mainWindow, 'handleImageSelection'), patch.object(self.mainWindow, 'plotLayout'):
+            self.mainWindow.updateSettings()
+
+        self.assertFalse(self.mainWindow.layoutMethodSidePanel.isHidden())
+        self.assertFalse(self.mainWindow.layoutMethodChoice.isHidden())
+        self.assertGreater(self.mainWindow.layoutMethodSplitter.sizes()[0], 0)
+        self.assertTrue(self.mainWindow.actionLayout2D.isChecked())
 
     def testBinFromTemplatesUsesRequestObjectAndResultSignal(self):
         class SignalStub:
@@ -1588,6 +1739,9 @@ class ProjectSidecarsTest(unittest.TestCase):
             minRmsOffset=0.0,
             maxRmsOffset=0.0,
             rmsOffset=None,
+            minOffsetGap=5.0,
+            maxOffsetGap=15.0,
+            offsetGap=np.full((2, 2), 15.0, dtype=np.float32),
             ofAziHist=None,
             offstHist=None,
             cmpTransform='cmp-transform',
@@ -1612,6 +1766,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         np.testing.assert_array_equal(self.mainWindow.output.binOutput, result.binOutput)
         np.testing.assert_array_equal(self.mainWindow.output.minOffset, result.minOffset)
         np.testing.assert_array_equal(self.mainWindow.output.maxOffset, result.maxOffset)
+        np.testing.assert_array_equal(self.mainWindow.output.offsetGap, result.offsetGap)
         self.assertEqual(self.mainWindow.output.maximumFold, 4)
         self.assertEqual(self.mainWindow.survey.cmpTransform, 'cmp-transform')
         handleImageSelection.assert_called_once()
@@ -1664,6 +1819,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.output.minOffset = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.output.maxOffset = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.output.rmsOffset = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.offsetGap = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.output.ofAziHist = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.output.offstHist = np.ones((2, 3), dtype=np.float32)
         self.mainWindow.binAreaChanged = True
@@ -1690,6 +1846,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIsNone(self.mainWindow.output.minOffset)
         self.assertIsNone(self.mainWindow.output.maxOffset)
         self.assertIsNone(self.mainWindow.output.rmsOffset)
+        self.assertIsNone(self.mainWindow.output.offsetGap)
         self.assertIsNone(self.mainWindow.output.ofAziHist)
         self.assertIsNone(self.mainWindow.output.offstHist)
         updateMenuStatus.assert_called_once_with(True)
@@ -1717,6 +1874,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.output.minOffset = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.output.maxOffset = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.output.rmsOffset = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.offsetGap = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.output.ofAziHist = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.output.offstHist = np.ones((2, 3), dtype=np.float32)
         self.mainWindow.binAreaChanged = False
@@ -1739,10 +1897,55 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIsNotNone(self.mainWindow.output.minOffset)
         self.assertIsNotNone(self.mainWindow.output.maxOffset)
         self.assertIsNotNone(self.mainWindow.output.rmsOffset)
+        self.assertIsNotNone(self.mainWindow.output.offsetGap)
         self.assertIsNotNone(self.mainWindow.output.ofAziHist)
         self.assertIsNotNone(self.mainWindow.output.offstHist)
         updateMenuStatus.assert_called_once_with(False)
         enableProcessingMenuItems.assert_called_once_with(True)
+
+    def testPropertyTreeStateChangedUpdatesWellDirectoryForWellFileValue(self):
+        class FakeParam:
+            def name(self):
+                return 'Well file'
+
+        param = FakeParam()
+        wellFile = os.path.join(tempfile.gettempdir(), 'wells', 'survey.well')
+        expectedDirectory = os.path.dirname(wellFile)
+        self.mainWindow.parameters = SimpleNamespace(childPath=lambda _: ['Block list', 'Seed', 'Well file'])
+        self.mainWindow.wellDirectory = ''
+
+        with patch.object(propertyPanelControllerModule, 'syncWellDirectoryForParameterTree') as syncWellDirectory:
+            self.mainWindow.propertyTreeStateChanged(param, [(param, 'value', wellFile)])
+
+        self.assertEqual(self.mainWindow.wellDirectory, expectedDirectory)
+        syncWellDirectory.assert_called_once_with(param, expectedDirectory)
+
+    def testPropertyTreeStateChangedIgnoresNonMatchingWellDirectoryChanges(self):
+        class FakeParam:
+            def __init__(self, name):
+                self._name = name
+
+            def name(self):
+                return self._name
+
+        self.mainWindow.parameters = SimpleNamespace(childPath=lambda _: ['Block list', 'Seed'])
+        self.mainWindow.wellDirectory = 'D:/existing'
+
+        testCases = [
+            ('not-value', FakeParam('Well file'), 'value.tmp'),
+            ('value', FakeParam('Not well file'), 'value.tmp'),
+            ('value', FakeParam('Well file'), None),
+            ('value', FakeParam('Well file'), ''),
+            ('value', FakeParam('Well file'), 'survey.well'),
+        ]
+
+        with patch.object(propertyPanelControllerModule, 'syncWellDirectoryForParameterTree') as syncWellDirectory:
+            for change, param, data in testCases:
+                with self.subTest(change=change, name=param.name(), data=data):
+                    self.mainWindow.propertyTreeStateChanged(param, [(param, change, data)])
+
+        self.assertEqual(self.mainWindow.wellDirectory, 'D:/existing')
+        syncWellDirectory.assert_not_called()
 
     def testBinFromGeometryUsesRequestObjectAndResultSignal(self):
         class SignalStub:
@@ -1957,6 +2160,9 @@ class ProjectSidecarsTest(unittest.TestCase):
             minRmsOffset=0.0,
             maxRmsOffset=0.0,
             rmsOffset=None,
+            minOffsetGap=5.0,
+            maxOffsetGap=15.0,
+            offsetGap=np.full((2, 2), 15.0, dtype=np.float32),
             ofAziHist=None,
             offstHist=None,
             cmpTransform='cmp-transform',
@@ -1981,6 +2187,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         np.testing.assert_array_equal(self.mainWindow.output.binOutput, result.binOutput)
         np.testing.assert_array_equal(self.mainWindow.output.minOffset, result.minOffset)
         np.testing.assert_array_equal(self.mainWindow.output.maxOffset, result.maxOffset)
+        np.testing.assert_array_equal(self.mainWindow.output.offsetGap, result.offsetGap)
         self.assertEqual(self.mainWindow.output.maximumFold, 4)
         self.assertEqual(self.mainWindow.survey.cmpTransform, 'cmp-transform')
         handleImageSelection.assert_called_once()

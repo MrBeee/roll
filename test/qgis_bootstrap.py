@@ -102,5 +102,4 @@ def ensureQgisAvailable():
                 return True
             except ModuleNotFoundError:
                 continue
-
     return False

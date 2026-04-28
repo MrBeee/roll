@@ -63,6 +63,7 @@ class ProjectSidecarLoadResult:
     minOffset: np.ndarray | None = None
     maxOffset: np.ndarray | None = None
     rmsOffset: np.ndarray | None = None
+    offsetGap: np.ndarray | None = None
     offstHist: np.ndarray | None = None
     ofAziHist: np.ndarray | None = None
     minimumFold: int = 0
@@ -73,6 +74,8 @@ class ProjectSidecarLoadResult:
     maxMaxOffset: float = 0.0
     minRmsOffset: float = 0.0
     maxRmsOffset: float = 0.0
+    minOffsetGap: float = 0.0
+    maxOffsetGap: float = 0.0
     analysisFold: int = 0
     analysisMemmapResult: AnalysisMemmapResult | None = None
     rpsImport: np.ndarray | None = None
@@ -84,7 +87,7 @@ class ProjectSidecarLoadResult:
 
 
 class ProjectService:
-    analysisSidecarSuffixes = ('.bin.npy', '.min.npy', '.max.npy', '.rms.npy', '.off.npy', '.azi.npy', '.ana.npy')
+    analysisSidecarSuffixes = ('.bin.npy', '.min.npy', '.max.npy', '.rms.npy', '.gap.npy', '.off.npy', '.azi.npy', '.ana.npy')
 
     def readProjectText(self, fileName):
         qFile = QFile(fileName)
@@ -199,6 +202,7 @@ class ProjectService:
         self.saveArraySidecar(fileName, '.min.npy', output.minOffset)
         self.saveArraySidecar(fileName, '.max.npy', output.maxOffset)
         self.saveArraySidecar(fileName, '.rms.npy', output.rmsOffset)
+        self.saveArraySidecar(fileName, '.gap.npy', output.offsetGap)
 
         if includeHistograms:
             self.saveArraySidecar(fileName, '.off.npy', output.offstHist)
@@ -305,6 +309,15 @@ class ProjectService:
         elif rmsResult.exists:
             self._appendMessage(result, 'error', 'Loaded : . . . Rms-offset: Wrong dimensions, compared to analysis area - file ignored')
 
+        gapResult = self.loadSizedArraySidecar(fileName, '.gap.npy', (nx, ny))
+        if gapResult.valid:
+            result.offsetGap = gapResult.array
+            result.maxOffsetGap = float(result.offsetGap.max())
+            result.minOffsetGap = max(float(result.offsetGap.min()), 0.0)
+            self._appendMessage(result, 'info', f'Loaded : . . . Max-gap&nbsp; &nbsp;: Min:{result.minOffsetGap:.2f}m - Max:{result.maxOffsetGap:.2f}m ')
+        elif gapResult.exists:
+            self._appendMessage(result, 'error', 'Loaded : . . . Max-gap&nbsp; &nbsp;: Wrong dimensions, compared to analysis area - file ignored')
+
         offResult = self.loadHistogramSidecar(fileName, '.off.npy', 2)
         if offResult.valid:
             result.offstHist = offResult.array
@@ -393,12 +406,12 @@ class ProjectService:
 
         dx = survey.grid.binSize.x()
         dy = survey.grid.binSize.y()
-        self._appendMessage(result, 'info', f'Analysis dims: nx={result.dimensions.nx}, ny={result.dimensions.ny}, binSize=({dx:.3f},{dy:.3f})')
+        self._appendMessage(result, 'info', f'Loading: . . . Analysis dims: nx={result.dimensions.nx}, ny={result.dimensions.ny}, binSize=({dx:.3f},{dy:.3f})')
 
         for suffix in self.analysisSidecarSuffixes:
             exists = self.sidecarExists(fileName, suffix)
             result.existingSidecars[suffix] = exists
-            self._appendMessage(result, 'info', f'Analysis file: {suffix} exists={exists}')
+            self._appendMessage(result, 'info', f'Loading: . . . Analysis file: {suffix} exists={exists}')
 
         self._loadAnalysisArraySidecars(fileName, survey, result)
         self._loadSurveyDataArrays(fileName, result)

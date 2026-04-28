@@ -26,9 +26,10 @@ class RecentFileResolution:
 
 
 class DocumentContextService:
-    def loadStoredValues(self, state, *, projectDirectory='', importDirectory='', recentFileList=None):
+    def loadStoredValues(self, state, *, projectDirectory='', importDirectory='', wellDirectory='', recentFileList=None):
         state.projectDirectory = projectDirectory or ''
         state.importDirectory = importDirectory or ''
+        state.wellDirectory = wellDirectory or ''
         state.recentFileList = list(recentFileList or [])
 
     def clearCurrentFile(self, state):

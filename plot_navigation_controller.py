@@ -46,6 +46,18 @@ class PlotNavigationController:
             if plotWidget.isVisible():
                 return (plotWidget, index)
 
+        # Special case: the Layout tab can host either the 2D pyqtgraph
+        # widget or the 3D matplotlib widget inside a QStackedWidget.
+        # When the 3D Subset is showing, ``layoutWidget.isVisible()`` is
+        # False, but spider navigation still needs to recognise the
+        # Layout tab as the active plot. Detect that case explicitly.
+        window = self.window
+        mainTab = getattr(window, 'mainTabWidget', None)
+        layoutWidget = getattr(window, 'layoutWidget', None)
+        if mainTab is not None and layoutWidget is not None \
+                and mainTab.currentIndex() == 0:
+            return (layoutWidget, 0)
+
         return (None, None)
 
     def getVisibleAnalysisContext(self):

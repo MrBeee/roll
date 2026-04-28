@@ -1,9 +1,5 @@
 # coding=utf-8
 
-import pyqtgraph as pg
-
-from .enums_and_int_flags import MsgType
-
 
 class ProjectLoadApplier:
     def __init__(self, mainWindow):
@@ -26,6 +22,7 @@ class ProjectLoadApplier:
         mainWindow.output.minOffset = sidecarResult.minOffset
         mainWindow.output.maxOffset = sidecarResult.maxOffset
         mainWindow.output.rmsOffset = sidecarResult.rmsOffset
+        mainWindow.output.offsetGap = sidecarResult.offsetGap
         mainWindow.output.offstHist = sidecarResult.offstHist
         mainWindow.output.ofAziHist = sidecarResult.ofAziHist
         mainWindow.output.minimumFold = sidecarResult.minimumFold
@@ -36,6 +33,8 @@ class ProjectLoadApplier:
         mainWindow.output.maxMaxOffset = sidecarResult.maxMaxOffset
         mainWindow.output.minRmsOffset = sidecarResult.minRmsOffset
         mainWindow.output.maxRmsOffset = sidecarResult.maxRmsOffset
+        mainWindow.output.minOffsetGap = sidecarResult.minOffsetGap
+        mainWindow.output.maxOffsetGap = sidecarResult.maxOffsetGap
 
         self._applyLayoutImageState()
 
@@ -61,32 +60,12 @@ class ProjectLoadApplier:
         mainWindow.imageType = 1
         mainWindow.layoutImg = mainWindow.output.binOutput
         mainWindow.layoutMax = mainWindow.output.maximumFold
-        mainWindow.layoutImItem = pg.ImageItem()
-        mainWindow.layoutImItem.setImage(mainWindow.layoutImg, levels=(0.0, mainWindow.layoutMax))
-
-        label = 'fold'
-        colorMapObj = mainWindow.resolveColorMapObject(mainWindow.appSettings.foldDispCmap, fallback='viridis')
-        if mainWindow.layoutColorBar is None:
-            try:
-                mainWindow.layoutColorBar = mainWindow.layoutWidget.plotItem.addColorBar(
-                    mainWindow.layoutImItem,
-                    colorMap=colorMapObj,
-                    label=label,
-                    limits=(0, None),
-                    rounding=10.0,
-                    values=(0.0, mainWindow.layoutMax),
-                )
-            except TypeError as exc:
-                mainWindow.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
-                mainWindow.layoutColorBar = None
-        else:
-            mainWindow.layoutColorBar.setImageItem(mainWindow.layoutImItem)
-            mainWindow.layoutColorBar.setLevels(low=0.0, high=mainWindow.layoutMax)
-            try:
-                mainWindow.layoutColorBar.setColorMap(colorMapObj)
-            except TypeError as exc:
-                mainWindow.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
-            mainWindow.setColorbarLabel(label)
+        mainWindow.prepareLayoutImageAndColorBar(
+            mainWindow.layoutImg,
+            mainWindow.appSettings.foldDispCmap,
+            'fold',
+            levels=(0.0, mainWindow.layoutMax),
+        )
 
     def _applySurveyDataState(self, sidecarResult):
         mainWindow = self.mainWindow

@@ -188,6 +188,7 @@ def writeMinimalProjectFixture(
         output.minOffset = np.full((dimensions.nx, dimensions.ny), 50.0, dtype=np.float32)
         output.maxOffset = np.full((dimensions.nx, dimensions.ny), 150.0, dtype=np.float32)
         output.rmsOffset = np.full((dimensions.nx, dimensions.ny), 75.0, dtype=np.float32)
+        output.offsetGap = np.full((dimensions.nx, dimensions.ny), 25.0, dtype=np.float32)
 
         if includeHistograms:
             output.offstHist = np.array([[0.0, 50.0, 100.0], [1.0, 2.0, 0.0]], dtype=np.float32)

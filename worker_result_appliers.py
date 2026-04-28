@@ -53,6 +53,9 @@ class BinningResultApplier:
         self.window.output.minRmsOffset = 0.0 if result.minRmsOffset is None else result.minRmsOffset
         self.window.output.maxRmsOffset = 0.0 if result.maxRmsOffset is None else result.maxRmsOffset
         self.window.output.rmsOffset = result.rmsOffset
+        self.window.output.minOffsetGap = 0.0 if result.minOffsetGap is None else result.minOffsetGap
+        self.window.output.maxOffsetGap = 0.0 if result.maxOffsetGap is None else result.maxOffsetGap
+        self.window.output.offsetGap = result.offsetGap
         self.window.output.ofAziHist = result.ofAziHist
         self.window.output.offstHist = result.offstHist
 
@@ -73,6 +76,11 @@ class BinningResultApplier:
         if self.window.output.rmsOffset is not None:
             self.window.appendLogMessage(
                 f'Thread : . . . Rms-offsets: Min:{self.window.output.minRmsOffset:.2f}m - Max:{self.window.output.maxRmsOffset:.2f}m ',
+                MsgType.Binning,
+            )
+        if self.window.output.offsetGap is not None:
+            self.window.appendLogMessage(
+                f'Thread : . . . Max-gap&nbsp; &nbsp;: Min:{self.window.output.minOffsetGap:.2f}m - Max:{self.window.output.maxOffsetGap:.2f}m ',
                 MsgType.Binning,
             )
 

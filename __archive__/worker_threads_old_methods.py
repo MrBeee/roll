@@ -3,9 +3,9 @@ import sys
 from dataclasses import dataclass
 from typing import Any
 
-from qgis.PyQt.QtCore import QObject, pyqtSignal
+from qgis.PyQt.QtCore import QObject, QThread, pyqtSignal
 
-from .roll_survey import RollSurvey
+from ..roll_survey import RollSurvey
 
 # debugpy  is needed to debug a worker thread.
 # See: https://github.com/microsoft/ptvsd/issues/1189
@@ -121,6 +121,34 @@ class GeometryFromTemplatesResult:
     profiling: GeometryProfilingPayload | None = None
 
 
+class BinningThread(QThread):
+    progress = pyqtSignal(int)
+
+    def __init__(self, xmlString):
+        super().__init__()
+
+        # the purpose of passing an xml-string instead of a survey-object is to fully decouple both objects.
+        # this allows for updating self.survey in the main thread, wthout affecting the worker thread.
+        # initially this was attemped using copy.deepcopy(self.survey) but this led to to 'pickle' errors.
+        # most likely the survey object is too complex, so the to/from xml detour make an easy fix.
+        # See: https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
+
+        self.survey = RollSurvey()                                              # create 'virgin' object
+        self.survey.fromXmlString(xmlString, True)                              # fully populate the object AND create arrays
+
+    def run(self):
+        for x in range(5, 101, 2):
+            myPrint(x)
+            time.sleep(0.5)
+            self.progress.emit(x)
+
+            if self.isInterruptionRequested():
+                break
+# Second approach; create a worker QObject, then call worker.moveToThread() using the thread as an argument
+# See: https://github.com/PyQt5/PyQt/blob/master/QThread/moveToThread.py good reference !
+# See: https://stackoverflow.com/questions/74348042/how-to-assign-variables-to-worker-thread-in-python-pyqt5 for passing data
+
+
 class BinFromGeometryWorker(QObject):
     finished = pyqtSignal()
     resultReady = pyqtSignal(object)
@@ -202,7 +230,7 @@ class BinningWorker(QObject):
 
     def __init__(self, request: BinningFromTemplatesRequest):
         super().__init__()
-        self.survey = RollSurvey()
+        # self.survey = RollSurvey()
         self.extended = request.extended
         self.debugpyEnabled = request.debugpyEnabled
 
@@ -272,7 +300,7 @@ class GeometryWorker(QObject):
 
     def __init__(self, request: GeometryFromTemplatesRequest):
         super().__init__()
-        self.survey = RollSurvey()
+        # self.survey = RollSurvey()
         self.debugpyEnabled = request.debugpyEnabled
         self.includeProfiling = request.includeProfiling
 
@@ -328,3 +356,135 @@ class GeometryWorker(QObject):
             srcGeom=output.srcGeom,
             profiling=profiling,
         )
+
+
+# class Worker(QObject):
+#     # Example Worker using getters and setters using a mutex
+#     # See: https://stackoverflow.com/questions/9190169/threading-and-information-passing-how-to
+
+#     finished = pyqtSignal()
+
+#     def __init__(self):
+#         QObject.__init__(self)
+#         self.firstNameText = ''
+#         self._mutex = QMutex()
+
+#     def getFirstName(self):
+#         self._mutex.lock()
+#         text = self.firstNameText
+#         self._mutex.unlock()
+#         return text
+
+#     def setFirstName(self, text):
+#         self._mutex.lock()
+#         self.firstNameText = text
+#         self._mutex.unlock()
+
+#     def run(self):
+#         firstname = self.getFirstName()
+#         for _ in range(10):
+#             time.sleep(1)
+#             myPrint(firstname)
+#         self.finished.emit()
+
+
+
+
+
+
+# def findRecOrphansOld(rpsImport, xpsImport) -> (int, int):
+#     if rpsImport is None or xpsImport is None:
+#         return (-1, -1)
+
+#     # find unique rps elements present in (shorted) xps array
+#     nXps = xpsImport.shape[0]
+#     xpsShort = np.zeros(shape=nXps, dtype=relType3)
+#     xpsShort['RecInd'] = xpsImport['RecInd']
+#     xpsShort['RecLin'] = xpsImport['RecLin']
+#     xpsShort['RecMin'] = xpsImport['RecMin']
+#     xpsShort['RecMax'] = xpsImport['RecMax']
+
+#     # delete all duplicate xps-records, resulting in xpsUnique
+#     xpsUnique = np.unique(xpsShort)
+#     xpsUnique.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax'])
+#     rpsImport.sort(order=['Index', 'Line', 'Point'])
+
+#     # now iterate over rpsImport to check if elements are listed in xpsUnique
+#     marker = 0
+#     for rpsRecord in rpsImport:
+#         for j in range(marker, xpsUnique.shape[0]):
+#             xpsRecord = xpsUnique[j]
+
+#             # iR = rpsRecord['Index']
+#             # iX = xpsRecord['RecInd']
+
+#             if rpsRecord['Index'] < xpsRecord['RecInd']:
+#                 # rpsIndex too small; we won't ever find a 'mate' in sorted list
+#                 rpsRecord['InXps'] = 0
+#                 break                                                           # break inner loop
+
+#             if rpsRecord['Index'] > xpsRecord['RecInd']:
+#                 # rpsIndex too large; keep looking for matching xpsIndex
+#                 marker += 1
+#                 continue                                                        # continue looking for a match
+
+#             # when we arrive here, Index == RecInd. Now check line number
+
+#             # lR = rpsRecord['Line']
+#             # lX = xpsRecord['RecLin']
+
+#             if rpsRecord['Line'] < xpsRecord['RecLin']:
+#                 # rpsLine too small; we won't ever find a 'mate' in sorted list
+#                 rpsRecord['InXps'] = 0
+#                 break                                                           # break inner loop
+
+#             if rpsRecord['Line'] > xpsRecord['RecLin']:
+#                 # rpsLine too large; keep looking for matching xpsRecLin
+#                 marker += 1
+#                 continue                                                        # continue looking for a match
+
+#             # when we arrive here, Index == RecInd AND Line == RecLin. Now check stake number
+
+#             # pR = rpsRecord['Point']
+#             # pX1 = xpsRecord['RecMin']
+#             # pX2 = xpsRecord['RecMax']
+
+#             if rpsRecord['Point'] >= xpsRecord['RecMin'] and rpsRecord['Point'] <= xpsRecord['RecMax']:
+#                 # yes, we're in business
+#                 rpsRecord['InXps'] = 1
+#                 break                                                           # break inner loop
+
+#     # shorten the RPS records to Line-Point-Index records
+#     nRps = rpsImport.shape[0]
+#     rpsShort = np.zeros(shape=nRps, dtype=pntType3)
+#     rpsShort['Index'] = rpsImport['Index']
+#     rpsShort['Line'] = rpsImport['Line']
+#     rpsShort['Point'] = rpsImport['Point']
+
+#     # shorten the XPS records to Line-Point-Index records
+#     xpsShortMin = np.zeros(shape=nXps, dtype=pntType3)
+#     xpsShortMin['Index'] = xpsImport['RecInd']
+#     xpsShortMin['Line'] = xpsImport['RecLin']
+#     xpsShortMin['Point'] = xpsImport['RecMin']
+
+#     xpsShortMax = np.zeros(shape=nXps, dtype=pntType3)
+#     xpsShortMax['Index'] = xpsImport['RecInd']
+#     xpsShortMax['Line'] = xpsImport['RecLin']
+#     xpsShortMax['Point'] = xpsImport['RecMax']
+
+#     # find unique xps records from (shorted) rps array
+#     rpsUnique = np.unique(rpsShort)
+#     xpsMaskMin = np.isin(xpsShortMin, rpsUnique, assume_unique=False)
+#     xpsMaskMax = np.isin(xpsShortMax, rpsUnique, assume_unique=False)
+#     xpsMask = np.logical_and(xpsMaskMin, xpsMaskMax)
+#     intMask = 1 * xpsMask                                                       # convert bool to integer
+#     xpsImport['InRps'] = np.asarray(intMask)                                    # Update the xps array with 'unique' mask
+
+#     xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax', 'SrcLin', 'SrcPnt', 'SrcInd'])
+#     rpsImport.sort(order=['Index', 'Line', 'Point'])
+
+#     nRpsOrphans = nXps - intMask.sum()                                          # xps-records contain 'nSpsOrphans' sps-orphans
+#     nXpsOrphans = nRps - rpsImport['InXps'].sum()
+
+#     return (nRpsOrphans, nXpsOrphans)
+

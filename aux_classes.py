@@ -136,8 +136,6 @@ class SurveyWizardPage(QWizardPage):
         pass                                                                    # the default is now to do absolutely nothing !
 
 
-
-
 # See: https://groups.google.com/g/pyqtgraph/c/V01QJKvrUio/m/iUBp5NePCQAJ
 class LineROI(pg.LineSegmentROI):
     def __init__(self, *args, **kwargs):

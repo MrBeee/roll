@@ -15,6 +15,12 @@ try:    # need to TRY importing debugpy, only to see if it is available
 except ImportError as ie:
     haveDebugpy = False
 
+try:
+    haveMatplotlib = True
+    import matplotlib
+except ImportError:
+    haveMatplotlib = False
+
 
 import configparser
 import importlib
@@ -795,6 +801,7 @@ def aboutText() -> str:
 
     numbaVersion = numba.__version__ if haveNumba else 'not installed'
     dbgPyVersion = debugpy.__version__ if haveDebugpy else 'not installed'
+    matplotlibVersion = matplotlib.__version__ if haveMatplotlib else 'not installed'
 
     sourceUrl = "<a href='https://github.com/MrBeee/roll'>here</a>"
     sampleUrl = "<a href='https://github.com/MrBeee/roll_samples'>here</a>"
@@ -808,11 +815,12 @@ def aboutText() -> str:
         f'<li>Qt version: {QT_VERSION_STR} </li>'
         f'<li>PyQt version: {PYQT_VERSION_STR} </li></ul>'
         f'The following libraries are used: <ul>'
-        f'<li>Debugpy version: {dbgPyVersion} </li>'
-        f'<li>Numba version: {numbaVersion} </li>'
         f'<li>Numpy version: {np.__version__} </li>'
-        f'<li>PyQtGraph version: {pg.__version__} </li>'
+        f'<li>Numba version: {numbaVersion} </li>'
+        f'<li>Debugpy version: {dbgPyVersion} </li>'
         f'<li>Rasterio version: {rio.__version__} </li>'
+        f'<li>PyQtGraph version: {pg.__version__} </li>'
+        f'<li>Matplotlib version: {matplotlibVersion} </li>'
         f'<li>Wellpathpy version: {wp.__version__} </li></ul>'
         f'Source code is available on GitHub {sourceUrl} <br> '
         f'Sample projects are available on GitHub {sampleUrl} <br><br> '

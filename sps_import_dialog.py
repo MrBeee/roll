@@ -8,9 +8,10 @@ import pyqtgraph as pg
 from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
 from qgis.PyQt.QtCore import QFileInfo, QSettings, Qt
 from qgis.PyQt.QtGui import QFontMetricsF, QIcon
-from qgis.PyQt.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFrame,
-                                 QHBoxLayout, QLabel, QLineEdit, QListWidget,
-                                 QListWidgetItem, QMessageBox, QPushButton,
+from qgis.PyQt.QtWidgets import (QApplication, QComboBox, QDialog,
+                                 QDialogButtonBox, QFrame, QHBoxLayout, QLabel,
+                                 QLineEdit, QListWidget, QListWidgetItem,
+                                 QMessageBox, QProgressBar, QPushButton,
                                  QSizePolicy, QSpinBox, QTabWidget,
                                  QVBoxLayout, QWidget)
 
@@ -355,6 +356,17 @@ class SpsImportDialog(QDialog):
         self.tabWidget.addTab(self.rpsTab, 'RPS')
         selectorLayout.addWidget(self.tabWidget)
 
+        self.progressLabel = QLabel('Ready')
+        self.progressBar = QProgressBar()
+        self.progressBar.setRange(0, 100)
+        self.progressBar.setValue(0)
+        self.progressBar.hide()
+
+        progressLayout = QHBoxLayout()
+        progressLayout.addWidget(self.progressLabel)
+        progressLayout.addWidget(self.progressBar)
+        selectorLayout.addLayout(progressLayout)
+
         buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         self.buttonBox = QDialogButtonBox(buttons)
         self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setText('Import')  # Change "OK" to "Import"
@@ -594,11 +606,30 @@ class SpsImportDialog(QDialog):
         # local function to safely read sps files with fallback encodings and error handling
         def readTextFileSafe(filePath: str) -> str:
             try:
-                with open(filePath, 'r', encoding='utf-8') as file:
-                    return file.read()
-            except UnicodeDecodeError:
-                with open(filePath, 'r', encoding='latin-1', errors='replace') as file:
-                    return file.read()
+                with open(filePath, 'rb') as file:
+                    totalBytes = max(os.fstat(file.fileno()).st_size, 1)
+                    chunks = []
+                    bytesRead = 0
+
+                    self._updateFileLoadProgress(filePath, 0)
+
+                    while True:
+                        chunk = file.read(64 * 1024)
+                        if not chunk:
+                            break
+
+                        chunks.append(chunk)
+                        bytesRead += len(chunk)
+                        progress = min((100 * bytesRead) // totalBytes, 100)
+                        self._updateFileLoadProgress(filePath, progress)
+
+                    fileBytes = b''.join(chunks)
+                    self._updateFileLoadProgress(filePath, 100)
+
+                try:
+                    return fileBytes.decode('utf-8')
+                except UnicodeDecodeError:
+                    return fileBytes.decode('latin-1', errors='replace')
             except OSError as ex:
                 QMessageBox.warning(self, 'File read error', f'Could not read:\n{filePath}\n\n{ex}')
                 return ''
@@ -613,9 +644,37 @@ class SpsImportDialog(QDialog):
             for rpsFile in self.rpsFiles:
                 rpsText += readTextFileSafe(rpsFile)
 
+            self._showPreviewPopulateProgress()
             self.spsTab.setPlainText(spsText)  # for some reason unknown, the text is not colored properly, when setPlainText is used
             self.xpsTab.setPlainText(xpsText)  # see: https://doc.qt.io/qtforpython-6.5/examples/example_widgets_richtext_syntaxhighlighter.html
             self.rpsTab.setPlainText(rpsText)
+
+        self._setReadyProgress()
+
+    def _updateFileLoadProgress(self, filePath: str, progress: int):
+        self.progressBar.setRange(0, 100)
+        self.progressBar.show()
+        self.progressLabel.setText(f'Reading: {QFileInfo(filePath).fileName()}')
+        self.progressBar.setValue(progress)
+        self.progressLabel.repaint()
+        self.progressBar.repaint()
+        self.repaint()
+        QApplication.processEvents()
+
+    def _showPreviewPopulateProgress(self):
+        self.progressBar.show()
+        self.progressBar.setRange(0, 0)
+        self.progressLabel.setText('Preparing preview tabs')
+        self.progressLabel.repaint()
+        self.progressBar.repaint()
+        self.repaint()
+        QApplication.processEvents()
+
+    def _setReadyProgress(self):
+        self.progressBar.setRange(0, 100)
+        self.progressLabel.setText('Ready reading input data')
+        self.progressBar.setValue(0)
+        self.progressBar.hide()
 
     def _setSpinValue(self, spinBox: QSpinBox, value: int):
         prev = spinBox.blockSignals(True)

@@ -213,6 +213,18 @@ class RollSurveyGeometryTest(unittest.TestCase):
         np.testing.assert_array_equal(x, np.array([10.0, 10.0, 15.0, 15.0], dtype=np.float32))
         np.testing.assert_array_equal(y, np.array([20.0, 30.0, 20.0, 30.0], dtype=np.float32))
 
+    def testCalcOffsetGapValuesTreatsAllEmptyAnalysisAsZeroGap(self):
+        survey = self.createSurvey()
+        survey.output.binOutput = np.zeros((2, 3), dtype=np.float32)
+        survey.output.anaOutput = np.zeros((2, 3, 1, 13), dtype=np.float32)
+
+        success = survey.calcOffsetGapValues()
+
+        self.assertTrue(success)
+        self.assertEqual(survey.output.minOffsetGap, 0.0)
+        self.assertEqual(survey.output.maxOffsetGap, 0.0)
+        np.testing.assert_array_equal(survey.output.offsetGap, np.zeros((2, 3), dtype=np.float32))
+
     def testCalcPointListAssertsOnMalformedGrowList(self):
         grid = RollGrid()
         grid.growList.pop()

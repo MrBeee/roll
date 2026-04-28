@@ -101,6 +101,7 @@ class _DisplayDockBuilder:
         w.tbMinO = self._toggleButton(w.actionMinO)
         w.tbMaxO = self._toggleButton(w.actionMaxO)
         w.tbRmsO = self._toggleButton(w.actionRmsO)
+        w.tbGapO = self._toggleButton(w.actionGapO)
 
         w.actionArea.setChecked(True)
 
@@ -117,7 +118,7 @@ class _DisplayDockBuilder:
         w.setupSpiderActions()
 
         w.analysisActionGroup = QActionGroup(w)
-        for action in (w.actionNone, w.actionArea, w.actionFold, w.actionMinO, w.actionMaxO, w.actionRmsO):
+        for action in (w.actionNone, w.actionArea, w.actionFold, w.actionMinO, w.actionMaxO, w.actionRmsO, w.actionGapO):
             w.analysisActionGroup.addAction(action)
 
         w.actionNone.triggered.connect(w.onActionNoneTriggered)
@@ -126,9 +127,10 @@ class _DisplayDockBuilder:
         w.actionMinO.triggered.connect(w.onActionMinOTriggered)
         w.actionMaxO.triggered.connect(w.onActionMaxOTriggered)
         w.actionRmsO.triggered.connect(w.onActionRmsOTriggered)
+        w.actionGapO.triggered.connect(w.onActionGapOTriggered)
 
         layout = QVBoxLayout()
-        for button in (w.tbNone, w.tbArea, w.tbFold, w.tbMinO, w.tbMaxO, w.tbRmsO):
+        for button in (w.tbNone, w.tbArea, w.tbFold, w.tbMinO, w.tbMaxO, w.tbRmsO, w.tbGapO):
             layout.addWidget(button, 0, Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(QHLine())
         layout.addWidget(w.tbSpider, 0, Qt.AlignmentFlag.AlignHCenter)
@@ -148,12 +150,14 @@ class _DisplayDockBuilder:
         w.btnMinToQGIS = self._exportButton('Min Offset')
         w.btnMaxToQGIS = self._exportButton('Max Offset')
         w.btnRmsToQGIS = self._exportButton('Rms Offset')
+        w.btnGapToQGIS = self._exportButton('Offset Gap')
 
         layout = QVBoxLayout()
         layout.addWidget(w.btnBinToQGIS)
         layout.addWidget(w.btnMinToQGIS)
         layout.addWidget(w.btnMaxToQGIS)
         layout.addWidget(w.btnRmsToQGIS)
+        layout.addWidget(w.btnGapToQGIS)
         w.analysisToQgis.setLayout(layout)
 
     def _composeLayout(self):

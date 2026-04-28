@@ -24,6 +24,30 @@ def moveManagedParameterItem(item, parent, collection, index, *, offset, childFa
     return True
 
 
+def swapManagedParameterItems(parent, collection, index, *, offset, childFactory, afterSwap=None):
+    newIndex = index + offset
+    if newIndex < 0 or newIndex >= len(collection):
+        return False
+
+    lowerIndex = min(index, newIndex)
+    upperIndex = max(index, newIndex)
+    lowerChild = parent.childs[lowerIndex]
+    upperChild = parent.childs[upperIndex]
+    lowerName = lowerChild.name()
+    upperName = upperChild.name()
+
+    upperChild.remove()
+    lowerChild.remove()
+
+    collection[index], collection[newIndex] = collection[newIndex], collection[index]
+
+    parent.insertChild(lowerIndex, childFactory(lowerName, collection[lowerIndex]))
+    parent.insertChild(upperIndex, childFactory(upperName, collection[upperIndex]))
+    if afterSwap is not None:
+        afterSwap(index, newIndex, collection[index], collection[newIndex])
+    return True
+
+
 def nextManagedChildName(existingNames, prefix):
     n = len(existingNames) + 1
     newName = f'{prefix}-{n}'

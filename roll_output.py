@@ -16,6 +16,7 @@ class RollOutput:
         self.minOffset = None                                                   # numpy array with minimum offset
         self.maxOffset = None                                                   # numpy array with maximum offset
         self.rmsOffset = None                                                   # numpy array with rms offset increments
+        self.offsetGap = None                                                   # numpy array with maximum offset gaps
         self.anaOutput = None                                                   # memory mapped numpy trace record array
         self.an2Output = None                                                   # partially flattened version of self.anaOutput (N x 13)
         self.ofAziHist = None                                                   # numpy array with azimuth/offset histogram
@@ -53,6 +54,9 @@ class RollOutput:
 
         self.minRmsOffset = 0.0
         self.maxRmsOffset = 0.0
+
+        self.minOffsetGap = 0.0
+        self.maxOffsetGap = 0.0
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
 

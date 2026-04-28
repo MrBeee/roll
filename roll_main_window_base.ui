@@ -98,6 +98,7 @@
       <addaction name="actionExportMinOffsets"/>
       <addaction name="actionExportMaxOffsets"/>
       <addaction name="actionExportRmsOffsets"/>
+      <addaction name="actionExportOffsetGaps"/>
       <addaction name="separator"/>
       <addaction name="actionExportAnaAsCsv"/>
      </widget>
@@ -134,6 +135,7 @@
      <addaction name="actionExportMinOffsetsToQGIS"/>
      <addaction name="actionExportMaxOffsetsToQGIS"/>
      <addaction name="actionExportRmsOffsetsToQGIS"/>
+    <addaction name="actionExportOffsetGapsToQGIS"/>
      <addaction name="separator"/>
      <addaction name="actionExportAreasToQGIS"/>
     </widget>
@@ -276,6 +278,7 @@
     <addaction name="actionMinO"/>
     <addaction name="actionMaxO"/>
     <addaction name="actionRmsO"/>
+    <addaction name="actionGapO"/>
     <addaction name="separator"/>
     <addaction name="actionSpider"/>
     <addaction name="separator"/>
@@ -1055,6 +1058,11 @@
     <string>Rms Offset - as GeoTiff file</string>
    </property>
   </action>
+  <action name="actionExportOffsetGaps">
+   <property name="text">
+    <string>Offset Gap - as GeoTiff file</string>
+   </property>
+  </action>
   <action name="actionHighDpi">
    <property name="icon">
     <iconset>
@@ -1130,6 +1138,11 @@
   <action name="actionExportRmsOffsetsToQGIS">
    <property name="text">
     <string>Export RMS Offsets to QGIS</string>
+   </property>
+  </action>
+  <action name="actionExportOffsetGapsToQGIS">
+   <property name="text">
+    <string>Export Max Offset Gaps to QGIS</string>
    </property>
   </action>
   <action name="actionExportSrcToQGIS">
@@ -1267,6 +1280,17 @@
    </property>
    <property name="toolTip">
     <string>Show RMS offset incremenents in Layout view</string>
+   </property>
+  </action>
+  <action name="actionGapO">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Max Offset Gap</string>
+   </property>
+   <property name="toolTip">
+    <string>Show maximum offset gaps in Layout view</string>
    </property>
   </action>
   <action name="actionSpider">

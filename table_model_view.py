@@ -7,6 +7,7 @@ import pyqtgraph as pg
 from qgis.PyQt.QtCore import (QAbstractTableModel, QEvent, Qt, QVariant,
                               pyqtSignal)
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QKeySequence
+from qgis.PyQt.QtCore import QItemSelectionModel
 from qgis.PyQt.QtWidgets import (QAbstractItemView, QApplication, QMenu,
                                  QMessageBox, QTableView)
 
@@ -197,9 +198,13 @@ class TableView(QTableView):
             return
 
         targetIndex = model.index(row, 0)
-        self.clearSelection()
-        self.setCurrentIndex(targetIndex)
-        self.selectRow(row)
+        selectionModel = self.selectionModel()
+        if selectionModel is None:
+            return
+
+        selectionFlags = QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows
+        selectionModel.setCurrentIndex(targetIndex, QItemSelectionModel.SelectionFlag.NoUpdate)
+        selectionModel.select(targetIndex, selectionFlags)
         self.scrollTo(targetIndex, QAbstractItemView.ScrollHint.PositionAtCenter)
 
     def showContextMenu(self, pos):

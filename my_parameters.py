@@ -43,7 +43,8 @@ from .parameter_creation_helpers import (createAppendedTemplateSeed,
 from .parameter_list_helpers import (appendManagedParameterItem,
                                      moveManagedParameterItem,
                                      nextManagedChildName,
-                                     removeManagedParameterItem)
+                                     removeManagedParameterItem,
+                                     swapManagedParameterItems)
 from .parameter_seed_well_helpers import (SeedParameterStateHelper,
                                           WellParameterStateHelper)
 from .roll_angles import RollAngles
@@ -359,6 +360,31 @@ def findParameterTreeRoot(param):
     return root
 
 
+def iterParameterTree(param):
+    yield param
+
+    for child in param:
+        yield from iterParameterTree(child)
+
+
+def syncWellDirectoryForParameterTree(param, wellDirectory):
+    root = findParameterTreeRoot(param)
+    if root is None:
+        return
+
+    for treeParam in iterParameterTree(root):
+        if hasattr(treeParam, 'wellDirectory'):
+            treeParam.wellDirectory = wellDirectory
+
+        wellFileParam = getattr(treeParam, 'parF', None)
+        if wellFileParam is None or wellFileParam.name() != 'Well file':
+            continue
+
+        wellFileParam.opts['directory'] = wellDirectory
+        if hasattr(wellFileParam, 'setOpts'):
+            wellFileParam.setOpts(directory=wellDirectory)
+
+
 def iterTemplateSeedParameters(param):
     root = findParameterTreeRoot(param)
     if root is None:
@@ -566,6 +592,21 @@ def applyConfigurationParameterValues(configurationParam):
         typ=configurationParam.parT.value(),
         nam=configurationParam.parN.value(),
     )
+
+
+def appendNewManagedParameterItem(parentParam, managedList, *, baseName, createValue, childFactory, menuName='addNew', afterAppend=None, appendItemFn=appendManagedParameterItem):
+    newName = nextManagedChildName(parentParam.names, baseName)
+    value = createValue(newName)
+    appendItemFn(
+        parentParam,
+        managedList,
+        value,
+        name=newName,
+        childFactory=childFactory,
+        menuName=menuName,
+        afterAppend=afterAppend,
+    )
+    return value
 
 
 # The class ParameterTree has been subclassed from the pyqtgraph TreeWidget class
@@ -1137,13 +1178,13 @@ class MyBlockParameter(MyGroupParameter):
 
         self.block = opts.get('value', RollBlock())
         self.survey = opts.get('survey', None)
-        self.directory = opts.get('directory', None)
+        self.wellDirectory = opts.get('wellDirectory', None)
         self.blockValues = blockValuesFromBlock(self.block)
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Source boundary', type='myRectF', value=self.blockValues.srcBorder, default=self.blockValues.srcBorder, flat=True, expanded=False))
             self.addChild(dict(name='Receiver boundary', type='myRectF', value=self.blockValues.recBorder, default=self.blockValues.recBorder, flat=True, expanded=False))
-            self.addChild(dict(name='Template list', type='myTemplateList', value=self.blockValues.templateList, default=self.blockValues.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m', directory=self.directory, survey=self.survey))
+            self.addChild(dict(name='Template list', type='myTemplateList', value=self.blockValues.templateList, default=self.blockValues.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))
 
         bindChildParameters(self, {
             'parS': 'Source boundary',
@@ -1195,7 +1236,7 @@ class MyBlockParameter(MyGroupParameter):
                 parent.blockList,
                 index,
                 offset=-1,
-                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey),
+                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
             )
 
         elif name == 'moveDown':
@@ -1205,7 +1246,7 @@ class MyBlockParameter(MyGroupParameter):
                 parent.blockList,
                 index,
                 offset=1,
-                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey),
+                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
             )
 
         elif name == 'preview':
@@ -1249,12 +1290,12 @@ class MyTemplateParameter(MyGroupParameter):
 
         self.template = opts.get('value', RollTemplate())
         self.survey = opts.get('survey', None)
-        self.directory = opts.get('directory', None)
+        self.wellDirectory = opts.get('wellDirectory', None)
         self.templateValues = templateValuesFromTemplate(self.template)
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Roll steps', type='myRollList', value=self.templateValues.rollList, default=self.templateValues.rollList, expanded=True, flat=True, decimals=d, suffix=s))
-            self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.templateValues.seedList, default=self.templateValues.seedList, brush='#add8e6', flat=True, directory=self.directory, survey=self.survey))
+            self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.templateValues.seedList, default=self.templateValues.seedList, brush='#add8e6', flat=True, wellDirectory=self.wellDirectory, survey=self.survey))
         bindChildParameters(self, {
             'parR': 'Roll steps',
             'parS': 'Seed list',
@@ -1303,7 +1344,7 @@ class MyTemplateParameter(MyGroupParameter):
                 parent.templateList,
                 index,
                 offset=-1,
-                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey),
+                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
             )
 
         elif name == 'moveDown':
@@ -1313,7 +1354,7 @@ class MyTemplateParameter(MyGroupParameter):
                 parent.templateList,
                 index,
                 offset=1,
-                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey),
+                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
             )
 
         elif name == 'preview':
@@ -1487,20 +1528,23 @@ class MyRollParameter(MyGroupParameter):
         if name == 'moveUp':
             if index > 0:
                 with parent.treeChangeBlocker():
-                    name0 = parent.childs[index - 0].name()
-                    name1 = parent.childs[index - 1].name()
-
-                    parent.childs[index - 0].remove()
-                    parent.childs[index - 1].remove()
-
-                    move0 = parent.moveList[index - 0]                          # get value of move parameters
-                    move1 = parent.moveList[index - 1]
-
-                    parent.insertChild(index - 1, dict(name=name1, type='myRoll', value=move0, default=move0, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-                    parent.insertChild(index - 0, dict(name=name0, type='myRoll', value=move1, default=move1, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-
-                    move0 = parent.moveList.pop(index)                          # get the move list in the right order
-                    parent.moveList.insert(index - 1, move0)
+                    swapManagedParameterItems(
+                        parent,
+                        parent.moveList,
+                        index,
+                        offset=-1,
+                        childFactory=lambda childName, value: dict(
+                            name=childName,
+                            type='myRoll',
+                            value=value,
+                            default=value,
+                            expanded=False,
+                            renamable=True,
+                            flat=True,
+                            decimals=5,
+                            suffix='m',
+                        ),
+                    )
                     parent.changed()                                            # update the parent
 
                     value = parent.value()
@@ -1510,21 +1554,23 @@ class MyRollParameter(MyGroupParameter):
             n = len(parent.children())
             if index < n - 1:
                 with parent.treeChangeBlocker():
-
-                    name0 = parent.childs[index + 0].name()
-                    name1 = parent.childs[index + 1].name()
-
-                    parent.childs[index + 1].remove()
-                    parent.childs[index + 0].remove()
-
-                    move1 = parent.moveList[index + 1]
-                    move0 = parent.moveList[index + 0]                          # get value of move parameters
-
-                    parent.insertChild(index + 0, dict(name=name0, type='myRoll', value=move1, default=move1, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-                    parent.insertChild(index + 1, dict(name=name1, type='myRoll', value=move0, default=move0, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'))
-
-                    move0 = parent.moveList.pop(index)                          # get the move list in the right order
-                    parent.moveList.insert(index + 1, move0)
+                    swapManagedParameterItems(
+                        parent,
+                        parent.moveList,
+                        index,
+                        offset=1,
+                        childFactory=lambda childName, value: dict(
+                            name=childName,
+                            type='myRoll',
+                            value=value,
+                            default=value,
+                            expanded=False,
+                            renamable=True,
+                            flat=True,
+                            decimals=5,
+                            suffix='m',
+                        ),
+                    )
                     parent.changed()                                            # update the parent
 
                     value = parent.value()
@@ -1563,7 +1609,7 @@ class MySeedListParameter(MyGroupParameter):
 
         self.survey = opts.get('survey', None)                                  # weak reference to survey object
         self.seedList = opts.get('value', [RollSeed()])
-        self.directory = opts.get('directory', None)
+        self.wellDirectory = opts.get('wellDirectory', None)
 
         # bind existing seeds to survey (optional)
         if self.survey is not None:
@@ -1579,7 +1625,7 @@ class MySeedListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for n, seed in enumerate(self.seedList):
-                self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
+                self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))
 
         self.sigContextMenu.connect(self.contextMenu)
 
@@ -1598,7 +1644,7 @@ class MySeedListParameter(MyGroupParameter):
                 self.seedList,
                 seed,
                 name=newName,
-                childFactory=lambda childName, childSeed: dict(name=childName, type='myTemplateSeed', value=childSeed, default=childSeed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey),
+                childFactory=lambda childName, childSeed: dict(name=childName, type='myTemplateSeed', value=childSeed, default=childSeed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
                 menuName=name,
             )
 
@@ -1723,7 +1769,7 @@ class MySeedParameter(MyGroupParameter):
         if self.survey is not None:
             self.seed.setSurvey(self.survey)
 
-        self.directory = opts.get('directory', None)
+        self.wellDirectory = opts.get('wellDirectory', None)
         d = opts.get('decimals', 7)
 
         self.seedStateHelper = SeedParameterStateHelper(self.seed, self.survey)
@@ -1739,7 +1785,7 @@ class MySeedParameter(MyGroupParameter):
             self.addChild(dict(name='Seed pattern', type='myList', value=patterns[nPattern], default=patterns[nPattern], limits=patterns))
             self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
             self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
-            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', directory=self.directory, survey=self.survey))   # , brush='#add8e6'
+            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', wellDirectory=self.wellDirectory, survey=self.survey))   # , brush='#add8e6'
 
         bindChildParameters(self, {
             'parT': 'Seed type',
@@ -1835,7 +1881,7 @@ class MySeedParameter(MyGroupParameter):
                 parent.seedList,
                 index,
                 offset=-1,
-                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey),
+                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
             )
 
         elif name == 'moveDown':
@@ -1845,7 +1891,7 @@ class MySeedParameter(MyGroupParameter):
                 parent.seedList,
                 index,
                 offset=1,
-                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey),
+                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
             )
 
         elif name == 'preview':
@@ -2110,7 +2156,7 @@ class MyWellParameter(MyGroupParameter):
 
         self.well = RollWell()
         self.well = opts.get('value', self.well)
-        directory = opts.get('directory', None)
+        directory = opts.get('wellDirectory', None)
 
         self.survey = self.well.survey or opts.get('survey', None)
         self.wellStateHelper = WellParameterStateHelper(self.well, self.survey)
@@ -2215,7 +2261,7 @@ class MyTemplateListParameter(MyGroupParameter):
 
         self.templateList = opts.get('value', [RollTemplate()])
         self.survey = opts.get('survey', None)
-        self.directory = opts.get('directory', None)
+        self.wellDirectory = opts.get('wellDirectory', None)
 
         if not isinstance(self.templateList, list):
             raise ValueError("Need 'list' instance at this point")
@@ -2226,7 +2272,7 @@ class MyTemplateListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for n, template in enumerate(self.templateList):
-                self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
+                self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))
 
         self.sigContextMenu.connect(self.contextMenu)
 
@@ -2238,15 +2284,12 @@ class MyTemplateListParameter(MyGroupParameter):
     def contextMenu(self, name=None):
 
         if name == 'addNew':
-            newName = nextManagedChildName(self.names, 'Template')
-
-            template = createDefaultTemplate(newName, self.survey)
-            appendManagedParameterItem(
+            appendNewManagedParameterItem(
                 self,
                 self.templateList,
-                template,
-                name=newName,
-                childFactory=lambda childName, childTemplate: dict(name=childName, type='myTemplate', value=childTemplate, default=childTemplate, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey),
+                baseName='Template',
+                createValue=lambda childName: createDefaultTemplate(childName, self.survey),
+                childFactory=lambda childName, childTemplate: dict(name=childName, type='myTemplate', value=childTemplate, default=childTemplate, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
                 menuName=name,
             )
 
@@ -2271,7 +2314,7 @@ class MyBlockListParameter(MyGroupParameter):
 
         self.blockList = opts.get('value', [RollBlock()])
         self.survey = opts.get('survey', None)
-        self.directory = opts.get('directory', None)
+        self.wellDirectory = opts.get('wellDirectory', None)
 
         if not isinstance(self.blockList, list):
             raise ValueError("Need 'BlockList' instance at this point")
@@ -2283,7 +2326,7 @@ class MyBlockListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for block in self.blockList:
-                self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(nBlocks == 1), renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey))
+                self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(nBlocks == 1), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))
 
         self.sigContextMenu.connect(self.contextMenu)
         self.sigChildAdded.connect(self.onChildAdded)
@@ -2297,15 +2340,12 @@ class MyBlockListParameter(MyGroupParameter):
     def contextMenu(self, name=None):
 
         if name == 'addNew':
-            newName = nextManagedChildName(self.names, 'Block')
-
-            block = createDefaultBlock(newName, self.survey)
-            appendManagedParameterItem(
+            appendNewManagedParameterItem(
                 self,
                 self.blockList,
-                block,
-                name=newName,
-                childFactory=lambda childName, childBlock: dict(name=childName, type='myBlock', value=childBlock, default=childBlock, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', directory=self.directory, survey=self.survey),
+                baseName='Block',
+                createValue=lambda childName: createDefaultBlock(childName, self.survey),
+                childFactory=lambda childName, childBlock: dict(name=childName, type='myBlock', value=childBlock, default=childBlock, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
                 menuName=name,
             )
 
@@ -2493,14 +2533,11 @@ class MyPatternListParameter(MyGroupParameter):
     def contextMenu(self, name=None):
 
         if name == 'addNew':
-            newName = nextManagedChildName(self.names, 'Pattern')
-
-            pattern = RollPattern(newName)
-            appendManagedParameterItem(
+            appendNewManagedParameterItem(
                 self,
                 self.patternList,
-                pattern,
-                name=newName,
+                baseName='Pattern',
+                createValue=RollPattern,
                 childFactory=lambda childName, childPattern: dict(name=childName, type='myPattern', value=childPattern, default=childPattern, expanded=False, renamable=True, flat=True, decimals=5, suffix='m'),
                 menuName=name,
                 afterAppend=lambda _pattern: applyPatternListSideEffects(self),
@@ -2754,6 +2791,8 @@ class MySurveyParameter(MyGroupParameter):
 def registerAllParameterTypes():
 
     # first, register *simple* parameters, already defined in other files
+    registerParameterType('int', MyIntParameter, override=True)
+    registerParameterType('float', MyFloatParameter, override=True)
     registerParameterType('myInt', MyIntParameter, override=True)
     registerParameterType('myFloat', MyFloatParameter, override=True)
 

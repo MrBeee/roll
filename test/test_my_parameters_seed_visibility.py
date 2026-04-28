@@ -18,6 +18,7 @@ MySeedParameter = myParametersModule.MySeedParameter
 MyPatternSeedParameter = myParametersModule.MyPatternSeedParameter
 applyAnalysisParameters = myParametersModule.applyAnalysisParameters
 applyBlockParameters = myParametersModule.applyBlockParameters
+appendNewManagedParameterItem = myParametersModule.appendNewManagedParameterItem
 applyConfigurationParameterValues = myParametersModule.applyConfigurationParameterValues
 applyGridSeedPatternRefresh = myParametersModule.applyGridSeedPatternRefresh
 applyNonGridSeedTypeState = myParametersModule.applyNonGridSeedTypeState
@@ -222,6 +223,16 @@ class _FakeManagedVisibilityParam:
     def setLimits(self, limits):
         self.opts['limits'] = limits
         self.limitsCalls.append(limits)
+
+
+class _FakeManagedListOwner:
+    def __init__(self, *, names=None):
+        self.names = names or {}
+
+
+class _FakeCreatedManagedItem:
+    def __init__(self, name):
+        self.name = name
 
 
 class _FakeVisibilityState:
@@ -792,6 +803,52 @@ class MyPatternSeedParameterTest(unittest.TestCase):
 
 
 class MyParameterPreviewSummaryHelperTest(unittest.TestCase):
+    def testAppendNewManagedParameterItemAllocatesNameAndAppendsCreatedValue(self):
+        parentParam = _FakeManagedListOwner(names={'Template-1': object()})
+        managedList = []
+        appendedCalls = []
+
+        created = appendNewManagedParameterItem(
+            parentParam,
+            managedList,
+            baseName='Template',
+            createValue=_FakeCreatedManagedItem,
+            childFactory=lambda childName, childValue: {'name': childName, 'value': childValue},
+            appendItemFn=lambda parent, itemList, value, **kwargs: appendedCalls.append((parent, itemList, value, kwargs)),
+        )
+
+        self.assertEqual(created.name, 'Template-2')
+        self.assertEqual(len(appendedCalls), 1)
+        parent, itemList, value, kwargs = appendedCalls[0]
+        self.assertIs(parent, parentParam)
+        self.assertIs(itemList, managedList)
+        self.assertIs(value, created)
+        self.assertEqual(kwargs['name'], 'Template-2')
+        self.assertEqual(kwargs['menuName'], 'addNew')
+        self.assertIsNone(kwargs['afterAppend'])
+        self.assertEqual(kwargs['childFactory']('Template-2', created), {'name': 'Template-2', 'value': created})
+
+    def testAppendNewManagedParameterItemPassesExplicitMenuNameAndAfterAppend(self):
+        parentParam = _FakeManagedListOwner(names={})
+        managedList = []
+        appendedCalls = []
+        afterAppend = object()
+
+        appendNewManagedParameterItem(
+            parentParam,
+            managedList,
+            baseName='Pattern',
+            createValue=_FakeCreatedManagedItem,
+            childFactory=lambda childName, childValue: {'name': childName, 'value': childValue},
+            menuName='context-add',
+            afterAppend=afterAppend,
+            appendItemFn=lambda parent, itemList, value, **kwargs: appendedCalls.append(kwargs),
+        )
+
+        self.assertEqual(appendedCalls[0]['name'], 'Pattern-1')
+        self.assertEqual(appendedCalls[0]['menuName'], 'context-add')
+        self.assertIs(appendedCalls[0]['afterAppend'], afterAppend)
+
     def testApplyCircleParametersUpdatesGeometryAndPointCount(self):
         circleParam = _FakeCircleParameterController()
 

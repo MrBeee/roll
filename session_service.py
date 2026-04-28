@@ -1,7 +1,6 @@
 # coding=utf-8
 
-import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from time import perf_counter
 
 import numpy as np
@@ -16,28 +15,6 @@ class _PointArraySpec:
     deadNAttr: str
     boundAttr: str | None = None
 
-
-@dataclass(frozen=True)
-class RecentFileMenuEntry:
-    storedName: str
-    resolvedName: str
-    displayName: str
-
-
-@dataclass(frozen=True)
-class RecentFileMenuResult:
-    recentFileList: list[str]
-    visibleEntries: list[RecentFileMenuEntry] = field(default_factory=list)
-    changed: bool = False
-
-
-@dataclass(frozen=True)
-class RecentFileResolution:
-    storedName: str
-    resolvedName: str
-    exists: bool
-
-
 class SessionService:
     _pointArraySpecs = {
         'rpsImport': _PointArraySpec('rpsLiveE', 'rpsLiveN', 'rpsDeadE', 'rpsDeadN', 'rpsBound'),
@@ -48,11 +25,6 @@ class SessionService:
 
     def __init__(self):
         self.resetTimers()
-
-    def recordCurrentFile(self, recentFileList, fileName, maxRecentFiles):
-        updated = [entry for entry in recentFileList if entry != fileName]
-        updated.insert(0, fileName)
-        return updated[:maxRecentFiles]
 
     def elapsedTime(self, startTime, index: int):
         currentTime = perf_counter()
@@ -147,39 +119,3 @@ class SessionService:
             base = np.take(points, [np.argmin(axis), np.argmax(axis)], 0)
             return link(dome(points, base), dome(points, base[::-1]))
         return points
-
-    def resolveRecentFileName(self, fileName, projectDirectory):
-        if fileName and not os.path.isabs(fileName) and projectDirectory:
-            return os.path.join(projectDirectory, fileName)
-        return fileName
-
-    def removeRecentFile(self, recentFileList, fileName):
-        updated = [entry for entry in recentFileList if entry != fileName]
-        return updated, len(updated) != len(recentFileList)
-
-    def buildRecentFileMenu(self, recentFileList, projectDirectory, maxRecentFiles):
-        prunedRecentFiles = []
-        visibleEntries = []
-
-        for fileName in recentFileList:
-            resolvedName = self.resolveRecentFileName(fileName, projectDirectory)
-            if os.path.isabs(fileName):
-                if resolvedName and os.path.exists(resolvedName):
-                    prunedRecentFiles.append(fileName)
-                    visibleEntries.append(RecentFileMenuEntry(fileName, resolvedName, os.path.basename(resolvedName)))
-                continue
-
-            prunedRecentFiles.append(fileName)
-            if resolvedName and os.path.exists(resolvedName):
-                visibleEntries.append(RecentFileMenuEntry(fileName, resolvedName, os.path.basename(resolvedName)))
-
-        return RecentFileMenuResult(
-            recentFileList=prunedRecentFiles,
-            visibleEntries=visibleEntries[:maxRecentFiles],
-            changed=prunedRecentFiles != list(recentFileList),
-        )
-
-    def resolveRecentSelection(self, recentName, projectDirectory):
-        resolvedName = self.resolveRecentFileName(recentName, projectDirectory)
-        exists = bool(resolvedName and os.path.exists(resolvedName))
-        return RecentFileResolution(storedName=recentName, resolvedName=resolvedName, exists=exists)

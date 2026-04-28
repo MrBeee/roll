@@ -442,8 +442,8 @@ def numbaBinBatchParallel(
             rMax = relRecMaxI[relIdx]
             rStart = relRecStartI[relIdx]
             rEnd = relRecEndI[relIdx]
-            srcLin = srcBatch[i, 3] if srcBatch.shape[1] > 3 else 0 # fallback if not passed
-            srcPnt = srcBatch[i, 4] if srcBatch.shape[1] > 4 else 0
+            # srcLin = srcBatch[i, 3] if srcBatch.shape[1] > 3 else 0 # fallback if not passed
+            # srcPnt = srcBatch[i, 4] if srcBatch.shape[1] > 4 else 0
 
             # ALGORITHMIC FIX: Only iterate over receivers known to be on this line
             for rIdx in range(rStart, rEnd):
@@ -455,21 +455,20 @@ def numbaBinBatchParallel(
                     rec = recLocs[rIdx]
                     cmpX = (src[0] + rec[0]) * 0.5
                     cmpY = (src[1] + rec[1]) * 0.5
-                    
+
                     # Apply Bin Transform
                     nx = int(binMat[0,0] * cmpX + binMat[0,1] * cmpY + binMat[0,2])
                     ny = int(binMat[1,0] * cmpX + binMat[1,1] * cmpY + binMat[1,2])
 
                     if 0 <= nx < nx_max and 0 <= ny < ny_max:
                         dist = ((src[0]-rec[0])**2 + (src[1]-rec[1])**2)**0.5
-                        
                         if fullAnalysis:
                             fold = binOutput[nx, ny]
                             if fold < maxFold:
                                 # Line & Stake calculation
                                 stkX = int(st2Mat[0,0] * cmpX + st2Mat[0,1] * cmpY + st2Mat[0,2])
                                 stkY = int(st2Mat[1,0] * cmpX + st2Mat[1,1] * cmpY + st2Mat[1,2])
-                                
+
                                 anaOutput[nx, ny, fold, 0] = stkX
                                 anaOutput[nx, ny, fold, 1] = stkY
                                 anaOutput[nx, ny, fold, 2] = fold + 1

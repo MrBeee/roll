@@ -86,11 +86,13 @@ Once the geometry has been defined, a binning analysis can be done directly usin
 - A **minimum offset map** is created that shows minimum offsets coverage
 - A **maximum offset map** is created that show maximum offsets coverage
 
+When using 'Full Binning' the following maps are created upon completion of binning:
 - A **RMS offset increment map** is created that shows regularity of offset increments
+- A **Max offset gap map** is created that shows the largest offset gap for each bin
 
 As the survey project-file always contains a (projected) coordinate reference system (CRS) the analysis maps can be exported to the current QGIS project as a georeferenced Tiff (GeoTiff) file. These files can also be exported as a standalone GeoTiff file from the  File -> Export menu.
 
-To use **full binning** from the Processing menu, the project needs to be saved first, as a (large, memory mapped) **analysis file** is created that contains the complete binning information. Think of: 
+To use **full binning** from the Processing menu, the project needs to be saved first, as a (large, memory mapped) **analysis file** that contains the complete binning information. Think of: 
 
 - line & stake numbers, 
 - src (x, y), 
@@ -104,6 +106,7 @@ To use **full binning** from the Processing menu, the project needs to be saved 
 Once this step has been completed, additional analysis information becomes available in the **Layout** tab:
 
 - An **rms offset map** that shows the rms offset increments in each bin (lower is better)
+- A **Max offset gap map** is created that shows the largest offset gap for each bin
 - A **spider diagram**, that is overlaid on the layout map, showing start- and end-points of all traces in a single (selected) bin
 
 In the **Analysis** tab, the following information then becomes available:
@@ -134,7 +137,7 @@ As of version 0.3.3 Roll has a 'working' interface with QGIS, and is able to rea
 As of version 0.6.3 Roll is compatible with QGIS 4.0, and therefore with PyQt6 and numpy 2.0. This was done as part of a refactoring effort aided by the [GitHub Copilot](https://code.visualstudio.com/docs/copilot/overview) in VS Code. A number of LLM models are available in Copilot, some of which tried hard to wreck my code. 
 
 ```
-You may remember, when Plug-and-Play (PnP) was introduced in the early 1990s to manage hardware updates, it did not always work out-of-the-box (understament) and people often called it "Plug-and-Pray". With AI coding at the moment, we are at the stage where software development has turned into "Prompt-and-Pray".
+You may remember, when Plug-and-Play (PnP) was introduced in the early 1990s to manage hardware updates, it did not always work out-of-the-box (understatement) and people often called it "Plug-and-Pray". With AI coding at the moment, we are at the stage where software development has turned into "Prompt-and-Pray".
 ```
 
 As of version 5.4 GPT has become stable and trustworthy enough to work in agent mode, optimizing the source code and implementing new features. So this LLM was used consistently during code refactoring.
@@ -186,7 +189,7 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 ### 7	To Do
 
-- Improve Roll's analysis capabilities
+- Improve Roll's analysis capabilities; think of multiple suppression and DMO smear
 - Make processing of Geometry & SPS data more robust
 - Use multiprocessing instead of a single worker thread to speed up background tasks
 - Consider using a relational database instead of numpy arrays for geometry tables
@@ -194,6 +197,8 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 
 ### 8	Changelog
+- 2026-04-22 (0.6.7) Improved import and handling of SPS files.
+- 2026-04-21 (0.6.6) Added 'Max Offset Gap' analysis. Fixed bug crashing app when worker thread was interrupted. Improved readability of items in Parameter tree (property pane).
 - 2026-04-16 (0.6.5) Added inline and x-line offsets to |offset| plots and mouse tracking in statusbar for all plots. Continued refactoring code.
 - 2026-04-09 (0.6.4) Added a polar diagram for the offset/azimuth histogram and continued refactoring of code
 - 2026-03-10 (0.6.3) Some numpy attribute names needed to be changed for NumPy 2.0 compatibility in QGIS 4.0

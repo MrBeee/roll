@@ -2,8 +2,8 @@
 import unittest
 
 from pyqtgraph.parametertree import ParameterTree
-from qgis.PyQt.QtCore import QRectF
 from qgis.core import QgsCoordinateReferenceSystem
+from qgis.PyQt.QtCore import QRectF
 
 from .plugin_loader import loadPluginModule
 from .utilities import createTestSurvey, getQgisApp

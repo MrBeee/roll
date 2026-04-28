@@ -174,7 +174,7 @@ anaType = np.dtype(
         # fmt : on
     ])
 
-def readRPSFiles(filenames, resultArray, fmt) -> int:
+def _readFixedWidthFiles(filenames, resultArray, fmt, readLineFn) -> int:
 
     # To use QFile and QTextStream for sps import, for more information:
     # See: https://srinikom.github.io/pyside-docs/PySide/QtCore/QFile.html
@@ -194,112 +194,22 @@ def readRPSFiles(filenames, resultArray, fmt) -> int:
 
         while not text.atEnd():
             line = text.readLine()
-
-            if len(line) == 0 or line[0] != fmt['rec']:
-                continue
-
-            # fmt: off
-            lin = toFloat(line[fmt[ 'line'][0] : fmt[ 'line'][1]].strip())
-            pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
-            idx =   toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
-            cod =         line[fmt[ 'code'][0] : fmt[ 'code'][1]].strip()
-            dep = toFloat(line[fmt['depth'][0] : fmt['depth'][1]].strip())
-            eas = toFloat(line[fmt[ 'east'][0] : fmt[ 'east'][1]].strip())
-            nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
-            ele = toFloat(line[fmt[ 'elev'][0] : fmt[ 'elev'][1]].strip())
-            # fmt : on
-
-            record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
-            resultArray[index] = record
-            index += 1
+            index += readLineFn(index, line, resultArray, fmt)
         f.close()
 
     if index < resultArray.shape[0]:
         resultArray.resize(index, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
 
     return index
+
+def readRPSFiles(filenames, resultArray, fmt) -> int:
+    return _readFixedWidthFiles(filenames, resultArray, fmt, readRpsLine)
 
 def readSPSFiles(filenames, resultArray, fmt) -> int:
-
-    if not filenames:
-        return -1
-
-    index = 0
-    for filename in filenames:
-        f = QFile(filename)
-        if f.open(QIODevice.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):
-            text = QTextStream(f)
-        else:
-            return -1
-
-        while not text.atEnd():
-            line = text.readLine()
-
-            if len(line) == 0 or line[0] != fmt['src']:
-                continue
-
-            # fmt: off
-            lin = toFloat(line[fmt[ 'line'][0] : fmt[ 'line'][1]].strip())
-            pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
-            idx =   toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
-            cod =         line[fmt[ 'code'][0] : fmt[ 'code'][1]].strip()
-            dep = toFloat(line[fmt['depth'][0] : fmt['depth'][1]].strip())
-            eas = toFloat(line[fmt[ 'east'][0] : fmt[ 'east'][1]].strip())
-            nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
-            ele = toFloat(line[fmt[ 'elev'][0] : fmt[ 'elev'][1]].strip())
-            # fmt: off
-
-            record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
-            resultArray[index] = record
-            index += 1
-        f.close()
-
-    if index < resultArray.shape[0]:
-        resultArray.resize(index, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
-
-    return index
+    return _readFixedWidthFiles(filenames, resultArray, fmt, readSpsLine)
 
 def readXPSFiles(filenames, resultArray, fmt) -> int:
-
-    if not filenames:
-        return -1
-
-    index = 0
-    for filename in filenames:
-        f = QFile(filename)
-        if f.open(QIODevice.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):
-            text = QTextStream(f)
-        else:
-            return -1
-
-        while not text.atEnd():
-            line = text.readLine()
-
-            if len(line) == 0 or line[0] != fmt['rel']:
-                continue
-
-            # This is the order that parameters appear on in an xps file
-            # However, we move recNum to the fourth place in the xps record
-            # fmt: off
-            recNum =   toInt(line[fmt['recNum'][0] : fmt['recNum'][1]].strip())
-            srcLin = toFloat(line[fmt['srcLin'][0] : fmt['srcLin'][1]].strip())
-            srcPnt = toFloat(line[fmt['srcPnt'][0] : fmt['srcPnt'][1]].strip())
-            srcInd =   toInt(line[fmt['srcInd'][0] : fmt['srcInd'][1]].strip())
-            recLin = toFloat(line[fmt['recLin'][0] : fmt['recLin'][1]].strip())
-            recMin = toFloat(line[fmt['recMin'][0] : fmt['recMin'][1]].strip())
-            recMax = toFloat(line[fmt['recMax'][0] : fmt['recMax'][1]].strip())
-            recInd =   toInt(line[fmt['recInd'][0] : fmt['recInd'][1]].strip())
-            # fmt: off
-
-            record = (srcLin, srcPnt, srcInd, recNum, recLin, recMin, recMax, recInd, 1, 1, 1)
-            resultArray[index] = record
-            index += 1
-        f.close()
-
-    if index < resultArray.shape[0]:
-        resultArray.resize(index, refcheck=False)        # See: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.resize.html
-
-    return index
+    return _readFixedWidthFiles(filenames, resultArray, fmt, readXpsLine)
 
 def readRpsLine(line_number, line, rpsImport, fmt) -> int:
     if len(line) == 0 or line[0] != fmt['rec']:                                 # check if line is empty or not a receiver line
@@ -461,169 +371,70 @@ def findSrcOrphans(spsImport, xpsImport) -> (int, int):
 
     return (nSpsOrphans, nXpsOrphans)
 
-def findRecOrphansOld(rpsImport, xpsImport) -> (int, int):
-    if rpsImport is None or xpsImport is None:
-        return (-1, -1)
-
-    # find unique rps elements present in (shorted) xps array
-    nXps = xpsImport.shape[0]
-    xpsShort = np.zeros(shape=nXps, dtype=relType3)
-    xpsShort['RecInd'] = xpsImport['RecInd']
-    xpsShort['RecLin'] = xpsImport['RecLin']
-    xpsShort['RecMin'] = xpsImport['RecMin']
-    xpsShort['RecMax'] = xpsImport['RecMax']
-
-    # delete all duplicate xps-records, resulting in xpsUnique
-    xpsUnique = np.unique(xpsShort)
-    xpsUnique.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax'])
-    rpsImport.sort(order=['Index', 'Line', 'Point'])
-
-    # now iterate over rpsImport to check if elements are listed in xpsUnique
-    marker = 0
-    for rpsRecord in rpsImport:
-        for j in range(marker, xpsUnique.shape[0]):
-            xpsRecord = xpsUnique[j]
-
-            # iR = rpsRecord['Index']
-            # iX = xpsRecord['RecInd']
-
-            if rpsRecord['Index'] < xpsRecord['RecInd']:
-                # rpsIndex too small; we won't ever find a 'mate' in sorted list
-                rpsRecord['InXps'] = 0
-                break                                                           # break inner loop
-
-            if rpsRecord['Index'] > xpsRecord['RecInd']:
-                # rpsIndex too large; keep looking for matching xpsIndex
-                marker += 1
-                continue                                                        # continue looking for a match
-
-            # when we arrive here, Index == RecInd. Now check line number
-
-            # lR = rpsRecord['Line']
-            # lX = xpsRecord['RecLin']
-
-            if rpsRecord['Line'] < xpsRecord['RecLin']:
-                # rpsLine too small; we won't ever find a 'mate' in sorted list
-                rpsRecord['InXps'] = 0
-                break                                                           # break inner loop
-
-            if rpsRecord['Line'] > xpsRecord['RecLin']:
-                # rpsLine too large; keep looking for matching xpsRecLin
-                marker += 1
-                continue                                                        # continue looking for a match
-
-            # when we arrive here, Index == RecInd AND Line == RecLin. Now check stake number
-
-            # pR = rpsRecord['Point']
-            # pX1 = xpsRecord['RecMin']
-            # pX2 = xpsRecord['RecMax']
-
-            if rpsRecord['Point'] >= xpsRecord['RecMin'] and rpsRecord['Point'] <= xpsRecord['RecMax']:
-                # yes, we're in business
-                rpsRecord['InXps'] = 1
-                break                                                           # break inner loop
-
-    # shorten the RPS records to Line-Point-Index records
-    nRps = rpsImport.shape[0]
-    rpsShort = np.zeros(shape=nRps, dtype=pntType3)
-    rpsShort['Index'] = rpsImport['Index']
-    rpsShort['Line'] = rpsImport['Line']
-    rpsShort['Point'] = rpsImport['Point']
-
-    # shorten the XPS records to Line-Point-Index records
-    xpsShortMin = np.zeros(shape=nXps, dtype=pntType3)
-    xpsShortMin['Index'] = xpsImport['RecInd']
-    xpsShortMin['Line'] = xpsImport['RecLin']
-    xpsShortMin['Point'] = xpsImport['RecMin']
-
-    xpsShortMax = np.zeros(shape=nXps, dtype=pntType3)
-    xpsShortMax['Index'] = xpsImport['RecInd']
-    xpsShortMax['Line'] = xpsImport['RecLin']
-    xpsShortMax['Point'] = xpsImport['RecMax']
-
-    # find unique xps records from (shorted) rps array
-    rpsUnique = np.unique(rpsShort)
-    xpsMaskMin = np.isin(xpsShortMin, rpsUnique, assume_unique=False)
-    xpsMaskMax = np.isin(xpsShortMax, rpsUnique, assume_unique=False)
-    xpsMask = np.logical_and(xpsMaskMin, xpsMaskMax)
-    intMask = 1 * xpsMask                                                       # convert bool to integer
-    xpsImport['InRps'] = np.asarray(intMask)                                    # Update the xps array with 'unique' mask
-
-    xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax', 'SrcLin', 'SrcPnt', 'SrcInd'])
-    rpsImport.sort(order=['Index', 'Line', 'Point'])
-
-    nRpsOrphans = nXps - intMask.sum()                                          # xps-records contain 'nSpsOrphans' sps-orphans
-    nXpsOrphans = nRps - rpsImport['InXps'].sum()
-
-    return (nRpsOrphans, nXpsOrphans)
-
 def findRecOrphans(rpsImport, xpsImport) -> (int, int):
     if rpsImport is None or xpsImport is None:
         return (-1, -1)
 
-    # Create a structured array for xpsUnique
-    xpsUnique = np.unique(
-        np.array(
-            list(zip(xpsImport['RecInd'], xpsImport['RecLin'], xpsImport['RecMin'], xpsImport['RecMax'])),
-            dtype=[('RecInd', 'i4'), ('RecLin', 'f4'), ('RecMin', 'f4'), ('RecMax', 'f4')],
-        )
-    )
-
-    # Broadcast rpsImport against xpsUnique for vectorized comparison
-    rpsIndex = rpsImport['Index'][:, None]
-    rpsLine = rpsImport['Line'][:, None]
-    rpsPoint = rpsImport['Point'][:, None]
-
-    xpsIndex = xpsUnique['RecInd']
-    xpsLine = xpsUnique['RecLin']
-    xpsMin = xpsUnique['RecMin']
-    xpsMax = xpsUnique['RecMax']
-
-    # Perform vectorized comparisons
-    indexMatch = rpsIndex == xpsIndex
-    lineMatch = rpsLine == xpsLine
-    pointMatch = (rpsPoint >= xpsMin) & (rpsPoint <= xpsMax)
-
-    # Combine all conditions
-    match = indexMatch & lineMatch & pointMatch
-
-    # Determine if each rpsRecord has a match in xpsUnique
-    rpsImport['InXps'] = match.any(axis=1).astype(int)
-
-    # Calculate orphans
-    nXpsOrphans = rpsImport.shape[0] - rpsImport['InXps'].sum()
-
-    # shorten the RPS records to Line-Point-Index records
-    nRps = rpsImport.shape[0]
-    rpsShort = np.zeros(shape=nRps, dtype=pntType3)
-    rpsShort['Index'] = rpsImport['Index']
-    rpsShort['Line'] = rpsImport['Line']
-    rpsShort['Point'] = rpsImport['Point']
-
-    # shorten the XPS records to Line-Point-Index records
-    nXps = xpsImport.shape[0]
-    xpsShortMin = np.zeros(shape=nXps, dtype=pntType3)
-    xpsShortMin['Index'] = xpsImport['RecInd']
-    xpsShortMin['Line'] = xpsImport['RecLin']
-    xpsShortMin['Point'] = xpsImport['RecMin']
-
-    xpsShortMax = np.zeros(shape=nXps, dtype=pntType3)
-    xpsShortMax['Index'] = xpsImport['RecInd']
-    xpsShortMax['Line'] = xpsImport['RecLin']
-    xpsShortMax['Point'] = xpsImport['RecMax']
-
-    # find those unique rps records that are in the xps array with either RecMin or RecMax
-    rpsUnique = np.unique(rpsShort)
-    xpsMaskMin = np.isin(xpsShortMin, rpsUnique, assume_unique=False)
-    xpsMaskMax = np.isin(xpsShortMax, rpsUnique, assume_unique=False)
-    xpsMask = np.logical_and(xpsMaskMin, xpsMaskMax)
-    intMask = 1 * xpsMask                                                       # convert bool to integer
-    xpsImport['InRps'] = np.asarray(intMask)                                    # Update the xps array with 'unique' mask
-
-    xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax', 'SrcLin', 'SrcPnt', 'SrcInd'])
     rpsImport.sort(order=['Index', 'Line', 'Point'])
+    xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax', 'SrcLin', 'SrcPnt', 'SrcInd'])
 
-    nRpsOrphans = nXps - intMask.sum()                                          # xps-records contain 'nSpsOrphans' sps-orphans
+    nRps = rpsImport.shape[0]
+    nXps = xpsImport.shape[0]
+    rpsImport['InXps'] = 0
+    xpsImport['InRps'] = 0
+
+    rpsStart = 0
+    xpsStart = 0
+
+    while rpsStart < nRps and xpsStart < nXps:
+        rpsIndex = rpsImport[rpsStart]['Index']
+        rpsLine = rpsImport[rpsStart]['Line']
+        xpsIndex = xpsImport[xpsStart]['RecInd']
+        xpsLine = xpsImport[xpsStart]['RecLin']
+
+        if rpsIndex < xpsIndex or (rpsIndex == xpsIndex and rpsLine < xpsLine):
+            rpsEnd = rpsStart + 1
+            while rpsEnd < nRps and rpsImport[rpsEnd]['Index'] == rpsIndex and rpsImport[rpsEnd]['Line'] == rpsLine:
+                rpsEnd += 1
+            rpsStart = rpsEnd
+            continue
+
+        if xpsIndex < rpsIndex or (xpsIndex == rpsIndex and xpsLine < rpsLine):
+            xpsEnd = xpsStart + 1
+            while xpsEnd < nXps and xpsImport[xpsEnd]['RecInd'] == xpsIndex and xpsImport[xpsEnd]['RecLin'] == xpsLine:
+                xpsEnd += 1
+            xpsStart = xpsEnd
+            continue
+
+        rpsEnd = rpsStart + 1
+        while rpsEnd < nRps and rpsImport[rpsEnd]['Index'] == rpsIndex and rpsImport[rpsEnd]['Line'] == rpsLine:
+            rpsEnd += 1
+
+        xpsEnd = xpsStart + 1
+        while xpsEnd < nXps and xpsImport[xpsEnd]['RecInd'] == xpsIndex and xpsImport[xpsEnd]['RecLin'] == xpsLine:
+            xpsEnd += 1
+
+        rpsPoints = rpsImport['Point'][rpsStart:rpsEnd]
+        xpsMins = xpsImport['RecMin'][xpsStart:xpsEnd]
+        xpsMaxs = xpsImport['RecMax'][xpsStart:xpsEnd]
+
+        maxPrefix = np.maximum.accumulate(xpsMaxs)
+        candidateIntervals = np.searchsorted(xpsMins, rpsPoints, side='right') - 1
+        rpsCovered = candidateIntervals >= 0
+        validIntervals = candidateIntervals[rpsCovered]
+        rpsCovered[rpsCovered] = maxPrefix[validIntervals] >= rpsPoints[rpsCovered]
+        rpsImport['InXps'][rpsStart:rpsEnd] = rpsCovered.astype(int)
+
+        candidatePoints = np.searchsorted(rpsPoints, xpsMins, side='left')
+        xpsCovered = candidatePoints < rpsPoints.shape[0]
+        validPoints = candidatePoints[xpsCovered]
+        xpsCovered[xpsCovered] = rpsPoints[validPoints] <= xpsMaxs[xpsCovered]
+        xpsImport['InRps'][xpsStart:xpsEnd] = xpsCovered.astype(int)
+
+        rpsStart = rpsEnd
+        xpsStart = xpsEnd
+
+    nRpsOrphans = nXps - xpsImport['InRps'].sum()                               # xps-records contain rps-orphans
     nXpsOrphans = nRps - rpsImport['InXps'].sum()
 
     return (nRpsOrphans, nXpsOrphans)

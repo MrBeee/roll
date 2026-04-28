@@ -35,6 +35,7 @@ class RollWell:
         # self.polygon = QPolygonF()                                              # polygon in local coordinates, to draw well trajectory; start empty
         self.polygon = None                                                     # QPolygonF() in local coordinates, to draw well trajectory; start with None
         self.pntList2D = []                                                     # points  in local coordinates, to draw well trajectory; start empty
+        self.pntList3D = []                                                     # QVector3D points in local coordinates; dense (curved) 3D trajectory for 3D view
         self._surveyRef = None                                                  # weakref to RollSurvey
 
         # please note the seed's origin is hidden in the property editor, when using a well-based seed
@@ -389,8 +390,7 @@ class RollWell:
         upper = zip(northing[:-1], easting[:-1], depth[:-1])
         lower = zip(northing[1:], easting[1:], depth[1:])
 
-        # Assume the initial depth and angles are all zero, but this can likely
-        # be parametrised.
+        # Assume the initial depth and angles are all zero, but this can likely be parametrised.
         incs, azis, mds = [0], [0], [0]
         i1, a1 = 0, 0
 
@@ -530,6 +530,15 @@ class RollWell:
         # the following methods expect snake_case for input variables
         posWellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
         posTvdss = posWellhead.to_tvdss(datum_elevation=self.origW.z())
+
+        # Build the dense 3D trajectory in local survey coordinates.
+        # Used by the 3D view to draw a smoothly-curved well path.
+        self.pntList3D = []
+        for ex, ny, dz in zip(posTvdss.easting, posTvdss.northing, posTvdss.depth):
+            v3 = QgsVector3D(float(ex), float(ny), float(dz))
+            v3 = wellToGlobalTransform.transform(v3)
+            pnt2D = toLocalTransform.map(QPointF(v3.x(), v3.y()))
+            self.pntList3D.append(QVector3D(pnt2D.x(), pnt2D.y(), v3.z()))
 
         data = list(zip(posTvdss.easting, posTvdss.northing))                 # create list with (x, y) pairs
 

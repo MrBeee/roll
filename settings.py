@@ -402,6 +402,7 @@ def readSettings(self):
     path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
     projectDirectory = self.settings.value('settings/projectDirectory', path)   # start folder for SaveAs
     importDirectory = self.settings.value('settings/importDirectory', path)     # start folder for reading SPS files
+    wellDirectory = self.settings.value('settings/wellDirectory', path)         # start folder for reading well files
     recentFileList = self.settings.value('settings/recentFileList', [])
     if recentFileList is None:
         recentFileList = []
@@ -414,6 +415,7 @@ def readSettings(self):
         documentContext,
         projectDirectory=projectDirectory,
         importDirectory=importDirectory,
+        wellDirectory=wellDirectory,
         recentFileList=recentFileList,
     )
 
@@ -516,6 +518,7 @@ def writeSettings(self):
     self.settings.setValue('mainWindow/state', self.saveState())                # and the window state too
     self.settings.setValue('settings/projectDirectory', documentContext.projectDirectory)
     self.settings.setValue('settings/importDirectory', documentContext.importDirectory)
+    self.settings.setValue('settings/wellDirectory', documentContext.wellDirectory)
     self.settings.setValue('settings/recentFileList', documentContext.recentFileList)      # store list in settings
 
     # color and pen information

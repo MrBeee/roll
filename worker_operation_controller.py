@@ -347,7 +347,7 @@ class WorkerOperationController:
         if self.activeOperation is not activeOperation:
             return
 
-        self.window.appendLogMessage('Thread : Worker thread has  stopped', MsgType.Info)
+        self.window.appendLogMessage('Thread : Worker thread has  stopped', MsgType.Warning)
         self._cleanupAfterOperation(resetAnalysis=True, clearLayoutImage=clearLayoutImage)
 
     def _cleanupAfterOperation(self, *, resetAnalysis: bool, clearLayoutImage: bool = False, completionTabIndex: int | None = None) -> None:

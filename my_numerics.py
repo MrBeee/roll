@@ -2,12 +2,42 @@ from pyqtgraph.parametertree import Parameter, registerParameterType
 from pyqtgraph.parametertree.parameterTypes.basetypes import \
     WidgetParameterItem
 from pyqtgraph.widgets.SpinBox import SpinBox
+from qgis.PyQt.QtGui import QPalette
+
+NUMERIC_EDITOR_HEIGHT = 24
+NUMERIC_LINE_EDIT_HEIGHT = 22
+
+
+class MyNumericSpinBox(SpinBox):
+    def __init__(self):
+        super().__init__()
+        self.sigChanged = self.sigValueChanged
+        self.sigChanging = self.sigValueChanging
+
+        palette = self.palette()
+        baseColor = palette.color(QPalette.ColorRole.Base)
+        palette.setColor(QPalette.ColorRole.Base, baseColor)
+        palette.setColor(QPalette.ColorRole.Button, baseColor)
+        palette.setColor(QPalette.ColorRole.Window, baseColor)
+        self.setPalette(palette)
+        self.lineEdit().setPalette(palette)
+        self.setAutoFillBackground(True)
+        self.lineEdit().setAutoFillBackground(True)
+
+    def sizeHint(self):
+        hint = super().sizeHint()
+        hint.setHeight(max(hint.height(), NUMERIC_EDITOR_HEIGHT))
+        return hint
+
+    def minimumSizeHint(self):
+        hint = super().minimumSizeHint()
+        hint.setHeight(max(hint.height(), NUMERIC_EDITOR_HEIGHT))
+        return hint
 
 
 class MyNumericParameterItem(WidgetParameterItem):
     """
-    Subclasses `WidgetParameterItem` similar to MyNumericParameterItem,
-    It makes sure ints & floats are grey when disabled
+    Numeric parameter item with a slightly taller editor and stable background.
 
     ==========================  =============================================================
     **Registered Types:**
@@ -16,9 +46,15 @@ class MyNumericParameterItem(WidgetParameterItem):
     ==========================  =============================================================
     """
 
+    def __init__(self, param, depth):
+        super().__init__(param, depth)
+
+        rowHint = self.sizeHint(1)
+        rowHint.setHeight(max(rowHint.height(), NUMERIC_EDITOR_HEIGHT))
+        self.setSizeHint(1, rowHint)
+
     def makeWidget(self):
         opts = self.param.opts
-        t = opts['type']
         defs = {
             'value': 0,
             'min': None,
@@ -28,9 +64,10 @@ class MyNumericParameterItem(WidgetParameterItem):
             'siPrefix': False,
             'suffix': '',
             'decimals': 3,
+            'compactHeight': False,
         }
 
-        if t == 'int' or t == 'myInt':                                          # myInt added to integer types
+        if opts['type'] in ('int', 'myInt'):
             defs['int'] = True
             defs['minStep'] = 1.0
 
@@ -41,10 +78,12 @@ class MyNumericParameterItem(WidgetParameterItem):
         if opts.get('limits') is not None:
             defs['min'], defs['max'] = opts['limits']
 
-        w = SpinBox()
+        w = MyNumericSpinBox()
         w.setOpts(**defs)
-        w.sigChanged = w.sigValueChanged
-        w.sigChanging = w.sigValueChanging
+        w.setFixedHeight(NUMERIC_EDITOR_HEIGHT)
+        w.setFrame(False)
+        w.lineEdit().setFrame(False)
+        w.lineEdit().setFixedHeight(NUMERIC_LINE_EDIT_HEIGHT)
         return w
 
     def updateDisplayLabel(self, value=None):
@@ -83,21 +122,9 @@ class MyNumericParameterItem(WidgetParameterItem):
 class MyIntParameter(Parameter):
     itemClass = MyNumericParameterItem
 
-    def __init__(self, **opts):
-        # opts['expanded'] = False                                              # to overrule user-requested options
-        # opts['flat'] = True
-
-        Parameter.__init__(self, **opts)
-
 
 class MyFloatParameter(Parameter):
     itemClass = MyNumericParameterItem
-
-    def __init__(self, **opts):
-        # opts['expanded'] = False                                              # to overrule user-requested options
-        # opts['flat'] = True
-
-        Parameter.__init__(self, **opts)
 
 
 registerParameterType('myInt', MyIntParameter, override=True)

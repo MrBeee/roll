@@ -1,2 +1,268 @@
+import traceback
+
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QFrame, QGroupBox,
+                                 QHBoxLayout, QLabel, QSplitter,
+                                 QStackedWidget, QToolButton, QVBoxLayout,
+                                 QWidget)
+
+from .app_settings import isShowUnfinishedEnabled
+from .config import toolButtonStyle
+
+
+def updateLayoutMethodControlsVisibility(self):
+    enabled = isShowUnfinishedEnabled()
+    if hasattr(self, 'layoutMethodSidePanel'):
+        self.layoutMethodSidePanel.setVisible(enabled)
+    if hasattr(self, 'layoutMethodChoice'):
+        self.layoutMethodChoice.setVisible(enabled)
+    if hasattr(self, 'layoutMethodSplitter'):
+        self.layoutMethodSplitter.setSizes([100, 500] if enabled else [0, 1])
+
+
+def _ensureLayout3DWidget(self):
+    """Construct the 3D widget on first use.
+
+    Lazy-init avoids paying the OpenGL initialization cost (and risk of
+    a GL-driver-level crash) on plugin startup. Any failure during
+    construction is caught and replaced with a QLabel explaining the
+    problem so the rest of the Layout tab keeps working.
+    """
+    if self.layout3DWidget is not None:
+        return self.layout3DWidget
+    try:
+        from .layout_3D import Layout3DWidget
+        widget = Layout3DWidget()
+    except Exception as exc:                                # pragma: no cover
+        msg = ('3D Subset view could not be initialized.\n\n'
+               f'{type(exc).__name__}: {exc}\n\n'
+               + traceback.format_exc())
+        widget = QLabel(msg)
+        widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        widget.setWordWrap(True)
+    self.layout3DWidget = widget
+    self.layoutViewStack.addWidget(widget)
+    return widget
+
+
+def _teardownLayout3DWidget(self):
+    """Destroy the 3D widget and reclaim its OpenGL surface.
+
+    Keeping a `GLViewWidget` alive while the Layout tab (or its 3D
+    page) is hidden has been observed to deadlock the QGIS main thread
+    on Windows GL drivers when other tabs are activated. The simplest
+    reliable fix is to remove and delete the widget any time it is no
+    longer the visible page; it gets re-created on demand by
+    ``_ensureLayout3DWidget``.
+    """
+    if not getattr(self, 'layout3DWidget', None):
+        return
+    widget = self.layout3DWidget
+    self.layout3DWidget = None
+    try:
+        self.layoutViewStack.removeWidget(widget)
+    except Exception:
+        pass
+    try:
+        widget.setParent(None)
+        widget.deleteLater()
+    except Exception:
+        pass
+
+
+def _onLayoutViewModeChanged(self):
+    """Switch the layout-tab right-hand pane between 2D and 3D views."""
+    if not hasattr(self, 'layoutViewStack'):
+        return
+    if self.actionLayout3D.isChecked():
+        widget = _ensureLayout3DWidget(self)
+        self.layoutViewStack.setCurrentWidget(widget)
+        # Refresh 3D content from the current survey, matching the 2D
+        # plot's local/global coordinate convention.
+        refreshLayout3DFromSurvey(self)
+    else:
+        # Always show 2D first, *then* destroy the 3D widget so Qt
+        # never has to repaint a hidden GL surface.
+        self.layoutViewStack.setCurrentWidget(self.layoutWidget)
+        _teardownLayout3DWidget(self)
+
+
+def refreshLayout3DFromSurvey(self):
+    """If the 3D widget is visible, redraw it from the active survey.
+
+    Call this after the survey changes (load / edit) or after toggling
+    the "Projected" action so the 3D Subset view stays in sync with the
+    2D map.
+    """
+    widget = getattr(self, 'layout3DWidget', None)
+    if widget is None:
+        return
+    update = getattr(widget, 'updateFromSurvey', None)
+    if update is None:
+        return
+    survey = getattr(self, 'survey', None)
+    useGlobal = bool(getattr(self, 'glob', False))
+
+    # Mirror the 2D *Show Points* / *Show Patterns* toggles. When either
+    # is checked we render individual seed sample points in 3D too.
+    showSeedPoints = False
+    for actionName in ('actionShowPoints', 'actionShowPatterns'):
+        action = getattr(self, actionName, None)
+        if action is not None and action.isChecked():
+            showSeedPoints = True
+            break
+
+    # Pass the imported SPS / RPS point arrays so the 3D view can use
+    # the actual data footprint for its bounding box (the templates
+    # in ``survey.boundingRect()`` can extend well past the data).
+    dataPoints = []
+    for ePair in (('spsLiveE', 'spsLiveN'), ('recLiveE', 'recLiveN')):
+        xs = getattr(self, ePair[0], None)
+        ys = getattr(self, ePair[1], None)
+        if xs is not None and ys is not None:
+            dataPoints.append((xs, ys))
+
+    # Mirror the 2D *Spider* toggle. When the spider is enabled and
+    # has computed src/rec arrays, forward them so the 3D view can
+    # render the same overlay (with cmp Z taken from plane / sphere).
+    spiderData = None
+    spiderOn = False
+    spiderToggle = getattr(self, 'tbSpider', None)
+    if spiderToggle is not None and spiderToggle.isChecked():
+        spiderOn = True
+    if spiderOn:
+        srcX = getattr(self, 'spiderSrcX', None)
+        srcY = getattr(self, 'spiderSrcY', None)
+        recX = getattr(self, 'spiderRecX', None)
+        recY = getattr(self, 'spiderRecY', None)
+        if srcX is not None and srcY is not None \
+                and recX is not None and recY is not None:
+            spiderData = dict(srcX=srcX, srcY=srcY, recX=recX, recY=recY)
+
+    # Log when the host has spider state but no arrays yet so the user
+    # gets a hint to navigate with ALT+arrows in the 2D view first.
+    if spiderOn and spiderData is None:
+        log = getattr(self, 'appendLogMessage', None)
+        if log is not None:
+            log('3D Subset: Spider toggle is on but no spider arrays available yet '
+                '(navigate with ALT+arrows or click in the 2D layout first).')
+
+    try:
+        update(survey, useGlobal,
+               showSeedPoints=showSeedPoints,
+               dataPoints=dataPoints,
+               spiderData=spiderData)
+    except TypeError:
+        # Backward-compat: older widget without the kwargs.
+        try:
+            update(survey, useGlobal,
+                   showSeedPoints=showSeedPoints,
+                   dataPoints=dataPoints)
+        except TypeError:
+            try:
+                update(survey, useGlobal, showSeedPoints=showSeedPoints)
+            except TypeError:
+                update(survey, useGlobal)
+    except Exception as exc:                                    # pragma: no cover
+        log = getattr(self, 'appendLogMessage', None)
+        if log is not None:
+            log(f'3D Subset render failed: {type(exc).__name__}: {exc}')
+
+
+def _onMainTabChangedFor3D(self, index):
+    """Tear the 3D widget down whenever the Layout tab loses focus.
+
+    Called from `roll_main_window.onMainTabChange`. The Layout tab is
+    index 0; for every other tab we destroy the GL widget and force the
+    action back to 2D, so returning to the Layout tab is always safe.
+    """
+    if index == 0:
+        return
+    if getattr(self, 'layout3DWidget', None) is None:
+        return
+    if hasattr(self, 'actionLayout2D') and not self.actionLayout2D.isChecked():
+        # This will fire _onLayoutViewModeChanged which tears the
+        # widget down; we don't have to do it manually.
+        self.actionLayout2D.setChecked(True)
+    else:
+        _teardownLayout3DWidget(self)
+
+
 def createLayoutTab(self):
     self.layoutWidget = self.createPlotWidget()
+
+    # 3D widget is created lazily the first time the user picks 3D
+    # Subset, and destroyed again whenever they go back to 2D or leave
+    # the Layout tab. There is no permanent placeholder page in the
+    # stack -- the GL widget is added/removed on demand.
+    self.layout3DWidget = None
+
+    # The 2D plot widget and the 3D viewer share the same splitter slot
+    # via a QStackedWidget; the action group below controls which one is
+    # visible. Existing code that reaches for `self.layoutWidget` keeps
+    # working because the 2D widget is never re-parented.
+    self.layoutViewStack = QStackedWidget()
+    self.layoutViewStack.addWidget(self.layoutWidget)
+    self.layoutViewStack.setCurrentWidget(self.layoutWidget)
+
+    self.layoutMethodChoice = QGroupBox('Layout view')
+    self.layoutMethodChoice.setMinimumWidth(140)
+    self.layoutMethodChoice.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+    self.tbLayout2D = QToolButton()
+    self.tbLayout3D = QToolButton()
+    self.tbLayout2D.setMinimumWidth(110)
+    self.tbLayout3D.setMinimumWidth(110)
+    self.tbLayout2D.setStyleSheet(toolButtonStyle)
+    self.tbLayout3D.setStyleSheet(toolButtonStyle)
+
+    self.actionLayout2D = QAction('2D Map view', self)
+    self.actionLayout2D.setCheckable(True)
+    self.actionLayout3D = QAction('3D Subset', self)
+    self.actionLayout3D.setCheckable(True)
+
+    self.layoutMethodActionGroup = QActionGroup(self)
+    self.layoutMethodActionGroup.setExclusive(True)
+    self.layoutMethodActionGroup.addAction(self.actionLayout2D)
+    self.layoutMethodActionGroup.addAction(self.actionLayout3D)
+    self.actionLayout2D.setChecked(True)
+
+    # Connect both actions to the same handler so the stacked widget
+    # follows whichever one becomes active.
+    self.actionLayout2D.toggled.connect(lambda _checked: _onLayoutViewModeChanged(self))
+    self.actionLayout3D.toggled.connect(lambda _checked: _onLayoutViewModeChanged(self))
+
+    self.tbLayout2D.setDefaultAction(self.actionLayout2D)
+    self.tbLayout3D.setDefaultAction(self.actionLayout3D)
+
+    controlsLayout = QVBoxLayout()
+    controlsLayout.addWidget(self.tbLayout2D)
+    controlsLayout.addWidget(self.tbLayout3D)
+    self.layoutMethodChoice.setLayout(controlsLayout)
+
+    leftLayout = QVBoxLayout()
+    leftLayout.addStretch(2)
+    leftLayout.addWidget(self.layoutMethodChoice)
+    leftLayout.addStretch(10)
+
+    leftWrapper = QHBoxLayout()
+    leftWrapper.addStretch()
+    leftWrapper.addLayout(leftLayout)
+    leftWrapper.addStretch()
+
+    self.layoutMethodSidePanel = QFrame()
+    self.layoutMethodSidePanel.setFrameShape(QFrame.Shape.StyledPanel)
+    self.layoutMethodSidePanel.setLayout(leftWrapper)
+    self.layoutMethodSidePanel.setMaximumWidth(180)
+
+    self.layoutMethodSplitter = QSplitter(Qt.Orientation.Horizontal)
+    self.layoutMethodSplitter.addWidget(self.layoutMethodSidePanel)
+    self.layoutMethodSplitter.addWidget(self.layoutViewStack)
+    self.layoutMethodSplitter.setSizes([0, 1])
+
+    self.tabLayout = QWidget()
+    tabLayout = QHBoxLayout(self.tabLayout)
+    tabLayout.setContentsMargins(0, 0, 0, 0)
+    tabLayout.addWidget(self.layoutMethodSplitter)
+
+    updateLayoutMethodControlsVisibility(self)

@@ -92,7 +92,9 @@ class TableModelViewTest(unittest.TestCase):
             handled = view.eventFilter(view, event)
 
         self.assertTrue(handled)
-        self.assertEqual(view.selectionModel().selectedRows()[0].row(), 1)
+        selectedRows = view.selectionModel().selectedRows()
+        self.assertEqual(len(selectedRows), 1)
+        self.assertEqual(selectedRows[0].row(), 1)
         playSound.assert_not_called()
 
     def testCtrlDownOnLastSpsOrphanPlaysSound(self):
@@ -137,7 +139,9 @@ class TableModelViewTest(unittest.TestCase):
             handled = view.eventFilter(view, event)
 
         self.assertTrue(handled)
-        self.assertEqual(view.selectionModel().selectedRows()[0].row(), 1)
+        selectedRows = view.selectionModel().selectedRows()
+        self.assertEqual(len(selectedRows), 1)
+        self.assertEqual(selectedRows[0].row(), 1)
         playSound.assert_not_called()
 
     def testCtrlRightOnLastRpsOrphanPlaysSound(self):

@@ -59,9 +59,6 @@ from .document_context_service import DocumentContextService
 from .enums_and_int_flags import (AnalysisRedrawReason, Direction, MsgType,
                                   PaintDetails, PaintMode, SurveyType)
 from .filter_service import FilterService
-# from .find import Find.
-# Superseded by FindNotepad, which is more user friendly and has a better implementation.
-# The old Find class is still available in find.py, but not imported here.
 from .find import FindNotepad
 from .import_service import ImportService
 from .land_wizard import LandSurveyWizard
@@ -82,7 +79,9 @@ from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
                              identifyQgisPointLayer, readQgisPointLayer)
 from .roll_binning import BinningType
 from .roll_main_window_create_geom_tab import createGeomTab
-from .roll_main_window_create_layout_tab import createLayoutTab
+from .roll_main_window_create_layout_tab import (
+    _onMainTabChangedFor3D, createLayoutTab, refreshLayout3DFromSurvey,
+    updateLayoutMethodControlsVisibility)
 from .roll_main_window_create_off_azi_tab import createOffAziTab
 from .roll_main_window_create_offset_tabs import createOffsetTabs
 from .roll_main_window_create_pattern_tab import createPatternTab
@@ -390,6 +389,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.runtimeState.importDirectory = value or ''
 
     @property
+    def wellDirectory(self):
+        return self.runtimeState.wellDirectory
+
+    @wellDirectory.setter
+    def wellDirectory(self, value):
+        self.runtimeState.wellDirectory = value or ''
+
+    @property
     def fileName(self):
         return self.runtimeState.fileName
 
@@ -487,7 +494,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # display parameters in Layout tab
         self.imageType = 0                                                      # 1 = fold map
         self.layoutMax = 0.0                                                    # max value for image's colorbar (minimum is always 0)
-        self.layoutImg = None                                                   # numpy array to be displayed; binOutput / minOffset / maxOffset / rmsOffset
+        self.layoutImg = None                                                   # numpy array to be displayed; binOutput / minOffset / maxOffset / rmsOffset / offsetGap
 
         # analysis numpy arrays
         self.inlineStk = None                                                   # numpy array with inline Kr stack reponse
@@ -651,7 +658,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         createOffAziTab(self)
 
         # Add tabs to main tab widget
-        self.mainTabWidget.addTab(self.layoutWidget, 'Layout')
+        self.mainTabWidget.addTab(self.tabLayout, 'Layout')
         self.mainTabWidget.addTab(self.tabPatterns, 'Patterns')
         self.mainTabWidget.addTab(self.textEdit, 'Xml')
         self.mainTabWidget.addTab(self.tabGeom, 'Geometry')
@@ -735,6 +742,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionExportMinOffsets.triggered.connect(self.fileExportMinOffsets)
         self.actionExportMaxOffsets.triggered.connect(self.fileExportMaxOffsets)
         self.actionExportRmsOffsets.triggered.connect(self.fileExportRmsOffsets)
+        self.actionExportOffsetGaps.triggered.connect(self.fileExportOffsetGaps)
 
         self.actionExportAnaAsCsv.triggered.connect(self.fileExportAnaAsCsv)
 
@@ -756,6 +764,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionExportMinOffsetsToQGIS.triggered.connect(self.exportMinToQGIS)
         self.actionExportMaxOffsetsToQGIS.triggered.connect(self.exportMaxToQGIS)
         self.actionExportRmsOffsetsToQGIS.triggered.connect(self.exportRmsToQGIS)
+        self.actionExportOffsetGapsToQGIS.triggered.connect(self.exportGapToQGIS)
 
         self.actionQuit.triggered.connect(self.close)                           # closes the window and arrives at CloseEvent()
 
@@ -1192,10 +1201,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     ## If anything changes in the tree, print a message
     def propertyTreeStateChanged(self, param, changes):
 
-        # the next line is needed in case we would disable the 'Apply' button in the property pane, when no changes have been made
-        # self.propertyButtonBox.button(QDialogButtonBox.StandardButton.Apply).setEnabled(True)
-
-        # Nomatter whether debug has been set to True or False
         myPrint('┌── sigTreeStateChanged --> tree changes:')
         for param, change, data in changes:
             path = self.parameters.childPath(param)
@@ -1203,12 +1208,20 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 childName = '.'.join(path)
             else:
                 childName = param.name()
+
+            self.propertyPanelController.handlePropertyTreeChange(param, change, data)
+
             myPrint(f'│     parameter: {childName}')
             myPrint(f'│     change:    {change}')
             myPrint(f'│     data:      {str(data)}')
-            myPrint('└───────────────────────────────────────')
+            myPrint( '└───────────────────────────────────────')
 
     def onMainTabChange(self, index):                                           # manage focus when active tab is changed; doesn't work 100% yet !
+        # Destroy the 3D Layout widget when leaving the Layout tab so a
+        # hidden GL surface cannot deadlock against the active tab's
+        # rendering.
+        _onMainTabChangedFor3D(self, index)
+
         if index == 0:                                                          # main plotting widget
             self.handleSpiderPlot()
         else:
@@ -1259,7 +1272,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         # w.setMenuEnabled(False, enableViewBoxMenu=None)                       # get rid of context menu but keep ViewBox menu
         # w.ctrlMenu = None                                                     # get rid of 'Plot Options' in context menu
-        # w.scene().contextMenu = None                                          # get rid of 'Export' in context menu
+        w.scene().contextMenu = None                                            # get rid of 'Export' in context menu; CSV export is invalid for many image-only surfaces
 
         # set up plot title
         w.setTitle(plotTitle, color='b', size='16pt')
@@ -1413,11 +1426,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 self.appendLogMessage(f'Export : exported max-offsets to {fileName}')
 
     def fileExportRmsOffsets(self):
-        if self.survey is not None and self.output.rmsOffset is not None and self.survey.crs is not None:
-            fileName = self.fileName + '.rms.tif'
-            fileName = CreateQgisRasterLayer(fileName, self.output.rmsOffset, self.survey)
-            if fileName:
-                self.appendLogMessage(f'Export : exported rms-offsets to {fileName}')
+        self._exportLayoutAnalysisSurface(4, toQgis=False)
+
+    def fileExportOffsetGaps(self):
+        self._exportLayoutAnalysisSurface(5, toQgis=False)
 
     def exportBinToQGIS(self):
         if self.survey is not None and self.output.binOutput is not None and self.survey.crs is not None:
@@ -1441,11 +1453,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 self.appendLogMessage('Export : incorporated max-offset map in QGIS')
 
     def exportRmsToQGIS(self):
-        if self.survey is not None and self.output.rmsOffset is not None and self.survey.crs is not None:
-            fileName = self.fileName + '.rms.tif'
-            fileName = ExportRasterLayerToQgis(fileName, self.output.rmsOffset, self.survey)
-            if fileName:
-                self.appendLogMessage('Export : incorporated rms-offset map in QGIS')
+        self._exportLayoutAnalysisSurface(4, toQgis=True)
+
+    def exportGapToQGIS(self):
+        self._exportLayoutAnalysisSurface(5, toQgis=True)
 
     def exportRpsToQgis(self):
         if self.rpsImport is not None and self.survey is not None and self.survey.crs is not None:
@@ -1625,32 +1636,81 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.imageType = 4
         self.handleImageSelection()
 
-    def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
+    def onActionGapOTriggered(self):
+        self.imageType = 5
+        self.handleImageSelection()
 
-        colorMap = self.resolveColorMapName(self.appSettings.foldDispCmap, fallback='CET-L4')  # default fold & offset color map
-        if self.imageType == 0:                                                 # now deal with all image types
-            self.layoutImg = None                                               # no image to show
-            label = 'N/A'
-            self.layoutMax = 10
-            colorMap = self.resolveColorMapName(config.inActiveCmap, fallback='CET-L1')  # grey color map
-        elif self.imageType == 1:
-            self.layoutImg = self.output.binOutput                              # don't make a copy, create a view
-            self.layoutMax = self.output.maximumFold
-            label = 'fold'
-        elif self.imageType == 2:
-            self.layoutImg = self.output.minOffset
-            self.layoutMax = self.output.maxMinOffset
-            label = 'minimum offset'
-        elif self.imageType == 3:
-            self.layoutImg = self.output.maxOffset
-            self.layoutMax = self.output.maxMaxOffset
-            label = 'maximum offset'
-        elif self.imageType == 4:
-            self.layoutImg = self.output.rmsOffset
-            self.layoutMax = self.output.maxRmsOffset
-            label = 'rms offset increments'
-        else:
+    def _resolveLayoutAnalysisSurface(self, imageType=None):
+        imageType = self.imageType if imageType is None else imageType
+        if imageType == 0:
+            return {
+                'imageType': 0,
+                'imageData': None,
+                'maxValue': 10.0,
+                'label': 'N/A',
+                'statusLabel': None,
+                'valueKind': 'none',
+                'colorMap': self.resolveColorMapName(config.inActiveCmap, fallback='CET-L1'),
+                'fileSuffix': None,
+                'fileExportLabel': None,
+                'qgisExportLabel': None,
+            }
+
+        surfaceDefinitions = {
+            1: dict(imageAttr='binOutput', maxAttr='maximumFold', label='fold', statusLabel='fold', valueKind='int', fileSuffix='bin', fileExportLabel='fold map', qgisExportLabel='fold map'),
+            2: dict(imageAttr='minOffset', maxAttr='maxMinOffset', label='minimum offset', statusLabel='|min offset|', valueKind='float', fileSuffix='min', fileExportLabel='min-offsets', qgisExportLabel='min-offset map'),
+            3: dict(imageAttr='maxOffset', maxAttr='maxMaxOffset', label='maximum offset', statusLabel='|max offset|', valueKind='float', fileSuffix='max', fileExportLabel='max-offsets', qgisExportLabel='max-offset map'),
+            4: dict(imageAttr='rmsOffset', maxAttr='maxRmsOffset', label='rms offset increments', statusLabel='rms offset inc', valueKind='float', fileSuffix='rms', fileExportLabel='rms-offsets', qgisExportLabel='rms-offset map'),
+            5: dict(imageAttr='offsetGap', maxAttr='maxOffsetGap', label='maximum offset gap', statusLabel='max offset gap', valueKind='float', fileSuffix='gap', fileExportLabel='max-offset gaps', qgisExportLabel='max-offset gap map'),
+        }
+
+        if imageType not in surfaceDefinitions:
             raise NotImplementedError('selected analysis type currently not implemented.')
+
+        definition = surfaceDefinitions[imageType]
+        return {
+            'imageType': imageType,
+            'imageData': getattr(self.output, definition['imageAttr']),
+            'maxValue': getattr(self.output, definition['maxAttr']),
+            'label': definition['label'],
+            'statusLabel': definition['statusLabel'],
+            'valueKind': definition['valueKind'],
+            'colorMap': self.resolveColorMapName(self.appSettings.foldDispCmap, fallback='CET-L4'),
+            'fileSuffix': definition['fileSuffix'],
+            'fileExportLabel': definition['fileExportLabel'],
+            'qgisExportLabel': definition['qgisExportLabel'],
+        }
+
+    def _formatLayoutAnalysisSurfaceValue(self, layoutSurface, value):
+        if layoutSurface['valueKind'] == 'none' or layoutSurface['statusLabel'] is None:
+            return None
+
+        if layoutSurface['valueKind'] == 'int':
+            if np.isnan(value):
+                value = 0.0
+            return f"{layoutSurface['statusLabel']}: {int(value):,d}"
+
+        return f"{layoutSurface['statusLabel']}: {float(value):.2f}"
+
+    def _exportLayoutAnalysisSurface(self, imageType, *, toQgis):
+        layoutSurface = self._resolveLayoutAnalysisSurface(imageType)
+        if self.survey is None or layoutSurface['imageData'] is None or self.survey.crs is None:
+            return
+
+        fileName = self.fileName + f".{layoutSurface['fileSuffix']}.tif"
+        if toQgis:
+            fileName = ExportRasterLayerToQgis(fileName, layoutSurface['imageData'], self.survey)
+            if fileName:
+                self.appendLogMessage(f"Export : incorporated {layoutSurface['qgisExportLabel']} in QGIS")
+        else:
+            fileName = CreateQgisRasterLayer(fileName, layoutSurface['imageData'], self.survey)
+            if fileName:
+                self.appendLogMessage(f"Export : exported {layoutSurface['fileExportLabel']} to {fileName}")
+
+    def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
+        layoutSurface = self._resolveLayoutAnalysisSurface()
+        self.layoutImg = layoutSurface['imageData']                             # don't make a copy, create a view
+        self.layoutMax = layoutSurface['maxValue']
 
         # Make no-data bins transparent.
         if self.layoutImg is not None:
@@ -1662,8 +1722,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.prepareLayoutImageAndColorBar(
             self.layoutImg,
-            colorMap,
-            label,
+            layoutSurface['colorMap'],
+            layoutSurface['label'],
             levels=(0.0, self.layoutMax),
             limits=(0, None),
             rounding=10.0,
@@ -1822,23 +1882,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         if self.layoutImg is not None and bx >= 0 and by >= 0 and bx < self.layoutImg.shape[0] and by < self.layoutImg.shape[1]:
             # provide statusbar information within the analysis area
-            if self.imageType == 0:
+            layoutSurface = self._resolveLayoutAnalysisSurface()
+            valueText = self._formatLayoutAnalysisSurfaceValue(layoutSurface, self.layoutImg[bx, by])
+            if valueText is None:
                 self.posWidgetStatusbar.setText(f'S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
-            elif self.imageType == 1:
-                foldValue = float(self.layoutImg[bx, by])
-                if np.isnan(foldValue):
-                    foldValue = 0.0
-                fold = int(foldValue)                                           # fold value is float because of the NaN values for no-data bins. Integers don't understand NaN
-                self.posWidgetStatusbar.setText(f'fold: {fold:,d}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
-            elif self.imageType == 2:
-                offset = float(self.layoutImg[bx, by])
-                self.posWidgetStatusbar.setText(f'|min offset|: {offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
-            elif self.imageType == 3:
-                offset = float(self.layoutImg[bx, by])
-                self.posWidgetStatusbar.setText(f'|max offset|: {offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
-            elif self.imageType == 4:
-                offset = float(self.layoutImg[bx, by])
-                self.posWidgetStatusbar.setText(f'rms offset inc: {offset:.2f}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
+            else:
+                self.posWidgetStatusbar.setText(f'{valueText}, S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
         else:
             # provide statusbar information outside the analysis area
             self.posWidgetStatusbar.setText(f'S:({sx:,d}, {sy:,d}), L:({lx:,.2f}, {ly:,.2f}, {lz:,.2f}), W:({gx:,.2f}, {gy:,.2f}, {gz:,.2f}) ')
@@ -1924,6 +1973,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.handleSpiderPlot()                                                 # spider label should move depending on local/global coords
         self.layoutWidget.autoRange()                                           # show the full range of objects when changing local vs global coordinates
         self.plotLayout()
+
+        # Keep the 3D Subset view in sync with the local/global toggle.
+        refreshLayout3DFromSurvey(self)
 
     def showRuler(self, checked):
         self.ruler = checked
@@ -2254,6 +2306,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 self.layoutWidget.plotItem.addItem(label)
                 label.setZValue(1000)
             self.roiChanged()
+
+        # Keep the 3D Subset view in sync with whatever was just
+        # plotted in 2D (spider overlay, layout toggles, etc). The
+        # call is a no-op when the 3D widget isn't currently shown.
+        refreshLayout3DFromSurvey(self)
 
     def plotOffTrk(self, nY: int, stkY: int, ox: float):
         with pg.BusyCursor():
@@ -3146,6 +3203,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
         self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the Layout tab
 
+        # Always default the Layout tab to the 2D Map view when a new
+        # project is loaded; the 3D Subset view is opt-in per session.
+        if hasattr(self, 'actionLayout2D') and not self.actionLayout2D.isChecked():
+            self.actionLayout2D.setChecked(True)
+
         # self.plotLayout()                                                     # plot the survey object
 
         self.resetSurveyProperties()                                            # get the new parameters into the parameter tree. Can be time consuming with many blocks and many seeds
@@ -3334,6 +3396,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.updateSettings()
 
     def updateSettings(self):
+        updateLayoutMethodControlsVisibility(self)
         self.handleImageSelection()
         self.plotLayout()
 

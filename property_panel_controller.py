@@ -4,13 +4,22 @@ import os
 
 import pyqtgraph as pg
 
+from .my_parameters import syncWellDirectoryForParameterTree
 from .enums_and_int_flags import SurveyType
+from .roll_main_window_create_layout_tab import refreshLayout3DFromSurvey
 from .roll_survey import RollSurvey
 
 
 class PropertyPanelController:
     def __init__(self, window) -> None:
         self.window = window
+
+    def handlePropertyTreeChange(self, param, change, data) -> None:
+        if change == 'value' and param.name() == 'Well file' and isinstance(data, str) and data:
+            wellDirectory = os.path.dirname(data)
+            if wellDirectory:
+                self.window.wellDirectory = wellDirectory
+                syncWellDirectoryForParameterTree(param, wellDirectory)
 
     def resetSurveyProperties(self):
         window = self.window
@@ -82,6 +91,10 @@ class PropertyPanelController:
         window.updatePatternList(window.survey)
         window.plotLayout()
 
+        # Keep the 3D Subset view (if currently shown) in sync with the
+        # edited survey.
+        refreshLayout3DFromSurvey(window)
+
     def _buildSurveyParameters(self, surveyCopy):
         brush = '#add8e6'
 
@@ -90,7 +103,7 @@ class PropertyPanelController:
             dict(brush=brush, name='Survey analysis', type='myAnalysis', value=surveyCopy, default=surveyCopy),
             dict(brush=brush, name='Survey reflectors', type='myReflectors', value=surveyCopy, default=surveyCopy),
             dict(brush=brush, name='Survey grid', type='myGrid', value=surveyCopy.grid, default=surveyCopy.grid),
-            dict(brush=brush, name='Block list', type='myBlockList', value=surveyCopy.blockList, default=surveyCopy.blockList, directory=self.window.projectDirectory, survey=surveyCopy),
+            dict(brush=brush, name='Block list', type='myBlockList', value=surveyCopy.blockList, default=surveyCopy.blockList, wellDirectory=self.window.wellDirectory, survey=surveyCopy),
             dict(brush=brush, name='Pattern list', type='myPatternList', value=surveyCopy.patternList, default=surveyCopy.patternList, survey=surveyCopy),
         ]
 
@@ -179,8 +192,12 @@ class PropertyPanelController:
         window.output.minOffset = None
         window.output.maxOffset = None
         window.output.rmsOffset = None
+        window.output.offsetGap = None
         window.output.ofAziHist = None
         window.output.offstHist = None
+
+        window.output.minOffsetGap = 0.0
+        window.output.maxOffsetGap = 0.0
 
         if window.resetAnaTableModel():
             window.appendLogMessage(f"Edited : Closing memory mapped file {window.fileName + '.ana.npy'}")
@@ -194,6 +211,7 @@ class PropertyPanelController:
             self.window.fileName + '.min.npy',
             self.window.fileName + '.max.npy',
             self.window.fileName + '.rms.npy',
+            self.window.fileName + '.gap.npy',
             self.window.fileName + '.ana.npy',
         ]
 

@@ -60,5 +60,8 @@
     "workbench.colorCustomizations": {
         "statusBar.background": "#f8ecf9",
         "statusBar.debuggingBackground": "#d7b64c"
+    },
+    "chat.tools.terminal.autoApprove": {
+        "&": true
     }
 }

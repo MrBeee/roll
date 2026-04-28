@@ -4,4 +4,4 @@ from .qgis_bootstrap import ensureQgisAvailable
 if not ensureQgisAvailable():
     raise ModuleNotFoundError('qgis')
 
-import qgis  # pylint: disable=W0611  # NOQA
+import qgis  # pylint: disable=W0611,C0411,C0413  # NOQA

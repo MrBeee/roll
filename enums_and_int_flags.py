@@ -37,14 +37,6 @@ class SeedType(IntFlag):
     spiral = 3
     well = 4
 
-class SurveyTypeOld(Enum):
-    Orthogonal = 0
-    Parallel = 1
-    Slanted = 2
-    Brick = 3
-    Zigzag = 4
-    Streamer = 5
-
 class SurveyType(Enum):
     Orthogonal = (0, "Orthogonal - standard manner of acquiring land data")
     Parallel   = (1, "Parallel - standard manner of acquiring OBN data")
