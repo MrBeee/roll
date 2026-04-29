@@ -1733,6 +1733,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.plotLayout()
 
+    def _onLayoutColorBarLevelsChanged(self, *args):
+        """Refresh the 3D Subset view when the 2D analysis colorbar is
+        dragged. Keeps the 3D analysis surface using the same min/max
+        limits the user just dialled in. No-op when the 3D widget
+        isn't currently shown.
+        """
+        del args
+        try:
+            refreshLayout3DFromSurvey(self)
+        except Exception:                                       # pragma: no cover
+            pass
+
     def exceptionHook(self, eType, eValue, eTraceback):
         """Function handling uncaught exceptions. It is triggered each time an uncaught exception occurs."""
         if issubclass(eType, KeyboardInterrupt):
@@ -2481,6 +2493,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             except TypeError as exc:
                 self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
                 self.layoutColorBar = None
+            else:
+                # Forward live colorbar drags to the 3D Subset view so
+                # the analysis surface re-colours with the same levels
+                # as the 2D plot.
+                sig = getattr(self.layoutColorBar, 'sigLevelsChanged', None)
+                if sig is not None:
+                    try:
+                        sig.connect(self._onLayoutColorBarLevelsChanged)
+                    except (TypeError, AttributeError):         # pragma: no cover
+                        pass
 
         if self.layoutColorBar is not None:
             self.layoutColorBar.setImageItem(self.layoutImItem)

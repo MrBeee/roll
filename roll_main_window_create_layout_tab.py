@@ -105,6 +105,86 @@ def _buildBlockAreasConfig(self):
     )
 
 
+# Best-effort translation of pyqtgraph / colorcet map names to a
+# matplotlib-resolvable equivalent. The 3D analysis surface uses
+# ``matplotlib.cm.get_cmap`` which only knows its own registry; the
+# 2D plot uses pyqtgraph + the ``CET-*`` linear maps. Anything not
+# listed here falls back to ``viridis`` at draw time.
+_CMAP_NAME_TO_MPL = {
+    'CET-L1': 'gray',          # white -> black linear
+    'CET-L2': 'gray',
+    'CET-L3': 'hot',           # red heat
+    'CET-L4': 'inferno',       # blue -> red
+    'CET-L7': 'viridis',
+    'CET-L8': 'plasma',
+    'CET-L13': 'cividis',
+}
+
+
+def _buildAnalysisImageConfig(self):
+    """Build the ``analysisImage`` kwarg dict for the 3D widget.
+
+    Mirrors the 2D "Analysis to display" selection: when *None* is
+    active (``imageType == 0``) the surface is hidden; otherwise the
+    current ``layoutImg`` is rendered as a coloured horizontal
+    surface at z = 1 m using the same min/max levels as the 2D plot.
+    """
+    imageType = getattr(self, 'imageType', 0)
+    if imageType == 0:
+        return dict(visible=False, data=None)
+    img = getattr(self, 'layoutImg', None)
+    if img is None:
+        return dict(visible=False, data=None)
+    layoutMax = float(getattr(self, 'layoutMax', 0.0) or 0.0)
+    if layoutMax <= 0.0:
+        layoutMax = 1.0
+    levelLo, levelHi = 0.0, layoutMax
+
+    # Prefer the *current* 2D colorbar levels so user-driven rescaling
+    # (drag the colorbar handles to clip outliers) propagates into the
+    # 3D plot. Falls back to the initial (0, layoutMax) range when the
+    # bar is missing or its API returns nothing useful.
+    colorBar = getattr(self, 'layoutColorBar', None)
+    if colorBar is not None:
+        for getter in ('levels', 'getLevels'):
+            fn = getattr(colorBar, getter, None)
+            if fn is None:
+                continue
+            try:
+                got = fn()
+            except Exception:                                   # pragma: no cover
+                continue
+            if got is None:
+                continue
+            try:
+                lo, hi = float(got[0]), float(got[1])
+            except (TypeError, ValueError, IndexError):
+                continue
+            if hi > lo:
+                levelLo, levelHi = lo, hi
+                break
+
+    # Resolve the colormap name. ``_resolveLayoutAnalysisSurface``
+    # is the source of truth for the 2D plot; we ask it for the same
+    # name and translate to a matplotlib-known equivalent.
+    cmapName = 'viridis'
+    resolver = getattr(self, '_resolveLayoutAnalysisSurface', None)
+    if resolver is not None:
+        try:
+            surface = resolver(imageType)
+            cmapName = surface.get('colorMap', cmapName) or cmapName
+        except Exception:                                       # pragma: no cover
+            pass
+    cmapName = _CMAP_NAME_TO_MPL.get(cmapName, cmapName)
+
+    return dict(
+        visible=True,
+        data=img,
+        levels=(levelLo, levelHi),
+        colorMap=cmapName,
+    )
+
+
 def updateLayoutMethodControlsVisibility(self):
     enabled = isShowUnfinishedEnabled()
     if hasattr(self, 'layoutMethodSidePanel'):
@@ -244,6 +324,7 @@ def refreshLayout3DFromSurvey(self):
 
     binArea = _buildBinAreaConfig(self)
     blockAreas = _buildBlockAreasConfig(self)
+    analysisImage = _buildAnalysisImageConfig(self)
 
     try:
         update(survey, useGlobal,
@@ -251,7 +332,8 @@ def refreshLayout3DFromSurvey(self):
                dataPoints=dataPoints,
                spiderData=spiderData,
                binArea=binArea,
-               blockAreas=blockAreas)
+               blockAreas=blockAreas,
+               analysisImage=analysisImage)
     except TypeError:
         # Backward-compat: older widget without the kwargs.
         try:
@@ -259,23 +341,31 @@ def refreshLayout3DFromSurvey(self):
                    showSeedPoints=showSeedPoints,
                    dataPoints=dataPoints,
                    spiderData=spiderData,
-                   binArea=binArea)
+                   binArea=binArea,
+                   blockAreas=blockAreas)
         except TypeError:
             try:
                 update(survey, useGlobal,
                        showSeedPoints=showSeedPoints,
                        dataPoints=dataPoints,
-                       spiderData=spiderData)
+                       spiderData=spiderData,
+                       binArea=binArea)
             except TypeError:
                 try:
                     update(survey, useGlobal,
                            showSeedPoints=showSeedPoints,
-                           dataPoints=dataPoints)
+                           dataPoints=dataPoints,
+                           spiderData=spiderData)
                 except TypeError:
                     try:
-                        update(survey, useGlobal, showSeedPoints=showSeedPoints)
+                        update(survey, useGlobal,
+                               showSeedPoints=showSeedPoints,
+                               dataPoints=dataPoints)
                     except TypeError:
-                        update(survey, useGlobal)
+                        try:
+                            update(survey, useGlobal, showSeedPoints=showSeedPoints)
+                        except TypeError:
+                            update(survey, useGlobal)
     except Exception as exc:                                    # pragma: no cover
         log = getattr(self, 'appendLogMessage', None)
         if log is not None:

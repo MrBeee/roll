@@ -179,7 +179,8 @@ class Layout3DWidget(QWidget):
                          dataPoints=None,
                          spiderData=None,
                          binArea=None,
-                         blockAreas=None):
+                         blockAreas=None,
+                         analysisImage=None):
         """Render the 3D scene from a ``RollSurvey``.
 
         Draws (in order, only when applicable):
@@ -441,6 +442,21 @@ class Layout3DWidget(QWidget):
         if analysisCorners is not None and binArea is not None and binArea.get('visible', False):
             try:
                 self._drawAnalysisArea(analysisCorners, binArea)
+                zMax = max(zMax, 1.0)
+            except Exception:                                   # pragma: no cover
+                pass
+
+        # Analysis surface (fold / min-offset / max-offset / rms-offset
+        # / offset-gap maps) rendered as a coloured horizontal surface
+        # at z = 1 m, matching the 2D "Analysis to display" selection.
+        # Drawn after the analysis-area quad so its opaque pixels
+        # overpaint the translucent black face fill; ``NaN`` cells
+        # stay transparent and let the fill show through.
+        if (analysisImage is not None
+                and analysisImage.get('visible', False)
+                and analysisImage.get('data') is not None):
+            try:
+                self._drawAnalysisImage(survey, useGlobal, analysisImage)
                 zMax = max(zMax, 1.0)
             except Exception:                                   # pragma: no cover
                 pass
@@ -790,6 +806,108 @@ class Layout3DWidget(QWidget):
         poly.set_clip_on(False)
         self._axes.add_collection3d(poly)
         self._artists.append(poly)
+
+    def _drawAnalysisImage(self, survey, useGlobal, analysisImage):
+        """Render the fold / offset analysis surface in 3D.
+
+        ``analysisImage`` follows::
+
+            {
+              'visible':  True,
+              'data':     <2D ndarray, shape (nx, ny)>,
+              'levels':   (lo, hi),
+              'colorMap': <matplotlib cmap name; falls back to viridis>,
+            }
+
+        ``data`` follows the 2D convention: axis 0 indexes local-X
+        (inline), axis 1 indexes local-Y (crossline). ``NaN`` cells
+        render fully transparent so the underlying analysis-area fill
+        / floor remain visible (matching the 2D no-data behaviour).
+        Large grids are decimated by simple striding to keep the
+        ``plot_surface`` cost bounded.
+        """
+        data = analysisImage.get('data')
+        if data is None or getattr(data, 'ndim', 0) != 2:
+            return
+        try:
+            rect = survey.output.rctOutput
+        except AttributeError:
+            return
+        if rect is None or not rect.isValid():
+            return
+
+        img = np.asarray(data, dtype=np.float32)
+        nx, ny = img.shape
+        if nx < 1 or ny < 1:
+            return
+
+        # Cap the surface mesh so very fine bin grids stay interactive
+        # (matplotlib re-projects every facet on each rotate). Decimate
+        # by simple striding -- the colour band is still readable.
+        maxCells = 300
+        sx = max(1, int(np.ceil(nx / maxCells)))
+        sy = max(1, int(np.ceil(ny / maxCells)))
+        if sx > 1 or sy > 1:
+            img = img[::sx, ::sy]
+            nx, ny = img.shape
+
+        # Vertex grid in *local* coordinates: (nx+1, ny+1) so each
+        # face spans exactly one (decimated) bin cell.
+        xs = np.linspace(rect.left(), rect.right(), nx + 1)
+        ys = np.linspace(rect.top(), rect.bottom(), ny + 1)
+        X, Y = np.meshgrid(xs, ys, indexing='ij')
+        if useGlobal:
+            glb = getattr(survey, 'glbTransform', None)
+            if glb is not None:
+                m11 = glb.m11(); m12 = glb.m12()
+                m21 = glb.m21(); m22 = glb.m22()
+                tdx = glb.dx();  tdy = glb.dy()
+                Xn = m11 * X + m21 * Y + tdx
+                Yn = m12 * X + m22 * Y + tdy
+                X, Y = Xn, Yn
+        Z = np.full_like(X, 1.0)
+
+        # Build per-face RGBA colours. ``plot_surface`` uses
+        # ``facecolors`` of shape (M-1, N-1) when X/Y/Z are (M, N).
+        levels = analysisImage.get('levels', (0.0, 1.0))
+        try:
+            lo = float(levels[0]); hi = float(levels[1])
+        except (TypeError, ValueError, IndexError):
+            lo, hi = 0.0, 1.0
+        if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+            hi = lo + 1.0
+        nanMask = ~np.isfinite(img)
+        norm = (img - lo) / (hi - lo)
+        norm = np.clip(norm, 0.0, 1.0)
+        norm[nanMask] = 0.0
+
+        try:
+            import matplotlib.cm as cm
+            cmapName = analysisImage.get('colorMap', 'viridis') or 'viridis'
+            try:
+                cmap = cm.get_cmap(cmapName)
+            except (ValueError, KeyError):
+                cmap = cm.get_cmap('viridis')
+        except Exception:                                       # pragma: no cover
+            return
+        colors = cmap(norm)
+        # Fully transparent on no-data cells so the analysis-area fill
+        # underneath shows through (matches 2D appearance).
+        colors[nanMask, 3] = 0.0
+
+        surf = self._axes.plot_surface(
+            X, Y, Z,
+            facecolors=colors,
+            shade=False,
+            linewidth=0.0,
+            antialiased=False,
+            rstride=1, cstride=1,
+        )
+        try:
+            surf.set_clip_on(False)
+        except AttributeError:                                  # pragma: no cover
+            pass
+        self._artists.append(surf)
 
     def _rectCornersInActiveCrs(self, rect, survey, useGlobal):
         """Convert a ``QRectF`` (survey-local) to a ``(4, 2)`` ndarray
