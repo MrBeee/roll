@@ -2,11 +2,11 @@ D:\QGis\MyPlugins\roll\Refactoring_roadmap.txt
 
 **Refactoring Roadmap**
 
-Updated for the current codebase on 2026-04-27.
+Updated for the current codebase on 2026-04-28.
 
 The broad direction is still the same: keep persistence, import/QC logic, mutable session/runtime state, and worker lifecycle concerns out of `roll_main_window.py`, then clean up plotting/redraw boundaries before touching worker contracts or performance.
 
-This document reflects the live codebase after the `SessionState`, `SessionService`, `ImportService`, `AppSettings`, `RuntimeState`, `DocumentContextService`, `ProjectService`, `ProjectLoadApplier`, `WorkerOperationController`, `worker_result_appliers`, legacy-sidecar compatibility, offset-tab extraction, broader plot-interaction/status-bar cleanup work, the well survey-context cleanup, the seed/well parameter-state and creation-helper extractions, the remaining parameter-child wiring cleanup in `my_parameters.py`, the follow-up project-load layout-helper reuse, the MRU-owner cleanup in `SessionService`, the archiving of the last obvious legacy worker scaffolding, and the follow-up move of the live Well-file directory propagation behavior into `PropertyPanelController`.
+This document reflects the live codebase after the `SessionState`, `SessionService`, `ImportService`, `AppSettings`, `RuntimeState`, `DocumentContextService`, `ProjectService`, `ProjectLoadApplier`, `WorkerOperationController`, `worker_result_appliers`, legacy-sidecar compatibility, offset-tab extraction, broader plot-interaction/status-bar cleanup work, the well survey-context cleanup, the seed/well parameter-state and creation-helper extractions, the remaining parameter-child wiring cleanup in `my_parameters.py`, the follow-up project-load layout-helper reuse, the MRU-owner cleanup in `SessionService`, the archiving of the last obvious legacy worker scaffolding, the follow-up move of the live Well-file directory propagation behavior into `PropertyPanelController`, and the opt-in matplotlib-based `3D Subset` surface in the Layout tab.
 
 It also reflects the current UI split more accurately than the previous version: tab construction is no longer only an O/A-specific extraction. The layout, pattern, geometry, SPS, trace-table, stack-response, offset-inline/xline, and O/A tab builders already live in separate `roll_main_window_create_*_tab.py` modules. What still remains in `roll_main_window.py` is the heavier plot-input computation, widget mutation, plot-interaction behavior, and surface-specific controller flow.
 
@@ -123,10 +123,11 @@ Completed or substantially landed:
 106. The obvious worker cleanup tail has narrowed materially: the generic `binningResultThreadFinished()` compatibility wrapper is gone, and `worker_threads.py` now contains only the live typed workers while older thread/example scaffolding lives in `__archive__/worker_threads_old_methods.py`.
 107. Well-file browsing state is now part of the runtime document context: `RuntimeState` and `settings.py` persist `wellDirectory`, property-tree items receive that context explicitly, and changing a `Well file` field updates the shared directory for the active parameter tree.
 108. The remaining Well-file directory propagation seam is no longer handled inline in `RollMainWindow.propertyTreeStateChanged()`: `PropertyPanelController` now owns the guard and update path, with direct regression coverage for both matching and non-matching tree-change events.
+109. The Layout tab now has an opt-in matplotlib-based `3D Subset` view with lazy widget construction, safe fallback when matplotlib is unavailable, local/global coordinate sync, seed / plane / sphere rendering, spider-overlay support, and lifecycle wiring that keeps it synchronized with Layout redraws and property edits while remaining opt-in per session.
 
 Still unfinished:
-1. Worker launch and completion contracts are explicit on the main paths, and the obvious legacy scaffolding cleanup is now done; only measured payload or transport simplifications remain worth considering later, and only if profiling justifies them.
-2. A few plotting paths still contain controller-owned details, but the main Phase 5 redraw seams are now in place.
+1. Worker launch and completion contracts are explicit on the main paths, and the obvious legacy scaffolding cleanup is now done; the concrete remaining binning-track question is now whether the identical-semantics `binFromGeometry10()` optimization should replace `binFromGeometry8()` behind a guarded dispatch, while the semantically divergent `binFromGeometry9()` path should either stay explicitly experimental or move to archive/reference status.
+2. A few plotting paths still contain controller-owned details, but the main Phase 5 redraw seams are now in place; the new `3D Subset` surface also remains lightly protected by tests and should be treated as an active layout-analysis seam rather than a finished, fully-covered subsystem.
 3. `config.py` still serves as a broad shared constants/defaults module; that is acceptable for now, but it can be split by concern later if clearer module boundaries are wanted.
 4. The previous well/CRS fallback concern is largely resolved; only routine cleanup remains if any residual callers still pass explicit survey context unnecessarily.
 5. The offset-gap empty-analysis edge case is now covered: `calcOffsetGapValues()` guards the all-empty path and has a direct regression, so the remaining follow-up there is only routine protection if another offset-gap surface behavior is added.
@@ -135,8 +136,8 @@ Still unfinished:
 **Recommended Order From Here**
 
 1. Keep the preserved reference implementations in `roll_survey.py` out of routine cleanup scope unless a change is specifically about comparing or replacing live algorithms.
-2. Prefer the next focused refactor in the layout-analysis surface seam, not in `roll_survey.py`: the recent offset-gap addition made the remaining image-selection, status-text, and export routing in `roll_main_window.py` even more metadata-driven and therefore a better small extraction target than another parameter-tree move.
-3. Keep `binFromGeometry8()` stable for the moment unless a new correctness issue appears; the main live geometry/binning helper boundaries there are now in place.
+2. Prefer the next focused refactor in the layout-analysis surface seam, not in `roll_survey.py`: the remaining image-selection, status-text, export routing, and the newly landed `3D Subset` view are all better small targets than another parameter-tree move.
+3. Keep `binFromGeometry8()` stable for the moment unless a new correctness issue appears; if the binning optimization track is revisited, compare and gate `binFromGeometry10()` rather than treating `binFromGeometry9()` as the next drop-in replacement.
 4. Revisit worker payload shape only if a measured simplification remains after the active geometry/binning layer is easier to reason about.
 5. Do performance work only after the structure stops moving.
 6. Treat any further `config.py` work as optional organization, not as the main architectural blocker.
@@ -167,10 +168,12 @@ What is already in place:
 14. Direct pattern-geometry coverage now proves legacy implicit pattern XML is normalized to three grow steps and that pattern-response arrays are built directly as `float32` arrays from the shared grid traversal.
 15. Direct property-panel regressions now prove the working-copy path goes through `survey.deepcopy()` and that `applyPropertyChanges()` preserves or clears analysis caches correctly based on the bin-area-changed boundary.
 16. Direct well-transform regressions now prove `RollWell.readHeader()` preserves identity-transform coordinates and applies the inverse global survey transform when deriving local well coordinates.
+17. Direct bin-equivalence coverage now proves `binFromGeometry10()` matches `binFromGeometry8()` semantics on the pinned cases and explicitly documents that `binFromGeometry9()` is not a drop-in-equivalent optimization path.
 
 What is still worth adding here:
 1. Add only further geometry-generation tests if they cover a new live-path correctness seam beyond the existing minimal and rolled-template cases.
 2. A small reusable project fixture that includes a valid `.roll` plus minimal sidecars, if repeated setup starts to spread further.
+3. A narrow direct smoke/math test seam for the `3D Subset` helpers (`Layout3DWidget` bbox/transform/spider preparation) if 3D work continues; that feature currently has only indirect coverage through higher-level layout paths.
 
 Exit criteria:
 1. Project persistence and filter behavior are protected.
@@ -281,7 +284,7 @@ Already met enough for the current milestone:
 **Phase 5 - Plot and Redraw Service**
 
 Status:
-Substantially complete for the current milestone. The redraw/controller slice now has helper-owned invalidation and cache reuse, O/A and offset both follow explicit preparation-versus-render boundaries, the remaining stack-response controller cluster now lives in `StackResponseController`, layout image/colorbar duplication has been reduced with a smaller helper that does not pull layout into the full redraw-policy model, and generic plot mouse/status handling now sits behind shared helpers instead of being layout-only wiring.
+Substantially complete for the current milestone. The redraw/controller slice now has helper-owned invalidation and cache reuse, O/A and offset both follow explicit preparation-versus-render boundaries, the remaining stack-response controller cluster now lives in `StackResponseController`, layout image/colorbar duplication has been reduced with a smaller helper that does not pull layout into the full redraw-policy model, generic plot mouse/status handling now sits behind shared helpers instead of being layout-only wiring, and the Layout tab now also hosts an opt-in matplotlib-based `3D Subset` surface as part of the broader layout-analysis seam.
 
 Goal:
 Separate domain changes from redraw policy, image preparation, and colorbar wiring.
@@ -326,12 +329,14 @@ What has landed:
 25. `ActionStateController` now owns the previously inline action/menu state seam: representative menu/button enablement, processing-menu gating, focus-based edit routing, clipboard-aware plot-copy fallback, and active-plot lookup for print/copy helpers all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
 26. `PrintPresentationController` now owns the previously inline print/export presentation seam: print-preview dialog setup, XML-versus-plot print routing, plot-to-printer page layout/header rendering, and PDF export output-device configuration all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
 27. Worker orchestration is now also past the earlier Phase 5 boundary assumptions: the mixin delegates launch/cancel/shutdown rules to `WorkerOperationController`, and result application is split into dedicated appliers rather than being left as one large completion branch.
+28. The Layout tab now supports an opt-in matplotlib-based `3D Subset` page with lazy construction, safe fallback when matplotlib is unavailable, explicit 2D/3D stacked switching, refresh hooks from layout/property updates, local/global coordinate sync, and a separate `layout_3D.py` implementation that keeps the 3D rendering concerns out of `roll_main_window.py`.
 
 What remains in this phase:
 1. Keep the helper boundary small unless a new repeated redraw-policy concern appears; do not expand it just to move code mechanically.
 2. Add only the remaining high-value regressions that materially protect later worker-boundary refactors.
 3. Treat further plotting cleanup in this phase as optional polish, not the main architectural blocker anymore.
-4. The small document-tab focus/selection tail around `onMainTabChange()` and `find()` is still not a worthwhile controller extraction target by itself, and the previously stronger property-panel survey edit/apply seam has now already been moved as one coherent unit.
+4. Add direct test coverage for the `3D Subset` helper logic if that surface keeps evolving; today it is integrated and working, but still mostly protected by manual verification and indirect layout tests.
+5. The small document-tab focus/selection tail around `onMainTabChange()` and `find()` is still not a worthwhile controller extraction target by itself, and the previously stronger property-panel survey edit/apply seam has now already been moved as one coherent unit.
 
 Exit criteria:
 1. Data mutations no longer directly decide full redraw policy in many places.
@@ -348,13 +353,14 @@ Goal:
 Make worker inputs and outputs explicit, smaller, and easier to validate.
 
 Current note:
-The narrow vertical-slice migration has landed for the three main launch paths: binning from templates, binning from geometry/imported SPS, and geometry creation from templates. The converted workers now emit typed results, use a no-argument `finished()` signal, avoid redundant array copies in the result payload, carry geometry profiling as one explicit optional sub-payload, and have direct worker-level plus consumer-boundary regressions on the converted binning paths. The orchestration layer is also more explicit than before: `WorkerOperationController` owns job specs plus launch/cancel/shutdown flow, and `BinningResultApplier` / `GeometryResultApplier` own the apply paths. The obvious compatibility tail is now also smaller: the generic `binningResultThreadFinished()` shim is gone, and the old thread/example scaffolding has been moved out of the live worker module. The remaining work here is now only measured simplification, not another cleanup sprint. The old reference implementations still kept inside `roll_survey.py` should not be treated as part of this worker-cleanup scope unless a future optimization pass explicitly compares them with the live paths.
+The narrow vertical-slice migration has landed for the three main launch paths: binning from templates, binning from geometry/imported SPS, and geometry creation from templates. The converted workers now emit typed results, use a no-argument `finished()` signal, avoid redundant array copies in the result payload, carry geometry profiling as one explicit optional sub-payload, and have direct worker-level plus consumer-boundary regressions on the converted binning paths. The orchestration layer is also more explicit than before: `WorkerOperationController` owns job specs plus launch/cancel/shutdown flow, and `BinningResultApplier` / `GeometryResultApplier` own the apply paths. The obvious compatibility tail is now also smaller: the generic `binningResultThreadFinished()` shim is gone, and the old thread/example scaffolding has been moved out of the live worker module. The remaining work here is now only measured simplification, not another cleanup sprint. The important nuance is that the live optimization candidates are no longer one-dimensional: `binFromGeometry9()` exists but is intentionally semantically divergent from `binFromGeometry8()`, while `binFromGeometry10()` is the path already pinned by equivalence tests as an identical-semantics optimization candidate. The old reference implementations still kept inside `roll_survey.py` should not be treated as part of this worker-cleanup scope unless a future optimization pass explicitly compares them with the live paths.
 
 Future direction:
 1. Keep worker inputs and outputs explicit on every converted path.
 2. Centralize result validation and shared completion behavior only where it removes real duplication.
 3. Keep trimming payload fields only when the completion handlers do not need them and the trim does not push derivation back into UI/controller code.
-4. Reduce XML round-tripping for internal worker handoff if profiling shows it matters.
+4. If the geometry-binning optimization track resumes, treat `binFromGeometry10()` as the candidate for guarded promotion and keep `binFromGeometry9()` clearly marked as experimental/reference unless its semantics are intentionally broadened to match the live path.
+5. Reduce XML round-tripping for internal worker handoff if profiling shows it matters.
 
 Exit criteria:
 1. Worker inputs and outputs are explicit and documented.
@@ -380,11 +386,14 @@ Do not optimize these speculatively. Measure them after the service boundaries a
 The earlier test list is outdated because several of those tests already exist.
 
 The best next tests are:
-1. one redraw regression only if another controller-owned invalidation seam is extracted beyond the current O/A and offset coverage,
-2. one higher-level runtime/session ownership regression only if another document/session seam moves out of `RollMainWindow` beyond the current file-path/MRU ownership,
-3. one small reusable project fixture follow-up only if test setup starts spreading further,
-4. one narrow layout-analysis regression only if another metadata consumer is added beyond the current selection/export/status coverage,
-5. one direct SPS parser/QC regression only when fixed-width parsing, batch reader control flow, or orphan-detection behavior changes again in `sps_io_and_qc.py`, or another schema-construction/domain-sync slice is extracted from `my_parameters.py`.
+1. one narrow direct `3D Subset` smoke/math test around `Layout3DWidget` helper logic (bbox selection, local/global transform handling, and spider depth preparation),
+2. one redraw regression only if another controller-owned invalidation seam is extracted beyond the current O/A and offset coverage,
+3. one higher-level runtime/session ownership regression only if another document/session seam moves out of `RollMainWindow` beyond the current file-path/MRU ownership,
+4. one small reusable project fixture follow-up only if test setup starts spreading further,
+5. one direct SPS parser/QC regression only when fixed-width parsing, batch reader control flow, or orphan-detection behavior changes again in `sps_io_and_qc.py`, or another schema-construction/domain-sync slice is extracted from `my_parameters.py`,
+6. one Qt6/QGIS 4.0 smoke test that opens and uses the larger table-model views in `table_model_view.py`, especially the `QVariant`-backed display/background/foreground paths,
+7. one Qt6/QGIS 4.0 smoke test that exercises QGIS layer import/export flows in `qgis_interface.py`, including the layer-selection dialog and exported-layer field/schema paths,
+8. one follow-up migration triage item to capture and pin any remaining runtime-only traceback from those lower-traffic Qt6 paths before treating the migration as fully settled.
 
 **Outdated Items From The Previous Roadmap**
 
@@ -411,12 +420,12 @@ The following items should now be considered completed or reordered:
 **Recommended Next Step**
 
 If choosing one next step only, do this:
-1. Keep the SPS parser/file-reader seam stable and move to the next non-SPS extraction target; the direct fixed-width parser safety nets and batch file-reader safety nets are now in place, and the shared batch-reader loop has already been extracted.
+1. Add a narrow direct test seam for the new `3D Subset` helper logic, then return to the remaining layout-analysis surface cleanup instead of opening another broad refactor track.
 
 Why:
 1. The active geometry-generation path, live localization seam, live bin-update seam, and live completion tail in `roll_survey.py` now all have direct regression coverage and extracted helper boundaries.
 2. Recent regressions came from parameter-tree coupling, and the lower-level state/default/wiring duplication in `my_parameters.py` has now been reduced further, including the preview-item setup/update seams, the preview text/error-state helpers, two shared constructor clusters, the pattern-list synchronization callbacks, four higher-level `MySeedParameter` coordination slices, the repeated block/template seed traversal, the remaining pattern-list side-effect bundle, the repeated `MyWellParameter` sampling/header flow, the repeated circle/spiral apply flow, the repeated local/global grid apply flow, the repeated bin-angle apply flow, the repeated bin-offset normalization/apply flow, the repeated unique-offset apply flow, the repeated reflector aggregate apply flow, the repeated analysis aggregate apply flow, the repeated block/template aggregate apply flow, the repeated roll-list apply flow, the repeated roll-parameter XYZ apply flow, the repeated configuration apply flow, the repeated well-header attribute-change flow, and the repeated seed-type routing and refresh flows.
-3. The obvious worker cleanup tail is already substantially done, the Well-file property-panel seam has landed, and the layout-analysis surface metadata seam now has centralized selection/export/status ownership with direct regressions.
+3. The obvious worker cleanup tail is already substantially done, the Well-file property-panel seam has landed, the layout-analysis surface metadata seam now has centralized selection/export/status ownership with direct regressions, and the new `3D Subset` feature is the most visible surface that still lacks direct tests.
 4. The SPS/RPS/XPS import slice is now at a deliberate stopping point: direct parser tests exist, direct file-reader tests exist, the duplicated batch loop is extracted, and `readRpsLine()` / `readSpsLine()` were intentionally not unified because SPS parsing is expected to evolve independently from RPS parsing.
 
 After that, the next step should be:

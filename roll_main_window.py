@@ -430,8 +430,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # See also: https://doc.qt.io/qt-6/designer-using-a-ui-file-python.html
         # See: https://docs.qgis.org/3.22/en/docs/documentation_guidelines/substitutions.html#toolbar-button-icons for QGIS Icons
         self.setupUi(self)
-        createDisplayDock(self)
-        createLoggingDock(self)
 
         # reset GUI when the plugin is restarted (not when restarted from minimized state on windows)
         self.killMe = False
@@ -593,6 +591,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.analysisTabWidget.setTabShape(QTabWidget.TabShape.Rounded)
         self.analysisTabWidget.setDocumentMode(False)                           # has only effect on OSX ?!
         self.analysisTabWidget.resize(300, 200)
+
+        # Install the real central widget before registering any custom docks.
+        # Qt6 is less tolerant of replacing the Designer placeholder widget
+        # after dock widgets have already been added to the main window.
+        self.setCentralWidget(self.mainTabWidget)
+        createDisplayDock(self)
+        createLoggingDock(self)
 
         # See: https://stackoverflow.com/questions/69152935/adding-the-same-object-to-a-qtabwidget
         # See: pyqtgraph/examples/RemoteSpeedTest.py to keep gui responsive when updating a plot (uses multiprocessing)
@@ -832,9 +837,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.updateMenuStatus(True)                                             # keep menu status in sync with program's state
         # self.enableProcessingMenuItems(True)                                  # enables processing menu items except 'stop processing thread'; done in resetSurveyProperties()
-
-        # make the main tab widget the central widget
-        self.setCentralWidget(self.mainTabWidget)
 
         self.posWidgetStatusbar = QLabel('(x, y): (0.00, 0.00)')
         self.statusbar.addPermanentWidget(self.posWidgetStatusbar, stretch=0)   # widget in bottomright corner of statusbar
@@ -1506,7 +1508,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 convertCrs(self.spsImport, self.spsLayer.crs(), self.survey.crs)
 
         if self.spsImport is None:
-            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer')
             return
 
         self.sessionService.refreshArrayState(self.sessionState, 'spsImport')
@@ -1531,7 +1533,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 convertCrs(self.rpsImport, self.rpsLayer.crs(), self.survey.crs)
 
         if self.rpsImport is None:
-            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer')
             return
 
         self.sessionService.refreshArrayState(self.sessionState, 'rpsImport')
@@ -1556,7 +1558,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 convertCrs(self.srcGeom, self.srcLayer.crs(), self.survey.crs)
 
         if self.srcGeom is None:
-            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer')
             return
 
         self.sessionService.refreshArrayState(self.sessionState, 'srcGeom')
@@ -1581,7 +1583,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 convertCrs(self.recGeom, self.recLayer.crs(), self.survey.crs)
 
         if self.recGeom is None:
-            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer', QMessageBox.StandardButton.Cancel)
+            QMessageBox.information(None, 'No features found', 'No valid features found in QGIS point layer')
             return
 
         self.sessionService.refreshArrayState(self.sessionState, 'recGeom')

@@ -1226,7 +1226,7 @@ class MyBlockParameter(MyGroupParameter):
                 parent,
                 parent.blockList,
                 index,
-                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected block ?', QMessageBox.Yes, QMessageBox.No) == QMessageBox.Yes,
+                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected block ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes,
             )
 
         elif name == 'moveUp':
@@ -1334,7 +1334,7 @@ class MyTemplateParameter(MyGroupParameter):
                 parent,
                 parent.templateList,
                 index,
-                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected template ?', QMessageBox.Yes, QMessageBox.No) == QMessageBox.Yes,
+                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected template ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes,
             )
 
         elif name == 'moveUp':
@@ -1871,7 +1871,7 @@ class MySeedParameter(MyGroupParameter):
                 parent,
                 parent.seedList,
                 index,
-                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected seed ?', QMessageBox.Yes, QMessageBox.No) == QMessageBox.Yes,
+                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected seed ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes,
             )
 
         elif name == 'moveUp':
@@ -1976,7 +1976,7 @@ class MyPatternSeedParameter(MyGroupParameter):
                 parent,
                 parent.seedList,
                 index,
-                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected seed ?', QMessageBox.Yes, QMessageBox.No) == QMessageBox.Yes,
+                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected seed ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes,
             )
 
         elif name == 'moveUp':
@@ -2435,7 +2435,7 @@ class MyPatternParameter(MyGroupParameter):
                 parent,
                 parent.patternList,
                 index,
-                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected pattern ?', QMessageBox.Yes, QMessageBox.No) == QMessageBox.Yes,
+                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected pattern ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes,
                 afterRemove=lambda removedIndex: applyPatternRemovalSideEffects(parent, removedIndex),
             )
 

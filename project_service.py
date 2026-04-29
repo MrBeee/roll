@@ -181,7 +181,7 @@ class ProjectService:
 
         return ArraySidecarResult(exists=result.exists, valid=True, array=array, errorText=result.errorText)
 
-    def openAnalysisMemmap(self, fileName, shape, mode='r+'):
+    def openAnalysisMemmap(self, fileName, shape, mode='r+', allowCopyOnWriteFallback=False):
         path = self.sidecarPath(fileName, '.ana.npy')
         if not os.path.exists(path):
             return AnalysisMemmapResult(success=False, errorText='missing-file')
@@ -189,10 +189,20 @@ class ProjectService:
         try:
             memmap = np.memmap(path, dtype=np.float32, mode=mode, shape=shape)
             an2Output = memmap.reshape(shape[0] * shape[1] * shape[2], shape[3])
-        except (OSError, PermissionError, ValueError) as exc:
-            return AnalysisMemmapResult(success=False, errorText=str(exc))
+            return AnalysisMemmapResult(success=True, memmap=memmap, an2Output=an2Output)
+        except PermissionError as exc:
+            if not allowCopyOnWriteFallback or mode != 'r+':
+                return AnalysisMemmapResult(success=False, errorText=str(exc))
 
-        return AnalysisMemmapResult(success=True, memmap=memmap, an2Output=an2Output)
+            try:
+                memmap = np.memmap(path, dtype=np.float32, mode='c', shape=shape)
+                an2Output = memmap.reshape(shape[0] * shape[1] * shape[2], shape[3])
+            except (OSError, PermissionError, ValueError) as fallbackExc:
+                return AnalysisMemmapResult(success=False, errorText=str(fallbackExc))
+
+            return AnalysisMemmapResult(success=True, memmap=memmap, an2Output=an2Output, errorText=str(exc))
+        except (OSError, ValueError) as exc:
+            return AnalysisMemmapResult(success=False, errorText=str(exc))
 
     def saveAnalysisSidecars(self, fileName, output, includeHistograms=False):
         if not fileName:
@@ -339,10 +349,17 @@ class ProjectService:
         result.analysisFold = fold
         self._appendMessage(result, 'info', f'Analysis load: fold={fold}, maxFold={result.maximumFold}')
 
-        memmapResult = self.openAnalysisMemmap(fileName, (nx, ny, fold, 13), mode='r+')
+        memmapResult = self.openAnalysisMemmap(fileName, (nx, ny, fold, 13), mode='r+', allowCopyOnWriteFallback=True)
         if not memmapResult.success:
             self._appendMessage(result, 'error', f'Loaded : . . . Analysis &nbsp;: read error {fileName + ".ana.npy"}. {memmapResult.errorText}')
             return
+
+        if memmapResult.memmap.mode == 'c':
+            self._appendMessage(
+                result,
+                'warning',
+                f'Loaded : . . . Analysis &nbsp;: opened copy-on-write because writable access was denied for {fileName + ".ana.npy"}. Trace records are available, but in-memory edits will not be saved. {memmapResult.errorText}',
+            )
 
         nT = memmapResult.memmap.size
         expected = nx * ny * fold * 13

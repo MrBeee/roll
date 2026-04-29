@@ -4,10 +4,9 @@ from collections import deque
 
 import numpy as np
 import pyqtgraph as pg
-from qgis.PyQt.QtCore import (QAbstractTableModel, QEvent, Qt, QVariant,
-                              pyqtSignal)
+from qgis.PyQt.QtCore import (QAbstractTableModel, QEvent, QItemSelectionModel,
+                              Qt, QVariant, pyqtSignal)
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QKeySequence
-from qgis.PyQt.QtCore import QItemSelectionModel
 from qgis.PyQt.QtWidgets import (QAbstractItemView, QApplication, QMenu,
                                  QMessageBox, QTableView)
 
@@ -532,7 +531,7 @@ class TableView(QTableView):
             return False
 
         if self.model().rowCount(0) > 100_000:
-            QMessageBox.warning(self, 'Select all', 'You want to select more than 100,000 records\nPlease use File->Export to export all records and make your selection in a text editor', QMessageBox.Close)
+            QMessageBox.warning(self, 'Select all', 'You want to select more than 100,000 records\nPlease use File->Export to export all records and make your selection in a text editor')
             return False
 
         # See: https://github.com/NextSaturday/myQT/blob/main/tSelection/tSelection/tSelection.cpp for alternative solution

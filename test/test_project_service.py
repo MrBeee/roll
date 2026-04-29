@@ -3,6 +3,7 @@ import gc
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 import numpy as np
 from qgis.PyQt.QtCore import QRectF
@@ -179,6 +180,36 @@ class ProjectServiceTest(unittest.TestCase):
             self.assertTrue(result.success)
             self.assertEqual(result.memmap.shape, shape)
             self.assertEqual(result.an2Output.shape, (shape[0] * shape[1] * shape[2], shape[3]))
+
+            result.memmap.flush()
+            del result
+            del memmap
+            gc.collect()
+
+    def testOpenAnalysisMemmapFallsBackToCopyOnWriteWhenWritableOpenIsDenied(self):
+        service = ProjectService()
+        shape = (2, 3, 1, 13)
+        originalMemmap = projectServiceModule.np.memmap
+
+        with tempfile.TemporaryDirectory() as tempDir:
+            projectPath = os.path.join(tempDir, 'project_service.roll')
+            path = service.sidecarPath(projectPath, '.ana.npy')
+            memmap = originalMemmap(path, dtype=np.float32, mode='w+', shape=shape)
+            memmap.fill(3.0)
+            memmap.flush()
+
+            def fakeMemmap(fileName, dtype, mode, shape):
+                if mode == 'r+':
+                    raise PermissionError(13, 'Permission denied', fileName)
+                return originalMemmap(fileName, dtype=dtype, mode=mode, shape=shape)
+
+            with mock.patch.object(projectServiceModule.np, 'memmap', side_effect=fakeMemmap):
+                result = service.openAnalysisMemmap(projectPath, shape, mode='r+', allowCopyOnWriteFallback=True)
+
+            self.assertTrue(result.success)
+            self.assertEqual(result.memmap.mode, 'c')
+            self.assertEqual(result.an2Output.shape, (shape[0] * shape[1] * shape[2], shape[3]))
+            self.assertIn('Permission denied', result.errorText)
 
             result.memmap.flush()
             del result

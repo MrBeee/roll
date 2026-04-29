@@ -177,7 +177,9 @@ class Layout3DWidget(QWidget):
     def updateFromSurvey(self, survey, useGlobal: bool = False,
                          showSeedPoints: bool = False,
                          dataPoints=None,
-                         spiderData=None):
+                         spiderData=None,
+                         binArea=None,
+                         blockAreas=None):
         """Render the 3D scene from a ``RollSurvey``.
 
         Draws (in order, only when applicable):
@@ -274,6 +276,31 @@ class Layout3DWidget(QWidget):
                 xMax = max(xMax, float(pts[:, 0].max()))
                 yMin = min(yMin, float(pts[:, 1].min()))
                 yMax = max(yMax, float(pts[:, 1].max()))
+        # Expand the bbox to include the analysis (binning) area corners
+        # so the rectangle stays inside the camera view even when it
+        # extends beyond the SPS / template footprint.
+        analysisCorners = self._analysisAreaCorners(survey, useGlobal, binArea)
+        if analysisCorners is not None:
+            ax_, ay_ = analysisCorners[:, 0], analysisCorners[:, 1]
+            xMin = min(xMin, float(ax_.min()))
+            xMax = max(xMax, float(ax_.max()))
+            yMin = min(yMin, float(ay_.min()))
+            yMax = max(yMax, float(ay_.max()))
+        # Per-block CMP / Source / Receiver areas. Mirrors the 2D paint
+        # path in ``RollSurvey.paint``: each block contributes three
+        # rectangles (when their ``actionShow*Area`` toggles are on and
+        # ``actionTemplates`` is checked). Always influence the bbox
+        # when present so the camera frame contains them.
+        blockAreaItems = self._blockAreaCorners(survey, useGlobal, blockAreas)
+        for item in blockAreaItems:
+            for corners in (item.get('cmp'), item.get('src'), item.get('rec')):
+                if corners is None:
+                    continue
+                bx, by = corners[:, 0], corners[:, 1]
+                xMin = min(xMin, float(bx.min()))
+                xMax = max(xMax, float(bx.max()))
+                yMin = min(yMin, float(by.min()))
+                yMax = max(yMax, float(by.max()))
         zMax = 0.0
         # Cache the data-driven Z range so scroll-zoom can keep the
         # depth axis pinned to the actual data extent.
@@ -393,6 +420,29 @@ class Layout3DWidget(QWidget):
                     self._drawBinningSphere(survey, useGlobal)
             except Exception:                                   # pragma: no cover
                 # Drawing failures must never break the tab.
+                pass
+
+        # Per-block CMP / Source / Receiver areas drawn just below
+        # the binning area. Order matches the 2D paint path (rec, then
+        # src, then cmp) and the heights stagger 0.85 / 0.90 / 0.95 so
+        # the translucent fills don't fight at z = 1.0 with the
+        # analysis (binning) area on top.
+        if blockAreas is not None and blockAreas.get('visible', False) and blockAreaItems:
+            try:
+                self._drawBlockAreas(blockAreaItems, blockAreas)
+                zMax = max(zMax, 0.95)
+            except Exception:                                   # pragma: no cover
+                pass
+
+        # Analysis (binning) area as a horizontal quad at z = 1 m. Drawn
+        # whenever ``binArea`` is supplied and visible -- the host
+        # window switches it off when "Analysis to display" is set to
+        # "None". Uses the same colour / pen styling as the 2D plot.
+        if analysisCorners is not None and binArea is not None and binArea.get('visible', False):
+            try:
+                self._drawAnalysisArea(analysisCorners, binArea)
+                zMax = max(zMax, 1.0)
+            except Exception:                                   # pragma: no cover
                 pass
 
         # Spider overlay (red src->cmp / blue rec->cmp ray segments).
@@ -680,6 +730,151 @@ class Layout3DWidget(QWidget):
             arr[:, 0] = nx
             arr[:, 1] = ny
         return arr
+
+    def _analysisAreaCorners(self, survey, useGlobal, binArea):
+        """Return the four 3D corners of ``survey.output.rctOutput`` as an
+        ``(4, 2)`` ``np.ndarray`` of (x, y) pairs in the active coordinate
+        system, or ``None`` if the rect is invalid or not present.
+
+        The corners are returned regardless of ``binArea`` visibility so
+        the bbox can include them whenever they exist (mirrors how the
+        other geometry items always influence the camera box).
+        """
+        del binArea                                                             # consulted by caller; corners themselves are visibility-agnostic
+        try:
+            rect = survey.output.rctOutput
+        except AttributeError:
+            return None
+        if rect is None or not rect.isValid():
+            return None
+        pts = [
+            (rect.left(),  rect.top()),
+            (rect.right(), rect.top()),
+            (rect.right(), rect.bottom()),
+            (rect.left(),  rect.bottom()),
+        ]
+        if useGlobal:
+            glb = getattr(survey, 'glbTransform', None)
+            if glb is not None:
+                mapped = []
+                for x, y in pts:
+                    p = glb.map(QPointF(float(x), float(y)))
+                    mapped.append((p.x(), p.y()))
+                pts = mapped
+        return np.asarray(pts, dtype=np.float64)
+
+    def _drawAnalysisArea(self, corners, binArea):
+        """Draw the binning area as a horizontal quad at z = 1 m.
+
+        ``corners`` is the ``(4, 2)`` array returned by
+        ``_analysisAreaCorners``. ``binArea`` is a dict carrying the
+        face / edge styling translated from ``appSettings.binAreaColor``
+        and ``appSettings.binAreaPen`` by the host window.
+        """
+        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+        zHeight = 1.0
+        verts = [[(float(x), float(y), zHeight) for x, y in corners]]
+
+        faceColor = binArea.get('faceColor', (0.0, 0.0, 0.0, 0.125))
+        edgeColor = binArea.get('edgeColor', (0.0, 0.0, 0.0, 1.0))
+        edgeWidth = float(binArea.get('edgeWidth', 2.0))
+        edgeStyle = binArea.get('edgeStyle', '--')
+
+        poly = Poly3DCollection(verts, facecolor=faceColor,
+                                edgecolor=edgeColor,
+                                linewidths=edgeWidth,
+                                linestyles=edgeStyle)
+        # Disable artist-level clipping so the rectangle's outline isn't
+        # trimmed when its corners coincide with the axis-box edges.
+        poly.set_clip_on(False)
+        self._axes.add_collection3d(poly)
+        self._artists.append(poly)
+
+    def _rectCornersInActiveCrs(self, rect, survey, useGlobal):
+        """Convert a ``QRectF`` (survey-local) to a ``(4, 2)`` ndarray
+        in the active CRS, mapping through ``glbTransform`` when
+        ``useGlobal`` is True. Returns ``None`` for invalid rects.
+        """
+        if rect is None or not rect.isValid():
+            return None
+        pts = [
+            (rect.left(),  rect.top()),
+            (rect.right(), rect.top()),
+            (rect.right(), rect.bottom()),
+            (rect.left(),  rect.bottom()),
+        ]
+        if useGlobal:
+            glb = getattr(survey, 'glbTransform', None)
+            if glb is not None:
+                pts = [(glb.map(QPointF(float(x), float(y))).x(),
+                        glb.map(QPointF(float(x), float(y))).y())
+                       for x, y in pts]
+        return np.asarray(pts, dtype=np.float64)
+
+    def _blockAreaCorners(self, survey, useGlobal, blockAreas):
+        """Return a list of dicts -- one per block in ``survey.blockList``
+        -- holding the cmp / src / rec rect corners as ``(4, 2)``
+        ndarrays in the active CRS. Visibility-agnostic so callers can
+        always extend the bbox to enclose them.
+
+        ``blockAreas`` is consulted only to short-circuit the walk when
+        the master toggle is off (i.e. ``actionTemplates`` is
+        unchecked). Per-area visibility is decided at draw time.
+        """
+        if blockAreas is None or not blockAreas.get('visible', False):
+            return []
+        blockList = getattr(survey, 'blockList', None) or []
+        items = []
+        for block in blockList:
+            cmpRect = getattr(block, 'cmpBoundingRect', None)
+            srcRect = getattr(block, 'srcBoundingRect', None)
+            recRect = getattr(block, 'recBoundingRect', None)
+            items.append({
+                'cmp': self._rectCornersInActiveCrs(cmpRect, survey, useGlobal),
+                'src': self._rectCornersInActiveCrs(srcRect, survey, useGlobal),
+                'rec': self._rectCornersInActiveCrs(recRect, survey, useGlobal),
+            })
+        return items
+
+    def _drawBlockAreas(self, blockAreaItems, blockAreas):
+        """Draw the per-block CMP / Source / Receiver rectangles as
+        horizontal translucent quads. Heights stagger so the fills
+        don't fight at z = 1 m where the analysis area sits.
+
+        ``blockAreas`` carries three sub-dicts (``cmp`` / ``src`` /
+        ``rec``), each with ``visible`` / ``faceColor`` / ``edgeColor``
+        / ``edgeWidth`` / ``edgeStyle`` keys translated from the
+        ``appSettings.{cmp,src,rec}AreaColor`` and matching pens.
+        """
+        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+        # Paint order matches RollSurvey.paint: rec -> src -> cmp.
+        spec = (
+            ('rec', 0.85),
+            ('src', 0.90),
+            ('cmp', 0.95),
+        )
+        for key, zHeight in spec:
+            sub = blockAreas.get(key)
+            if sub is None or not sub.get('visible', False):
+                continue
+            faceColor = sub.get('faceColor', (0.0, 0.0, 0.0, 0.03))
+            edgeColor = sub.get('edgeColor', (0.0, 0.0, 0.0, 1.0))
+            edgeWidth = float(sub.get('edgeWidth', 1.0))
+            edgeStyle = sub.get('edgeStyle', '-.')
+            for item in blockAreaItems:
+                corners = item.get(key)
+                if corners is None:
+                    continue
+                verts = [[(float(x), float(y), zHeight) for x, y in corners]]
+                poly = Poly3DCollection(verts, facecolor=faceColor,
+                                        edgecolor=edgeColor,
+                                        linewidths=edgeWidth,
+                                        linestyles=edgeStyle)
+                poly.set_clip_on(False)
+                self._axes.add_collection3d(poly)
+                self._artists.append(poly)
 
     def _drawBinningPlane(self, survey, useGlobal, xMin, xMax, yMin, yMax):
         """Render the dipping plane as a translucent quad over the bbox."""

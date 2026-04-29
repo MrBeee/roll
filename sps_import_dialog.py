@@ -545,12 +545,12 @@ class SpsImportDialog(QDialog):
         """Handle changes in the selected CRS."""
 
         if not crs.isValid():
-            QMessageBox.warning(None, 'Invalid CRS', 'An invalid coordinate system has been selected', QMessageBox.Ok)
+            QMessageBox.warning(None, 'Invalid CRS', 'An invalid coordinate system has been selected')
             self.crsWidget.setCrs(self.oldCrs)
             return
 
         if crs.isGeographic():
-            QMessageBox.warning(None, 'Invalid CRS', 'An invalid coordinate system has been selected\nGeographic (using lat/lon coordinates)', QMessageBox.Ok)
+            QMessageBox.warning(None, 'Invalid CRS', 'An invalid coordinate system has been selected\nGeographic (using lat/lon coordinates)')
             self.crsWidget.setCrs(self.oldCrs)
             return
 

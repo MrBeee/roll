@@ -1,8 +1,15 @@
+import re
+
 from pyqtgraph import functions as fn
-from pyqtgraph.parametertree import registerParameterType
-from pyqtgraph.parametertree.parameterTypes import PenParameter, PenParameterItem
+from pyqtgraph.parametertree import Parameter, registerParameterType
+from pyqtgraph.parametertree.parameterTypes import (PenParameter,
+                                                    PenParameterItem)
+from pyqtgraph.parametertree.parameterTypes.qtenum import QtEnumParameter
 from pyqtgraph.Qt import mkQApp
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QColor
+
+from .aux_functions import makePenFromParms
 
 
 class MyPenParameterItem(PenParameterItem):
@@ -57,6 +64,70 @@ class MyPenParameter(PenParameter):
     """
 
     itemClass = MyPenParameterItem
+
+    def __init__(self, **opts):
+        self._initialPenValue = opts.get('value', opts.get('default', None))
+        super().__init__(**opts)
+
+        if self._initialPenValue is not None:
+            self.pen = self.mkPen(self._initialPenValue)
+
+        self._initialPenValue = None
+
+    def _makeChildren(self, boundPen=None):
+        initialValue = getattr(self, '_initialPenValue', None)
+        if isinstance(initialValue, tuple) and len(initialValue) == 6:
+            optsPen = makePenFromParms(initialValue)
+        elif initialValue is not None:
+            optsPen = fn.mkPen(initialValue)
+        else:
+            optsPen = boundPen or fn.mkPen()
+
+        ps = Qt.PenStyle
+        cs = Qt.PenCapStyle
+        js = Qt.PenJoinStyle
+
+        param = Parameter.create(
+            name='Params',
+            type='group',
+            children=[
+                dict(name='color', type='color', value=optsPen.color(), default=optsPen.color()),
+                dict(name='width', type='int', limits=[0, None], value=optsPen.width(), default=optsPen.width()),
+                QtEnumParameter(ps, searchObj=Qt, name='style', value=optsPen.style(), default=optsPen.style()),
+                QtEnumParameter(cs, searchObj=Qt, name='capStyle', value=optsPen.capStyle(), default=optsPen.capStyle()),
+                QtEnumParameter(js, searchObj=Qt, name='joinStyle', value=optsPen.joinStyle(), default=optsPen.joinStyle()),
+                dict(name='cosmetic', type='bool', value=optsPen.isCosmetic(), default=optsPen.isCosmetic()),
+            ],
+        )
+
+        for p in param:
+            name = p.name()
+            if p.type() == 'bool':
+                attrName = f'is{name.title()}'
+            else:
+                attrName = name
+            default = getattr(optsPen, attrName)()
+            replace = r'\1 \2'
+            title = re.sub(r'(\w)([A-Z])', replace, name)
+            title = title.title().strip()
+            p.setOpts(title=title, default=default)
+
+        if boundPen is not None:
+            self.updateFromPen(param, boundPen)
+            for p in param:
+                setName = f'set{p.name()[0].upper()}{p.name()[1:]}'
+                setattr(boundPen, setName, p.setValue)
+                newSetter = self.penPropertySetter
+                if p.type() != 'color':
+                    p.sigValueChanging.connect(newSetter)
+                try:
+                    p.sigValueChanged.disconnect(p._emitValueChanged)
+                except RuntimeError:
+                    # The child parameter was freshly created here, so a full disconnect is safe.
+                    p.sigValueChanged.disconnect()
+                p.sigValueChanged.connect(newSetter)
+
+        return param
 
 
 registerParameterType('myPen', MyPenParameter, override=True)

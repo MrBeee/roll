@@ -13,8 +13,7 @@ from qgis.PyQt.QtWidgets import QMessageBox
 from .enums_and_int_flags import MsgType
 from .worker_operation_controller import WorkerOperationController
 from .worker_result_appliers import BinningResultApplier, GeometryResultApplier
-from .worker_threads import (BinFromGeometryWorker,
-                             BinningFromGeometryResult,
+from .worker_threads import (BinFromGeometryWorker, BinningFromGeometryResult,
                              BinningFromTemplatesResult, BinningWorker,
                              GeometryFromTemplatesResult, GeometryWorker)
 
@@ -186,7 +185,6 @@ class BinningWorkerMixin:
                 self,
                 'Please adjust',
                 "Applying 'Unique offsets' requires using a 'Full Binning' process, as it is implemented as a post-processing step on the trace table",
-                QMessageBox.StandardButton.Cancel,
             )
             return False
         return True
@@ -198,7 +196,6 @@ class BinningWorkerMixin:
                 'Please adjust',
                 "'Full Binning' requires selecting a max fold value > 0 in the 'local grid' settings, to allocate space for a memory mapped file.\n\n"
                 "You can determine the required max fold value by first running 'Basic Binning'",
-                QMessageBox.StandardButton.Cancel,
             )
             return False
 
@@ -207,7 +204,6 @@ class BinningWorkerMixin:
                 self,
                 'Please adjust',
                 "'Full Binning' requires saving this file first, to obtain a valid filename in a directory with write access.",
-                QMessageBox.StandardButton.Cancel,
             )
             return False
 

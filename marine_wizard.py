@@ -442,9 +442,9 @@ class Page1(SurveyWizardPage):
         vMax = maxTurnSpeedVsCableLength(cL)
         if vTurn > vMax:
             reply = QMessageBox.warning(
-                None, 'Excessive towing force', 'Line turn speed is too high for the current streamer length.\n Reduce streamer length to match line turn speed ?', QMessageBox.Yes, QMessageBox.No
+                None, 'Excessive towing force', 'Line turn speed is too high for the current streamer length.\n Reduce streamer length to match line turn speed ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No
             )
-            if reply == QMessageBox.Yes:
+            if reply == QMessageBox.StandardButton.Yes:
                 cLmax = maxCableLengthVsTurnSpeed(vTurn)
                 self.cabLength.setValue(cLmax)
                 self.vTurn.setValue(vTurn)
@@ -457,9 +457,9 @@ class Page1(SurveyWizardPage):
         cLmax = maxCableLengthVsTurnSpeed(vTurn)
         if cL > cLmax:
             reply = QMessageBox.warning(
-                None, 'Excessive towing force', 'Streamers are too long for the current line turn speed.\nReduce line turn speed to match streamer length ?', QMessageBox.Yes, QMessageBox.No
+                None, 'Excessive towing force', 'Streamers are too long for the current line turn speed.\nReduce line turn speed to match streamer length ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No
             )
-            if reply == QMessageBox.Yes:
+            if reply == QMessageBox.StandardButton.Yes:
                 vMax = maxTurnSpeedVsCableLength(cL)
                 self.vTurn.setValue(vMax)
                 self.cabLength.setValue(cL)

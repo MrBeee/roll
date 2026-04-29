@@ -196,4 +196,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     gui = ThreeDSXGUI()
     gui.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

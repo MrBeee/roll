@@ -1,6 +1,7 @@
 import traceback
 
 from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QFrame, QGroupBox,
                                  QHBoxLayout, QLabel, QSplitter,
                                  QStackedWidget, QToolButton, QVBoxLayout,
@@ -8,6 +9,100 @@ from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QFrame, QGroupBox,
 
 from .app_settings import isShowUnfinishedEnabled
 from .config import toolButtonStyle
+
+
+_QT_PEN_STYLE_TO_MPL = {
+    Qt.PenStyle.SolidLine: '-',
+    Qt.PenStyle.DashLine: '--',
+    Qt.PenStyle.DotLine: ':',
+    Qt.PenStyle.DashDotLine: '-.',
+    Qt.PenStyle.DashDotDotLine: (0, (3, 1, 1, 1, 1, 1)),
+    Qt.PenStyle.NoPen: 'None',
+}
+
+
+def _qColorToRgba(color):
+    """Convert a ``QColor`` (or ARGB hex string) to a normalized RGBA tuple."""
+    if not isinstance(color, QColor):
+        color = QColor(color)
+    if not color.isValid():
+        return (0.0, 0.0, 0.0, 0.125)
+    return (color.redF(), color.greenF(), color.blueF(), color.alphaF())
+
+
+def _qPenToMplStyle(pen):
+    """Translate a ``QPen`` to (edgeColor rgba, lineWidth, mpl linestyle)."""
+    edgeColor = _qColorToRgba(pen.color()) if pen is not None else (0.0, 0.0, 0.0, 1.0)
+    lineWidth = float(pen.widthF()) if pen is not None else 2.0
+    if lineWidth <= 0.0:
+        lineWidth = 1.0
+    style = _QT_PEN_STYLE_TO_MPL.get(pen.style(), '--') if pen is not None else '--'
+    return edgeColor, lineWidth, style
+
+
+def _buildBinAreaConfig(self):
+    """Build the ``binArea`` kwarg dict for ``Layout3DWidget.updateFromSurvey``.
+
+    Visibility mirrors the user request: the analysis area quad is
+    drawn whenever the *Analysis to display* group is set to anything
+    other than *None*. Colour / pen styling matches the 2D plot's
+    ``appSettings.binAreaColor`` / ``appSettings.binAreaPen``.
+    """
+    appSettings = getattr(self, 'appSettings', None)
+    if appSettings is None:
+        return None
+    tbNone = getattr(self, 'tbNone', None)
+    visible = True if tbNone is None else not tbNone.isChecked()
+    faceColor = _qColorToRgba(getattr(appSettings, 'binAreaColor', '#20000000'))
+    edgeColor, edgeWidth, edgeStyle = _qPenToMplStyle(
+        getattr(appSettings, 'binAreaPen', None)
+    )
+    return dict(
+        visible=visible,
+        faceColor=faceColor,
+        edgeColor=edgeColor,
+        edgeWidth=edgeWidth,
+        edgeStyle=edgeStyle,
+    )
+
+
+def _buildBlockAreasConfig(self):
+    """Build the ``blockAreas`` kwarg dict for the 3D widget.
+
+    The master ``visible`` flag is gated by ``actionTemplates``: when
+    templates aren't being shown in 2D, the per-block CMP / Source /
+    Receiver rectangles must be hidden in 3D as well. The three
+    sub-dicts mirror the ``actionShow{Cmp,Src,Rec}Area`` toggles and
+    pull colour / pen styling from ``appSettings``.
+    """
+    appSettings = getattr(self, 'appSettings', None)
+    if appSettings is None:
+        return None
+
+    actionTemplates = getattr(self, 'actionTemplates', None)
+    masterVisible = True if actionTemplates is None else actionTemplates.isChecked()
+
+    def _subDict(visibleAction, colorAttr, penAttr):
+        action = getattr(self, visibleAction, None)
+        visible = True if action is None else action.isChecked()
+        faceColor = _qColorToRgba(getattr(appSettings, colorAttr, '#08000000'))
+        edgeColor, edgeWidth, edgeStyle = _qPenToMplStyle(
+            getattr(appSettings, penAttr, None)
+        )
+        return dict(
+            visible=visible,
+            faceColor=faceColor,
+            edgeColor=edgeColor,
+            edgeWidth=edgeWidth,
+            edgeStyle=edgeStyle,
+        )
+
+    return dict(
+        visible=masterVisible,
+        cmp=_subDict('actionShowCmpArea', 'cmpAreaColor', 'cmpAreaPen'),
+        src=_subDict('actionShowSrcArea', 'srcAreaColor', 'srcAreaPen'),
+        rec=_subDict('actionShowRecArea', 'recAreaColor', 'recAreaPen'),
+    )
 
 
 def updateLayoutMethodControlsVisibility(self):
@@ -147,22 +242,40 @@ def refreshLayout3DFromSurvey(self):
             log('3D Subset: Spider toggle is on but no spider arrays available yet '
                 '(navigate with ALT+arrows or click in the 2D layout first).')
 
+    binArea = _buildBinAreaConfig(self)
+    blockAreas = _buildBlockAreasConfig(self)
+
     try:
         update(survey, useGlobal,
                showSeedPoints=showSeedPoints,
                dataPoints=dataPoints,
-               spiderData=spiderData)
+               spiderData=spiderData,
+               binArea=binArea,
+               blockAreas=blockAreas)
     except TypeError:
         # Backward-compat: older widget without the kwargs.
         try:
             update(survey, useGlobal,
                    showSeedPoints=showSeedPoints,
-                   dataPoints=dataPoints)
+                   dataPoints=dataPoints,
+                   spiderData=spiderData,
+                   binArea=binArea)
         except TypeError:
             try:
-                update(survey, useGlobal, showSeedPoints=showSeedPoints)
+                update(survey, useGlobal,
+                       showSeedPoints=showSeedPoints,
+                       dataPoints=dataPoints,
+                       spiderData=spiderData)
             except TypeError:
-                update(survey, useGlobal)
+                try:
+                    update(survey, useGlobal,
+                           showSeedPoints=showSeedPoints,
+                           dataPoints=dataPoints)
+                except TypeError:
+                    try:
+                        update(survey, useGlobal, showSeedPoints=showSeedPoints)
+                    except TypeError:
+                        update(survey, useGlobal)
     except Exception as exc:                                    # pragma: no cover
         log = getattr(self, 'appendLogMessage', None)
         if log is not None:

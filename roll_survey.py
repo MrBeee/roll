@@ -497,9 +497,12 @@ class RollSurvey(pg.GraphicsObject):
                 for seed in template.seedList:
                     nSeedShots = 0
                     if seed.bSource:                                            # Source seed
-                        nSeedShots = 1                                          # at least one SP
-                        for growStep in seed.grid.growList:                     # iterate through all grow steps
-                            nSeedShots *= growStep.steps                        # multiply seed's shots at each level
+                        if seed.type < SeedType.circle:                         # grid-based source seed (rolling/fixed grid)
+                            nSeedShots = 1                                      # at least one SP
+                            for growStep in seed.grid.growList:                 # iterate through all grow steps
+                                nSeedShots *= growStep.steps                    # multiply seed's shots at each level
+                        else:                                                   # circle / spiral / well source seed
+                            nSeedShots = max(len(seed.pointList), 1)            # mirror calcPointArray's sizing
                         nTemplateShots += nSeedShots                            # add to template's SPs
 
                 for roll in template.rollList:
@@ -519,58 +522,6 @@ class RollSurvey(pg.GraphicsObject):
                     nTemplates *= roll.steps                                    # template is rolled a number of times
             self.nTemplates += nTemplates
         return self.nTemplates
-
-    def setupGeometryFromTemplates(self) -> bool:
-
-        try:
-            # The array with the list of receiver locations is the most difficult to determine.
-            # It can be calculated using one of several approaches :
-            #   a) define a large (line, stake) grid and populate this for each line stake number that we come across
-            #   b) just append 'new' receivers to the numpy array and later remove duplicates, of which there will be many
-            # the difficulty of a) is that you need to be sure of grid increments and start/end points
-            # the easy part is that at the end the non-zero records can be gathered (filtered out)
-            # the difficulty of b) is that the recGeom array will overflow, unless you remove duplicates at timely intervals
-            # the easy part is that you don't have to setup a large grid with offset counters, which can be error prone
-            # overall, approach b) seems more 'failsafe' and easier to implement.
-            #   c) lastly; use a nested dictionary to check rec positions before adding them to the numpy array
-            # if a receiver is found at recDict[line][point], there is no need to add it to the numpy array
-
-            # gc.collect()                                                        # get the garbage collector going
-            self.calcNoTemplates()                                              # need to know nr templates, to track progress
-            self.nTemplate = 0                                                  # zero based counter
-
-            # GPT-5.2 Codex fix proposed to initiate empty nested dictionary here. Original code shown first
-            # self.output.recDict = defaultdict(dict)                             # nested dictionary to access rec positions
-            self.output.recDict = defaultdict(lambda: defaultdict(dict))        # nested dictionary to access rec positions
-
-            self.nRecRecord = 0                                                 # zero based array index
-            self.nShotPoint = 0                                                 # zero based array index
-            if self.nShotPoints == -1:                                          # calcNoShotPoints has been skipped ?!?
-                self.calcNoShotPoints()
-
-            # the numpy array with the list of source locations simply follows from self.nShotPoints
-            self.output.srcGeom = np.zeros(shape=(self.nShotPoints), dtype=pntType1)
-
-            # the numpy array with the list of relation records follows from the nr of shot points x number of rec lines (assume 20)
-            self.output.relGeom = np.zeros(shape=(self.nShotPoints * 20), dtype=relType2)
-            self.output.relTemp = np.zeros(shape=(100), dtype=relType2)         # holds 100 rec lines/template will be increased if needed
-
-            # for starters; assume there are 40,000 receivers in a survey, will be extended in steps of 10,000
-            self.output.recGeom = np.zeros(shape=(40000), dtype=pntType1)
-
-            success = self.geometryFromTemplates()                              # here the work is being done
-
-        except BaseException as e:
-            # self.errorText = str(e)
-            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
-            del (fileName, funcName, lineNo)
-            success = False
-
-        return success
 
     def iterTemplateRollOffsets(self, template):
         length = len(template.rollList)
@@ -600,6 +551,73 @@ class RollSurvey(pg.GraphicsObject):
                 for k in range(seed.grid.growList[2].steps):
                     yield off1 + seed.grid.growList[2].increment * k
 
+    def _recordInnermostExceptionLocation(self, e: BaseException) -> None:
+        """Set self.errorText to point at the innermost frame of the active
+        exception, not the catch site. Without walking to tb_next-end, the
+        reported line number is whatever caught the exception, which makes
+        worker-thread bug reports useless. Used by all worker entry points
+        (geometryFromTemplates, setupGeometryFromTemplates, binFromGeometry*,
+        binFromGeometryNoRel*, etc.).
+        """
+        tb = sys.exc_info()[2]
+        if tb is None:
+            self.errorText = f'error: {str(e)}'
+            return
+        while tb.tb_next is not None:
+            tb = tb.tb_next
+        fileName = os.path.split(tb.tb_frame.f_code.co_filename)[1]
+        funcName = tb.tb_frame.f_code.co_name
+        lineNo = str(tb.tb_lineno)
+        self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+
+    def setupGeometryFromTemplates(self) -> bool:
+
+        try:
+            # The array with the list of receiver locations is the most difficult to determine.
+            # It can be calculated using one of several approaches :
+            #   a) define a large (line, stake) grid and populate this for each line stake number that we come across
+            #   b) just append 'new' receivers to the numpy array and later remove duplicates, of which there will be many
+            # the difficulty of a) is that you need to be sure of grid increments and start/end points
+            # the easy part is that at the end the non-zero records can be gathered (filtered out)
+            # the difficulty of b) is that the recGeom array will overflow, unless you remove duplicates at timely intervals
+            # the easy part is that you don't have to setup a large grid with offset counters, which can be error prone
+            # overall, approach b) seems more 'failsafe' and easier to implement.
+            #   c) lastly; use a nested dictionary to check rec positions before adding them to the numpy array
+            # if a receiver is found at recDict[line][point], there is no need to add it to the numpy array
+
+            # gc.collect()                                                        # get the garbage collector going
+            self.calcNoTemplates()                                              # need to know nr templates, to track progress
+            self.nTemplate = 0                                                  # zero based counter
+
+            # GPT-5.2 Codex fix proposed to initiate empty nested dictionary here. Original code shown first
+            # self.output.recDict = defaultdict(dict)                             # nested dictionary to access rec positions
+            self.output.recDict = defaultdict(lambda: defaultdict(dict))        # nested dictionary to access rec positions
+            self.output.recSeenSet = set()                                      # flat dedup set used by geomTemplate5; reset per run
+
+            self.nRecRecord = 0                                                 # zero based array index
+            self.nRelRecord = 0                                                 # zero based array index; previously left at -1 from __init__
+            self.nShotPoint = 0                                                 # zero based array index
+            if self.nShotPoints == -1:                                          # calcNoShotPoints has been skipped ?!?
+                self.calcNoShotPoints()
+
+            # the numpy array with the list of source locations simply follows from self.nShotPoints
+            self.output.srcGeom = np.zeros(shape=(self.nShotPoints), dtype=pntType1)
+
+            # the numpy array with the list of relation records follows from the nr of shot points x number of rec lines (assume 20)
+            self.output.relGeom = np.zeros(shape=(self.nShotPoints * 20), dtype=relType2)
+            self.output.relTemp = np.zeros(shape=(100), dtype=relType2)         # holds 100 rec lines/template will be increased if needed
+
+            # for starters; assume there are 40,000 receivers in a survey, will be extended in steps of 10,000
+            self.output.recGeom = np.zeros(shape=(40000), dtype=pntType1)
+
+            success = self.geometryFromTemplates()                              # here the work is being done
+
+        except BaseException as e:
+            self._recordInnermostExceptionLocation(e)
+            success = False
+
+        return success
+
     def geometryFromTemplates(self) -> bool:
         try:
             self.calcPointArrays()                                              # first set up all point arrays
@@ -612,13 +630,7 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = 'geometry creation cancelled by user'
             return False
         except BaseException as e:
-            # self.errorText = str(e)
-            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
-            del (fileName, funcName, lineNo)
+            self._recordInnermostExceptionLocation(e)
             return False
 
         # early completion emit removed
@@ -663,65 +675,11 @@ class RollSurvey(pg.GraphicsObject):
         return True
 
     def appendTemplateGeometryFromRolls(self, nBlock, block, template):
+        appSettings = getActiveAppSettings()
+        templateGeometryRoutine = self.geomTemplate5 if appSettings.showUnfinished else self.geomTemplate4
+
         for templateOffset in self.iterTemplateRollOffsets(template):
-            self.geomTemplate4(nBlock, block, template, templateOffset)
-
-    def finalizeGeometryArrays(self) -> None:
-        #  first remove all remaining receiver duplicates
-        self.message.emit('Post processing step 1/4 - remove receiver duplicates')
-        self.progress.emit(20)
-        self.compactGeometryArrays()
-
-        # set all values in one go at the end
-        self.message.emit('Post processing step 3/4 - set source geometry flags')
-        self.progress.emit(60)
-        self.applyGeometryRecordFlags()
-
-        # sort the three geometry arrays
-        self.message.emit('Post processing step 4/4 - sort geometry arrays')
-        self.progress.emit(80)
-        self.sortGeometryArrays()
-        self.progress.emit(100)
-
-    def compactGeometryArrays(self) -> None:
-        self.output.recGeom = np.unique(self.output.recGeom)
-
-        # no longer needed, because we keep track of 'self.nRelRecord'
-        # there's no need to shrink the array based on the 'Uniq' == 1 condition.
-        # need to change the code; resize the relGeom array based on self.nRelRecord
-        # trim rel & rec arrays removing any zeros, using the 'Uniq' == 1 condition.
-
-        self.message.emit('Post processing step 2/4 - remove zeros in relation & receiver arrays')
-        self.progress.emit(40)
-        self.output.relGeom = self.output.relGeom[self.output.relGeom['Uniq'] == 1]
-        self.output.recGeom = self.output.recGeom[self.output.recGeom['Uniq'] == 1]
-
-    def applyGeometryRecordFlags(self) -> None:
-        self.output.srcGeom['Uniq'] = 1
-        self.output.srcGeom['InXps'] = 1
-        self.output.srcGeom['Code'] = 'E1'
-
-        self.output.recGeom['Uniq'] = 1
-        self.output.recGeom['InXps'] = 1
-        self.output.recGeom['Code'] = 'G1'
-
-        self.output.relGeom['InSps'] = 1
-        self.output.relGeom['InRps'] = 1
-
-    def sortGeometryArrays(self) -> None:
-        self.output.srcGeom.sort(order=['Index', 'Point', 'Line'])
-        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
-        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
-
-    def elapsedTime(self, startTime, index: int) -> None:
-        currentTime = perf_counter()
-        deltaTime = currentTime - startTime
-        self.timerTmin[index] = min(deltaTime, self.timerTmin[index])
-        self.timerTmax[index] = max(deltaTime, self.timerTmax[index])
-        self.timerTtot[index] = self.timerTtot[index] + deltaTime
-        self.timerFreq[index] = self.timerFreq[index] + 1
-        QApplication.processEvents()
-        return perf_counter()  # call again; to ignore any time spent in this funtion
+            templateGeometryRoutine(nBlock, block, template, templateOffset)
 
     def geomTemplate4(self, nBlock, block, template, templateOffset):
         """
@@ -751,112 +709,6 @@ class RollSurvey(pg.GraphicsObject):
             raise StopIteration
 
         self.appendTemplateRelationsFromRelTemp(nShotPoint, nRelRecord)
-
-    def appendTemplateSourceRecords(self, nBlock, block, template, npTemplateOffset):
-        for srcSeed in template.seedList:
-            if not srcSeed.bSource:
-                continue
-
-            srcArray = srcSeed.pointArray + npTemplateOffset
-
-            if not block.borders.srcBorder.isNull():
-                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
-                if I.shape[0] == 0:
-                    continue
-                srcArray = srcArray[I, :]
-
-            for src in srcArray:
-                srcX = src[0]
-                srcY = src[1]
-
-                srcStkX, srcStkY = self.st2Transform.map(srcX, srcY)
-                srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)
-
-                fnb.numbaSetPointRecord(self.output.srcGeom, self.nShotPoint, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
-                self.nShotPoint += 1
-
-    def populateTemplateReceiversInRelTemp(self, nBlock, block, template, npTemplateOffset):
-        nRelRecord = -1
-        nOldRecLine = -999999
-
-        # -- Receiver points & relTemp --
-        for recSeed in template.seedList:
-            if recSeed.bSource:
-                continue
-
-            recPoints = recSeed.pointArray + npTemplateOffset
-
-            if not block.borders.recBorder.isNull():
-                I = fnb.pointsInRect(recPoints, block.borders.recBorder)
-                if I.shape[0] == 0:
-                    continue
-                recPoints = recPoints[I, :]
-
-            for rec in recPoints:
-                recX = rec[0]
-                recY = rec[1]
-
-                recStkX, recStkY = self.st2Transform.map(recX, recY)
-                recLocX, recLocY = self.glbTransform.map(recX, recY)
-
-                recPoint = int(recStkX)
-                recLine = int(recStkY)
-
-                # block-aware receiver index
-                recInd = nBlock % 10 + 1
-
-                # de-dup receivers per block/line/point
-                try:
-                    _ = self.output.recDict[recInd][recLine][recPoint]
-                except KeyError:
-                    self.output.recDict[recInd][recLine][recPoint] = self.nRecRecord
-                    fnb.numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
-                    # fnb.numbaSetPointRecord uses nBlock -> Index consistent with recInd
-                    self.nRecRecord += 1
-
-                    arraySize = self.output.recGeom.shape[0]
-                    if self.nRecRecord + 1000 > arraySize:
-                        self.output.recGeom.resize(arraySize + 10000, refcheck=False)
-
-                if recLine != nOldRecLine:
-                    nOldRecLine = recLine
-                    nRelRecord += 1
-
-                    self.output.relTemp[nRelRecord]['RecLin'] = recStkY
-                    self.output.relTemp[nRelRecord]['RecMin'] = recStkX
-                    self.output.relTemp[nRelRecord]['RecMax'] = recStkX
-                    self.output.relTemp[nRelRecord]['RecInd'] = recInd
-
-                    if self.output.relTemp[nRelRecord]['RecMin'] > self.output.relTemp[nRelRecord]['RecMax']:
-                        self.errorText = 'geomTemplate4(): RecMin > RecMax detected'
-                        raise StopIteration
-
-                    arraySize = self.output.relTemp.shape[0]
-                    if nRelRecord + 10 > arraySize:
-                        self.output.relTemp.resize(arraySize + 100, refcheck=False)
-                else:
-                    self.output.relTemp[nRelRecord]['RecMin'] = min(recStkX, self.output.relTemp[nRelRecord]['RecMin'])
-                    self.output.relTemp[nRelRecord]['RecMax'] = max(recStkX, self.output.relTemp[nRelRecord]['RecMax'])
-
-        return nRelRecord
-
-    def appendTemplateRelationsFromRelTemp(self, firstShotPoint, nRelRecord):
-        for i in range(firstShotPoint, self.nShotPoint):
-            arraySize = self.output.relGeom.shape[0]
-            if self.nRelRecord + 1000 > arraySize:
-                self.output.relGeom.resize(arraySize + 10000, refcheck=False)
-
-            srcLin = self.output.srcGeom[i]['Line']
-            srcPnt = self.output.srcGeom[i]['Point']
-            srcInd = self.output.srcGeom[i]['Index']
-
-            for j in range(nRelRecord + 1):
-                recLin = self.output.relTemp[j]['RecLin']
-                recMin = self.output.relTemp[j]['RecMin']
-                recMax = self.output.relTemp[j]['RecMax']
-
-                fnb.numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
-                self.nRelRecord += 1
 
     def geomTemplate5(self, nBlock, block, template, templateOffset):
         """
@@ -953,6 +805,15 @@ class RollSurvey(pg.GraphicsObject):
             srcPointF = srcStkX.astype(np.int32).astype(np.float32)
 
             end = self.nShotPoint + n
+            # Defensive: grow srcGeom if calcNoShotPoints undercounted (e.g. for
+            # non-grid source seeds, or any other unexpected mismatch). Without
+            # this, the field-slice assignments below would silently clip to a
+            # (0,) destination and raise the cryptic numpy broadcast error
+            # "could not broadcast input array from shape (n,) into shape (0,)".
+            if end > self.output.srcGeom.shape[0]:
+                self.output.srcGeom.resize(
+                    end + max(1000, n), refcheck=False
+                )
             sg = self.output.srcGeom
             sg['Line'][self.nShotPoint:end] = srcLineF
             sg['Point'][self.nShotPoint:end] = srcPointF
@@ -1114,6 +975,169 @@ class RollSurvey(pg.GraphicsObject):
         rg['RecInd'][sl] = srcIndR                                              # original sets RecInd = srcInd
         rg['Uniq'][sl] = 1
         self.nRelRecord = end
+
+    def finalizeGeometryArrays(self) -> None:
+        #  first remove all remaining receiver duplicates
+        self.message.emit('Post processing step 1/4 - remove receiver duplicates')
+        self.progress.emit(20)
+        self.compactGeometryArrays()
+
+        # set all values in one go at the end
+        self.message.emit('Post processing step 3/4 - set source geometry flags')
+        self.progress.emit(60)
+        self.applyGeometryRecordFlags()
+
+        # sort the three geometry arrays
+        self.message.emit('Post processing step 4/4 - sort geometry arrays')
+        self.progress.emit(80)
+        self.sortGeometryArrays()
+        self.progress.emit(100)
+
+    def compactGeometryArrays(self) -> None:
+        self.output.recGeom = np.unique(self.output.recGeom)
+
+        # no longer needed, because we keep track of 'self.nRelRecord'
+        # there's no need to shrink the array based on the 'Uniq' == 1 condition.
+        # need to change the code; resize the relGeom array based on self.nRelRecord
+        # trim rel & rec arrays removing any zeros, using the 'Uniq' == 1 condition.
+
+        self.message.emit('Post processing step 2/4 - remove zeros in relation & receiver arrays')
+        self.progress.emit(40)
+        self.output.relGeom = self.output.relGeom[self.output.relGeom['Uniq'] == 1]
+        self.output.recGeom = self.output.recGeom[self.output.recGeom['Uniq'] == 1]
+
+    def applyGeometryRecordFlags(self) -> None:
+        self.output.srcGeom['Uniq'] = 1
+        self.output.srcGeom['InXps'] = 1
+        self.output.srcGeom['Code'] = 'E1'
+
+        self.output.recGeom['Uniq'] = 1
+        self.output.recGeom['InXps'] = 1
+        self.output.recGeom['Code'] = 'G1'
+
+        self.output.relGeom['InSps'] = 1
+        self.output.relGeom['InRps'] = 1
+
+    def sortGeometryArrays(self) -> None:
+        self.output.srcGeom.sort(order=['Index', 'Point', 'Line'])
+        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
+        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+
+    def elapsedTime(self, startTime, index: int) -> None:
+        currentTime = perf_counter()
+        deltaTime = currentTime - startTime
+        self.timerTmin[index] = min(deltaTime, self.timerTmin[index])
+        self.timerTmax[index] = max(deltaTime, self.timerTmax[index])
+        self.timerTtot[index] = self.timerTtot[index] + deltaTime
+        self.timerFreq[index] = self.timerFreq[index] + 1
+        QApplication.processEvents()
+        return perf_counter()  # call again; to ignore any time spent in this funtion
+
+    def appendTemplateSourceRecords(self, nBlock, block, template, npTemplateOffset):
+        for srcSeed in template.seedList:
+            if not srcSeed.bSource:
+                continue
+
+            srcArray = srcSeed.pointArray + npTemplateOffset
+
+            if not block.borders.srcBorder.isNull():
+                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
+                if I.shape[0] == 0:
+                    continue
+                srcArray = srcArray[I, :]
+
+            for src in srcArray:
+                srcX = src[0]
+                srcY = src[1]
+
+                srcStkX, srcStkY = self.st2Transform.map(srcX, srcY)
+                srcLocX, srcLocY = self.glbTransform.map(srcX, srcY)
+
+                fnb.numbaSetPointRecord(self.output.srcGeom, self.nShotPoint, srcStkY, srcStkX, nBlock, srcLocX, srcLocY, src)
+                self.nShotPoint += 1
+
+    def populateTemplateReceiversInRelTemp(self, nBlock, block, template, npTemplateOffset):
+        nRelRecord = -1
+        nOldRecLine = -999999
+
+        # -- Receiver points & relTemp --
+        for recSeed in template.seedList:
+            if recSeed.bSource:
+                continue
+
+            recPoints = recSeed.pointArray + npTemplateOffset
+
+            if not block.borders.recBorder.isNull():
+                I = fnb.pointsInRect(recPoints, block.borders.recBorder)
+                if I.shape[0] == 0:
+                    continue
+                recPoints = recPoints[I, :]
+
+            for rec in recPoints:
+                recX = rec[0]
+                recY = rec[1]
+
+                recStkX, recStkY = self.st2Transform.map(recX, recY)
+                recLocX, recLocY = self.glbTransform.map(recX, recY)
+
+                recPoint = int(recStkX)
+                recLine = int(recStkY)
+
+                # block-aware receiver index
+                recInd = nBlock % 10 + 1
+
+                # de-dup receivers per block/line/point
+                try:
+                    _ = self.output.recDict[recInd][recLine][recPoint]
+                except KeyError:
+                    self.output.recDict[recInd][recLine][recPoint] = self.nRecRecord
+                    fnb.numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
+                    # fnb.numbaSetPointRecord uses nBlock -> Index consistent with recInd
+                    self.nRecRecord += 1
+
+                    arraySize = self.output.recGeom.shape[0]
+                    if self.nRecRecord + 1000 > arraySize:
+                        self.output.recGeom.resize(arraySize + 10000, refcheck=False)
+
+                if recLine != nOldRecLine:
+                    nOldRecLine = recLine
+                    nRelRecord += 1
+
+                    self.output.relTemp[nRelRecord]['RecLin'] = recStkY
+                    self.output.relTemp[nRelRecord]['RecMin'] = recStkX
+                    self.output.relTemp[nRelRecord]['RecMax'] = recStkX
+                    self.output.relTemp[nRelRecord]['RecInd'] = recInd
+
+                    if self.output.relTemp[nRelRecord]['RecMin'] > self.output.relTemp[nRelRecord]['RecMax']:
+                        self.errorText = 'geomTemplate4(): RecMin > RecMax detected'
+                        raise StopIteration
+
+                    arraySize = self.output.relTemp.shape[0]
+                    if nRelRecord + 10 > arraySize:
+                        self.output.relTemp.resize(arraySize + 100, refcheck=False)
+                else:
+                    self.output.relTemp[nRelRecord]['RecMin'] = min(recStkX, self.output.relTemp[nRelRecord]['RecMin'])
+                    self.output.relTemp[nRelRecord]['RecMax'] = max(recStkX, self.output.relTemp[nRelRecord]['RecMax'])
+
+        return nRelRecord
+
+    def appendTemplateRelationsFromRelTemp(self, firstShotPoint, nRelRecord):
+        for i in range(firstShotPoint, self.nShotPoint):
+            arraySize = self.output.relGeom.shape[0]
+            if self.nRelRecord + 1000 > arraySize:
+                self.output.relGeom.resize(arraySize + 10000, refcheck=False)
+
+            srcLin = self.output.srcGeom[i]['Line']
+            srcPnt = self.output.srcGeom[i]['Point']
+            srcInd = self.output.srcGeom[i]['Index']
+
+            for j in range(nRelRecord + 1):
+                recLin = self.output.relTemp[j]['RecLin']
+                recMin = self.output.relTemp[j]['RecMin']
+                recMax = self.output.relTemp[j]['RecMax']
+
+                fnb.numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
+                self.nRelRecord += 1
 
     def updateBinOutputsForValidCmpPoints(self, src, cmpPoints, recPoints, hypArray, aziArray, writeAnalysis, totalTime=None):
         mapped = np.array([self.binTransform.map(float(p[0]), float(p[1])) for p in cmpPoints], dtype=np.float32)
@@ -1333,20 +1357,28 @@ class RollSurvey(pg.GraphicsObject):
             raise ValueError('nr shot points must be known at this point')
 
         self.binning.slowness = (1000.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
+        appSettings = getActiveAppSettings()
+
+        if appSettings.showUnfinished:
+            relBinningRoutine = self.binFromGeometry10
+            noRelBinningRoutine = self.binFromGeometryNoRel2
+        else:
+            relBinningRoutine = self.binFromGeometry8
+            noRelBinningRoutine = self.binFromGeometryNoRel
 
         # Now do the binning; check if we haave a relation file or not
         if self.output.relGeom is not None:                                     # we have a relation file
             if fullAnalysis:
-                success = self.binFromGeometry8(True)
+                success = relBinningRoutine(True)
                 self.output.anaOutput.flush()                                   # flush results to hard disk
                 return success
 
-            return self.binFromGeometry8(False)
+            return relBinningRoutine(False)
         if fullAnalysis:                                                        # no relation file available
-            success = self.binFromGeometryNoRel(True)
+            success = noRelBinningRoutine(True)
             self.output.anaOutput.flush()                                       # flush results to hard disk
             return success
-        return self.binFromGeometryNoRel(False)
+        return noRelBinningRoutine(False)
 
     def binFromGeometryNoRel(self, fullAnalysis) -> bool:
         """
@@ -1524,13 +1556,7 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = 'binning from geometry cancelled by user'
             return False
         except BaseException as e:
-            # self.errorText = str(e)
-            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
-            del (fileName, funcName, lineNo)
+            self._recordInnermostExceptionLocation(e)
             return False
 
         self.finalizeLiveBinningOutputs(fullAnalysis)
@@ -1632,10 +1658,7 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = 'binning from geometry cancelled by user'
             return False
         except BaseException as e:
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            self._recordInnermostExceptionLocation(e)
             return False
 
         self.finalizeLiveBinningOutputs(fullAnalysis)
@@ -1699,10 +1722,7 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = 'binning from geometry cancelled by user'
             return False
         except BaseException as e:
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            self._recordInnermostExceptionLocation(e)
             return False
 
         self.calcFoldAndOffsetEssentials()
@@ -1784,10 +1804,7 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = 'binning from geometry cancelled by user'
             return False
         except BaseException as e:
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            self._recordInnermostExceptionLocation(e)
             return False
 
         self.calcFoldAndOffsetEssentials()
@@ -1885,10 +1902,7 @@ class RollSurvey(pg.GraphicsObject):
             self.errorText = 'binning from geometry cancelled by user'
             return False
         except BaseException as e:
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            self._recordInnermostExceptionLocation(e)
             return False
 
         self.calcFoldAndOffsetEssentials()
@@ -2071,24 +2085,21 @@ class RollSurvey(pg.GraphicsObject):
     # See: http://numba.pydata.org/numba-doc/dev/reference/pysupported.html
     # See: https://stackoverflow.com/questions/18176602/how-to-get-the-name-of-an-exception-that-was-caught-in-python for workaround
     def binFromTemplates(self, fullAnalysis) -> bool:
+        appSettings = getActiveAppSettings()
+        templateBinningRoutine = self.binTemplate8 if appSettings.showUnfinished else self.binTemplate7
+
         try:
             self.calcPointArrays()                                              # first set up all point arrays
             for block in self.blockList:                                        # get all blocks
                 for template in block.templateList:                             # get all templates
                     for templateOffset in self.iterTemplateRollOffsets(template):
-                        self.binTemplate7(block, template, templateOffset, fullAnalysis)
+                        templateBinningRoutine(block, template, templateOffset, fullAnalysis)
 
         except StopIteration:
             self.errorText = 'binning from templates cancelled by user'
             return False
         except BaseException as e:
-            # self.errorText = str(e)
-            # See: https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
-            del (fileName, funcName, lineNo)
+            self._recordInnermostExceptionLocation(e)
             return False
 
         self.finalizeLiveBinningOutputs(fullAnalysis)

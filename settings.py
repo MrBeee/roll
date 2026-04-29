@@ -62,6 +62,12 @@ class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        # Ensure custom parameter types are registered on the active pyqtgraph
+        # registry before this dialog builds its parameter tree.
+        from .my_parameters import registerAllParameterTypes  # pylint: disable=C0415
+
+        registerAllParameterTypes()
+
         # to access the main window and its components
         self.parent = parent
         self.setWindowTitle('Roll Settings')
@@ -224,7 +230,7 @@ class SettingsDialog(QDialog):
                     dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip1),
                     dict(name='Use relative paths', type='bool', value=appSettings.useRelativePaths, default=appSettings.useRelativePaths, enabled=True, tip=tip2),
                     dict(name='Show summary properties', type='bool', value=appSettings.showSummaries, default=appSettings.showSummaries, enabled=True, tip=tip3),
-                    dict(name='Show unfinished code', type='bool', value=appSettings.showUnfinished, default=appSettings.showUnfinished, enabled=True, tip=tip4),
+                    dict(name='Show/use unfinished code', type='bool', value=appSettings.showUnfinished, default=appSettings.showUnfinished, enabled=True, tip=tip4),
                 ],
             ),
         ]
@@ -246,7 +252,8 @@ class SettingsDialog(QDialog):
 
         for item in self.paramTree.listAllItems():                              # Bug. See: https://github.com/pyqtgraph/pyqtgraph/issues/2744
             p = item.param                                                      # get parameter belonging to parameterItem
-            p.setToDefault()                                                    # set all parameters to their default value
+            if 'default' in p.opts:
+                p.setToDefault()                                                # set all parameters to their default value
             if hasattr(item, 'updateDefaultBtn'):                               # note: not all parameterItems have this method
                 item.updateDefaultBtn()                                         # reset the default-buttons to their grey value
             if 'tip' in p.opts:                                                 # this solves the above mentioned bug
@@ -349,7 +356,7 @@ class SettingsDialog(QDialog):
         # miscellaneous settings
         appSettings.useNumba = MIS.child('Use Numba').value()
         appSettings.useRelativePaths = MIS.child('Use relative paths').value()  # save well file names relative to .roll project file
-        appSettings.showUnfinished = MIS.child('Show unfinished code').value()  # show/hide "work in progress"
+        appSettings.showUnfinished = MIS.child('Show/use unfinished code').value()  # show/hide "work in progress"
         appSettings.showSummaries = MIS.child('Show summary properties').value()
 
         appSettings.activate()

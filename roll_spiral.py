@@ -387,23 +387,23 @@ class RollSpiral:
         # self.createSpiral(origin, 0, c, thetaMin, thetaMax, thetaStep)
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
-        wellElem = doc.createElement('spiral')
+        spiralElem = doc.createElement('spiral')
 
         if len(self.name) > 0:
             nameElement = doc.createElement('name')
             text = doc.createTextNode(self.name)
             nameElement.appendChild(text)
-            wellElem.appendChild(nameElement)
+            spiralElem.appendChild(nameElement)
 
-        wellElem.setAttribute('radmin', str(self.radMin))
-        wellElem.setAttribute('radmax', str(self.radMax))
-        wellElem.setAttribute('radinc', str(self.radInc))
-        wellElem.setAttribute('azi0', str(self.azi0))
-        wellElem.setAttribute('dist', str(self.dist))
-        wellElem.setAttribute('points', str(self.points))
+        spiralElem.setAttribute('radmin', str(self.radMin))
+        spiralElem.setAttribute('radmax', str(self.radMax))
+        spiralElem.setAttribute('radinc', str(self.radInc))
+        spiralElem.setAttribute('azi0', str(self.azi0))
+        spiralElem.setAttribute('dist', str(self.dist))
+        spiralElem.setAttribute('points', str(self.points))
 
-        parent.appendChild(wellElem)
-        return wellElem
+        parent.appendChild(spiralElem)
+        return spiralElem
 
     def readXml(self, parent: QDomNode):
 
