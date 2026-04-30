@@ -822,7 +822,12 @@ class RollSurvey(pg.GraphicsObject):
             sg['North'][self.nShotPoint:end] = srcLocY
             sg['LocX'][self.nShotPoint:end] = sx
             sg['LocY'][self.nShotPoint:end] = sy
-            sg['Elev'][self.nShotPoint:end] = sz
+            # Elevation = height relative to a datum (e.g. mean sea level). As we
+            # have no datum information available, leave Elev at 0.0 per SPS convention.
+            sg['Elev'][self.nShotPoint:end] = 0.0
+            # Depth = burial depth below surface (positive for sub-surface points).
+            # Convention: z < 0 below surface (e.g. well TVDss).
+            sg['Depth'][self.nShotPoint:end] = np.maximum(-sz, 0.0)
             sg['Uniq'][self.nShotPoint:end] = 1
             sg['InUse'][self.nShotPoint:end] = 1
             sg['InXps'][self.nShotPoint:end] = 1
@@ -833,6 +838,7 @@ class RollSurvey(pg.GraphicsObject):
         #    map vectorized, dedup, build relTemp, append unique to recGeom.
         # =====================================================================
         recArrays = []
+        recIsWell = []                                                          # per-seed boolean: True for well seeds (skip dedup)
         for recSeed in template.seedList:
             if recSeed.bSource:
                 continue
@@ -844,12 +850,14 @@ class RollSurvey(pg.GraphicsObject):
                 rPts = rPts[I, :]
             if rPts.shape[0] > 0:
                 recArrays.append(rPts)
+                recIsWell.append(np.full(rPts.shape[0], recSeed.type == SeedType.well, dtype=bool))
 
         if not recArrays:
             self.errorText = 'geomTemplate5(): no relTemp records created for this template'
             raise StopIteration
 
         rPts = np.concatenate(recArrays, axis=0)
+        isWellMask = np.concatenate(recIsWell, axis=0)
         rx = rPts[:, 0]
         ry = rPts[:, 1]
         rz = rPts[:, 2]
@@ -888,28 +896,63 @@ class RollSurvey(pg.GraphicsObject):
         rt['RecInd'][:nRuns] = recInd
 
         # --- 2b. Dedup against survey-level flat set, append unique to recGeom. ---
-        # Pack (recInd, recLineI, recPointI) into a single int64. Bounds chosen
-        # so the absolute values of Line/Point safely fit (|.| < 1e7) and the
-        # composite remains within int64 range with room for negative offsets.
-        BIG_LP = np.int64(10_000_000)
-        BIG_IL = BIG_LP * np.int64(10_000_000)
+        # Key = packed int64 of (recInd, qz, line, point) to vectorize the
+        # within-template dedup via ``np.unique`` and keep the cross-template
+        # ``seenSet`` membership test cheap (one int per row).
+        # Bit layout (LSB -> MSB), sized for realistic survey ranges:
+        #   point + POINT_OFF : POINT_BITS = 20  (range -524_288 .. +524_287;
+        #                                          actual line/point are 1..10_000)
+        #   line  + LINE_OFF  : LINE_BITS  = 20
+        #   qz    + QZ_OFF    : QZ_BITS    =  8  (1 m bucket; range -128 .. +127,
+        #                                          covers grid/circle/spiral z spread)
+        #   recInd            : IND_BITS   =  8  (0 .. 255; matches nBlock%10 + 1,
+        #                                          plenty of headroom for marine blocks)
+        # Total = 56 bits, well within int64. Including quantized z prevents
+        # grid-seed receivers at the same (Line, Point) cell but different
+        # elevations from being collapsed.
+        # Wells: well receivers are intrinsically unique by trajectory
+        # construction (near-vertical wells produce many points sharing the
+        # same Line/Point bin and even the same qz bucket). They bypass dedup
+        # entirely and are NOT added to ``seenSet``.
+        POINT_BITS = np.int64(20)
+        LINE_BITS = np.int64(20)
+        QZ_BITS = np.int64(8)
+        POINT_OFF = np.int64(1) << (POINT_BITS - np.int64(1))
+        LINE_OFF = np.int64(1) << (LINE_BITS - np.int64(1))
+        QZ_OFF = np.int64(1) << (QZ_BITS - np.int64(1))
+        SHIFT_LINE = POINT_BITS
+        SHIFT_QZ = POINT_BITS + LINE_BITS
+        SHIFT_IND = POINT_BITS + LINE_BITS + QZ_BITS
+
+        qz = np.rint(rz).astype(np.int64)                                       # 1-metre quantized z
         keys = (
-            np.int64(recInd) * BIG_IL
-            + recLineI.astype(np.int64) * BIG_LP
-            + recPointI.astype(np.int64)
+            (np.int64(recInd) << SHIFT_IND)
+            | ((qz + QZ_OFF) << SHIFT_QZ)
+            | ((recLineI.astype(np.int64) + LINE_OFF) << SHIFT_LINE)
+            | (recPointI.astype(np.int64) + POINT_OFF)
         )
 
-        # First-occurrence-within-template using stable np.unique.
-        _, firstIdx = np.unique(keys, return_index=True)
-        firstIdx.sort()
-        candKeys = keys[firstIdx]
-        # Filter against the global seenSet (Python-level set, O(1) per item).
-        keepMask = np.fromiter(
-            (k not in seenSet for k in candKeys.tolist()),
-            dtype=bool,
-            count=candKeys.shape[0],
-        )
-        keepIdx = firstIdx[keepMask]
+        nonWellIdx = np.where(~isWellMask)[0]
+        wellIdx = np.where(isWellMask)[0]
+
+        if nonWellIdx.size > 0:
+            # First-occurrence-within-template via stable np.unique.
+            _, firstLocal = np.unique(keys[nonWellIdx], return_index=True)
+            firstLocal.sort()
+            candIdx = nonWellIdx[firstLocal]
+            candKeys = keys[candIdx]
+            # Filter against the survey-wide seenSet (Python int membership).
+            keepMask = np.fromiter(
+                (k not in seenSet for k in candKeys.tolist()),
+                dtype=bool,
+                count=candKeys.shape[0],
+            )
+            keepNonWell = candIdx[keepMask]
+        else:
+            keepNonWell = np.empty(0, dtype=np.int64)
+
+        # Wells: keep every row, no seenSet filtering.
+        keepIdx = np.concatenate([keepNonWell, wellIdx]).astype(np.int64)
 
         if keepIdx.shape[0] > 0:
             nNew = keepIdx.shape[0]
@@ -926,12 +969,21 @@ class RollSurvey(pg.GraphicsObject):
             rg['North'][self.nRecRecord:end] = recLocY[keepIdx]
             rg['LocX'][self.nRecRecord:end] = rx[keepIdx]
             rg['LocY'][self.nRecRecord:end] = ry[keepIdx]
-            rg['Elev'][self.nRecRecord:end] = rz[keepIdx]
+            # Elevation = height relative to a datum (e.g. mean sea level). As we
+            # have no datum information available, leave Elev at 0.0 per SPS convention.
+            rg['Elev'][self.nRecRecord:end] = 0.0
+            # Depth = burial depth below surface (positive number for sub-surface
+            # points such as well receivers); zero for points at/above surface.
+            rg['Depth'][self.nRecRecord:end] = np.maximum(-rz[keepIdx], 0.0)
             rg['Uniq'][self.nRecRecord:end] = 1
             rg['InUse'][self.nRecRecord:end] = 1
             rg['InXps'][self.nRecRecord:end] = 1
             self.nRecRecord = end
-            seenSet.update(keys[keepIdx].tolist())
+            # Register non-well keys in the survey-wide seenSet so subsequent
+            # templates dedup against them. Wells are intrinsically unique
+            # and therefore not added.
+            if keepNonWell.size > 0:
+                seenSet.update(keys[keepNonWell].tolist())
 
         # =====================================================================
         # 3. RELATIONS -- emit (nShots * nRuns) records in one slice write.
@@ -1073,9 +1125,12 @@ class RollSurvey(pg.GraphicsObject):
                     continue
                 recPoints = recPoints[I, :]
 
+            isWellSeed = (recSeed.type == SeedType.well)
+
             for rec in recPoints:
                 recX = rec[0]
                 recY = rec[1]
+                recZ = rec[2]
 
                 recStkX, recStkY = self.st2Transform.map(recX, recY)
                 recLocX, recLocY = self.glbTransform.map(recX, recY)
@@ -1086,11 +1141,31 @@ class RollSurvey(pg.GraphicsObject):
                 # block-aware receiver index
                 recInd = nBlock % 10 + 1
 
-                # de-dup receivers per block/line/point
-                try:
-                    _ = self.output.recDict[recInd][recLine][recPoint]
-                except KeyError:
-                    self.output.recDict[recInd][recLine][recPoint] = self.nRecRecord
+                # De-dup receivers by (block, line, point, quantized-z). Including
+                # quantized z (1 m bucket) prevents grid-seed receivers at the same
+                # (Line, Point) cell but different elevations from being collapsed.
+                # Well seeds skip dedup entirely: well receivers are intrinsically
+                # unique by trajectory construction, and near-vertical wells
+                # produce many points sharing the same (Line, Point) cell that
+                # must NOT be deduped.
+                if isWellSeed:
+                    isNew = True
+                else:
+                    qz = int(round(float(recZ)))
+                    # nested-dict lookup keyed by [recInd][recLine][recPoint][qz]
+                    inner = self.output.recDict[recInd][recLine].setdefault(recPoint, {})
+                    if not isinstance(inner, dict):
+                        # Backward-compat: legacy entries stored an int directly.
+                        # Promote to a dict keyed by qz so the new logic can
+                        # discriminate elevations.
+                        prev = inner
+                        inner = {0: prev}
+                        self.output.recDict[recInd][recLine][recPoint] = inner
+                    isNew = qz not in inner
+                    if isNew:
+                        inner[qz] = self.nRecRecord
+
+                if isNew:
                     fnb.numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
                     # fnb.numbaSetPointRecord uses nBlock -> Index consistent with recInd
                     self.nRecRecord += 1
@@ -1348,7 +1423,10 @@ class RollSurvey(pg.GraphicsObject):
         if recArray.shape[0] == 0:
             return None
 
-        return np.vstack((recArray['LocX'], recArray['LocY'], recArray['Elev'])).T
+        # Real receiver z = Elev - Depth (Elev=0 for SPS surface convention,
+        # Depth>0 for well/TVDss receivers); keeps geometry binning numerically
+        # identical to template binning, which uses each seed's true 3D z.
+        return np.vstack((recArray['LocX'], recArray['LocY'], recArray['Elev'] - recArray['Depth'])).T
 
     def setupBinFromGeometry(self, fullAnalysis) -> bool:
         """this routine is used for both geometry files and SPS files"""
@@ -1404,7 +1482,8 @@ class RollSurvey(pg.GraphicsObject):
         baseRecArray = recGeom[recMask]
 
         # for cmp and offset calcuations, we need numpy arrays in the form of local (x, y, z) coordinates
-        baseRecPoints = np.column_stack((baseRecArray['LocX'], baseRecArray['LocY'], baseRecArray['Elev'])).astype(np.float32)
+        # Real receiver z = Elev - Depth (see selectReceiversForSourceRelationSlice).
+        baseRecPoints = np.column_stack((baseRecArray['LocX'], baseRecArray['LocY'], baseRecArray['Elev'] - baseRecArray['Depth'])).astype(np.float32)
 
         # we are NOT DEALING with the block's src border; this should have been done while generating geometry
         # we are NOT DEALING with the block's rec border; this should have been done while generating geometry
@@ -1417,7 +1496,8 @@ class RollSurvey(pg.GraphicsObject):
                     continue
 
                 # convert the source record to a single [x, y, z] value
-                src = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32)
+                # Real source z = Elev - Depth (mirrors receiver convention).
+                src = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev'] - srcRecord['Depth']], dtype=np.float32)
 
                 # begin thread progress code
                 if QThread.currentThread().isInterruptionRequested():           # maybe stop at each shot...
@@ -1601,7 +1681,7 @@ class RollSurvey(pg.GraphicsObject):
         # Pre-stack once: orphans / duplicates assumed already removed.
         baseRecArray = recGeom[recMask]
         baseRecPoints = np.column_stack(
-            (baseRecArray['LocX'], baseRecArray['LocY'], baseRecArray['Elev'])
+            (baseRecArray['LocX'], baseRecArray['LocY'], baseRecArray['Elev'] - baseRecArray['Depth'])
         ).astype(np.float32, copy=False)
 
         # Extract bin and stake transforms as 2x3 matrices once per call,
@@ -1633,7 +1713,7 @@ class RollSurvey(pg.GraphicsObject):
                     self.progress.emit(threadProgress + 1)
 
                 src = np.array(
-                    [srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32
+                    [srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev'] - srcRecord['Depth']], dtype=np.float32
                 )
 
                 traceArrays = self.buildBinningArraysFromSelectedReceivers(src, baseRecPoints)
@@ -1681,7 +1761,7 @@ class RollSurvey(pg.GraphicsObject):
                 if srcRecord['InUse'] == 0:
                     continue
 
-                src = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32)
+                src = np.array([srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev'] - srcRecord['Depth']], dtype=np.float32)
 
                 if QThread.currentThread().isInterruptionRequested():
                     raise StopIteration
@@ -1748,9 +1828,9 @@ class RollSurvey(pg.GraphicsObject):
         self.nShotPoints = self.output.srcGeom.shape[0]
 
         # Pre-extract data for Numba (cannot pass 'self')
-        srcLocs = np.column_stack((self.output.srcGeom['LocX'], self.output.srcGeom['LocY'], self.output.srcGeom['Elev'], self.output.srcGeom['Line'], self.output.srcGeom['Point']))
+        srcLocs = np.column_stack((self.output.srcGeom['LocX'], self.output.srcGeom['LocY'], self.output.srcGeom['Elev'] - self.output.srcGeom['Depth'], self.output.srcGeom['Line'], self.output.srcGeom['Point']))
         relFileIndices = np.column_stack((lookup.relLeft, lookup.relRight))
-        recLocs = np.column_stack((self.output.recGeom['LocX'], self.output.recGeom['LocY'], self.output.recGeom['Elev']))
+        recLocs = np.column_stack((self.output.recGeom['LocX'], self.output.recGeom['LocY'], self.output.recGeom['Elev'] - self.output.recGeom['Depth']))
 
         # Extract Transform Matrix as raw array
         T = self.binTransform
@@ -1850,7 +1930,7 @@ class RollSurvey(pg.GraphicsObject):
         # Pre-stack receiver coordinates once (matches the per-shot stack
         # inside selectReceiversForSourceRelationSlice but only paid once).
         recCoords = np.column_stack(
-            (self.output.recGeom['LocX'], self.output.recGeom['LocY'], self.output.recGeom['Elev'])
+            (self.output.recGeom['LocX'], self.output.recGeom['LocY'], self.output.recGeom['Elev'] - self.output.recGeom['Depth'])
         ).astype(np.float32, copy=False)
         recInUse = self.output.recGeom['InUse']
 
@@ -1880,7 +1960,7 @@ class RollSurvey(pg.GraphicsObject):
                     self.progress.emit(threadProgress + 1)
 
                 src = np.array(
-                    [srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev']], dtype=np.float32
+                    [srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev'] - srcRecord['Depth']], dtype=np.float32
                 )
 
                 recPoints = self._gatherReceiversForSource(

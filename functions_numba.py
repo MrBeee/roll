@@ -387,7 +387,13 @@ def numbaSetPointRecord(array: np.ndarray, index: int, line: float, point: float
     array[index]['North'] = north
     array[index]['LocX'] = pnt[0]                                               # x-component of 3D-location
     array[index]['LocY'] = pnt[1]                                               # y-component of 3D-location
-    array[index]['Elev'] = pnt[2]                                               # z-value not affected by CRS transform
+    # Elevation = height relative to a datum (e.g. mean sea level). As we
+    # have no datum information available, leave Elev at 0.0 per SPS convention.
+    array[index]['Elev'] = 0.0
+    # Depth = burial depth below surface (positive number for sub-surface points).
+    # By convention z < 0 below surface (e.g. well TVDss), so depth = -min(z, 0).
+    z = pnt[2]
+    array[index]['Depth'] = -z if z < 0.0 else 0.0
     array[index]['Uniq'] = 1                                                    # later, we want to use Uniq == 1 to remove empty records at the end
     array[index]['InUse'] = 1                                                   # later, we want to use InUse == 1 to check if the point is active
     array[index]['InXps'] = 1                                                   # later, we want to use InXps == 1 to check for any xps orphns

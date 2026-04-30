@@ -17,10 +17,12 @@ QGIS_APP = getQgisApp()
 rollSurveyModule = loadPluginModule('roll_survey')
 rollGridModule = loadPluginModule('roll_grid')
 rollPatternModule = loadPluginModule('roll_pattern')
+enumsModule = loadPluginModule('enums_and_int_flags')
 
 RollSurvey = rollSurveyModule.RollSurvey
 RollGrid = rollGridModule.RollGrid
 RollPattern = rollPatternModule.RollPattern
+SeedType = enumsModule.SeedType
 
 
 class RollSurveyGeometryTest(unittest.TestCase):
@@ -303,6 +305,44 @@ class RollSurveyGeometryTest(unittest.TestCase):
         self.assertEqual(secondRecordCount, 0)
         self.assertEqual(survey.nRecRecord, 4)
         self.assertEqual(survey.output.relTemp[0]['RecInd'], 2)
+
+    def testPopulateTemplateReceiversInRelTempKeepsAllWellTrajectoryPoints(self):
+        """Legacy path must skip dedup for well receiver seeds: a near-vertical
+        well produces many points sharing the same (Line, Point) bin but with
+        distinct depths. None of them must be collapsed."""
+        survey = self.createSurvey()
+        survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+
+        block = survey.blockList[0]
+        template = block.templateList[0]
+        recSeed = next(seed for seed in template.seedList if not seed.bSource)
+        recSeed.type = SeedType.well
+        recSeed.bSource = False
+        recSeed.origin = QVector3D(20.0, 0.0, 0.0)
+        # Synthesize a 50-point near-vertical well trajectory at (20, 0).
+        recSeed.pointList = [QVector3D(20.0, 0.0, -float(z)) for z in range(50)]
+        recSeed.calcPointArray()
+
+        survey.output.recDict = defaultdict(lambda: defaultdict(dict))
+        survey.output.recGeom = np.zeros(shape=(200), dtype=rollSurveyModule.pntType1)
+        survey.output.relTemp = np.zeros(shape=(10), dtype=rollSurveyModule.relType2)
+        survey.nRecRecord = 0
+
+        nRelRecord = survey.populateTemplateReceiversInRelTemp(
+            0, block, template, np.zeros(3, dtype=np.float32)
+        )
+
+        # All 50 well points must be kept, none collapsed.
+        self.assertEqual(survey.nRecRecord, 50)
+        # Single rec line for a vertical well.
+        self.assertEqual(nRelRecord, 0)
+        # Depth values must be positive (Elev=0 by SPS convention).
+        depths = survey.output.recGeom['Depth'][:50]
+        elevs = survey.output.recGeom['Elev'][:50]
+        self.assertTrue(np.all(depths >= 0.0))
+        self.assertTrue(np.all(elevs == 0.0))
+        # Depth must vary across the trajectory (49 distinct values for z=0..49).
+        self.assertEqual(len(np.unique(depths)), 50)
 
     def testAppendTemplateSourceRecordsAppendsFilteredSources(self):
         survey = self.createSurvey()

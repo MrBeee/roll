@@ -10,7 +10,6 @@ from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QFrame, QGroupBox,
 from .app_settings import isShowUnfinishedEnabled
 from .config import toolButtonStyle
 
-
 _QT_PEN_STYLE_TO_MPL = {
     Qt.PenStyle.SolidLine: '-',
     Qt.PenStyle.DashLine: '--',
