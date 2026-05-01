@@ -15,6 +15,7 @@ class BlackLine(QFrame):
         self.setStyleSheet("background-color: black;")
         self.setFixedHeight(width)  # 1px thick
 
+
 class LineHighlighter(QSyntaxHighlighter):
     """
     Custom highlighter to color lines based on their starting character:

@@ -126,23 +126,23 @@ The templates can be converted into geometry files, consisting of (a) a source f
 
 The geometry files themselves can also be exported as SPS-files.
 
-Note: the Model/View approach used by Qt (that takes care of all the widgets in QGIS) allows for fairly large tables. Nevertheless, for each row in a table view, circa 12 bytes are allocated per row. For very large tables, QGIS will simply crash without any warning. As a result the GUI will 'hang' and you may lose all your work. For that reason, the trace table is currently limited to 50 million traces.  Larger tables can still be used okay, they are just not shown in the trace table. If you need detailed information on traces that belong to a bin area somewhere in a large survey, the current work around is to select a smaller binning area, such that the total number of traces (Nx x Ny x Fold) is less than 50 million. A 'proper' solution is being worked on.
+**Note**: the Model/View approach used by Qt (that takes care of all the widgets in QGIS) allows for fairly large tables. Nevertheless, for each row in a table view, circa 12 bytes are allocated. For very large tables, QGIS will simply crash without any warning. As a result the GUI will 'hang' and you may lose all your work. For large files, the trace table is therefore implemented in a chunked manner, showing chunks of 1 milion traces at the time. Buttons have been added to navigate through these chunks. You may also use the <i>**spider navigation**</i> based on ALT+Arrow keys to move to the next line and stake numbers (or make larger jumps using Ctrl and/or Shift keys in combination with ALT). 
 
 The plugin works best using one or two QHD Screens (2560 x 1440 pixels) or larger. As of QGIS V3.32 High DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a>. The Help menu in Roll shows how you can mitigate against these issues. 
 
-As of version 3.34.6, QGIS upgraded Python from V3.9 to to V3.12 This change speeds up calculations and solves some security issues.  But when <i>**upgrading**</i> from an earlier QGIS version, it requires installing all the dependencies ***again***. See chapter 4 below for a list of external dependencies.
+* As of version 3.34.6, QGIS upgraded Python from V3.9 to to V3.12 This change speeds up calculations and solves some security issues.  But when <i>**upgrading**</i> from an earlier QGIS version, it requires installing all the dependencies ***again***. See chapter 4 below for a list of external dependencies.
 
-As of version 0.3.3 Roll has a 'working' interface with QGIS, and is able to read back points that have been changed in QGIS. This involves either moving points around, or setting a flag whether the point is in use. The integer Field Code that is used to decide whether a point is active or not can be selected in the Layer Selection Dialog. Points that are 'inactive' are shown in grey in the geometry tables and in the Layout view. They do not contribute is the fold (etc.) analysis. As of version 0.3.3 Roll is no longer considered an experimental plugin.
+* As of version 0.3.3 Roll has a 'working' interface with QGIS, and is able to read back points that have been changed in QGIS. This involves either moving points around, or setting a flag whether the point is in use. The integer Field Code that is used to decide whether a point is active or not can be selected in the Layer Selection Dialog. Points that are 'inactive' are shown in grey in the geometry tables and in the Layout view. They do not contribute is the fold (etc.) analysis. As of version 0.3.3 Roll is no longer considered an experimental plugin.
 
-As of version 0.6.3 Roll is compatible with QGIS 4.0, and therefore with PyQt6 and numpy 2.0. This was done as part of a refactoring effort aided by the [GitHub Copilot](https://code.visualstudio.com/docs/copilot/overview) in VS Code. A number of LLM models are available in Copilot, some of which tried hard to wreck my code. 
+* As of version 0.6.3 Roll is compatible with QGIS 4.0, and therefore with PyQt6 and numpy 2.0. This was done as part of a refactoring effort aided by the [GitHub Copilot](https://code.visualstudio.com/docs/copilot/overview) in VS Code. A number of LLM models are available in Copilot, some of which tried hard to wreck my code. 
+
+* In version 0.6.4, a polar diagram was added for the offset/azimuth histogram and refactoring of code continued. The code for the polar diagram was completed using '[vibe coding](https://en.wikipedia.org/wiki/Vibe_coding)'. This agent driven approach was also used to develop a series of unit tests in the test subdirectory. As of version 5.4 GPT has become stable and trustworthy enough to work in agent mode, optimizing the source code and implementing new features. This LLM was also used consistently during code refactoring
 
 ```
 You may remember, when Plug-and-Play (PnP) was introduced in the early 1990s to manage hardware updates, it did not always work out-of-the-box (understatement) and people often called it "Plug-and-Pray". With AI coding at the moment, we are at the stage where software development has turned into "Prompt-and-Pray".
 ```
 
-As of version 5.4 GPT has become stable and trustworthy enough to work in agent mode, optimizing the source code and implementing new features. So this LLM was used consistently during code refactoring.
-
-In version 0.6.4 in Roll, a polar diagram was added for the offset/azimuth histogram and refactoring of code continued. The code for the polar diagram was completed using '[vibe coding](https://en.wikipedia.org/wiki/Vibe_coding)'. This agent driven approach was also used to develop a series of unit tests in the test subdirectory.
+* In version 0.6.8 a 3D view has been added to the Layout tab, for a subset of survey geometry data. This is in particular useful for working with well-based seeds, think of VSPs
 
 
 
@@ -190,13 +190,15 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 ### 7	To Do
 
 - Improve Roll's analysis capabilities; think of multiple suppression and DMO smear
-- Make processing of Geometry & SPS data more robust
-- Use multiprocessing instead of a single worker thread to speed up background tasks
+- Consider multiprocessing instead of single worker thread to speed up background threads
 - Consider using a relational database instead of numpy arrays for geometry tables
+- Expand the 3D Layout View, introduced in version 0.6.8
 
 
 
 ### 8	Changelog
+- 2026-05-01 (0.6.9) Added TWT option to inline and x-line offset displays. Started to fleece code using Flake8.
+- 2026-04-30 (0.6.8) Added 3D view for Subset of survey data. Enabled by "Show/use unfinished code" in the Settings dialog. Implemented faster worker thread routines, enabled by the same flag
 - 2026-04-22 (0.6.7) Improved import and handling of SPS files.
 - 2026-04-21 (0.6.6) Added 'Max Offset Gap' analysis. Fixed bug crashing app when worker thread was interrupted. Improved readability of items in Parameter tree (property pane).
 - 2026-04-16 (0.6.5) Added inline and x-line offsets to |offset| plots and mouse tracking in statusbar for all plots. Continued refactoring code.

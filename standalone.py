@@ -125,6 +125,7 @@ def configureQtBinding():
         os.environ.setdefault('QT_API', 'pyqt5')
         os.environ.setdefault('PYQTGRAPH_QT_LIB', 'PyQt5')
 
+
 def logTopLevelWidgets():
     try:
         from qgis.PyQt.QtWidgets import QApplication  # pylint: disable=C0415
@@ -141,6 +142,7 @@ def logTopLevelWidgets():
                 _logMessage(f"  - <error reading widget>: {exc}")
     except (ImportError, AttributeError, TypeError, RuntimeError) as exc:
         _logMessage(f"Failed to list top-level widgets: {exc}")
+
 
 def main(argv=None):
     argv = sys.argv if argv is None else argv

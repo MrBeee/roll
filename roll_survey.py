@@ -1267,13 +1267,16 @@ class RollSurvey(pg.GraphicsObject):
                     self.output.anaOutput[x, y, fold, 2] = fold + 1
                     self.output.anaOutput[x, y, fold, 3] = src[0]
                     self.output.anaOutput[x, y, fold, 4] = src[1]
-                    self.output.anaOutput[x, y, fold, 5] = recPoints[idx, 0]
-                    self.output.anaOutput[x, y, fold, 6] = recPoints[idx, 1]
-                    self.output.anaOutput[x, y, fold, 7] = cmpPoints[idx, 0]
-                    self.output.anaOutput[x, y, fold, 8] = cmpPoints[idx, 1]
-                    self.output.anaOutput[x, y, fold, 9] = totalTime[idx] if totalTime is not None else 0.0
-                    self.output.anaOutput[x, y, fold, 10] = hypArray[idx]
-                    self.output.anaOutput[x, y, fold, 11] = aziArray[idx]
+                    self.output.anaOutput[x, y, fold, 5] = src[2]
+                    self.output.anaOutput[x, y, fold, 6] = recPoints[idx, 0]
+                    self.output.anaOutput[x, y, fold, 7] = recPoints[idx, 1]
+                    self.output.anaOutput[x, y, fold, 8] = recPoints[idx, 2]
+                    self.output.anaOutput[x, y, fold, 9] = cmpPoints[idx, 0]
+                    self.output.anaOutput[x, y, fold, 10] = cmpPoints[idx, 1]
+                    self.output.anaOutput[x, y, fold, 11] = cmpPoints[idx, 2]
+                    self.output.anaOutput[x, y, fold, 12] = totalTime[idx] if totalTime is not None else 0.0
+                    self.output.anaOutput[x, y, fold, 13] = hypArray[idx]
+                    self.output.anaOutput[x, y, fold, 14] = aziArray[idx]
                 # increment AFTER the analysis read so the next trace in
                 # this bin lands in the next fold slot.
                 self.output.binOutput[x, y] += 1
@@ -1614,14 +1617,17 @@ class RollSurvey(pg.GraphicsObject):
                                 self.output.anaOutput[nx, ny, fold, 2] = fold + 1       # to make fold run from 1 to N
                                 self.output.anaOutput[nx, ny, fold, 3] = src[0]
                                 self.output.anaOutput[nx, ny, fold, 4] = src[1]
-                                self.output.anaOutput[nx, ny, fold, 5] = recPoints[count, 0]
-                                self.output.anaOutput[nx, ny, fold, 6] = recPoints[count, 1]
-                                self.output.anaOutput[nx, ny, fold, 7] = cmpPoints[count, 0]
-                                self.output.anaOutput[nx, ny, fold, 8] = cmpPoints[count, 1]
-                                self.output.anaOutput[nx, ny, fold, 9] = totalTime[count]
-                                self.output.anaOutput[nx, ny, fold, 10] = hypArray[count]
-                                self.output.anaOutput[nx, ny, fold, 11] = aziArray[count]
-                                # self.output.anaOutput[nx, ny, fold, 12] = -1
+                                self.output.anaOutput[nx, ny, fold, 5] = src[2]
+                                self.output.anaOutput[nx, ny, fold, 6] = recPoints[count, 0]
+                                self.output.anaOutput[nx, ny, fold, 7] = recPoints[count, 1]
+                                self.output.anaOutput[nx, ny, fold, 8] = recPoints[count, 2]
+                                self.output.anaOutput[nx, ny, fold, 9] = cmpPoints[count, 0]
+                                self.output.anaOutput[nx, ny, fold, 10] = cmpPoints[count, 1]
+                                self.output.anaOutput[nx, ny, fold, 11] = cmpPoints[count, 2]
+                                self.output.anaOutput[nx, ny, fold, 12] = totalTime[count]
+                                self.output.anaOutput[nx, ny, fold, 13] = hypArray[count]
+                                self.output.anaOutput[nx, ny, fold, 14] = aziArray[count]
+                                # self.output.anaOutput[nx, ny, fold, 15] = -1
 
                         # all selection criteria have been fullfilled; use the trace
                         self.output.binOutput[nx, ny] = self.output.binOutput[nx, ny] + 1
@@ -1661,7 +1667,7 @@ class RollSurvey(pg.GraphicsObject):
             shot loop).
           * Travel time (totalTime = ||src->cmp|| + ||cmp->rec||) * slowness
             is computed per shot and forwarded to _applyBinUpdatesVectorized
-            so anaOutput[..., 9] keeps the value binFromGeometryNoRel writes
+            so anaOutput[..., 12] keeps the value binFromGeometryNoRel writes
             there. binFromGeometry10 inherits binFromGeometry8's behavior of
             leaving col 9 at 0.0 because the relation path never wrote it.
         """
@@ -1721,7 +1727,7 @@ class RollSurvey(pg.GraphicsObject):
                     continue
                 cmpPoints, recPoints, hypArray, aziArray = traceArrays
 
-                # Travel time (preserves binFromGeometryNoRel's anaOutput[...,9] write).
+                # Travel time (preserves binFromGeometryNoRel's anaOutput[...,12] write).
                 if cmpMethod:
                     totalTime = np.linalg.norm(recPoints - src, axis=1)
                 else:
@@ -1785,7 +1791,7 @@ class RollSurvey(pg.GraphicsObject):
                     continue
                 cmpPoints, recPoints, hypArray, aziArray = traceArrays
 
-                # Compute travel time so anaOutput[..., 9] gets populated for
+                # Compute travel time so anaOutput[..., 12] gets populated for
                 # the relation path too (Option A: matches binFromGeometryNoRel).
                 if self.binning.method == BinningType.cmp:
                     totalTime = np.linalg.norm(recPoints - src, axis=1)
@@ -1974,8 +1980,16 @@ class RollSurvey(pg.GraphicsObject):
                     continue
                 cmpPoints, recPoints, hypArray, aziArray = traceArrays
 
+                # Travel time so anaOutput[..., 12] (TWT [ms]) is populated
+                # for cmp / plane / sphere binning alike.
+                if self.binning.method == BinningType.cmp:
+                    totalTime = np.linalg.norm(recPoints - src, axis=1)
+                else:
+                    totalTime = np.linalg.norm(cmpPoints - src, axis=1) + np.linalg.norm(cmpPoints - recPoints, axis=1)
+                totalTime = totalTime * self.binning.slowness
+
                 self._applyBinUpdatesVectorized(
-                    src, cmpPoints, recPoints, hypArray, aziArray, binMat, st2Mat, fullAnalysis
+                    src, cmpPoints, recPoints, hypArray, aziArray, binMat, st2Mat, fullAnalysis, totalTime
                 )
 
         except StopIteration:
@@ -2082,7 +2096,7 @@ class RollSurvey(pg.GraphicsObject):
         np.add.at / np.minimum.at / np.maximum.at scatter writes).
 
         If ``totalTime`` is provided (1-D array aligned with cmpPoints), it
-        is written to anaOutput[..., 9]; otherwise that column is left at
+        is written to anaOutput[..., 12]; otherwise that column is left at
         0.0 to match updateBinOutputsForValidCmpPoints() / binFromGeometry8.
         """
         # bin transform: nx, ny = binMat @ (cmpX, cmpY, 1)
@@ -2124,13 +2138,16 @@ class RollSurvey(pg.GraphicsObject):
                     self.output.anaOutput[x, y, fold, 2] = fold + 1
                     self.output.anaOutput[x, y, fold, 3] = src[0]
                     self.output.anaOutput[x, y, fold, 4] = src[1]
-                    self.output.anaOutput[x, y, fold, 5] = recPoints[k, 0]
-                    self.output.anaOutput[x, y, fold, 6] = recPoints[k, 1]
-                    self.output.anaOutput[x, y, fold, 7] = cmpPoints[k, 0]
-                    self.output.anaOutput[x, y, fold, 8] = cmpPoints[k, 1]
-                    self.output.anaOutput[x, y, fold, 9] = totalTime[k] if totalTime is not None else 0.0
-                    self.output.anaOutput[x, y, fold, 10] = hypArray[k]
-                    self.output.anaOutput[x, y, fold, 11] = aziArray[k]
+                    self.output.anaOutput[x, y, fold, 5] = src[2]
+                    self.output.anaOutput[x, y, fold, 6] = recPoints[k, 0]
+                    self.output.anaOutput[x, y, fold, 7] = recPoints[k, 1]
+                    self.output.anaOutput[x, y, fold, 8] = recPoints[k, 2]
+                    self.output.anaOutput[x, y, fold, 9] = cmpPoints[k, 0]
+                    self.output.anaOutput[x, y, fold, 10] = cmpPoints[k, 1]
+                    self.output.anaOutput[x, y, fold, 11] = cmpPoints[k, 2]
+                    self.output.anaOutput[x, y, fold, 12] = totalTime[k] if totalTime is not None else 0.0
+                    self.output.anaOutput[x, y, fold, 13] = hypArray[k]
+                    self.output.anaOutput[x, y, fold, 14] = aziArray[k]
                 # increment after analysis read so the next trace lands in
                 # the next fold slot, matching the slow path's behavior.
                 self.output.binOutput[x, y] += 1
@@ -2354,8 +2371,16 @@ class RollSurvey(pg.GraphicsObject):
                         continue
                     cmpPoints, filteredRec, hypArray, aziArray = traceArrays
 
+                    # Travel time so anaOutput[..., 12] (TWT [ms]) is populated
+                    # for cmp / plane / sphere binning alike.
+                    if self.binning.method == BinningType.cmp:
+                        totalTime = np.linalg.norm(filteredRec - src, axis=1)
+                    else:
+                        totalTime = np.linalg.norm(cmpPoints - src, axis=1) + np.linalg.norm(cmpPoints - filteredRec, axis=1)
+                    totalTime = totalTime * self.binning.slowness
+
                     self._applyBinUpdatesVectorized(
-                        src, cmpPoints, filteredRec, hypArray, aziArray, binMat, st2Mat, fullAnalysis
+                        src, cmpPoints, filteredRec, hypArray, aziArray, binMat, st2Mat, fullAnalysis, totalTime
                     )
 
     def calcFoldAndOffsetEssentials(self):
@@ -2458,19 +2483,19 @@ class RollSurvey(pg.GraphicsObject):
 
                 slice2D = self.output.anaOutput[row, col, 0:fold, :]        # get all available traces belonging to this bin
 
-                slottedOffset = slice2D[:, 10]                              # grab 10th item of 2nd dimension (=offset)
+                slottedOffset = slice2D[:, 13]                              # grab 14th item of 2nd dimension (=offset)
                 slottedOffset = slottedOffset * offScalar
                 slottedOffset = np.round(slottedOffset)
                 slottedOffset = slottedOffset * offSlot
                 if writeBack:
-                    slice2D[:, 10] = slottedOffset                          # write it back into the 2D slice
+                    slice2D[:, 13] = slottedOffset                          # write it back into the 2D slice
 
-                slottedAzimuth = slice2D[:, 11]                             # grab 11th item of 2nd dimension (=azimuth)
+                slottedAzimuth = slice2D[:, 14]                             # grab 15th item of 2nd dimension (=azimuth)
                 slottedAzimuth = slottedAzimuth * aziScalar
                 slottedAzimuth = np.round(slottedAzimuth)
                 slottedAzimuth = slottedAzimuth * aziSlot
                 if writeBack:
-                    slice2D[:, 11] = slottedAzimuth                         # write it back into the 2D slice
+                    slice2D[:, 14] = slottedAzimuth                         # write it back into the 2D slice
 
                 slottedOffAzi = np.column_stack((slottedOffset, slottedAzimuth))
 
@@ -2478,15 +2503,15 @@ class RollSurvey(pg.GraphicsObject):
                 _, indices = np.unique(slottedOffAzi, return_index=True, axis=0)
 
                 for index in indices:                                       # flag unique offset, azimuth values
-                    slice2D[index, 12] = -1.0
+                    slice2D[index, 15] = -1.0
 
                 slice2D = slice2D[slice2D[:, -1].argsort()]                 # sort the traces on last column (unique -1 flag)
                 self.output.anaOutput[row, col, 0:fold, :] = slice2D        # put sorted traces back into analysis array
 
-                uniqueFld = np.count_nonzero(slice2D[:, -1], axis=0)        # get unique fold count from last column (nr12)
+                uniqueFld = np.count_nonzero(slice2D[:, -1], axis=0)        # get unique fold count from last column (nr15)
                 if uniqueFld > 0:
-                    minOffset = np.min(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
-                    maxOffset = np.max(slice2D[0:uniqueFld, 10], axis=0)    # first dimension may be affected by 0 values
+                    minOffset = np.min(slice2D[0:uniqueFld, 13], axis=0)    # first dimension may be affected by 0 values
+                    maxOffset = np.max(slice2D[0:uniqueFld, 13], axis=0)    # first dimension may be affected by 0 values
                 else:
                     minOffset = 0.0                                         # no traces available
                     maxOffset = 0.0                                         # no traces available
@@ -2536,7 +2561,7 @@ class RollSurvey(pg.GraphicsObject):
                             continue                                                    # rms values prefilled with -np.inf
 
                         slice2D = self.output.anaOutput[row, col, 0:fold, :]            # get all available traces belonging to this bin
-                        offset1D = slice2D[:, 10]                                       # grab 10th item of 2nd dimension (=offset)
+                        offset1D = slice2D[:, 13]                                       # grab 14th item of 2nd dimension (=offset)
 
                         if fold > 2:
                             rms = 0.0
@@ -2601,7 +2626,7 @@ class RollSurvey(pg.GraphicsObject):
                             continue
 
                         slice2D = self.output.anaOutput[row, col, 0:fold, :]
-                        offset1D = slice2D[:, 10]
+                        offset1D = slice2D[:, 13]
 
                         if fold > 1:
                             offsetSorted = np.sort(offset1D)

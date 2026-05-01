@@ -49,6 +49,7 @@ MESSAGE_CATEGORY = 'Messages'
 _debugpyConfigured = False
 _debugpyListenerStarted = False
 
+
 def enableRemoteDebugging():
 
     global _debugpyConfigured, _debugpyListenerStarted
@@ -130,6 +131,7 @@ def enableRemoteDebugging():
         return False
 
     return True
+
 
 class Roll:
     """QGIS Plugin Implementation."""

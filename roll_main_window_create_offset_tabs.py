@@ -14,8 +14,9 @@ def _createOffsetTab(self, tab, plotWidget, prefix, triggerHandler):
     tbOffset = QToolButton()
     tbInline = QToolButton()
     tbXline = QToolButton()
+    tbTwt = QToolButton()
 
-    for button in (tbOffset, tbInline, tbXline):
+    for button in (tbOffset, tbInline, tbXline, tbTwt):
         button.setMinimumWidth(110)
         button.setStyleSheet(toolButtonStyle)
 
@@ -31,34 +32,49 @@ def _createOffsetTab(self, tab, plotWidget, prefix, triggerHandler):
     actionXline.setCheckable(True)
     actionXline.setData(2)
 
+    actionTwt = QAction('TWT', self)
+    actionTwt.setCheckable(True)
+    actionTwt.setData(3)
+
     actionGroup = QActionGroup(self)
     actionGroup.setExclusive(True)
     actionGroup.addAction(actionOffset)
     actionGroup.addAction(actionInline)
     actionGroup.addAction(actionXline)
+    actionGroup.addAction(actionTwt)
     actionOffset.setChecked(True)
 
     tbOffset.setDefaultAction(actionOffset)
     tbInline.setDefaultAction(actionInline)
     tbXline.setDefaultAction(actionXline)
+    tbTwt.setDefaultAction(actionTwt)
 
     actionOffset.triggered.connect(triggerHandler)
     actionInline.triggered.connect(triggerHandler)
     actionXline.triggered.connect(triggerHandler)
+    actionTwt.triggered.connect(triggerHandler)
 
     setattr(self, f'{prefix}ComponentChoice', componentChoice)
     setattr(self, f'tb{prefix}ComponentOffset', tbOffset)
     setattr(self, f'tb{prefix}ComponentInline', tbInline)
     setattr(self, f'tb{prefix}ComponentXline', tbXline)
+    setattr(self, f'tb{prefix}ComponentTwt', tbTwt)
     setattr(self, f'action{prefix}ComponentOffset', actionOffset)
     setattr(self, f'action{prefix}ComponentInline', actionInline)
     setattr(self, f'action{prefix}ComponentXline', actionXline)
+    setattr(self, f'action{prefix}ComponentTwt', actionTwt)
     setattr(self, f'{prefix}ComponentActionGroup', actionGroup)
+
+    separator = QFrame()
+    separator.setFrameShape(QFrame.Shape.HLine)
+    separator.setFrameShadow(QFrame.Shadow.Sunken)
 
     controlsLayout = QVBoxLayout()
     controlsLayout.addWidget(tbOffset)
     controlsLayout.addWidget(tbInline)
     controlsLayout.addWidget(tbXline)
+    controlsLayout.addWidget(separator)
+    controlsLayout.addWidget(tbTwt)
     componentChoice.setLayout(controlsLayout)
 
     leftLayout = QVBoxLayout()

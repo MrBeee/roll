@@ -166,7 +166,7 @@ class ProjectServiceTest(unittest.TestCase):
 
     def testOpenAnalysisMemmapReturnsFlattenedView(self):
         service = ProjectService()
-        shape = (2, 3, 1, 13)
+        shape = (2, 3, 1, 16)
 
         with tempfile.TemporaryDirectory() as tempDir:
             projectPath = os.path.join(tempDir, 'project_service.roll')
@@ -188,7 +188,7 @@ class ProjectServiceTest(unittest.TestCase):
 
     def testOpenAnalysisMemmapFallsBackToCopyOnWriteWhenWritableOpenIsDenied(self):
         service = ProjectService()
-        shape = (2, 3, 1, 13)
+        shape = (2, 3, 1, 16)
         originalMemmap = projectServiceModule.np.memmap
 
         with tempfile.TemporaryDirectory() as tempDir:
@@ -272,7 +272,7 @@ class ProjectServiceTest(unittest.TestCase):
                 srcGeom=srcGeom,
             )
 
-            anaShape = (10, 4, 2, 13)
+            anaShape = (10, 4, 2, 16)
             anaPath = service.sidecarPath(projectPath, '.ana.npy')
             anaMemmap = np.memmap(anaPath, dtype=np.float32, mode='w+', shape=anaShape)
             anaMemmap.fill(5.0)
@@ -286,7 +286,7 @@ class ProjectServiceTest(unittest.TestCase):
             self.assertEqual(result.minimumFold, 0)
             self.assertTrue(result.analysisMemmapResult.success)
             self.assertEqual(result.analysisMemmapResult.memmap.shape, anaShape)
-            self.assertEqual(result.analysisMemmapResult.an2Output.shape, (10 * 4 * 2, 13))
+            self.assertEqual(result.analysisMemmapResult.an2Output.shape, (10 * 4 * 2, 16))
             self.assertIn('RecNum', result.rpsImport.dtype.names)
             self.assertIn('RecNum', result.relGeom.dtype.names)
             np.testing.assert_array_equal(result.spsImport, spsImport)

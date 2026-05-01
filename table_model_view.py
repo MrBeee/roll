@@ -15,8 +15,8 @@ from .aux_functions import myPrint
 # TableModel requires a 2D array to work from
 # this means flattening the 4D analysis array from 4D to 2D, before it can be used:
 
-# self.survey.output.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=(nx, ny, fold, 13))
-# self.an2Output = self.survey.output.anaOutput.reshape(nx * ny * fold, 13)
+# self.survey.output.anaOutput = np.memmap(anaFileName, dtype=np.float32, mode='r', shape=(nx, ny, fold, 16))
+# self.an2Output = self.survey.output.anaOutput.reshape(nx * ny * fold, 16)
 
 # When using a Treeview approach, flattening won't be required; now we will have:
 # index = model.index(row, column, parent) for each record
@@ -48,8 +48,8 @@ class AnaTableModel(QAbstractTableModel):
 
         # the underlying data uses a 2D numpy array without any field names. So it is reliant on the header names and format strings for export to clipboard
         # fmt: off
-        self._format =  '%d',    '%d',   '%d',   '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',     '%.2f',   '%.2f',    '%d'
-        self._header = ['stake', 'line', 'fold', 'src-x', 'src-y', 'rec-x', 'rec-y', 'cmp-x', 'cmp-y', 'TWT [ms]', 'offset', 'azimuth', 'unique']
+        self._format =  '%d',    '%d',   '%d',   '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',     '%.2f',   '%.2f',    '%d'
+        self._header = ['stake', 'line', 'fold', 'src-x', 'src-y', 'src-z', 'rec-x', 'rec-y', 'rec-z', 'cmp-x', 'cmp-y', 'cmp-z', 'TWT [ms]', 'offset', 'azimuth', 'unique']
         # fmt: on
 
         self.setData(data)
@@ -59,7 +59,7 @@ class AnaTableModel(QAbstractTableModel):
             if self._data is not None:
                 if index.column() < 3:                                          # Show int values for first three columns
                     value = str(int(self._data[index.row(), index.column()]))
-                elif index.column() == 12:                                      # Show True / False for unique values
+                elif index.column() == 15:                                      # Show True / False for unique values (last column)
                     value = 'True' if self._data[index.row(), index.column()] == -1.0 else ''
                 else:                                                           # Show floats for the remainder if fold > 0 (fold = col nr 2)
                     value = f'{float(self._data[index.row(), index.column()]):,.2f}' if self._data[index.row(), 2] > 0 else ''
@@ -132,7 +132,7 @@ class AnaTableModel(QAbstractTableModel):
             return self._data.shape[1]
         if self._header is not None:
             return len(self._header)
-        return 13
+        return 16
 
     def nextDuplicate(self, _):                                                 # index not used and replaced by _
         return None
@@ -1294,8 +1294,11 @@ class XpsTableModel(QAbstractTableModel):
             if inRps == 0:
                 return i
         return None
+
+
 # This Table first loads the model, and from there you can play with the column width
 # You could use model.columnCount() to distribute available space
+
 class ResizeTable(QTableView):
     def __init__(self, model, parent=None):
         super().__init__(parent)

@@ -363,6 +363,7 @@ class SettingsDialog(QDialog):
         _applyNumbaSetting(appSettings.useNumba)
 
 # Helper functions to read/clear format groups
+
 def _readFormatGroup(self, group):
     self.settings.beginGroup(group)
     entries = []
@@ -380,10 +381,12 @@ def _readFormatGroup(self, group):
     self.settings.endGroup()
     return entries
 
+
 def _clearFormatGroup(self, group):
     self.settings.beginGroup(group)
     self.settings.remove('')
     self.settings.endGroup()
+
 
 def _writeFormatGroup(self, group, entries):
     self.settings.beginGroup(group)
@@ -394,6 +397,7 @@ def _writeFormatGroup(self, group, entries):
         name = entry.get('name', 'Unnamed')
         self.settings.setValue(name, json.dumps(entry))
     self.settings.endGroup()
+
 
 def readSettings(self):
     appSettings = _getAppSettings(self)
@@ -515,6 +519,7 @@ def readSettings(self):
         print('print() to Python console has been enabled, but the QGIS console module is not available')
     else:
         print('print() to Python console has been disabled from now on')        # this message is the last one to be printed
+
 
 def writeSettings(self):
     appSettings = _getAppSettings(self)

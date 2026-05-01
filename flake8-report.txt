@@ -1,0 +1,346 @@
+.\land_wizard.py:233:51: E262 inline comment should start with '# '
+.\land_wizard.py:247:72: E262 inline comment should start with '# '
+.\land_wizard.py:248:51: E262 inline comment should start with '# '
+.\land_wizard.py:262:73: E262 inline comment should start with '# '
+.\land_wizard.py:443:76: E262 inline comment should start with '# '
+.\land_wizard.py:451:75: E262 inline comment should start with '# '
+.\land_wizard.py:729:9: E266 too many leading '#' for block comment
+.\land_wizard.py:730:9: E266 too many leading '#' for block comment
+.\layout_3D.py:740:34: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:741:34: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:742:32: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:743:26: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:862:32: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:863:32: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:864:31: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:874:34: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1111:38: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1112:38: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1113:37: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1146:36: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1146:65: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1147:36: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1147:65: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1148:36: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1148:65: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1149:36: E702 multiple statements on one line (semicolon)
+.\layout_3D.py:1149:65: E702 multiple statements on one line (semicolon)
+.\marine_wizard.py:307:73: E262 inline comment should start with '# '
+.\marine_wizard.py:331:74: E262 inline comment should start with '# '
+.\marine_wizard.py:359:64: E262 inline comment should start with '# '
+.\marine_wizard.py:446:211: E501 line too long (225 > 210 characters)
+.\marine_wizard.py:461:211: E501 line too long (219 > 210 characters)
+.\marine_wizard.py:553:63: E262 inline comment should start with '# '
+.\marine_wizard.py:566:63: E262 inline comment should start with '# '
+.\marine_wizard.py:578:65: E262 inline comment should start with '# '
+.\marine_wizard.py:758:21: E741 ambiguous variable name 'l'
+.\marine_wizard.py:1027:96: W291 trailing whitespace
+.\my_group.py:22:1: E302 expected 2 blank lines, found 1
+.\my_group.py:137:12: E713 test for membership should be 'not in'
+.\my_group.py:140:9: E266 too many leading '#' for block comment
+.\my_parameters.py:628:1: E266 too many leading '#' for block comment
+.\my_parameters.py:694:1: E266 too many leading '#' for block comment
+.\my_parameters.py:771:1: E266 too many leading '#' for block comment
+.\my_parameters.py:833:1: E266 too many leading '#' for block comment
+.\my_parameters.py:888:1: E266 too many leading '#' for block comment
+.\my_parameters.py:952:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1008:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1082:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1145:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1187:211: E501 line too long (273 > 210 characters)
+.\my_parameters.py:1222:9: E266 too many leading '#' for block comment
+.\my_parameters.py:1239:211: E501 line too long (230 > 210 characters)
+.\my_parameters.py:1249:211: E501 line too long (230 > 210 characters)
+.\my_parameters.py:1258:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1299:211: E501 line too long (232 > 210 characters)
+.\my_parameters.py:1331:9: E266 too many leading '#' for block comment
+.\my_parameters.py:1338:211: E501 line too long (211 > 210 characters)
+.\my_parameters.py:1348:211: E501 line too long (245 > 210 characters)
+.\my_parameters.py:1358:211: E501 line too long (245 > 210 characters)
+.\my_parameters.py:1367:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1424:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1581:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1629:211: E501 line too long (223 > 210 characters)
+.\my_parameters.py:1648:211: E501 line too long (259 > 210 characters)
+.\my_parameters.py:1653:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1722:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1789:211: E501 line too long (235 > 210 characters)
+.\my_parameters.py:1868:9: E266 too many leading '#' for block comment
+.\my_parameters.py:1885:211: E501 line too long (233 > 210 characters)
+.\my_parameters.py:1895:211: E501 line too long (233 > 210 characters)
+.\my_parameters.py:1905:1: E266 too many leading '#' for block comment
+.\my_parameters.py:1973:9: E266 too many leading '#' for block comment
+.\my_parameters.py:2011:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2069:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2131:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2177:17: E128 continuation line under-indented for visual indent
+.\my_parameters.py:2247:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2276:211: E501 line too long (231 > 210 characters)
+.\my_parameters.py:2293:211: E501 line too long (267 > 210 characters)
+.\my_parameters.py:2300:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2330:211: E501 line too long (226 > 210 characters)
+.\my_parameters.py:2349:211: E501 line too long (255 > 210 characters)
+.\my_parameters.py:2363:5: E266 too many leading '#' for block comment
+.\my_parameters.py:2366:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2432:9: E266 too many leading '#' for block comment
+.\my_parameters.py:2473:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2562:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2609:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2657:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2697:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2743:1: E266 too many leading '#' for block comment
+.\my_parameters.py:2789:1: E266 too many leading '#' for block comment
+.\pg_toolbar.py:71:12: E714 test for object identity should be 'is not'
+.\pg_toolbar.py:79:12: E714 test for object identity should be 'is not'
+.\pg_toolbar.py:87:12: E714 test for object identity should be 'is not'
+.\pg_toolbar.py:92:12: E714 test for object identity should be 'is not'
+.\pg_toolbar.py:97:12: E714 test for object identity should be 'is not'
+.\pg_toolbar.py:105:12: E714 test for object identity should be 'is not'
+.\project_service.py:377:211: E501 line too long (214 > 210 characters)
+.\project_service.py:397:211: E501 line too long (229 > 210 characters)
+.\project_service.py:413:211: E501 line too long (236 > 210 characters)
+.\qgis_interface.py:218:13: E741 ambiguous variable name 'l'
+.\qgis_interface.py:235:13: E741 ambiguous variable name 'l'
+.\qgis_interface.py:364:5: E266 too many leading '#' for block comment
+.\qgis_interface.py:1043:1: E266 too many leading '#' for block comment
+.\roll.py:39:1: F841 local variable 'ie' is assigned to but never used
+.\roll.py:75:5: E303 too many blank lines (2)
+.\roll.py:311:51: E251 unexpected spaces around keyword / parameter equals
+.\roll.py:311:53: E251 unexpected spaces around keyword / parameter equals
+.\roll.py:314:51: E251 unexpected spaces around keyword / parameter equals
+.\roll.py:314:53: E251 unexpected spaces around keyword / parameter equals
+.\roll_main_window.py:14:5: F401 'debugpy' imported but unused
+.\roll_main_window.py:168:1: E305 expected 2 blank lines after class or function definition, found 1
+.\roll_main_window.py:872:22: E221 multiple spaces before operator
+.\roll_main_window.py:873:22: E221 multiple spaces before operator
+.\roll_main_window.py:918:5: E303 too many blank lines (2)
+.\roll_main_window.py:919:5: E301 expected 1 blank line, found 0
+.\roll_main_window.py:1217:5: E266 too many leading '#' for block comment
+.\roll_main_window.py:1233:21: E201 whitespace after '('
+.\roll_main_window.py:1677:211: E501 line too long (221 > 210 characters)
+.\roll_main_window.py:1678:211: E501 line too long (221 > 210 characters)
+.\roll_main_window.py:1679:211: E501 line too long (230 > 210 characters)
+.\roll_main_window.py:1680:211: E501 line too long (235 > 210 characters)
+.\roll_main_window.py:2793:87: E231 missing whitespace after ','
+.\roll_main_window.py:3174:46: E262 inline comment should start with '# '
+.\roll_main_window_create_geom_tab.py:216:6: E114 indentation is not a multiple of 4 (comment)
+.\roll_main_window_create_geom_tab.py:216:6: E116 unexpected indentation (comment)
+.\roll_plane.py:149:9: E741 ambiguous variable name 'I'
+.\roll_plane.py:162:9: E741 ambiguous variable name 'I'
+.\roll_plane.py:179:9: E741 ambiguous variable name 'I'
+.\roll_sphere.py:27:9: E741 ambiguous variable name 'l'
+.\roll_sphere.py:116:9: E741 ambiguous variable name 'I'
+.\roll_survey.py:58:1: E303 too many blank lines (3)
+.\roll_survey.py:153:1: E302 expected 2 blank lines, found 3
+.\roll_survey.py:785:17: E741 ambiguous variable name 'I'
+.\roll_survey.py:847:17: E741 ambiguous variable name 'I'
+.\roll_survey.py:1096:17: E741 ambiguous variable name 'I'
+.\roll_survey.py:1123:17: E741 ambiguous variable name 'I'
+.\roll_survey.py:1318:9: E741 ambiguous variable name 'I'
+.\roll_survey.py:1326:9: E741 ambiguous variable name 'I'
+.\roll_survey.py:1341:13: E741 ambiguous variable name 'I'
+.\roll_survey.py:1557:17: E741 ambiguous variable name 'I'
+.\roll_survey.py:1575:21: E741 ambiguous variable name 'I'
+.\roll_survey.py:1765:9: E303 too many blank lines (3)
+.\roll_survey.py:1837:211: E501 line too long (212 > 210 characters)
+.\roll_survey.py:1861:69: E701 multiple statements on one line (colon)
+.\roll_survey.py:1867:36: E261 at least two spaces before inline comment
+.\roll_survey.py:2219:17: E741 ambiguous variable name 'I'
+.\roll_survey.py:2241:25: E741 ambiguous variable name 'I'
+.\roll_survey.py:2303:17: E741 ambiguous variable name 'I'
+.\roll_survey.py:2321:21: E741 ambiguous variable name 'I'
+.\roll_survey.py:2353:17: E741 ambiguous variable name 'I'
+.\roll_survey.py:3024:14: E201 whitespace after '('
+.\roll_survey.py:3026:17: E201 whitespace after '('
+.\roll_survey.py:3185:51: E261 at least two spaces before inline comment
+.\roll_survey.py:3204:26: E702 multiple statements on one line (semicolon)
+.\roll_survey.py:3204:45: E702 multiple statements on one line (semicolon)
+.\roll_survey.py:3204:64: E702 multiple statements on one line (semicolon)
+.\roll_survey.py:3204:83: E702 multiple statements on one line (semicolon)
+.\roll_survey.py:3209:23: E702 multiple statements on one line (semicolon)
+.\roll_survey.py:3241:30: E702 multiple statements on one line (semicolon)
+.\roll_survey.py:3242:26: E702 multiple statements on one line (semicolon)
+.\roll_survey.py:3243:22: E702 multiple statements on one line (semicolon)
+.\roll_survey.py:3245:19: E702 multiple statements on one line (semicolon)
+.\settings.py:25:5: F401 'debugpy' imported but unused
+.\settings.py:26:1: F841 local variable 'ie' is assigned to but never used
+.\settings.py:367:1: E302 expected 2 blank lines, found 1
+.\spider_navigation_mixin.py:192:141: E202 whitespace before ')'
+.\spider_navigation_mixin.py:204:41: E702 multiple statements on one line (semicolon)
+.\spider_navigation_mixin.py:205:41: E702 multiple statements on one line (semicolon)
+.\spider_navigation_mixin.py:206:41: E702 multiple statements on one line (semicolon)
+.\spider_navigation_mixin.py:207:41: E702 multiple statements on one line (semicolon)
+.\spider_navigation_mixin.py:208:41: E702 multiple statements on one line (semicolon)
+.\spider_navigation_mixin.py:209:41: E702 multiple statements on one line (semicolon)
+.\sps_import_dialog.py:27:1: E303 too many blank lines (3)
+.\sps_import_dialog.py:33:1: E303 too many blank lines (3)
+.\sps_import_dialog.py:176:62: E231 missing whitespace after ','
+.\sps_import_dialog.py:184:65: E231 missing whitespace after ','
+.\sps_import_dialog.py:430:5: E303 too many blank lines (2)
+.\sps_import_dialog.py:536:14: E221 multiple spaces before operator
+.\sps_import_dialog.py:557:23: E702 multiple statements on one line (semicolon)
+.\sps_io_and_qc.py:17:1: E266 too many leading '#' for block comment
+.\sps_io_and_qc.py:27:18: E231 missing whitespace after ','
+.\sps_io_and_qc.py:224:28: E201 whitespace after '['
+.\sps_io_and_qc.py:224:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:224:46: E201 whitespace after '['
+.\sps_io_and_qc.py:225:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:226:10: E222 multiple spaces after operator
+.\sps_io_and_qc.py:226:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:227:10: E222 multiple spaces after operator
+.\sps_io_and_qc.py:227:28: E201 whitespace after '['
+.\sps_io_and_qc.py:227:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:227:46: E201 whitespace after '['
+.\sps_io_and_qc.py:228:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:229:28: E201 whitespace after '['
+.\sps_io_and_qc.py:229:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:229:46: E201 whitespace after '['
+.\sps_io_and_qc.py:230:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:231:28: E201 whitespace after '['
+.\sps_io_and_qc.py:231:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:231:46: E201 whitespace after '['
+.\sps_io_and_qc.py:244:28: E201 whitespace after '['
+.\sps_io_and_qc.py:244:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:244:46: E201 whitespace after '['
+.\sps_io_and_qc.py:245:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:246:10: E222 multiple spaces after operator
+.\sps_io_and_qc.py:246:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:247:10: E222 multiple spaces after operator
+.\sps_io_and_qc.py:247:28: E201 whitespace after '['
+.\sps_io_and_qc.py:247:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:247:46: E201 whitespace after '['
+.\sps_io_and_qc.py:248:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:249:28: E201 whitespace after '['
+.\sps_io_and_qc.py:249:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:249:46: E201 whitespace after '['
+.\sps_io_and_qc.py:250:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:251:28: E201 whitespace after '['
+.\sps_io_and_qc.py:251:39: E203 whitespace before ':'
+.\sps_io_and_qc.py:251:46: E201 whitespace after '['
+.\sps_io_and_qc.py:266:13: E222 multiple spaces after operator
+.\sps_io_and_qc.py:266:43: E203 whitespace before ':'
+.\sps_io_and_qc.py:267:43: E203 whitespace before ':'
+.\sps_io_and_qc.py:268:43: E203 whitespace before ':'
+.\sps_io_and_qc.py:269:13: E222 multiple spaces after operator
+.\sps_io_and_qc.py:269:43: E203 whitespace before ':'
+.\sps_io_and_qc.py:270:43: E203 whitespace before ':'
+.\sps_io_and_qc.py:271:43: E203 whitespace before ':'
+.\sps_io_and_qc.py:272:43: E203 whitespace before ':'
+.\sps_io_and_qc.py:273:13: E222 multiple spaces after operator
+.\sps_io_and_qc.py:273:43: E203 whitespace before ':'
+.\sps_io_and_qc.py:521:94: E261 at least two spaces before inline comment
+.\sps_io_and_qc.py:555:13: E201 whitespace after '['
+.\sps_io_and_qc.py:559:13: E201 whitespace after '['
+.\sps_io_and_qc.py:560:13: E201 whitespace after '['
+.\sps_io_and_qc.py:562:13: E201 whitespace after '['
+.\sps_io_and_qc.py:563:13: E201 whitespace after '['
+.\sps_io_and_qc.py:564:13: E201 whitespace after '['
+.\sps_io_and_qc.py:583:91: E261 at least two spaces before inline comment
+.\sps_io_and_qc.py:616:13: E201 whitespace after '['
+.\sps_io_and_qc.py:620:13: E201 whitespace after '['
+.\sps_io_and_qc.py:621:13: E201 whitespace after '['
+.\sps_io_and_qc.py:623:13: E201 whitespace after '['
+.\sps_io_and_qc.py:624:13: E201 whitespace after '['
+.\sps_io_and_qc.py:625:13: E201 whitespace after '['
+.\sps_io_and_qc.py:723:1: E302 expected 2 blank lines, found 1
+.\sps_io_and_qc.py:769:5: E303 too many blank lines (2)
+.\sps_io_and_qc.py:819:28: E221 multiple spaces before operator
+.\sps_io_and_qc.py:866:9: E741 ambiguous variable name 'I'
+.\sps_io_and_qc.py:886:9: E741 ambiguous variable name 'I'
+.\stack_response_controller.py:98:26: E741 ambiguous variable name 'I'
+.\stack_response_controller.py:127:26: E741 ambiguous variable name 'I'
+.\standalone.py:56:1: E303 too many blank lines (3)
+.\standalone.py:104:13: F401 'pyqtgraph' imported but unused
+.\standalone.py:168:1: E305 expected 2 blank lines after class or function definition, found 1
+.\table_model_view.py:51:23: E222 multiple spaces after operator
+.\table_model_view.py:238:17: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:238:17: E221 multiple spaces before operator
+.\table_model_view.py:238:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:239:18: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:239:18: E221 multiple spaces before operator
+.\table_model_view.py:239:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:240:17: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:240:17: E221 multiple spaces before operator
+.\table_model_view.py:240:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:241:17: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:241:17: E221 multiple spaces before operator
+.\table_model_view.py:241:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:242:18: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:242:18: E221 multiple spaces before operator
+.\table_model_view.py:242:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:243:18: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:243:18: E221 multiple spaces before operator
+.\table_model_view.py:243:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:244:18: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:244:18: E221 multiple spaces before operator
+.\table_model_view.py:244:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:245:18: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:245:18: E221 multiple spaces before operator
+.\table_model_view.py:245:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:246:18: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:246:18: E221 multiple spaces before operator
+.\table_model_view.py:246:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:247:17: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:247:17: E221 multiple spaces before operator
+.\table_model_view.py:247:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:248:17: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:248:17: E221 multiple spaces before operator
+.\table_model_view.py:248:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:249:17: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:249:17: E221 multiple spaces before operator
+.\table_model_view.py:250:18: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:250:18: E221 multiple spaces before operator
+.\table_model_view.py:250:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:251:18: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:251:18: E221 multiple spaces before operator
+.\table_model_view.py:251:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:252:19: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:252:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:253:19: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:253:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:254:19: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:254:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:255:19: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:255:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:256:19: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:256:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:257:19: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:257:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:258:19: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:258:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:259:19: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:259:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:260:19: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:260:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:261:17: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:261:17: E221 multiple spaces before operator
+.\table_model_view.py:261:21: E251 unexpected spaces around keyword / parameter equals
+.\table_model_view.py:456:33: E203 whitespace before ':'
+.\table_model_view.py:607:30: E222 multiple spaces after operator
+.\table_model_view.py:608:23: E222 multiple spaces after operator
+.\table_model_view.py:609:23: E222 multiple spaces after operator
+.\table_model_view.py:664:58: E201 whitespace after '{'
+.\table_model_view.py:667:54: E201 whitespace after '{'
+.\table_model_view.py:862:30: E222 multiple spaces after operator
+.\table_model_view.py:863:23: E222 multiple spaces after operator
+.\table_model_view.py:864:23: E222 multiple spaces after operator
+.\table_model_view.py:919:58: E201 whitespace after '{'
+.\table_model_view.py:922:54: E201 whitespace after '{'
+.\table_model_view.py:1108:23: E222 multiple spaces after operator
+.\table_model_view.py:1210:58: E201 whitespace after '{'
+.\table_model_view.py:1211:54: E201 whitespace after '{'
+.\test\qgis_interface.py:35:1: E265 block comment should start with '# '
+.\test\qgis_interface.py:73:9: E265 block comment should start with '# '
+.\test\qgis_interface.py:74:9: E265 block comment should start with '# '
+.\test\qgis_interface.py:75:9: E265 block comment should start with '# '
+.\test\qgis_interface.py:84:9: E265 block comment should start with '# '
+.\test\test_init.py:11:1: E402 module level import not at top of file
+.\test\test_init.py:12:1: E402 module level import not at top of file
+.\test\test_init.py:13:1: E402 module level import not at top of file
+.\test\test_init.py:14:1: E402 module level import not at top of file
+.\test\test_init.py:59:1: E305 expected 2 blank lines after class or function definition, found 1
+.\test\test_project_sidecars.py:1115:5: E303 too many blank lines (2)
+.\test\test_qgis_environment.py:59:1: E305 expected 2 blank lines after class or function definition, found 1
+.\worker_threads.py:16:1: F841 local variable 'ie' is assigned to but never used
+.\xml_code_editor.py:119:5: E303 too many blank lines (2)
+.\xml_code_editor.py:121:5: E301 expected 1 blank line, found 0

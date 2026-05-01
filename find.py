@@ -9,6 +9,7 @@ from qgis.PyQt.QtWidgets import (QCheckBox, QDialog, QGridLayout, QGroupBox,
 # The following find/replace dialog follows the Notepad implementation,
 # It also allows to search backwards, which is a nice feature.
 
+
 class FindNotepad(QDialog):
     def __init__(self, parent=None):
         QDialog.__init__(self, parent)

@@ -174,6 +174,7 @@ anaType = np.dtype(
         # fmt : on
     ])
 
+
 def _readFixedWidthFiles(filenames, resultArray, fmt, readLineFn) -> int:
 
     # To use QFile and QTextStream for sps import, for more information:
@@ -202,14 +203,18 @@ def _readFixedWidthFiles(filenames, resultArray, fmt, readLineFn) -> int:
 
     return index
 
+
 def readRPSFiles(filenames, resultArray, fmt) -> int:
     return _readFixedWidthFiles(filenames, resultArray, fmt, readRpsLine)
+
 
 def readSPSFiles(filenames, resultArray, fmt) -> int:
     return _readFixedWidthFiles(filenames, resultArray, fmt, readSpsLine)
 
+
 def readXPSFiles(filenames, resultArray, fmt) -> int:
     return _readFixedWidthFiles(filenames, resultArray, fmt, readXpsLine)
+
 
 def readRpsLine(line_number, line, rpsImport, fmt) -> int:
     if len(line) == 0 or line[0] != fmt['rec']:                                 # check if line is empty or not a receiver line
@@ -230,6 +235,7 @@ def readRpsLine(line_number, line, rpsImport, fmt) -> int:
     rpsImport[line_number] = record
     return 1
 
+
 def readSpsLine(line_number, line, spsImport, fmt) -> int:
     if len(line) == 0 or line[0] != fmt['src']:                                 # check if line is empty or not a source line
         return 0
@@ -248,6 +254,7 @@ def readSpsLine(line_number, line, spsImport, fmt) -> int:
     record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
     spsImport[line_number] = record
     return 1
+
 
 def readXpsLine(line_number, line, xpsImport, fmt) -> int:
     if len(line) == 0 or line[0] != fmt['rel']:                                 # check if line is empty or not a relation line
@@ -269,6 +276,7 @@ def readXpsLine(line_number, line, xpsImport, fmt) -> int:
     record = (srcLin, srcPnt, srcInd, recNum, recLin, recMin, recMax, recInd, 1, 1, 1)
     xpsImport[line_number] = record
     return 1
+
 
 def markUniqueRPSrecords(rpsImport, sort=True) -> int:
     # See: https://stackoverflow.com/questions/51933936/python-3-6-type-checking-numpy-arrays-and-use-defined-classes for type checking
@@ -292,6 +300,7 @@ def markUniqueRPSrecords(rpsImport, sort=True) -> int:
     nUnique = rpsUnique.shape[0]
     return nUnique
 
+
 def markUniqueSPSrecords(spsImport, sort=True) -> int:
     if spsImport is None or spsImport.shape[0] == 0:
         return -1
@@ -309,6 +318,7 @@ def markUniqueSPSrecords(spsImport, sort=True) -> int:
 
     nUnique = spsUnique.shape[0]
     return nUnique
+
 
 def markUniqueXPSrecords(xpsImport, sort=True) -> int:
     if xpsImport is None or xpsImport.shape[0] == 0:
@@ -328,12 +338,14 @@ def markUniqueXPSrecords(xpsImport, sort=True) -> int:
     nUnique = xpsUnique.shape[0]
     return nUnique
 
+
 def calcMaxXPStraces(xpsImport) -> int:
     last = xpsImport['RecMax']                                                  # get vector of last receiver points from xps data
     first = xpsImport['RecMin']                                                 # get vector of first receiver points from xps data
     total = last - first
     traces = int(total.sum() + total.shape[0])                                  # add the number of traces to arrive at the total number of receiver points
     return traces
+
 
 def findSrcOrphans(spsImport, xpsImport) -> (int, int):
     if spsImport is None or xpsImport is None:
@@ -370,6 +382,7 @@ def findSrcOrphans(spsImport, xpsImport) -> (int, int):
     nSpsOrphans = nXps - intMask.sum()                                          # The xps-records contain 'nSpsOrphans' sps-orphans
 
     return (nSpsOrphans, nXpsOrphans)
+
 
 def findRecOrphans(rpsImport, xpsImport) -> (int, int):
     if rpsImport is None or xpsImport is None:
@@ -439,6 +452,7 @@ def findRecOrphans(rpsImport, xpsImport) -> (int, int):
 
     return (nRpsOrphans, nXpsOrphans)
 
+
 def deletePntDuplicates(rpsImport):
 
     before = rpsImport.shape[0]                                                 # get nr of records
@@ -452,6 +466,7 @@ def deletePntDuplicates(rpsImport):
 
     return (rpsImport, before, after)
 
+
 def deletePntOrphans(rpsImport):
 
     before = rpsImport.shape[0]
@@ -463,6 +478,7 @@ def deletePntOrphans(rpsImport):
         rpsImport.sort(order=['Index', 'Line', 'Point'])
 
     return (rpsImport, before, after)
+
 
 def deleteRelDuplicates(xpsImport):
 
@@ -476,6 +492,7 @@ def deleteRelDuplicates(xpsImport):
         xpsImport.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
 
     return (xpsImport, before, after)
+
 
 def deleteRelOrphans(xpsImport, source=True):
 
@@ -493,6 +510,7 @@ def deleteRelOrphans(xpsImport, source=True):
             xpsImport.sort(order=['RecInd', 'RecLin', 'RecMin', 'RecMax', 'SrcInd', 'SrcLin', 'SrcPnt'])
 
     return (xpsImport, before, after)
+
 
 def fileExportAsR01(parent, fileName, extension, view, crs):
     # fmt: off
@@ -555,6 +573,7 @@ def fileExportAsR01(parent, fileName, extension, view, crs):
 
     return (size, fn)
 
+
 def fileExportAsS01(parent, fileName, extension, view, crs):
     # fmt: off
     fn, selectedFilter = QFileDialog.getSaveFileName(
@@ -614,6 +633,7 @@ def fileExportAsS01(parent, fileName, extension, view, crs):
         np.savetxt(fn, spsData, delimiter='', fmt=fmt, comments='', header=hdr)
 
     return (size, fn)
+
 
 def fileExportAsX01(parent, fileName, extension, view, crs):
     # fmt: off
@@ -699,6 +719,7 @@ def fileExportAsX01(parent, fileName, extension, view, crs):
     return (size, fn)
 
 # add export to flat text files here.
+
 def exportDataAsTxt(parent, fileName, extension, view):
     fn, selectedFilter = QFileDialog.getSaveFileName(
         parent,  # that's the main window
@@ -731,6 +752,7 @@ def exportDataAsTxt(parent, fileName, extension, view):
         # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, dat, delimiter=delimiter, fmt=fmt, comments='', header=hdr)
     return (dat.shape[0], fn)
+
 
 def calculateLineStakeTransform(spsImport) -> []:
     # See: https://stackoverflow.com/questions/47780845/solve-over-determined-system-of-linear-equations
@@ -834,6 +856,7 @@ def calculateLineStakeTransform(spsImport) -> []:
     # ABCD = np.linalg.lstsq(M1, M2)[0]
     # print(ABCD)
 
+
 def getAliveAndDead(geom):
 
     if geom is None or geom.shape[0] == 0:                                      # no geometry data
@@ -873,6 +896,7 @@ def getAliveAndDead(geom):
         pntLiveN = geom['North']
 
     return (pntLiveE, pntLiveN, pntDeadE, pntDeadN)                             # return the 4 arrays
+
 
 def convertCrs(spsImport, crsFrom: QgsCoordinateTransform, crsTo: QgsCoordinateTransform) -> bool:
 

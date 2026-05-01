@@ -44,6 +44,7 @@ resourceDir = os.path.join(currentDir, 'resources')
 
 # WIZARD  =======================================================================
 
+
 class MarineSurveyWizard(SurveyWizard):
     DEFAULTS = {
         'swDensity': 1029.0,

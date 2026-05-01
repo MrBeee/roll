@@ -723,7 +723,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.output.offstHist = histogram
         self.mainWindow.output.maxMaxOffset = 100.0
         self.mainWindow.output.binOutput = np.ones((2, 2), dtype=np.float32)
-        self.mainWindow.output.anaOutput = np.ones((1, 1, 1, 12), dtype=np.float32)
+        self.mainWindow.output.anaOutput = np.ones((1, 1, 1, 16), dtype=np.float32)
 
         with patch.object(rollMainWindowModule.fnb, 'numbaSliceStats', return_value=(np.array([10.0, 20.0], dtype=np.float32), np.array([0.0, 0.0], dtype=np.float32), False)) as sliceStats:
             with patch.object(self.mainWindow, 'renderPreparedOffsetPlot') as renderPrepared:
@@ -1274,7 +1274,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempDir:
             projectPath = self.writeProjectFixture(tempDir)
             anaPath = projectPath + '.ana.npy'
-            shape = (2, 2, 1, 13)
+            shape = (2, 2, 1, 16)
             oldTimestamp = 1_700_000_000
 
             self.mainWindow.fileName = projectPath
@@ -1287,7 +1287,7 @@ class ProjectSidecarsTest(unittest.TestCase):
 
             self.assertTrue(success)
             self.assertIsNotNone(self.mainWindow.output.anaOutput)
-            self.assertEqual(self.mainWindow.output.an2Output.shape, (4, 13))
+            self.assertEqual(self.mainWindow.output.an2Output.shape, (4, 16))
             self.assertGreater(os.path.getmtime(anaPath), oldTimestamp)
 
             self.mainWindow.resetAnaTableModel()

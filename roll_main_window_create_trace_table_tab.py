@@ -118,6 +118,7 @@ def createTraceTableTab(self):
     # initialize page info
     self._updatePageInfo()
 
+
 def _updatePageInfo(self):
     """Update the page information label"""
     if hasattr(self.anaModel, '_chunkedData') and self.anaModel._chunkedData:
@@ -151,6 +152,7 @@ def _updatePageInfo(self):
         self.gotoEdit.setEnabled(False)
         self.btnGoto.setEnabled(False)
 
+
 def _goToFirstPage(self):
     """Navigate to the first chunk of data"""
     if hasattr(self.anaModel, '_chunkedData') and self.anaModel._chunkedData:
@@ -165,6 +167,7 @@ def _goToFirstPage(self):
             # Reset selection
             self.anaView.clearSelection()
 
+
 def _goToPrevPage(self):
     """Navigate to the previous chunk of analysis rows."""
     cd = getattr(self.anaModel, '_chunkedData', None)
@@ -176,6 +179,7 @@ def _goToPrevPage(self):
         self.anaModel.layoutChanged.emit()
         self._updatePageInfo()
         self.anaView.clearSelection()
+
 
 def _goToNextPage(self):
     """Navigate to the next chunk of data"""
@@ -191,6 +195,7 @@ def _goToNextPage(self):
             # Reset selection
             self.anaView.clearSelection()
 
+
 def _goToLastPage(self):
     """Navigate to the last chunk of data"""
     if hasattr(self.anaModel, '_chunkedData') and self.anaModel._chunkedData:
@@ -205,6 +210,7 @@ def _goToLastPage(self):
             self._updatePageInfo()
             # Reset selection
             self.anaView.clearSelection()
+
 
 def _goToSpecificRow(self):
     """Navigate to a specific row in the dataset"""

@@ -29,43 +29,45 @@ except ImportError:
         return decorator
 
 # @jit((nb.types.Array(nb.float32, 3, 'C'), nb.boolean), nopython=True)      # numba needs array specs to work properly
+
+
 @jit(nopython=True)
 def numbaFilterSlice2D(slice2D: np.ndarray, unique=False):
     # size = slice3D.shape[0]
     # fold = slice3D.shape[1]
     # para = slice3D.shape[2]
 
-    # slice2D = slice3D.reshape(size * fold, para)                    # convert to 2D
+    # slice2D = slice3D.reshape(size * fold, para)                              # convert to 2D
 
-    if unique is True:                                              # we'd like to use unique offsets
-        havUnique = slice2D[:, 12]                                  # get all available cmp values belonging to this row
-        useUnique = True if havUnique.min() == -1 else False        # are there any -1 records ?
-    else:
-        useUnique = False                                           # unique not required or not available
-
-    if useUnique:
-        I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)            # fold > 0 AND unique == -1
-    else:
-        I = slice2D[:, 2] > 0                                       # fold > 0
-
-    slice2D = slice2D[I, :]                                         # filter the 2D slice
-    return slice2D                                                  # return array, potentially with shape[0,13] when empty
-
-
-@jit(nopython=True)
-def numbaSlice3D(slice3D: np.ndarray, unique=False):
-    if unique:                                                                  # we'd like to use unique offsets; but does it make sense ?
-        havUnique = slice3D[:, :, 12]                                           # get all available cmp values belonging to this slice
+    if unique is True:                                                          # we'd like to use unique offsets
+        havUnique = slice2D[:, 15]                                              # get all available cmp values belonging to this row
         useUnique = True if havUnique.min() == -1 else False                    # are there any -1 records ?
     else:
         useUnique = False                                                       # unique not required or not available
 
     if useUnique:
-        I = (slice3D[:, :, 2] > 0) & (slice3D[:, :, 12] == -1)                  # fold > 0 AND unique == -1
+        included = (slice2D[:, 2] > 0) & (slice2D[:, 15] == -1)                 # fold > 0 AND unique == -1
     else:
-        I = slice3D[:, :, 2] > 0                                                # fold > 0
+        included = slice2D[:, 2] > 0                                            # fold > 0
 
-    return (slice3D, I)                                                         # tuple of information (array, mask)
+    slice2D = slice2D[included, :]                                              # filter the 2D slice
+    return slice2D                                                              # return array, potentially with shape[0,16] when empty
+
+
+@jit(nopython=True)
+def numbaSlice3D(slice3D: np.ndarray, unique=False):
+    if unique:                                                                  # we'd like to use unique offsets; but does it make sense ?
+        havUnique = slice3D[:, :, 15]                                           # get all available cmp values belonging to this slice
+        useUnique = True if havUnique.min() == -1 else False                    # are there any -1 records ?
+    else:
+        useUnique = False                                                       # unique not required or not available
+
+    if useUnique:
+        included = (slice3D[:, :, 2] > 0) & (slice3D[:, :, 15] == -1)           # fold > 0 AND unique == -1
+    else:
+        included = slice3D[:, :, 2] > 0                                         # fold > 0
+
+    return (slice3D, included)                                                  # tuple of information (array, mask)
 
 
 # it would be nice to cache the outcome of the following routine.
@@ -79,10 +81,10 @@ def numbaSlice3D(slice3D: np.ndarray, unique=False):
 def numbaSliceStats(slice4D: np.ndarray, unique=False):
 
     # fmt: off
-    fold    = slice4D[:, :, :,  2]                                              # we are left with 1 dimension
-    offsets = slice4D[:, :, :, 10]                                              # we are left with 1 dimension
-    azimuth = slice4D[:, :, :, 11]                                              # we are left with 1 dimension
-    include = slice4D[:, :, :, 12]                                              # we are left with 1 dimension
+    fold    = slice4D[:, :, :,  2]                                              # noqa: E221, # we are left with 1 dimension
+    offsets = slice4D[:, :, :, 13]                                              # noqa: E221, # we are left with 1 dimension
+    azimuth = slice4D[:, :, :, 14]                                              # noqa: E221, # we are left with 1 dimension
+    include = slice4D[:, :, :, 15]                                              # noqa: E221, # we are left with 1 dimension
     # fmt: on
 
     if unique is True:                                                          # we'd like to use unique offsets
@@ -91,19 +93,19 @@ def numbaSliceStats(slice4D: np.ndarray, unique=False):
         useUnique = False                                                       # unique not required or not available
 
     if useUnique:
-        I = (fold > 0) & (include == -1)                                        # fold > 0 AND unique == -1
+        included = (fold > 0) & (include == -1)                                 # fold > 0 AND unique == -1
     else:
-        I = fold > 0                                                            # fold value > 0
+        included = fold > 0                                                     # fold value > 0
 
     # the following optimization was proposed by Gemeni; it is supposedly faster than the np.count_nonzero
-    # if np.count_nonzero(I) == 0:                                                # nothing to show here
-    # if not np.any(I):                                                           # optimized check for empty slice
+    # if np.count_nonzero(included) == 0:                                       # nothing to show here
+    # if not np.any(included):                                                  # optimized check for empty slice
 
-    if not np.any(I):                                                           # optimized check for empty slice
+    if not np.any(included):                                                    # optimized check for empty slice
         return (None, None, True)
 
-    offsets = offsets[I]                                                        # filter the 1D slice
-    azimuth = azimuth[I]                                                        # filter the 1D slice
+    offsets = offsets[included]                                                 # filter the 1D slice
+    azimuth = azimuth[included]                                                 # filter the 1D slice
     return (offsets, azimuth, False)
 
 
@@ -116,7 +118,7 @@ def numbaNdft1D(kMax: float, dK: float, slice3D: np.ndarray, inclu3D: np.ndarray
     radialStk = np.zeros(shape=(nP, nK), dtype=np.float32)                      # start with empty array of the right size and type
 
     for p in range(nP):                                                         # iterate over all points in the current direction
-        offRadial = slice3D[p, :, 10]                                           # get all available offsets belonging to this row
+        offRadial = slice3D[p, :, 13]                                           # get all available offsets belonging to this row
         incRadial = inclu3D[p, :]                                               # not all points will be valid, in case of unique offsets
         n = np.count_nonzero(incRadial)                                         # normalize by actual  nr of available traces
         a = 1 / n if n > 0 else 0                                               # response will be zero for n = zero
@@ -167,6 +169,8 @@ def numbaNdft2D(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offset
     return xyCellStk
 
 # the following function is a non-parallel version of the above function; it is used for testing purposes to check if the parallelization is working properly
+
+
 @jit(nopython=True)
 def numbaNdft2DBeforeGemini(kMin: float, kMax: float, dK: float, offsetX: np.ndarray, offsetY: np.ndarray):
     kX = np.arange(kMin, kMax, dK)
@@ -193,13 +197,15 @@ def numbaNdft2DBeforeGemini(kMin: float, kMax: float, dK: float, offsetX: np.nda
 
 @jit(nopython=True)
 def numbaOffInline(slice2D: np.ndarray, ox: float, component: int = 0):
-    xInline = slice2D[:, 7]                                                     # get all available cmp values belonging to this row
+    xInline = slice2D[:, 9]                                                     # get all available cmp values belonging to this row
     if component == 1:
-        oInline = slice2D[:, 5] - slice2D[:, 3]                                 # inline offset component
+        oInline = slice2D[:, 6] - slice2D[:, 3]                                 # inline offset component
     elif component == 2:
-        oInline = slice2D[:, 6] - slice2D[:, 4]                                 # x-line offset component
+        oInline = slice2D[:, 7] - slice2D[:, 4]                                 # x-line offset component
+    elif component == 3:
+        oInline = slice2D[:, 12]                                                # TWT [ms]
     else:
-        oInline = slice2D[:, 10]                                                # absolute offset magnitude
+        oInline = slice2D[:, 13]                                                # absolute offset magnitude
 
     x = np.empty((2 * xInline.size), dtype=xInline.dtype)
     x[0::2] = xInline - ox
@@ -214,13 +220,15 @@ def numbaOffInline(slice2D: np.ndarray, ox: float, component: int = 0):
 
 @jit(nopython=True)
 def numbaOffXline(slice2D: np.ndarray, oy: float, component: int = 0):
-    yInline = slice2D[:, 8]                                                     # get all available cmp values belonging to this row
+    yInline = slice2D[:, 10]                                                    # get all available cmp values belonging to this row
     if component == 1:
-        oInline = slice2D[:, 5] - slice2D[:, 3]                                 # inline offset component
+        oInline = slice2D[:, 6] - slice2D[:, 3]                                 # inline offset component
     elif component == 2:
-        oInline = slice2D[:, 6] - slice2D[:, 4]                                 # x-line offset component
+        oInline = slice2D[:, 7] - slice2D[:, 4]                                 # x-line offset component
+    elif component == 3:
+        oInline = slice2D[:, 12]                                                # TWT [ms]
     else:
-        oInline = slice2D[:, 10]                                                # absolute offset magnitude
+        oInline = slice2D[:, 13]                                                # absolute offset magnitude
 
     x = np.empty((2 * yInline.size), dtype=yInline.dtype)
     x[0::2] = yInline - oy
@@ -235,8 +243,8 @@ def numbaOffXline(slice2D: np.ndarray, oy: float, component: int = 0):
 
 @jit(nopython=True)
 def numbaAziInline(slice2D: np.ndarray, ox: float):
-    xInline = slice2D[:, 7]                                                   # get all available cmp values belonging to this row
-    oInline = slice2D[:, 11]                                                  # get all available azimuths belonging to this row
+    xInline = slice2D[:, 9]                                                   # get all available cmp values belonging to this row
+    oInline = slice2D[:, 14]                                                  # get all available azimuths belonging to this row
 
     x = np.empty((2 * xInline.size), dtype=xInline.dtype)
     x[0::2] = xInline - ox
@@ -251,8 +259,8 @@ def numbaAziInline(slice2D: np.ndarray, ox: float):
 
 @jit(nopython=True)
 def numbaAziXline(slice2D: np.ndarray, oy: float):
-    yInline = slice2D[:, 8]                                                   # get all available cmp values belonging to this row
-    oInline = slice2D[:, 11]                                                  # get all available azimuths belonging to this row
+    yInline = slice2D[:, 10]                                                  # get all available cmp values belonging to this row
+    oInline = slice2D[:, 14]                                                  # get all available azimuths belonging to this row
 
     x = np.empty((2 * yInline.size), dtype=yInline.dtype)
     x[0::2] = yInline - oy
@@ -268,25 +276,25 @@ def numbaAziXline(slice2D: np.ndarray, oy: float):
 @jit(nopython=True)
 def numbaOffsetBin(slice2D: np.ndarray, unique=False):
     if unique is True:                                                          # we'd like to use unique offsets
-        havUnique = slice2D[:, 12]                                              # get all available cmp values belonging to this row
+        havUnique = slice2D[:, 15]                                              # get all available cmp values belonging to this row
         useUnique = True if havUnique.min() == -1 else False                    # are there any -1 records ?
     else:
         useUnique = False                                                       # unique not required or not available
 
     if useUnique:
-        I = (slice2D[:, 2] > 0) & (slice2D[:, 12] == -1)                        # fold > 0 AND unique == -1
+        included = (slice2D[:, 2] > 0) & (slice2D[:, 15] == -1)                 # fold > 0 AND unique == -1
     else:
-        I = slice2D[:, 2] > 0                                                   # fold > 0
+        included = slice2D[:, 2] > 0                                            # fold > 0
 
-    noData = np.count_nonzero(I) == 0
+    noData = np.count_nonzero(included) == 0
     if noData:
         empty = np.empty(0, dtype=slice2D.dtype)
         return (empty, empty, noData)                                           # nothing to show; return
 
-    slice2D = slice2D[I, :]                                                     # filter the 2D slice
+    slice2D = slice2D[included, :]                                              # filter the 2D slice
 
-    offsetX = slice2D[:, 5] - slice2D[:, 3]                                     # x-component of available offsets
-    offsetY = slice2D[:, 6] - slice2D[:, 4]                                     # y-component of available offsets
+    offsetX = slice2D[:, 6] - slice2D[:, 3]                                     # x-component of available offsets
+    offsetY = slice2D[:, 7] - slice2D[:, 4]                                     # y-component of available offsets
 
     return (offsetX, offsetY, noData)
 
@@ -298,37 +306,45 @@ def numbaSpiderBin(slice2D: np.ndarray):                                        
 
     spiderSrcX = np.zeros(shape=foldX2, dtype=np.float32)                       # needed to display data points
     spiderSrcY = np.zeros(shape=foldX2, dtype=np.float32)                       # needed to display data points
+    spiderSrcZ = np.zeros(shape=foldX2, dtype=np.float32)                       # needed to display data points (3D mode)
     spiderRecX = np.zeros(shape=foldX2, dtype=np.float32)                       # needed to display data points
     spiderRecY = np.zeros(shape=foldX2, dtype=np.float32)                       # needed to display data points
+    spiderRecZ = np.zeros(shape=foldX2, dtype=np.float32)                       # needed to display data points (3D mode)
 
     spiderSrcX[0::2] = slice2D[:, 3]                                            # src-x
-    spiderSrcX[1::2] = slice2D[:, 7]                                            # src-x
+    spiderSrcX[1::2] = slice2D[:, 9]                                            # cmp-x
 
     spiderSrcY[0::2] = slice2D[:, 4]                                            # src-y
-    spiderSrcY[1::2] = slice2D[:, 8]                                            # src-y
+    spiderSrcY[1::2] = slice2D[:, 10]                                           # cmp-y
 
-    spiderRecX[0::2] = slice2D[:, 5]                                            # rec-x
-    spiderRecX[1::2] = slice2D[:, 7]                                            # rec-x
+    spiderSrcZ[0::2] = slice2D[:, 5]                                            # src-z
+    spiderSrcZ[1::2] = slice2D[:, 11]                                           # cmp-z
 
-    spiderRecY[0::2] = slice2D[:, 6]                                            # rec-y
-    spiderRecY[1::2] = slice2D[:, 8]                                            # rec-y
+    spiderRecX[0::2] = slice2D[:, 6]                                            # rec-x
+    spiderRecX[1::2] = slice2D[:, 9]                                            # cmp-x
 
-    return (spiderSrcX, spiderSrcY, spiderRecX, spiderRecY)
+    spiderRecY[0::2] = slice2D[:, 7]                                            # rec-y
+    spiderRecY[1::2] = slice2D[:, 10]                                           # cmp-y
+
+    spiderRecZ[0::2] = slice2D[:, 8]                                            # rec-z
+    spiderRecZ[1::2] = slice2D[:, 11]                                           # cmp-z
+
+    return (spiderSrcX, spiderSrcY, spiderSrcZ, spiderRecX, spiderRecY, spiderRecZ)
 
 
 def pointsInRect(pointArray: np.ndarray, rect: QRectF):
-    l = rect.left()
-    r = rect.right()
-    t = rect.top()
-    b = rect.bottom()
+    lt = rect.left()
+    rt = rect.right()
+    tp = rect.top()
+    bm = rect.bottom()
 
-    return numbaPointsInRect(pointArray, l, r, t, b)
+    return numbaPointsInRect(pointArray, lt, rt, tp, bm)
 
 
 @jit(nopython=True)
-def numbaPointsInRect(pointArray: np.ndarray, l: float, r: float, t: float, b: float):
-    I = (pointArray[:, 0] >= l) & (pointArray[:, 0] <= r) & (pointArray[:, 1] >= t) & (pointArray[:, 1] <= b)
-    return I
+def numbaPointsInRect(pointArray: np.ndarray, lt: float, rt: float, tp: float, bm: float):
+    included = (pointArray[:, 0] >= lt) & (pointArray[:, 0] <= rt) & (pointArray[:, 1] >= tp) & (pointArray[:, 1] <= bm)
+    return included
 
 
 # See: https://stackoverflow.com/questions/49907604/setting-structured-array-field-in-numba
@@ -411,6 +427,7 @@ def numbaSetRelationRecord(array: np.ndarray, index: int, srcLin: float, srcPnt:
     array[index]['RecInd'] = srcInd
     array[index]['Uniq'] = 1                                                    # needed for compacting array later (remove empty records)
 
+
 @jit(nopython=True)
 def numbaBinBatchParallel(
     srcBatch,
@@ -463,8 +480,8 @@ def numbaBinBatchParallel(
                     cmpY = (src[1] + rec[1]) * 0.5
 
                     # Apply Bin Transform
-                    nx = int(binMat[0,0] * cmpX + binMat[0,1] * cmpY + binMat[0,2])
-                    ny = int(binMat[1,0] * cmpX + binMat[1,1] * cmpY + binMat[1,2])
+                    nx = int(binMat[0, 0] * cmpX + binMat[0, 1] * cmpY + binMat[0, 2])
+                    ny = int(binMat[1, 0] * cmpX + binMat[1, 1] * cmpY + binMat[1, 2])
 
                     if 0 <= nx < nx_max and 0 <= ny < ny_max:
                         dist = ((src[0]-rec[0])**2 + (src[1]-rec[1])**2)**0.5
@@ -472,23 +489,27 @@ def numbaBinBatchParallel(
                             fold = binOutput[nx, ny]
                             if fold < maxFold:
                                 # Line & Stake calculation
-                                stkX = int(st2Mat[0,0] * cmpX + st2Mat[0,1] * cmpY + st2Mat[0,2])
-                                stkY = int(st2Mat[1,0] * cmpX + st2Mat[1,1] * cmpY + st2Mat[1,2])
+                                stkX = int(st2Mat[0, 0] * cmpX + st2Mat[0, 1] * cmpY + st2Mat[0, 2])
+                                stkY = int(st2Mat[1, 0] * cmpX + st2Mat[1, 1] * cmpY + st2Mat[1, 2])
 
                                 anaOutput[nx, ny, fold, 0] = stkX
                                 anaOutput[nx, ny, fold, 1] = stkY
                                 anaOutput[nx, ny, fold, 2] = fold + 1
                                 anaOutput[nx, ny, fold, 3] = src[0]
                                 anaOutput[nx, ny, fold, 4] = src[1]
-                                anaOutput[nx, ny, fold, 5] = rec[0]
-                                anaOutput[nx, ny, fold, 6] = rec[1]
-                                anaOutput[nx, ny, fold, 7] = cmpX
-                                anaOutput[nx, ny, fold, 8] = cmpY
-                                anaOutput[nx, ny, fold, 10] = dist
+                                anaOutput[nx, ny, fold, 5] = src[2]
+                                anaOutput[nx, ny, fold, 6] = rec[0]
+                                anaOutput[nx, ny, fold, 7] = rec[1]
+                                anaOutput[nx, ny, fold, 8] = rec[2]
+                                anaOutput[nx, ny, fold, 9] = cmpX
+                                anaOutput[nx, ny, fold, 10] = cmpY
+                                anaOutput[nx, ny, fold, 11] = (src[2] + rec[2]) * 0.5
+                                anaOutput[nx, ny, fold, 13] = dist
 
                         binOutput[nx, ny] += 1
-                        if dist < minOffset[nx, ny]: minOffset[nx, ny] = dist
-                        if dist > maxOffset[nx, ny]: maxOffset[nx, ny] = dist
+                        if dist < minOffset[nx, ny]: minOffset[nx, ny] = dist  # noqa: E701
+                        if dist > maxOffset[nx, ny]: maxOffset[nx, ny] = dist  # noqa: E701
+
 
 @jit(nopython=True)
 def numbaFixRelationRecord(array: np.ndarray, index: int, recStkX: float):

@@ -30,6 +30,7 @@ class AnalysisRedrawReason(Enum):
     offAziDisplayModeChanged = 5
     offAziColorBarLevelsChanged = 6
 
+
 class SeedType(IntFlag):
     rollingGrid = 0
     fixedGrid = 1
@@ -37,13 +38,14 @@ class SeedType(IntFlag):
     spiral = 3
     well = 4
 
+
 class SurveyType(Enum):
-    Orthogonal = (0, "Orthogonal - standard manner of acquiring land data")
-    Parallel   = (1, "Parallel - standard manner of acquiring OBN data")
-    Slanted    = (2, "Slanted - legacy variation on orthogonal, aiming to reduce LMOS")
-    Brick      = (3, "Brick - legacy variation on orthogonal, aiming to reduce LMOS")
-    Zigzag     = (4, "zigzag - legacy manner acquiring narrrow azimuth vibroseis data")
-    Streamer   = (5, "streamer - towed streamer marine survey")
+    Orthogonal = (0, "Orthogonal - standard manner of acquiring land data")                 # noqa: E221
+    Parallel   = (1, "Parallel - standard manner of acquiring OBN data")                    # noqa: E221
+    Slanted    = (2, "Slanted - legacy variation on orthogonal, aiming to reduce LMOS")     # noqa: E221
+    Brick      = (3, "Brick - legacy variation on orthogonal, aiming to reduce LMOS")       # noqa: E221
+    Zigzag     = (4, "zigzag - legacy manner acquiring narrrow azimuth vibroseis data")     # noqa: E221
+    Streamer   = (5, "streamer - towed streamer marine survey")                             # noqa: E221
     # Orthogonal = ("Orthogonal", "Orthogonal - standard manner of acquiring land data")
     # Parallel   = ("Parallel",   "Parallel - standard manner of acquiring OBN data")
     # Slanted    = ("Slanted",    "Slanted - legacy variation on orthogonal, aiming to reduce LMOS")

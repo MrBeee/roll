@@ -75,7 +75,7 @@ class SpiderNavigationMixin:
         xAna, yAna, zFold, wCols = self.output.anaOutput.shape
         xBin, yBin = self.output.binOutput.shape
 
-        if wCols != 13 or xAna != xBin or yAna != yBin:
+        if wCols != 16 or xAna != xBin or yAna != yBin:
             QMessageBox.warning(
                 self,
                 'Misaligned analysis arrays',
@@ -132,15 +132,24 @@ class SpiderNavigationMixin:
         if fold > 0:
             slice2d = self.output.anaOutput[nX, nY, 0:fold, :]
             legs = self._spiderLegArrays(slice2d)
-            self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = legs
+            (
+                self.spiderSrcX,
+                self.spiderSrcY,
+                self.spiderSrcZ,
+                self.spiderRecX,
+                self.spiderRecY,
+                self.spiderRecZ,
+            ) = legs
         else:
-            self.spiderSrcX = self.spiderSrcY = self.spiderRecX = self.spiderRecY = None
+            self.spiderSrcX = self.spiderSrcY = self.spiderSrcZ = None
+            self.spiderRecX = self.spiderRecY = self.spiderRecZ = None
 
         # if fold > 0:
         #     legs = fnb.numbaSpiderBin(self.output.anaOutput[nX, nY, 0:fold, :])
-        #     self.spiderSrcX, self.spiderSrcY, self.spiderRecX, self.spiderRecY = legs
+        #     self.spiderSrcX, self.spiderSrcY, self.spiderSrcZ, self.spiderRecX, self.spiderRecY, self.spiderRecZ = legs
         # else:
-        #     self.spiderSrcX = self.spiderSrcY = self.spiderRecX = self.spiderRecY = None
+        #     self.spiderSrcX = self.spiderSrcY = self.spiderSrcZ = None
+        #     self.spiderRecX = self.spiderRecY = self.spiderRecZ = None
 
         invBin, _ = self.survey.binTransform.inverted()
         cmpX, cmpY = invBin.map(nX, nY)
@@ -188,13 +197,17 @@ class SpiderNavigationMixin:
         foldTimesTwo = slice2d.shape[0] * 2
         spiderSrcX = np.zeros(foldTimesTwo, dtype=np.float32)
         spiderSrcY = np.zeros_like(spiderSrcX)
+        spiderSrcZ = np.zeros_like(spiderSrcX)
         spiderRecX = np.zeros_like(spiderSrcX)
         spiderRecY = np.zeros_like(spiderSrcX)
-        spiderSrcX[0::2] = slice2d[:, 3]; spiderSrcX[1::2] = slice2d[:, 7]
-        spiderSrcY[0::2] = slice2d[:, 4]; spiderSrcY[1::2] = slice2d[:, 8]
-        spiderRecX[0::2] = slice2d[:, 5]; spiderRecX[1::2] = slice2d[:, 7]
-        spiderRecY[0::2] = slice2d[:, 6]; spiderRecY[1::2] = slice2d[:, 8]
-        return spiderSrcX, spiderSrcY, spiderRecX, spiderRecY
+        spiderRecZ = np.zeros_like(spiderSrcX)
+        spiderSrcX[0::2] = slice2d[:, 3]; spiderSrcX[1::2] = slice2d[:, 9]
+        spiderSrcY[0::2] = slice2d[:, 4]; spiderSrcY[1::2] = slice2d[:, 10]
+        spiderSrcZ[0::2] = slice2d[:, 5]; spiderSrcZ[1::2] = slice2d[:, 11]
+        spiderRecX[0::2] = slice2d[:, 6]; spiderRecX[1::2] = slice2d[:, 9]
+        spiderRecY[0::2] = slice2d[:, 7]; spiderRecY[1::2] = slice2d[:, 10]
+        spiderRecZ[0::2] = slice2d[:, 8]; spiderRecZ[1::2] = slice2d[:, 11]
+        return spiderSrcX, spiderSrcY, spiderSrcZ, spiderRecX, spiderRecY, spiderRecZ
 
     def _syncTraceTableSelection(self, nX: int, nY: int, fold: int) -> None:
         sizeY = self.output.anaOutput.shape[1]

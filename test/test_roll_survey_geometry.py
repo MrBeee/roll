@@ -218,7 +218,7 @@ class RollSurveyGeometryTest(unittest.TestCase):
     def testCalcOffsetGapValuesTreatsAllEmptyAnalysisAsZeroGap(self):
         survey = self.createSurvey()
         survey.output.binOutput = np.zeros((2, 3), dtype=np.float32)
-        survey.output.anaOutput = np.zeros((2, 3, 1, 13), dtype=np.float32)
+        survey.output.anaOutput = np.zeros((2, 3, 1, 16), dtype=np.float32)
 
         success = survey.calcOffsetGapValues()
 
@@ -411,7 +411,7 @@ class RollSurveyGeometryTest(unittest.TestCase):
         survey.output.binOutput = np.zeros((2, 2), dtype=np.int32)
         survey.output.minOffset = np.full((2, 2), np.inf, dtype=np.float32)
         survey.output.maxOffset = np.zeros((2, 2), dtype=np.float32)
-        survey.output.anaOutput = np.zeros((2, 2, survey.grid.fold, 12), dtype=np.float32)
+        survey.output.anaOutput = np.zeros((2, 2, survey.grid.fold, 16), dtype=np.float32)
 
         src = np.array([0.0, 0.0, 0.0], dtype=np.float32)
         cmpPoints = np.array([
@@ -438,15 +438,15 @@ class RollSurveyGeometryTest(unittest.TestCase):
 
         self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 3], 0.0, places=4)
         self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 4], 0.0, places=4)
-        self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 5], 10.0, places=4)
-        self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 7], 5.0, places=4)
-        self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 8], 5.0, places=4)
-        self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 10], 10.0, places=4)
-        self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 11], 45.0, places=4)
-        self.assertAlmostEqual(survey.output.anaOutput[1, 0, 0, 5], 20.0, places=4)
-        self.assertAlmostEqual(survey.output.anaOutput[1, 0, 0, 7], 15.0, places=4)
-        self.assertAlmostEqual(survey.output.anaOutput[1, 0, 0, 10], 20.0, places=4)
-        self.assertAlmostEqual(survey.output.anaOutput[1, 0, 0, 11], 90.0, places=4)
+        self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 6], 10.0, places=4)
+        self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 9], 5.0, places=4)
+        self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 10], 5.0, places=4)
+        self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 13], 10.0, places=4)
+        self.assertAlmostEqual(survey.output.anaOutput[0, 0, 0, 14], 45.0, places=4)
+        self.assertAlmostEqual(survey.output.anaOutput[1, 0, 0, 6], 20.0, places=4)
+        self.assertAlmostEqual(survey.output.anaOutput[1, 0, 0, 9], 15.0, places=4)
+        self.assertAlmostEqual(survey.output.anaOutput[1, 0, 0, 13], 20.0, places=4)
+        self.assertAlmostEqual(survey.output.anaOutput[1, 0, 0, 14], 90.0, places=4)
 
     def testBuildBinningArraysFromSelectedReceiversAppliesCmpOffsetAndRadialFilters(self):
         survey = self.createSurvey()
@@ -590,7 +590,7 @@ class RollSurveyGeometryTest(unittest.TestCase):
 
     def testFinalizeLiveBinningOutputsRunsPostProcessingOrClearsAnalysis(self):
         survey = self.createSurvey()
-        survey.output.anaOutput = np.ones((1, 1, 1, 12), dtype=np.float32)
+        survey.output.anaOutput = np.ones((1, 1, 1, 16), dtype=np.float32)
 
         with patch.object(survey, 'calcFoldAndOffsetEssentials') as foldHelper:
             with patch.object(survey, 'calcRmsOffsetValues') as rmsHelper:
@@ -604,7 +604,7 @@ class RollSurveyGeometryTest(unittest.TestCase):
         offAziHelper.assert_called_once_with()
         self.assertIsNotNone(survey.output.anaOutput)
 
-        survey.output.anaOutput = np.ones((1, 1, 1, 12), dtype=np.float32)
+        survey.output.anaOutput = np.ones((1, 1, 1, 16), dtype=np.float32)
 
         with patch.object(survey, 'calcFoldAndOffsetEssentials') as foldHelper:
             with patch.object(survey, 'calcRmsOffsetValues') as rmsHelper:

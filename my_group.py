@@ -18,6 +18,7 @@ currentDir = os.path.dirname(os.path.abspath(__file__))
 resourceDir = os.path.join(currentDir, 'resources')
 
 #  helper function to check if all parents have been expanded. In that case the preview label should be shown
+
 def expandedParents(param):
     expanded = True
     parent = param.parent()

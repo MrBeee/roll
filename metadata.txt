@@ -7,7 +7,7 @@ name=Roll
 qgisMinimumVersion=3.34
 qgisMaximumVersion=4.99
 description=Design and analysis of 3D seismic survey geometries
-version=0.6.7
+version=0.6.9
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -32,12 +32,10 @@ about:<p>This plugin is intended to create and analyze 3D seismic survey geometr
   <li>The plugin works best on a QHD Screen (2560 x 1440 pixels) or larger </li>
   <li>As of QGIS v3.32, High-DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a> </li> 
   <li>As of version 3.34.6, QGIS upgraded Python from v3.9 to to v3.12 This speeds up calculations and solves some security issues.
-  But when <i>upgrading</i> from an earlier QGIS version, it requires installing the above listed packages <b><i>again.</b></i> </li></ul>
+  But when <i>upgrading</i> from an earlier QGIS version, it requires installing the above listed packages <b><i>again.</b></i> </li>
+  <li>As of version 0.4.6 the plugin is compatible with Qt6. Note that with Qt6 the High DPI scaling issues have been resolved</li>
+  <li>As of version 0.6.3 the plugin is compatible with QGIS 4.0. Some numpy attribute names needed to be changed for NumPy 2.0</li></ul>
   <p>
-  <p>As of version 0.4.6 the plugin is compatible with Qt6. Note that with Qt6 the High DPI scaling issues have been resolved
-  <p>As of version 0.6.3 the plugin is compatible with QGIS 4.0. Some numpy attribute names needed to be changed for NumPy 2.0 
-  <p>
-
 
 
 tracker=https://github.com/MrBeee/roll/issues
@@ -47,8 +45,11 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:  <p>2026-04-22 (0.6.7) Improved import and handling of SPS files.
-  <p>2026-04-21 (0.6.6) Added 'Max Offset Gap' analysis. Fixed bug crashing app when worker thread was interrupted. Improved readability of items in Parameter tree (property pane).  <p>2026-04-16 (0.6.5) Added inline and x-line offsets to |offset| plots and mouse tracking in statusbar for all plots. Continued refactoring code.
+changelog:  <p>2026-05-01 (0.6.9) Added TWT option to inline and x-line offset displays. Started to fleece code using Flake8 
+  <p>2026-04-30 (0.6.8) Added 3D view for Subset of survey data. Enabled by "Show/use unfinished code" in the Settings dialog. Implemented faster worker thread routines, enabled by the same flag
+  <p>2026-04-22 (0.6.7) Improved import and handling of SPS files.
+  <p>2026-04-21 (0.6.6) Added 'Max Offset Gap' analysis. Fixed bug crashing app when worker thread was interrupted. Improved readability of items in Parameter tree (property pane).
+  <p>2026-04-16 (0.6.5) Added inline and x-line offsets to |offset| plots and mouse tracking in statusbar for all plots. Continued refactoring code.
   <p>2026-04-09 (0.6.4) Added a polar diagram for the offset/azimuth histogram and continued refactoring of code
   <p>2026-03-10 (0.6.3) Some numpy attribute names needed to be changed for NumPy 2.0 compatibility in QGIS 4.0
   <p>2026-03-08 (0.6.2) Mainly internal reformatting of code to make attribute & variable names compatible with QGIS' use of camelCase, rather than snake_case. Some minor tweaks applied

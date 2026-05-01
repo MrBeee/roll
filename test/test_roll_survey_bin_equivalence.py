@@ -140,7 +140,7 @@ class BinFromGeometryEquivalenceTest(unittest.TestCase):
         if fullAnalysis:
             nx, ny = survey.output.binOutput.shape
             survey.output.anaOutput = np.zeros(
-                shape=(nx, ny, survey.grid.fold, 13), dtype=np.float32
+                shape=(nx, ny, survey.grid.fold, 16), dtype=np.float32
             )
 
         binFn = getattr(survey, binFnName)

@@ -104,6 +104,7 @@ from .xml_code_editor import QCodeEditor, XMLHighlighter
 
 # code to run Roll standalone, without QGIS, for testing and development purposes
 
+
 def _toQgsArgv(argv):
     if argv is None:
         argv = []
@@ -114,6 +115,7 @@ def _toQgsArgv(argv):
         else:
             qgsArgv.append(str(arg).encode('utf-8', errors='ignore'))
     return qgsArgv
+
 
 def getStandaloneQgisApp(argv=None):
     argv = sys.argv if argv is None else argv
@@ -126,6 +128,7 @@ def getStandaloneQgisApp(argv=None):
         ownsQgsApp = True
 
     return qgsApp, ownsQgsApp
+
 
 def runStandalone(argv=None, filePath=None):
     qgsApp, ownsQgsApp = getStandaloneQgisApp(argv)
@@ -167,6 +170,7 @@ resourceDir = os.path.join(currentDir, 'resources')
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'roll_main_window_base.ui'))
+
 
 class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaintMixin, BinningWorkerMixin):
     """Main window for the Roll plugin, uses multiple inheritance.
@@ -536,8 +540,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.spiderPoint = QPoint(-1, -1)                                       # spider point 'out of scope'
         self.spiderSrcX = None                                                  # numpy array with list of SRC part of spider plot
         self.spiderSrcY = None                                                  # numpy array with list of SRC part of spider plot
+        self.spiderSrcZ = None                                                  # numpy array with list of SRC z values for 3D spider
         self.spiderRecX = None                                                  # numpy array with list of REC part of spider plot
         self.spiderRecY = None                                                  # numpy array with list of REC part of spider plot
+        self.spiderRecZ = None                                                  # numpy array with list of REC z values for 3D spider
         self.spiderText = None                                                  # text label describing spider bin, stake, fold
         self.actionSpider.setChecked(False)                                     # reset spider plot to 'off'
         self.actionSpider.setEnabled(False)
@@ -940,7 +946,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             return 'inline'
         if component == 2:
             return 'x-line'
+        if component == 3:
+            return 'TWT'
         return '|offset|'
+
+    @staticmethod
+    def offsetComponentUnits(component: int) -> str:
+        if component == 3:
+            return 'ms'
+        return 'm'
 
     def getSelectedOffsetComponent(self, actionGroupName: str) -> int:
         actionGroup = getattr(self, actionGroupName, None)
@@ -952,7 +966,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return int(data) if data is not None else 0
 
     def updateOffsetPlotComponentLabel(self, plotWidget, component: int) -> None:
-        plotWidget.setLabel('left', self.offsetComponentLabel(component), units='m')
+        plotWidget.setLabel('left', self.offsetComponentLabel(component), units=self.offsetComponentUnits(component))
 
     def onOffTrkComponentChanged(self):
         component = self.getSelectedOffsetComponent('OffTrkComponentActionGroup')
@@ -2864,8 +2878,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.spiderPoint = QPoint(-1, -1)                                       # spider point 'out of scope'
         self.spiderSrcX = None                                                  # numpy array with list of SRC part of spider plot
         self.spiderSrcY = None                                                  # numpy array with list of SRC part of spider plot
+        self.spiderSrcZ = None                                                  # numpy array with list of SRC z values for 3D spider
         self.spiderRecX = None                                                  # numpy array with list of REC part of spider plot
         self.spiderRecY = None                                                  # numpy array with list of REC part of spider plot
+        self.spiderRecZ = None                                                  # numpy array with list of REC z values for 3D spider
         self.spiderText = None                                                  # text label describing spider bin, stake, fold
         self.actionSpider.setChecked(False)                                     # reset spider plot to 'off'
 

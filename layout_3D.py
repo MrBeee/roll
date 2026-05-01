@@ -1066,20 +1066,19 @@ class Layout3DWidget(QWidget):
     def _drawSpiderOverlay(self, survey, useGlobal, spiderData):
         """Draw the 3D spider rays for one selected bin.
 
-        ``spiderData`` is a dict with the four pair-arrays produced by
+        ``spiderData`` is a dict with the pair-arrays produced by
         ``functions_numba.numbaSpiderBin`` /
         ``SpiderNavigationMixin._spiderLegArraysPython``:
 
-        ``{'srcX', 'srcY', 'recX', 'recY'}`` — each ``(2*fold,)``
-        float arrays in *survey-local* coordinates where index ``2k``
-        is the source / receiver and ``2k+1`` is the cmp midpoint.
+        ``{'srcX', 'srcY', 'srcZ', 'recX', 'recY', 'recZ'}`` — each
+        ``(2*fold,)`` float arrays in *survey-local* coordinates where
+        index ``2k`` is the source / receiver and ``2k+1`` is the cmp
+        midpoint. The ``*Z`` arrays carry the actual z-coordinates that
+        were captured at binning time (src/rec real elevation, cmp z
+        from the binning plane / sphere). Because the analysis table
+        now always carries z, the overlay no longer needs to know which
+        binning method produced the data.
 
-        Z values:
-          * Source / receiver       -> 0.0 (surface).
-          * Cmp midpoint (z = depth) -> ``plane.depthAt`` /
-            ``sphere.depthAt`` of the corresponding cmp point. For
-            cmp-only binning (no plane / sphere) we fall back to z = 0
-            so the overlay degenerates to a flat 2D spider.
         Coordinates are mapped through ``survey.glbTransform`` when
         ``useGlobal`` is True so they line up with the rest of the
         global-mode 3D scene.
@@ -1088,53 +1087,25 @@ class Layout3DWidget(QWidget):
             return
         srcX = spiderData.get('srcX')
         srcY = spiderData.get('srcY')
+        srcZ = spiderData.get('srcZ')
         recX = spiderData.get('recX')
         recY = spiderData.get('recY')
+        recZ = spiderData.get('recZ')
         if srcX is None or srcY is None or recX is None or recY is None:
+            return
+        if srcZ is None or recZ is None:
             return
         if srcX.size == 0 or srcX.size % 2 != 0:
             return
-        # Decide which depth model applies. Spider arrays are in local
-        # coords, so we always evaluate depth in local space, *then*
-        # apply the global transform if needed.
-        method = getattr(survey.binning, 'method', None)
-
-        plane = sphere = None
-        if method == BinningType.plane:
-            plane = getattr(survey, 'localPlane', None) \
-                or getattr(survey, 'globalPlane', None)
-        elif method == BinningType.sphere:
-            sphere = getattr(survey, 'localSphere', None) \
-                or getattr(survey, 'globalSphere', None)
-
-        def cmpZ(x, y):
-            if plane is not None:
-                try:
-                    return float(plane.depthAt(QPointF(x, y)))
-                except Exception:                               # pragma: no cover
-                    return 0.0
-            if sphere is not None:
-                try:
-                    z = float(sphere.depthAt(QPointF(x, y)))
-                    # ``depthAt`` returns +inf when (x,y) is outside
-                    # the sphere's footprint -- clamp to surface.
-                    if not np.isfinite(z):
-                        return 0.0
-                    return z
-                except Exception:                               # pragma: no cover
-                    return 0.0
-            return 0.0
+        if srcZ.size != srcX.size or recZ.size != recX.size:
+            return
 
         transform = getattr(survey, 'glbTransform', None) if useGlobal else None
 
-        def buildXYZ(xs, ys):
+        def buildXYZ(xs, ys, zs):
             xs = np.asarray(xs, dtype=np.float64)
             ys = np.asarray(ys, dtype=np.float64)
-            zs = np.zeros_like(xs)
-            # Even index = src/rec @ surface; odd index = cmp @ depth.
-            cmpIdx = np.arange(1, xs.size, 2)
-            for i in cmpIdx:
-                zs[i] = cmpZ(xs[i], ys[i])
+            zs = np.asarray(zs, dtype=np.float64)
             if transform is not None:
                 # Vectorised affine: avoid per-point QTransform.map.
                 m11 = transform.m11(); m12 = transform.m12()
@@ -1147,8 +1118,8 @@ class Layout3DWidget(QWidget):
 
         ax = self._axes
 
-        sx, sy, sz = buildXYZ(srcX, srcY)
-        rx, ry, rz = buildXYZ(recX, recY)
+        sx, sy, sz = buildXYZ(srcX, srcY, srcZ)
+        rx, ry, rz = buildXYZ(recX, recY, recZ)
         nSeg = sx.size // 2
 
         # Extend the cached data Z extent so ``_applyAxisLimits`` (and
@@ -1252,7 +1223,7 @@ class Layout3DWidget(QWidget):
             # rectangle without changing the (isotropic) aspect.
             # ~1.3 leaves a small margin while filling the available
             # widget area much better than the default (=1.0).
-            ax.set_box_aspect((dx, dy, dz), zoom=1.6)
+            ax.set_box_aspect((dx, dy, dz), zoom=1.3)
         except (TypeError, ValueError):
             try:
                 ax.set_box_aspect((1, 1, 1))

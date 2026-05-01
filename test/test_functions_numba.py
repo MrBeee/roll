@@ -15,9 +15,9 @@ numbaOffXline = functionsNumbaModule.numbaOffXline
 
 class FunctionsNumbaTest(unittest.TestCase):
     def testNumbaNdft1DReturnsFiniteValuesForZeroAmplitudeResponse(self):
-        slice3D = np.zeros((1, 2, 13), dtype=np.float32)
-        slice3D[0, 0, 10] = 0.0
-        slice3D[0, 1, 10] = 1.0
+        slice3D = np.zeros((1, 2, 16), dtype=np.float32)
+        slice3D[0, 0, 13] = 0.0
+        slice3D[0, 1, 13] = 1.0
         include3D = np.ones((1, 2), dtype=np.bool_)
 
         response = numbaNdft1D(1.0, 0.5, slice3D, include3D)
@@ -35,14 +35,14 @@ class FunctionsNumbaTest(unittest.TestCase):
         self.assertLess(response[1, 0], 0.0)
 
     def testNumbaOffPlotsCanSelectAbsoluteInlineOrXlineComponents(self):
-        slice2D = np.zeros((2, 13), dtype=np.float32)
-        slice2D[:, 7] = np.array([100.0, 200.0], dtype=np.float32)
-        slice2D[:, 8] = np.array([300.0, 400.0], dtype=np.float32)
-        slice2D[:, 3] = np.array([10.0, 20.0], dtype=np.float32)
-        slice2D[:, 4] = np.array([1.0, 2.0], dtype=np.float32)
-        slice2D[:, 5] = np.array([14.0, 29.0], dtype=np.float32)
-        slice2D[:, 6] = np.array([6.0, 11.0], dtype=np.float32)
-        slice2D[:, 10] = np.array([99.0, 199.0], dtype=np.float32)
+        slice2D = np.zeros((2, 16), dtype=np.float32)
+        slice2D[:,  9] = np.array([100.0, 200.0], dtype=np.float32)             # cmp-x
+        slice2D[:, 10] = np.array([300.0, 400.0], dtype=np.float32)             # cmp-y
+        slice2D[:,  3] = np.array([10.0, 20.0], dtype=np.float32)               # src-x
+        slice2D[:,  4] = np.array([1.0, 2.0], dtype=np.float32)                 # src-y
+        slice2D[:,  6] = np.array([14.0, 29.0], dtype=np.float32)               # rec-x
+        slice2D[:,  7] = np.array([6.0, 11.0], dtype=np.float32)                # rec-y
+        slice2D[:, 13] = np.array([99.0, 199.0], dtype=np.float32)              # offset
 
         _, absInline = numbaOffInline(slice2D, 5.0, 0)
         _, inlineInline = numbaOffInline(slice2D, 5.0, 1)

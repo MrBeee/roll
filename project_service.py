@@ -349,7 +349,43 @@ class ProjectService:
         result.analysisFold = fold
         self._appendMessage(result, 'info', f'Analysis load: fold={fold}, maxFold={result.maximumFold}')
 
-        memmapResult = self.openAnalysisMemmap(fileName, (nx, ny, fold, 13), mode='r+', allowCopyOnWriteFallback=True)
+        # Validate the on-disk size against the current 16-column schema *before*
+        # we mmap the file, so we never expose a mis-shaped array to the trace
+        # table view. Files written by older builds had 13 columns; we detect
+        # that explicitly and emit a tailored warning.
+        anaPath = self.sidecarPath(fileName, '.ana.npy')
+        try:
+            fileBytes = os.path.getsize(anaPath)
+        except OSError as exc:
+            self._appendMessage(result, 'error', f'Loaded : . . . Analysis &nbsp;: read error {fileName + ".ana.npy"}. {exc}')
+            return
+
+        bytesPerCol = nx * ny * fold * 4 if (nx and ny and fold) else 0
+        if bytesPerCol <= 0 or fileBytes % bytesPerCol != 0:
+            self._appendMessage(
+                result,
+                'error',
+                f'Loaded : . . . Analysis &nbsp;: trace table size for {anaPath} does not match the binning grid (nx={nx}, ny={ny}, fold={fold}). Please re-run binning.',
+            )
+            return
+
+        cols = fileBytes // bytesPerCol
+        if cols == 13:
+            self._appendMessage(
+                result,
+                'error',
+                f'Loaded : . . . Analysis &nbsp;: legacy 13-column layout detected for {anaPath}. The format was extended with src-z, rec-z and cmp-z columns; please re-run the binning to refresh the trace table.',
+            )
+            return
+        if cols != 16:
+            self._appendMessage(
+                result,
+                'error',
+                f'Loaded : . . . Analysis &nbsp;: unexpected column count ({cols}) for {anaPath}. Expected 16 columns; please re-run the binning to refresh the trace table.',
+            )
+            return
+
+        memmapResult = self.openAnalysisMemmap(fileName, (nx, ny, fold, 16), mode='r+', allowCopyOnWriteFallback=True)
         if not memmapResult.success:
             self._appendMessage(result, 'error', f'Loaded : . . . Analysis &nbsp;: read error {fileName + ".ana.npy"}. {memmapResult.errorText}')
             return
@@ -362,7 +398,7 @@ class ProjectService:
             )
 
         nT = memmapResult.memmap.size
-        expected = nx * ny * fold * 13
+        expected = nx * ny * fold * 16
         delta = nT - expected
         self._appendMessage(result, 'info', f'Analysis load: nT={nT}, expected={expected}, delta={delta}')
 

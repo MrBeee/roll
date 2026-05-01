@@ -1,8 +1,3 @@
-# Python routine to implement Cohen Sutherland algorithm for line clipping.
-# See: https://www.geeksforgeeks.org/line-clipping-set-1-cohen-sutherland-algorithm/
-# See: https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
-# See: https://www.geeksforgeeks.org/line-clipping-set-2-cyrus-beck-algorithm/?ref=rp
-
 try:    # need to TRY importing numba, only to see if it is available
     haveNumba = True
     import numba  # pylint: disable=W0611
@@ -12,7 +7,7 @@ except ImportError:
 try:    # need to TRY importing debugpy, only to see if it is available
     haveDebugpy = True
     import debugpy  # pylint: disable=W0611
-except ImportError as ie:
+except ImportError:
     haveDebugpy = False
 
 try:
@@ -46,12 +41,14 @@ from .app_settings import isDebugLoggingEnabled
 def silentPrint(*_, **__):
     pass
 
+
 def myPrint(*args, **kwargs):                                                   # print function that can be suppressed
     if isDebugLoggingEnabled():
         print(*args, **kwargs)
 
-# See: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch14s08.html for introspective functions
+
 def whoamI():
+    # See: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch14s08.html for introspective functions
     return sys._getframe(1).f_code.co_name                                      # pylint: disable=W0212 # unfortunately need access to protected member
 
 
@@ -83,6 +80,7 @@ def toInt(value: any, default: int = 0) -> int:
         return int(value)
     except ValueError:
         return default
+
 
 def toBool(value: any, default=False) -> bool:
     if value is None:                                                         # if you expect None to be passed
@@ -776,8 +774,8 @@ def numpyToQpolygonF(xdata, ydata):
     buffer = polyline.data()
     buffer.setsize(16 * size)  # 16 bytes per point: 8 bytes per X,Y value (float64)
     memory = np.frombuffer(buffer, np.float64)
-    memory[: (size - 1) * 2 + 1 : 2] = np.asarray(xdata, dtype=np.float64)
-    memory[1 : (size - 1) * 2 + 2 : 2] = np.asarray(ydata, dtype=np.float64)
+    memory[: (size - 1) * 2 + 1: 2] = np.asarray(xdata, dtype=np.float64)
+    memory[1: (size - 1) * 2 + 2: 2] = np.asarray(ydata, dtype=np.float64)
     return polyline
 
 
@@ -858,18 +856,35 @@ def highDpiText() -> str:
 
 
 def licenseText() -> str:
-    licenseTxt = """
-    Copyright  © 2022 - present by Duijndam.Dev. All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-    Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-
-    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-
-    Neither the name of Mapbox nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL DUIJNDAM.DEV BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."""
+    licenseTxt = (
+        "\n"
+        "    Copyright  © 2022 - present by Duijndam.Dev. All rights reserved.\n"
+        "\n"
+        "    Redistribution and use in source and binary forms, with or without modification,"
+        " are permitted provided that the following conditions are met:\n"
+        "\n"
+        "    Redistributions of source code must retain the above copyright notice,"
+        " this list of conditions and the following disclaimer.\n"
+        "\n"
+        "    Redistributions in binary form must reproduce the above copyright notice,"
+        " this list of conditions and the following disclaimer in the documentation"
+        " and/or other materials provided with the distribution.\n"
+        "\n"
+        "    Neither the name of Mapbox nor the names of its contributors may be used"
+        " to endorse or promote products derived from this software"
+        " without specific prior written permission.\n"
+        "\n"
+        "    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS"
+        " “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,"
+        " THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE"
+        " ARE DISCLAIMED. IN NO EVENT SHALL DUIJNDAM.DEV BE LIABLE FOR ANY DIRECT, INDIRECT,"
+        " INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,"
+        " PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;"
+        " OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,"
+        " WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)"
+        " ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,"
+        " EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+    )
     return licenseTxt
 
 
@@ -997,9 +1012,10 @@ def qgisCheatSheetText() -> str:
     """
     return qgisText
 
-# See: https://stackoverflow.com/questions/62196835/how-to-get-string-name-for-qevent-in-pyqt5
-# usage: print(eventLookup[str(event.type())])
+
 eventLookup = {
+    # See: https://stackoverflow.com/questions/62196835/how-to-get-string-name-for-qevent-in-pyqt5
+    # usage: print(eventLookup[str(event.type())])
     '216': 'QEvent::UNKNOWN EVENT !',
     '0': 'QEvent::None',
     '114': 'QEvent::ActionAdded',

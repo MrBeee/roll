@@ -1272,6 +1272,7 @@ class MyTemplateParameterItem(MyGroupParameterItem):
         self.updatePreviewLabelText(t)
         # myPrint(f'>>>{lineNo():5d} MyTemplateParameterItem.showPreviewInformation | t = {t} <<<')
 
+
 class MyTemplateParameter(MyGroupParameter):
 
     itemClass = MyTemplateParameterItem

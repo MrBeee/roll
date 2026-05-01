@@ -9,6 +9,7 @@ from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QFrame, QGroupBox,
 
 from .app_settings import isShowUnfinishedEnabled
 from .config import toolButtonStyle
+from .enums_and_int_flags import MsgType
 
 _QT_PEN_STYLE_TO_MPL = {
     Qt.PenStyle.SolidLine: '-',
@@ -307,19 +308,21 @@ def refreshLayout3DFromSurvey(self):
     if spiderOn:
         srcX = getattr(self, 'spiderSrcX', None)
         srcY = getattr(self, 'spiderSrcY', None)
+        srcZ = getattr(self, 'spiderSrcZ', None)
         recX = getattr(self, 'spiderRecX', None)
         recY = getattr(self, 'spiderRecY', None)
+        recZ = getattr(self, 'spiderRecZ', None)
         if srcX is not None and srcY is not None \
                 and recX is not None and recY is not None:
-            spiderData = dict(srcX=srcX, srcY=srcY, recX=recX, recY=recY)
+            spiderData = dict(srcX=srcX, srcY=srcY, srcZ=srcZ, recX=recX, recY=recY, recZ=recZ)
 
     # Log when the host has spider state but no arrays yet so the user
     # gets a hint to navigate with ALT+arrows in the 2D view first.
     if spiderOn and spiderData is None:
         log = getattr(self, 'appendLogMessage', None)
         if log is not None:
-            log('3D Subset: Spider toggle is on but no spider arrays available yet '
-                '(navigate with ALT+arrows or click in the 2D layout first).')
+            log('Spider : Switched "on", but no spider-rays available yet '
+                '(navigate with ALT+arrows or work in the 2D Map view first).', MsgType.Warning)
 
     binArea = _buildBinAreaConfig(self)
     blockAreas = _buildBlockAreasConfig(self)

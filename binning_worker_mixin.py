@@ -227,13 +227,13 @@ class BinningWorkerMixin:
 
         try:
             anaFileName = self.fileName + '.ana.npy'
-            shape = (nx, ny, fold, 13)
+            shape = (nx, ny, fold, 16)
             mode = 'r+' if os.path.exists(anaFileName) else 'w+'
             self.output.anaOutput = np.memmap(anaFileName, shape=shape, dtype=np.float32, mode=mode)
             self.output.anaOutput.fill(0.0)
 
             nX, nY, nZ, nC = self.output.anaOutput.shape
-            if (nx, ny, fold, 13) != (nX, nY, nZ, nC):
+            if (nx, ny, fold, 16) != (nX, nY, nZ, nC):
                 self.appendLogMessage('Thread : Memory mapped file size error while allocating memory', MsgType.Error)
                 return False
         except MemoryError as exc:

@@ -18,7 +18,7 @@ class RollOutput:
         self.rmsOffset = None                                                   # numpy array with rms offset increments
         self.offsetGap = None                                                   # numpy array with maximum offset gaps
         self.anaOutput = None                                                   # memory mapped numpy trace record array
-        self.an2Output = None                                                   # partially flattened version of self.anaOutput (N x 13)
+        self.an2Output = None                                                   # partially flattened version of self.anaOutput (N x 16)
         self.ofAziHist = None                                                   # numpy array with azimuth/offset histogram
         self.offstHist = None                                                   # numpy array with slotted offset histogram
 

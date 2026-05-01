@@ -15,6 +15,7 @@ class _PointArraySpec:
     deadNAttr: str
     boundAttr: str | None = None
 
+
 class SessionService:
     _pointArraySpecs = {
         'rpsImport': _PointArraySpec('rpsLiveE', 'rpsLiveN', 'rpsDeadE', 'rpsDeadN', 'rpsBound'),
