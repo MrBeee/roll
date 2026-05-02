@@ -68,7 +68,7 @@ class PgToolBar(QToolBar):
         self.actionGridLines.setChecked(self.grid)
         self.actionGridLines.triggered.connect(self.plotGridLines)
 
-        if not self.plotWidget is None:
+        if self.plotWidget is not None:
             self.plotWidget.scene().sigMouseMoved.connect(self.mouseMovedInPlot)
 
     def setPlotWidget(self, plotWidget):
@@ -76,7 +76,7 @@ class PgToolBar(QToolBar):
         self.plotWidget.scene().sigMouseMoved.connect(self.mouseMovedInPlot)
 
     def plotZoomRect(self, checked):
-        if not self.plotWidget is None:
+        if self.plotWidget is not None:
             self.rect = checked
             if self.rect:
                 self.plotWidget.getViewBox().setMouseMode(pg.ViewBox.RectMode)
@@ -84,17 +84,17 @@ class PgToolBar(QToolBar):
                 self.plotWidget.getViewBox().setMouseMode(pg.ViewBox.PanMode)
 
     def plotAspectRatio(self, checked):
-        if not self.plotWidget is None:
+        if self.plotWidget is not None:
             self.XisY = checked
             self.plotWidget.setAspectLocked(self.XisY)
 
     def plotAntiAlias(self, checked):
-        if not self.plotWidget is None:
+        if self.plotWidget is not None:
             self.antA = checked
             self.plotWidget.setAntialiasing(self.antA)                          # enable/disable aa plotting
 
     def plotGridLines(self):
-        if not self.plotWidget is None:
+        if self.plotWidget is not None:
             self.grid = not self.grid
             if self.grid:
                 self.plotWidget.showGrid(x=True, y=True, alpha=0.5)             # shows the grey grid lines
@@ -102,7 +102,7 @@ class PgToolBar(QToolBar):
                 self.plotWidget.showGrid(x=False, y=False)                      # hides the grey grid lines
 
     def mouseMovedInPlot(self, evt):                                            # See: https://stackoverflow.com/questions/46166205/display-coordinates-in-pyqtgraph
-        if not self.plotWidget is None:
+        if self.plotWidget is not None:
             pos = evt
             if self.plotWidget.sceneBoundingRect().contains(pos):
                 mousePoint = self.plotWidget.plotItem.vb.mapSceneToView(pos)

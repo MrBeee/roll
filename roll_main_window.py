@@ -11,7 +11,6 @@ except ImportError:
 
 try:    # need to TRY importing debugpy, only to see if it is available
     haveDebugpy = True
-    import debugpy  # pylint: disable=W0611
 except ImportError:
     haveDebugpy = False
 
@@ -163,6 +162,7 @@ def runStandalone(argv=None, filePath=None):
         qgsApp.exitQgis()
 
     return exitCode
+
 
 # Determine path to resources
 currentDir = os.path.dirname(os.path.abspath(__file__))
@@ -869,8 +869,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         # third docking pane, used to display survey properties
         self.parameters = None
-        self.binChild   = None
-        self.grdChild   = None
+        self.binChild   = None  # noqa: E221
+        self.grdChild   = None  # noqa: E221
         createPropertyDock(self)                                              # defined late, as it needs access the loaded survey object
 
         self.menuView.addSeparator()
@@ -913,7 +913,6 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         for actionName in actionNames:
             self._setActionEnabledSafe(actionName, False)
-
 
     # deal with pattern selection for display & kxky plotting
     def onPattern1IndexChanged(self):
@@ -1214,7 +1213,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def binningSettingsHaveChanged(self, *_):                                   # param, changes unused; replaced by *_
         self.binAreaChanged = True
 
-    ## If anything changes in the tree, print a message
+    # If anything changes in the tree, print a message
     def propertyTreeStateChanged(self, param, changes):
 
         myPrint('┌── sigTreeStateChanged --> tree changes:')
@@ -1230,7 +1229,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             myPrint(f'│     parameter: {childName}')
             myPrint(f'│     change:    {change}')
             myPrint(f'│     data:      {str(data)}')
-            myPrint( '└───────────────────────────────────────')
+            myPrint( '└───────────────────────────────────────')  # noqa: E201
 
     def onMainTabChange(self, index):                                           # manage focus when active tab is changed; doesn't work 100% yet !
         # Destroy the 3D Layout widget when leaving the Layout tab so a
@@ -1674,10 +1673,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         surfaceDefinitions = {
             1: dict(imageAttr='binOutput', maxAttr='maximumFold', label='fold', statusLabel='fold', valueKind='int', fileSuffix='bin', fileExportLabel='fold map', qgisExportLabel='fold map'),
-            2: dict(imageAttr='minOffset', maxAttr='maxMinOffset', label='minimum offset', statusLabel='|min offset|', valueKind='float', fileSuffix='min', fileExportLabel='min-offsets', qgisExportLabel='min-offset map'),
-            3: dict(imageAttr='maxOffset', maxAttr='maxMaxOffset', label='maximum offset', statusLabel='|max offset|', valueKind='float', fileSuffix='max', fileExportLabel='max-offsets', qgisExportLabel='max-offset map'),
-            4: dict(imageAttr='rmsOffset', maxAttr='maxRmsOffset', label='rms offset increments', statusLabel='rms offset inc', valueKind='float', fileSuffix='rms', fileExportLabel='rms-offsets', qgisExportLabel='rms-offset map'),
-            5: dict(imageAttr='offsetGap', maxAttr='maxOffsetGap', label='maximum offset gap', statusLabel='max offset gap', valueKind='float', fileSuffix='gap', fileExportLabel='max-offset gaps', qgisExportLabel='max-offset gap map'),
+            2: dict(imageAttr='minOffset', maxAttr='maxMinOffset', label='minimum offset', statusLabel='|min offset|', valueKind='float', fileSuffix='min', fileExportLabel='min-offsets', qgisExportLabel='min-offset map'),  # noqa: E501
+            3: dict(imageAttr='maxOffset', maxAttr='maxMaxOffset', label='maximum offset', statusLabel='|max offset|', valueKind='float', fileSuffix='max', fileExportLabel='max-offsets', qgisExportLabel='max-offset map'),  # noqa: E501
+            4: dict(imageAttr='rmsOffset', maxAttr='maxRmsOffset', label='rms offset increments', statusLabel='rms offset inc', valueKind='float', fileSuffix='rms', fileExportLabel='rms-offsets', qgisExportLabel='rms-offset map'),  # noqa: E501
+            5: dict(imageAttr='offsetGap', maxAttr='maxOffsetGap', label='maximum offset gap', statusLabel='max offset gap', valueKind='float', fileSuffix='gap', fileExportLabel='max-offset gaps', qgisExportLabel='max-offset gap map'),  # noqa: E501
         }
 
         if imageType not in surfaceDefinitions:
@@ -2790,7 +2789,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         pos2 = (pos[0] + pos[1]) / 2.0
         diff = pos[1] - pos[0]
         self.roiLabels[2].setPos(pos2)
-        self.roiLabels[2].setText(f'|r|={diff.length():.2f}, Ø={degrees(atan2(diff.y(),diff.x())):.2f}°')
+        self.roiLabels[2].setText(f'|r|={diff.length():.2f}, Ø={degrees(atan2(diff.y(), diff.x())):.2f}°')
         self.rulerState = self.lineROI.saveState()
 
     def closeEvent(self, e):  # main window about to be closed event
@@ -3171,7 +3170,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def fileLoad(self, fileName):
         projectDirectory = os.path.dirname(fileName)                            # retrieve the directory name
 
-        self.sessionService.resetTimers()    ###                                # reset timers for debugging code
+        self.sessionService.resetTimers()                                       # reset timers for debugging code
 
         readResult = self.projectService.readProjectText(fileName)
         if not readResult.success:                                              # report status message and return False

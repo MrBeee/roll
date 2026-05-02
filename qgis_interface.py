@@ -215,7 +215,7 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True, spsPara
 
         for record in spsRecords:                                               # no exception, so do this
             # account for numpy float32 format, and the unicode string format
-            l = float(record['Line'])
+            l = float(record['Line'])  # noqa: E741
             p = float(record['Point'])
             i = int(record['Index'])
             c = str(record['Code'])
@@ -232,7 +232,7 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True, spsPara
     except ValueError:                                                          # exception; set inuse = 1 for all features
         for record in spsRecords:
             # account for numpy float32 format, and the unicode string format
-            l = float(record['Line'])
+            l = float(record['Line'])  # noqa: E741
             p = float(record['Point'])
             i = int(record['Index'])
             c = str(record['Code'])
@@ -361,7 +361,7 @@ def exportPointLayerToQgis(layerName, spsRecords, crs=None, source=True, spsPara
 
     return vl
 
-    ################################### using rules to display labels
+    # using rules to display labels ##################################
 
     # settings = QgsPalLayerSettings()
     # format = QgsTextFormat()
@@ -1040,7 +1040,7 @@ def readQgisPointLayer(layerId, selectionField=''):
 # layer.setLabeling(labels)
 # layer.triggerRepaint()
 
-############################################## ways to get help when you get lost
+# ways to get help when you get lost #############################################
 
 # From the console get help by using
 # print (type(variable))

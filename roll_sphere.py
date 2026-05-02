@@ -24,7 +24,7 @@ class RollSphere:
             return float('inf')
 
         r = self.radius
-        l = length
+        l = length  # noqa: E741
         z = math.sqrt(r * r - l * l)
         return self.origin.z() + z
 
@@ -113,13 +113,13 @@ class RollSphere:
         cosAoI = np.sum(cosAoI, axis=1)                                         # sum per row, to get the wanted dot product (N x 3) -> (N x 1)
         aoi = np.arccos(cosAoI)                                                 # go from cos to angle
 
-        I = (aoi[:] >= aoiMin) & (aoi[:] <= aoiMax)                             # only use these angles
+        included = (aoi[:] >= aoiMin) & (aoi[:] <= aoiMax)                      # only use these angles
 
-        if np.count_nonzero(I) == 0:
+        if np.count_nonzero(included) == 0:
             return (None, None)                                                 # no valid angles found
 
-        ptRef = ptRef[I]                                                        # filter the reflection array
-        ptRec = ptRec[I]                                                        # filter the end points too
+        ptRef = ptRef[included]                                                 # filter the reflection array
+        ptRec = ptRec[included]                                                 # filter the end points too
         return (ptRef, ptRec)                                                   # return reflection points (=cmp's) and pruned receiver points
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):

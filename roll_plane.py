@@ -146,28 +146,28 @@ class RollPlane:
         ray = ptTo - ptFrom
         denominator = np.inner(npNormal, ray)
 
-        I = denominator[:] != 0.0
-        if np.count_nonzero(I) == 0:
+        included = denominator[:] != 0.0
+        if np.count_nonzero(included) == 0:
             return (None, None)                                                 # no valid distances > 0.0 found
 
-        denominator = denominator[I]                                            # filter the denominator array
-        ptTo = ptTo[I]                                                          # filter the end points too
-        ray = ray[I]                                                            # filter the rays too
+        denominator = denominator[included]                                     # filter the denominator array
+        ptTo = ptTo[included]                                                   # filter the end points too
+        ray = ray[included]                                                     # filter the rays too
 
         nominator = np.inner(npNormal, ptTo) + self.dist                        # setup the nominator array
-        nominator = nominator[I]                                                # filter the nominator array as well
+        nominator = nominator[included]                                         # filter the nominator array as well
 
         U = nominator / denominator                                             # setup the ratio array
 
-        I = (U[:] >= 0.0) & (U[:] <= 1.0)                                       # only use these ratios
+        included = (U[:] >= 0.0) & (U[:] <= 1.0)                                # only use these ratios
 
-        if np.count_nonzero(I) == 0:
+        if np.count_nonzero(included) == 0:
             return (None, None)                                                 # no valid ratios found
 
-        denominator = denominator[I]                                            # filter the denominator array
-        ptTo = ptTo[I]                                                          # filter the end points too
-        ray = ray[I]                                                            # filter the rays too
-        U = U[I]                                                                # filter the ratio array
+        denominator = denominator[included]                                     # filter the denominator array
+        ptTo = ptTo[included]                                                   # filter the end points too
+        ray = ray[included]                                                     # filter the rays too
+        U = U[included]                                                         # filter the ratio array
 
         # length = np.apply_along_axis(np.linalg.norm, 1, ray)                  # calculate the length of each row in the array
         length = np.linalg.norm(ray, axis=1)
@@ -176,14 +176,14 @@ class RollPlane:
         cosAoI = denominator / length                                           # normalize to 0.0 - 1.0 cos() range
         aoi = np.arccos(cosAoI)                                                 # go from cos to angle
 
-        I = (aoi[:] >= aoiMin) & (aoi[:] <= aoiMax)                             # only use these angles
+        included = (aoi[:] >= aoiMin) & (aoi[:] <= aoiMax)                      # only use these angles
 
-        if np.count_nonzero(I) == 0:
+        if np.count_nonzero(included) == 0:
             return (None, None)                                                 # no valid angles found
 
-        U = U[I]                                                                # filter the ratio array
-        ptTo = ptTo[I]                                                          # filter the end points too
-        ray = ray[I]                                                            # filter the rays too
+        U = U[included]                                                         # filter the ratio array
+        ptTo = ptTo[included]                                                   # filter the end points too
+        ray = ray[included]                                                     # filter the rays too
         rayU = ray * U[:, None]                                                 # get rays (x, y, z) multiplied per row by U(n)
         # See: https://stackoverflow.com/questions/68245372/how-to-multiply-each-row-in-matrix-by-its-scalar-in-numpy
 

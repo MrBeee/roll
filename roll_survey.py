@@ -14,9 +14,10 @@ from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QMarginsF, QRectF, QThread, pyqtSignal
 from qgis.PyQt.QtGui import (QBrush, QColor, QGuiApplication, QImage, QPainter,
                              QPicture, QTransform, QVector3D)
-from qgis.PyQt.QtWidgets import QApplication, QMessageBox
+from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
+from . import config
 from . import functions_numba as fnb
 from .app_settings import getActiveAppSettings
 from .aux_functions import containsPoint3D
@@ -52,9 +53,6 @@ class GeometryRelationBinningLookup:
 # from .functions_numba import (clipLineF, numbaFixRelationRecord,
 #                               numbaSetPointRecord, numbaSetRelationRecord,
 #                               numbaSliceStats, pointsInRect)
-
-
-
 # See: https://realpython.com/python-multiple-constructors/#instantiating-classes-in-python for multiple constructors
 # See: https://stackoverflow.com/questions/39513191/python-operator-overloading-with-multiple-operands for operator overlaoding
 # See: https://realpython.com/operator-function-overloading/#overloading-built-in-operators
@@ -153,6 +151,7 @@ class GeometryRelationBinningLookup:
 class RollSurvey(pg.GraphicsObject):
     progress = pyqtSignal(int)                                                  # signal to keep track of worker thread progress
     message = pyqtSignal(str)                                                   # signal to update statusbar progresss text
+    logMessage = pyqtSignal(str)                                                # signal to append a persistent line to the log dock
 
     # See: https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py
     # This example gives insight in the mouse drag event
@@ -782,10 +781,10 @@ class RollSurvey(pg.GraphicsObject):
 
             srcArray = srcSeed.pointArray + npTemplateOffset
             if not block.borders.srcBorder.isNull():
-                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
-                if I.shape[0] == 0:
+                included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
+                if included.shape[0] == 0:
                     continue
-                srcArray = srcArray[I, :]
+                srcArray = srcArray[included, :]
             n = srcArray.shape[0]
             if n == 0:
                 continue
@@ -844,10 +843,10 @@ class RollSurvey(pg.GraphicsObject):
                 continue
             rPts = recSeed.pointArray + npTemplateOffset
             if not block.borders.recBorder.isNull():
-                I = fnb.pointsInRect(rPts, block.borders.recBorder)
-                if I.shape[0] == 0:
+                included = fnb.pointsInRect(rPts, block.borders.recBorder)
+                if included.shape[0] == 0:
                     continue
-                rPts = rPts[I, :]
+                rPts = rPts[included, :]
             if rPts.shape[0] > 0:
                 recArrays.append(rPts)
                 recIsWell.append(np.full(rPts.shape[0], recSeed.type == SeedType.well, dtype=bool))
@@ -1082,7 +1081,6 @@ class RollSurvey(pg.GraphicsObject):
         self.timerTmax[index] = max(deltaTime, self.timerTmax[index])
         self.timerTtot[index] = self.timerTtot[index] + deltaTime
         self.timerFreq[index] = self.timerFreq[index] + 1
-        QApplication.processEvents()
         return perf_counter()  # call again; to ignore any time spent in this funtion
 
     def appendTemplateSourceRecords(self, nBlock, block, template, npTemplateOffset):
@@ -1093,10 +1091,10 @@ class RollSurvey(pg.GraphicsObject):
             srcArray = srcSeed.pointArray + npTemplateOffset
 
             if not block.borders.srcBorder.isNull():
-                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
-                if I.shape[0] == 0:
+                included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
+                if included.shape[0] == 0:
                     continue
-                srcArray = srcArray[I, :]
+                srcArray = srcArray[included, :]
 
             for src in srcArray:
                 srcX = src[0]
@@ -1120,10 +1118,10 @@ class RollSurvey(pg.GraphicsObject):
             recPoints = recSeed.pointArray + npTemplateOffset
 
             if not block.borders.recBorder.isNull():
-                I = fnb.pointsInRect(recPoints, block.borders.recBorder)
-                if I.shape[0] == 0:
+                included = fnb.pointsInRect(recPoints, block.borders.recBorder)
+                if included.shape[0] == 0:
                     continue
-                recPoints = recPoints[I, :]
+                recPoints = recPoints[included, :]
 
             isWellSeed = (recSeed.type == SeedType.well)
 
@@ -1214,7 +1212,9 @@ class RollSurvey(pg.GraphicsObject):
                 fnb.numbaSetRelationRecord(self.output.relGeom, self.nRelRecord, srcLin, srcPnt, srcInd, i + 1, recLin, recMin, recMax)
                 self.nRelRecord += 1
 
-    def updateBinOutputsForValidCmpPoints(self, src, cmpPoints, recPoints, hypArray, aziArray, writeAnalysis, totalTime=None):
+    def updateBinOutputsForValidCmpPoints(self, src, cmpPoints, recPoints, hypArray, aziArray, writeAnalysis, totalTime=None, profileBaseIndex=None):
+        if profileBaseIndex is not None:
+            timer = perf_counter()
         mapped = np.array([self.binTransform.map(float(p[0]), float(p[1])) for p in cmpPoints], dtype=np.float32)
         nx = mapped[:, 0].astype(int)
         ny = mapped[:, 1].astype(int)
@@ -1225,7 +1225,12 @@ class RollSurvey(pg.GraphicsObject):
             & (ny < self.output.binOutput.shape[1])
         )
         if np.all(~valid):
+            if profileBaseIndex is not None:
+                self.elapsedTime(timer, profileBaseIndex)
             return False
+
+        if profileBaseIndex is not None:
+            self.elapsedTime(timer, profileBaseIndex)
 
         nx = nx[valid]
         ny = ny[valid]
@@ -1257,6 +1262,8 @@ class RollSurvey(pg.GraphicsObject):
         # ------------------------------------------------------------------
 
         if writeAnalysis:
+            if profileBaseIndex is not None:
+                timer = perf_counter()
             maxFold = self.grid.fold
             for idx, (x, y) in enumerate(zip(nx, ny)):
                 fold = int(self.output.binOutput[x, y])                 # read BEFORE increment
@@ -1284,13 +1291,19 @@ class RollSurvey(pg.GraphicsObject):
                     self.output.minOffset[x, y] = hypArray[idx]
                 if hypArray[idx] > self.output.maxOffset[x, y]:
                     self.output.maxOffset[x, y] = hypArray[idx]
+            if profileBaseIndex is not None:
+                self.elapsedTime(timer, profileBaseIndex + 1)
             return True
 
         # No-analysis fast path: vectorized scatter is fine because there
         # is no per-trace dependency on fold ordering.
+        if profileBaseIndex is not None:
+            timer = perf_counter()
         np.add.at(self.output.binOutput, (nx, ny), 1)
         np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
         np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
+        if profileBaseIndex is not None:
+            self.elapsedTime(timer, profileBaseIndex + 2)
         return True
 
     def buildBinningArraysFromSelectedReceivers(self, src, recPoints):
@@ -1315,21 +1328,21 @@ class RollSurvey(pg.GraphicsObject):
         else:
             return None
 
-        I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
-        if np.all(~I):
+        included = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
+        if np.all(~included):
             return None
 
-        cmpPoints = cmpPoints[I]
-        recPoints = recPoints[I]
-        offArray = offArray[I]
+        cmpPoints = cmpPoints[included]
+        recPoints = recPoints[included]
+        offArray = offArray[included]
 
-        I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
-        if np.all(~I):
+        included = fnb.pointsInRect(offArray, self.offset.rctOffsets)
+        if np.all(~included):
             return None
 
-        cmpPoints = cmpPoints[I]
-        recPoints = recPoints[I]
-        offArray = offArray[I]
+        cmpPoints = cmpPoints[included]
+        recPoints = recPoints[included]
+        offArray = offArray[included]
 
         hypArray = np.hypot(offArray[:, 0], offArray[:, 1])
         aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
@@ -1338,13 +1351,13 @@ class RollSurvey(pg.GraphicsObject):
         r1 = self.offset.radOffsets.x()
         r2 = self.offset.radOffsets.y()
         if r2 > 0:
-            I = (hypArray >= r1) & (hypArray <= r2)
-            if np.all(~I):
+            included = (hypArray >= r1) & (hypArray <= r2)
+            if np.all(~included):
                 return None
-            cmpPoints = cmpPoints[I]
-            recPoints = recPoints[I]
-            hypArray = hypArray[I]
-            aziArray = aziArray[I]
+            cmpPoints = cmpPoints[included]
+            recPoints = recPoints[included]
+            hypArray = hypArray[included]
+            aziArray = aziArray[included]
 
         return cmpPoints, recPoints, hypArray, aziArray
 
@@ -1447,6 +1460,14 @@ class RollSurvey(pg.GraphicsObject):
             relBinningRoutine = self.binFromGeometry8
             noRelBinningRoutine = self.binFromGeometryNoRel
 
+        # Announce which routine is actually being dispatched so we can
+        # confirm at runtime that the showUnfinished flag flowed through.
+        hasRel = self.output.relGeom is not None
+        chosen = relBinningRoutine if hasRel else noRelBinningRoutine
+        self.logMessage.emit(
+            f'Binning: showUnfinished={appSettings.showUnfinished}, hasRel={hasRel} -> {chosen.__name__}, fullAnalysis={fullAnalysis}'
+        )
+
         # Now do the binning; check if we haave a relation file or not
         if self.output.relGeom is not None:                                     # we have a relation file
             if fullAnalysis:
@@ -1543,24 +1564,24 @@ class RollSurvey(pg.GraphicsObject):
                     if cmpPoints is None:
                         continue
 
-                I = fnb.pointsInRect(cmpPoints, self.output.rctOutput)              # find the cmp locations that contribute to the output area
-                if I.shape[0] == 0:
+                included = fnb.pointsInRect(cmpPoints, self.output.rctOutput)   # find the cmp locations that contribute to the output area
+                if included.shape[0] == 0:
                     continue
 
-                cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array
-                recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this for offsets
+                cmpPoints = cmpPoints[included, :]                              # filter the cmp-array
+                recPoints = recPoints[included, :]                              # filter the rec-array too, as we still need this for offsets
 
                 size = recPoints.shape[0]
                 offArray = np.zeros(shape=(size, 3), dtype=np.float32)          # allocate the offset array according to rec array
                 offArray = recPoints - src                                      # define the offset array
 
-                I = fnb.pointsInRect(offArray, self.offset.rctOffsets)
-                if I.shape[0] == 0:
+                included = fnb.pointsInRect(offArray, self.offset.rctOffsets)
+                if included.shape[0] == 0:
                     continue
 
-                offArray = offArray[I, :]                                       # filter the offset-array
-                cmpPoints = cmpPoints[I, :]                                     # filter the cmp-array too, as we still need this
-                recPoints = recPoints[I, :]                                     # filter the rec-array too, as we still need this
+                offArray = offArray[included, :]                                # filter the offset-array
+                cmpPoints = cmpPoints[included, :]                              # filter the cmp-array too, as we still need this
+                recPoints = recPoints[included, :]                              # filter the rec-array too, as we still need this
 
                 size = recPoints.shape[0]
                 hypArray = np.zeros(shape=(size, 1), dtype=np.float32)          # allocate the radius array according to rec array
@@ -1572,26 +1593,26 @@ class RollSurvey(pg.GraphicsObject):
                 r1 = self.offset.radOffsets.x()                                 # r1 = minimum radius
                 r2 = self.offset.radOffsets.y()                                 # r2 = maximum radius
                 if r2 > 0:                                                      # we need to apply the radial offset selection criteria
-                    I = (hypArray[:] >= r1) & (hypArray[:] <= r2)
-                    if np.count_nonzero(I) == 0:
+                    included = (hypArray[:] >= r1) & (hypArray[:] <= r2)
+                    if np.count_nonzero(included) == 0:
                         continue                                                # continue with next recSeed
-                    # print(I)
-                    hypArray = hypArray[I]                                      # filter the radial offset-array
-                    aziArray = aziArray[I]                                      # filter the offset-angle array too
-                    offArray = offArray[I, :]                                   # filter the off-array too, as we still need this
-                    cmpPoints = cmpPoints[I, :]                                 # filter the cmp-array too, as we still need this
-                    recPoints = recPoints[I, :]                                 # filter the rec-array too, as we still need this
+                    # print(included)
+                    hypArray = hypArray[included]                               # filter the radial offset-array
+                    aziArray = aziArray[included]                               # filter the offset-angle array too
+                    offArray = offArray[included, :]                            # filter the off-array too, as we still need this
+                    cmpPoints = cmpPoints[included, :]                          # filter the cmp-array too, as we still need this
+                    recPoints = recPoints[included, :]                          # filter the rec-array too, as we still need this
 
                 # now work on the TWT aspect of the src, cmp & rec positions
                 if self.binning.method == BinningType.cmp:
                     upDnArray = recPoints - src                                 # straigth rays; total length of both legs
                     totalTime = np.linalg.norm(upDnArray, axis=1)               # get length of the rays
                 else:
-                    dnArray = cmpPoints - src                                 # 1st leg of the rays
-                    upArray = cmpPoints - recPoints                           # 2nd leg of the rays
-                    dnTime = np.linalg.norm(dnArray, axis=1)                # get length of the 1st leg
-                    upTime = np.linalg.norm(upArray, axis=1)                # get length of the 2nd leg
-                    totalTime = dnTime + upTime                             # total length of both legs
+                    dnArray = cmpPoints - src                                   # 1st leg of the rays
+                    upArray = cmpPoints - recPoints                             # 2nd leg of the rays
+                    dnTime = np.linalg.norm(dnArray, axis=1)                    # get length of the 1st leg
+                    upTime = np.linalg.norm(upArray, axis=1)                    # get length of the 2nd leg
+                    totalTime = dnTime + upTime                                 # total length of both legs
 
                 totalTime *= self.binning.slowness                              # convert distance into travel time
 
@@ -1760,8 +1781,6 @@ class RollSurvey(pg.GraphicsObject):
         self.nShotPoint = 0
         self.nShotPoints = self.output.srcGeom.shape[0]
 
-
-
         try:
             for i, srcRecord in enumerate(self.output.srcGeom):
                 if srcRecord['InUse'] == 0:
@@ -1834,7 +1853,7 @@ class RollSurvey(pg.GraphicsObject):
         self.nShotPoints = self.output.srcGeom.shape[0]
 
         # Pre-extract data for Numba (cannot pass 'self')
-        srcLocs = np.column_stack((self.output.srcGeom['LocX'], self.output.srcGeom['LocY'], self.output.srcGeom['Elev'] - self.output.srcGeom['Depth'], self.output.srcGeom['Line'], self.output.srcGeom['Point']))
+        srcLocs = np.column_stack((self.output.srcGeom['LocX'], self.output.srcGeom['LocY'], self.output.srcGeom['Elev'] - self.output.srcGeom['Depth'], self.output.srcGeom['Line'], self.output.srcGeom['Point']))  # noqa:E501
         relFileIndices = np.column_stack((lookup.relLeft, lookup.relRight))
         recLocs = np.column_stack((self.output.recGeom['LocX'], self.output.recGeom['LocY'], self.output.recGeom['Elev'] - self.output.recGeom['Depth']))
 
@@ -1858,13 +1877,14 @@ class RollSurvey(pg.GraphicsObject):
         try:
             batchSize = 500  # Larger batch size for better throughput
             for i in range(0, self.nShotPoints, batchSize):
-                if QThread.currentThread().isInterruptionRequested(): raise StopIteration
+                if QThread.currentThread().isInterruptionRequested():
+                    raise StopIteration
 
                 end = min(i + batchSize, self.nShotPoints)
 
                 # Call the Parallel Kernel for this batch
                 fnb.numbaBinBatchParallel(
-                    srcLocs[i:end], # Pass srcLocs as a slice
+                    srcLocs[i:end],                                             # Pass srcLocs as a slice
                     relFileIndices[i:end],
                     recLocs,
                     self.output.recGeom['InUse'],
@@ -2087,7 +2107,7 @@ class RollSurvey(pg.GraphicsObject):
 
         return recCoords[idxBuf]
 
-    def _applyBinUpdatesVectorized(self, src, cmpPoints, recPoints, hypArray, aziArray, binMat, st2Mat, writeAnalysis, totalTime=None):
+    def _applyBinUpdatesVectorized(self, src, cmpPoints, recPoints, hypArray, aziArray, binMat, st2Mat, writeAnalysis, totalTime=None, profileBaseIndex=None):
         """
         Vectorized counterpart of updateBinOutputsForValidCmpPoints():
         applies the bin and stake transforms with a 2x3 matrix multiply
@@ -2099,6 +2119,9 @@ class RollSurvey(pg.GraphicsObject):
         is written to anaOutput[..., 12]; otherwise that column is left at
         0.0 to match updateBinOutputsForValidCmpPoints() / binFromGeometry8.
         """
+        if profileBaseIndex is not None:
+            timer = perf_counter()
+
         # bin transform: nx, ny = binMat @ (cmpX, cmpY, 1)
         nx = (binMat[0, 0] * cmpPoints[:, 0] + binMat[0, 1] * cmpPoints[:, 1] + binMat[0, 2]).astype(np.int64)
         ny = (binMat[1, 0] * cmpPoints[:, 0] + binMat[1, 1] * cmpPoints[:, 1] + binMat[1, 2]).astype(np.int64)
@@ -2109,7 +2132,12 @@ class RollSurvey(pg.GraphicsObject):
             & (ny < self.output.binOutput.shape[1])
         )
         if not valid.any():
+            if profileBaseIndex is not None:
+                self.elapsedTime(timer, profileBaseIndex)
             return False
+
+        if profileBaseIndex is not None:
+            self.elapsedTime(timer, profileBaseIndex)
 
         nx = nx[valid]
         ny = ny[valid]
@@ -2121,6 +2149,8 @@ class RollSurvey(pg.GraphicsObject):
             totalTime = totalTime[valid]
 
         if writeAnalysis:
+            if profileBaseIndex is not None:
+                timer = perf_counter()
             # Compute fold *before* the scatter increment, just like
             # updateBinOutputsForValidCmpPoints() does (it reads
             # binOutput[x, y] - 1 *after* the scatter, which is equivalent).
@@ -2155,10 +2185,131 @@ class RollSurvey(pg.GraphicsObject):
                     self.output.minOffset[x, y] = hypArray[k]
                 if hypArray[k] > self.output.maxOffset[x, y]:
                     self.output.maxOffset[x, y] = hypArray[k]
+            if profileBaseIndex is not None:
+                self.elapsedTime(timer, profileBaseIndex + 1)
             return True
 
         # Fast path: no analysis writes, just scatter-update the three
         # fold/offset arrays in one vectorized pass.
+        if profileBaseIndex is not None:
+            timer = perf_counter()
+        np.add.at(self.output.binOutput, (nx, ny), 1)
+        np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
+        np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
+        if profileBaseIndex is not None:
+            self.elapsedTime(timer, profileBaseIndex + 2)
+        return True
+
+    def _applyBinUpdatesNumba(self, src, cmpPoints, recPoints, hypArray, aziArray, binMat, st2Mat, writeAnalysis, totalTime=None):
+        """
+        Numba-accelerated counterpart of ``_applyBinUpdatesVectorized``.
+
+        Same inputs, same outputs. The only difference is the writeAnalysis
+        branch: instead of running a Python ``for k in range(N):`` loop with
+        per-element scalar writes into ``self.output.anaOutput``, this
+        helper dispatches the per-trace work to the compiled kernel
+        ``numbaApplyBinUpdatesAnalysis`` (functions_numba.py). Filtering,
+        bin/stake transforms, fold cap, and per-bin min/max offset
+        semantics are preserved bit-for-bit.
+
+        The fast (no-analysis) branch is identical to
+        ``_applyBinUpdatesVectorized``: ``np.add.at`` /
+        ``np.minimum.at`` / ``np.maximum.at`` already run at C speed there
+        and there is no per-trace fold ordering to preserve, so wrapping it
+        in numba would not help.
+        """
+        # bin transform: nx, ny = binMat @ (cmpX, cmpY, 1)
+        nx = (binMat[0, 0] * cmpPoints[:, 0] + binMat[0, 1] * cmpPoints[:, 1] + binMat[0, 2]).astype(np.int64)
+        ny = (binMat[1, 0] * cmpPoints[:, 0] + binMat[1, 1] * cmpPoints[:, 1] + binMat[1, 2]).astype(np.int64)
+
+        valid = (
+            (nx >= 0) & (ny >= 0)
+            & (nx < self.output.binOutput.shape[0])
+            & (ny < self.output.binOutput.shape[1])
+        )
+        if not valid.any():
+            return False
+
+        nx = nx[valid]
+        ny = ny[valid]
+        cmpPoints = cmpPoints[valid]
+        recPoints = recPoints[valid]
+        hypArray = hypArray[valid]
+        aziArray = aziArray[valid]
+        if totalTime is not None:
+            totalTime = totalTime[valid]
+
+        if writeAnalysis:
+            # --- Bin-sort pre-pass (memmap-friendly) ------------------------
+            # anaOutput is a (NX, NY, MAXFOLD, 16) float32 memmap. Each per-
+            # trace store touches a different (x, y, fold, *) page. Without
+            # sorting, traces arrive in template/seed order which is
+            # essentially random across (x, y) -> random page faults +
+            # dirty pages scattered across the file.
+            #
+            # Sorting traces by a flat (nx, ny) key before the kernel runs
+            # converts that random scatter into monotonically-increasing
+            # page accesses, so the OS page cache can reuse hot pages and
+            # writes drain to disk near-sequentially. argsort(kind='stable')
+            # also preserves the original arrival order among traces that
+            # share a bin, so fold-slot assignment within a bin is
+            # deterministic and unchanged in aggregate (downstream
+            # consumers -- RMS, gap, unique-fold, distribution -- are all
+            # order-independent over the [0:fold] slice anyway).
+            #
+            # Cost: O(N log N) on a small in-memory trace batch (typically
+            # a few thousand entries per call); savings: many random 4 KB
+            # page faults per call avoided on the much larger memmap.
+            binY = self.output.binOutput.shape[1]
+            order = np.argsort(nx * np.int64(binY) + ny, kind='stable')
+            nx = nx[order]
+            ny = ny[order]
+            cmpPoints = cmpPoints[order]
+            recPoints = recPoints[order]
+            hypArray = hypArray[order]
+            aziArray = aziArray[order]
+            if totalTime is not None:
+                totalTime = totalTime[order]
+
+            stkX = (st2Mat[0, 0] * cmpPoints[:, 0] + st2Mat[0, 1] * cmpPoints[:, 1] + st2Mat[0, 2]).astype(np.int32)
+            stkY = (st2Mat[1, 0] * cmpPoints[:, 0] + st2Mat[1, 1] * cmpPoints[:, 1] + st2Mat[1, 2]).astype(np.int32)
+
+            # Numba kernel does not handle Optional[None]; pass a zeros
+            # array of the same length when totalTime was not computed.
+            if totalTime is None:
+                totalTimeArr = np.zeros(nx.shape[0], dtype=np.float32)
+            else:
+                totalTimeArr = np.asarray(totalTime, dtype=np.float32)
+
+            # Inputs come from boolean-mask / fancy-index reductions inside
+            # buildBinningArraysFromSelectedReceivers and the order-reindex
+            # above, which always produce C-contiguous float32 arrays. The
+            # previous code used np.ascontiguousarray which always
+            # allocates a new buffer + memcpy, even when not needed; we
+            # use np.asarray instead which is a no-op when dtype already
+            # matches and the array is already an ndarray.
+            cmpC = np.asarray(cmpPoints, dtype=np.float32)
+            recC = np.asarray(recPoints, dtype=np.float32)
+            hypC = np.asarray(hypArray, dtype=np.float32)
+            aziC = np.asarray(aziArray, dtype=np.float32)
+            srcC = np.asarray(src, dtype=np.float32)
+
+            fnb.numbaApplyBinUpdatesAnalysis(
+                nx, ny,
+                stkX, stkY,
+                cmpC, recC,
+                hypC, aziC,
+                totalTimeArr,
+                srcC,
+                self.output.binOutput,
+                self.output.minOffset,
+                self.output.maxOffset,
+                self.output.anaOutput,
+                int(self.grid.fold),
+            )
+            return True
+
+        # Fast path: identical to _applyBinUpdatesVectorized's fast path.
         np.add.at(self.output.binOutput, (nx, ny), 1)
         np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
         np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
@@ -2185,6 +2336,12 @@ class RollSurvey(pg.GraphicsObject):
         appSettings = getActiveAppSettings()
         templateBinningRoutine = self.binTemplate8 if appSettings.showUnfinished else self.binTemplate7
 
+        # Announce which routine is actually being dispatched so we can
+        # confirm at runtime that the showUnfinished flag flowed through.
+        self.logMessage.emit(
+            f'Binning: showUnfinished={appSettings.showUnfinished} -> {templateBinningRoutine.__name__}, fullAnalysis={fullAnalysis}'
+        )
+
         try:
             self.calcPointArrays()                                              # first set up all point arrays
             for block in self.blockList:                                        # get all blocks
@@ -2208,18 +2365,25 @@ class RollSurvey(pg.GraphicsObject):
         Keeps binTemplate6 intact.
         """
         npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
+        profile = getActiveAppSettings().debug
 
         for srcSeed in template.seedList:
             if not srcSeed.bSource:
                 continue
 
+            if profile:
+                timer = perf_counter()
             srcArray = srcSeed.pointArray + npTemplateOffset
 
             if not block.borders.srcBorder.isNull():
-                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
-                if I.shape[0] == 0:
+                included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
+                if included.shape[0] == 0:
+                    if profile:
+                        self.elapsedTime(timer, 0)
                     continue
-                srcArray = srcArray[I, :]
+                srcArray = srcArray[included, :]
+            if profile:
+                self.elapsedTime(timer, 0)
 
             for src in srcArray:
                 if QThread.currentThread().isInterruptionRequested():
@@ -2235,31 +2399,54 @@ class RollSurvey(pg.GraphicsObject):
                     if recSeed.bSource:
                         continue
 
+                    if profile:
+                        timer = perf_counter()
                     recPoints = recSeed.pointArray + npTemplateOffset
 
                     if not block.borders.recBorder.isNull():
-                        I = fnb.pointsInRect(recPoints, block.borders.recBorder)
-                        if I.shape[0] == 0:
+                        included = fnb.pointsInRect(recPoints, block.borders.recBorder)
+                        if included.shape[0] == 0:
+                            if profile:
+                                self.elapsedTime(timer, 1)
                             continue
-                        recPoints = recPoints[I, :]
+                        recPoints = recPoints[included, :]
+                    if profile:
+                        self.elapsedTime(timer, 1)
 
                     if recPoints.shape[0] == 0:
                         continue
 
+                    if profile:
+                        timer = perf_counter()
                     traceArrays = self.buildBinningArraysFromSelectedReceivers(src, recPoints)
+                    if profile:
+                        self.elapsedTime(timer, 2)
                     if traceArrays is None:
                         continue
                     cmpPoints, recPoints, hypArray, aziArray = traceArrays
 
                     # Compute travel time so anaOutput[..., 9] gets populated
                     # for the template path too (Option A).
+                    if profile:
+                        timer = perf_counter()
                     if self.binning.method == BinningType.cmp:
                         totalTime = np.linalg.norm(recPoints - src, axis=1)
                     else:
                         totalTime = np.linalg.norm(cmpPoints - src, axis=1) + np.linalg.norm(cmpPoints - recPoints, axis=1)
                     totalTime = totalTime * self.binning.slowness
+                    if profile:
+                        self.elapsedTime(timer, 3)
 
-                    if not self.updateBinOutputsForValidCmpPoints(src, cmpPoints, recPoints, hypArray, aziArray, fullAnalysis, totalTime):
+                    if not self.updateBinOutputsForValidCmpPoints(
+                        src,
+                        cmpPoints,
+                        recPoints,
+                        hypArray,
+                        aziArray,
+                        fullAnalysis,
+                        totalTime,
+                        profileBaseIndex=4 if profile else None,
+                    ):
                         continue
 
     def binTemplate8(self, block, template, templateOffset, fullAnalysis):
@@ -2289,24 +2476,29 @@ class RollSurvey(pg.GraphicsObject):
         npTemplateOffset = np.array(
             [templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32
         )
+        profile = getActiveAppSettings().debug
 
         # --- 1. Hoist receiver-seed preparation out of the source loop. ---
         # For each non-source seed we apply the template offset and the
         # block's recBorder (if any) exactly once.
         recBorderActive = not block.borders.recBorder.isNull()
         preparedRecArrays = []
+        if profile:
+            timer = perf_counter()
         for recSeed in template.seedList:
             if recSeed.bSource:
                 continue
             recPoints = recSeed.pointArray + npTemplateOffset
             if recBorderActive:
-                I = fnb.pointsInRect(recPoints, block.borders.recBorder)
-                if I.shape[0] == 0:
+                included = fnb.pointsInRect(recPoints, block.borders.recBorder)
+                if included.shape[0] == 0:
                     continue
-                recPoints = recPoints[I, :]
+                recPoints = recPoints[included, :]
             if recPoints.shape[0] == 0:
                 continue
             preparedRecArrays.append(recPoints)
+        if profile:
+            self.elapsedTime(timer, 1)
 
         if not preparedRecArrays:
             # No live receivers in this template; still need to advance the
@@ -2318,10 +2510,10 @@ class RollSurvey(pg.GraphicsObject):
                     continue
                 srcArray = srcSeed.pointArray + npTemplateOffset
                 if not block.borders.srcBorder.isNull():
-                    I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
-                    if I.shape[0] == 0:
+                    included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
+                    if included.shape[0] == 0:
                         continue
-                    srcArray = srcArray[I, :]
+                    srcArray = srcArray[included, :]
                 for _ in srcArray:
                     if QThread.currentThread().isInterruptionRequested():
                         raise StopIteration
@@ -2347,13 +2539,150 @@ class RollSurvey(pg.GraphicsObject):
             if not srcSeed.bSource:
                 continue
 
+            if profile:
+                timer = perf_counter()
             srcArray = srcSeed.pointArray + npTemplateOffset
 
             if not block.borders.srcBorder.isNull():
-                I = fnb.pointsInRect(srcArray, block.borders.srcBorder)
-                if I.shape[0] == 0:
+                included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
+                if included.shape[0] == 0:
+                    if profile:
+                        self.elapsedTime(timer, 0)
                     continue
-                srcArray = srcArray[I, :]
+                srcArray = srcArray[included, :]
+            if profile:
+                self.elapsedTime(timer, 0)
+
+            for src in srcArray:
+                if QThread.currentThread().isInterruptionRequested():
+                    raise StopIteration
+
+                self.nShotPoint += 1
+                threadProgress = (100 * self.nShotPoint) // self.nShotPoints
+                if threadProgress > self.threadProgress:
+                    self.threadProgress = threadProgress
+                    self.progress.emit(threadProgress + 1)
+
+                for recPoints in preparedRecArrays:
+                    if profile:
+                        timer = perf_counter()
+                    traceArrays = self.buildBinningArraysFromSelectedReceivers(src, recPoints)
+                    if profile:
+                        self.elapsedTime(timer, 2)
+                    if traceArrays is None:
+                        continue
+                    cmpPoints, filteredRec, hypArray, aziArray = traceArrays
+
+                    # Travel time so anaOutput[..., 12] (TWT [ms]) is populated
+                    # for cmp / plane / sphere binning alike.
+                    if profile:
+                        timer = perf_counter()
+                    if self.binning.method == BinningType.cmp:
+                        totalTime = np.linalg.norm(filteredRec - src, axis=1)
+                    else:
+                        totalTime = np.linalg.norm(cmpPoints - src, axis=1) + np.linalg.norm(cmpPoints - filteredRec, axis=1)
+                    totalTime = totalTime * self.binning.slowness
+                    if profile:
+                        self.elapsedTime(timer, 3)
+
+                    self._applyBinUpdatesVectorized(
+                        src,
+                        cmpPoints,
+                        filteredRec,
+                        hypArray,
+                        aziArray,
+                        binMat,
+                        st2Mat,
+                        fullAnalysis,
+                        totalTime,
+                        profileBaseIndex=4 if profile else None,
+                    )
+
+    def binTemplate9(self, block, template, templateOffset, fullAnalysis):
+        """
+        Optimized variant of binTemplate8 with identical semantics, using
+        the numba-compiled bin-update kernel for the writeAnalysis hot path.
+
+        Differences from binTemplate8 (purely performance):
+          * The per-trace anaOutput-write loop in the writeAnalysis branch
+            of _applyBinUpdatesVectorized was a Python ``for k in range(N):``
+            loop with 15 scalar element-stores per iteration into
+            ``self.output.anaOutput`` (typically a memmap-backed float32
+            array). binTemplate9 routes the same call through
+            _applyBinUpdatesNumba(), which dispatches that loop body to
+            ``fnb.numbaApplyBinUpdatesAnalysis`` -- a compiled kernel that
+            performs identical fold-cap + min/max offset updates in C
+            speed. The non-analysis fast path is unchanged because it
+            already runs at C speed via np.add.at / np.minimum.at /
+            np.maximum.at.
+
+        Filtering, transforms, fold cap, and anaOutput layout are
+        preserved exactly. binTemplate8 is left in place for A/B testing.
+        """
+        npTemplateOffset = np.array(
+            [templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32
+        )
+
+        # --- 1. Hoist receiver-seed preparation out of the source loop. ---
+        recBorderActive = not block.borders.recBorder.isNull()
+        preparedRecArrays = []
+        for recSeed in template.seedList:
+            if recSeed.bSource:
+                continue
+            recPoints = recSeed.pointArray + npTemplateOffset
+            if recBorderActive:
+                included = fnb.pointsInRect(recPoints, block.borders.recBorder)
+                if included.shape[0] == 0:
+                    continue
+                recPoints = recPoints[included, :]
+            if recPoints.shape[0] == 0:
+                continue
+            preparedRecArrays.append(recPoints)
+
+        if not preparedRecArrays:
+            # No live receivers in this template; still advance the shot
+            # counter for progress reporting (matches binTemplate7 / 8).
+            for srcSeed in template.seedList:
+                if not srcSeed.bSource:
+                    continue
+                srcArray = srcSeed.pointArray + npTemplateOffset
+                if not block.borders.srcBorder.isNull():
+                    included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
+                    if included.shape[0] == 0:
+                        continue
+                    srcArray = srcArray[included, :]
+                for _ in srcArray:
+                    if QThread.currentThread().isInterruptionRequested():
+                        raise StopIteration
+                    self.nShotPoint += 1
+                    threadProgress = (100 * self.nShotPoint) // self.nShotPoints
+                    if threadProgress > self.threadProgress:
+                        self.threadProgress = threadProgress
+                        self.progress.emit(threadProgress + 1)
+            return
+
+        # --- 2. Pre-extract bin and stake transforms once per call. ---
+        T = self.binTransform
+        binMat = np.array(
+            [[T.m11(), T.m21(), T.m31()], [T.m12(), T.m22(), T.m32()]], dtype=np.float64
+        )
+        S = self.st2Transform
+        st2Mat = np.array(
+            [[S.m11(), S.m21(), S.m31()], [S.m12(), S.m22(), S.m32()]], dtype=np.float64
+        )
+
+        # --- 3. Source loop, with pre-clipped receiver arrays. ---
+        for srcSeed in template.seedList:
+            if not srcSeed.bSource:
+                continue
+
+            srcArray = srcSeed.pointArray + npTemplateOffset
+
+            if not block.borders.srcBorder.isNull():
+                included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
+                if included.shape[0] == 0:
+                    continue
+                srcArray = srcArray[included, :]
 
             for src in srcArray:
                 if QThread.currentThread().isInterruptionRequested():
@@ -2371,17 +2700,421 @@ class RollSurvey(pg.GraphicsObject):
                         continue
                     cmpPoints, filteredRec, hypArray, aziArray = traceArrays
 
-                    # Travel time so anaOutput[..., 12] (TWT [ms]) is populated
-                    # for cmp / plane / sphere binning alike.
                     if self.binning.method == BinningType.cmp:
                         totalTime = np.linalg.norm(filteredRec - src, axis=1)
                     else:
                         totalTime = np.linalg.norm(cmpPoints - src, axis=1) + np.linalg.norm(cmpPoints - filteredRec, axis=1)
                     totalTime = totalTime * self.binning.slowness
 
-                    self._applyBinUpdatesVectorized(
+                    self._applyBinUpdatesNumba(
                         src, cmpPoints, filteredRec, hypArray, aziArray, binMat, st2Mat, fullAnalysis, totalTime
                     )
+
+    def binTemplate10(self, block, template, templateOffset, fullAnalysis):
+        """
+        Whole-template trace-batched binning, see comment block above
+        _iterTemplateSourceChunks. Same semantics as binTemplate7/8/9
+        (cmp / plane / sphere, rctOutput, rctOffsets, radOffsets, fold cap,
+        anaOutput layout) but the entire (Ns*Nr) trace bundle of a template
+        is dispatched in one (or a few chunked) numba kernel calls.
+        """
+        # ------------------------------------------------------------------
+        # binTemplate10: whole-template trace batching.
+        #
+        # binTemplate7/8/9 all walk one source at a time and call
+        # buildBinningArraysFromSelectedReceivers() per source. A template by
+        # definition shares its receiver set across every source, so the full
+        # (Ns x Nr) trace bundle can be built and binned in one (or a few
+        # chunked) NumPy/Numba batches. binTemplate10 does exactly that:
+        #
+        #   * Per template, the source array (border-clipped, all source seeds
+        #     concatenated) and the prepared receiver array (border-clipped,
+        #     all rec seeds concatenated) are flattened once into paired
+        #     (Ns*Nr, 3) src / rec arrays.
+        #   * cmp / plane / sphere math, rctOutput / rctOffsets / radOffsets
+        #     filters, hypot/atan2, bin-transform, in-bounds mask, stake
+        #     transform, bin-key sort and the analysis kernel all run once
+        #     per chunk on the whole batch.
+        #   * The numba dispatch + per-source argsort overhead binTemplate9
+        #     pays Ns x N_recSeed times per template is paid once per chunk.
+        #
+        # binTemplate7/8/9, _applyBinUpdatesVectorized, _applyBinUpdatesNumba,
+        # buildBinningArraysFromSelectedReceivers, the existing
+        # numbaApplyBinUpdatesAnalysis kernel, and roll_plane / roll_sphere are
+        # all left untouched -- binTemplate10 is purely additive.
+        # ------------------------------------------------------------------
+        npTemplateOffset = np.array(
+            [templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32
+        )
+
+        # --- 1. Hoist receiver-seed prep out of the source loop. -----
+        recBorderActive = not block.borders.recBorder.isNull()
+        preparedRecArrays = []
+        for recSeed in template.seedList:
+            if recSeed.bSource:
+                continue
+            recPoints = recSeed.pointArray + npTemplateOffset
+            if recBorderActive:
+                included = fnb.pointsInRect(recPoints, block.borders.recBorder)
+                if included.shape[0] == 0:
+                    continue
+                recPoints = recPoints[included, :]
+            if recPoints.shape[0] == 0:
+                continue
+            preparedRecArrays.append(recPoints)
+
+        # Also pre-clip the source seeds; we still need to advance the
+        # progress counter even when no live receivers exist.
+        preparedSrcArrays = []
+        for srcSeed in template.seedList:
+            if not srcSeed.bSource:
+                continue
+            srcArray = srcSeed.pointArray + npTemplateOffset
+            if not block.borders.srcBorder.isNull():
+                included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
+                if included.shape[0] == 0:
+                    continue
+                srcArray = srcArray[included, :]
+            if srcArray.shape[0] == 0:
+                continue
+            preparedSrcArrays.append(srcArray.astype(np.float32, copy=False))
+
+        if not preparedSrcArrays:
+            return  # no live sources, no progress to report either
+
+        if not preparedRecArrays:
+            # No live receivers; advance shot counter for UI parity with
+            # binTemplate7/8/9, then bail.
+            for srcArray in preparedSrcArrays:
+                for _ in range(srcArray.shape[0]):
+                    if QThread.currentThread().isInterruptionRequested():
+                        raise StopIteration
+                    self.nShotPoint += 1
+                    threadProgress = (100 * self.nShotPoint) // self.nShotPoints
+                    if threadProgress > self.threadProgress:
+                        self.threadProgress = threadProgress
+                        self.progress.emit(threadProgress + 1)
+            return
+
+        # Concatenate all rec seeds once -- the template shares this set
+        # across every source.
+        recArrAll = np.concatenate(preparedRecArrays, axis=0).astype(np.float32, copy=False)
+        nRec = recArrAll.shape[0]
+
+        # --- 2. Pre-extract bin / stake transforms once per call. ---
+        T = self.binTransform
+        binMat = np.array(
+            [[T.m11(), T.m21(), T.m31()], [T.m12(), T.m22(), T.m32()]], dtype=np.float64
+        )
+        S = self.st2Transform
+        st2Mat = np.array(
+            [[S.m11(), S.m21(), S.m31()], [S.m12(), S.m22(), S.m32()]], dtype=np.float64
+        )
+
+        # --- 3. Per source-seed: chunk over Ns and dispatch one kernel call per chunk. ---
+        for srcArray in preparedSrcArrays:
+            for srcChunk in self._iterTemplateSourceChunks(srcArray, nRec):
+                if QThread.currentThread().isInterruptionRequested():
+                    raise StopIteration
+
+                batch = self._buildTemplateTraceBatch(srcChunk, recArrAll)
+                if batch is not None:
+                    cmpPoints, srcExp, recExp, hypArray, aziArray = batch
+                    self._applyBinUpdatesNumbaBatch(
+                        cmpPoints, srcExp, recExp, hypArray, aziArray, binMat, st2Mat, fullAnalysis
+                    )
+
+                # Advance progress per source in the chunk for UI parity.
+                self.nShotPoint += srcChunk.shape[0]
+                threadProgress = (100 * self.nShotPoint) // self.nShotPoints
+                if threadProgress > self.threadProgress:
+                    self.threadProgress = threadProgress
+                    self.progress.emit(threadProgress + 1)
+
+    def _iterTemplateSourceChunks(self, srcArr, nRec):
+        """
+        Yield contiguous slices of srcArr such that one chunk's flat
+        (Ns_chunk * Nr) intermediate float32 working set stays under
+        config.TEMPLATE_BATCH_BUDGET_BYTES. With strided (iSrc, iRec)
+        indices the persistent per-trace footprint is small (8 b for
+        indices + 12 b cmp + 12 b off ~= 32 b/trace), but the plane/
+        sphere math briefly allocates srcExp + recExp + ray/etc. pushing
+        peak to ~80 b/trace. We budget 80 b/trace as the safe ceiling.
+        """
+        ns = srcArr.shape[0]
+        if ns == 0 or nRec == 0:
+            return
+        bytesPerTrace = 80
+        budget = max(int(config.TEMPLATE_BATCH_BUDGET_BYTES), bytesPerTrace * nRec)
+        chunkNs = max(1, budget // (bytesPerTrace * nRec))
+        for i in range(0, ns, chunkNs):
+            yield srcArr[i:i + chunkNs]
+
+    def _buildTemplateTraceBatch(self, srcArr, recArr):
+        """
+        Build a flat (M, ...) trace batch for a (Ns x Nr) template chunk.
+
+        Inputs:
+          srcArr (Ns, 3) float32 -- one chunk of pre-clipped source points.
+          recArr (Nr, 3) float32 -- pre-clipped receivers shared by all
+                                    sources of the template.
+
+        Returns (cmp, srcExp, recExp, hyp, azi) all aligned float32 arrays
+        of shape (M, 3) / (M, 3) / (M, 3) / (M,) / (M,) where M <= Ns*Nr,
+        or None if every trace was filtered out.
+
+        Mirrors the filter chain of buildBinningArraysFromSelectedReceivers
+        exactly: cmp/plane/sphere math, rctOutput, rctOffsets, radOffsets.
+
+        Memory strategy: instead of expanding srcExp/recExp up-front via
+        np.repeat / np.tile (24 b/trace), we keep cheap (i_src, i_rec)
+        index arrays (8 b/trace) through every filter pass and gather the
+        final srcExp/recExp only once after all masks have been applied.
+        For cmp/plane/sphere math we still gather srcExp/recExp briefly,
+        but explicitly drop them right after the per-method mask is built.
+        """
+        ns = srcArr.shape[0]
+        nr = recArr.shape[0]
+        if ns == 0 or nr == 0:
+            return None
+
+        srcArr = srcArr.astype(np.float32, copy=False)
+        recArr = recArr.astype(np.float32, copy=False)
+
+        # Strided indices: row k <-> (srcArr[iSrc[k]], recArr[iRec[k]]).
+        iSrc = np.repeat(np.arange(ns, dtype=np.int32), nr)
+        iRec = np.tile(np.arange(nr, dtype=np.int32), ns)
+
+        method = self.binning.method
+        if method == BinningType.cmp:
+            cmpPoints = 0.5 * (srcArr[iSrc] + recArr[iRec])
+        elif method == BinningType.plane:
+            plane = self.localPlane
+            npNormal = np.array(
+                [plane.normal.x(), plane.normal.y(), plane.normal.z()], dtype=np.float32
+            )
+            dist = np.float32(plane.dist)
+            aoiMin = math.radians(self.angles.reflection.x())
+            aoiMax = math.radians(self.angles.reflection.y())
+
+            srcExp = srcArr[iSrc]
+            recExp = recArr[iRec]
+
+            # Per-row mirror of src in the plane: srcMirror = src - 2 * (src . n + d) * n
+            sDist2 = (srcExp @ npNormal + dist) * np.float32(2.0)             # (M,)
+            srcMirror = srcExp - sDist2[:, None] * npNormal                   # (M, 3)
+
+            ray = recExp - srcMirror                                          # (M, 3)
+            denom = ray @ npNormal                                            # (M,)
+            mask = denom != 0.0
+            if not mask.any():
+                return None
+
+            nominator = recExp @ npNormal + dist                              # (M,)
+            U = np.empty_like(denom)
+            U[mask] = nominator[mask] / denom[mask]
+            mask &= (U >= 0.0) & (U <= 1.0)
+            if not mask.any():
+                return None
+
+            length = np.linalg.norm(ray, axis=1)
+            cosAoI = np.zeros_like(denom)
+            valid_len = mask & (length > 0.0)
+            cosAoI[valid_len] = denom[valid_len] / length[valid_len]
+            # arccos undefined outside [-1, 1]; clamp to keep downstream sane.
+            np.clip(cosAoI, -1.0, 1.0, out=cosAoI)
+            aoi = np.arccos(cosAoI)
+            mask &= (aoi >= aoiMin) & (aoi <= aoiMax)
+            if not mask.any():
+                return None
+
+            cmpPoints = (recExp - ray * U[:, None])[mask]
+            iSrc = iSrc[mask]
+            iRec = iRec[mask]
+            # Drop large per-trace temporaries before the filter chain.
+            del srcExp, recExp, ray, denom, U, length, cosAoI, aoi, mask
+            del srcMirror, sDist2, nominator, valid_len
+        elif method == BinningType.sphere:
+            sphere = self.localSphere
+            npOrig = np.array(
+                [sphere.origin.x(), sphere.origin.y(), sphere.origin.z()], dtype=np.float32
+            )
+            radius = np.float32(sphere.radius)
+            aoiMin = math.radians(self.angles.reflection.x())
+            aoiMax = math.radians(self.angles.reflection.y())
+
+            srcExp = srcArr[iSrc]
+            recExp = recArr[iRec]
+
+            raySrc = srcExp - npOrig                                          # (M, 3)
+            rayRec = recExp - npOrig
+            lenSrc = np.linalg.norm(raySrc, axis=1)
+            lenRec = np.linalg.norm(rayRec, axis=1)
+            valid = (lenSrc > 0.0) & (lenRec > 0.0)
+            if not valid.any():
+                return None
+            # Avoid divide-by-zero; rows with zero length are masked out below.
+            lenSrc = np.where(valid, lenSrc, np.float32(1.0))
+            lenRec = np.where(valid, lenRec, np.float32(1.0))
+            raySrc = raySrc / lenSrc[:, None]
+            rayRec = rayRec / lenRec[:, None]
+
+            rayMid = 0.5 * (raySrc + rayRec)
+            ptRef = npOrig + rayMid * radius                                  # (M, 3)
+
+            raySrc2 = srcExp - ptRef
+            len2 = np.linalg.norm(raySrc2, axis=1)
+            valid &= len2 > 0.0
+            if not valid.any():
+                return None
+            len2 = np.where(valid, len2, np.float32(1.0))
+            raySrc2 = raySrc2 / len2[:, None]
+
+            cosAoI = np.sum(raySrc2 * rayMid, axis=1)
+            np.clip(cosAoI, -1.0, 1.0, out=cosAoI)
+            aoi = np.arccos(cosAoI)
+            mask = valid & (aoi >= aoiMin) & (aoi <= aoiMax)
+            if not mask.any():
+                return None
+
+            cmpPoints = ptRef[mask]
+            iSrc = iSrc[mask]
+            iRec = iRec[mask]
+            del srcExp, recExp, raySrc, rayRec, rayMid, ptRef, raySrc2
+            del lenSrc, lenRec, len2, cosAoI, aoi, valid, mask
+        else:
+            return None
+
+        # Build offArray fresh from filtered indices (single 12 b/trace gather).
+        offArray = recArr[iRec] - srcArr[iSrc]
+
+        # rctOutput on cmp
+        included = fnb.pointsInRect(cmpPoints, self.output.rctOutput)
+        if not np.any(included):
+            return None
+        cmpPoints = cmpPoints[included]
+        iSrc = iSrc[included]
+        iRec = iRec[included]
+        offArray = offArray[included]
+
+        # rctOffsets on (dx, dy)
+        included = fnb.pointsInRect(offArray, self.offset.rctOffsets)
+        if not np.any(included):
+            return None
+        cmpPoints = cmpPoints[included]
+        iSrc = iSrc[included]
+        iRec = iRec[included]
+        offArray = offArray[included]
+
+        hypArray = np.hypot(offArray[:, 0], offArray[:, 1]).astype(np.float32, copy=False)
+        aziArray = np.rad2deg(np.arctan2(offArray[:, 0], offArray[:, 1]))
+        aziArray = ((aziArray + 360.0) % 360.0).astype(np.float32, copy=False)
+
+        r1 = self.offset.radOffsets.x()
+        r2 = self.offset.radOffsets.y()
+        if r2 > 0:
+            included = (hypArray >= r1) & (hypArray <= r2)
+            if not np.any(included):
+                return None
+            cmpPoints = cmpPoints[included]
+            iSrc = iSrc[included]
+            iRec = iRec[included]
+            hypArray = hypArray[included]
+            aziArray = aziArray[included]
+
+        # Final materialisation: gather srcExp / recExp exactly once, after
+        # every filter has reduced M to its post-mask size.
+        cmpPoints = np.ascontiguousarray(cmpPoints, dtype=np.float32)
+        srcExp = np.ascontiguousarray(srcArr[iSrc], dtype=np.float32)
+        recExp = np.ascontiguousarray(recArr[iRec], dtype=np.float32)
+        return cmpPoints, srcExp, recExp, hypArray, aziArray
+
+    def _applyBinUpdatesNumbaBatch(self, cmpPoints, srcExp, recPoints, hypArray, aziArray, binMat, st2Mat, writeAnalysis):
+        """
+        Whole-chunk variant of _applyBinUpdatesNumba: each trace carries its
+        own src row in `srcExp` (M, 3), so the kernel call dispatches the
+        full (Ns*Nr) batch at once via numbaApplyBinUpdatesAnalysisBatch.
+        Travel time is computed per-trace inside this helper from the same
+        cmp/src/rec arrays the kernel writes to anaOutput.
+        """
+        if cmpPoints.shape[0] == 0:
+            return False
+
+        nx = (binMat[0, 0] * cmpPoints[:, 0] + binMat[0, 1] * cmpPoints[:, 1] + binMat[0, 2]).astype(np.int64)
+        ny = (binMat[1, 0] * cmpPoints[:, 0] + binMat[1, 1] * cmpPoints[:, 1] + binMat[1, 2]).astype(np.int64)
+
+        valid = (
+            (nx >= 0) & (ny >= 0)
+            & (nx < self.output.binOutput.shape[0])
+            & (ny < self.output.binOutput.shape[1])
+        )
+        if not valid.any():
+            return False
+
+        nx = nx[valid]
+        ny = ny[valid]
+        cmpPoints = cmpPoints[valid]
+        srcExp = srcExp[valid]
+        recPoints = recPoints[valid]
+        hypArray = hypArray[valid]
+        aziArray = aziArray[valid]
+
+        # Travel time: cmp uses ||src - rec||, plane/sphere uses ||src->cmp|| + ||cmp->rec||.
+        if self.binning.method == BinningType.cmp:
+            totalTime = np.linalg.norm(recPoints - srcExp, axis=1)
+        else:
+            totalTime = (
+                np.linalg.norm(cmpPoints - srcExp, axis=1)
+                + np.linalg.norm(cmpPoints - recPoints, axis=1)
+            )
+        totalTime = (totalTime * self.binning.slowness).astype(np.float32, copy=False)
+
+        if writeAnalysis:
+            # Bin-key sort for memmap page locality (same rationale as
+            # _applyBinUpdatesNumba; the win is bigger here because the
+            # batch is whole-template / whole-chunk, not per-source).
+            binY = self.output.binOutput.shape[1]
+            order = np.argsort(nx * np.int64(binY) + ny, kind='stable')
+            nx = nx[order]
+            ny = ny[order]
+            cmpPoints = cmpPoints[order]
+            srcExp = srcExp[order]
+            recPoints = recPoints[order]
+            hypArray = hypArray[order]
+            aziArray = aziArray[order]
+            totalTime = totalTime[order]
+
+            stkX = (st2Mat[0, 0] * cmpPoints[:, 0] + st2Mat[0, 1] * cmpPoints[:, 1] + st2Mat[0, 2]).astype(np.int32)
+            stkY = (st2Mat[1, 0] * cmpPoints[:, 0] + st2Mat[1, 1] * cmpPoints[:, 1] + st2Mat[1, 2]).astype(np.int32)
+
+            cmpC = np.ascontiguousarray(cmpPoints, dtype=np.float32)
+            recC = np.ascontiguousarray(recPoints, dtype=np.float32)
+            srcC = np.ascontiguousarray(srcExp, dtype=np.float32)
+            hypC = np.ascontiguousarray(hypArray, dtype=np.float32)
+            aziC = np.ascontiguousarray(aziArray, dtype=np.float32)
+
+            fnb.numbaApplyBinUpdatesAnalysisBatch(
+                nx, ny,
+                stkX, stkY,
+                cmpC, recC,
+                hypC, aziC,
+                totalTime,
+                srcC,
+                self.output.binOutput,
+                self.output.minOffset,
+                self.output.maxOffset,
+                self.output.anaOutput,
+                int(self.grid.fold),
+            )
+            return True
+
+        # Fast path (no analysis writes): same primitives binTemplate9 uses,
+        # but on the whole chunk -- which is where np.add.at / minimum.at /
+        # maximum.at actually amortise their per-call overhead.
+        np.add.at(self.output.binOutput, (nx, ny), 1)
+        np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
+        np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
+        return True
 
     def calcFoldAndOffsetEssentials(self):
         # max fold is straightforward
@@ -3021,9 +3754,9 @@ class RollSurvey(pg.GraphicsObject):
         w = getattr(dev, "width", lambda: 0)()
         h = getattr(dev, "height", lambda: 0)()
         T: QTransform = painter.worldTransform()
-        m = ( T.m11(), T.m12(), T.m13(), T.m21(), T.m22(), T.m23(), T.m31(), T.m32(), T.m33(), )
+        m = (T.m11(), T.m12(), T.m13(), T.m21(), T.m22(), T.m23(), T.m31(), T.m32(), T.m33(),)
         lod = option.levelOfDetailFromTransform(T) * self.lodScale
-        return ( w, h, m, round(lod, 3), int(self.paintMode), int(self.paintDetails), getattr(self, "_paintEpoch", 0), )
+        return (w, h, m, round(lod, 3), int(self.paintMode), int(self.paintDetails), getattr(self, "_paintEpoch", 0),)
 
     def _ensureBuffers(self, painter: QPainter, option, penWidth=2) -> None:
         """ Ensure the base and progressive framebuffers exist and match the current view.
@@ -3182,7 +3915,7 @@ class RollSurvey(pg.GraphicsObject):
         Honors current LOD and PaintMode for deciding between outlines vs. detailed template painting.
         Returns True when fully done; False when more passes are needed. """
 
-        if self.paintMode == PaintMode.justBlocks: # nothing to do here
+        if self.paintMode == PaintMode.justBlocks:  # nothing to do here
             return True
 
         vb: QRectF = self.viewRect()
@@ -3201,12 +3934,13 @@ class RollSurvey(pg.GraphicsObject):
         except (AttributeError, TypeError, RuntimeError):
             pass
 
-        b = self._ps["b"]; t = self._ps["t"]; i = self._ps["i"]; j = self._ps["j"]; k = self._ps["k"]
+        b = self._ps["b"]; t = self._ps["t"]; i = self._ps["i"]; j = self._ps["j"]; k = self._ps["k"]  # noqa: E702
 
         while b < len(self.blockList):
             block = self.blockList[b]
             if not block.boundingBox.intersects(vb):
-                b += 1; t = i = j = k = 0
+                b += 1
+                t = i = j = k = 0
                 if self._shouldAbortPaint():
                     self._ps.update({"b": b, "t": 0, "i": 0, "j": 0, "k": 0})
                     return False
@@ -3238,11 +3972,11 @@ class RollSurvey(pg.GraphicsObject):
                                 else:
                                     self._paintTemplate(p, vb, lod, template, offset, penWidth=penWidth)
                             k += 1
-                        k = 0; j += 1
-                    j = 0; i += 1
-                i = 0; t += 1
+                        k = 0; j += 1   # noqa: E702
+                    j = 0; i += 1       # noqa: E702
+                i = 0; t += 1           # noqa: E702
 
-            b += 1; t = i = j = k = 0
+            b += 1; t = i = j = k = 0   # noqa: E702
             if self._shouldAbortPaint():
                 self._ps.update({"b": b, "t": 0, "i": 0, "j": 0, "k": 0})
                 return False

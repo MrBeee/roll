@@ -1111,7 +1111,6 @@ class ProjectSidecarsTest(unittest.TestCase):
         printer.setOutputFileName.assert_called_once_with('report.pdf')
         document.print.assert_called_once_with(printer)
 
-
     def testPlotStkTrkUsesSharedAnalysisImageHelper(self):
         self.mainWindow.survey = self.createSurvey()
         self.mainWindow.output.anaOutput = np.zeros((2, 1, 1, 1), dtype=np.float32)
@@ -1588,9 +1587,9 @@ class ProjectSidecarsTest(unittest.TestCase):
         with patch.object(self.mainWindow, 'handleImageSelection'), patch.object(self.mainWindow, 'plotLayout'):
             self.mainWindow.updateSettings()
 
-        self.assertTrue(self.mainWindow.layoutMethodSidePanel.isHidden())
-        self.assertTrue(self.mainWindow.layoutMethodChoice.isHidden())
-        self.assertEqual(0, self.mainWindow.layoutMethodSplitter.sizes()[0])
+        self.assertFalse(self.mainWindow.layoutMethodSidePanel.isHidden())
+        self.assertFalse(self.mainWindow.layoutMethodChoice.isHidden())
+        self.assertGreater(self.mainWindow.layoutMethodSplitter.sizes()[0], 0)
         self.assertTrue(self.mainWindow.actionLayout2D.isChecked())
 
     def testLayoutMethodControlsAreShownWhenUnfinishedCodeIsEnabled(self):
@@ -1641,6 +1640,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertEqual(request.extended, False)
         self.assertIs(request.analysisFile, self.mainWindow.output.anaOutput)
         self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
+        self.assertEqual(request.includeProfiling, self.mainWindow.appSettings.debug)
         self.mainWindow.worker.resultReady.connect.assert_called_once()
         self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
         self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
@@ -1688,7 +1688,7 @@ class ProjectSidecarsTest(unittest.TestCase):
                 self.extended = extended
                 return self.shouldSucceed
 
-        request = BinningFromTemplatesRequest(xmlString='<survey />', extended=True, analysisFile=None, debugpyEnabled=False)
+        request = BinningFromTemplatesRequest(xmlString='<survey />', extended=True, analysisFile=None, debugpyEnabled=False, includeProfiling=False)
 
         with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
             worker = BinningWorker(request)
@@ -1723,6 +1723,74 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertFalse(resultEvents[0].success)
         self.assertEqual(resultEvents[0].errorText, 'setup failed')
         self.assertEqual(finishedEvents, ['finished'])
+
+    def testBinningWorkerRunUsesOptionalProfilingPayload(self):
+        class SurveyStub:
+            def __init__(self):
+                self.output = MagicMock()
+                self.output.anaOutput = None
+                self.output.binOutput = np.ones((1, 1), dtype=np.float32)
+                self.output.minOffset = np.ones((1, 1), dtype=np.float32)
+                self.output.maxOffset = np.ones((1, 1), dtype=np.float32)
+                self.output.minimumFold = 1
+                self.output.maximumFold = 1
+                self.output.minMinOffset = 1.0
+                self.output.maxMinOffset = 1.0
+                self.output.minMaxOffset = 1.0
+                self.output.maxMaxOffset = 1.0
+                self.output.minRmsOffset = 0.0
+                self.output.maxRmsOffset = 0.0
+                self.output.rmsOffset = None
+                self.output.minOffsetGap = 0.0
+                self.output.maxOffsetGap = 0.0
+                self.output.offsetGap = None
+                self.output.ofAziHist = None
+                self.output.offstHist = None
+                self.cmpTransform = 'cmp-transform'
+                self.errorText = 'binning failed'
+                self.shouldSucceed = True
+                self.timerTmin = [0.0]
+                self.timerTmax = [1.0]
+                self.timerTtot = [2.0]
+                self.timerFreq = [3]
+                self.xmlString: str | None = None
+                self.createArrays: bool | None = None
+                self.calcCalled: bool = False
+
+            def fromXmlString(self, xmlString, createArrays):
+                self.xmlString = xmlString
+                self.createArrays = createArrays
+
+            def calcNoShotPoints(self):
+                self.calcCalled = True
+
+            def setupBinFromTemplates(self, extended):
+                return self.shouldSucceed
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            worker = BinningWorker(BinningFromTemplatesRequest(xmlString='<survey />', includeProfiling=True))
+
+            resultEvents = []
+            worker.resultReady.connect(resultEvents.append)
+
+            worker.run()
+
+            self.assertEqual(len(resultEvents), 1)
+            self.assertIsInstance(resultEvents[0], BinningFromTemplatesResult)
+            self.assertIsInstance(resultEvents[0].profiling, GeometryProfilingPayload)
+            self.assertEqual(resultEvents[0].profiling.timerTmin, (0.0,))
+            self.assertEqual(resultEvents[0].profiling.timerTmax, (1.0,))
+            self.assertEqual(resultEvents[0].profiling.timerTtot, (2.0,))
+            self.assertEqual(resultEvents[0].profiling.timerFreq, (3,))
+
+            worker = BinningWorker(BinningFromTemplatesRequest(xmlString='<survey />', includeProfiling=False))
+            resultEvents = []
+            worker.resultReady.connect(resultEvents.append)
+
+            worker.run()
+
+        self.assertEqual(len(resultEvents), 1)
+        self.assertIsNone(resultEvents[0].profiling)
 
     def testBinningTemplatesThreadFinishedUsesResultObject(self):
         result = BinningFromTemplatesResult(

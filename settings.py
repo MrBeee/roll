@@ -22,8 +22,8 @@ except ImportError:
 
 try:    # need to TRY importing debugpy, only to see if it is available
     haveDebugpy = True
-    import debugpy  # pylint: disable=W0611
-except ImportError as ie:
+    import debugpy  # noqa: F401  # pylint: disable=W0611
+except ImportError:
     haveDebugpy = False
 
 
@@ -64,7 +64,8 @@ class SettingsDialog(QDialog):
 
         # Ensure custom parameter types are registered on the active pyqtgraph
         # registry before this dialog builds its parameter tree.
-        from .my_parameters import registerAllParameterTypes  # pylint: disable=C0415
+        from .my_parameters import \
+            registerAllParameterTypes  # pylint: disable=C0415
 
         registerAllParameterTypes()
 
@@ -362,8 +363,8 @@ class SettingsDialog(QDialog):
         appSettings.activate()
         _applyNumbaSetting(appSettings.useNumba)
 
-# Helper functions to read/clear format groups
 
+# Helper functions to read/clear format groups
 def _readFormatGroup(self, group):
     self.settings.beginGroup(group)
     entries = []

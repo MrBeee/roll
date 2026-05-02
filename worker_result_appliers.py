@@ -12,6 +12,8 @@ class BinningResultApplier:
         self.runtimeDependenciesProvider = runtimeDependenciesProvider
 
     def apply(self, result, elapsed: timedelta) -> None:
+        self._logProfiling(result.profiling)
+
         if not result.success:
             self._applyFailure(result.errorText)
             return
@@ -111,6 +113,24 @@ class BinningResultApplier:
 
         self.window.saveAnalysisSidecars(includeHistograms=True)
         return 'Analysis results have been saved.'
+
+    def _logProfiling(self, profiling) -> None:
+        if not self.window.appSettings.debug:
+            return
+
+        self.window.appendLogMessage('binFromTemplates() profiling information', MsgType.Debug)
+        self.window.appendLogMessage(
+            '00=srcClip, 01=recPrepOrClip, 02=buildTraceArrays, 03=travelTime, 04=binMapFilter, 05=analysisWrite, 06=noAnalysisScatter',
+            MsgType.Debug,
+        )
+        for i, _ in enumerate(profiling.timerTmin if profiling is not None else ()):
+            tMin = profiling.timerTmin[i] * 1000.0 if profiling.timerTmin[i] != float('Inf') else 0.0
+            tMax = profiling.timerTmax[i] * 1000.0
+            tTot = profiling.timerTtot[i] * 1000.0
+            freq = profiling.timerFreq[i]
+            tAvr = tTot / freq if freq > 0 else 0.0
+            message = f'{i:02d}: min:{tMin:011.3f}, max:{tMax:011.3f}, tot:{tTot:011.3f}, avr:{tAvr:011.3f}, freq:{freq:07d}'
+            self.window.appendLogMessage(message, MsgType.Debug)
 
 
 class GeometryResultApplier:

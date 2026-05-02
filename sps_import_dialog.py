@@ -23,11 +23,9 @@ currentDir = os.path.dirname(os.path.abspath(__file__))
 resourceDir = os.path.join(currentDir, 'resources')
 
 
-
 class ColumnBound(IntEnum):
     FROM = 0
     TO = 1
-
 
 
 class SpsImportDialog(QDialog):
@@ -173,7 +171,7 @@ class SpsImportDialog(QDialog):
         # buttonLayout.addSpacing(20)  # spacer before the buttons
 
         self.addButton = QPushButton()
-        self.addButton.setIcon(QIcon(os.path.join(resourceDir,'symbologyAdd.svg')))
+        self.addButton.setIcon(QIcon(os.path.join(resourceDir, 'symbologyAdd.svg')))
         self.addButton.setMaximumWidth(30)
         self.addButton.setToolTip("Add a new SPS implementation to the list, based on the current selection")
 
@@ -181,7 +179,7 @@ class SpsImportDialog(QDialog):
         buttonLayout.addWidget(self.addButton)
 
         self.removeButton = QPushButton()
-        self.removeButton.setIcon(QIcon(os.path.join(resourceDir,'symbologyRemove.svg')))
+        self.removeButton.setIcon(QIcon(os.path.join(resourceDir, 'symbologyRemove.svg')))
         self.removeButton.setMaximumWidth(30)
         self.removeButton.setToolTip("Remove the selected SPS implementation from the list")
         self.removeButton.clicked.connect(self.onRemoveSpsName)
@@ -426,7 +424,6 @@ class SpsImportDialog(QDialog):
         self.populateSpsFormatList()
         self.onSpsFormatChanged(self.spsFormatList.currentRow())
 
-
     def onSpsComboHighlighted(self, index):
         # print("SPS item highlighted:", index)
 
@@ -533,7 +530,7 @@ class SpsImportDialog(QDialog):
         if self.spsFormatListInitializing or row < 0:
             return
 
-        index  = self.tabWidget.currentIndex()                     # get current tab
+        index = self.tabWidget.currentIndex()                     # get current tab
         if index == 0:
             self.onSpsComboHighlighted(self.spsCombo.currentIndex())
         elif index == 1:
@@ -554,7 +551,7 @@ class SpsImportDialog(QDialog):
             self.crsWidget.setCrs(self.oldCrs)
             return
 
-        self.crs = crs; self.oldCrs = crs
+        self.crs = crs; self.oldCrs = crs  # noqa: E702
 
     def onSpsFilesChanged(self, fileNames):
         """Handle changes in selected SPS files."""

@@ -48,7 +48,7 @@ class AnaTableModel(QAbstractTableModel):
 
         # the underlying data uses a 2D numpy array without any field names. So it is reliant on the header names and format strings for export to clipboard
         # fmt: off
-        self._format =  '%d',    '%d',   '%d',   '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',     '%.2f',   '%.2f',    '%d'
+        self._format =  '%d',    '%d',   '%d',   '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',     '%.2f',   '%.2f',    '%d'  # noqa: E222
         self._header = ['stake', 'line', 'fold', 'src-x', 'src-y', 'src-z', 'rec-x', 'rec-y', 'rec-z', 'cmp-x', 'cmp-y', 'cmp-z', 'TWT [ms]', 'offset', 'azimuth', 'unique']
         # fmt: on
 
@@ -453,7 +453,7 @@ class TableView(QTableView):
             rowMin = indices[0].row()
             rowMax = indices[count - 1].row()                                   # subtract one as count is exclusive
 
-            copied = data[rowMin : rowMax + 1]                                  # select records; add 1, as the last nr. is exclusive
+            copied = data[rowMin: rowMax + 1]                                   # select records; add 1, as the last nr. is exclusive
 
             memFile = io.BytesIO()                                              # create tempory file in memory
             delimiter = '\t'                                                    # use tab separator, easier for Excel than commas
@@ -604,9 +604,9 @@ class RpsTableModel(QAbstractTableModel):
 
         # Display columns (in order) mapped to dtype fields
         # fmt: off
-        self._displayFields =   ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']
-        self._header =          ['rec line', 'rec point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'in use']
-        self._format =           '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d'
+        self._displayFields =   ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']   # noqa: E222
+        self._header =          ['rec line', 'rec point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'in use']  # noqa: E222
+        self._format =           '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d'       # noqa: E222
         # fmt: on
 
         self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
@@ -661,10 +661,10 @@ class RpsTableModel(QAbstractTableModel):
             if orientation == Qt.Orientation.Horizontal:
                 field = self._displayFields[section]
                 if field in ('Index', 'InUse'):
-                    return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
+                    return self._header[section] + f'\n[{int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
                 if field == 'Code':
                     return self._header[section] + '\n« min »\n« max »'
-                return self._header[section] + f'\n[{ self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
+                return self._header[section] + f'\n[{self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
             return f'{section + 1:,}'
 
         if role == Qt.ItemDataRole.BackgroundRole:                                           # highlight sorting column(s)
@@ -859,9 +859,9 @@ class SpsTableModel(QAbstractTableModel):
 
         # Display columns (in order) mapped to dtype fields
         # fmt: off
-        self._displayFields =   ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']
-        self._header =          ['src line', 'src point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'in use']
-        self._format =           '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d'
+        self._displayFields =   ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']    # noqa: E222
+        self._header =          ['src line', 'src point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'in use']   # noqa: E222
+        self._format =           '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d'        # noqa: E222
         # fmt: on
 
         self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
@@ -916,10 +916,10 @@ class SpsTableModel(QAbstractTableModel):
             if orientation == Qt.Orientation.Horizontal:
                 field = self._displayFields[section]
                 if field in ('Index', 'InUse'):
-                    return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
+                    return self._header[section] + f'\n[{int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
                 if field == 'Code':
                     return self._header[section] + '\n« min »\n« max »'
-                return self._header[section] + f'\n[{ self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
+                return self._header[section] + f'\n[{self._minMax[0][section]:.1f}]:\n[{self._minMax[1][section]:.1f}]'
             return f'{section + 1:,}'
 
         if role == Qt.ItemDataRole.BackgroundRole:                                           # highlight sorting column(s)
@@ -1105,8 +1105,8 @@ class XpsTableModel(QAbstractTableModel):
         self._qSort = deque(maxlen=3)   # To support sorting on max 3 values
 
         # fmt: off
-        self._format =  '%.2f',     '%.2f',      '%d',        '%d',       '%.2f',     '%.2f',    '%.2f',    '%d',        '%d',     '%d',           '%d'
-        self._header = ['src line', 'src point', 'src index', 'record #', 'rec line', 'rec min', 'rec max', 'rec index', 'unique', 'in sps-table', 'in rps-table']
+        self._format =  '%.2f',     '%.2f',      '%d',        '%d',       '%.2f',     '%.2f',    '%.2f',    '%d',        '%d',     '%d',           '%d'             # noqa: E222
+        self._header = ['src line', 'src point', 'src index', 'record #', 'rec line', 'rec min', 'rec max', 'rec index', 'unique', 'in sps-table', 'in rps-table']  # noqa: E222
         # fmt: on
 
         self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)  # Initial min and max values for each column (field) in the data array
@@ -1207,8 +1207,8 @@ class XpsTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
                 if section in (0, 3, 7):                                        # format depends on column number; int here
-                    return self._header[section] + f'\n[{ int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
-                return self._header[section] + f'\n[{ self._minMax[0][section]}]:\n[{self._minMax[1][section]}]'
+                    return self._header[section] + f'\n[{int(self._minMax[0][section])}]:\n[{int(self._minMax[1][section])}]'
+                return self._header[section] + f'\n[{self._minMax[0][section]}]:\n[{self._minMax[1][section]}]'
             return f'{section + 1:,}'                                           # 1-based index for columns, using 1000 indicator
 
         if role == Qt.ItemDataRole.BackgroundRole:                                           # highlight sorting column(s)

@@ -374,7 +374,7 @@ class ProjectService:
             self._appendMessage(
                 result,
                 'error',
-                f'Loaded : . . . Analysis &nbsp;: legacy 13-column layout detected for {anaPath}. The format was extended with src-z, rec-z and cmp-z columns; please re-run the binning to refresh the trace table.',
+                f'Loaded : . . . Analysis &nbsp;: legacy 13-column layout detected for {anaPath}. The format was extended with src-z, rec-z and cmp-z columns; please re-run the binning to refresh the trace table.',  # noqa: E501
             )
             return
         if cols != 16:
@@ -394,7 +394,7 @@ class ProjectService:
             self._appendMessage(
                 result,
                 'warning',
-                f'Loaded : . . . Analysis &nbsp;: opened copy-on-write because writable access was denied for {fileName + ".ana.npy"}. Trace records are available, but in-memory edits will not be saved. {memmapResult.errorText}',
+                f'Loaded : . . . Analysis &nbsp;: opened copy-on-write because writable access was denied for {fileName + ".ana.npy"}. Trace records are available, but in-memory edits will not be saved. {memmapResult.errorText}',  # noqa: E501
             )
 
         nT = memmapResult.memmap.size
@@ -410,7 +410,7 @@ class ProjectService:
         self._appendMessage(result, 'info', f'Analysis load: an2Output.shape={memmapResult.an2Output.shape}')
 
         if result.maximumFold > fold:
-            self._appendMessage(result, 'info', f'Loaded : . . . Analysis &nbsp;: observed fold in binning file: {result.maximumFold:,}. This is larger than allowed in the trace table ({fold:,}), expect missing traces in spider plot !')
+            self._appendMessage(result, 'info', f'Loaded : . . . Analysis &nbsp;: observed fold in binning file: {result.maximumFold:,}. This is larger than allowed in the trace table ({fold:,}), expect missing traces in spider plot !')  # noqa: E501
 
         self._appendMessage(result, 'info', f'Loaded : . . . Analysis &nbsp;: {memmapResult.an2Output.shape[0]:,} traces (reserved space)')
 

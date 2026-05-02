@@ -14,7 +14,7 @@ from .aux_functions import myPrint, toFloat, toInt
 
 # In the types below, first the full SPS format is shown and then some derived versions
 #
-#################### 'Field'   np.type  Fortran type
+# 'Field'   np.type  Fortran type ###################
 pntType = np.dtype(
     [
         # fmt : off
@@ -24,7 +24,7 @@ pntType = np.dtype(
         ('Blank', 'U2'),  # A2 ('  '). I.e. spacer after Point
         ('Index', 'i4'),  # I1
         ('Code',  'U2'),  # A2
-        ('Static','i4'),  # I4
+        ('Static','i4'),  # I4 # noqa: E231
         ('Depth', 'f4'),  # I4
         ('Datum', 'i4'),  # I4
         ('Uhole', 'i4'),  # I2
@@ -221,14 +221,14 @@ def readRpsLine(line_number, line, rpsImport, fmt) -> int:
         return 0
 
     # fmt: off
-    lin = toFloat(line[fmt[ 'line'][0] : fmt[ 'line'][1]].strip())
-    pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
-    idx =   toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
-    cod =         line[fmt[ 'code'][0] : fmt[ 'code'][1]].strip()
-    dep = toFloat(line[fmt['depth'][0] : fmt['depth'][1]].strip())
-    eas = toFloat(line[fmt[ 'east'][0] : fmt[ 'east'][1]].strip())
-    nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
-    ele = toFloat(line[fmt[ 'elev'][0] : fmt[ 'elev'][1]].strip())
+    lin = toFloat(line[fmt[ 'line'][0]: fmt[ 'line'][1]].strip())  # noqa: E201
+    pnt = toFloat(line[fmt['point'][0]: fmt['point'][1]].strip())  # noqa: E201
+    idx =   toInt(line[fmt['index'][0]: fmt['index'][1]].strip())  # noqa: E201, E222
+    cod =         line[fmt[ 'code'][0]: fmt[ 'code'][1]].strip()   # noqa: E201, E222
+    dep = toFloat(line[fmt['depth'][0]: fmt['depth'][1]].strip())  # noqa: E201
+    eas = toFloat(line[fmt[ 'east'][0]: fmt[ 'east'][1]].strip())  # noqa: E201
+    nor = toFloat(line[fmt['north'][0]: fmt['north'][1]].strip())  # noqa: E201
+    ele = toFloat(line[fmt[ 'elev'][0]: fmt[ 'elev'][1]].strip())  # noqa: E201
     # fmt: on
 
     record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
@@ -241,14 +241,14 @@ def readSpsLine(line_number, line, spsImport, fmt) -> int:
         return 0
 
     # fmt: off
-    lin = toFloat(line[fmt[ 'line'][0] : fmt[ 'line'][1]].strip())
-    pnt = toFloat(line[fmt['point'][0] : fmt['point'][1]].strip())
-    idx =   toInt(line[fmt['index'][0] : fmt['index'][1]].strip())
-    cod =         line[fmt[ 'code'][0] : fmt[ 'code'][1]].strip()
-    dep = toFloat(line[fmt['depth'][0] : fmt['depth'][1]].strip())
-    eas = toFloat(line[fmt[ 'east'][0] : fmt[ 'east'][1]].strip())
-    nor = toFloat(line[fmt['north'][0] : fmt['north'][1]].strip())
-    ele = toFloat(line[fmt[ 'elev'][0] : fmt[ 'elev'][1]].strip())
+    lin = toFloat(line[fmt[ 'line'][0]: fmt[ 'line'][1]].strip())  # noqa: E201
+    pnt = toFloat(line[fmt['point'][0]: fmt['point'][1]].strip())  # noqa: E201
+    idx =   toInt(line[fmt['index'][0]: fmt['index'][1]].strip())  # noqa: E201, E222
+    cod =         line[fmt[ 'code'][0]: fmt[ 'code'][1]].strip()   # noqa: E201, E222
+    dep = toFloat(line[fmt['depth'][0]: fmt['depth'][1]].strip())  # noqa: E201
+    eas = toFloat(line[fmt[ 'east'][0]: fmt[ 'east'][1]].strip())  # noqa: E201
+    nor = toFloat(line[fmt['north'][0]: fmt['north'][1]].strip())  # noqa: E201
+    ele = toFloat(line[fmt[ 'elev'][0]: fmt[ 'elev'][1]].strip())  # noqa: E201
     # fmt: on
 
     record = (lin, pnt, idx, cod, dep, eas, nor, ele, 1, 1, 1, 0.0, 0.0)
@@ -263,14 +263,14 @@ def readXpsLine(line_number, line, xpsImport, fmt) -> int:
     # This is the order that parameters appear on in an xps file
     # However, we move recNum to the fourth place in the xps record
     # fmt: off
-    recNum =   toInt(line[fmt['recNum'][0] : fmt['recNum'][1]].strip())
-    srcLin = toFloat(line[fmt['srcLin'][0] : fmt['srcLin'][1]].strip())
-    srcPnt = toFloat(line[fmt['srcPnt'][0] : fmt['srcPnt'][1]].strip())
-    srcInd =   toInt(line[fmt['srcInd'][0] : fmt['srcInd'][1]].strip())
-    recLin = toFloat(line[fmt['recLin'][0] : fmt['recLin'][1]].strip())
-    recMin = toFloat(line[fmt['recMin'][0] : fmt['recMin'][1]].strip())
-    recMax = toFloat(line[fmt['recMax'][0] : fmt['recMax'][1]].strip())
-    recInd =   toInt(line[fmt['recInd'][0] : fmt['recInd'][1]].strip())
+    recNum =   toInt(line[fmt['recNum'][0]: fmt['recNum'][1]].strip())  # noqa: E201, E222
+    srcLin = toFloat(line[fmt['srcLin'][0]: fmt['srcLin'][1]].strip())  # noqa: E201
+    srcPnt = toFloat(line[fmt['srcPnt'][0]: fmt['srcPnt'][1]].strip())  # noqa: E201
+    srcInd =   toInt(line[fmt['srcInd'][0]: fmt['srcInd'][1]].strip())  # noqa: E201, E222
+    recLin = toFloat(line[fmt['recLin'][0]: fmt['recLin'][1]].strip())  # noqa: E201
+    recMin = toFloat(line[fmt['recMin'][0]: fmt['recMin'][1]].strip())  # noqa: E201
+    recMax = toFloat(line[fmt['recMax'][0]: fmt['recMax'][1]].strip())  # noqa: E201
+    recInd =   toInt(line[fmt['recInd'][0]: fmt['recInd'][1]].strip())  # noqa: E201, E222
     # fmt: off
 
     record = (srcLin, srcPnt, srcInd, recNum, recLin, recMin, recMax, recInd, 1, 1, 1)
@@ -518,7 +518,7 @@ def fileExportAsR01(parent, fileName, extension, view, crs):
         parent,                                                                 # the main window
         'Save as...',                                                           # caption
         fileName + extension,                                                   # start directory + filename + extension
-        'sps receiver file format (*.r01);;sps receiver file format (*.rps);;All files (*.*)' # file extensions
+        'sps receiver file format (*.r01);;sps receiver file format (*.rps);;All files (*.*)'   # file extensions
         # options                                                               # options -> not used)
     )
     # fmt: on
@@ -552,16 +552,16 @@ def fileExportAsR01(parent, fileName, extension, view, crs):
     rpsData = np.zeros(shape=size, dtype=pntType)
     # fmt: off
     rpsData['RecID'] = 'R'
-    rpsData[ 'Line'] = data['Line']
+    rpsData[ 'Line'] = data['Line']     # noqa: E201
     rpsData['Point'] = data['Point']
     rpsData['Blank'] = '  '
     rpsData['Index'] = data['Index']
-    rpsData[ 'Code'] = data['Code']
-    rpsData[ 'East'] = data['East']
-    rpsData['North'] = data['North']
-    rpsData[ 'Elev'] = data['Elev']
-    rpsData[  'Day'] = JulianDay
-    rpsData[ 'Time'] = timeOfDay
+    rpsData[ 'Code'] = data['Code']     # noqa: E201
+    rpsData[ 'East'] = data['East']     # noqa: E201
+    rpsData['North'] = data['North']    # noqa: E201
+    rpsData[ 'Elev'] = data['Elev']     # noqa: E201
+    rpsData[  'Day'] = JulianDay        # noqa: E201
+    rpsData[ 'Time'] = timeOfDay        # noqa: E201
     # fmt: on
 
     hdr = f'H00 SPS format version          SPS V2.1 revised Jan, 2006\n' f'H13 Geodetic Coordinate System  {crs.authid()}'
@@ -580,7 +580,7 @@ def fileExportAsS01(parent, fileName, extension, view, crs):
         parent,                                                                 # the main window
         'Save as...',                                                           # caption
         fileName + extension,                                                   # start directory + filename + extension
-        'sps source file format (*.s01);;sps source file format (*.sps);;All files (*.*)', # file extensions
+        'sps source file format (*.s01);;sps source file format (*.sps);;All files (*.*)',  # file extensions
         # options                                                               # options -> not used
     )
     # fmt: on
@@ -613,16 +613,16 @@ def fileExportAsS01(parent, fileName, extension, view, crs):
 
     # fmt: off
     spsData['RecID'] = 'S'
-    spsData[ 'Line'] = data['Line']
+    spsData[ 'Line'] = data['Line']     # noqa: E201
     spsData['Point'] = data['Point']
     spsData['Blank'] = '  '
     spsData['Index'] = data['Index']
-    spsData[ 'Code'] = data['Code']
-    spsData[ 'East'] = data['East']
-    spsData['North'] = data['North']
-    spsData[ 'Elev'] = data['Elev']
-    spsData[  'Day'] = JulianDay
-    spsData[ 'Time'] = timeOfDay
+    spsData[ 'Code'] = data['Code']     # noqa: E201
+    spsData[ 'East'] = data['East']     # noqa: E201
+    spsData['North'] = data['North']    # noqa: E201
+    spsData[ 'Elev'] = data['Elev']     # noqa: E201
+    spsData[  'Day'] = JulianDay        # noqa: E201
+    spsData[ 'Time'] = timeOfDay        # noqa: E201
     # fmt: on
 
     hdr = f'H00 SPS format version          SPS V2.1 revised Jan, 2006\n' f'H13 Geodetic Coordinate System  {crs.authid()}'
@@ -718,8 +718,8 @@ def fileExportAsX01(parent, fileName, extension, view, crs):
 
     return (size, fn)
 
-# add export to flat text files here.
 
+# add export to flat text files here.
 def exportDataAsTxt(parent, fileName, extension, view):
     fn, selectedFilter = QFileDialog.getSaveFileName(
         parent,  # that's the main window
@@ -764,7 +764,6 @@ def calculateLineStakeTransform(spsImport) -> []:
     # See: https://math.stackexchange.com/questions/612006/decomposing-an-affine-transformation as well
     # See: https://stackoverflow.com/questions/70357473/how-to-decompose-a-2x2-affine-matrix-with-sympy
     # see: https://pyqtgraph.readthedocs.io/en/latest/api_reference/functions.html#pyqtgraph.solveBilinearTransform  for a more general solution
-
 
     nRecords = spsImport.shape[0]
     assert nRecords > 2, "Not enough records in spsImport"
@@ -816,7 +815,7 @@ def calculateLineStakeTransform(spsImport) -> []:
     x1 = spsImport['East'] - origX
     y1 = spsImport['North'] - origY
     x2 = (spsImport['Point'] - pointMin) * pointNumIncrement
-    y2 = (spsImport['Line']  - lineMin) * lineNumIncrement
+    y2 = (spsImport['Line'] - lineMin) * lineNumIncrement
 
     l1 = np.array([np.ones(nRecords), np.zeros(nRecords), x2, np.zeros(nRecords), y2, np.zeros(nRecords)])
     l2 = np.array([np.zeros(nRecords), np.ones(nRecords), np.zeros(nRecords), x2, np.zeros(nRecords), y2])
@@ -863,8 +862,8 @@ def getAliveAndDead(geom):
         return (None, None, None, None)
 
     try:
-        I = geom['InUse'] > 0                                                   # select the live points, if we find the column
-        nLive = np.count_nonzero(I)
+        included = geom['InUse'] > 0                                            # select the live points, if we find the column
+        nLive = np.count_nonzero(included)
     except ValueError:
         nLive = geom.shape[0]                                                   # assume only live points
 
@@ -880,12 +879,12 @@ def getAliveAndDead(geom):
         pntE = geom['East']                                                     # get the northings and eastings
         pntN = geom['North']
 
-        pntLiveE = pntE[I]                                                      # Select the live points
-        pntLiveN = pntN[I]
+        pntLiveE = pntE[included]                                               # Select the live points
+        pntLiveN = pntN[included]
 
-        I = np.logical_not(I)                                                   # get the complementary points
-        pntDeadE = pntE[I]                                                      # select the dead points
-        pntDeadN = pntN[I]
+        included = np.logical_not(included)                                     # get the complementary points
+        pntDeadE = pntE[included]                                               # select the dead points
+        pntDeadN = pntN[included]
     else:
         pntLiveE = np.zeros(shape=nLive, dtype=np.float32)                      # reserve space to display live data points
         pntLiveN = np.zeros(shape=nLive, dtype=np.float32)

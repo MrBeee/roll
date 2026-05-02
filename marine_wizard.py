@@ -304,7 +304,7 @@ class Page1(SurveyWizardPage):
 
         row += 1
         layout.addWidget(self.vCurrent, row, 0)
-        layout.addWidget(QLabel('<b>Total</b> current [kn]'), row, 1)   ##
+        layout.addWidget(QLabel('<b>Total</b> current [kn]'), row, 1)
         layout.addWidget(self.aFeat, row, 2)
         layout.addWidget(QLabel('<b>Feather</b> angle [deg]'), row, 3)
 
@@ -328,7 +328,7 @@ class Page1(SurveyWizardPage):
 
         row += 1
         layout.addWidget(self.cabLength, row, 0)
-        layout.addWidget(QLabel('Streamer <b>length</b> [m]'), row, 1)   ##
+        layout.addWidget(QLabel('Streamer <b>length</b> [m]'), row, 1)
         layout.addWidget(self.groupInt, row, 2)
         layout.addWidget(QLabel('Group <b>interval</b> [m]'), row, 3)
 
@@ -356,7 +356,7 @@ class Page1(SurveyWizardPage):
         row += 1
         self.recLengthLabel = QLabel('<b>Record length</b> [s]')
         layout.addWidget(self.srcDepth, row, 0)
-        layout.addWidget(QLabel('<b>depth</b> [m]'), row, 1)   ##
+        layout.addWidget(QLabel('<b>depth</b> [m]'), row, 1)
         layout.addWidget(self.recLength, row, 2)
         layout.addWidget(self.recLengthLabel, row, 3)
 
@@ -443,8 +443,8 @@ class Page1(SurveyWizardPage):
         vMax = maxTurnSpeedVsCableLength(cL)
         if vTurn > vMax:
             reply = QMessageBox.warning(
-                None, 'Excessive towing force', 'Line turn speed is too high for the current streamer length.\n Reduce streamer length to match line turn speed ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No
-            )
+                None, 'Excessive towing force', 'Line turn speed is too high for the current streamer length.\n Reduce streamer length to match line turn speed ?',
+                QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)  # noqa: E501
             if reply == QMessageBox.StandardButton.Yes:
                 cLmax = maxCableLengthVsTurnSpeed(vTurn)
                 self.cabLength.setValue(cLmax)
@@ -458,8 +458,8 @@ class Page1(SurveyWizardPage):
         cLmax = maxCableLengthVsTurnSpeed(vTurn)
         if cL > cLmax:
             reply = QMessageBox.warning(
-                None, 'Excessive towing force', 'Streamers are too long for the current line turn speed.\nReduce line turn speed to match streamer length ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No
-            )
+                None, 'Excessive towing force', 'Streamers are too long for the current line turn speed.\nReduce line turn speed to match streamer length ?',
+                QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)  # noqa: E501
             if reply == QMessageBox.StandardButton.Yes:
                 vMax = maxTurnSpeedVsCableLength(cL)
                 self.vTurn.setValue(vMax)
@@ -550,7 +550,7 @@ class Page2(SurveyWizardPage):
         row += 1
         self.cabSepTailLabel = QLabel('<b>Tail</b> [m]')
         layout.addWidget(self.cabSepHead, row, 0)
-        layout.addWidget(QLabel('<b>Head</b> [m]'), row, 1)   ##
+        layout.addWidget(QLabel('<b>Head</b> [m]'), row, 1)
         layout.addWidget(self.cabSepTail, row, 2)
         layout.addWidget(self.cabSepTailLabel, row, 3)
 
@@ -563,7 +563,7 @@ class Page2(SurveyWizardPage):
         row += 1
         self.cabDepthTailLabel = QLabel('<b>Tail</b> [m]')
         layout.addWidget(self.cabDepthHead, row, 0)
-        layout.addWidget(QLabel('<b>Head</b> [m]'), row, 1)   ##
+        layout.addWidget(QLabel('<b>Head</b> [m]'), row, 1)
         layout.addWidget(self.cabDepthTail, row, 2)
         layout.addWidget(self.cabDepthTailLabel, row, 3)
 
@@ -575,7 +575,7 @@ class Page2(SurveyWizardPage):
 
         row += 1
         layout.addWidget(self.srcSepFactor, row, 0)
-        layout.addWidget(QLabel('<b>Factor</b> [#]'), row, 1)   ##
+        layout.addWidget(QLabel('<b>Factor</b> [#]'), row, 1)
         layout.addWidget(self.srcSeparation, row, 2)
         layout.addWidget(QLabel('<b>Separation</b> [m]'), row, 3)
 
@@ -755,8 +755,8 @@ class Page2(SurveyWizardPage):
 
                     cmpX = 0.5 * (src0 + nS * dSrc + rec0 + nR * dCab0)
 
-                    l = nS * nCab + nR                                          # cmp index
-                    n = 2 * l                                                   # line segment index 1st point
+                    cmpIndex = nS * nCab + nR                                   # cmp index
+                    n = 2 * cmpIndex                                            # line segment index 1st point
                     m = n + 1                                                   # line segment index 2nd point
 
                     spiderSrcX[n] = src0 + nS * dSrc
@@ -771,8 +771,8 @@ class Page2(SurveyWizardPage):
                     spiderRecX[m] = cmpX
                     spiderRecZ[m] = cmpZ
 
-                    cmpActX[l] = cmpX
-                    cmpActZ[l] = cmpZ
+                    cmpActX[cmpIndex] = cmpX
+                    cmpActZ[cmpIndex] = cmpZ
 
             for n in range(nSrc * nCab):
                 cmpNomX[n] = cmp0 + n * dCmp
@@ -1024,7 +1024,7 @@ class Page3(SurveyWizardPage):
 
         strLocal = """
         The wizard creates N streamers centered around y = 0, and starting at x = 0.<br>
-        Source x-location is determined by the difference between src and rec laybacks.<br><br> 
+        Source x-location is determined by the difference between src and rec laybacks.<br><br>
         This implies the local origin (0, 0) is not at a bin center location.<br>
         And the bingrid centers are therefore shifted by half the bin size.
         """

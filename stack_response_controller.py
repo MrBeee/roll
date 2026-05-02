@@ -95,11 +95,11 @@ class StackResponseController:
 
             responseKey = window.plotRedrawHelper.buildInlineResponseKey(nY)
             if not window.plotRedrawHelper.canReuseInlineResponse(window, responseKey):
-                slice3D, I = fnb.numbaSlice3D(window.output.anaOutput[:, nY, :, :], window.survey.unique.apply)
+                slice3D, included = fnb.numbaSlice3D(window.output.anaOutput[:, nY, :, :], window.survey.unique.apply)
                 if slice3D.shape[0] == 0:
                     return
 
-                window.inlineStk = fnb.numbaNdft1D(kMax, dK, slice3D, I)
+                window.inlineStk = fnb.numbaNdft1D(kMax, dK, slice3D, included)
                 window.plotRedrawHelper.storeInlineResponseKey(responseKey)
 
             window.prepareAnalysisImageAndColorBar(
@@ -124,11 +124,11 @@ class StackResponseController:
 
             responseKey = window.plotRedrawHelper.buildXlineResponseKey(nX)
             if not window.plotRedrawHelper.canReuseXlineResponse(window, responseKey):
-                slice3D, I = fnb.numbaSlice3D(window.output.anaOutput[nX, :, :, :], window.survey.unique.apply)
+                slice3D, included = fnb.numbaSlice3D(window.output.anaOutput[nX, :, :, :], window.survey.unique.apply)
                 if slice3D.shape[0] == 0:
                     return
 
-                window.x0lineStk = fnb.numbaNdft1D(kMax, dK, slice3D, I)
+                window.x0lineStk = fnb.numbaNdft1D(kMax, dK, slice3D, included)
                 window.plotRedrawHelper.storeXlineResponseKey(responseKey)
 
             window.prepareAnalysisImageAndColorBar(

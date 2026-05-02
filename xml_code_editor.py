@@ -115,9 +115,7 @@ class XMLHighlighter(QSyntaxHighlighter):
         ]
         self.highlightingRules += [(QRegularExpression(pattern), tagFormat) for pattern in bracketAndTagPatterns]
 
-
     # VIRTUAL FUNCTION WE OVERRIDE THAT DOES ALL THE COLLORING
-
     def highlightBlock(self, text):
         # for every pattern
         for pattern, form in self.highlightingRules:

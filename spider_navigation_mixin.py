@@ -189,7 +189,7 @@ class SpiderNavigationMixin:
     def _warnSpiderFallback(self, exc: Exception) -> None:
         if getattr(self, '_spiderFallbackWarned', False):
             return
-        self.appendLogMessage(f'Numba&nbsp;&nbsp;: Falling back to Python spider plotting because Numba failed ({exc}).', MsgType.Warning    )
+        self.appendLogMessage(f'Numba&nbsp;&nbsp;: Falling back to Python spider plotting because Numba failed ({exc}).', MsgType.Warning)
         self._spiderFallbackWarned = True
 
     @staticmethod
@@ -201,12 +201,12 @@ class SpiderNavigationMixin:
         spiderRecX = np.zeros_like(spiderSrcX)
         spiderRecY = np.zeros_like(spiderSrcX)
         spiderRecZ = np.zeros_like(spiderSrcX)
-        spiderSrcX[0::2] = slice2d[:, 3]; spiderSrcX[1::2] = slice2d[:, 9]
-        spiderSrcY[0::2] = slice2d[:, 4]; spiderSrcY[1::2] = slice2d[:, 10]
-        spiderSrcZ[0::2] = slice2d[:, 5]; spiderSrcZ[1::2] = slice2d[:, 11]
-        spiderRecX[0::2] = slice2d[:, 6]; spiderRecX[1::2] = slice2d[:, 9]
-        spiderRecY[0::2] = slice2d[:, 7]; spiderRecY[1::2] = slice2d[:, 10]
-        spiderRecZ[0::2] = slice2d[:, 8]; spiderRecZ[1::2] = slice2d[:, 11]
+        spiderSrcX[0::2] = slice2d[:, 3]; spiderSrcX[1::2] = slice2d[:, 9]      # noqa: E702
+        spiderSrcY[0::2] = slice2d[:, 4]; spiderSrcY[1::2] = slice2d[:, 10]     # noqa: E702
+        spiderSrcZ[0::2] = slice2d[:, 5]; spiderSrcZ[1::2] = slice2d[:, 11]     # noqa: E702
+        spiderRecX[0::2] = slice2d[:, 6]; spiderRecX[1::2] = slice2d[:, 9]      # noqa: E702
+        spiderRecY[0::2] = slice2d[:, 7]; spiderRecY[1::2] = slice2d[:, 10]     # noqa: E702
+        spiderRecZ[0::2] = slice2d[:, 8]; spiderRecZ[1::2] = slice2d[:, 11]     # noqa: E702
         return spiderSrcX, spiderSrcY, spiderSrcZ, spiderRecX, spiderRecY, spiderRecZ
 
     def _syncTraceTableSelection(self, nX: int, nY: int, fold: int) -> None:

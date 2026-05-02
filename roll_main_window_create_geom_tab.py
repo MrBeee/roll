@@ -213,7 +213,7 @@ def createGeomTab(self):
     splitter2.addWidget(self.geomBottom)
     splitter2.setSizes([900, 100])
 
-     # main layout for tabGeom: create once, reuse on rebuild
+    # main layout for tabGeom: create once, reuse on rebuild
     tabLayout = self.tabGeom.layout()
     if tabLayout is None:
         tabLayout = QHBoxLayout(self.tabGeom)

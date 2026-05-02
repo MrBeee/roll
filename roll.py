@@ -36,7 +36,7 @@ from .app_settings import readStoredDebugpySetting
 try:
     haveDebugpy = True
     import debugpy
-except ImportError as ie:
+except ImportError:
     haveDebugpy = False
 
 # Import statement to acces the main window
@@ -70,7 +70,6 @@ def enableRemoteDebugging():
     #         self.debugpy = debugpy
     #         self.debugpy.configure(python = 'python3')
     # Reload the plugin (or QGIS altogether), it should work now.
-
 
     debugpyEnabled = readStoredDebugpySetting()
 
@@ -308,10 +307,10 @@ class Roll:
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.firstStart:
             self.firstStart = False
-            self.mainWindow = RollMainWindow(iface = self.iface)                # Bart: pass iface to mainWindow, so that it can access QGIS interface
+            self.mainWindow = RollMainWindow(iface=self.iface)                # Bart: pass iface to mainWindow, so that it can access QGIS interface
 
         if self.mainWindow is None or self.mainWindow.killMe is True:           # Bart: Restart the GUI from scratch, when previously closed
-            self.mainWindow = RollMainWindow(iface = self.iface)                # Bart: pass iface to mainWindow, so that it can access QGIS interface
+            self.mainWindow = RollMainWindow(iface=self.iface)                # Bart: pass iface to mainWindow, so that it can access QGIS interface
 
         # show the main window
         self.mainWindow.show()                                                  # bring window to top on OSX and windows

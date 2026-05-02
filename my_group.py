@@ -17,9 +17,10 @@ from .my_preview_label import MyPreviewLabel
 currentDir = os.path.dirname(os.path.abspath(__file__))
 resourceDir = os.path.join(currentDir, 'resources')
 
-#  helper function to check if all parents have been expanded. In that case the preview label should be shown
 
 def expandedParents(param):
+    #  helper function to check if all parents have been expanded.
+    #  In that case the preview label should be shown
     expanded = True
     parent = param.parent()
     while parent is not None:
@@ -134,10 +135,10 @@ class MyGroupParameterItem(GroupParameterItem):
         """method overloaded to allow for icons in the context menu"""
         opts = self.param.opts
 
-        if not 'context' in opts:
+        if 'context' not in opts:
             return
 
-        ## Generate context menu for renaming / removing parameter
+        # Generate context menu for renaming / removing parameter
         self.contextMenu = QMenu()   # Put in global name space to prevent garbage collection
         self.contextMenu.addSeparator()
 

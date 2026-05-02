@@ -179,6 +179,7 @@ class WorkerOperationController:
             extended=fullAnalysis,
             analysisFile=self.window.output.anaOutput,
             debugpyEnabled=self.window.appSettings.debugpy,
+            includeProfiling=self.window.appSettings.debug,
         )
         return WorkerJobSpec(
             name='bin-from-templates',
@@ -272,6 +273,9 @@ class WorkerOperationController:
         thread.started.connect(worker.run)
         worker.survey.progress.connect(self.window.threadProgress)
         worker.survey.message.connect(self.window.threadMessage)
+        logMessageSignal = getattr(worker.survey, 'logMessage', None)
+        if logMessageSignal is not None and hasattr(self.window, 'appendLogMessage'):
+            logMessageSignal.connect(self.window.appendLogMessage)
         worker.resultReady.connect(lambda result, currentJob=job: self._handleJobResult(currentJob, result))
         worker.finished.connect(thread.quit)
         workerDeleteLater = getattr(worker, 'deleteLater', None)

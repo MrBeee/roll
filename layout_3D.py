@@ -737,10 +737,10 @@ class Layout3DWidget(QWidget):
             # ``QTransform.map`` is per-point only, but the full
             # 3x3 affine can be reconstructed from its m11/m12/m21/m22
             # /dx/dy components and applied with a single matmul.
-            m11 = transform.m11(); m12 = transform.m12()
-            m21 = transform.m21(); m22 = transform.m22()
-            dx = transform.dx();   dy = transform.dy()
-            x = arr[:, 0]; y = arr[:, 1]
+            m11 = transform.m11(); m12 = transform.m12()  # noqa: E702
+            m21 = transform.m21(); m22 = transform.m22()  # noqa: E702
+            dx = transform.dx();    dy = transform.dy()   # noqa: E702
+            x = arr[:, 0]; y = arr[:, 1]  # noqa: E702
             nx = m11 * x + m21 * y + dx
             ny = m12 * x + m22 * y + dy
             arr[:, 0] = nx
@@ -859,9 +859,9 @@ class Layout3DWidget(QWidget):
         if useGlobal:
             glb = getattr(survey, 'glbTransform', None)
             if glb is not None:
-                m11 = glb.m11(); m12 = glb.m12()
-                m21 = glb.m21(); m22 = glb.m22()
-                tdx = glb.dx();  tdy = glb.dy()
+                m11 = glb.m11(); m12 = glb.m12()  # noqa: E702
+                m21 = glb.m21(); m22 = glb.m22()  # noqa: E702
+                tdx = glb.dx();  tdy = glb.dy()   # noqa: E702
                 Xn = m11 * X + m21 * Y + tdx
                 Yn = m12 * X + m22 * Y + tdy
                 X, Y = Xn, Yn
@@ -871,7 +871,7 @@ class Layout3DWidget(QWidget):
         # ``facecolors`` of shape (M-1, N-1) when X/Y/Z are (M, N).
         levels = analysisImage.get('levels', (0.0, 1.0))
         try:
-            lo = float(levels[0]); hi = float(levels[1])
+            lo = float(levels[0]); hi = float(levels[1])  # noqa: E702
         except (TypeError, ValueError, IndexError):
             lo, hi = 0.0, 1.0
         if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
@@ -1108,9 +1108,9 @@ class Layout3DWidget(QWidget):
             zs = np.asarray(zs, dtype=np.float64)
             if transform is not None:
                 # Vectorised affine: avoid per-point QTransform.map.
-                m11 = transform.m11(); m12 = transform.m12()
-                m21 = transform.m21(); m22 = transform.m22()
-                tdx = transform.dx();  tdy = transform.dy()
+                m11 = transform.m11(); m12 = transform.m12()  # noqa: E702
+                m21 = transform.m21(); m22 = transform.m22()  # noqa: E702
+                tdx = transform.dx();  tdy = transform.dy()   # noqa: E702
                 nx = m11 * xs + m21 * ys + tdx
                 ny = m12 * xs + m22 * ys + tdy
                 xs, ys = nx, ny
@@ -1143,10 +1143,10 @@ class Layout3DWidget(QWidget):
 
         srcSegs = np.empty((nSeg, 2, 3), dtype=np.float64)
         recSegs = np.empty((nSeg, 2, 3), dtype=np.float64)
-        srcSegs[:, 0, 0] = sx[0::2]; srcSegs[:, 0, 1] = sy[0::2]; srcSegs[:, 0, 2] = sz[0::2]
-        srcSegs[:, 1, 0] = sx[1::2]; srcSegs[:, 1, 1] = sy[1::2]; srcSegs[:, 1, 2] = sz[1::2]
-        recSegs[:, 0, 0] = rx[0::2]; recSegs[:, 0, 1] = ry[0::2]; recSegs[:, 0, 2] = rz[0::2]
-        recSegs[:, 1, 0] = rx[1::2]; recSegs[:, 1, 1] = ry[1::2]; recSegs[:, 1, 2] = rz[1::2]
+        srcSegs[:, 0, 0] = sx[0::2]; srcSegs[:, 0, 1] = sy[0::2]; srcSegs[:, 0, 2] = sz[0::2]  # noqa: E702
+        srcSegs[:, 1, 0] = sx[1::2]; srcSegs[:, 1, 1] = sy[1::2]; srcSegs[:, 1, 2] = sz[1::2]  # noqa: E702
+        recSegs[:, 0, 0] = rx[0::2]; recSegs[:, 0, 1] = ry[0::2]; recSegs[:, 0, 2] = rz[0::2]  # noqa: E702
+        recSegs[:, 1, 0] = rx[1::2]; recSegs[:, 1, 1] = ry[1::2]; recSegs[:, 1, 2] = rz[1::2]  # noqa: E702
 
         srcCol = Line3DCollection(srcSegs, colors='red',
                                   linewidths=1.4, alpha=0.9)

@@ -9,6 +9,12 @@
 ## Data formats and flows
 - Project files are XML “.roll” documents; they serialize the survey hierarchy (blocks/templates/seeds) and output extents. See the example in [Readme.md](Readme.md).
 
+- Roll uses both template-based processing and geometry-based processing. Within a template, one or more shot points are tied to one or more receiver points, and in practice each template usually contains many receiver points. That shared receiver structure can often be exploited when generating geometry or when binning directly from templates.
+
+- Geometry files are the unfolded form of templates. Because templates partly overlap, the same receiver location can appear in multiple templates, but geometry should ultimately store that receiver location only once.
+
+- The many-to-one mapping from shot locations to deduplicated receiver locations is preserved in the relation file. For each shot location, the relation records capture which receiver positions were active for that shot. This template-vs-geometry distinction is central when changing geometry generation, relation handling, or template-binning logic.
+
 - Another reason to use XML is that it allows us to store metadata (e.g., CRS info) as attributes on the root element, which simplifies loading/saving and keeps the project file self-contained. We can also easily extend the format in the future by adding new attributes or elements without breaking backward compatibility.
 
 - Furthermore, the CRS object is stored as a WKT string in the XML, which allows us to preserve all the necessary information about the coordinate reference system without relying on external files or databases. This makes it easier to share project files across different environments and ensures that the survey geometry is always correctly georeferenced when loaded.
@@ -41,6 +47,7 @@
 ## Project-specific conventions
 - UI uses PyQtGraph for plotting and progressive painting (see `RollSurvey`’s framebuffer fields and `paint()` logic in [roll_survey.py](roll_survey.py)). Avoid direct painting in the UI thread for large datasets.
 - Globals in [config.py](config.py) are used as shared settings (QSettings keys, SPS dialects, LOD thresholds). Prefer updating config lists rather than hardcoding formats.
+- Prefer the simplest implementation that preserves behavior. Avoid introducing optimization complexity unless profiling, measured performance, or correctness requirements clearly justify it.
 - Formatting: line length 210 and no string normalization (see [pyproject.toml](pyproject.toml)).
 - Formatting: use camelCase for method/variable names (e.g., `loadSpsFile`), PascalCase for class names (e.g., `RollSurvey`), and UPPER_SNAKE_CASE for constants (e.g., `DEFAULT_CRS_EPSG`).  
 

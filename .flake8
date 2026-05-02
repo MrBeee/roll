@@ -10,3 +10,4 @@ exclude =
     help
 per-file-ignores =
     aux_functions.py:E501
+    table_model_view.py:E221, E251

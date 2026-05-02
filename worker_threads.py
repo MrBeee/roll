@@ -13,7 +13,7 @@ from .roll_survey import RollSurvey
 try:
     haveDebugpy = True
     import debugpy
-except ImportError as ie:
+except ImportError:
     haveDebugpy = False
 
 # See: https://stackoverflow.com/questions/20324804/how-to-use-qthread-correctly-in-pyqt-with-movetothread
@@ -33,6 +33,7 @@ class BinningFromTemplatesRequest:
     extended: bool = False
     analysisFile: object = None
     debugpyEnabled: bool = False
+    includeProfiling: bool = False
 
 
 @dataclass
@@ -58,6 +59,7 @@ class BinningFromTemplatesResult:
     offstHist: Any = None
     cmpTransform: Any = None
     anaOutputShape: tuple[int, ...] | None = None
+    profiling: 'GeometryProfilingPayload | None' = None
 
 
 @dataclass
@@ -205,6 +207,7 @@ class BinningWorker(QObject):
         self.survey = RollSurvey()
         self.extended = request.extended
         self.debugpyEnabled = request.debugpyEnabled
+        self.includeProfiling = request.includeProfiling
 
         # the following function also calculates the required transforms, and optionally creates th binning arrays
         self.survey.fromXmlString(request.xmlString, True)                      # fully populate the object AND create arrays
@@ -234,8 +237,17 @@ class BinningWorker(QObject):
         self.finished.emit()
 
     def buildResult(self, success: bool) -> BinningFromTemplatesResult:
+        profiling = None
+        if self.includeProfiling:
+            profiling = GeometryProfilingPayload(
+                timerTmin=tuple(self.survey.timerTmin),
+                timerTmax=tuple(self.survey.timerTmax),
+                timerTtot=tuple(self.survey.timerTtot),
+                timerFreq=tuple(self.survey.timerFreq),
+            )
+
         if not success:
-            return BinningFromTemplatesResult(success=False, errorText=self.survey.errorText)
+            return BinningFromTemplatesResult(success=False, errorText=self.survey.errorText, profiling=profiling)
 
         output = self.survey.output
         minRmsOffset = None if output.rmsOffset is None else max(output.minRmsOffset, 0)
@@ -263,6 +275,7 @@ class BinningWorker(QObject):
             offstHist=output.offstHist,
             cmpTransform=self.survey.cmpTransform,
             anaOutputShape=None if output.anaOutput is None else output.anaOutput.shape,
+            profiling=profiling,
         )
 
 

@@ -32,7 +32,7 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal
 LOGGER = logging.getLogger('QGIS')
 
 
-#noinspection PyMethodMayBeStatic,PyPep8Naming
+# noinspection PyMethodMayBeStatic,PyPep8Naming
 class QgisInterface(QObject):
     """Class to expose QGIS objects and functions to plugins.
 
@@ -70,9 +70,9 @@ class QgisInterface(QObject):
         .. note:: The QgsInterface api does not include this method,
             it is added here as a helper to facilitate testing.
         """
-        #LOGGER.debug('addLayers called on qgis_interface')
-        #LOGGER.debug('Number of layers being added: %s' % len(layers))
-        #LOGGER.debug('Layer Count Before: %s' % len(self.canvas.layers()))
+        # LOGGER.debug('addLayers called on qgis_interface')
+        # LOGGER.debug('Number of layers being added: %s' % len(layers))
+        # LOGGER.debug('Layer Count Before: %s' % len(self.canvas.layers()))
         currentLayers = list(self.canvas.layers())
         finalLayers = list(currentLayers)
         finalLayers.extend(layers)
@@ -81,7 +81,7 @@ class QgisInterface(QObject):
             self.canvas.setLayers(finalLayers)
         elif hasattr(self.canvas, 'setLayerSet'):
             self.canvas.setLayerSet(finalLayers)
-        #LOGGER.debug('Layer Count After: %s' % len(self.canvas.layers()))
+        # LOGGER.debug('Layer Count After: %s' % len(self.canvas.layers()))
 
     def addLayer(self, layer):
         """Handle a layer being added to the registry so it shows up in canvas.

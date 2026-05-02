@@ -8,7 +8,7 @@ from timeit import default_timer as timer
 import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QThread, QTimer
-from qgis.PyQt.QtWidgets import QMessageBox
+from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
 from .enums_and_int_flags import MsgType
 from .worker_operation_controller import WorkerOperationController
@@ -266,7 +266,15 @@ class BinningWorkerMixin:
         if self.testFullBinningConditions():
             self.binFromSps(True)
 
+    def _logOperationStart(self, message: str, msgType: MsgType):
+        """Log an immediate message and force UI repaint so the user sees it
+        right away, before any heavy setup work runs in the GUI thread."""
+        self.appendLogMessage(message, msgType)
+        QApplication.processEvents()
+
     def binFromTemplates(self, fullAnalysis: bool):
+        mode = 'full' if fullAnalysis else 'basic'
+        self._logOperationStart(f'Starting {mode} binning from templates; preparing worker thread...', MsgType.Binning)
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startBinningFromTemplates(fullAnalysis)
 
@@ -283,14 +291,19 @@ class BinningWorkerMixin:
         self.workerOperationController.finishCurrentOperation(result, self.applyBinningWorkerResult, resetAnalysis=False)
 
     def binFromGeometry(self, fullAnalysis: bool):
+        mode = 'full' if fullAnalysis else 'basic'
+        self._logOperationStart(f'Starting {mode} binning from geometry; preparing worker thread...', MsgType.Binning)
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startBinningFromGeometry(fullAnalysis)
 
     def binFromSps(self, fullAnalysis: bool):
+        mode = 'full' if fullAnalysis else 'basic'
+        self._logOperationStart(f'Starting {mode} binning from SPS; preparing worker thread...', MsgType.Binning)
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startBinningFromSps(fullAnalysis)
 
     def createGeometryFromTemplates(self):
+        self._logOperationStart('Starting geometry creation from templates; preparing worker thread...', MsgType.Geometry)
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startGeometryFromTemplates()
 

@@ -138,9 +138,11 @@ The plugin works best using one or two QHD Screens (2560 x 1440 pixels) or large
 
 * In version 0.6.4, a polar diagram was added for the offset/azimuth histogram and refactoring of code continued. The code for the polar diagram was completed using '[vibe coding](https://en.wikipedia.org/wiki/Vibe_coding)'. This agent driven approach was also used to develop a series of unit tests in the test subdirectory. As of version 5.4 GPT has become stable and trustworthy enough to work in agent mode, optimizing the source code and implementing new features. This LLM was also used consistently during code refactoring
 
-```
-You may remember, when Plug-and-Play (PnP) was introduced in the early 1990s to manage hardware updates, it did not always work out-of-the-box (understatement) and people often called it "Plug-and-Pray". With AI coding at the moment, we are at the stage where software development has turned into "Prompt-and-Pray".
-```
+  >You may remember, when Plug-and-Play (PnP) was introduced in the early 1990s to manage hardware updates, it did not always work out-of-the-box (understatement) and people often called it "Plug-and-Pray". With AI coding at the moment, we are at the stage where software development has turned into "Prompt-and-Pray".
+
+  May first, and working on Roll, I heard a good quote about AI on a BBC radio programme:
+
+  >You can outsource your thinking, but you cannot outsource your understanding
 
 * In version 0.6.8 a 3D view has been added to the Layout tab, for a subset of survey geometry data. This is in particular useful for working with well-based seeds, think of VSPs
 

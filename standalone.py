@@ -52,7 +52,6 @@ def ensureQgisPythonPaths():
             sys.path.insert(0, path)
 
 
-
 def preferQgisSitePackages():
     qgisSite = os.path.join(sys.prefix, 'Lib', 'site-packages')
     if os.path.isdir(qgisSite):
@@ -101,7 +100,7 @@ def ensureQgisPyqtgraph():
         versionTag = f'Python{sys.version_info.major}{sys.version_info.minor}'
         userSiteOk = bool(userSite and versionTag.lower() in userSite.lower())
         if userSiteOk:
-            import pyqtgraph  # pylint: disable=C0415
+            import pyqtgraph  # noqa: F401  # pylint: disable=C0415
             return
 
         message = (
@@ -164,6 +163,7 @@ def main(argv=None):
     exitCode = runStandalone(argv if argv is not None else sys.argv, filePath=filePath)
     logTopLevelWidgets()
     return exitCode
+
 
 if __name__ == '__main__':
     try:

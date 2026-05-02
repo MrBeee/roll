@@ -656,3 +656,129 @@ def pointInPolygon(xy, poly):
             p1x, p1y = p2x, p2y
         D[i] = inside
     return D
+
+
+# ----------------------------------------------------------------------------
+# Hot-path bin-update kernel for full-analysis binning runs.
+#
+# This is the numba equivalent of the per-trace Python ``for k in range(N):``
+# loop in ``RollSurvey._applyBinUpdatesVectorized`` (writeAnalysis branch).
+# It performs the same per-trace work in compiled code:
+#   * read fold = binOutput[x, y]
+#   * if fold < maxFold, write 15 anaOutput columns (cols 0..14) at slot fold
+#   * binOutput[x, y] += 1
+#   * update minOffset[x, y] / maxOffset[x, y] with hypArray[k]
+#
+# Semantics are byte-for-byte identical to the Python loop; only the loop
+# body runs in compiled code. parallel=True is intentionally NOT used here
+# because the per-(x, y) fold counter creates a write hazard across threads.
+#
+# cache=True persists the compiled artifact to __pycache__/ so the
+# 20-40 s first-call JIT compile is paid only once per (numba, numpy,
+# python) version triple, not on every QGIS restart.
+# ----------------------------------------------------------------------------
+@jit(nopython=True, cache=True)
+def numbaApplyBinUpdatesAnalysis(
+    nx,                # int64[N]
+    ny,                # int64[N]
+    stkX,              # int32[N]
+    stkY,              # int32[N]
+    cmpPoints,         # float32[N, 3]
+    recPoints,         # float32[N, 3]
+    hypArray,          # float32[N]
+    aziArray,          # float32[N]
+    totalTime,         # float32[N] (zeros if caller did not compute travel time)
+    src,               # float32[3]
+    binOutput,         # uint32[NX, NY]
+    minOffset,         # float32[NX, NY]
+    maxOffset,         # float32[NX, NY]
+    anaOutput,         # float32[NX, NY, MAXFOLD, 16]
+    maxFold,           # int
+):
+    n = nx.shape[0]
+    for k in range(n):
+        x = nx[k]
+        y = ny[k]
+        fold = binOutput[x, y]
+        if fold < maxFold:
+            anaOutput[x, y, fold, 0] = stkX[k]
+            anaOutput[x, y, fold, 1] = stkY[k]
+            anaOutput[x, y, fold, 2] = fold + 1
+            anaOutput[x, y, fold, 3] = src[0]
+            anaOutput[x, y, fold, 4] = src[1]
+            anaOutput[x, y, fold, 5] = src[2]
+            anaOutput[x, y, fold, 6] = recPoints[k, 0]
+            anaOutput[x, y, fold, 7] = recPoints[k, 1]
+            anaOutput[x, y, fold, 8] = recPoints[k, 2]
+            anaOutput[x, y, fold, 9] = cmpPoints[k, 0]
+            anaOutput[x, y, fold, 10] = cmpPoints[k, 1]
+            anaOutput[x, y, fold, 11] = cmpPoints[k, 2]
+            anaOutput[x, y, fold, 12] = totalTime[k]
+            anaOutput[x, y, fold, 13] = hypArray[k]
+            anaOutput[x, y, fold, 14] = aziArray[k]
+        binOutput[x, y] = fold + 1
+        h = hypArray[k]
+        if h < minOffset[x, y]:
+            minOffset[x, y] = h
+        if h > maxOffset[x, y]:
+            maxOffset[x, y] = h
+
+
+# ----------------------------------------------------------------------------
+# Batched variant of numbaApplyBinUpdatesAnalysis used by binTemplate10.
+#
+# Identical body to numbaApplyBinUpdatesAnalysis except `srcArr` is a per-trace
+# (M, 3) float32 array instead of a single shared float32[3]. Each trace k
+# stores its own (srcArr[k, 0..2]) into anaOutput[..., 3..5], so a whole
+# (Ns * Nr) template batch can be dispatched in one kernel call without
+# losing the src-per-trace info that the existing per-source kernel takes
+# from the shared `src[3]` argument.
+#
+# Same write hazard caveat: parallel=False because per-(x, y) fold counter
+# is not safe to race across threads. cache=True keeps the JIT artifact.
+# ----------------------------------------------------------------------------
+@jit(nopython=True, cache=True)
+def numbaApplyBinUpdatesAnalysisBatch(
+    nx,                # int64[N]
+    ny,                # int64[N]
+    stkX,              # int32[N]
+    stkY,              # int32[N]
+    cmpPoints,         # float32[N, 3]
+    recPoints,         # float32[N, 3]
+    hypArray,          # float32[N]
+    aziArray,          # float32[N]
+    totalTime,         # float32[N]
+    srcArr,            # float32[N, 3]  -- per-trace src (the only difference)
+    binOutput,         # uint32[NX, NY]
+    minOffset,         # float32[NX, NY]
+    maxOffset,         # float32[NX, NY]
+    anaOutput,         # float32[NX, NY, MAXFOLD, 16]
+    maxFold,           # int
+):
+    n = nx.shape[0]
+    for k in range(n):
+        x = nx[k]
+        y = ny[k]
+        fold = binOutput[x, y]
+        if fold < maxFold:
+            anaOutput[x, y, fold, 0] = stkX[k]
+            anaOutput[x, y, fold, 1] = stkY[k]
+            anaOutput[x, y, fold, 2] = fold + 1
+            anaOutput[x, y, fold, 3] = srcArr[k, 0]
+            anaOutput[x, y, fold, 4] = srcArr[k, 1]
+            anaOutput[x, y, fold, 5] = srcArr[k, 2]
+            anaOutput[x, y, fold, 6] = recPoints[k, 0]
+            anaOutput[x, y, fold, 7] = recPoints[k, 1]
+            anaOutput[x, y, fold, 8] = recPoints[k, 2]
+            anaOutput[x, y, fold, 9] = cmpPoints[k, 0]
+            anaOutput[x, y, fold, 10] = cmpPoints[k, 1]
+            anaOutput[x, y, fold, 11] = cmpPoints[k, 2]
+            anaOutput[x, y, fold, 12] = totalTime[k]
+            anaOutput[x, y, fold, 13] = hypArray[k]
+            anaOutput[x, y, fold, 14] = aziArray[k]
+        binOutput[x, y] = fold + 1
+        h = hypArray[k]
+        if h < minOffset[x, y]:
+            minOffset[x, y] = h
+        if h > maxOffset[x, y]:
+            maxOffset[x, y] = h

@@ -7,7 +7,6 @@ from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QFrame, QGroupBox,
                                  QStackedWidget, QToolButton, QVBoxLayout,
                                  QWidget)
 
-from .app_settings import isShowUnfinishedEnabled
 from .config import toolButtonStyle
 from .enums_and_int_flags import MsgType
 
@@ -186,13 +185,12 @@ def _buildAnalysisImageConfig(self):
 
 
 def updateLayoutMethodControlsVisibility(self):
-    enabled = isShowUnfinishedEnabled()
     if hasattr(self, 'layoutMethodSidePanel'):
-        self.layoutMethodSidePanel.setVisible(enabled)
+        self.layoutMethodSidePanel.setVisible(True)
     if hasattr(self, 'layoutMethodChoice'):
-        self.layoutMethodChoice.setVisible(enabled)
+        self.layoutMethodChoice.setVisible(True)
     if hasattr(self, 'layoutMethodSplitter'):
-        self.layoutMethodSplitter.setSizes([100, 500] if enabled else [0, 1])
+        self.layoutMethodSplitter.setSizes([100, 500])
 
 
 def _ensureLayout3DWidget(self):

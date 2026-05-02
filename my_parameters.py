@@ -91,19 +91,19 @@ from .roll_well import RollWell
 
 # These signals contain the following objects/information:
 #
-# sigValueChanged     = QtCore.Signal(object, object)                ## self, value  emitted when value is finished being edited
-# sigValueChanging    = QtCore.Signal(object, object)                ## self, value  emitted as value is being edited
-# sigChildAdded       = QtCore.Signal(object, object, object)        ## self, child, index
-# sigChildRemoved     = QtCore.Signal(object, object)                ## self, child
-# sigRemoved          = QtCore.Signal(object)                        ## self
-# sigParentChanged    = QtCore.Signal(object, object)                ## self, parent
-# sigLimitsChanged    = QtCore.Signal(object, object)                ## self, limits
-# sigDefaultChanged   = QtCore.Signal(object, object)                ## self, default
-# sigNameChanged      = QtCore.Signal(object, object)                ## self, name
-# sigOptionsChanged   = QtCore.Signal(object, object)                ## self, {opt:val, ...}
-# sigStateChanged     = QtCore.Signal(object, object, object)        ## self, change, info
-# sigTreeStateChanged = QtCore.Signal(object, object)                ## self, changes
-#                                                                    ## changes = [(param, change, info), ...]
+# sigValueChanged     = QtCore.Signal(object, object)                # self, value  emitted when value is finished being edited
+# sigValueChanging    = QtCore.Signal(object, object)                # self, value  emitted as value is being edited
+# sigChildAdded       = QtCore.Signal(object, object, object)        # self, child, index
+# sigChildRemoved     = QtCore.Signal(object, object)                # self, child
+# sigRemoved          = QtCore.Signal(object)                        # self
+# sigParentChanged    = QtCore.Signal(object, object)                # self, parent
+# sigLimitsChanged    = QtCore.Signal(object, object)                # self, limits
+# sigDefaultChanged   = QtCore.Signal(object, object)                # self, default
+# sigNameChanged      = QtCore.Signal(object, object)                # self, name
+# sigOptionsChanged   = QtCore.Signal(object, object)                # self, {opt:val, ...}
+# sigStateChanged     = QtCore.Signal(object, object, object)        # self, change, info
+# sigTreeStateChanged = QtCore.Signal(object, object)                # self, changes
+#                                                                    # changes = [(param, change, info), ...]
 
 
 def bindChildParameters(owner, childBindings):
@@ -625,7 +625,7 @@ def appendNewManagedParameterItem(parentParam, managedList, *, baseName, createV
 # param.sigOptionsChanged.connect(self.optsChanged)
 # param.sigParentChanged.connect(self.parentChanged)
 
-### class MyBinAngles #########################################################
+# class MyBinAngles #########################################################
 
 
 class MyBinAnglesParameterItem(MyGroupParameterItem):
@@ -691,7 +691,7 @@ class MyBinAnglesParameter(MyGroupParameter):
         return self.angles
 
 
-### class MyBinOffset #########################################################
+# class MyBinOffset #########################################################
 
 
 class MyBinOffsetParameterItem(MyGroupParameterItem):
@@ -768,7 +768,7 @@ class MyBinOffsetParameter(MyGroupParameter):
         return self.offset
 
 
-### class MyUniqOff ###########################################################
+# class MyUniqOff ###########################################################
 
 
 class MyUniqOffParameterItem(MyGroupParameterItem):
@@ -830,7 +830,7 @@ class MyUniqOffParameter(MyGroupParameter):
         return self.unique
 
 
-### class MyBinMethod #########################################################
+# class MyBinMethod #########################################################
 
 
 class MyBinMethodParameterItem(MyGroupParameterItem):
@@ -885,7 +885,7 @@ class MyBinMethodParameter(MyGroupParameter):
         return self.binning
 
 
-### class MyPlane #############################################################
+# class MyPlane #############################################################
 
 
 class MyPlaneParameterItem(MyGroupParameterItem):
@@ -949,7 +949,7 @@ class MyPlaneParameter(MyGroupParameter):
         return self.plane
 
 
-### class MySphere ############################################################
+# class MySphere ############################################################
 
 
 class MySphereParameterItem(MyGroupParameterItem):
@@ -1005,7 +1005,7 @@ class MySphereParameter(MyGroupParameter):
         return self.sphere
 
 
-### class MyLocalGrid #########################################################
+# class MyLocalGrid #########################################################
 
 
 class MyLocalGridParameterItem(MyGroupParameterItem):
@@ -1079,7 +1079,7 @@ class MyLocalGridParameter(MyGroupParameter):
         return self.binGrid
 
 
-### class MyGlobalGrid ########################################################
+# class MyGlobalGrid ########################################################
 
 
 class MyGlobalGridParameterItem(MyGroupParameterItem):
@@ -1142,7 +1142,7 @@ class MyGlobalGridParameter(MyGroupParameter):
         return self.binGrid
 
 
-### class MyBlock #############################################################
+# class MyBlock #############################################################
 
 
 class MyBlockParameterItem(MyGroupParameterItem):
@@ -1184,7 +1184,7 @@ class MyBlockParameter(MyGroupParameter):
         with self.treeChangeBlocker():
             self.addChild(dict(name='Source boundary', type='myRectF', value=self.blockValues.srcBorder, default=self.blockValues.srcBorder, flat=True, expanded=False))
             self.addChild(dict(name='Receiver boundary', type='myRectF', value=self.blockValues.recBorder, default=self.blockValues.recBorder, flat=True, expanded=False))
-            self.addChild(dict(name='Template list', type='myTemplateList', value=self.blockValues.templateList, default=self.blockValues.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))
+            self.addChild(dict(name='Template list', type='myTemplateList', value=self.blockValues.templateList, default=self.blockValues.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501
 
         bindChildParameters(self, {
             'parS': 'Source boundary',
@@ -1219,7 +1219,7 @@ class MyBlockParameter(MyGroupParameter):
         if not isinstance(parent, MyBlockListParameter):
             raise ValueError("Need 'MyBlockListParameter' instances at this point")
 
-        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
+        # name == 'rename' already resolved by self.editName() in MyGroupParameterItem
         if name == 'remove':
             removeManagedParameterItem(
                 self,
@@ -1236,7 +1236,7 @@ class MyBlockParameter(MyGroupParameter):
                 parent.blockList,
                 index,
                 offset=-1,
-                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
+                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
             )
 
         elif name == 'moveDown':
@@ -1246,7 +1246,7 @@ class MyBlockParameter(MyGroupParameter):
                 parent.blockList,
                 index,
                 offset=1,
-                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
+                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
             )
 
         elif name == 'preview':
@@ -1255,7 +1255,7 @@ class MyBlockParameter(MyGroupParameter):
             ...
 
 
-### class MyTemplate ##########################################################
+# class MyTemplate ##########################################################
 
 
 class MyTemplateParameterItem(MyGroupParameterItem):
@@ -1296,7 +1296,7 @@ class MyTemplateParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Roll steps', type='myRollList', value=self.templateValues.rollList, default=self.templateValues.rollList, expanded=True, flat=True, decimals=d, suffix=s))
-            self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.templateValues.seedList, default=self.templateValues.seedList, brush='#add8e6', flat=True, wellDirectory=self.wellDirectory, survey=self.survey))
+            self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.templateValues.seedList, default=self.templateValues.seedList, brush='#add8e6', flat=True, wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501
         bindChildParameters(self, {
             'parR': 'Roll steps',
             'parS': 'Seed list',
@@ -1328,14 +1328,14 @@ class MyTemplateParameter(MyGroupParameter):
         if not isinstance(parent, MyTemplateListParameter):
             raise ValueError("Need 'MyTemplateListParameter' instances at this point")
 
-        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
+        # name == 'rename' already resolved by self.editName() in MyGroupParameterItem
         if name == 'remove':
             removeManagedParameterItem(
                 self,
                 parent,
                 parent.templateList,
                 index,
-                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected template ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes,
+                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected template ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes,  # noqa: E501
             )
 
         elif name == 'moveUp':
@@ -1345,7 +1345,7 @@ class MyTemplateParameter(MyGroupParameter):
                 parent.templateList,
                 index,
                 offset=-1,
-                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
+                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
             )
 
         elif name == 'moveDown':
@@ -1355,7 +1355,7 @@ class MyTemplateParameter(MyGroupParameter):
                 parent.templateList,
                 index,
                 offset=1,
-                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
+                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
             )
 
         elif name == 'preview':
@@ -1364,7 +1364,7 @@ class MyTemplateParameter(MyGroupParameter):
             ...
 
 
-### class MyRollList ##########################################################
+# class MyRollList ##########################################################
 
 
 class MyRollListParameterItem(MyGroupParameterItem):
@@ -1421,7 +1421,7 @@ class MyRollListParameter(MyGroupParameter):
         return self.moveList
 
 
-### class MyRoll ##############################################################
+# class MyRoll ##############################################################
 
 
 class MyRollParameterItem(MyGroupParameterItem):                      # modeled after PenParameterItem from pen.py in pyqtgraph
@@ -1578,7 +1578,7 @@ class MyRollParameter(MyGroupParameter):
                     myPrint(value)
 
 
-### class MySeedList ##########################################################
+# class MySeedList ##########################################################
 
 
 class MySeedListParameterItem(MyGroupParameterItem):
@@ -1626,7 +1626,7 @@ class MySeedListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for n, seed in enumerate(self.seedList):
-                self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))
+                self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501
 
         self.sigContextMenu.connect(self.contextMenu)
 
@@ -1645,12 +1645,12 @@ class MySeedListParameter(MyGroupParameter):
                 self.seedList,
                 seed,
                 name=newName,
-                childFactory=lambda childName, childSeed: dict(name=childName, type='myTemplateSeed', value=childSeed, default=childSeed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
+                childFactory=lambda childName, childSeed: dict(name=childName, type='myTemplateSeed', value=childSeed, default=childSeed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
                 menuName=name,
             )
 
 
-### class MyPatternSeedList ##########################################################
+# class MyPatternSeedList ##########################################################
 
 
 class MyPatternSeedListParameterItem(MyGroupParameterItem):
@@ -1719,7 +1719,7 @@ class MyPatternSeedListParameter(MyGroupParameter):
         QApplication.processEvents()
 
 
-### class MySeed ##############################################################
+# class MySeed ##############################################################
 
 
 class MySeedParameterItem(MyGroupParameterItem):
@@ -1786,7 +1786,7 @@ class MySeedParameter(MyGroupParameter):
             self.addChild(dict(name='Seed pattern', type='myList', value=patterns[nPattern], default=patterns[nPattern], limits=patterns))
             self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
             self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
-            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', wellDirectory=self.wellDirectory, survey=self.survey))   # , brush='#add8e6'
+            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', wellDirectory=self.wellDirectory, survey=self.survey))     # noqa: E501 # , brush='#add8e6'
 
         bindChildParameters(self, {
             'parT': 'Seed type',
@@ -1865,7 +1865,7 @@ class MySeedParameter(MyGroupParameter):
         if not isinstance(parent, MySeedListParameter):
             raise ValueError("Need 'MySeedListParameter' instances at this point")
 
-        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
+        # name == 'rename' already resolved by self.editName() in MyGroupParameterItem
         if name == 'remove':
             removeManagedParameterItem(
                 self,
@@ -1882,7 +1882,7 @@ class MySeedParameter(MyGroupParameter):
                 parent.seedList,
                 index,
                 offset=-1,
-                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
+                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
             )
 
         elif name == 'moveDown':
@@ -1892,7 +1892,7 @@ class MySeedParameter(MyGroupParameter):
                 parent.seedList,
                 index,
                 offset=1,
-                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
+                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
             )
 
         elif name == 'preview':
@@ -1902,7 +1902,7 @@ class MySeedParameter(MyGroupParameter):
         QApplication.processEvents()
 
 
-### class MyPatternSeed ##############################################################
+# class MyPatternSeed ##############################################################
 
 
 class MyPatternSeedParameterItem(MyGroupParameterItem):
@@ -1970,7 +1970,7 @@ class MyPatternSeedParameter(MyGroupParameter):
         if not isinstance(parent, MyPatternSeedListParameter):
             raise ValueError("Need 'MyPatternSeedListParameter' instances at this point")
 
-        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
+        # name == 'rename' already resolved by self.editName() in MyGroupParameterItem
         if name == 'remove':
             removeManagedParameterItem(
                 self,
@@ -2008,7 +2008,7 @@ class MyPatternSeedParameter(MyGroupParameter):
         QApplication.processEvents()
 
 
-### class MyCircle ############################################################
+# class MyCircle ############################################################
 
 
 class MyCircleParameterItem(MyGroupParameterItem):
@@ -2066,7 +2066,7 @@ class MyCircleParameter(MyGroupParameter):
         return self.circle
 
 
-### class MySpiral ############################################################
+# class MySpiral ############################################################
 
 
 class MySpiralParameterItem(MyGroupParameterItem):
@@ -2128,7 +2128,7 @@ class MySpiralParameter(MyGroupParameter):
         return self.spiral
 
 
-### class MyWell ##############################################################
+# class MyWell ##############################################################
 
 
 class MyWellParameterItem(MyGroupParameterItem):
@@ -2174,7 +2174,7 @@ class MyWellParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Well file', type='file', value=f, default=f, selectFile=f, acceptMode='AcceptOpen', directory=directory,
-                fileMode='ExistingFile', viewMode='Detail', nameFilter=nameFilter, tip='Select well file (wws or well format)'))
+                               fileMode='ExistingFile', viewMode='Detail', nameFilter=nameFilter, tip='Select well file (wws or well format)'))
             self.addChild(dict(name='Well CRS', type='myCrs', value=self.well.crs, default=self.well.crs, expanded=False, flat=True))
             self.addChild(dict(name='Origin [well]', type='myPoint3D', value=self.well.origW, default=self.well.origW, decimals=d, expanded=False, flat=True, enabled=False, readonly=True))
             self.addChild(dict(name='Origin [global]', type='myPoint2D', value=self.well.origG, default=self.well.origG, decimals=d, expanded=False, flat=True, enabled=False, readonly=True))
@@ -2244,7 +2244,7 @@ class MyWellParameter(MyGroupParameter):
         return self.well
 
 
-### class MyTemplateList ######################################################
+# class MyTemplateList ######################################################
 
 
 class MyTemplateListParameter(MyGroupParameter):
@@ -2273,7 +2273,7 @@ class MyTemplateListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for n, template in enumerate(self.templateList):
-                self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))
+                self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501
 
         self.sigContextMenu.connect(self.contextMenu)
 
@@ -2290,14 +2290,14 @@ class MyTemplateListParameter(MyGroupParameter):
                 self.templateList,
                 baseName='Template',
                 createValue=lambda childName: createDefaultTemplate(childName, self.survey),
-                childFactory=lambda childName, childTemplate: dict(name=childName, type='myTemplate', value=childTemplate, default=childTemplate, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
+                childFactory=lambda childName, childTemplate: dict(name=childName, type='myTemplate', value=childTemplate, default=childTemplate, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
                 menuName=name,
             )
 
         QApplication.processEvents()
 
 
-### class MyBlockList #########################################################
+# class MyBlockList #########################################################
 
 
 class MyBlockListParameter(MyGroupParameter):
@@ -2327,7 +2327,7 @@ class MyBlockListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for block in self.blockList:
-                self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(nBlocks == 1), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))
+                self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(nBlocks == 1), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501
 
         self.sigContextMenu.connect(self.contextMenu)
         self.sigChildAdded.connect(self.onChildAdded)
@@ -2346,7 +2346,7 @@ class MyBlockListParameter(MyGroupParameter):
                 self.blockList,
                 baseName='Block',
                 createValue=lambda childName: createDefaultBlock(childName, self.survey),
-                childFactory=lambda childName, childBlock: dict(name=childName, type='myBlock', value=childBlock, default=childBlock, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),
+                childFactory=lambda childName, childBlock: dict(name=childName, type='myBlock', value=childBlock, default=childBlock, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
                 menuName=name,
             )
 
@@ -2360,10 +2360,7 @@ class MyBlockListParameter(MyGroupParameter):
         # myPrint(f'>>>{lineNo():5d} BlockList.ChildRemoved <<<')
         ...
 
-    ### class MyPattern ##########################################################
-
-
-### class MyPattern   #########################################################
+# class MyPattern   #########################################################
 
 
 class MyPatternParameterItem(MyGroupParameterItem):
@@ -2429,7 +2426,7 @@ class MyPatternParameter(MyGroupParameter):
         if not isinstance(parent, MyPatternListParameter):
             raise ValueError("Need 'MyPatternListParameter' instances at this point")
 
-        ## name == 'rename' already resolved by self.editName() in MyGroupParameterItem
+        # name == 'rename' already resolved by self.editName() in MyGroupParameterItem
         if name == 'remove':
             removeManagedParameterItem(
                 self,
@@ -2470,7 +2467,7 @@ class MyPatternParameter(MyGroupParameter):
         QApplication.processEvents()
 
 
-### class MyPatternList #######################################################
+# class MyPatternList #######################################################
 
 
 class MyPatternListParameter(MyGroupParameter):
@@ -2559,7 +2556,7 @@ class MyPatternListParameter(MyGroupParameter):
         # myPrint(f'>>>{lineNo():5d} PatternList.ChildRemoved <<<')
 
 
-### class MyGrid ##############################################################
+# class MyGrid ##############################################################
 
 
 class MyGridParameter(MyGroupParameter):
@@ -2606,7 +2603,7 @@ class MyGridParameter(MyGroupParameter):
         return self.binGrid
 
 
-### class MyAnalysis ##########################################################
+# class MyAnalysis ##########################################################
 
 
 class MyAnalysisParameter(MyGroupParameter):
@@ -2654,7 +2651,7 @@ class MyAnalysisParameter(MyGroupParameter):
         return self.analysisValues.asTuple()
 
 
-### class MyReflector #########################################################
+# class MyReflector #########################################################
 
 
 class MyReflectorsParameter(MyGroupParameter):
@@ -2694,7 +2691,7 @@ class MyReflectorsParameter(MyGroupParameter):
         return self.reflectorValues.asTuple()
 
 
-### class MyConfiguration #####################################################
+# class MyConfiguration #####################################################
 
 
 class MyConfigurationParameter(MyGroupParameter):
@@ -2740,7 +2737,7 @@ class MyConfigurationParameter(MyGroupParameter):
         return self.configurationValues.asTuple()
 
 
-### class MySurvey ############################################################
+# class MySurvey ############################################################
 
 
 # MySurveyParameterItem and MySurveyParameter are currently not being used.
@@ -2786,7 +2783,7 @@ class MySurveyParameter(MyGroupParameter):
         return self.survey
 
 
-### method registerAllParameterTypes ##########################################
+# method registerAllParameterTypes ##########################################
 
 
 def registerAllParameterTypes():

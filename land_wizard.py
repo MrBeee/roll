@@ -230,7 +230,7 @@ class Page1(SurveyWizardPage):
         layout.addWidget(self.nsl, row, 0)
 
         self.nslLabel = QLabel('<b>NSL</b> Nr Src Line(s)')
-        layout.addWidget(self.nslLabel, row, 1)   ##
+        layout.addWidget(self.nslLabel, row, 1)
 
         layout.addWidget(self.nrl, row, 2)
         layout.addWidget(QLabel('<b>NRL</b> Nr Rec Lines [&#8593;]'), row, 3)
@@ -244,8 +244,8 @@ class Page1(SurveyWizardPage):
 
         row += 1
         layout.addWidget(self.sli, row, 0)
-        self.sliLabel = QLabel('<b>SLI</b> Src Line Int [m&#8594;]')   ##
-        layout.addWidget(self.sliLabel, row, 1)   ##
+        self.sliLabel = QLabel('<b>SLI</b> Src Line Int [m&#8594;]')
+        layout.addWidget(self.sliLabel, row, 1)
 
         layout.addWidget(self.rli, row, 2)
         layout.addWidget(QLabel('<b>RLI</b> Rec Line Int [m&#8593;]'), row, 3)
@@ -259,7 +259,7 @@ class Page1(SurveyWizardPage):
 
         row += 1
         layout.addWidget(self.spi, row, 0)
-        self.spiLabel = QLabel('<b>SLI</b> Src Point Int [m&#8593;]')   ##
+        self.spiLabel = QLabel('<b>SLI</b> Src Point Int [m&#8593;]')
         layout.addWidget(self.spiLabel, row, 1)
         layout.addWidget(self.rpi, row, 2)
         layout.addWidget(QLabel('<b>RPI</b> Rec Point Int [m&#8594;]'), row, 3)
@@ -440,7 +440,7 @@ class Page1(SurveyWizardPage):
             self.setField('nrp', self.parent.default('nrpPar'))
 
             self.nslLabel.setText('<b>NSP</b> Nr Src Points [&#8594;]')
-            self.sliLabel.setText('<b>SPI</b> Src Point Int [m&#8594;]')   ##
+            self.sliLabel.setText('<b>SPI</b> Src Point Int [m&#8594;]')
             self.spiLabel.setText('<b>SLI</b> Src Line Int [m&#8593;]')
         else:
             self.templateLabel.setText('<b>Active</b> source and receiver lines in a template')
@@ -448,7 +448,7 @@ class Page1(SurveyWizardPage):
             self.pointLabel.setText('<b>point</b> spacing between sources and receivers')
 
             self.nslLabel.setText('<b>NSL</b> Nr Src Lines [&#8594;]')
-            self.sliLabel.setText('<b>SLI</b> Src Line Int [m&#8594;]')   ##
+            self.sliLabel.setText('<b>SLI</b> Src Line Int [m&#8594;]')
             self.spiLabel.setText('<b>SPI</b> Src Point Int [m&#8593;]')
 
         slanted = index == SurveyType.Slanted.code
@@ -726,8 +726,8 @@ class Page2(SurveyWizardPage):
         # set the combined layouts to become this page's layout
         self.setLayout(vbl)
 
-        ## self.nrp.setValue(round(spreadLength / self.parent.default('rpi')))
-        ## self.nsp.setValue(round(self.parent.default('rli') / self.parent.default('spi')))
+        # self.nrp.setValue(round(spreadLength / self.parent.default('rpi')))
+        # self.nsp.setValue(round(self.parent.default('rli') / self.parent.default('spi')))
 
         self.registerField('nsp', self.nsp, 'value')
         self.registerField('nrp', self.nrp, 'value')

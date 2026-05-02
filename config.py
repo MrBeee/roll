@@ -73,6 +73,14 @@ DEFAULT_SPS_PARALLEL = False
 # Default spsDialect should equal a name from the default SPS format dicts
 DEFAULT_SPS_DIALECT = 'New Zealand'
 
+# binTemplate10 whole-template trace batching: working-set budget per chunk.
+# Used by RollSurvey._iterTemplateSourceChunks() to split the source axis when
+# (Ns * Nr) traces would exceed this many bytes of intermediate float32 arrays.
+# 64 MiB keeps peak transient RSS well within 16 GB systems (the dominant RSS
+# is the analysis memmap, not these chunk temporaries). Raise if profiling
+# shows numba dispatch overhead dominates.
+TEMPLATE_BATCH_BUDGET_BYTES = 64 * 1024 * 1024
+
 # used in sps_import_dialog.py for human readable input
 spsPointFormatDict = dict(
     id='Record identification',
