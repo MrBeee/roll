@@ -24,20 +24,21 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 **Roll** is a plugin aimed at designing 3D seismic survey geometries, using a template based approach.
 
 - Each survey consists of one or more (rectangular) *blocks*
-- Each block contains at least two *templates* 
-  - One for *receiver* layout
-  - One for *source* layout
-- Each template contains one or more seeds
+- Each block contains one or more templates 
+- Each template contains ***two*** or more seeds
+  - At least one seed for *receiver* layout
+  - At least one seed for *source* layout
+
 - A seed defines the starting location of a single *source / receiver*
-- Each seed can be **grown** up to three times
+- Each seed can be **grown** up to *three* times
   - The 1st grow step changes a seed position into a line segment (sequence) of positions
   - The 2nd grow step changes a line segment into a multitude (grid) of lines 
   - The 3rd grow step changes the grid into a sequence of (intertwined) grids
 - The seeds, combined with their grow steps, define the active sources and receivers in a template
-- Each template can be **rolled**  in up to three directions, for instance:
+- Each template can be **rolled**  in up to *three* directions, for instance:
   - Firstly in the inline direction, at source line intervals
   - Secondly in the crossline direction, at receiver line intervals
-  - Optionally at a skew angle for fancy designs
+  - Optionally at a skew angle for fancy designs (e.g. using a slanted design, or a brick design)
 
 The hierarchy in this approach is reflected in the xml-based survey-file structure: 
 
@@ -86,34 +87,29 @@ Once the geometry has been defined, a binning analysis can be done directly usin
 - A **minimum offset map** is created that shows minimum offsets coverage
 - A **maximum offset map** is created that show maximum offsets coverage
 
-When using 'Full Binning' the following maps are created upon completion of binning:
+When using '**Full Binning**' the following figures are also created when binning has completed:
 - A **RMS offset increment map** is created that shows regularity of offset increments
 - A **Max offset gap map** is created that shows the largest offset gap for each bin
+- A **spider diagram**, that is overlaid on the layout map, showing start- and end-points of all traces for a particular bin
 
 As the survey project-file always contains a (projected) coordinate reference system (CRS) the analysis maps can be exported to the current QGIS project as a georeferenced Tiff (GeoTiff) file. These files can also be exported as a standalone GeoTiff file from the  File -> Export menu.
 
-To use **full binning** from the Processing menu, the project needs to be saved first, as a (large, memory mapped) **analysis file** that contains the complete binning information. Think of: 
+To use '**Full binning**' from the Processing menu, the project first needs to be saved, because a named memory-mapped **analysis file** needs to be created, that contains the complete binning information for each bin. Think of: 
 
 - line & stake numbers, 
-- src (x, y), 
-- rec(x, y), 
-- cmp(x, y), 
-- TWT, 
+- src (x, y, z), 
+- rec(x, y, z), 
+- cmp(x, y, z), 
+- TWT [ms], 
 - offset, 
 - azimuth, and 
 - uniqueness (for unique fold)
 
-Once this step has been completed, additional analysis information becomes available in the **Layout** tab:
-
-- An **rms offset map** that shows the rms offset increments in each bin (lower is better)
-- A **Max offset gap map** is created that shows the largest offset gap for each bin
-- A **spider diagram**, that is overlaid on the layout map, showing start- and end-points of all traces in a single (selected) bin
-
-In the **Analysis** tab, the following information then becomes available:
+Using  the **Analysis** tab, the following information then becomes available:
 
 - A **trace table**, showing the information from the analysis file
-- **Radial offsets** shown for a line in the **inline** direction
-- **Radial offsets** shown for a line in the **x-line** direction
+- **Offsets** shown for a line in the **inline** direction (radial, inline, x-line or TWT)
+- **Offsets** shown for a line in the **x-line** direction (radial, inline, x-line or TWT)
 - **Source -> receiver azimuths** shown for a line in the **inline** direction
 - **Source -> receiver azimuths** shown for a line in the **x-line** direction
 - **Kr stack response** shown for a line in the **inline** direction
@@ -122,13 +118,9 @@ In the **Analysis** tab, the following information then becomes available:
 - **|Offset| histogram** for all traces in the selected binning area
 - **Offset/azimuth histogram** for all traces in the selected binning area, in steps of 5 degrees
 
-The templates can be converted into geometry files, consisting of (a) a source file, (b) a receiver file and (c) a relation file, similar how this is managed in the SPS format. The source- and receiver points from the source and receiver files can be exported to the current QGIS project as an ArcGIS Shape file, where these points can be inspected, moved around or deleted. Edited points can be re-imported into Roll to assess the impact on fold, etc.
+The templates can be converted into **geometry files**, consisting of (a) a source file, (b) a receiver file and (c) a relation file, similar how this is managed in the SPS format. The source- and receiver points from the source and receiver files can be exported to the current QGIS project as an ArcGIS Shape file, where these points can be inspected, moved around or deleted. Edited points can be re-imported into Roll to assess the impact on fold, etc.
 
 The geometry files themselves can also be exported as SPS-files.
-
-**Note**: the Model/View approach used by Qt (that takes care of all the widgets in QGIS) allows for fairly large tables. Nevertheless, for each row in a table view, circa 12 bytes are allocated. For very large tables, QGIS will simply crash without any warning. As a result the GUI will 'hang' and you may lose all your work. For large files, the trace table is therefore implemented in a chunked manner, showing chunks of 1 milion traces at the time. Buttons have been added to navigate through these chunks. You may also use the <i>**spider navigation**</i> based on ALT+Arrow keys to move to the next line and stake numbers (or make larger jumps using Ctrl and/or Shift keys in combination with ALT). 
-
-The plugin works best using one or two QHD Screens (2560 x 1440 pixels) or larger. As of QGIS V3.32 High DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a>. The Help menu in Roll shows how you can mitigate against these issues. 
 
 * As of version 3.34.6, QGIS upgraded Python from V3.9 to to V3.12 This change speeds up calculations and solves some security issues.  But when <i>**upgrading**</i> from an earlier QGIS version, it requires installing all the dependencies ***again***. See chapter 4 below for a list of external dependencies.
 
@@ -185,20 +177,25 @@ As of version 0.3.3 Roll is no longer considered an experimental plugin. But the
 
 As of version 0.4.6 Roll is compatible with Qt6.0 and therefore ready to work with QGIS 4.0.
 
-Furthermore, see the 'Changelog' for already implemented functionality. Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository.
+As of version 0.7.0 improvements in `binning from templates` and `binning from geometry` have been implemented using `Numba`. Due to inherent dispersed writing of trace data in the binning analysis file, the approach of multiprocessing has been shelved. Use of a relational database was dropped as well, as a relational database would replace the memory mapped approach with row encoding, update statements, index maintenance, and transaction overhead on a workload that is fundamentally numeric-array-heavy.
+
+Finally, see the 'Changelog' for already implemented functionality. Any [Issues](https://github.com/MrBeee/roll/issues) or [pull requests](https://github.com/MrBeee/roll/pulls) can be raised through the GitHub repository.
+
+**Note**: the Model/View approach used by Qt (that takes care of all the widgets in QGIS) allows for fairly large tables. Nevertheless, for each row in a table view, circa 12 bytes are allocated. For very large tables, QGIS will simply crash without any warning. As a result the GUI will 'hang' and you may lose all your work. For large files, the trace table is therefore implemented in a chunked manner, showing chunks of 1 milion traces at the time. Buttons have been added to navigate through these chunks. You may also use the <i>**spider navigation**</i> based on ALT+Arrow keys to move to the next line and stake numbers (or make larger jumps using Ctrl and/or Shift keys in combination with ALT). 
+
+The plugin works best using one or two QHD Screens (2560 x 1440 pixels) or larger. As of QGIS V3.32 High DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a>. The Help menu in Roll shows how you can mitigate against these issues. 
 
 
 
 ### 7	To Do
 
 - Improve Roll's analysis capabilities; think of multiple suppression and DMO smear
-- Consider multiprocessing instead of single worker thread to speed up background threads
-- Consider using a relational database instead of numpy arrays for geometry tables
 - Expand the 3D Layout View, introduced in version 0.6.8
 
 
 
 ### 8	Changelog
+- 2026-05-06 (0.7.0) Optimization of binning from templates and binning from geometry. Completed Flake8 code clean up.
 - 2026-05-01 (0.6.9) Added TWT option to inline and x-line offset displays. Started to fleece code using Flake8.
 - 2026-04-30 (0.6.8) Added 3D view for Subset of survey data. Enabled by "Use experimental code" in the Settings dialog. Implemented faster worker thread routines, enabled by the same flag
 - 2026-04-22 (0.6.7) Improved import and handling of SPS files.
