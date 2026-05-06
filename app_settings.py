@@ -36,14 +36,14 @@ def readStoredShowSummariesSetting():
     return settings.value('settings/misc/showSummaries', config.DEFAULT_SHOW_SUMMARIES, type=bool)
 
 
-def readStoredShowUnfinishedSetting():
+def readStoredUseExperimentalSetting():
     settings = QSettings(config.organization, config.application)
-    return settings.value('settings/misc/showUnfinished', config.DEFAULT_SHOW_UNFINISHED, type=bool)
+    return settings.value('settings/misc/useExperimental', config.DEFAULT_USE_EXPERIMENTAL, type=bool)
 
 
 _debugState = {'enabled': config.DEFAULT_DEBUG}
 _summaryState = {'enabled': config.DEFAULT_SHOW_SUMMARIES}
-_unfinishedState = {'enabled': config.DEFAULT_SHOW_UNFINISHED}
+_experimentalState = {'enabled': config.DEFAULT_USE_EXPERIMENTAL}
 
 
 def setActiveDebugLogging(enabled):
@@ -62,12 +62,12 @@ def isShowSummariesEnabled():
     return _summaryState['enabled']
 
 
-def setActiveShowUnfinished(enabled):
-    _unfinishedState['enabled'] = bool(enabled)
+def setActiveUseExperimental(enabled):
+    _experimentalState['enabled'] = bool(enabled)
 
 
-def isShowUnfinishedEnabled():
-    return _unfinishedState['enabled']
+def isUseExperimentalEnabled():
+    return _experimentalState['enabled']
 
 
 _activeAppSettingsState = {'settings': None}
@@ -79,11 +79,13 @@ class AppSettings:
     cmpAreaColor: str = config.cmpAreaColor
     recAreaColor: str = config.recAreaColor
     srcAreaColor: str = config.srcAreaColor
+    reflectColor: str = config.reflectColor
 
     binAreaPen: object = field(default_factory=lambda: QPen(config.binAreaPen))
     cmpAreaPen: object = field(default_factory=lambda: QPen(config.cmpAreaPen))
     recAreaPen: object = field(default_factory=lambda: QPen(config.recAreaPen))
     srcAreaPen: object = field(default_factory=lambda: QPen(config.srcAreaPen))
+    reflectPen: object = field(default_factory=lambda: QPen(config.reflectPen))
 
     analysisCmap: str = config.analysisCmap
     foldDispCmap: str = config.foldDispCmap
@@ -120,7 +122,7 @@ class AppSettings:
     debugpy: bool = config.DEFAULT_DEBUGPY
     useNumba: bool = config.useNumba
     useRelativePaths: bool = config.useRelativePaths
-    showUnfinished: bool = config.DEFAULT_SHOW_UNFINISHED
+    useExperimental: bool = config.DEFAULT_USE_EXPERIMENTAL
     showSummaries: bool = config.DEFAULT_SHOW_SUMMARIES
 
     def resetSpsDatabase(self, preferredDialect=None):
@@ -144,10 +146,12 @@ def cloneAppSettings(appSettings: AppSettings) -> AppSettings:
         cmpAreaColor=appSettings.cmpAreaColor,
         recAreaColor=appSettings.recAreaColor,
         srcAreaColor=appSettings.srcAreaColor,
+        reflectColor=appSettings.reflectColor,
         binAreaPen=QPen(appSettings.binAreaPen),
         cmpAreaPen=QPen(appSettings.cmpAreaPen),
         recAreaPen=QPen(appSettings.recAreaPen),
         srcAreaPen=QPen(appSettings.srcAreaPen),
+        reflectPen=QPen(appSettings.reflectPen),
         analysisCmap=appSettings.analysisCmap,
         foldDispCmap=appSettings.foldDispCmap,
         rpsBrushColor=appSettings.rpsBrushColor,
@@ -178,7 +182,7 @@ def cloneAppSettings(appSettings: AppSettings) -> AppSettings:
         debugpy=appSettings.debugpy,
         useNumba=appSettings.useNumba,
         useRelativePaths=appSettings.useRelativePaths,
-        showUnfinished=appSettings.showUnfinished,
+        useExperimental=appSettings.useExperimental,
         showSummaries=appSettings.showSummaries,
     )
 
@@ -187,7 +191,7 @@ def setActiveAppSettings(appSettings: AppSettings) -> AppSettings:
     activeAppSettings = cloneAppSettings(appSettings)
     _activeAppSettingsState['settings'] = activeAppSettings
     setActiveDebugLogging(activeAppSettings.debug)
-    setActiveShowUnfinished(activeAppSettings.showUnfinished)
+    setActiveUseExperimental(activeAppSettings.useExperimental)
     setActiveShowSummaries(activeAppSettings.showSummaries)
     return activeAppSettings
 
@@ -198,7 +202,7 @@ def getActiveAppSettings() -> AppSettings:
         activeAppSettings = cloneAppSettings(AppSettings())
         _activeAppSettingsState['settings'] = activeAppSettings
         setActiveDebugLogging(activeAppSettings.debug)
-        setActiveShowUnfinished(activeAppSettings.showUnfinished)
+        setActiveUseExperimental(activeAppSettings.useExperimental)
         setActiveShowSummaries(activeAppSettings.showSummaries)
 
     return activeAppSettings

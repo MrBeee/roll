@@ -1,31 +1,34 @@
 ************* Module roll.aux_functions
-aux_functions.py:872: [C0301(line-too-long), ] Line too long (738/210)
-aux_functions.py:269: [R1714(consider-using-in), getNameFromQtEnum] Consider merging these comparisons with 'in' by using 'value in (member.value, member)'. Use a set instead if elements are hashable.
-aux_functions.py:443: [R0912(too-many-branches), clipLineF] Too many branches (14/12)
-aux_functions.py:627: [R1701(consider-merging-isinstance), getUnpicklable] Consider merging these isinstance calls to isinstance(instance, (list, tuple))
-aux_functions.py:618: [R0912(too-many-branches), getUnpicklable] Too many branches (15/12)
+aux_functions.py:267: [R1714(consider-using-in), getNameFromQtEnum] Consider merging these comparisons with 'in' by using 'value in (member.value, member)'. Use a set instead if elements are hashable.
+aux_functions.py:441: [R0912(too-many-branches), clipLineF] Too many branches (14/12)
+aux_functions.py:625: [R1701(consider-merging-isinstance), getUnpicklable] Consider merging these isinstance calls to isinstance(instance, (list, tuple))
+aux_functions.py:616: [R0912(too-many-branches), getUnpicklable] Too many branches (15/12)
 ************* Module roll.binning_worker_mixin
-binning_worker_mixin.py:77: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapName] Too many branches (14/12)
-binning_worker_mixin.py:137: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapObject] Too many branches (16/12)
-binning_worker_mixin.py:21: [R0904(too-many-public-methods), BinningWorkerMixin] Too many public methods (29/20)
+binning_worker_mixin.py:76: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapName] Too many branches (14/12)
+binning_worker_mixin.py:136: [R0912(too-many-branches), BinningWorkerMixin.resolveColorMapObject] Too many branches (16/12)
+binning_worker_mixin.py:20: [R0904(too-many-public-methods), BinningWorkerMixin] Too many public methods (29/20)
 ************* Module roll.document_context_service
 document_context_service.py:29: [R0913(too-many-arguments), DocumentContextService.loadStoredValues] Too many arguments (6/5)
 ************* Module roll.functions_numba
-functions_numba.py:42: [R1719(simplifiable-if-expression), numbaFilterSlice2D] The if expression can be replaced with 'test'
-functions_numba.py:59: [R1719(simplifiable-if-expression), numbaSlice3D] The if expression can be replaced with 'test'
-functions_numba.py:89: [R1719(simplifiable-if-expression), numbaSliceStats] The if expression can be replaced with 'test'
-functions_numba.py:272: [R1719(simplifiable-if-expression), numbaOffsetBin] The if expression can be replaced with 'test'
-functions_numba.py:373: [R0913(too-many-arguments), numbaSetPointRecord] Too many arguments (8/5)
-functions_numba.py:373: [R0917(too-many-positional-arguments), numbaSetPointRecord] Too many positional arguments (8/5)
-functions_numba.py:411: [R0913(too-many-arguments), numbaSetRelationRecord] Too many arguments (9/5)
-functions_numba.py:411: [R0917(too-many-positional-arguments), numbaSetRelationRecord] Too many positional arguments (9/5)
-functions_numba.py:423: [R0913(too-many-arguments), numbaBinBatchParallel] Too many arguments (17/5)
-functions_numba.py:423: [R0917(too-many-positional-arguments), numbaBinBatchParallel] Too many positional arguments (17/5)
-functions_numba.py:445: [R1702(too-many-nested-blocks), numbaBinBatchParallel] Too many nested blocks (7/5)
-functions_numba.py:445: [R1702(too-many-nested-blocks), numbaBinBatchParallel] Too many nested blocks (6/5)
-functions_numba.py:535: [R0913(too-many-arguments), numbaClipLineF] Too many arguments (8/5)
-functions_numba.py:535: [R0917(too-many-positional-arguments), numbaClipLineF] Too many positional arguments (8/5)
-functions_numba.py:629: [R1702(too-many-nested-blocks), pointInPolygon] Too many nested blocks (6/5)
+functions_numba.py:44: [R1719(simplifiable-if-expression), numbaFilterSlice2D] The if expression can be replaced with 'test'
+functions_numba.py:61: [R1719(simplifiable-if-expression), numbaSlice3D] The if expression can be replaced with 'test'
+functions_numba.py:91: [R1719(simplifiable-if-expression), numbaSliceStats] The if expression can be replaced with 'test'
+functions_numba.py:280: [R1719(simplifiable-if-expression), numbaOffsetBin] The if expression can be replaced with 'test'
+functions_numba.py:381: [R0913(too-many-arguments), numbaSetPointRecord] Too many arguments (8/5)
+functions_numba.py:381: [R0917(too-many-positional-arguments), numbaSetPointRecord] Too many positional arguments (8/5)
+functions_numba.py:419: [R0913(too-many-arguments), numbaSetRelationRecord] Too many arguments (9/5)
+functions_numba.py:419: [R0917(too-many-positional-arguments), numbaSetRelationRecord] Too many positional arguments (9/5)
+functions_numba.py:432: [R0913(too-many-arguments), numbaBinBatchParallel] Too many arguments (17/5)
+functions_numba.py:432: [R0917(too-many-positional-arguments), numbaBinBatchParallel] Too many positional arguments (17/5)
+functions_numba.py:454: [R1702(too-many-nested-blocks), numbaBinBatchParallel] Too many nested blocks (7/5)
+functions_numba.py:454: [R1702(too-many-nested-blocks), numbaBinBatchParallel] Too many nested blocks (6/5)
+functions_numba.py:545: [R0913(too-many-arguments), numbaClipLineF] Too many arguments (8/5)
+functions_numba.py:545: [R0917(too-many-positional-arguments), numbaClipLineF] Too many positional arguments (8/5)
+functions_numba.py:639: [R1702(too-many-nested-blocks), pointInPolygon] Too many nested blocks (6/5)
+functions_numba.py:681: [R0913(too-many-arguments), numbaApplyBinUpdatesAnalysis] Too many arguments (15/5)
+functions_numba.py:681: [R0917(too-many-positional-arguments), numbaApplyBinUpdatesAnalysis] Too many positional arguments (15/5)
+functions_numba.py:741: [R0913(too-many-arguments), numbaApplyBinUpdatesAnalysisBatch] Too many arguments (15/5)
+functions_numba.py:741: [R0917(too-many-positional-arguments), numbaApplyBinUpdatesAnalysisBatch] Too many positional arguments (15/5)
 ************* Module roll.import_service
 import_service.py:34: [R0913(too-many-arguments), ImportService.importTextData] Too many arguments (9/5)
 import_service.py:92: [R0913(too-many-arguments), ImportService.runQualityChecks] Too many arguments (7/5)
@@ -39,78 +42,58 @@ land_wizard.py:861: [R1714(consider-using-in), Page2.updateParentSurvey] Conside
 land_wizard.py:824: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (16/12)
 land_wizard.py:1845: [R1714(consider-using-in), Page4.updateParentSurvey] Consider merging these comparisons with 'in' by using 'typ in (SurveyType.Orthogonal.code, SurveyType.Parallel.code)'. Use a set instead if elements are hashable.
 ************* Module roll.layout_3D
-layout_3D.py:87: [W0718(broad-exception-caught), Layout3DWidget.__init__] Catching too general exception Exception
-layout_3D.py:80: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib)
-layout_3D.py:82: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg)
-layout_3D.py:84: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib.figure.Figure)
-layout_3D.py:85: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (mpl_toolkits.mplot3d.Axes3D)
-layout_3D.py:85: [W0611(unused-import), Layout3DWidget.__init__] Unused Axes3D imported from mpl_toolkits.mplot3d
-layout_3D.py:177: [R0913(too-many-arguments), Layout3DWidget.updateFromSurvey] Too many arguments (9/5)
-layout_3D.py:177: [R0917(too-many-positional-arguments), Layout3DWidget.updateFromSurvey] Too many positional arguments (9/5)
-layout_3D.py:422: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
-layout_3D.py:416: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
-layout_3D.py:389: [R1702(too-many-nested-blocks), Layout3DWidget.updateFromSurvey] Too many nested blocks (6/5)
-layout_3D.py:435: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
-layout_3D.py:446: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
-layout_3D.py:461: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
-layout_3D.py:177: [R0912(too-many-branches), Layout3DWidget.updateFromSurvey] Too many branches (41/12)
-layout_3D.py:492: [W0718(broad-exception-caught), Layout3DWidget._safeBoundingRect] Catching too general exception Exception
-layout_3D.py:547: [W0718(broad-exception-caught), Layout3DWidget._dataPointsLocalBoundingRect] Catching too general exception Exception
-layout_3D.py:609: [W0718(broad-exception-caught), Layout3DWidget._mapGlobalBboxToLocal] Catching too general exception Exception
-layout_3D.py:625: [R1737(use-yield-from), Layout3DWidget._iterSeeds] Use 'yield from' directly instead of yielding each element one by one
-layout_3D.py:628: [R0912(too-many-branches), Layout3DWidget._collectSeedGeometries] Too many branches (17/12)
-layout_3D.py:790: [C0415(import-outside-toplevel), Layout3DWidget._drawAnalysisArea] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
-layout_3D.py:891: [W0718(broad-exception-caught), Layout3DWidget._drawAnalysisImage] Catching too general exception Exception
-layout_3D.py:885: [R0402(consider-using-from-import), Layout3DWidget._drawAnalysisImage] Use 'from matplotlib import cm' instead
-layout_3D.py:885: [C0415(import-outside-toplevel), Layout3DWidget._drawAnalysisImage] Import outside toplevel (matplotlib.cm)
-layout_3D.py:968: [C0415(import-outside-toplevel), Layout3DWidget._drawBlockAreas] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
-layout_3D.py:997: [R0913(too-many-arguments), Layout3DWidget._drawBinningPlane] Too many arguments (7/5)
-layout_3D.py:997: [R0917(too-many-positional-arguments), Layout3DWidget._drawBinningPlane] Too many positional arguments (7/5)
-layout_3D.py:1022: [C0415(import-outside-toplevel), Layout3DWidget._drawBinningPlane] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
-layout_3D.py:1118: [W0718(broad-exception-caught), Layout3DWidget._drawSpiderOverlay.cmpZ] Catching too general exception Exception
-layout_3D.py:1126: [W0718(broad-exception-caught), Layout3DWidget._drawSpiderOverlay.cmpZ] Catching too general exception Exception
-layout_3D.py:1165: [R1730(consider-using-min-builtin), Layout3DWidget._drawSpiderOverlay] Consider using 'self._dataZMin = min(self._dataZMin, cmpZmin)' instead of unnecessary if block
-layout_3D.py:1167: [R1731(consider-using-max-builtin), Layout3DWidget._drawSpiderOverlay] Consider using 'self._dataZMax = max(self._dataZMax, cmpZmax)' instead of unnecessary if block
-layout_3D.py:1176: [C0415(import-outside-toplevel), Layout3DWidget._drawSpiderOverlay] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Line3DCollection)
-layout_3D.py:1213: [R0913(too-many-arguments), Layout3DWidget._applyAxisLimits] Too many arguments (7/5)
-layout_3D.py:1213: [R0917(too-many-positional-arguments), Layout3DWidget._applyAxisLimits] Too many positional arguments (7/5)
-layout_3D.py:1250: [W0718(broad-exception-caught), Layout3DWidget._refreshBoxAspect] Catching too general exception Exception
-layout_3D.py:1264: [W0718(broad-exception-caught), Layout3DWidget._refreshBoxAspect] Catching too general exception Exception
-layout_3D.py:1319: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
-layout_3D.py:1312: [C0415(import-outside-toplevel), Layout3DWidget._configureAxes] Import outside toplevel (matplotlib.ticker.MaxNLocator, matplotlib.ticker.ScalarFormatter)
-layout_3D.py:1323: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
-layout_3D.py:1327: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
-layout_3D.py:1340: [W0718(broad-exception-caught), Layout3DWidget.showEvent] Catching too general exception Exception
+layout_3D.py:103: [W0718(broad-exception-caught), Layout3DWidget.__init__] Catching too general exception Exception
+layout_3D.py:96: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib)
+layout_3D.py:98: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg)
+layout_3D.py:100: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib.figure.Figure)
+layout_3D.py:101: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (mpl_toolkits.mplot3d.Axes3D)
+layout_3D.py:101: [W0611(unused-import), Layout3DWidget.__init__] Unused Axes3D imported from mpl_toolkits.mplot3d
+layout_3D.py:193: [R0913(too-many-arguments), Layout3DWidget.updateFromSurvey] Too many arguments (10/5)
+layout_3D.py:193: [R0917(too-many-positional-arguments), Layout3DWidget.updateFromSurvey] Too many positional arguments (10/5)
+layout_3D.py:441: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
+layout_3D.py:434: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
+layout_3D.py:406: [R1702(too-many-nested-blocks), Layout3DWidget.updateFromSurvey] Too many nested blocks (6/5)
+layout_3D.py:454: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
+layout_3D.py:465: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
+layout_3D.py:480: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
+layout_3D.py:193: [R0912(too-many-branches), Layout3DWidget.updateFromSurvey] Too many branches (41/12)
+layout_3D.py:511: [W0718(broad-exception-caught), Layout3DWidget._safeBoundingRect] Catching too general exception Exception
+layout_3D.py:566: [W0718(broad-exception-caught), Layout3DWidget._dataPointsLocalBoundingRect] Catching too general exception Exception
+layout_3D.py:628: [W0718(broad-exception-caught), Layout3DWidget._mapGlobalBboxToLocal] Catching too general exception Exception
+layout_3D.py:644: [R1737(use-yield-from), Layout3DWidget._iterSeeds] Use 'yield from' directly instead of yielding each element one by one
+layout_3D.py:647: [R0912(too-many-branches), Layout3DWidget._collectSeedGeometries] Too many branches (17/12)
+layout_3D.py:809: [C0415(import-outside-toplevel), Layout3DWidget._drawAnalysisArea] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
+layout_3D.py:910: [W0718(broad-exception-caught), Layout3DWidget._drawAnalysisImage] Catching too general exception Exception
+layout_3D.py:904: [R0402(consider-using-from-import), Layout3DWidget._drawAnalysisImage] Use 'from matplotlib import cm' instead
+layout_3D.py:904: [C0415(import-outside-toplevel), Layout3DWidget._drawAnalysisImage] Import outside toplevel (matplotlib.cm)
+layout_3D.py:987: [C0415(import-outside-toplevel), Layout3DWidget._drawBlockAreas] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
+layout_3D.py:1016: [R0913(too-many-arguments), Layout3DWidget._drawBinningPlane] Too many arguments (8/5)
+layout_3D.py:1016: [R0917(too-many-positional-arguments), Layout3DWidget._drawBinningPlane] Too many positional arguments (8/5)
+layout_3D.py:1041: [C0415(import-outside-toplevel), Layout3DWidget._drawBinningPlane] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
+layout_3D.py:1156: [R1730(consider-using-min-builtin), Layout3DWidget._drawSpiderOverlay] Consider using 'self._dataZMin = min(self._dataZMin, cmpZmin)' instead of unnecessary if block
+layout_3D.py:1158: [R1731(consider-using-max-builtin), Layout3DWidget._drawSpiderOverlay] Consider using 'self._dataZMax = max(self._dataZMax, cmpZmax)' instead of unnecessary if block
+layout_3D.py:1167: [C0415(import-outside-toplevel), Layout3DWidget._drawSpiderOverlay] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Line3DCollection)
+layout_3D.py:1204: [R0913(too-many-arguments), Layout3DWidget._applyAxisLimits] Too many arguments (7/5)
+layout_3D.py:1204: [R0917(too-many-positional-arguments), Layout3DWidget._applyAxisLimits] Too many positional arguments (7/5)
+layout_3D.py:1241: [W0718(broad-exception-caught), Layout3DWidget._refreshBoxAspect] Catching too general exception Exception
+layout_3D.py:1255: [W0718(broad-exception-caught), Layout3DWidget._refreshBoxAspect] Catching too general exception Exception
+layout_3D.py:1310: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
+layout_3D.py:1303: [C0415(import-outside-toplevel), Layout3DWidget._configureAxes] Import outside toplevel (matplotlib.ticker.MaxNLocator, matplotlib.ticker.ScalarFormatter)
+layout_3D.py:1314: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
+layout_3D.py:1318: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
+layout_3D.py:1331: [W0718(broad-exception-caught), Layout3DWidget.showEvent] Catching too general exception Exception
 ************* Module roll.marine_wizard
-marine_wizard.py:445: [C0301(line-too-long), ] Line too long (225/210)
-marine_wizard.py:460: [C0301(line-too-long), ] Line too long (219/210)
-marine_wizard.py:825: [R1719(simplifiable-if-expression), Page2.updateParentSurvey] The if expression can be replaced with 'test'
-marine_wizard.py:816: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (13/12)
-marine_wizard.py:1574: [R0912(too-many-branches), Page4.updateSailLineOverhead] Too many branches (13/12)
-marine_wizard.py:1876: [R1719(simplifiable-if-expression), Page5.updateParentSurvey] The if expression can be replaced with 'test'
+marine_wizard.py:826: [R1719(simplifiable-if-expression), Page2.updateParentSurvey] The if expression can be replaced with 'test'
+marine_wizard.py:817: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (13/12)
+marine_wizard.py:1575: [R0912(too-many-branches), Page4.updateSailLineOverhead] Too many branches (13/12)
+marine_wizard.py:1877: [R1719(simplifiable-if-expression), Page5.updateParentSurvey] The if expression can be replaced with 'test'
 ************* Module roll.my_parameters
-my_parameters.py:1187: [C0301(line-too-long), ] Line too long (273/210)
-my_parameters.py:1239: [C0301(line-too-long), ] Line too long (230/210)
-my_parameters.py:1249: [C0301(line-too-long), ] Line too long (230/210)
-my_parameters.py:1298: [C0301(line-too-long), ] Line too long (232/210)
-my_parameters.py:1337: [C0301(line-too-long), ] Line too long (211/210)
-my_parameters.py:1347: [C0301(line-too-long), ] Line too long (245/210)
-my_parameters.py:1357: [C0301(line-too-long), ] Line too long (245/210)
-my_parameters.py:1628: [C0301(line-too-long), ] Line too long (223/210)
-my_parameters.py:1647: [C0301(line-too-long), ] Line too long (259/210)
-my_parameters.py:1788: [C0301(line-too-long), ] Line too long (235/210)
-my_parameters.py:1884: [C0301(line-too-long), ] Line too long (233/210)
-my_parameters.py:1894: [C0301(line-too-long), ] Line too long (233/210)
-my_parameters.py:2275: [C0301(line-too-long), ] Line too long (231/210)
-my_parameters.py:2292: [C0301(line-too-long), ] Line too long (267/210)
-my_parameters.py:2329: [C0301(line-too-long), ] Line too long (226/210)
-my_parameters.py:2348: [C0301(line-too-long), ] Line too long (255/210)
 my_parameters.py:128: [R0913(too-many-arguments), addPreviewAngleIntervalPointChildren] Too many arguments (8/5)
 my_parameters.py:260: [R1714(consider-using-in), previewSeedListCompositionSummary] Consider merging these comparisons with 'in' by using 'nSource in (0, nChilds)'. Use a set instead if elements are hashable.
 my_parameters.py:293: [R0913(too-many-arguments), applySeedVisibilityState] Too many arguments (7/5)
 my_parameters.py:302: [R0913(too-many-arguments), applySeedParameterValues] Too many arguments (7/5)
 my_parameters.py:396: [R1737(use-yield-from), iterTemplateSeedParameters] Use 'yield from' directly instead of yielding each element one by one
-my_parameters.py:597: [R0913(too-many-arguments), appendNewManagedParameterItem] Too many arguments (8/5)
+my_parameters.py:596: [R0913(too-many-arguments), appendNewManagedParameterItem] Too many arguments (8/5)
 ************* Module roll.my_range
 my_range.py:38: [R1719(simplifiable-if-expression), MyRangeParameter.__init__] The if expression can be replaced with 'test'
 my_range.py:39: [R1719(simplifiable-if-expression), MyRangeParameter.__init__] The if expression can be replaced with 'test'
@@ -125,57 +108,51 @@ plot_navigation_controller.py:72: [R0912(too-many-branches), PlotNavigationContr
 ************* Module roll.plot_redraw_helper
 plot_redraw_helper.py:17: [R0904(too-many-public-methods), PlotRedrawHelper] Too many public methods (27/20)
 ************* Module roll.project_service
-project_service.py:364: [C0301(line-too-long), ] Line too long (222/210)
-project_service.py:376: [C0301(line-too-long), ] Line too long (229/210)
-project_service.py:392: [C0301(line-too-long), ] Line too long (236/210)
 project_service.py:107: [R0913(too-many-arguments), ProjectService.writeProjectXml] Too many arguments (6/5)
 project_service.py:107: [R0917(too-many-positional-arguments), ProjectService.writeProjectXml] Too many positional arguments (6/5)
 project_service.py:223: [R0913(too-many-arguments), ProjectService.saveSurveyDataSidecars] Too many arguments (8/5)
-project_service.py:278: [R0912(too-many-branches), ProjectService._loadAnalysisArraySidecars] Too many branches (21/12)
+project_service.py:278: [R0911(too-many-return-statements), ProjectService._loadAnalysisArraySidecars] Too many return statements (7/6)
+project_service.py:278: [R0912(too-many-branches), ProjectService._loadAnalysisArraySidecars] Too many branches (23/12)
 ************* Module roll.qgis_layer_dialog
 qgis_layer_dialog.py:8: [R0913(too-many-arguments), LayerDialog.__init__] Too many arguments (6/5)
 qgis_layer_dialog.py:8: [R0917(too-many-positional-arguments), LayerDialog.__init__] Too many positional arguments (6/5)
 ************* Module roll.roll
-roll.py:54: [W0603(global-statement), enableRemoteDebugging] Using the global statement
-roll.py:195: [R0913(too-many-arguments), Roll.addAction] Too many arguments (10/5)
-roll.py:195: [R0917(too-many-positional-arguments), Roll.addAction] Too many positional arguments (10/5)
+roll.py:55: [W0603(global-statement), enableRemoteDebugging] Using the global statement
+roll.py:196: [R0913(too-many-arguments), Roll.addAction] Too many arguments (10/5)
+roll.py:196: [R0917(too-many-positional-arguments), Roll.addAction] Too many positional arguments (10/5)
 ************* Module roll.roll_main_window
-roll_main_window.py:1665: [C0301(line-too-long), ] Line too long (221/210)
-roll_main_window.py:1666: [C0301(line-too-long), ] Line too long (221/210)
-roll_main_window.py:1667: [C0301(line-too-long), ] Line too long (230/210)
-roll_main_window.py:1668: [C0301(line-too-long), ] Line too long (235/210)
-roll_main_window.py:991: [R0913(too-many-arguments), RollMainWindow.createOffAziSectorPath] Too many arguments (6/5)
-roll_main_window.py:991: [R0917(too-many-positional-arguments), RollMainWindow.createOffAziSectorPath] Too many positional arguments (6/5)
-roll_main_window.py:1082: [R0913(too-many-arguments), RollMainWindow.renderOffAziRectangular] Too many arguments (6/5)
-roll_main_window.py:1082: [R0917(too-many-positional-arguments), RollMainWindow.renderOffAziRectangular] Too many positional arguments (6/5)
-roll_main_window.py:1109: [R0913(too-many-arguments), RollMainWindow.renderOffAziPolar] Too many arguments (6/5)
-roll_main_window.py:1109: [R0917(too-many-positional-arguments), RollMainWindow.renderOffAziPolar] Too many positional arguments (6/5)
-roll_main_window.py:1209: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
-roll_main_window.py:1264: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
-roll_main_window.py:1264: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
-roll_main_window.py:1384: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
-roll_main_window.py:1384: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
-roll_main_window.py:1747: [W0718(broad-exception-caught), RollMainWindow._onLayoutColorBarLevelsChanged] Catching too general exception Exception
-roll_main_window.py:1831: [R0911(too-many-return-statements), RollMainWindow._formatPlotImageValue] Too many return statements (7/6)
-roll_main_window.py:1899: [R1716(chained-comparison), RollMainWindow._setLayoutMouseStatus] Simplify chained comparison between the operands
-roll_main_window.py:1854: [R0912(too-many-branches), RollMainWindow._setLayoutMouseStatus] Too many branches (15/12)
-roll_main_window.py:2051: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
-roll_main_window.py:2401: [R0913(too-many-arguments), RollMainWindow.createAnalysisImageItem] Too many arguments (7/5)
-roll_main_window.py:2401: [R0917(too-many-positional-arguments), RollMainWindow.createAnalysisImageItem] Too many positional arguments (7/5)
-roll_main_window.py:2411: [R0913(too-many-arguments), RollMainWindow.prepareAnalysisImageAndColorBar] Too many arguments (13/5)
-roll_main_window.py:2411: [R0917(too-many-positional-arguments), RollMainWindow.prepareAnalysisImageAndColorBar] Too many positional arguments (13/5)
-roll_main_window.py:2460: [R0913(too-many-arguments), RollMainWindow.prepareLayoutImageAndColorBar] Too many arguments (7/5)
-roll_main_window.py:2460: [R0917(too-many-positional-arguments), RollMainWindow.prepareLayoutImageAndColorBar] Too many positional arguments (7/5)
-roll_main_window.py:171: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (223/20)
+roll_main_window.py:1002: [R0913(too-many-arguments), RollMainWindow.createOffAziSectorPath] Too many arguments (6/5)
+roll_main_window.py:1002: [R0917(too-many-positional-arguments), RollMainWindow.createOffAziSectorPath] Too many positional arguments (6/5)
+roll_main_window.py:1093: [R0913(too-many-arguments), RollMainWindow.renderOffAziRectangular] Too many arguments (6/5)
+roll_main_window.py:1093: [R0917(too-many-positional-arguments), RollMainWindow.renderOffAziRectangular] Too many positional arguments (6/5)
+roll_main_window.py:1120: [R0913(too-many-arguments), RollMainWindow.renderOffAziPolar] Too many arguments (6/5)
+roll_main_window.py:1120: [R0917(too-many-positional-arguments), RollMainWindow.renderOffAziPolar] Too many positional arguments (6/5)
+roll_main_window.py:1220: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
+roll_main_window.py:1273: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
+roll_main_window.py:1273: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
+roll_main_window.py:1393: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
+roll_main_window.py:1393: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
+roll_main_window.py:1756: [W0718(broad-exception-caught), RollMainWindow._onLayoutColorBarLevelsChanged] Catching too general exception Exception
+roll_main_window.py:1840: [R0911(too-many-return-statements), RollMainWindow._formatPlotImageValue] Too many return statements (7/6)
+roll_main_window.py:1908: [R1716(chained-comparison), RollMainWindow._setLayoutMouseStatus] Simplify chained comparison between the operands
+roll_main_window.py:1863: [R0912(too-many-branches), RollMainWindow._setLayoutMouseStatus] Too many branches (15/12)
+roll_main_window.py:2060: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
+roll_main_window.py:2410: [R0913(too-many-arguments), RollMainWindow.createAnalysisImageItem] Too many arguments (7/5)
+roll_main_window.py:2410: [R0917(too-many-positional-arguments), RollMainWindow.createAnalysisImageItem] Too many positional arguments (7/5)
+roll_main_window.py:2420: [R0913(too-many-arguments), RollMainWindow.prepareAnalysisImageAndColorBar] Too many arguments (13/5)
+roll_main_window.py:2420: [R0917(too-many-positional-arguments), RollMainWindow.prepareAnalysisImageAndColorBar] Too many positional arguments (13/5)
+roll_main_window.py:2469: [R0913(too-many-arguments), RollMainWindow.prepareLayoutImageAndColorBar] Too many arguments (7/5)
+roll_main_window.py:2469: [R0917(too-many-positional-arguments), RollMainWindow.prepareLayoutImageAndColorBar] Too many positional arguments (7/5)
+roll_main_window.py:175: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (224/20)
 ************* Module roll.roll_main_window_create_layout_tab
-roll_main_window_create_layout_tab.py:154: [W0718(broad-exception-caught), _buildAnalysisImageConfig] Catching too general exception Exception
-roll_main_window_create_layout_tab.py:175: [W0718(broad-exception-caught), _buildAnalysisImageConfig] Catching too general exception Exception
-roll_main_window_create_layout_tab.py:210: [W0718(broad-exception-caught), _ensureLayout3DWidget] Catching too general exception Exception
-roll_main_window_create_layout_tab.py:208: [C0415(import-outside-toplevel), _ensureLayout3DWidget] Import outside toplevel (layout_3D.Layout3DWidget)
-roll_main_window_create_layout_tab.py:238: [W0718(broad-exception-caught), _teardownLayout3DWidget] Catching too general exception Exception
-roll_main_window_create_layout_tab.py:243: [W0718(broad-exception-caught), _teardownLayout3DWidget] Catching too general exception Exception
-roll_main_window_create_layout_tab.py:370: [W0718(broad-exception-caught), refreshLayout3DFromSurvey] Catching too general exception Exception
-roll_main_window_create_layout_tab.py:264: [R0912(too-many-branches), refreshLayout3DFromSurvey] Too many branches (19/12)
+roll_main_window_create_layout_tab.py:181: [W0718(broad-exception-caught), _buildAnalysisImageConfig] Catching too general exception Exception
+roll_main_window_create_layout_tab.py:202: [W0718(broad-exception-caught), _buildAnalysisImageConfig] Catching too general exception Exception
+roll_main_window_create_layout_tab.py:236: [W0718(broad-exception-caught), _ensureLayout3DWidget] Catching too general exception Exception
+roll_main_window_create_layout_tab.py:234: [C0415(import-outside-toplevel), _ensureLayout3DWidget] Import outside toplevel (layout_3D.Layout3DWidget)
+roll_main_window_create_layout_tab.py:256: [W0718(broad-exception-caught), _teardownLayout3DWidget] Catching too general exception Exception
+roll_main_window_create_layout_tab.py:261: [W0718(broad-exception-caught), _teardownLayout3DWidget] Catching too general exception Exception
+roll_main_window_create_layout_tab.py:389: [W0718(broad-exception-caught), refreshLayout3DFromSurvey] Catching too general exception Exception
+roll_main_window_create_layout_tab.py:281: [R0912(too-many-branches), refreshLayout3DFromSurvey] Too many branches (19/12)
 ************* Module roll.roll_spiral
 roll_spiral.py:159: [R0913(too-many-arguments), RollSpiral.createSpiral2] Too many arguments (8/5)
 roll_spiral.py:159: [R0917(too-many-positional-arguments), RollSpiral.createSpiral2] Too many positional arguments (8/5)
@@ -185,49 +162,65 @@ roll_spiral.py:315: [R0913(too-many-arguments), RollSpiral.createSpiral] Too man
 roll_spiral.py:315: [R0917(too-many-positional-arguments), RollSpiral.createSpiral] Too many positional arguments (7/5)
 roll_spiral.py:382: [R1719(simplifiable-if-expression), RollSpiral.calcSpiralPath] The if expression can be replaced with 'test'
 ************* Module roll.roll_survey
-roll_survey.py:1128: [C0325(superfluous-parens), ] Unnecessary parens after '=' keyword
-roll_survey.py:1837: [C0301(line-too-long), ] Line too long (212/210)
-roll_survey.py:322: [R0913(too-many-arguments), RollSurvey.createBasicSkeleton] Too many arguments (6/5)
-roll_survey.py:322: [R0917(too-many-positional-arguments), RollSurvey.createBasicSkeleton] Too many positional arguments (6/5)
-roll_survey.py:492: [R1702(too-many-nested-blocks), RollSurvey.calcNoShotPoints] Too many nested blocks (6/5)
-roll_survey.py:713: [R0912(too-many-branches), RollSurvey.geomTemplate5] Too many branches (26/12)
-roll_survey.py:1111: [R0912(too-many-branches), RollSurvey.populateTemplateReceiversInRelTemp] Too many branches (15/12)
-roll_survey.py:1217: [R0913(too-many-arguments), RollSurvey.updateBinOutputsForValidCmpPoints] Too many arguments (8/5)
-roll_survey.py:1217: [R0917(too-many-positional-arguments), RollSurvey.updateBinOutputsForValidCmpPoints] Too many positional arguments (8/5)
-roll_survey.py:1296: [R0911(too-many-return-statements), RollSurvey.buildBinningArraysFromSelectedReceivers] Too many return statements (7/6)
-roll_survey.py:1464: [R0912(too-many-branches), RollSurvey.binFromGeometryNoRel] Too many branches (22/12)
-roll_survey.py:1495: [R1702(too-many-nested-blocks), RollSurvey.binFromGeometryNoRel] Too many nested blocks (6/5)
-roll_survey.py:1753: [R0912(too-many-branches), RollSurvey.binFromGeometry8] Too many branches (16/12)
-roll_survey.py:2025: [R0913(too-many-arguments), RollSurvey._gatherReceiversForSource] Too many arguments (7/5)
-roll_survey.py:2025: [R0917(too-many-positional-arguments), RollSurvey._gatherReceiversForSource] Too many positional arguments (7/5)
-roll_survey.py:2082: [R0913(too-many-arguments), RollSurvey._applyBinUpdatesVectorized] Too many arguments (10/5)
-roll_survey.py:2082: [R0917(too-many-positional-arguments), RollSurvey._applyBinUpdatesVectorized] Too many positional arguments (10/5)
-roll_survey.py:2197: [R0912(too-many-branches), RollSurvey.binTemplate7] Too many branches (16/12)
-roll_survey.py:2257: [R0912(too-many-branches), RollSurvey.binTemplate8] Too many branches (22/12)
-roll_survey.py:2528: [R1702(too-many-nested-blocks), RollSurvey.calcRmsOffsetValues] Too many nested blocks (6/5)
-roll_survey.py:2718: [R1714(consider-using-in), RollSurvey.checkIntegrity] Consider merging these comparisons with 'in' by using 'seed.type in (SeedType.rollingGrid, SeedType.fixedGrid)'. Use a set instead if elements are hashable.
-roll_survey.py:2697: [R0911(too-many-return-statements), RollSurvey.checkIntegrity] Too many return statements (9/6)
-roll_survey.py:2697: [R0912(too-many-branches), RollSurvey.checkIntegrity] Too many branches (16/12)
-roll_survey.py:2839: [R0912(too-many-branches), RollSurvey.readXml] Too many branches (13/12)
-roll_survey.py:3110: [R0912(too-many-branches), RollSurvey._renderInvariantSeedsIntoBase] Too many branches (17/12)
-roll_survey.py:3190: [R1702(too-many-nested-blocks), RollSurvey._paintPassIntoProgressive] Too many nested blocks (7/5)
-roll_survey.py:3164: [R0912(too-many-branches), RollSurvey._paintPassIntoProgressive] Too many branches (15/12)
-roll_survey.py:3238: [R0912(too-many-branches), RollSurvey.paint] Too many branches (13/12)
-roll_survey.py:3302: [R0913(too-many-arguments), RollSurvey._paintTemplate] Too many arguments (7/5)
-roll_survey.py:3302: [R0917(too-many-positional-arguments), RollSurvey._paintTemplate] Too many positional arguments (7/5)
-roll_survey.py:3302: [R0912(too-many-branches), RollSurvey._paintTemplate] Too many branches (17/12)
-roll_survey.py:153: [R0904(too-many-public-methods), RollSurvey] Too many public methods (62/20)
+roll_survey.py:1126: [C0325(superfluous-parens), ] Unnecessary parens after '=' keyword
+roll_survey.py:1: [C0302(too-many-lines), ] Too many lines in module (4207/4000)
+roll_survey.py:321: [R0913(too-many-arguments), RollSurvey.createBasicSkeleton] Too many arguments (6/5)
+roll_survey.py:321: [R0917(too-many-positional-arguments), RollSurvey.createBasicSkeleton] Too many positional arguments (6/5)
+roll_survey.py:491: [R1702(too-many-nested-blocks), RollSurvey.calcNoShotPoints] Too many nested blocks (6/5)
+roll_survey.py:712: [R0912(too-many-branches), RollSurvey.geomTemplate5] Too many branches (26/12)
+roll_survey.py:1109: [R0912(too-many-branches), RollSurvey.populateTemplateReceiversInRelTemp] Too many branches (15/12)
+roll_survey.py:1215: [R0913(too-many-arguments), RollSurvey.updateBinOutputsForValidCmpPoints] Too many arguments (9/5)
+roll_survey.py:1215: [R0917(too-many-positional-arguments), RollSurvey.updateBinOutputsForValidCmpPoints] Too many positional arguments (9/5)
+roll_survey.py:1215: [R0912(too-many-branches), RollSurvey.updateBinOutputsForValidCmpPoints] Too many branches (14/12)
+roll_survey.py:1309: [R0911(too-many-return-statements), RollSurvey.buildBinningArraysFromSelectedReceivers] Too many return statements (7/6)
+roll_survey.py:1487: [R0912(too-many-branches), RollSurvey.binFromGeometryNoRel] Too many branches (22/12)
+roll_survey.py:1518: [R1702(too-many-nested-blocks), RollSurvey.binFromGeometryNoRel] Too many nested blocks (6/5)
+roll_survey.py:1675: [R0912(too-many-branches), RollSurvey.binFromGeometryNoRel2] Too many branches (16/12)
+roll_survey.py:1785: [R0912(too-many-branches), RollSurvey.binFromGeometry8] Too many branches (16/12)
+roll_survey.py:1939: [R0912(too-many-branches), RollSurvey.binFromGeometry10] Too many branches (20/12)
+roll_survey.py:2078: [R0913(too-many-arguments), RollSurvey._gatherReceiversForSource] Too many arguments (7/5)
+roll_survey.py:2078: [R0917(too-many-positional-arguments), RollSurvey._gatherReceiversForSource] Too many positional arguments (7/5)
+roll_survey.py:2135: [R0913(too-many-arguments), RollSurvey._applyBinUpdatesVectorized] Too many arguments (11/5)
+roll_survey.py:2135: [R0917(too-many-positional-arguments), RollSurvey._applyBinUpdatesVectorized] Too many positional arguments (11/5)
+roll_survey.py:2135: [R0912(too-many-branches), RollSurvey._applyBinUpdatesVectorized] Too many branches (14/12)
+roll_survey.py:2228: [R0913(too-many-arguments), RollSurvey._applyBinUpdatesNumba] Too many arguments (10/5)
+roll_survey.py:2228: [R0917(too-many-positional-arguments), RollSurvey._applyBinUpdatesNumba] Too many positional arguments (10/5)
+roll_survey.py:2396: [R1702(too-many-nested-blocks), RollSurvey.binTemplate7] Too many nested blocks (6/5)
+roll_survey.py:2388: [R0912(too-many-branches), RollSurvey.binTemplate7] Too many branches (26/12)
+roll_survey.py:2478: [R0912(too-many-branches), RollSurvey.binTemplate8] Too many branches (33/12)
+roll_survey.py:2627: [R0912(too-many-branches), RollSurvey.binTemplate9] Too many branches (24/12)
+roll_survey.py:2739: [R0912(too-many-branches), RollSurvey.binTemplate10] Too many branches (29/12)
+roll_survey.py:2904: [R0911(too-many-return-statements), RollSurvey._buildTemplateTraceBatch] Too many return statements (12/6)
+roll_survey.py:2904: [R0912(too-many-branches), RollSurvey._buildTemplateTraceBatch] Too many branches (15/12)
+roll_survey.py:3083: [R0913(too-many-arguments), RollSurvey._applyBinUpdatesNumbaBatch] Too many arguments (10/5)
+roll_survey.py:3083: [R0917(too-many-positional-arguments), RollSurvey._applyBinUpdatesNumbaBatch] Too many positional arguments (10/5)
+roll_survey.py:3083: [R0912(too-many-branches), RollSurvey._applyBinUpdatesNumbaBatch] Too many branches (14/12)
+roll_survey.py:3348: [R1702(too-many-nested-blocks), RollSurvey.calcRmsOffsetValues] Too many nested blocks (6/5)
+roll_survey.py:3538: [R1714(consider-using-in), RollSurvey.checkIntegrity] Consider merging these comparisons with 'in' by using 'seed.type in (SeedType.rollingGrid, SeedType.fixedGrid)'. Use a set instead if elements are hashable.
+roll_survey.py:3517: [R0911(too-many-return-statements), RollSurvey.checkIntegrity] Too many return statements (9/6)
+roll_survey.py:3517: [R0912(too-many-branches), RollSurvey.checkIntegrity] Too many branches (16/12)
+roll_survey.py:3659: [R0912(too-many-branches), RollSurvey.readXml] Too many branches (13/12)
+roll_survey.py:3930: [R0912(too-many-branches), RollSurvey._renderInvariantSeedsIntoBase] Too many branches (17/12)
+roll_survey.py:4010: [R1702(too-many-nested-blocks), RollSurvey._paintPassIntoProgressive] Too many nested blocks (7/5)
+roll_survey.py:3984: [R0912(too-many-branches), RollSurvey._paintPassIntoProgressive] Too many branches (15/12)
+roll_survey.py:4059: [R0912(too-many-branches), RollSurvey.paint] Too many branches (13/12)
+roll_survey.py:4123: [R0913(too-many-arguments), RollSurvey._paintTemplate] Too many arguments (7/5)
+roll_survey.py:4123: [R0917(too-many-positional-arguments), RollSurvey._paintTemplate] Too many positional arguments (7/5)
+roll_survey.py:4123: [R0912(too-many-branches), RollSurvey._paintTemplate] Too many branches (17/12)
+roll_survey.py:151: [R0904(too-many-public-methods), RollSurvey] Too many public methods (64/20)
 ************* Module roll.roll_template
 roll_template.py:112: [R0912(too-many-branches), RollTemplate.calcBoundingRect] Too many branches (13/12)
 ************* Module roll.roll_well
 roll_well.py:75: [R0913(too-many-arguments), RollWell.refreshHeaderFromCurrentState] Too many arguments (7/5)
 roll_well.py:170: [R0911(too-many-return-statements), RollWell.readHeader] Too many return statements (10/6)
 roll_well.py:170: [R0912(too-many-branches), RollWell.readHeader] Too many branches (15/12)
+************* Module roll.settings
+settings.py:409: [R0912(too-many-branches), readSettings] Too many branches (14/12)
 ************* Module roll.spider_navigation_mixin
 spider_navigation_mixin.py:180: [W0718(broad-exception-caught), SpiderNavigationMixin._spiderLegArrays] Catching too general exception Exception
 ************* Module roll.sps_import_dialog
-sps_import_dialog.py:559: [R0912(too-many-branches), SpsImportDialog.onSpsFilesChanged] Too many branches (13/12)
-sps_import_dialog.py:33: [R0904(too-many-public-methods), SpsImportDialog] Too many public methods (22/20)
+sps_import_dialog.py:556: [R0912(too-many-branches), SpsImportDialog.onSpsFilesChanged] Too many branches (13/12)
+sps_import_dialog.py:31: [R0904(too-many-public-methods), SpsImportDialog] Too many public methods (22/20)
 ************* Module roll.standalone
 standalone.py:19: [R1732(consider-using-with), _logMessage] Consider using 'with' for resource-allocating operations
 ************* Module roll.survey_paint_mixin
@@ -254,7 +247,8 @@ test\test_my_parameters_seed_visibility.py:128: [R0913(too-many-arguments), _Fak
 test\test_my_parameters_seed_visibility.py:239: [R0913(too-many-arguments), _FakeVisibilityState.__init__] Too many arguments (7/5)
 test\test_my_parameters_seed_visibility.py:805: [R0904(too-many-public-methods), MyParameterPreviewSummaryHelperTest] Too many public methods (48/20)
 ************* Module roll.test.test_project_sidecars
-test\test_project_sidecars.py:64: [R0904(too-many-public-methods), ProjectSidecarsTest] Too many public methods (133/20)
+test\test_project_sidecars.py:1928: [W0613(unused-argument), ProjectSidecarsTest.testBinningWorkerRunUsesOptionalProfilingPayload.SurveyStub.setupBinFromTemplates] Unused argument 'extended'
+test\test_project_sidecars.py:130: [R0904(too-many-public-methods), ProjectSidecarsTest] Too many public methods (143/20)
 ************* Module roll.test.test_roll_survey_geometry
 test\test_roll_survey_geometry.py:28: [R0904(too-many-public-methods), RollSurveyGeometryTest] Too many public methods (21/20)
 ************* Module roll.test.test_sps_filters
@@ -264,5 +258,5 @@ test\utilities.py:91: [R0913(too-many-arguments), writeMinimalProjectFixture] To
 test\utilities.py:91: [R0917(too-many-positional-arguments), writeMinimalProjectFixture] Too many positional arguments (6/5)
 
 ------------------------------------------------------------------
-Your code has been rated at 9.91/10 (previous run: 9.92/10, -0.01)
+Your code has been rated at 9.92/10 (previous run: 9.91/10, +0.01)
 

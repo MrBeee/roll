@@ -201,6 +201,7 @@ class WorkerOperationController:
             extended=fullAnalysis,
             analysisFile=self.window.output.anaOutput,
             debugpyEnabled=self.window.appSettings.debugpy,
+            includeProfiling=self.window.appSettings.debug,
         )
         return WorkerJobSpec(
             name='bin-from-geometry',

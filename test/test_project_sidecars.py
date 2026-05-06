@@ -2,12 +2,14 @@
 import os
 import tempfile
 import unittest
+from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pyqtgraph as pg
-from qgis.PyQt.QtCore import QEvent, QPointF, QRectF
+from qgis.PyQt.QtCore import QEvent, QPointF, QRectF, Qt
+from qgis.PyQt.QtGui import QColor, QPen, QTransform
 from qgis.PyQt.QtWidgets import QAction
 
 from .plugin_loader import loadPluginModule
@@ -28,6 +30,8 @@ binningWorkerMixinModule = loadPluginModule('binning_worker_mixin')
 workerOperationControllerModule = loadPluginModule('worker_operation_controller')
 propertyPanelControllerModule = loadPluginModule('property_panel_controller')
 printPresentationControllerModule = loadPluginModule('print_presentation_controller')
+layoutTabModule = loadPluginModule('roll_main_window_create_layout_tab')
+layout3DModule = loadPluginModule('layout_3D')
 
 RollMainWindow = rollMainWindowModule.RollMainWindow
 RollSurvey = rollSurveyModule.RollSurvey
@@ -41,14 +45,14 @@ config = configModule
 myPrint = auxFunctionsModule.myPrint
 isDebugLoggingEnabled = appSettingsModule.isDebugLoggingEnabled
 isShowSummariesEnabled = appSettingsModule.isShowSummariesEnabled
-isShowUnfinishedEnabled = appSettingsModule.isShowUnfinishedEnabled
+isUseExperimentalEnabled = appSettingsModule.isUseExperimentalEnabled
 readStoredDebugSetting = appSettingsModule.readStoredDebugSetting
 readStoredDebugpySetting = appSettingsModule.readStoredDebugpySetting
 readStoredShowSummariesSetting = appSettingsModule.readStoredShowSummariesSetting
-readStoredShowUnfinishedSetting = appSettingsModule.readStoredShowUnfinishedSetting
+readStoredUseExperimentalSetting = appSettingsModule.readStoredUseExperimentalSetting
 setActiveDebugLogging = appSettingsModule.setActiveDebugLogging
 setActiveShowSummaries = appSettingsModule.setActiveShowSummaries
-setActiveShowUnfinished = appSettingsModule.setActiveShowUnfinished
+setActiveUseExperimental = appSettingsModule.setActiveUseExperimental
 BinningFromTemplatesRequest = workerThreadsModule.BinningFromTemplatesRequest
 BinningFromTemplatesResult = workerThreadsModule.BinningFromTemplatesResult
 BinningFromGeometryRequest = workerThreadsModule.BinningFromGeometryRequest
@@ -59,6 +63,68 @@ GeometryFromTemplatesResult = workerThreadsModule.GeometryFromTemplatesResult
 BinningWorker = workerThreadsModule.BinningWorker
 BinFromGeometryWorker = workerThreadsModule.BinFromGeometryWorker
 GeometryWorker = workerThreadsModule.GeometryWorker
+Layout3DWidget = layout3DModule.Layout3DWidget
+
+
+class Layout3DHelperTest(unittest.TestCase):
+    def testDataPointsLocalBoundingRectPreservesTightLocalFootprintForRotatedGlobalData(self):
+        localCorners = np.array(
+            [
+                [0.0, 0.0],
+                [10.0, 0.0],
+                [10.0, 5.0],
+                [0.0, 5.0],
+            ],
+            dtype=np.float64,
+        )
+        transform = QTransform()
+        transform.translate(1250.0, 2450.0)
+        transform.rotate(30.0)
+
+        globalCorners = np.array([transform.map(x, y) for x, y in localCorners], dtype=np.float64)
+        dataPoints = [(globalCorners[:, 0], globalCorners[:, 1])]
+        survey = SimpleNamespace(glbTransform=transform)
+
+        tightLocalBbox = Layout3DWidget._dataPointsLocalBoundingRect(survey, dataPoints)
+        inflatedCornerMappedBbox = Layout3DWidget._mapGlobalBboxToLocal(survey, *Layout3DWidget._dataPointsBoundingRect(dataPoints))
+
+        self.assertIsNotNone(tightLocalBbox)
+        self.assertAlmostEqual(tightLocalBbox[0], 0.0, places=6)
+        self.assertAlmostEqual(tightLocalBbox[1], 0.0, places=6)
+        self.assertAlmostEqual(tightLocalBbox[2], 10.0, places=6)
+        self.assertAlmostEqual(tightLocalBbox[3], 5.0, places=6)
+        self.assertLess(tightLocalBbox[0], tightLocalBbox[2])
+        self.assertLess(tightLocalBbox[1], tightLocalBbox[3])
+
+        self.assertLess(inflatedCornerMappedBbox[0], tightLocalBbox[0])
+        self.assertLess(inflatedCornerMappedBbox[1], tightLocalBbox[1])
+        self.assertGreater(inflatedCornerMappedBbox[2], tightLocalBbox[2])
+        self.assertGreater(inflatedCornerMappedBbox[3], tightLocalBbox[3])
+
+    def testDrawSpiderOverlayExtendsCachedDepthRangeToIncludeCmpDepths(self):
+        widget = Layout3DWidget()
+        try:
+            widget._dataZMin = -100.0
+            widget._dataZMax = -10.0
+
+            spiderData = {
+                'srcX': np.array([100.0, 110.0], dtype=np.float64),
+                'srcY': np.array([200.0, 210.0], dtype=np.float64),
+                'srcZ': np.array([0.0, -1200.0], dtype=np.float64),
+                'recX': np.array([120.0, 110.0], dtype=np.float64),
+                'recY': np.array([220.0, 210.0], dtype=np.float64),
+                'recZ': np.array([0.0, -1350.0], dtype=np.float64),
+            }
+            survey = SimpleNamespace(glbTransform=None)
+
+            widget._drawSpiderOverlay(survey, False, spiderData)
+
+            self.assertEqual(widget._dataZMin, -1350.0)
+            self.assertEqual(widget._dataZMax, 0.0)
+            self.assertEqual(len(widget._artists), 5)
+        finally:
+            widget.close()
+            widget.deleteLater()
 
 
 class ProjectSidecarsTest(unittest.TestCase):
@@ -1291,6 +1357,29 @@ class ProjectSidecarsTest(unittest.TestCase):
 
             self.mainWindow.resetAnaTableModel()
 
+    def testPrepFullBinningConditionsRecreatesExistingAnalysisSidecar(self):
+        with tempfile.TemporaryDirectory() as tempDir:
+            projectPath = self.writeProjectFixture(tempDir)
+            anaPath = projectPath + '.ana.npy'
+
+            self.mainWindow.fileName = projectPath
+            self.mainWindow.survey = self.createSurvey()
+            self.mainWindow.survey.grid.fold = 5
+
+            # Simulate a stale header-bearing file left behind by an older writer.
+            np.save(anaPath, np.zeros((10, 5, 5, 16), dtype=np.float32))
+            staleSize = os.path.getsize(anaPath)
+
+            success = self.mainWindow.prepFullBinningConditions()
+
+            self.assertTrue(success)
+            self.assertIsInstance(self.mainWindow.output.anaOutput, np.memmap)
+            expectedSize = 10 * 5 * 5 * 16 * 4
+            self.assertEqual(os.path.getsize(anaPath), expectedSize)
+            self.assertNotEqual(staleSize, expectedSize)
+
+            self.mainWindow.resetAnaTableModel()
+
     def testSaveSurveyDataSidecarsWritesGeometryFiles(self):
         with tempfile.TemporaryDirectory() as tempDir:
             projectPath = self.writeProjectFixture(tempDir)
@@ -1366,6 +1455,8 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.mainWindow.settings.setValue('settings/recentFileList', [projectPath])
             self.mainWindow.settings.setValue('settings/sps/spsDialect', 'SEG rev2.1')
             self.mainWindow.settings.setValue('settings/colors/analysisCmap', 'CET-L5')
+            self.mainWindow.settings.setValue('settings/colors/reflectColor', '#40223344')
+            self.mainWindow.settings.setValue('settings/colors/reflectPen', str(((10, 20, 30, 255), 3, 'DashLine', 'RoundCap', 'RoundJoin', False)))
 
             readSettings(self.mainWindow)
 
@@ -1377,9 +1468,13 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.assertEqual(self.mainWindow.recentFileList, [projectPath])
             self.assertEqual(self.mainWindow.appSettings.spsDialect, 'SEG rev2.1')
             self.assertEqual(self.mainWindow.appSettings.analysisCmap, 'CET-L5')
+            self.assertEqual(self.mainWindow.appSettings.reflectColor, '#40223344')
+            self.assertEqual(auxFunctionsModule.makeParmsFromPen(self.mainWindow.appSettings.reflectPen), ((10, 20, 30, 255), 3, 'DashLine', 'RoundCap', 'RoundJoin', False))
 
             self.mainWindow.appSettings.useRelativePaths = False
             self.mainWindow.appSettings.spsDialect = 'New Zealand'
+            self.mainWindow.appSettings.reflectColor = '#40556677'
+            self.mainWindow.appSettings.reflectPen = QPen(QColor(40, 50, 60, 255), 2, Qt.PenStyle.DotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
             self.mainWindow.projectDirectory = tempDir
             self.mainWindow.importDirectory = importDir
             self.mainWindow.recentFileList = [projectPath]
@@ -1391,6 +1486,25 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.assertEqual(self.mainWindow.settings.value('settings/importDirectory', ''), importDir)
             self.assertEqual(self.mainWindow.settings.value('settings/recentFileList', []), [projectPath])
             self.assertEqual(self.mainWindow.settings.value('settings/sps/spsDialect', ''), 'New Zealand')
+            self.assertEqual(self.mainWindow.settings.value('settings/colors/reflectColor', ''), '#40556677')
+            self.assertEqual(self.mainWindow.settings.value('settings/colors/reflectPen', ''), str(auxFunctionsModule.makeParmsFromPen(self.mainWindow.appSettings.reflectPen)))
+
+    def testReflectorStyleConfigUsesConfiguredReflectColor(self):
+        self.mainWindow.appSettings.reflectColor = '#40223344'
+        self.mainWindow.appSettings.reflectPen = QPen(QColor(50, 60, 70, 255), 4, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+
+        style = layoutTabModule._buildReflectorStyleConfig(self.mainWindow)
+
+        self.assertEqual(style['faceColor'], layoutTabModule._qColorToRgba(QColor('#40223344')))
+        self.assertEqual(style['edgeColor'], layoutTabModule._qColorToRgba(QColor(50, 60, 70, 255)))
+        self.assertEqual(style['edgeWidth'], 4.0)
+        self.assertEqual(style['edgeStyle'], '-.')
+
+    def testDefaultReflectPenMatchesConfig(self):
+        self.assertEqual(
+            auxFunctionsModule.makeParmsFromPen(appSettingsModule.AppSettings().reflectPen),
+            auxFunctionsModule.makeParmsFromPen(config.reflectPen),
+        )
 
     def testReadSettingsRestoresSavedWindowState(self):
         geometryState = b'geometry-bytes'
@@ -1405,6 +1519,29 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         restoreGeometry.assert_called_once_with(geometryState)
         restoreState.assert_called_once_with(windowState)
+
+    def testReadSettingsIgnoresStoredLayoutViewMode(self):
+        self.mainWindow.settings.setValue('mainWindow/layoutViewMode', '3d')
+
+        readSettings(self.mainWindow)
+
+        self.assertEqual(self.mainWindow.layoutViewMode, '2d')
+        self.assertTrue(self.mainWindow.actionLayout2D.isChecked())
+        self.assertIs(self.mainWindow.layoutViewStack.currentWidget(), self.mainWindow.layoutWidget)
+
+    def testWriteSettingsRemovesStoredLayoutViewMode(self):
+        self.mainWindow.settings.setValue('mainWindow/layoutViewMode', '3d')
+        self.mainWindow.actionLayout3D.setChecked(True)
+
+        writeSettings(self.mainWindow)
+
+        self.assertIsNone(self.mainWindow.settings.value('mainWindow/layoutViewMode'))
+
+        self.mainWindow.actionLayout2D.setChecked(True)
+
+        writeSettings(self.mainWindow)
+
+        self.assertIsNone(self.mainWindow.settings.value('mainWindow/layoutViewMode'))
 
     def testSpsImportDialogUsesAppSettingsAsFormatOwner(self):
         self.mainWindow.appSettings.spsDialect = 'New Zealand'
@@ -1571,17 +1708,29 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.appSettings.activate()
         self.assertTrue(isShowSummariesEnabled())
 
-    def testActivateUpdatesActiveShowUnfinished(self):
-        self.mainWindow.appSettings.showUnfinished = False
+    def testActivateUpdatesActiveUseExperimental(self):
+        self.mainWindow.appSettings.useExperimental = False
         self.mainWindow.appSettings.activate()
-        self.assertFalse(isShowUnfinishedEnabled())
+        self.assertFalse(isUseExperimentalEnabled())
 
-        self.mainWindow.appSettings.showUnfinished = True
+        self.mainWindow.appSettings.useExperimental = True
         self.mainWindow.appSettings.activate()
-        self.assertTrue(isShowUnfinishedEnabled())
+        self.assertTrue(isUseExperimentalEnabled())
 
-    def testLayoutMethodControlsAreHiddenWhenUnfinishedCodeIsDisabled(self):
-        self.mainWindow.appSettings.showUnfinished = False
+    def testLayoutMethodControlsAreHiddenWhenExperimentalCodeIsDisabled(self):
+        self.mainWindow.appSettings.useExperimental = False
+        self.mainWindow.appSettings.activate()
+
+        with patch.object(self.mainWindow, 'handleImageSelection'), patch.object(self.mainWindow, 'plotLayout'):
+            self.mainWindow.updateSettings()
+
+        self.assertFalse(self.mainWindow.layoutMethodSidePanel.isHidden())
+        self.assertFalse(self.mainWindow.layoutMethodChoice.isHidden())
+        self.assertGreater(self.mainWindow.layoutMethodSplitter.sizes()[0], 0)
+        self.assertTrue(self.mainWindow.actionLayout2D.isChecked())
+
+    def testLayoutMethodControlsAreShownWhenExperimentalCodeIsEnabled(self):
+        self.mainWindow.appSettings.useExperimental = True
         self.mainWindow.appSettings.activate()
 
         with patch.object(self.mainWindow, 'handleImageSelection'), patch.object(self.mainWindow, 'plotLayout'):
@@ -1592,17 +1741,29 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertGreater(self.mainWindow.layoutMethodSplitter.sizes()[0], 0)
         self.assertTrue(self.mainWindow.actionLayout2D.isChecked())
 
-    def testLayoutMethodControlsAreShownWhenUnfinishedCodeIsEnabled(self):
-        self.mainWindow.appSettings.showUnfinished = True
-        self.mainWindow.appSettings.activate()
+    def testMainTabChangeKeeps3DSubsetSelected(self):
+        self.mainWindow.actionLayout3D.setChecked(True)
+        originalWidget = self.mainWindow.layout3DWidget
 
-        with patch.object(self.mainWindow, 'handleImageSelection'), patch.object(self.mainWindow, 'plotLayout'):
-            self.mainWindow.updateSettings()
+        self.mainWindow.onMainTabChange(1)
 
-        self.assertFalse(self.mainWindow.layoutMethodSidePanel.isHidden())
-        self.assertFalse(self.mainWindow.layoutMethodChoice.isHidden())
-        self.assertGreater(self.mainWindow.layoutMethodSplitter.sizes()[0], 0)
+        self.assertTrue(self.mainWindow.actionLayout3D.isChecked())
+        self.assertIs(self.mainWindow.layout3DWidget, originalWidget)
+
+    def testFileLoadReturnsTo2DMapViewAndRefreshes3DSubset(self):
+        with tempfile.TemporaryDirectory() as tempDir:
+            projectPath = self.writeProjectFixture(tempDir)
+            self.mainWindow.actionLayout3D.setChecked(True)
+            originalWidget = self.mainWindow.layout3DWidget
+
+            with patch.object(rollMainWindowModule, 'refreshLayout3DFromSurvey', wraps=rollMainWindowModule.refreshLayout3DFromSurvey) as refreshLayout3D:
+                success = self.mainWindow.fileLoad(projectPath)
+
+        self.assertTrue(success)
         self.assertTrue(self.mainWindow.actionLayout2D.isChecked())
+        self.assertIs(self.mainWindow.layoutViewStack.currentWidget(), self.mainWindow.layoutWidget)
+        self.assertIs(self.mainWindow.layout3DWidget, originalWidget)
+        self.assertGreaterEqual(refreshLayout3D.call_count, 1)
 
     def testBinFromTemplatesUsesRequestObjectAndResultSignal(self):
         class SignalStub:
@@ -2294,6 +2455,36 @@ class ProjectSidecarsTest(unittest.TestCase):
         enableProcessingMenuItems.assert_called_once_with(True)
         hideStatusbarWidgets.assert_called_once()
 
+    def testApplyBinningWorkerResultHandlesGeometryResultWithoutProfiling(self):
+        result = BinningFromGeometryResult(success=False, errorText='geometry worker failed')
+
+        with patch.object(self.mainWindow.binningResultApplier, '_logProfiling') as logProfiling:
+            with patch.object(self.mainWindow.binningResultApplier, '_applyFailure') as applyFailure:
+                self.mainWindow.applyBinningWorkerResult(result, timedelta(seconds=1))
+
+        logProfiling.assert_called_once_with(None)
+        applyFailure.assert_called_once_with('geometry worker failed')
+
+    def testBinningProfilingSummaryHighlightsBuildVsWriteTotals(self):
+        self.mainWindow.appSettings.debug = True
+        self.mainWindow._ensureWorkerOperationComponents()
+        profiling = GeometryProfilingPayload(
+            timerTmin=(float('Inf'), float('Inf'), 0.010, float('Inf'), float('Inf'), 0.030, float('Inf')),
+            timerTmax=(0.0, 0.0, 0.040, 0.0, 0.0, 0.090, 0.0),
+            timerTtot=(0.0, 0.0, 1.250, 0.0, 0.0, 3.750, 0.0),
+            timerFreq=(0, 0, 5, 0, 0, 10, 0),
+        )
+
+        with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+            self.mainWindow.binningResultApplier._logProfiling(profiling)
+
+        appendLogMessage.assert_any_call(
+            'Profiling summary: buildTraceArrays tot=0001250.000 ms (freq=0000005), '
+            'analysisWrite tot=0003750.000 ms (freq=0000010), dominant=analysisWrite, '
+            'analysisWrite/buildTraceArrays=3.00x',
+            rollMainWindowModule.MsgType.Debug,
+        )
+
     def testCreateGeometryFromTemplatesUsesRequestObjectAndResultSignal(self):
         class SignalStub:
             def __init__(self):
@@ -2669,17 +2860,17 @@ class ProjectSidecarsTest(unittest.TestCase):
                 self.mainWindow.settings.setValue('settings/misc/showSummaries', originalValue)
             self.mainWindow.settings.sync()
 
-    def testReadStoredShowUnfinishedSettingUsesPersistedValue(self):
-        originalValue = self.mainWindow.settings.value('settings/misc/showUnfinished', None)
+    def testReadStoredUseExperimentalSettingUsesPersistedValue(self):
+        originalValue = self.mainWindow.settings.value('settings/misc/useExperimental', None)
         try:
-            self.mainWindow.settings.setValue('settings/misc/showUnfinished', True)
+            self.mainWindow.settings.setValue('settings/misc/useExperimental', True)
             self.mainWindow.settings.sync()
-            self.assertTrue(readStoredShowUnfinishedSetting())
+            self.assertTrue(readStoredUseExperimentalSetting())
         finally:
             if originalValue is None:
-                self.mainWindow.settings.remove('settings/misc/showUnfinished')
+                self.mainWindow.settings.remove('settings/misc/useExperimental')
             else:
-                self.mainWindow.settings.setValue('settings/misc/showUnfinished', originalValue)
+                self.mainWindow.settings.setValue('settings/misc/useExperimental', originalValue)
             self.mainWindow.settings.sync()
 
     def testUpdateRecentFileActionsKeepsRelativeEntriesInSettings(self):

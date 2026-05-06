@@ -1,12 +1,19 @@
 import copy
 
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QPen, QVector3D
+from qgis.PyQt.QtGui import QColor, QPen, QVector3D
 
 # This module provides some default settings for variables used in Roll
+# Black-formatter: Path settings C:\Users\BartD\AppData\Roaming\Python\Python312\Scripts\blue.exe
 
 # for the use of this file
 # See: https://www.edureka.co/community/52900/how-do-i-share-global-variables-across-modules-python
+
+
+def _makeDefaultPen(color, width, style, capStyle, joinStyle):
+    pen = QPen(color, width, style, capStyle, joinStyle)
+    pen.setCosmetic(True)
+    return pen
 
 
 # general settings
@@ -33,12 +40,14 @@ binAreaColor = '#20000000'                                                      
 cmpAreaColor = '#0800ff00'                                                      # argb - light green
 recAreaColor = '#080000ff'                                                      # argb - light blue
 srcAreaColor = '#08ff0000'                                                      # argb - light red
+reflectColor = '#403070d0'                                                      # argb - translucent blue for 3D reflector surfaces
 
 # Default pen parameters for analysis areas, these can be altered in the settings dialog
-binAreaPen = QPen(Qt.GlobalColor.black, 2, Qt.PenStyle.DashLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
-cmpAreaPen = QPen(Qt.GlobalColor.green, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
-recAreaPen = QPen(Qt.GlobalColor.blue, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
-srcAreaPen = QPen(Qt.GlobalColor.red, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+binAreaPen = _makeDefaultPen(Qt.GlobalColor.black, 2, Qt.PenStyle.DashLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+cmpAreaPen = _makeDefaultPen(Qt.GlobalColor.green, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+recAreaPen = _makeDefaultPen(Qt.GlobalColor.blue, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+srcAreaPen = _makeDefaultPen(Qt.GlobalColor.red, 1, Qt.PenStyle.DashDotLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+reflectPen = _makeDefaultPen(QColor('#1a4080'), 1, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
 
 # Default colormaps, used to display images
 foldDispCmap = 'CET-L4'                                                         # used for fold/offset map (layout tab)
@@ -112,10 +121,10 @@ _spsFormatDefaults = [
     # all indices are 'zero' based and the last number is not included
     # the first character on a line is therefore [0, 1], the last one is [79, 80]
     # Note: In SEG rev2.1, Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
-    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),  # noqa: E201, E501
-    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),  # noqa: E201, E501
-    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 11], point=[11, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),  # noqa: E201, E501
-    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),  # noqa: E201, E501
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),  # noqa: E201, E501 # pylint: disable=C0301
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),  # noqa: E201, E501 # pylint: disable=C0301
+    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 11], point=[11, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),  # noqa: E201, E501 # pylint: disable=C0301
+    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),  # noqa: E201, E501 # pylint: disable=C0301
 ]
 # fmt: on
 
@@ -125,10 +134,10 @@ _rpsFormatDefaults = [
     # all indices are 'zero' based and the last number is not included
     # the first character on a line is therefore [0, 1], the last one is [79, 80]
     # Note: In SEG rev2.1, Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
-    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),  # noqa: E201, E501
-    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),  # noqa: E201, E501
-    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 11], point=[11, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),  # noqa: E201, E501
-    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),  # noqa: E201, E501
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[11, 15], point=[21, 25], index=[25, 26], code=[26, 28], depth=[33, 37], east=[47, 55], north=[57, 65], elev=[65, 71]),  # noqa: E201, E501 # pylint: disable=C0301
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[13, 17], point=[17, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[47, 55], north=[57, 65], elev=[65, 71]),  # noqa: E201, E501 # pylint: disable=C0301
+    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 11], point=[11, 21], index=[23, 24], code=[24, 26], depth=[30, 34], east=[46, 55], north=[55, 65], elev=[65, 71]),  # noqa: E201, E501 # pylint: disable=C0301
+    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], line=[ 1, 12], point=[21, 25], index=[25, 26], code=[26, 28], depth=[29, 33], east=[46, 55], north=[55, 65], elev=[66, 71]),  # noqa: E201, E501 # pylint: disable=C0301
 ]
 # fmt: on
 
@@ -137,10 +146,10 @@ _xpsFormatDefaults = [
     # configuration settings for locations of fields in SPS data;
     # all indices are 'zero' based and the last number is not included
     # the first character on a line is therefore [0, 1], the last one is [79, 80]
-    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[8, 11], srcLin=[23, 27], srcPnt=[33, 37], srcInd=[37, 38], recLin=[57, 61], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),  # noqa: E201, E501
-    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[8, 15], srcLin=[29, 33], srcPnt=[33, 37], srcInd=[37, 38], recLin=[61, 65], recMin=[65, 69], recMax=[75, 79], recInd=[79, 80]),  # noqa: E201, E501
-    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[7, 15], srcLin=[17, 27], srcPnt=[27, 37], srcInd=[37, 38], recLin=[49, 59], recMin=[59, 69], recMax=[69, 79], recInd=[79, 80]),  # noqa: E201, E501
-    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[4, 12], srcLin=[13, 17], srcPnt=[33, 37], srcInd=[37, 38], recLin=[47, 51], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),  # noqa: E201, E501
+    dict(name='Netherlands', hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[8, 11], srcLin=[23, 27], srcPnt=[33, 37], srcInd=[37, 38], recLin=[57, 61], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),  # noqa: E201, E501 # pylint: disable=C0301
+    dict(name='New Zealand', hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[8, 15], srcLin=[29, 33], srcPnt=[33, 37], srcInd=[37, 38], recLin=[61, 65], recMin=[65, 69], recMax=[75, 79], recInd=[79, 80]),  # noqa: E201, E501 # pylint: disable=C0301
+    dict(name='SEG rev2.1',  hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[7, 15], srcLin=[17, 27], srcPnt=[27, 37], srcInd=[37, 38], recLin=[49, 59], recMin=[59, 69], recMax=[69, 79], recInd=[79, 80]),  # noqa: E201, E501 # pylint: disable=C0301
+    dict(name='Sudan',       hdr='H', src='S', rec='R', rel='X', id=[0, 1], recNum=[4, 12], srcLin=[13, 17], srcPnt=[33, 37], srcInd=[37, 38], recLin=[47, 51], recMin=[67, 71], recMax=[75, 79], recInd=[79, 80]),  # noqa: E201, E501 # pylint: disable=C0301
 ]
 # fmt: on
 
@@ -169,8 +178,8 @@ kxyArray = QVector3D(-50.0, 50.0, 0.5)  # settings for pattern kxy plots (min, m
 # useNumba is used to indicate whether or not to use numba (IF it has been installed)
 useNumba = False
 
-# showUnfinished is used to indicate whether or not code "still under construction" is to be shown to end user
-DEFAULT_SHOW_UNFINISHED = False
+# useExperimental is used to indicate whether or not code "still under construction" is to be used
+DEFAULT_USE_EXPERIMENTAL = False
 
 # showSummary is used to indicate whether or not to show summary info of underlying parameters in the property pane
 DEFAULT_SHOW_SUMMARIES = False

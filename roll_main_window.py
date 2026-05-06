@@ -3,17 +3,6 @@
 
 """Main window for the Roll plugin."""
 
-try:    # need to TRY importing numba, only to see if it is available
-    haveNumba = True
-    import numba  # pylint: disable=W0611
-except ImportError:
-    haveNumba = False
-
-try:    # need to TRY importing debugpy, only to see if it is available
-    haveDebugpy = True
-except ImportError:
-    haveDebugpy = False
-
 import contextlib
 import gc
 import os
@@ -79,8 +68,8 @@ from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
 from .roll_binning import BinningType
 from .roll_main_window_create_geom_tab import createGeomTab
 from .roll_main_window_create_layout_tab import (
-    _onMainTabChangedFor3D, createLayoutTab, refreshLayout3DFromSurvey,
-    updateLayoutMethodControlsVisibility)
+    _onMainTabChangedFor3D, _teardownLayout3DWidget, createLayoutTab,
+    refreshLayout3DFromSurvey, updateLayoutMethodControlsVisibility)
 from .roll_main_window_create_off_azi_tab import createOffAziTab
 from .roll_main_window_create_offset_tabs import createOffsetTabs
 from .roll_main_window_create_pattern_tab import createPatternTab
@@ -100,6 +89,17 @@ from .sps_io_and_qc import (convertCrs, exportDataAsTxt, fileExportAsR01,
 from .stack_response_controller import StackResponseController
 from .survey_paint_mixin import SurveyPaintMixin
 from .xml_code_editor import QCodeEditor, XMLHighlighter
+
+try:    # need to TRY importing numba, only to see if it is available
+    haveNumba = True
+    import numba  # pylint: disable=W0611
+except ImportError:
+    haveNumba = False
+
+try:    # need to TRY importing debugpy, only to see if it is available
+    haveDebugpy = True
+except ImportError:
+    haveDebugpy = False
 
 # code to run Roll standalone, without QGIS, for testing and development purposes
 
@@ -1232,9 +1232,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             myPrint( '└───────────────────────────────────────')  # noqa: E201
 
     def onMainTabChange(self, index):                                           # manage focus when active tab is changed; doesn't work 100% yet !
-        # Destroy the 3D Layout widget when leaving the Layout tab so a
-        # hidden GL surface cannot deadlock against the active tab's
-        # rendering.
+        # Keep the 3D Layout surface in sync with tab activation.
         _onMainTabChangedFor3D(self, index)
 
         if index == 0:                                                          # main plotting widget
@@ -1673,10 +1671,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         surfaceDefinitions = {
             1: dict(imageAttr='binOutput', maxAttr='maximumFold', label='fold', statusLabel='fold', valueKind='int', fileSuffix='bin', fileExportLabel='fold map', qgisExportLabel='fold map'),
-            2: dict(imageAttr='minOffset', maxAttr='maxMinOffset', label='minimum offset', statusLabel='|min offset|', valueKind='float', fileSuffix='min', fileExportLabel='min-offsets', qgisExportLabel='min-offset map'),  # noqa: E501
-            3: dict(imageAttr='maxOffset', maxAttr='maxMaxOffset', label='maximum offset', statusLabel='|max offset|', valueKind='float', fileSuffix='max', fileExportLabel='max-offsets', qgisExportLabel='max-offset map'),  # noqa: E501
-            4: dict(imageAttr='rmsOffset', maxAttr='maxRmsOffset', label='rms offset increments', statusLabel='rms offset inc', valueKind='float', fileSuffix='rms', fileExportLabel='rms-offsets', qgisExportLabel='rms-offset map'),  # noqa: E501
-            5: dict(imageAttr='offsetGap', maxAttr='maxOffsetGap', label='maximum offset gap', statusLabel='max offset gap', valueKind='float', fileSuffix='gap', fileExportLabel='max-offset gaps', qgisExportLabel='max-offset gap map'),  # noqa: E501
+            2: dict(imageAttr='minOffset', maxAttr='maxMinOffset', label='minimum offset', statusLabel='|min offset|', valueKind='float', fileSuffix='min', fileExportLabel='min-offsets', qgisExportLabel='min-offset map'),  # noqa: E501 # pylint: disable=C0301
+            3: dict(imageAttr='maxOffset', maxAttr='maxMaxOffset', label='maximum offset', statusLabel='|max offset|', valueKind='float', fileSuffix='max', fileExportLabel='max-offsets', qgisExportLabel='max-offset map'),  # noqa: E501 # pylint: disable=C0301
+            4: dict(imageAttr='rmsOffset', maxAttr='maxRmsOffset', label='rms offset increments', statusLabel='rms offset inc', valueKind='float', fileSuffix='rms', fileExportLabel='rms-offsets', qgisExportLabel='rms-offset map'),  # noqa: E501 # pylint: disable=C0301
+            5: dict(imageAttr='offsetGap', maxAttr='maxOffsetGap', label='maximum offset gap', statusLabel='max offset gap', valueKind='float', fileSuffix='gap', fileExportLabel='max-offset gaps', qgisExportLabel='max-offset gap map'),  # noqa: E501 # pylint: disable=C0301
         }
 
         if imageType not in surfaceDefinitions:
@@ -2802,6 +2800,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.dockProperty.setFloating(False)                                # don't keep floating docking widgets hanging araound once closed
             # self.writeSettings()                                              # save geometry and state of window(s)
             writeSettings(self)                                                 # save geometry and state of window(s)
+            _teardownLayout3DWidget(self)
 
             if self.projectDirectory and os.path.isdir(self.projectDirectory):  # append information to log file in working directory
                 logFile = os.path.join(self.projectDirectory, '.roll.log')      # join directory & log file name
@@ -3112,7 +3111,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.anaModel.setData(None)                                         # first remove reference to self.output.anaOutput
             self.output.an2Output = None                                        # flattened reference to self.output.anaOutput
 
-            self.output.anaOutput.flush()                                       # make sure all data is written to disk
+            if isinstance(self.output.anaOutput, np.memmap):
+                self.output.anaOutput.flush()                                   # make sure all data is written to disk when using memmap
             del self.output.anaOutput                                           # try to delete the object
             self.output.anaOutput = None                                        # the object was deleted; reinstate the None version
 
@@ -3242,10 +3242,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.layoutWidget.enableAutoRange()                                     # make the layout plot 'fit' the survey outline
         self.mainTabWidget.setCurrentIndex(0)                                   # make sure we display the Layout tab
 
-        # Always default the Layout tab to the 2D Map view when a new
-        # project is loaded; the 3D Subset view is opt-in per session.
-        if hasattr(self, 'actionLayout2D') and not self.actionLayout2D.isChecked():
+        # Opening a project should always land in the familiar 2D map
+        # view, but if a 3D widget already exists keep it synchronized
+        # in the background so switching back to 3D shows the new file.
+        if hasattr(self, 'actionLayout2D'):
             self.actionLayout2D.setChecked(True)
+        refreshLayout3DFromSurvey(self)
 
         # self.plotLayout()                                                     # plot the survey object
 

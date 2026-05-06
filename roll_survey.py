@@ -675,7 +675,7 @@ class RollSurvey(pg.GraphicsObject):
 
     def appendTemplateGeometryFromRolls(self, nBlock, block, template):
         appSettings = getActiveAppSettings()
-        templateGeometryRoutine = self.geomTemplate5 if appSettings.showUnfinished else self.geomTemplate4
+        templateGeometryRoutine = self.geomTemplate5 if appSettings.useExperimental else self.geomTemplate4
 
         for templateOffset in self.iterTemplateRollOffsets(template):
             templateGeometryRoutine(nBlock, block, template, templateOffset)
@@ -1453,7 +1453,7 @@ class RollSurvey(pg.GraphicsObject):
         self.binning.slowness = (1000.0 / self.binning.vint) if self.binning.vint > 0.0 else 0.0
         appSettings = getActiveAppSettings()
 
-        if appSettings.showUnfinished:
+        if appSettings.useExperimental:
             relBinningRoutine = self.binFromGeometry10
             noRelBinningRoutine = self.binFromGeometryNoRel2
         else:
@@ -1461,24 +1461,26 @@ class RollSurvey(pg.GraphicsObject):
             noRelBinningRoutine = self.binFromGeometryNoRel
 
         # Announce which routine is actually being dispatched so we can
-        # confirm at runtime that the showUnfinished flag flowed through.
+        # confirm at runtime that the useExperimental flag flowed through.
         hasRel = self.output.relGeom is not None
         chosen = relBinningRoutine if hasRel else noRelBinningRoutine
         self.logMessage.emit(
-            f'Binning: showUnfinished={appSettings.showUnfinished}, hasRel={hasRel} -> {chosen.__name__}, fullAnalysis={fullAnalysis}'
+            f'Binning: useExperimental={appSettings.useExperimental}, hasRel={hasRel} -> {chosen.__name__}, fullAnalysis={fullAnalysis}'
         )
 
         # Now do the binning; check if we haave a relation file or not
         if self.output.relGeom is not None:                                     # we have a relation file
             if fullAnalysis:
                 success = relBinningRoutine(True)
-                self.output.anaOutput.flush()                                   # flush results to hard disk
+                if isinstance(self.output.anaOutput, np.memmap):
+                    np.memmap.flush(self.output.anaOutput)                      # flush results to hard disk when using memmap
                 return success
 
             return relBinningRoutine(False)
         if fullAnalysis:                                                        # no relation file available
             success = noRelBinningRoutine(True)
-            self.output.anaOutput.flush()                                       # flush results to hard disk
+            if isinstance(self.output.anaOutput, np.memmap):
+                np.memmap.flush(self.output.anaOutput)                          # flush results to hard disk when using memmap
             return success
         return noRelBinningRoutine(False)
 
@@ -1678,7 +1680,7 @@ class RollSurvey(pg.GraphicsObject):
           * Reuses buildBinningArraysFromSelectedReceivers() for CMP / plane
             / sphere binning + rctOutput + rctOffsets + radOffsets filtering
             (binFromGeometryNoRel inlines all of this).
-          * Reuses _applyBinUpdatesVectorized() for the bin/stake transform
+          * Reuses the shared bin-update helpers for the bin/stake transform
             and scatter writes, replacing the Python per-point
             QTransform.map() loop.
 
@@ -1687,12 +1689,15 @@ class RollSurvey(pg.GraphicsObject):
             baseRecPoints array (one np.column_stack done once outside the
             shot loop).
           * Travel time (totalTime = ||src->cmp|| + ||cmp->rec||) * slowness
-            is computed per shot and forwarded to _applyBinUpdatesVectorized
-            so anaOutput[..., 12] keeps the value binFromGeometryNoRel writes
-            there. binFromGeometry10 inherits binFromGeometry8's behavior of
-            leaving col 9 at 0.0 because the relation path never wrote it.
+            is computed per shot and forwarded to the selected write helper so
+            anaOutput[..., 12] keeps the value binFromGeometryNoRel writes
+            there. With useNumba enabled in full-analysis mode, the per-trace
+            analysis writes go through _applyBinUpdatesNumba().
         """
         self.threadProgress = 0
+        appSettings = getActiveAppSettings()
+        profile = appSettings.debug
+        writeRoutine = self._applyBinUpdatesNumba if fullAnalysis and appSettings.useNumba else self._applyBinUpdatesVectorized
 
         self.ensureGeometryLocalCoordinates()
 
@@ -1703,16 +1708,13 @@ class RollSurvey(pg.GraphicsObject):
         recMask = recGeom['InUse'] > 0
         if not np.any(recMask):
             self.finalizeLiveBinningOutputs(fullAnalysis)
-            return True  # nothing to bin
+            return True
 
-        # Pre-stack once: orphans / duplicates assumed already removed.
         baseRecArray = recGeom[recMask]
         baseRecPoints = np.column_stack(
             (baseRecArray['LocX'], baseRecArray['LocY'], baseRecArray['Elev'] - baseRecArray['Depth'])
         ).astype(np.float32, copy=False)
 
-        # Extract bin and stake transforms as 2x3 matrices once per call,
-        # matching binFromGeometry10.
         T = self.binTransform
         binMat = np.array(
             [[T.m11(), T.m21(), T.m31()], [T.m12(), T.m22(), T.m32()]], dtype=np.float64
@@ -1743,12 +1745,17 @@ class RollSurvey(pg.GraphicsObject):
                     [srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev'] - srcRecord['Depth']], dtype=np.float32
                 )
 
+                if profile:
+                    timer = perf_counter()
                 traceArrays = self.buildBinningArraysFromSelectedReceivers(src, baseRecPoints)
+                if profile:
+                    self.elapsedTime(timer, 1)
                 if traceArrays is None:
                     continue
                 cmpPoints, recPoints, hypArray, aziArray = traceArrays
 
-                # Travel time (preserves binFromGeometryNoRel's anaOutput[...,12] write).
+                if profile:
+                    timer = perf_counter()
                 if cmpMethod:
                     totalTime = np.linalg.norm(recPoints - src, axis=1)
                 else:
@@ -1756,10 +1763,14 @@ class RollSurvey(pg.GraphicsObject):
                     upTime = np.linalg.norm(cmpPoints - recPoints, axis=1)
                     totalTime = dnTime + upTime
                 totalTime = totalTime * slowness
+                if profile:
+                    self.elapsedTime(timer, 2)
 
-                self._applyBinUpdatesVectorized(
-                    src, cmpPoints, recPoints, hypArray, aziArray, binMat, st2Mat, fullAnalysis, totalTime
-                )
+                if profile:
+                    timer = perf_counter()
+                writeRoutine(src, cmpPoints, recPoints, hypArray, aziArray, binMat, st2Mat, fullAnalysis, totalTime)
+                if profile:
+                    self.elapsedTime(timer, 3)
 
         except StopIteration:
             self.errorText = 'binning from geometry cancelled by user'
@@ -1853,7 +1864,7 @@ class RollSurvey(pg.GraphicsObject):
         self.nShotPoints = self.output.srcGeom.shape[0]
 
         # Pre-extract data for Numba (cannot pass 'self')
-        srcLocs = np.column_stack((self.output.srcGeom['LocX'], self.output.srcGeom['LocY'], self.output.srcGeom['Elev'] - self.output.srcGeom['Depth'], self.output.srcGeom['Line'], self.output.srcGeom['Point']))  # noqa:E501
+        srcLocs = np.column_stack((self.output.srcGeom['LocX'], self.output.srcGeom['LocY'], self.output.srcGeom['Elev'] - self.output.srcGeom['Depth'], self.output.srcGeom['Line'], self.output.srcGeom['Point']))  # noqa: E501 # pylint: disable=C0301
         relFileIndices = np.column_stack((lookup.relLeft, lookup.relRight))
         recLocs = np.column_stack((self.output.recGeom['LocX'], self.output.recGeom['LocY'], self.output.recGeom['Elev'] - self.output.recGeom['Depth']))
 
@@ -1945,23 +1956,25 @@ class RollSurvey(pg.GraphicsObject):
             / sphere binning support, output-rect filtering, rectangular
             offset filtering, radial offset filtering, source InUse gating,
             azimuth + travel-time placeholders in anaOutput.
+          * With useNumba enabled in full-analysis mode, the shared write
+            helper routes per-trace analysis writes through
+            _applyBinUpdatesNumba().
         """
         self.threadProgress = 0
+        appSettings = getActiveAppSettings()
+        profile = appSettings.debug
+        writeRoutine = self._applyBinUpdatesNumba if fullAnalysis and appSettings.useNumba else self._applyBinUpdatesVectorized
         lookup = self.prepareGeometryRelationBinningLookup()
         relRecLineStart, relRecLineEnd = self._buildRelationReceiverSliceLookup(lookup)
 
         self.nShotPoint = 0
         self.nShotPoints = self.output.srcGeom.shape[0]
 
-        # Pre-stack receiver coordinates once (matches the per-shot stack
-        # inside selectReceiversForSourceRelationSlice but only paid once).
         recCoords = np.column_stack(
             (self.output.recGeom['LocX'], self.output.recGeom['LocY'], self.output.recGeom['Elev'] - self.output.recGeom['Depth'])
         ).astype(np.float32, copy=False)
         recInUse = self.output.recGeom['InUse']
 
-        # Extract bin and stake transforms as 2x3 matrices for vectorized
-        # mapping (QTransform stores them as 3x3 column-major affine).
         T = self.binTransform
         binMat = np.array(
             [[T.m11(), T.m21(), T.m31()], [T.m12(), T.m22(), T.m32()]], dtype=np.float64
@@ -1989,28 +2002,40 @@ class RollSurvey(pg.GraphicsObject):
                     [srcRecord['LocX'], srcRecord['LocY'], srcRecord['Elev'] - srcRecord['Depth']], dtype=np.float32
                 )
 
+                if profile:
+                    timer = perf_counter()
                 recPoints = self._gatherReceiversForSource(
                     i, lookup, relRecLineStart, relRecLineEnd, recCoords, recInUse
                 )
+                if profile:
+                    self.elapsedTime(timer, 0)
                 if recPoints is None:
                     continue
 
+                if profile:
+                    timer = perf_counter()
                 traceArrays = self.buildBinningArraysFromSelectedReceivers(src, recPoints)
+                if profile:
+                    self.elapsedTime(timer, 1)
                 if traceArrays is None:
                     continue
                 cmpPoints, recPoints, hypArray, aziArray = traceArrays
 
-                # Travel time so anaOutput[..., 12] (TWT [ms]) is populated
-                # for cmp / plane / sphere binning alike.
+                if profile:
+                    timer = perf_counter()
                 if self.binning.method == BinningType.cmp:
                     totalTime = np.linalg.norm(recPoints - src, axis=1)
                 else:
                     totalTime = np.linalg.norm(cmpPoints - src, axis=1) + np.linalg.norm(cmpPoints - recPoints, axis=1)
                 totalTime = totalTime * self.binning.slowness
+                if profile:
+                    self.elapsedTime(timer, 2)
 
-                self._applyBinUpdatesVectorized(
-                    src, cmpPoints, recPoints, hypArray, aziArray, binMat, st2Mat, fullAnalysis, totalTime
-                )
+                if profile:
+                    timer = perf_counter()
+                writeRoutine(src, cmpPoints, recPoints, hypArray, aziArray, binMat, st2Mat, fullAnalysis, totalTime)
+                if profile:
+                    self.elapsedTime(timer, 3)
 
         except StopIteration:
             self.errorText = 'binning from geometry cancelled by user'
@@ -2325,7 +2350,8 @@ class RollSurvey(pg.GraphicsObject):
 
         if fullAnalysis:
             success = self.binFromTemplates(True)
-            self.output.anaOutput.flush()                                       # flush results to hard disk
+            if isinstance(self.output.anaOutput, np.memmap):
+                np.memmap.flush(self.output.anaOutput)                          # flush results to hard disk when using memmap
             return success
         return self.binFromTemplates(False)
 
@@ -2334,12 +2360,12 @@ class RollSurvey(pg.GraphicsObject):
     # See: https://stackoverflow.com/questions/18176602/how-to-get-the-name-of-an-exception-that-was-caught-in-python for workaround
     def binFromTemplates(self, fullAnalysis) -> bool:
         appSettings = getActiveAppSettings()
-        templateBinningRoutine = self.binTemplate8 if appSettings.showUnfinished else self.binTemplate7
+        templateBinningRoutine = self.binTemplate10 if appSettings.useExperimental else self.binTemplate8
 
         # Announce which routine is actually being dispatched so we can
-        # confirm at runtime that the showUnfinished flag flowed through.
+        # confirm at runtime that the useExperimental flag flowed through.
         self.logMessage.emit(
-            f'Binning: showUnfinished={appSettings.showUnfinished} -> {templateBinningRoutine.__name__}, fullAnalysis={fullAnalysis}'
+            f'Binning: useExperimental={appSettings.useExperimental} -> {templateBinningRoutine.__name__}, fullAnalysis={fullAnalysis}'
         )
 
         try:
@@ -2746,10 +2772,13 @@ class RollSurvey(pg.GraphicsObject):
         npTemplateOffset = np.array(
             [templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32
         )
+        profile = getActiveAppSettings().debug
 
         # --- 1. Hoist receiver-seed prep out of the source loop. -----
         recBorderActive = not block.borders.recBorder.isNull()
         preparedRecArrays = []
+        if profile:
+            timer = perf_counter()
         for recSeed in template.seedList:
             if recSeed.bSource:
                 continue
@@ -2762,6 +2791,8 @@ class RollSurvey(pg.GraphicsObject):
             if recPoints.shape[0] == 0:
                 continue
             preparedRecArrays.append(recPoints)
+        if profile:
+            self.elapsedTime(timer, 1)
 
         # Also pre-clip the source seeds; we still need to advance the
         # progress counter even when no live receivers exist.
@@ -2769,15 +2800,23 @@ class RollSurvey(pg.GraphicsObject):
         for srcSeed in template.seedList:
             if not srcSeed.bSource:
                 continue
+            if profile:
+                timer = perf_counter()
             srcArray = srcSeed.pointArray + npTemplateOffset
             if not block.borders.srcBorder.isNull():
                 included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
                 if included.shape[0] == 0:
+                    if profile:
+                        self.elapsedTime(timer, 0)
                     continue
                 srcArray = srcArray[included, :]
             if srcArray.shape[0] == 0:
+                if profile:
+                    self.elapsedTime(timer, 0)
                 continue
             preparedSrcArrays.append(srcArray.astype(np.float32, copy=False))
+            if profile:
+                self.elapsedTime(timer, 0)
 
         if not preparedSrcArrays:
             return  # no live sources, no progress to report either
@@ -2817,11 +2856,23 @@ class RollSurvey(pg.GraphicsObject):
                 if QThread.currentThread().isInterruptionRequested():
                     raise StopIteration
 
+                if profile:
+                    timer = perf_counter()
                 batch = self._buildTemplateTraceBatch(srcChunk, recArrAll)
+                if profile:
+                    self.elapsedTime(timer, 2)
                 if batch is not None:
                     cmpPoints, srcExp, recExp, hypArray, aziArray = batch
                     self._applyBinUpdatesNumbaBatch(
-                        cmpPoints, srcExp, recExp, hypArray, aziArray, binMat, st2Mat, fullAnalysis
+                        cmpPoints,
+                        srcExp,
+                        recExp,
+                        hypArray,
+                        aziArray,
+                        binMat,
+                        st2Mat,
+                        fullAnalysis,
+                        profileBaseIndex=4 if profile else None,
                     )
 
                 # Advance progress per source in the chunk for UI parity.
@@ -3029,7 +3080,7 @@ class RollSurvey(pg.GraphicsObject):
         recExp = np.ascontiguousarray(recArr[iRec], dtype=np.float32)
         return cmpPoints, srcExp, recExp, hypArray, aziArray
 
-    def _applyBinUpdatesNumbaBatch(self, cmpPoints, srcExp, recPoints, hypArray, aziArray, binMat, st2Mat, writeAnalysis):
+    def _applyBinUpdatesNumbaBatch(self, cmpPoints, srcExp, recPoints, hypArray, aziArray, binMat, st2Mat, writeAnalysis, profileBaseIndex=None):
         """
         Whole-chunk variant of _applyBinUpdatesNumba: each trace carries its
         own src row in `srcExp` (M, 3), so the kernel call dispatches the
@@ -3040,25 +3091,8 @@ class RollSurvey(pg.GraphicsObject):
         if cmpPoints.shape[0] == 0:
             return False
 
-        nx = (binMat[0, 0] * cmpPoints[:, 0] + binMat[0, 1] * cmpPoints[:, 1] + binMat[0, 2]).astype(np.int64)
-        ny = (binMat[1, 0] * cmpPoints[:, 0] + binMat[1, 1] * cmpPoints[:, 1] + binMat[1, 2]).astype(np.int64)
-
-        valid = (
-            (nx >= 0) & (ny >= 0)
-            & (nx < self.output.binOutput.shape[0])
-            & (ny < self.output.binOutput.shape[1])
-        )
-        if not valid.any():
-            return False
-
-        nx = nx[valid]
-        ny = ny[valid]
-        cmpPoints = cmpPoints[valid]
-        srcExp = srcExp[valid]
-        recPoints = recPoints[valid]
-        hypArray = hypArray[valid]
-        aziArray = aziArray[valid]
-
+        if profileBaseIndex is not None:
+            timer = perf_counter()
         # Travel time: cmp uses ||src - rec||, plane/sphere uses ||src->cmp|| + ||cmp->rec||.
         if self.binning.method == BinningType.cmp:
             totalTime = np.linalg.norm(recPoints - srcExp, axis=1)
@@ -3068,8 +3102,39 @@ class RollSurvey(pg.GraphicsObject):
                 + np.linalg.norm(cmpPoints - recPoints, axis=1)
             )
         totalTime = (totalTime * self.binning.slowness).astype(np.float32, copy=False)
+        if profileBaseIndex is not None:
+            self.elapsedTime(timer, profileBaseIndex - 1)
+
+        if profileBaseIndex is not None:
+            timer = perf_counter()
+        nx = (binMat[0, 0] * cmpPoints[:, 0] + binMat[0, 1] * cmpPoints[:, 1] + binMat[0, 2]).astype(np.int64)
+        ny = (binMat[1, 0] * cmpPoints[:, 0] + binMat[1, 1] * cmpPoints[:, 1] + binMat[1, 2]).astype(np.int64)
+
+        valid = (
+            (nx >= 0) & (ny >= 0)
+            & (nx < self.output.binOutput.shape[0])
+            & (ny < self.output.binOutput.shape[1])
+        )
+        if not valid.any():
+            if profileBaseIndex is not None:
+                self.elapsedTime(timer, profileBaseIndex)
+            return False
+
+        if profileBaseIndex is not None:
+            self.elapsedTime(timer, profileBaseIndex)
+
+        nx = nx[valid]
+        ny = ny[valid]
+        cmpPoints = cmpPoints[valid]
+        srcExp = srcExp[valid]
+        recPoints = recPoints[valid]
+        hypArray = hypArray[valid]
+        aziArray = aziArray[valid]
+        totalTime = totalTime[valid]
 
         if writeAnalysis:
+            if profileBaseIndex is not None:
+                timer = perf_counter()
             # Bin-key sort for memmap page locality (same rationale as
             # _applyBinUpdatesNumba; the win is bigger here because the
             # batch is whole-template / whole-chunk, not per-source).
@@ -3106,14 +3171,20 @@ class RollSurvey(pg.GraphicsObject):
                 self.output.anaOutput,
                 int(self.grid.fold),
             )
+            if profileBaseIndex is not None:
+                self.elapsedTime(timer, profileBaseIndex + 1)
             return True
 
         # Fast path (no analysis writes): same primitives binTemplate9 uses,
         # but on the whole chunk -- which is where np.add.at / minimum.at /
         # maximum.at actually amortise their per-call overhead.
+        if profileBaseIndex is not None:
+            timer = perf_counter()
         np.add.at(self.output.binOutput, (nx, ny), 1)
         np.minimum.at(self.output.minOffset, (nx, ny), hypArray)
         np.maximum.at(self.output.maxOffset, (nx, ny), hypArray)
+        if profileBaseIndex is not None:
+            self.elapsedTime(timer, profileBaseIndex + 2)
         return True
 
     def calcFoldAndOffsetEssentials(self):

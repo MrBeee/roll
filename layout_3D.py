@@ -48,6 +48,22 @@ from .roll_binning import BinningType
 _DEFAULT_DEPTH = 3000.0
 
 
+def _resolveReflectStyle(reflectorStyle=None):
+    """Return reflector outline/fill style, falling back to legacy defaults."""
+    defaultFaceColor = (48.0 / 255.0, 112.0 / 255.0, 208.0 / 255.0, 0.25)
+    defaultEdgeColor = (26.0 / 255.0, 64.0 / 255.0, 128.0 / 255.0, 1.0)
+    defaultEdgeWidth = 1.0
+    defaultEdgeStyle = '-'
+    if reflectorStyle is None:
+        return defaultFaceColor, defaultEdgeColor, defaultEdgeWidth, defaultEdgeStyle
+    return (
+        reflectorStyle.get('faceColor', defaultFaceColor),
+        reflectorStyle.get('edgeColor', defaultEdgeColor),
+        reflectorStyle.get('edgeWidth', defaultEdgeWidth),
+        reflectorStyle.get('edgeStyle', defaultEdgeStyle),
+    )
+
+
 class Layout3DWidget(QWidget):
     """Embeddable matplotlib-3D viewer for the Layout tab."""
 
@@ -180,7 +196,8 @@ class Layout3DWidget(QWidget):
                          spiderData=None,
                          binArea=None,
                          blockAreas=None,
-                         analysisImage=None):
+                         analysisImage=None,
+                         reflectorStyle=None):
         """Render the 3D scene from a ``RollSurvey``.
 
         Draws (in order, only when applicable):
@@ -396,7 +413,8 @@ class Layout3DWidget(QWidget):
                     pxMin, pxMax = self._padRange(xMin, xMax, frac=0.10)
                     pyMin, pyMax = self._padRange(yMin, yMax, frac=0.10)
                     self._drawBinningPlane(survey, useGlobal,
-                                           pxMin, pxMax, pyMin, pyMax)
+                                           pxMin, pxMax, pyMin, pyMax,
+                                           reflectorStyle=reflectorStyle)
                     # Pull the bbox floor down to the plane's deepest
                     # point so the plane visually sits on the floor
                     # (avoids perspective mismatch between the plane
@@ -418,7 +436,8 @@ class Layout3DWidget(QWidget):
                             if np.isfinite(pz):
                                 zMin = min(zMin, pz)
                 elif method == BinningType.sphere:
-                    self._drawBinningSphere(survey, useGlobal)
+                    self._drawBinningSphere(survey, useGlobal,
+                                            reflectorStyle=reflectorStyle)
             except Exception:                                   # pragma: no cover
                 # Drawing failures must never break the tab.
                 pass
@@ -994,7 +1013,7 @@ class Layout3DWidget(QWidget):
                 self._axes.add_collection3d(poly)
                 self._artists.append(poly)
 
-    def _drawBinningPlane(self, survey, useGlobal, xMin, xMax, yMin, yMax):
+    def _drawBinningPlane(self, survey, useGlobal, xMin, xMax, yMin, yMax, reflectorStyle=None):
         """Render the dipping plane as a translucent quad over the bbox."""
         plane = (getattr(survey, 'globalPlane', None) if useGlobal
                  else getattr(survey, 'localPlane', None))
@@ -1021,16 +1040,21 @@ class Layout3DWidget(QWidget):
         # plot_trisurf wants flat arrays + triangle indices.
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
         verts = [list(zip(xs, ys, zs))]
-        poly = Poly3DCollection(verts, alpha=0.25,
-                                facecolor='#3070d0', edgecolor='#1a4080')
+        faceColor, edgeColor, edgeWidth, edgeStyle = _resolveReflectStyle(reflectorStyle)
+        poly = Poly3DCollection(
+            verts, alpha=0.25,
+            facecolor=faceColor, edgecolor=edgeColor,
+        )
+        poly.set_linewidth(edgeWidth)
+        poly.set_linestyle(edgeStyle)
         # Disable artist-level clipping so the plane's outline isn't
         # trimmed when its corners coincide with the axis-box edges.
         poly.set_clip_on(False)
         self._axes.add_collection3d(poly)
         self._artists.append(poly)
 
-    def _drawBinningSphere(self, survey, useGlobal):
-        """Render the binning sphere as a translucent blue surface."""
+    def _drawBinningSphere(self, survey, useGlobal, reflectorStyle=None):
+        """Render the binning sphere using the configured reflector color."""
         sphere = (getattr(survey, 'globalSphere', None) if useGlobal
                   else getattr(survey, 'localSphere', None))
         if sphere is None:
@@ -1053,14 +1077,15 @@ class Layout3DWidget(QWidget):
         y = cy + r * np.outer(np.sin(u), np.sin(v))
         z = cz + r * np.outer(np.ones_like(u), np.cos(v))
 
-        # Match the binning plane's translucent-blue look.
+        faceColor, edgeColor, edgeWidth, edgeStyle = _resolveReflectStyle(reflectorStyle)
         surf = self._axes.plot_surface(
             x, y, z,
             rstride=1, cstride=1,
-            color='#3070d0', edgecolor='#1a4080',
-            linewidth=0.2, alpha=0.25,
+            color=faceColor, edgecolor=edgeColor,
+            linewidth=edgeWidth, alpha=faceColor[3],
             shade=True,
         )
+        surf.set_linestyle(edgeStyle)
         self._artists.append(surf)
 
     def _drawSpiderOverlay(self, survey, useGlobal, spiderData):

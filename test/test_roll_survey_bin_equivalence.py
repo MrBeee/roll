@@ -22,10 +22,13 @@ azimuth write).
 """
 
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QRectF
+from qgis.PyQt.QtGui import QVector3D
 
 from .plugin_loader import loadPluginModule
 from .utilities import getQgisApp
@@ -170,6 +173,94 @@ class BinFromGeometryEquivalenceTest(unittest.TestCase):
 
         self.assertEqual(survey8.output.maximumFold, survey10.output.maximumFold)
         self.assertEqual(survey8.output.minimumFold, survey10.output.minimumFold)
+
+    def testBinFromTemplatesDispatchUsesBinTemplate8ByDefaultAnd10WhenExperimental(self):
+        survey = RollSurvey('Template-Dispatch-Test')
+        logMessages = []
+        survey.logMessage.connect(logMessages.append)
+
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=False)):
+            with patch.object(survey, 'finalizeLiveBinningOutputs'):
+                self.assertTrue(survey.binFromTemplates(False))
+        self.assertEqual(
+            logMessages[-1],
+            'Binning: useExperimental=False -> binTemplate8, fullAnalysis=False',
+        )
+
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=True)):
+            with patch.object(survey, 'finalizeLiveBinningOutputs'):
+                self.assertTrue(survey.binFromTemplates(False))
+        self.assertEqual(
+            logMessages[-1],
+            'Binning: useExperimental=True -> binTemplate10, fullAnalysis=False',
+        )
+
+    def testGeometryBinningUsesSubsetOfTemplateTraceSetWhenReceiversAreInactive(self):
+        def buildTemplateSurvey():
+            survey = RollSurvey('Template-Geometry-Subset-Test')
+            survey.crs = QgsCoordinateReferenceSystem('EPSG:23095')
+            survey.grid.orig.setX(0.0)
+            survey.grid.orig.setY(0.0)
+            survey.grid.angle = 0.0
+            survey.grid.scale.setX(1.0)
+            survey.grid.scale.setY(1.0)
+            survey.grid.binSize.setX(10.0)
+            survey.grid.binSize.setY(10.0)
+            survey.grid.stakeOrig.setX(1000.0)
+            survey.grid.stakeOrig.setY(1000.0)
+            survey.grid.stakeSize.setX(10.0)
+            survey.grid.stakeSize.setY(10.0)
+            survey.grid.fold = 8
+            survey.output.rctOutput = QRectF(-50.0, -50.0, 200.0, 200.0)
+            survey.offset.rctOffsets = QRectF(-500.0, -500.0, 1000.0, 1000.0)
+            survey.offset.radOffsets.setX(0.0)
+            survey.offset.radOffsets.setY(0.0)
+            survey.binning.method = BinningType.cmp
+            survey.binning.vint = 0.0
+            survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+
+            template = survey.blockList[0].templateList[0]
+            srcSeed = next(seed for seed in template.seedList if seed.bSource)
+            recSeed = next(seed for seed in template.seedList if not seed.bSource)
+
+            srcSeed.origin = QVector3D(0.0, 0.0, 0.0)
+            recSeed.origin = QVector3D(20.0, 0.0, 0.0)
+            recSeed.grid.growList[2].steps = 3
+            recSeed.grid.growList[2].increment = QVector3D(20.0, 0.0, 0.0)
+
+            survey.calcTransforms(createArrays=True)
+            survey.calcNoShotPoints()
+            return survey
+
+        appSettings = SimpleNamespace(useExperimental=False, debug=False, useNumba=False)
+
+        templateSurvey = buildTemplateSurvey()
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=appSettings):
+            self.assertTrue(templateSurvey.setupBinFromTemplates(False))
+
+        geometrySurvey = buildTemplateSurvey()
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=appSettings):
+            self.assertTrue(geometrySurvey.setupGeometryFromTemplates())
+
+        # Geometry binning works from the curated geometry sidecars. Mark one
+        # receiver inactive to pin the intended contract that geometry can be a
+        # strict trace subset of template binning while still overlapping on
+        # the same bins and offset ranges.
+        geometrySurvey.output.recGeom[1]['InUse'] = 0
+        geometrySurvey.binning.slowness = 0.0
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=appSettings):
+            self.assertTrue(geometrySurvey.setupBinFromGeometry(False))
+
+        templateFold = templateSurvey.output.binOutput
+        geometryFold = geometrySurvey.output.binOutput
+        overlapMask = geometryFold > 0
+
+        self.assertGreater(int(templateFold.sum()), int(geometryFold.sum()))
+        self.assertTrue(np.any(overlapMask))
+        np.testing.assert_array_less(geometryFold, templateFold + 1)
+        self.assertTrue(np.all(templateFold[overlapMask] > 0))
+        self.assertTrue(np.all(geometrySurvey.output.minOffset[overlapMask] >= templateSurvey.output.minOffset[overlapMask] - 1e-5))
+        self.assertTrue(np.all(geometrySurvey.output.maxOffset[overlapMask] <= templateSurvey.output.maxOffset[overlapMask] + 1e-5))
 
     def testBinFromGeometry10MatchesBinFromGeometry8FullAnalysis(self):
         """

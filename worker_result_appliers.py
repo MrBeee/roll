@@ -10,14 +10,19 @@ class BinningResultApplier:
     def __init__(self, window, runtimeDependenciesProvider: Callable[[], dict[str, object]]) -> None:
         self.window = window
         self.runtimeDependenciesProvider = runtimeDependenciesProvider
+        self._currentProfilingKind = 'templates'
 
     def apply(self, result, elapsed: timedelta) -> None:
-        self._logProfiling(result.profiling)
+        self._currentProfilingKind = getattr(result, 'profilingKind', 'templates')
+
+        self._logProfiling(getattr(result, 'profiling', None))
 
         if not result.success:
+            self._currentProfilingKind = 'templates'
             self._applyFailure(result.errorText)
             return
 
+        self._currentProfilingKind = 'templates'
         self._applySuccess(result, elapsed)
 
     def _applyFailure(self, errorText: str) -> None:
@@ -115,12 +120,49 @@ class BinningResultApplier:
         return 'Analysis results have been saved.'
 
     def _logProfiling(self, profiling) -> None:
-        if not self.window.appSettings.debug:
+        if not self.window.appSettings.debug or profiling is None:
             return
 
-        self.window.appendLogMessage('binFromTemplates() profiling information', MsgType.Debug)
+        if self._currentProfilingKind == 'geometry':
+            header = 'binFromGeometry() profiling information'
+            labelText = '00=gatherReceivers, 01=buildTraceArrays, 02=travelTime, 03=writeHelper'
+            buildTraceIndex = 1
+            writeIndices = (3,)
+            writeLabel = 'writeHelper'
+        else:
+            header = 'binFromTemplates() profiling information'
+            labelText = '00=srcClip, 01=recPrepOrClip, 02=buildTraceArrays, 03=travelTime, 04=binMapFilter, 05=analysisWrite, 06=noAnalysisScatter'
+            buildTraceIndex = 2
+            writeIndices = (5,)
+            writeLabel = 'analysisWrite'
+
+        self.window.appendLogMessage(header, MsgType.Debug)
+        self.window.appendLogMessage(labelText, MsgType.Debug)
+        buildTraceTotal = profiling.timerTtot[buildTraceIndex] * 1000.0 if len(profiling.timerTtot) > buildTraceIndex else 0.0
+        analysisWriteTotal = sum(profiling.timerTtot[index] for index in writeIndices if len(profiling.timerTtot) > index) * 1000.0
+        buildTraceFreq = profiling.timerFreq[buildTraceIndex] if len(profiling.timerFreq) > buildTraceIndex else 0
+        analysisWriteFreq = sum(profiling.timerFreq[index] for index in writeIndices if len(profiling.timerFreq) > index)
+
+        if analysisWriteTotal > buildTraceTotal:
+            dominant = writeLabel
+        elif buildTraceTotal > analysisWriteTotal:
+            dominant = 'buildTraceArrays'
+        else:
+            dominant = 'equal'
+
+        if buildTraceTotal > 0.0 and analysisWriteTotal > 0.0:
+            if analysisWriteTotal >= buildTraceTotal:
+                ratioText = f'{writeLabel}/buildTraceArrays={analysisWriteTotal / buildTraceTotal:.2f}x'
+            else:
+                ratioText = f'buildTraceArrays/{writeLabel}={buildTraceTotal / analysisWriteTotal:.2f}x'
+        else:
+            ratioText = 'ratio=n/a'
+
         self.window.appendLogMessage(
-            '00=srcClip, 01=recPrepOrClip, 02=buildTraceArrays, 03=travelTime, 04=binMapFilter, 05=analysisWrite, 06=noAnalysisScatter',
+            'Profiling summary: '
+            f'buildTraceArrays tot={buildTraceTotal:011.3f} ms (freq={buildTraceFreq:07d}), '
+            f'{writeLabel} tot={analysisWriteTotal:011.3f} ms (freq={analysisWriteFreq:07d}), '
+            f'dominant={dominant}, {ratioText}',
             MsgType.Debug,
         )
         for i, _ in enumerate(profiling.timerTmin if profiling is not None else ()):

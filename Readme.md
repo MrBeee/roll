@@ -200,7 +200,7 @@ Furthermore, see the 'Changelog' for already implemented functionality. Any [Iss
 
 ### 8	Changelog
 - 2026-05-01 (0.6.9) Added TWT option to inline and x-line offset displays. Started to fleece code using Flake8.
-- 2026-04-30 (0.6.8) Added 3D view for Subset of survey data. Enabled by "Show/use unfinished code" in the Settings dialog. Implemented faster worker thread routines, enabled by the same flag
+- 2026-04-30 (0.6.8) Added 3D view for Subset of survey data. Enabled by "Use experimental code" in the Settings dialog. Implemented faster worker thread routines, enabled by the same flag
 - 2026-04-22 (0.6.7) Improved import and handling of SPS files.
 - 2026-04-21 (0.6.6) Added 'Max Offset Gap' analysis. Fixed bug crashing app when worker thread was interrupted. Improved readability of items in Parameter tree (property pane).
 - 2026-04-16 (0.6.5) Added inline and x-line offsets to |offset| plots and mouse tracking in statusbar for all plots. Continued refactoring code.

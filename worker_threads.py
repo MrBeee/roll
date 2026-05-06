@@ -60,6 +60,7 @@ class BinningFromTemplatesResult:
     cmpTransform: Any = None
     anaOutputShape: tuple[int, ...] | None = None
     profiling: 'GeometryProfilingPayload | None' = None
+    profilingKind: str = 'templates'
 
 
 @dataclass
@@ -71,6 +72,7 @@ class BinningFromGeometryRequest:
     extended: bool = False
     analysisFile: object = None
     debugpyEnabled: bool = False
+    includeProfiling: bool = False
 
 
 @dataclass
@@ -96,6 +98,8 @@ class BinningFromGeometryResult:
     offstHist: Any = None
     cmpTransform: Any = None
     anaOutputShape: tuple[int, ...] | None = None
+    profiling: 'GeometryProfilingPayload | None' = None
+    profilingKind: str = 'geometry'
 
 
 @dataclass
@@ -132,6 +136,7 @@ class BinFromGeometryWorker(QObject):
         self.survey = RollSurvey()
         self.extended = request.extended
         self.debugpyEnabled = request.debugpyEnabled
+        self.includeProfiling = request.includeProfiling
 
         # the following function also calculates the required transforms
         self.survey.fromXmlString(request.xmlString, True)                      # fully populate the object AND create arrays
@@ -166,8 +171,17 @@ class BinFromGeometryWorker(QObject):
         self.finished.emit()
 
     def buildResult(self, success: bool) -> BinningFromGeometryResult:
+        profiling = None
+        if self.includeProfiling:
+            profiling = GeometryProfilingPayload(
+                timerTmin=tuple(self.survey.timerTmin),
+                timerTmax=tuple(self.survey.timerTmax),
+                timerTtot=tuple(self.survey.timerTtot),
+                timerFreq=tuple(self.survey.timerFreq),
+            )
+
         if not success:
-            return BinningFromGeometryResult(success=False, errorText=self.survey.errorText)
+            return BinningFromGeometryResult(success=False, errorText=self.survey.errorText, profiling=profiling)
 
         output = self.survey.output
         minRmsOffset = None if output.rmsOffset is None else max(output.minRmsOffset, 0)
@@ -195,6 +209,7 @@ class BinFromGeometryWorker(QObject):
             offstHist=output.offstHist,
             cmpTransform=self.survey.cmpTransform,
             anaOutputShape=None if output.anaOutput is None else output.anaOutput.shape,
+            profiling=profiling,
         )
 
 

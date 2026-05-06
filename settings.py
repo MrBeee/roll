@@ -120,6 +120,7 @@ class SettingsDialog(QDialog):
         cmpAreaPenParam = makeParmsFromPen(appSettings.cmpAreaPen)
         recAreaPenParam = makeParmsFromPen(appSettings.recAreaPen)
         srcAreaPenParam = makeParmsFromPen(appSettings.srcAreaPen)
+        reflectPenParam = makeParmsFromPen(appSettings.reflectPen)
 
         # Note: QColor uses 'argb' in hex format, whereas pyqtgraph uses 'rgba' so first need to convert #hex value to a QColor()
         colorParams = [
@@ -132,10 +133,12 @@ class SettingsDialog(QDialog):
                     dict(name='Cmp area color', type='color', value=QColor(appSettings.cmpAreaColor), default=QColor(appSettings.cmpAreaColor)),
                     dict(name='Rec area color', type='color', value=QColor(appSettings.recAreaColor), default=QColor(appSettings.recAreaColor)),
                     dict(name='Src area color', type='color', value=QColor(appSettings.srcAreaColor), default=QColor(appSettings.srcAreaColor)),
+                    dict(name='Reflector color', type='color', value=QColor(appSettings.reflectColor), default=QColor(appSettings.reflectColor)),
                     dict(name='Bin area pen', type='myPen', flat=True, expanded=False, value=binAreaPenParam, default=binAreaPenParam),
                     dict(name='Cmp area pen', type='myPen', flat=True, expanded=False, value=cmpAreaPenParam, default=cmpAreaPenParam),
                     dict(name='Rec area pen', type='myPen', flat=True, expanded=False, value=recAreaPenParam, default=recAreaPenParam),
                     dict(name='Src area pen', type='myPen', flat=True, expanded=False, value=srcAreaPenParam, default=srcAreaPenParam),
+                    dict(name='Reflector pen', type='myPen', flat=True, expanded=False, value=reflectPenParam, default=reflectPenParam),
                     dict(name='Fold/offset color map', type='myCmap', value=appSettings.foldDispCmap, default=appSettings.foldDispCmap),
                     dict(name='Analysis color map', type='myCmap', value=appSettings.analysisCmap, default=appSettings.analysisCmap),
                 ],
@@ -229,9 +232,9 @@ class SettingsDialog(QDialog):
                 brush='#add8e6',
                 children=[
                     dict(name='Use Numba', type='bool', value=useNumba, default=useNumba, enabled=haveNumba, tip=tip1),
+                    dict(name='Use experimental code', type='bool', value=appSettings.useExperimental, default=appSettings.useExperimental, enabled=True, tip=tip4),
                     dict(name='Use relative paths', type='bool', value=appSettings.useRelativePaths, default=appSettings.useRelativePaths, enabled=True, tip=tip2),
                     dict(name='Show summary properties', type='bool', value=appSettings.showSummaries, default=appSettings.showSummaries, enabled=True, tip=tip3),
-                    dict(name='Show/use unfinished code', type='bool', value=appSettings.showUnfinished, default=appSettings.showUnfinished, enabled=True, tip=tip4),
                 ],
             ),
         ]
@@ -312,6 +315,7 @@ class SettingsDialog(QDialog):
         appSettings.cmpAreaColor = COL.child('Cmp area color').value().name(QColor.NameFormat.HexArgb)
         appSettings.recAreaColor = COL.child('Rec area color').value().name(QColor.NameFormat.HexArgb)
         appSettings.srcAreaColor = COL.child('Src area color').value().name(QColor.NameFormat.HexArgb)
+        appSettings.reflectColor = COL.child('Reflector color').value().name(QColor.NameFormat.HexArgb)
 
         # config.binAreaPen = COL.child('Bin area pen').value()                 # the pen value isn't properly updated
         # config.cmpAreaPen = COL.child('Cmp area pen').value()                 # use saveState()['value'] instead
@@ -322,11 +326,13 @@ class SettingsDialog(QDialog):
         cmpAreaPenParam = COL.child('Cmp area pen').saveState()['value']
         recAreaPenParam = COL.child('Rec area pen').saveState()['value']
         srcAreaPenParam = COL.child('Src area pen').saveState()['value']
+        reflectPenParam = COL.child('Reflector pen').saveState()['value']
 
         appSettings.binAreaPen = makePenFromParms(binAreaPenParam)             # final values
         appSettings.cmpAreaPen = makePenFromParms(cmpAreaPenParam)
         appSettings.recAreaPen = makePenFromParms(recAreaPenParam)
         appSettings.srcAreaPen = makePenFromParms(srcAreaPenParam)
+        appSettings.reflectPen = makePenFromParms(reflectPenParam)
 
         appSettings.lod0 = LOD.child('LOD 0 [survey]   ').value()
         appSettings.lod1 = LOD.child('LOD 1 [templates]').value()
@@ -357,7 +363,7 @@ class SettingsDialog(QDialog):
         # miscellaneous settings
         appSettings.useNumba = MIS.child('Use Numba').value()
         appSettings.useRelativePaths = MIS.child('Use relative paths').value()  # save well file names relative to .roll project file
-        appSettings.showUnfinished = MIS.child('Show/use unfinished code').value()  # show/hide "work in progress"
+        appSettings.useExperimental = MIS.child('Use experimental code').value()  # use "work in progress" paths
         appSettings.showSummaries = MIS.child('Show summary properties').value()
 
         appSettings.activate()
@@ -410,6 +416,16 @@ def readSettings(self):
 
     state = self.settings.value('mainWindow/state', bytes('', 'utf-8'))         # , bytes('', 'utf-8') prevents receiving a 'None' object
     self.restoreState(state)                                                    # No longer needed to test: if geometry != None:
+    # Roll should always start in the 2D map view. The layout surface
+    # is an in-session choice only and is no longer persisted.
+    self.layoutViewMode = '2d'
+
+    actionLayout2D = getattr(self, 'actionLayout2D', None)
+    actionLayout3D = getattr(self, 'actionLayout3D', None)
+    if actionLayout2D is not None and actionLayout3D is not None:
+        preferredAction = actionLayout2D
+        if not preferredAction.isChecked():
+            preferredAction.setChecked(True)
 
     path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)    # 'My Documents' on windows; default if settings don't exist yet
     projectDirectory = self.settings.value('settings/projectDirectory', path)   # start folder for SaveAs
@@ -432,20 +448,23 @@ def readSettings(self):
     )
 
     # color & pen information
-    appSettings.binAreaColor = self.settings.value('settings/colors/binAreaColor', '#20000000')
-    appSettings.cmpAreaColor = self.settings.value('settings/colors/cmpAreaColor', '#0800ff00')
-    appSettings.recAreaColor = self.settings.value('settings/colors/recAreaColor', '#080000ff')
-    appSettings.srcAreaColor = self.settings.value('settings/colors/srcAreaColor', '#08ff0000')
+    appSettings.binAreaColor = self.settings.value('settings/colors/binAreaColor', config.binAreaColor)
+    appSettings.cmpAreaColor = self.settings.value('settings/colors/cmpAreaColor', config.cmpAreaColor)
+    appSettings.recAreaColor = self.settings.value('settings/colors/recAreaColor', config.recAreaColor)
+    appSettings.srcAreaColor = self.settings.value('settings/colors/srcAreaColor', config.srcAreaColor)
+    appSettings.reflectColor = self.settings.value('settings/colors/reflectColor', config.reflectColor)
 
     binAreaPenParams = self.settings.value('settings/colors/binAreaPen', str(makeParmsFromPen(appSettings.binAreaPen)))
     cmpAreaPenParams = self.settings.value('settings/colors/cmpAreaPen', str(makeParmsFromPen(appSettings.cmpAreaPen)))
     recAreaPenParams = self.settings.value('settings/colors/recAreaPen', str(makeParmsFromPen(appSettings.recAreaPen)))
     srcAreaPenParams = self.settings.value('settings/colors/srcAreaPen', str(makeParmsFromPen(appSettings.srcAreaPen)))
+    reflectPenParams = self.settings.value('settings/colors/reflectPen', str(makeParmsFromPen(appSettings.reflectPen)))
 
     appSettings.binAreaPen = makePenFromParms(literal_eval(binAreaPenParams))
     appSettings.cmpAreaPen = makePenFromParms(literal_eval(cmpAreaPenParams))
     appSettings.recAreaPen = makePenFromParms(literal_eval(recAreaPenParams))
     appSettings.srcAreaPen = makePenFromParms(literal_eval(srcAreaPenParams))
+    appSettings.reflectPen = makePenFromParms(literal_eval(reflectPenParams))
 
     appSettings.analysisCmap = self.settings.value('settings/colors/analysisCmap', 'CET-R4')
     appSettings.foldDispCmap = self.settings.value('settings/colors/foldDispCmap', 'CET-L4')
@@ -504,7 +523,7 @@ def readSettings(self):
     # miscellaneous information
     appSettings.useNumba = self.settings.value('settings/misc/useNumba', False, type=bool)
     appSettings.useRelativePaths = self.settings.value('settings/misc/useRelativePaths', True, type=bool)
-    appSettings.showUnfinished = self.settings.value('settings/misc/showUnfinished', config.DEFAULT_SHOW_UNFINISHED, type=bool)
+    appSettings.useExperimental = self.settings.value('settings/misc/useExperimental', config.DEFAULT_USE_EXPERIMENTAL, type=bool)
     appSettings.showSummaries = self.settings.value('settings/misc/showSummaries', config.DEFAULT_SHOW_SUMMARIES, type=bool)
 
     appSettings.activate()
@@ -529,6 +548,7 @@ def writeSettings(self):
     # main window information
     self.settings.setValue('mainWindow/geometry', self.saveGeometry())          # save the main window geometry
     self.settings.setValue('mainWindow/state', self.saveState())                # and the window state too
+    self.settings.remove('mainWindow/layoutViewMode')
     self.settings.setValue('settings/projectDirectory', documentContext.projectDirectory)
     self.settings.setValue('settings/importDirectory', documentContext.importDirectory)
     self.settings.setValue('settings/wellDirectory', documentContext.wellDirectory)
@@ -539,10 +559,12 @@ def writeSettings(self):
     self.settings.setValue('settings/colors/cmpAreaColor', appSettings.cmpAreaColor)
     self.settings.setValue('settings/colors/recAreaColor', appSettings.recAreaColor)
     self.settings.setValue('settings/colors/srcAreaColor', appSettings.srcAreaColor)
+    self.settings.setValue('settings/colors/reflectColor', appSettings.reflectColor)
     self.settings.setValue('settings/colors/binAreaPen', str(makeParmsFromPen(appSettings.binAreaPen)))
     self.settings.setValue('settings/colors/cmpAreaPen', str(makeParmsFromPen(appSettings.cmpAreaPen)))
     self.settings.setValue('settings/colors/recAreaPen', str(makeParmsFromPen(appSettings.recAreaPen)))
     self.settings.setValue('settings/colors/srcAreaPen', str(makeParmsFromPen(appSettings.srcAreaPen)))
+    self.settings.setValue('settings/colors/reflectPen', str(makeParmsFromPen(appSettings.reflectPen)))
     self.settings.setValue('settings/colors/analysisCmap', appSettings.analysisCmap)
     self.settings.setValue('settings/colors/foldDispCmap', appSettings.foldDispCmap)
 
@@ -582,7 +604,7 @@ def writeSettings(self):
     # miscellaneous information
     self.settings.setValue('settings/misc/useNumba', appSettings.useNumba)
     self.settings.setValue('settings/misc/useRelativePaths', appSettings.useRelativePaths)
-    self.settings.setValue('settings/misc/showUnfinished', appSettings.showUnfinished)
+    self.settings.setValue('settings/misc/useExperimental', appSettings.useExperimental)
     self.settings.setValue('settings/misc/showSummaries', appSettings.showSummaries)
 
     self.settings.sync()

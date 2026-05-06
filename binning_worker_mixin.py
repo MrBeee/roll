@@ -1,7 +1,6 @@
 # binning_worker_mixin.py
 # -*- coding: utf-8 -*-
 
-import os
 from math import ceil
 from timeit import default_timer as timer
 
@@ -220,21 +219,18 @@ class BinningWorkerMixin:
         ny = ceil(h / dy)
         fold = self.survey.grid.fold
         n = nx * ny * fold
-        self.appendLogMessage(
-            f'Thread : Prepare memory mapped file for {n:,} traces, with nx={nx}, ny={ny}, fold={fold:,}',
-            MsgType.Binning,
-        )
+        self.appendLogMessage(f'Thread : Prepare full-analysis buffer for {n:,} traces, with nx={nx}, ny={ny}, fold={fold:,}', MsgType.Binning)
 
         try:
-            anaFileName = self.fileName + '.ana.npy'
             shape = (nx, ny, fold, 16)
-            mode = 'r+' if os.path.exists(anaFileName) else 'w+'
-            self.output.anaOutput = np.memmap(anaFileName, shape=shape, dtype=np.float32, mode=mode)
+            anaFileName = self.fileName + '.ana.npy'
+            self.output.anaOutput = np.memmap(anaFileName, shape=shape, dtype=np.float32, mode='w+')
             self.output.anaOutput.fill(0.0)
+            self.appendLogMessage('Thread : Prepare memory mapped file for full analysis results.', MsgType.Binning)
 
             nX, nY, nZ, nC = self.output.anaOutput.shape
             if (nx, ny, fold, 16) != (nX, nY, nZ, nC):
-                self.appendLogMessage('Thread : Memory mapped file size error while allocating memory', MsgType.Error)
+                self.appendLogMessage('Thread : Analysis buffer size error while allocating memory', MsgType.Error)
                 return False
         except MemoryError as exc:
             self.appendLogMessage(f'Thread : Memory error {exc}', MsgType.Error)

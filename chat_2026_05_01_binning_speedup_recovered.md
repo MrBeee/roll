@@ -162,7 +162,7 @@ Suggested order of work:
 > Please goahead, with the following adjustment:s:
 > 1. Leave binTemplate8() untouched.
 > 2. Create a new binTemplate9() for the new approach.
-> 3. Wire this binTemplate9() into the option to run "unfinished code"
+> 3. Wire this binTemplate9() into the option to run "experimental code"
 
 **Recovered implementation summary from the same transcript:**
 
@@ -171,7 +171,7 @@ The assistant then inspected `roll_survey.py` and `functions_numba.py`, implemen
 - Added compiled kernel `numbaApplyBinUpdatesAnalysis` in `functions_numba.py`.
 - Added `_applyBinUpdatesNumba` in `roll_survey.py` as a Numba-backed counterpart to `_applyBinUpdatesVectorized`.
 - Added `binTemplate9` as a clone of `binTemplate8` that routed the write-analysis path through the new numba helper.
-- Updated `binFromTemplates` dispatch so `showUnfinished=True` selected `binTemplate9` and `False` still selected `binTemplate7`.
+- Updated `binFromTemplates` dispatch so `useExperimental=True` selected `binTemplate9` and `False` still selected `binTemplate7`.
 - Left `binTemplate8` in place for A/B comparison.
 - Syntax validation passed after the edits.
 
@@ -208,7 +208,7 @@ The assistant then suggested:
 
 **User:**
 
-> The timings are inconsistent. It appears that the wrong binning routine may b selected. In other words; the use unfinished code flag is not altered properly when it is updated. This is strange because the GUI reacts ok. Is it possible to print which version of the binning routie is being used ?
+> The timings are inconsistent. It appears that the wrong binning routine may b selected. In other words; the use experimental code flag is not altered properly when it is updated. This is strange because the GUI reacts ok. Is it possible to print which version of the binning routie is being used ?
 
 **GitHub Copilot:**
 
@@ -216,10 +216,10 @@ The assistant added runtime dispatch logging so the selected routine would be vi
 
 The recovered message described the added output patterns as:
 
-- `binFromTemplates: showUnfinished=True -> binTemplate9, fullAnalysis=...`
-- `setupBinFromGeometry: showUnfinished=True, hasRel=True -> binFromGeometry10, fullAnalysis=...`
+- `binFromTemplates: useExperimental=True -> binTemplate9, fullAnalysis=...`
+- `setupBinFromGeometry: useExperimental=True, hasRel=True -> binFromGeometry10, fullAnalysis=...`
 
-The purpose was to verify whether the `showUnfinished` flag actually propagated into the dispatch point.
+The purpose was to verify whether the `useExperimental` flag actually propagated into the dispatch point.
 
 ---
 
@@ -299,7 +299,7 @@ The assistant then changed the approach:
 
 This was the change that made the dispatch announcement persist in the logging pane as an `info` line such as:
 
-- `Binning: showUnfinished=True -> binTemplate9, fullAnalysis=True`
+- `Binning: useExperimental=True -> binTemplate9, fullAnalysis=True`
 
 ---
 
@@ -310,11 +310,11 @@ This was the change that made the dispatch announcement persist in the logging p
 > I have run the new routine twice; to check the cache effect --> no difference.
 > I have run the old routine once; one second faster than the new one. See log below:
 >
-> `2026-05-01T13:16:43 info Binning: showUnfinished=True -> binTemplate9, fullAnalysis=True`
+> `2026-05-01T13:16:43 info Binning: useExperimental=True -> binTemplate9, fullAnalysis=True`
 > `2026-05-01T13:17:32 binning Thread : Binning completed. Elapsed time:0:00:50`
-> `2026-05-01T13:17:41 info Binning: showUnfinished=True -> binTemplate9, fullAnalysis=True`
+> `2026-05-01T13:17:41 info Binning: useExperimental=True -> binTemplate9, fullAnalysis=True`
 > `2026-05-01T13:18:31 binning Thread : Binning completed. Elapsed time:0:00:50`
-> `2026-05-01T13:18:56 info Binning: showUnfinished=False -> binTemplate7, fullAnalysis=True`
+> `2026-05-01T13:18:56 info Binning: useExperimental=False -> binTemplate7, fullAnalysis=True`
 > `2026-05-01T13:19:44 binning Thread : Binning completed. Elapsed time:0:00:49`
 
 **GitHub Copilot:**
@@ -359,6 +359,6 @@ The assistant recommended instrumentation first.
 - CuPy was judged as possible but not the right first move.
 - The audit concluded that the biggest remaining bottleneck was not actually solved by the first numba attempt.
 - Template binning was selected as the easier optimization target.
-- `binTemplate9` was introduced as an unfinished experimental path for A/B testing.
-- Dispatch logging was added to verify whether `showUnfinished` actually selected the intended routine.
+- `binTemplate9` was introduced as an experimental experimental path for A/B testing.
+- Dispatch logging was added to verify whether `useExperimental` actually selected the intended routine.
 - The later timing evidence suggested the real bottleneck was likely memmap-backed `anaOutput` I/O, not the Python loop that had been moved into numba.

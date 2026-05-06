@@ -5,7 +5,7 @@ import os
 from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt.QtCore import QFileInfo
 from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtWidgets import QApplication, QMessageBox
+from qgis.PyQt.QtWidgets import QMessageBox
 
 from .aux_functions import myPrint
 from .enums_and_int_flags import SurveyType
@@ -433,10 +433,9 @@ def refreshWellHeaderFromParameter(wellParam, *, showWarning=False, warningHandl
     return success
 
 
-def applyWellHeaderParameterChange(wellParam, *, attributeName, value, showWarning, processEventsHandler=QApplication.processEvents):
+def applyWellHeaderParameterChange(wellParam, *, attributeName, value, showWarning):
     setattr(wellParam.well, attributeName, value)
     wellParam._refreshWellHeader(showWarning=showWarning)
-    processEventsHandler()
 
 
 def applyCircleParameters(circleParam):
@@ -682,7 +681,7 @@ class MyBinAnglesParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyBinAnglesParameters(self)
@@ -759,7 +758,7 @@ class MyBinOffsetParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyBinOffsetParameters(self)
@@ -821,7 +820,7 @@ class MyUniqOffParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyUniqueOffsetParameters(self)
@@ -876,7 +875,7 @@ class MyBinMethodParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyBinMethodParameters(self)
@@ -940,7 +939,7 @@ class MyPlaneParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyPlaneParameters(self)
@@ -996,7 +995,7 @@ class MySphereParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applySphereParameters(self)
@@ -1070,7 +1069,7 @@ class MyLocalGridParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyLocalGridParameters(self)
@@ -1133,7 +1132,7 @@ class MyGlobalGridParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyGlobalGridParameters(self)
@@ -1150,14 +1149,14 @@ class MyBlockParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
         self.initializePreviewItem(param)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def showPreviewInformation(self, param):
         nTemplates, nBlockShots = previewBlockSourceSummary(param)
 
         t = f'{nTemplates} template(s), {int(nBlockShots + 0.5)} src points'
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
         self.updatePreviewLabelText(t)
         # myPrint(f'>>>{lineNo():5d} MyBlockParameterItem.showPreviewInformation | t = {t} <<<')
@@ -1184,7 +1183,7 @@ class MyBlockParameter(MyGroupParameter):
         with self.treeChangeBlocker():
             self.addChild(dict(name='Source boundary', type='myRectF', value=self.blockValues.srcBorder, default=self.blockValues.srcBorder, flat=True, expanded=False))
             self.addChild(dict(name='Receiver boundary', type='myRectF', value=self.blockValues.recBorder, default=self.blockValues.recBorder, flat=True, expanded=False))
-            self.addChild(dict(name='Template list', type='myTemplateList', value=self.blockValues.templateList, default=self.blockValues.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501
+            self.addChild(dict(name='Template list', type='myTemplateList', value=self.blockValues.templateList, default=self.blockValues.templateList, flat=True, expanded=True, brush='#add8e6', decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501 # pylint: disable=C0301
 
         bindChildParameters(self, {
             'parS': 'Source boundary',
@@ -1201,7 +1200,7 @@ class MyBlockParameter(MyGroupParameter):
         self.sigNameChanged.connect(self.nameChanged)
         self.sigContextMenu.connect(self.contextMenu)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def nameChanged(self, _):
         self.block.name = self.name()
@@ -1236,7 +1235,7 @@ class MyBlockParameter(MyGroupParameter):
                 parent.blockList,
                 index,
                 offset=-1,
-                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
+                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501 # pylint: disable=C0301
             )
 
         elif name == 'moveDown':
@@ -1246,7 +1245,7 @@ class MyBlockParameter(MyGroupParameter):
                 parent.blockList,
                 index,
                 offset=1,
-                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
+                childFactory=lambda block: dict(name=block.name, type='myBlock', value=block, default=block, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501 # pylint: disable=C0301
             )
 
         elif name == 'preview':
@@ -1296,7 +1295,7 @@ class MyTemplateParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             self.addChild(dict(name='Roll steps', type='myRollList', value=self.templateValues.rollList, default=self.templateValues.rollList, expanded=True, flat=True, decimals=d, suffix=s))
-            self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.templateValues.seedList, default=self.templateValues.seedList, brush='#add8e6', flat=True, wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501
+            self.addChild(dict(name='Seed list', type='myTemplateSeedList', value=self.templateValues.seedList, default=self.templateValues.seedList, brush='#add8e6', flat=True, wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501 # pylint: disable=C0301
         bindChildParameters(self, {
             'parR': 'Roll steps',
             'parS': 'Seed list',
@@ -1309,7 +1308,7 @@ class MyTemplateParameter(MyGroupParameter):
         self.sigNameChanged.connect(self.nameChanged)
         self.sigContextMenu.connect(self.contextMenu)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def nameChanged(self, _):
 
@@ -1335,7 +1334,7 @@ class MyTemplateParameter(MyGroupParameter):
                 parent,
                 parent.templateList,
                 index,
-                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected template ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes,  # noqa: E501
+                confirmRemoval=lambda: QMessageBox.question(None, 'Please confirm', 'Delete selected template ?', QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes,  # noqa: E501 # pylint: disable=C0301
             )
 
         elif name == 'moveUp':
@@ -1345,7 +1344,7 @@ class MyTemplateParameter(MyGroupParameter):
                 parent.templateList,
                 index,
                 offset=-1,
-                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
+                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501 # pylint: disable=C0301
             )
 
         elif name == 'moveDown':
@@ -1355,7 +1354,7 @@ class MyTemplateParameter(MyGroupParameter):
                 parent.templateList,
                 index,
                 offset=1,
-                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
+                childFactory=lambda template: dict(name=template.name, type='myTemplate', value=template, default=template, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501 # pylint: disable=C0301
             )
 
         elif name == 'preview':
@@ -1412,7 +1411,7 @@ class MyRollListParameter(MyGroupParameter):
             self.addChild(dict(name='Points', type='myRoll', expanded=False, flat=True, decimals=d, suffix=s, value=self.moveList[2], default=self.moveList[2]))
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyRollListParameters(self)
@@ -1488,7 +1487,7 @@ class MyRollParameter(MyGroupParameter):
             (self.parT, self.changedT),
         ])
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changedA(self):                                                         # not used; readonly parameter to block signal
         pass
@@ -1586,7 +1585,7 @@ class MySeedListParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
         self.initializePreviewItem(param)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def showPreviewInformation(self, param):
         t, hasError = previewSeedListCompositionSummary(param)
@@ -1626,11 +1625,11 @@ class MySeedListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for n, seed in enumerate(self.seedList):
-                self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501
+                self.addChild(dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501 # pylint: disable=C0301
 
         self.sigContextMenu.connect(self.contextMenu)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def value(self):
         return self.seedList
@@ -1645,7 +1644,7 @@ class MySeedListParameter(MyGroupParameter):
                 self.seedList,
                 seed,
                 name=newName,
-                childFactory=lambda childName, childSeed: dict(name=childName, type='myTemplateSeed', value=childSeed, default=childSeed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
+                childFactory=lambda childName, childSeed: dict(name=childName, type='myTemplateSeed', value=childSeed, default=childSeed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501 # pylint: disable=C0301
                 menuName=name,
             )
 
@@ -1690,7 +1689,7 @@ class MyPatternSeedListParameter(MyGroupParameter):
 
         self.sigContextMenu.connect(self.contextMenu)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def value(self):
         return self.seedList
@@ -1716,7 +1715,7 @@ class MyPatternSeedListParameter(MyGroupParameter):
             )
             self.sigValueChanging.emit(self, self.value())
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
 
 # class MySeed ##############################################################
@@ -1786,7 +1785,7 @@ class MySeedParameter(MyGroupParameter):
             self.addChild(dict(name='Seed pattern', type='myList', value=patterns[nPattern], default=patterns[nPattern], limits=patterns))
             self.addChild(dict(name='Circle grow steps', type='myCircle', value=self.seed.circle, default=self.seed.circle, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
             self.addChild(dict(name='Spiral grow steps', type='mySpiral', value=self.seed.spiral, default=self.seed.spiral, expanded=True, flat=True, brush='#add8e6'))   # , brush='#add8e6'
-            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', wellDirectory=self.wellDirectory, survey=self.survey))     # noqa: E501 # , brush='#add8e6'
+            self.addChild(dict(name='Well grow steps', type='myWell', value=self.seed.well, default=self.seed.well, expanded=True, flat=True, brush='#add8e6', wellDirectory=self.wellDirectory, survey=self.survey))     # noqa: E501 # pylint: disable=C0301 # , brush='#add8e6'
 
         bindChildParameters(self, {
             'parT': 'Seed type',
@@ -1813,7 +1812,7 @@ class MySeedParameter(MyGroupParameter):
 
         self.typeChanged()
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def nameChanged(self, _):
         self.seed.name = self.name()
@@ -1882,7 +1881,7 @@ class MySeedParameter(MyGroupParameter):
                 parent.seedList,
                 index,
                 offset=-1,
-                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
+                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501 # pylint: disable=C0301
             )
 
         elif name == 'moveDown':
@@ -1892,14 +1891,14 @@ class MySeedParameter(MyGroupParameter):
                 parent.seedList,
                 index,
                 offset=1,
-                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
+                childFactory=lambda seed: dict(name=seed.name, type='myTemplateSeed', value=seed, default=seed, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501 # pylint: disable=C0301
             )
 
         elif name == 'preview':
             ...
         elif name == 'export':
             ...
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
 
 # class MyPatternSeed ##############################################################
@@ -1951,7 +1950,7 @@ class MyPatternSeedParameter(MyGroupParameter):
         self.sigContextMenu.connect(self.contextMenu)
         self.sigNameChanged.connect(self.nameChanged)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def nameChanged(self, _):
         self.seed.name = self.name()
@@ -2005,7 +2004,7 @@ class MyPatternSeedParameter(MyGroupParameter):
         elif name == 'export':
             ...
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
 
 # class MyCircle ############################################################
@@ -2057,7 +2056,7 @@ class MyCircleParameter(MyGroupParameter):
         bindPreviewAngleIntervalPointChildren(self)
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyCircleParameters(self)
@@ -2119,7 +2118,7 @@ class MySpiralParameter(MyGroupParameter):
         bindPreviewAngleIntervalPointChildren(self)
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applySpiralParameters(self)
@@ -2202,7 +2201,7 @@ class MyWellParameter(MyGroupParameter):
             (self.parI, self.changedI),
             (self.parN, self.changedN),
         ])
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def _syncOriginFieldsFromWell(self):
         originValues = self.wellStateHelper.originValues()
@@ -2273,11 +2272,11 @@ class MyTemplateListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for n, template in enumerate(self.templateList):
-                self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501
+                self.addChild(dict(name=template.name, type='myTemplate', value=template, default=template, expanded=(n < 2), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501 # pylint: disable=C0301
 
         self.sigContextMenu.connect(self.contextMenu)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def value(self):
         return self.templateList
@@ -2290,11 +2289,11 @@ class MyTemplateListParameter(MyGroupParameter):
                 self.templateList,
                 baseName='Template',
                 createValue=lambda childName: createDefaultTemplate(childName, self.survey),
-                childFactory=lambda childName, childTemplate: dict(name=childName, type='myTemplate', value=childTemplate, default=childTemplate, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
+                childFactory=lambda childName, childTemplate: dict(name=childName, type='myTemplate', value=childTemplate, default=childTemplate, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501 # pylint: disable=C0301
                 menuName=name,
             )
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
 
 # class MyBlockList #########################################################
@@ -2327,13 +2326,13 @@ class MyBlockListParameter(MyGroupParameter):
 
         with self.treeChangeBlocker():
             for block in self.blockList:
-                self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(nBlocks == 1), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501
+                self.addChild(dict(name=block.name, type='myBlock', value=block, default=block, expanded=(nBlocks == 1), renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey))  # noqa: E501 # pylint: disable=C0301
 
         self.sigContextMenu.connect(self.contextMenu)
         self.sigChildAdded.connect(self.onChildAdded)
         self.sigChildRemoved.connect(self.onChildRemoved)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def value(self):
         return self.blockList
@@ -2346,11 +2345,11 @@ class MyBlockListParameter(MyGroupParameter):
                 self.blockList,
                 baseName='Block',
                 createValue=lambda childName: createDefaultBlock(childName, self.survey),
-                childFactory=lambda childName, childBlock: dict(name=childName, type='myBlock', value=childBlock, default=childBlock, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501
+                childFactory=lambda childName, childBlock: dict(name=childName, type='myBlock', value=childBlock, default=childBlock, expanded=False, renamable=True, flat=True, decimals=5, suffix='m', wellDirectory=self.wellDirectory, survey=self.survey),  # noqa: E501 # pylint: disable=C0301
                 menuName=name,
             )
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def onChildAdded(self, *_):                                                 # child, index unused and replaced by *_
         # myPrint(f'>>>{lineNo():5d} BlockList.ChildAdded <<<')
@@ -2410,7 +2409,7 @@ class MyPatternParameter(MyGroupParameter):
         self.sigContextMenu.connect(self.contextMenu)
         self.sigNameChanged.connect(self.nameChanged)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def nameChanged(self, _):
         self.pattern.name = self.name()
@@ -2464,7 +2463,7 @@ class MyPatternParameter(MyGroupParameter):
         elif name == 'export':
             ...
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
 
 # class MyPatternList #######################################################
@@ -2498,7 +2497,7 @@ class MyPatternListParameter(MyGroupParameter):
         self.sigChildRemoved.connect(self.onChildRemoved)
         self.sigTreeStateChanged.connect(self.onTreeStateChanged)
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def onTreeStateChanged(self, *_):
         # Any change in pattern list (rename, move, add, remove) must refresh seeds
@@ -2541,7 +2540,7 @@ class MyPatternListParameter(MyGroupParameter):
                 afterAppend=lambda _pattern: applyPatternListSideEffects(self),
             )
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def refreshSeedPatternLists(self):
         for seedParam in iterTemplateSeedParameters(self):
@@ -2591,7 +2590,7 @@ class MyGridParameter(MyGroupParameter):
             (self.parG, self.changedG),
         ])
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changedL(self):
         self.binGrid = applyLocalGridValues(self.binGrid, self.parL.value())
@@ -2642,7 +2641,7 @@ class MyAnalysisParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyAnalysisParameters(self)
@@ -2682,7 +2681,7 @@ class MyReflectorsParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyReflectorParameters(self)
@@ -2728,7 +2727,7 @@ class MyConfigurationParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def changed(self):
         applyConfigurationParameterValues(self)
@@ -2777,7 +2776,7 @@ class MySurveyParameter(MyGroupParameter):
             self.addChild(dict(brush=brush, name='Block list', type='myBlockList', value=self.survey.blockList, default=self.survey.blockList, survey=self.survey))
             self.addChild(dict(brush=brush, name='Pattern list', type='myPatternList', value=self.survey.patternList, default=self.survey.patternList, survey=self.survey))
 
-        QApplication.processEvents()
+        # QApplication.processEvents()
 
     def value(self):
         return self.survey

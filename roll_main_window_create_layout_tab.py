@@ -1,7 +1,7 @@
 import traceback
 
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtGui import QColor, QPen
 from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QFrame, QGroupBox,
                                  QHBoxLayout, QLabel, QSplitter,
                                  QStackedWidget, QToolButton, QVBoxLayout,
@@ -104,6 +104,33 @@ def _buildBlockAreasConfig(self):
     )
 
 
+def _buildReflectorStyleConfig(self):
+    """Build the 3D reflector style dict for plane/sphere rendering."""
+    appSettings = getattr(self, 'appSettings', None)
+    if appSettings is None:
+        return None
+
+    faceColor = QColor(getattr(appSettings, 'reflectColor', '#403070d0'))
+    if not faceColor.isValid():
+        faceColor = QColor('#403070d0')
+
+    reflectPen = getattr(appSettings, 'reflectPen', None)
+    if reflectPen is None:
+        edgeColor = QColor(faceColor)
+        edgeColor.setAlpha(255)
+        edgeColor = edgeColor.darker(180)
+        edgeColor, edgeWidth, edgeStyle = _qPenToMplStyle(QPen(edgeColor, 1))
+    else:
+        edgeColor, edgeWidth, edgeStyle = _qPenToMplStyle(reflectPen)
+
+    return dict(
+        faceColor=_qColorToRgba(faceColor),
+        edgeColor=edgeColor,
+        edgeWidth=edgeWidth,
+        edgeStyle=edgeStyle,
+    )
+
+
 # Best-effort translation of pyqtgraph / colorcet map names to a
 # matplotlib-resolvable equivalent. The 3D analysis surface uses
 # ``matplotlib.cm.get_cmap`` which only knows its own registry; the
@@ -196,10 +223,10 @@ def updateLayoutMethodControlsVisibility(self):
 def _ensureLayout3DWidget(self):
     """Construct the 3D widget on first use.
 
-    Lazy-init avoids paying the OpenGL initialization cost (and risk of
-    a GL-driver-level crash) on plugin startup. Any failure during
-    construction is caught and replaced with a QLabel explaining the
-    problem so the rest of the Layout tab keeps working.
+    Lazy-init keeps startup light while still treating the widget as a
+    normal peer of the 2D map once it has been created. Any failure
+    during construction is caught and replaced with a QLabel explaining
+    the problem so the rest of the Layout tab keeps working.
     """
     if self.layout3DWidget is not None:
         return self.layout3DWidget
@@ -219,15 +246,7 @@ def _ensureLayout3DWidget(self):
 
 
 def _teardownLayout3DWidget(self):
-    """Destroy the 3D widget and reclaim its OpenGL surface.
-
-    Keeping a `GLViewWidget` alive while the Layout tab (or its 3D
-    page) is hidden has been observed to deadlock the QGIS main thread
-    on Windows GL drivers when other tabs are activated. The simplest
-    reliable fix is to remove and delete the widget any time it is no
-    longer the visible page; it gets re-created on demand by
-    ``_ensureLayout3DWidget``.
-    """
+    """Destroy the 3D widget when callers explicitly want to reclaim it."""
     if not getattr(self, 'layout3DWidget', None):
         return
     widget = self.layout3DWidget
@@ -248,16 +267,15 @@ def _onLayoutViewModeChanged(self):
     if not hasattr(self, 'layoutViewStack'):
         return
     if self.actionLayout3D.isChecked():
+        self.layoutViewMode = '3d'
         widget = _ensureLayout3DWidget(self)
         self.layoutViewStack.setCurrentWidget(widget)
         # Refresh 3D content from the current survey, matching the 2D
         # plot's local/global coordinate convention.
         refreshLayout3DFromSurvey(self)
     else:
-        # Always show 2D first, *then* destroy the 3D widget so Qt
-        # never has to repaint a hidden GL surface.
+        self.layoutViewMode = '2d'
         self.layoutViewStack.setCurrentWidget(self.layoutWidget)
-        _teardownLayout3DWidget(self)
 
 
 def refreshLayout3DFromSurvey(self):
@@ -325,6 +343,7 @@ def refreshLayout3DFromSurvey(self):
     binArea = _buildBinAreaConfig(self)
     blockAreas = _buildBlockAreasConfig(self)
     analysisImage = _buildAnalysisImageConfig(self)
+    reflectorStyle = _buildReflectorStyleConfig(self)
 
     try:
         update(survey, useGlobal,
@@ -333,7 +352,8 @@ def refreshLayout3DFromSurvey(self):
                spiderData=spiderData,
                binArea=binArea,
                blockAreas=blockAreas,
-               analysisImage=analysisImage)
+               analysisImage=analysisImage,
+               reflectorStyle=reflectorStyle)
     except TypeError:
         # Backward-compat: older widget without the kwargs.
         try:
@@ -373,31 +393,20 @@ def refreshLayout3DFromSurvey(self):
 
 
 def _onMainTabChangedFor3D(self, index):
-    """Tear the 3D widget down whenever the Layout tab loses focus.
-
-    Called from `roll_main_window.onMainTabChange`. The Layout tab is
-    index 0; for every other tab we destroy the GL widget and force the
-    action back to 2D, so returning to the Layout tab is always safe.
-    """
-    if index == 0:
+    """Refresh the 3D widget when the Layout tab regains focus."""
+    if index != 0:
         return
-    if getattr(self, 'layout3DWidget', None) is None:
-        return
-    if hasattr(self, 'actionLayout2D') and not self.actionLayout2D.isChecked():
-        # This will fire _onLayoutViewModeChanged which tears the
-        # widget down; we don't have to do it manually.
-        self.actionLayout2D.setChecked(True)
-    else:
-        _teardownLayout3DWidget(self)
+    actionLayout3D = getattr(self, 'actionLayout3D', None)
+    if actionLayout3D is not None and actionLayout3D.isChecked():
+        refreshLayout3DFromSurvey(self)
 
 
 def createLayoutTab(self):
     self.layoutWidget = self.createPlotWidget()
 
     # 3D widget is created lazily the first time the user picks 3D
-    # Subset, and destroyed again whenever they go back to 2D or leave
-    # the Layout tab. There is no permanent placeholder page in the
-    # stack -- the GL widget is added/removed on demand.
+    # Subset, then kept alive as a normal peer of the 2D map so its
+    # state survives view switches and project loads.
     self.layout3DWidget = None
 
     # The 2D plot widget and the 3D viewer share the same splitter slot
@@ -428,12 +437,17 @@ def createLayoutTab(self):
     self.layoutMethodActionGroup.setExclusive(True)
     self.layoutMethodActionGroup.addAction(self.actionLayout2D)
     self.layoutMethodActionGroup.addAction(self.actionLayout3D)
-    self.actionLayout2D.setChecked(True)
 
     # Connect both actions to the same handler so the stacked widget
     # follows whichever one becomes active.
     self.actionLayout2D.toggled.connect(lambda _checked: _onLayoutViewModeChanged(self))
     self.actionLayout3D.toggled.connect(lambda _checked: _onLayoutViewModeChanged(self))
+
+    initialLayoutView = getattr(self, 'layoutViewMode', '2d')
+    if initialLayoutView == '3d':
+        self.actionLayout3D.setChecked(True)
+    else:
+        self.actionLayout2D.setChecked(True)
 
     self.tbLayout2D.setDefaultAction(self.actionLayout2D)
     self.tbLayout3D.setDefaultAction(self.actionLayout3D)
