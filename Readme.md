@@ -27,11 +27,12 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 
 - Each block contains one or more templates 
 
-- Each template contains ***two*** or more seeds
-  - One seed (or more) is required for *receiver* layout
-  - One seed (or more) is required for *source* layout
+- Each template contains at least ***two*** seeds
+  - One seed is required for *receiver* layout
+  - One seed is required for *source* layout
 
-  *Within a template **all** available sources shoot into **all** available receivers in that template*
+  > Within a template **all** available sources shoot into **all** available receivers in that template
+  > Additional source- and/or receiver seeds my be defined in each template. 
 
 - A seed defines the starting location of a single *source / receiver*
 
