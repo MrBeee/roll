@@ -39,7 +39,7 @@ import traceback
 import numpy as np
 from qgis.PyQt.QtCore import QPointF, Qt
 from qgis.PyQt.QtGui import QVector3D
-from qgis.PyQt.QtWidgets import QLabel, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 from .enums_and_int_flags import SeedType
 from .roll_binning import BinningType
@@ -90,6 +90,7 @@ class Layout3DWidget(QWidget):
         # shape as the 2D Map view.
         self._aspectXSpan = 1.0
         self._aspectYSpan = 1.0
+        self._rotationDragState = None
 
         # Lazy / guarded matplotlib import.
         try:
@@ -148,6 +149,9 @@ class Layout3DWidget(QWidget):
         # shrinking/expanding all three axis limits and re-applying the
         # box-aspect from the current spans.
         self._canvas.mpl_connect('scroll_event', self._onScroll)
+        self._canvas.mpl_connect('button_press_event', self._onRotationPress)
+        self._canvas.mpl_connect('motion_notify_event', self._onRotationMove)
+        self._canvas.mpl_connect('button_release_event', self._onRotationRelease)
 
     # ------------------------------------------------------------------
     # Public API
@@ -901,12 +905,12 @@ class Layout3DWidget(QWidget):
         norm[nanMask] = 0.0
 
         try:
-            import matplotlib.cm as cm
+            import matplotlib
             cmapName = analysisImage.get('colorMap', 'viridis') or 'viridis'
             try:
-                cmap = cm.get_cmap(cmapName)
+                cmap = matplotlib.colormaps.get_cmap(cmapName)
             except (ValueError, KeyError):
-                cmap = cm.get_cmap('viridis')
+                cmap = matplotlib.colormaps.get_cmap('viridis')
         except Exception:                                       # pragma: no cover
             return
         colors = cmap(norm)
@@ -1285,9 +1289,55 @@ class Layout3DWidget(QWidget):
         if self._canvas is not None:
             self._canvas.draw_idle()
 
+    def _onRotationPress(self, event):
+        if self._axes is None or event.inaxes is not self._axes or event.button != 1:
+            return
+        self._rotationDragState = self._captureRotationState()
+
+    def _onRotationMove(self, event):
+        ax = self._axes
+        state = self._rotationDragState
+        if ax is None or state is None:
+            return
+
+        if event.inaxes not in (None, ax):
+            return
+
+        if QApplication.keyboardModifiers() & Qt.KeyboardModifier.AltModifier:
+            self._applyAltRotationLock(state)
+            return
+
+        self._rotationDragState = self._captureRotationState()
+
+    def _onRotationRelease(self, event):
+        if event.button == 1:
+            self._rotationDragState = None
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _captureRotationState(self):
+        ax = self._axes
+        if ax is None:
+            return None
+        return dict(elev=ax.elev, roll=getattr(ax, 'roll', None))
+
+    def _applyAltRotationLock(self, state):
+        ax = self._axes
+        if ax is None:
+            return
+
+        try:
+            if state['roll'] is None:
+                ax.view_init(elev=state['elev'], azim=ax.azim)
+            else:
+                ax.view_init(elev=state['elev'], azim=ax.azim, roll=state['roll'])
+        except TypeError:
+            ax.view_init(elev=state['elev'], azim=ax.azim)
+
+        if self._canvas is not None:
+            self._canvas.draw_idle()
 
     def _configureAxes(self):
         ax = self._axes

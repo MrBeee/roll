@@ -42,46 +42,45 @@ land_wizard.py:861: [R1714(consider-using-in), Page2.updateParentSurvey] Conside
 land_wizard.py:824: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (16/12)
 land_wizard.py:1845: [R1714(consider-using-in), Page4.updateParentSurvey] Consider merging these comparisons with 'in' by using 'typ in (SurveyType.Orthogonal.code, SurveyType.Parallel.code)'. Use a set instead if elements are hashable.
 ************* Module roll.layout_3D
-layout_3D.py:103: [W0718(broad-exception-caught), Layout3DWidget.__init__] Catching too general exception Exception
-layout_3D.py:96: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib)
-layout_3D.py:98: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg)
-layout_3D.py:100: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib.figure.Figure)
-layout_3D.py:101: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (mpl_toolkits.mplot3d.Axes3D)
-layout_3D.py:101: [W0611(unused-import), Layout3DWidget.__init__] Unused Axes3D imported from mpl_toolkits.mplot3d
-layout_3D.py:193: [R0913(too-many-arguments), Layout3DWidget.updateFromSurvey] Too many arguments (10/5)
-layout_3D.py:193: [R0917(too-many-positional-arguments), Layout3DWidget.updateFromSurvey] Too many positional arguments (10/5)
-layout_3D.py:441: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
-layout_3D.py:434: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
-layout_3D.py:406: [R1702(too-many-nested-blocks), Layout3DWidget.updateFromSurvey] Too many nested blocks (6/5)
-layout_3D.py:454: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
-layout_3D.py:465: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
-layout_3D.py:480: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
-layout_3D.py:193: [R0912(too-many-branches), Layout3DWidget.updateFromSurvey] Too many branches (41/12)
-layout_3D.py:511: [W0718(broad-exception-caught), Layout3DWidget._safeBoundingRect] Catching too general exception Exception
-layout_3D.py:566: [W0718(broad-exception-caught), Layout3DWidget._dataPointsLocalBoundingRect] Catching too general exception Exception
-layout_3D.py:628: [W0718(broad-exception-caught), Layout3DWidget._mapGlobalBboxToLocal] Catching too general exception Exception
-layout_3D.py:644: [R1737(use-yield-from), Layout3DWidget._iterSeeds] Use 'yield from' directly instead of yielding each element one by one
-layout_3D.py:647: [R0912(too-many-branches), Layout3DWidget._collectSeedGeometries] Too many branches (17/12)
-layout_3D.py:809: [C0415(import-outside-toplevel), Layout3DWidget._drawAnalysisArea] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
-layout_3D.py:910: [W0718(broad-exception-caught), Layout3DWidget._drawAnalysisImage] Catching too general exception Exception
-layout_3D.py:904: [R0402(consider-using-from-import), Layout3DWidget._drawAnalysisImage] Use 'from matplotlib import cm' instead
-layout_3D.py:904: [C0415(import-outside-toplevel), Layout3DWidget._drawAnalysisImage] Import outside toplevel (matplotlib.cm)
-layout_3D.py:987: [C0415(import-outside-toplevel), Layout3DWidget._drawBlockAreas] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
-layout_3D.py:1016: [R0913(too-many-arguments), Layout3DWidget._drawBinningPlane] Too many arguments (8/5)
-layout_3D.py:1016: [R0917(too-many-positional-arguments), Layout3DWidget._drawBinningPlane] Too many positional arguments (8/5)
-layout_3D.py:1041: [C0415(import-outside-toplevel), Layout3DWidget._drawBinningPlane] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
-layout_3D.py:1156: [R1730(consider-using-min-builtin), Layout3DWidget._drawSpiderOverlay] Consider using 'self._dataZMin = min(self._dataZMin, cmpZmin)' instead of unnecessary if block
-layout_3D.py:1158: [R1731(consider-using-max-builtin), Layout3DWidget._drawSpiderOverlay] Consider using 'self._dataZMax = max(self._dataZMax, cmpZmax)' instead of unnecessary if block
-layout_3D.py:1167: [C0415(import-outside-toplevel), Layout3DWidget._drawSpiderOverlay] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Line3DCollection)
-layout_3D.py:1204: [R0913(too-many-arguments), Layout3DWidget._applyAxisLimits] Too many arguments (7/5)
-layout_3D.py:1204: [R0917(too-many-positional-arguments), Layout3DWidget._applyAxisLimits] Too many positional arguments (7/5)
-layout_3D.py:1241: [W0718(broad-exception-caught), Layout3DWidget._refreshBoxAspect] Catching too general exception Exception
-layout_3D.py:1255: [W0718(broad-exception-caught), Layout3DWidget._refreshBoxAspect] Catching too general exception Exception
-layout_3D.py:1310: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
-layout_3D.py:1303: [C0415(import-outside-toplevel), Layout3DWidget._configureAxes] Import outside toplevel (matplotlib.ticker.MaxNLocator, matplotlib.ticker.ScalarFormatter)
-layout_3D.py:1314: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
-layout_3D.py:1318: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
-layout_3D.py:1331: [W0718(broad-exception-caught), Layout3DWidget.showEvent] Catching too general exception Exception
+layout_3D.py:104: [W0718(broad-exception-caught), Layout3DWidget.__init__] Catching too general exception Exception
+layout_3D.py:97: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib)
+layout_3D.py:99: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib.backends.backend_qt5agg.FigureCanvasQTAgg)
+layout_3D.py:101: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (matplotlib.figure.Figure)
+layout_3D.py:102: [C0415(import-outside-toplevel), Layout3DWidget.__init__] Import outside toplevel (mpl_toolkits.mplot3d.Axes3D)
+layout_3D.py:102: [W0611(unused-import), Layout3DWidget.__init__] Unused Axes3D imported from mpl_toolkits.mplot3d
+layout_3D.py:197: [R0913(too-many-arguments), Layout3DWidget.updateFromSurvey] Too many arguments (10/5)
+layout_3D.py:197: [R0917(too-many-positional-arguments), Layout3DWidget.updateFromSurvey] Too many positional arguments (10/5)
+layout_3D.py:445: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
+layout_3D.py:438: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
+layout_3D.py:410: [R1702(too-many-nested-blocks), Layout3DWidget.updateFromSurvey] Too many nested blocks (6/5)
+layout_3D.py:458: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
+layout_3D.py:469: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
+layout_3D.py:484: [W0718(broad-exception-caught), Layout3DWidget.updateFromSurvey] Catching too general exception Exception
+layout_3D.py:197: [R0912(too-many-branches), Layout3DWidget.updateFromSurvey] Too many branches (41/12)
+layout_3D.py:515: [W0718(broad-exception-caught), Layout3DWidget._safeBoundingRect] Catching too general exception Exception
+layout_3D.py:570: [W0718(broad-exception-caught), Layout3DWidget._dataPointsLocalBoundingRect] Catching too general exception Exception
+layout_3D.py:632: [W0718(broad-exception-caught), Layout3DWidget._mapGlobalBboxToLocal] Catching too general exception Exception
+layout_3D.py:648: [R1737(use-yield-from), Layout3DWidget._iterSeeds] Use 'yield from' directly instead of yielding each element one by one
+layout_3D.py:651: [R0912(too-many-branches), Layout3DWidget._collectSeedGeometries] Too many branches (17/12)
+layout_3D.py:813: [C0415(import-outside-toplevel), Layout3DWidget._drawAnalysisArea] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
+layout_3D.py:914: [W0718(broad-exception-caught), Layout3DWidget._drawAnalysisImage] Catching too general exception Exception
+layout_3D.py:908: [C0415(import-outside-toplevel), Layout3DWidget._drawAnalysisImage] Import outside toplevel (matplotlib)
+layout_3D.py:991: [C0415(import-outside-toplevel), Layout3DWidget._drawBlockAreas] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
+layout_3D.py:1020: [R0913(too-many-arguments), Layout3DWidget._drawBinningPlane] Too many arguments (8/5)
+layout_3D.py:1020: [R0917(too-many-positional-arguments), Layout3DWidget._drawBinningPlane] Too many positional arguments (8/5)
+layout_3D.py:1045: [C0415(import-outside-toplevel), Layout3DWidget._drawBinningPlane] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Poly3DCollection)
+layout_3D.py:1160: [R1730(consider-using-min-builtin), Layout3DWidget._drawSpiderOverlay] Consider using 'self._dataZMin = min(self._dataZMin, cmpZmin)' instead of unnecessary if block
+layout_3D.py:1162: [R1731(consider-using-max-builtin), Layout3DWidget._drawSpiderOverlay] Consider using 'self._dataZMax = max(self._dataZMax, cmpZmax)' instead of unnecessary if block
+layout_3D.py:1171: [C0415(import-outside-toplevel), Layout3DWidget._drawSpiderOverlay] Import outside toplevel (mpl_toolkits.mplot3d.art3d.Line3DCollection)
+layout_3D.py:1208: [R0913(too-many-arguments), Layout3DWidget._applyAxisLimits] Too many arguments (7/5)
+layout_3D.py:1208: [R0917(too-many-positional-arguments), Layout3DWidget._applyAxisLimits] Too many positional arguments (7/5)
+layout_3D.py:1245: [W0718(broad-exception-caught), Layout3DWidget._refreshBoxAspect] Catching too general exception Exception
+layout_3D.py:1259: [W0718(broad-exception-caught), Layout3DWidget._refreshBoxAspect] Catching too general exception Exception
+layout_3D.py:1360: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
+layout_3D.py:1353: [C0415(import-outside-toplevel), Layout3DWidget._configureAxes] Import outside toplevel (matplotlib.ticker.MaxNLocator, matplotlib.ticker.ScalarFormatter)
+layout_3D.py:1364: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
+layout_3D.py:1368: [W0718(broad-exception-caught), Layout3DWidget._configureAxes] Catching too general exception Exception
+layout_3D.py:1381: [W0718(broad-exception-caught), Layout3DWidget.showEvent] Catching too general exception Exception
 ************* Module roll.marine_wizard
 marine_wizard.py:826: [R1719(simplifiable-if-expression), Page2.updateParentSurvey] The if expression can be replaced with 'test'
 marine_wizard.py:817: [R0912(too-many-branches), Page2.updateParentSurvey] Too many branches (13/12)
@@ -258,5 +257,5 @@ test\utilities.py:91: [R0913(too-many-arguments), writeMinimalProjectFixture] To
 test\utilities.py:91: [R0917(too-many-positional-arguments), writeMinimalProjectFixture] Too many positional arguments (6/5)
 
 ------------------------------------------------------------------
-Your code has been rated at 9.92/10 (previous run: 9.91/10, +0.01)
+Your code has been rated at 9.92/10 (previous run: 9.92/10, +0.00)
 

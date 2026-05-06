@@ -194,6 +194,24 @@ Finally, see the 'Changelog' for already implemented functionality. Any [Issues]
 
 The plugin works best using one or two QHD Screens (2560 x 1440 pixels) or larger. As of QGIS V3.32 High DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a>. The Help menu in Roll shows how you can mitigate against these issues. 
 
+#### 6.1	Project size
+
+On the 6th May, the Addin contained `34,316` Source-Lines-Of-Code (SLOC) across `140` files. 
+
+##### Breakdown:
+
+1. Production Python: `27,482` SLOC across `109` files
+2. Test Python: `6,834` SLOC across `31` files
+3. All Python: `34,316` SLOC across `140` files
+
+##### For context:
+
+1. Total Python lines including blanks and comments: `50,749`
+2. Non-blank Python lines: `40,551`
+3. The single `.ui` file adds `1,703` non-blank XML lines, but isn't included in the SLOC
+
+This SLOC count excludes blank lines and lines starting with `#`, but still counts lines that contain code plus an inline comment.
+
 
 
 ### 7	To Do
