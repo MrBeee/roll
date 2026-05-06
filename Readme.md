@@ -24,17 +24,24 @@ In the **OSGeo4W Command Shell**, type: ```pip install --upgrade 'library-name'`
 **Roll** is a plugin aimed at designing 3D seismic survey geometries, using a template based approach.
 
 - Each survey consists of one or more (rectangular) *blocks*
+
 - Each block contains one or more templates 
+
 - Each template contains ***two*** or more seeds
-  - At least one seed for *receiver* layout
-  - At least one seed for *source* layout
+  - One seed (or more) is required for *receiver* layout
+  - One seed (or more) is required for *source* layout
+
+  *Within a template **all** available sources shoot into **all** available receivers in that template*
 
 - A seed defines the starting location of a single *source / receiver*
+
 - Each seed can be **grown** up to *three* times
   - The 1st grow step changes a seed position into a line segment (sequence) of positions
   - The 2nd grow step changes a line segment into a multitude (grid) of lines 
   - The 3rd grow step changes the grid into a sequence of (intertwined) grids
+
 - The seeds, combined with their grow steps, define the active sources and receivers in a template
+
 - Each template can be **rolled**  in up to *three* directions, for instance:
   - Firstly in the inline direction, at source line intervals
   - Secondly in the crossline direction, at receiver line intervals
