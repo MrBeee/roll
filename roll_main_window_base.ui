@@ -135,7 +135,7 @@
      <addaction name="actionExportMinOffsetsToQGIS"/>
      <addaction name="actionExportMaxOffsetsToQGIS"/>
      <addaction name="actionExportRmsOffsetsToQGIS"/>
-    <addaction name="actionExportOffsetGapsToQGIS"/>
+     <addaction name="actionExportOffsetGapsToQGIS"/>
      <addaction name="separator"/>
      <addaction name="actionExportAreasToQGIS"/>
     </widget>
@@ -194,6 +194,12 @@
     <property name="title">
      <string>&amp;Processing</string>
     </property>
+    <widget class="QMenu" name="menuProcessing_Utilities">
+     <property name="title">
+      <string>Processing &amp;Utilities</string>
+     </property>
+     <addaction name="actionShift_Survey_Area"/>
+    </widget>
     <addaction name="actionBasicBinFromTemplates"/>
     <addaction name="actionFullBinFromTemplates"/>
     <addaction name="separator"/>
@@ -206,6 +212,8 @@
     <addaction name="actionGeometryFromTemplates"/>
     <addaction name="separator"/>
     <addaction name="actionStopThread"/>
+    <addaction name="separator"/>
+    <addaction name="menuProcessing_Utilities"/>
    </widget>
    <widget class="QMenu" name="menuDisplay">
     <property name="title">
@@ -903,7 +911,7 @@
      <normaloff>resources/mActionGeomFromTemplates.svg</normaloff>resources/mActionGeomFromTemplates.svg</iconset>
    </property>
    <property name="text">
-    <string>Create Geometry from Templates</string>
+    <string>&amp;Create Geometry from Templates</string>
    </property>
    <property name="shortcut">
     <string>Alt+G</string>
@@ -927,7 +935,7 @@
      <normaloff>resources/mActionFullBinFromGeometry2.svg</normaloff>resources/mActionFullBinFromGeometry2.svg</iconset>
    </property>
    <property name="text">
-    <string>Full Binning from Geometry</string>
+    <string>Full Binning from &amp;Geometry</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+G</string>
@@ -1002,7 +1010,7 @@
      <normaloff>resources/mActionBasicBinFromSps.svg</normaloff>resources/mActionBasicBinFromSps.svg</iconset>
    </property>
    <property name="text">
-    <string>Basic Binning from &amp;Imported SPS</string>
+    <string>Basic Binning from Imported SPS</string>
    </property>
    <property name="toolTip">
     <string>Basic Binning from &amp;Imported SPS</string>
@@ -1017,7 +1025,7 @@
      <normaloff>resources/mActionFullBinFromSps2.svg</normaloff>resources/mActionFullBinFromSps2.svg</iconset>
    </property>
    <property name="text">
-    <string>Full Binning from I&amp;mported SPS</string>
+    <string>Full Binning from &amp;Imported &amp;SPS</string>
    </property>
    <property name="toolTip">
     <string>Full Binning from I&amp;mported SPS</string>
@@ -1695,6 +1703,11 @@
    </property>
    <property name="text">
     <string>Analysis Area</string>
+   </property>
+  </action>
+  <action name="actionShift_Survey_Area">
+   <property name="text">
+    <string>Shift Survey Location</string>
    </property>
   </action>
  </widget>

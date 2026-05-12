@@ -56,7 +56,7 @@ class MyPoint3DParameter(MyGroupParameter):
         self.vector.setY(self.parY.value())
         self.vector.setZ(self.parZ.value())
 
-        # self.sigValueChanging.emit(self, self.value())  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        self.sigValueChanged.emit(self, self.value())
 
     def value(self):
         return self.vector

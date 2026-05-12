@@ -112,6 +112,8 @@ project_service.py:107: [R0917(too-many-positional-arguments), ProjectService.wr
 project_service.py:223: [R0913(too-many-arguments), ProjectService.saveSurveyDataSidecars] Too many arguments (8/5)
 project_service.py:278: [R0911(too-many-return-statements), ProjectService._loadAnalysisArraySidecars] Too many return statements (7/6)
 project_service.py:278: [R0912(too-many-branches), ProjectService._loadAnalysisArraySidecars] Too many branches (23/12)
+************* Module roll.property_panel_controller
+property_panel_controller.py:583: [R1737(use-yield-from), PropertyPanelController._iterSurveySeeds] Use 'yield from' directly instead of yielding each element one by one
 ************* Module roll.qgis_layer_dialog
 qgis_layer_dialog.py:8: [R0913(too-many-arguments), LayerDialog.__init__] Too many arguments (6/5)
 qgis_layer_dialog.py:8: [R0917(too-many-positional-arguments), LayerDialog.__init__] Too many positional arguments (6/5)
@@ -126,23 +128,23 @@ roll_main_window.py:1093: [R0913(too-many-arguments), RollMainWindow.renderOffAz
 roll_main_window.py:1093: [R0917(too-many-positional-arguments), RollMainWindow.renderOffAziRectangular] Too many positional arguments (6/5)
 roll_main_window.py:1120: [R0913(too-many-arguments), RollMainWindow.renderOffAziPolar] Too many arguments (6/5)
 roll_main_window.py:1120: [R0917(too-many-positional-arguments), RollMainWindow.renderOffAziPolar] Too many positional arguments (6/5)
-roll_main_window.py:1220: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
-roll_main_window.py:1273: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
-roll_main_window.py:1273: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
-roll_main_window.py:1393: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
-roll_main_window.py:1393: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
-roll_main_window.py:1756: [W0718(broad-exception-caught), RollMainWindow._onLayoutColorBarLevelsChanged] Catching too general exception Exception
-roll_main_window.py:1840: [R0911(too-many-return-statements), RollMainWindow._formatPlotImageValue] Too many return statements (7/6)
-roll_main_window.py:1908: [R1716(chained-comparison), RollMainWindow._setLayoutMouseStatus] Simplify chained comparison between the operands
-roll_main_window.py:1863: [R0912(too-many-branches), RollMainWindow._setLayoutMouseStatus] Too many branches (15/12)
-roll_main_window.py:2060: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
-roll_main_window.py:2410: [R0913(too-many-arguments), RollMainWindow.createAnalysisImageItem] Too many arguments (7/5)
-roll_main_window.py:2410: [R0917(too-many-positional-arguments), RollMainWindow.createAnalysisImageItem] Too many positional arguments (7/5)
-roll_main_window.py:2420: [R0913(too-many-arguments), RollMainWindow.prepareAnalysisImageAndColorBar] Too many arguments (13/5)
-roll_main_window.py:2420: [R0917(too-many-positional-arguments), RollMainWindow.prepareAnalysisImageAndColorBar] Too many positional arguments (13/5)
-roll_main_window.py:2469: [R0913(too-many-arguments), RollMainWindow.prepareLayoutImageAndColorBar] Too many arguments (7/5)
-roll_main_window.py:2469: [R0917(too-many-positional-arguments), RollMainWindow.prepareLayoutImageAndColorBar] Too many positional arguments (7/5)
-roll_main_window.py:175: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (224/20)
+roll_main_window.py:1235: [R1704(redefined-argument-from-local), RollMainWindow.propertyTreeStateChanged] Redefining argument with the local name 'param'
+roll_main_window.py:1288: [R0913(too-many-arguments), RollMainWindow.createPlotWidget] Too many arguments (7/5)
+roll_main_window.py:1288: [R0917(too-many-positional-arguments), RollMainWindow.createPlotWidget] Too many positional arguments (7/5)
+roll_main_window.py:1408: [R0913(too-many-arguments), RollMainWindow._applyConfiguredPointFilter] Too many arguments (6/5)
+roll_main_window.py:1408: [R0917(too-many-positional-arguments), RollMainWindow._applyConfiguredPointFilter] Too many positional arguments (6/5)
+roll_main_window.py:1771: [W0718(broad-exception-caught), RollMainWindow._onLayoutColorBarLevelsChanged] Catching too general exception Exception
+roll_main_window.py:1855: [R0911(too-many-return-statements), RollMainWindow._formatPlotImageValue] Too many return statements (7/6)
+roll_main_window.py:1923: [R1716(chained-comparison), RollMainWindow._setLayoutMouseStatus] Simplify chained comparison between the operands
+roll_main_window.py:1878: [R0912(too-many-branches), RollMainWindow._setLayoutMouseStatus] Too many branches (15/12)
+roll_main_window.py:2075: [R0912(too-many-branches), RollMainWindow.plotLayout] Too many branches (30/12)
+roll_main_window.py:2425: [R0913(too-many-arguments), RollMainWindow.createAnalysisImageItem] Too many arguments (7/5)
+roll_main_window.py:2425: [R0917(too-many-positional-arguments), RollMainWindow.createAnalysisImageItem] Too many positional arguments (7/5)
+roll_main_window.py:2435: [R0913(too-many-arguments), RollMainWindow.prepareAnalysisImageAndColorBar] Too many arguments (13/5)
+roll_main_window.py:2435: [R0917(too-many-positional-arguments), RollMainWindow.prepareAnalysisImageAndColorBar] Too many positional arguments (13/5)
+roll_main_window.py:2484: [R0913(too-many-arguments), RollMainWindow.prepareLayoutImageAndColorBar] Too many arguments (7/5)
+roll_main_window.py:2484: [R0917(too-many-positional-arguments), RollMainWindow.prepareLayoutImageAndColorBar] Too many positional arguments (7/5)
+roll_main_window.py:175: [R0904(too-many-public-methods), RollMainWindow] Too many public methods (229/20)
 ************* Module roll.roll_main_window_create_layout_tab
 roll_main_window_create_layout_tab.py:181: [W0718(broad-exception-caught), _buildAnalysisImageConfig] Catching too general exception Exception
 roll_main_window_create_layout_tab.py:202: [W0718(broad-exception-caught), _buildAnalysisImageConfig] Catching too general exception Exception
@@ -246,8 +248,14 @@ test\test_my_parameters_seed_visibility.py:128: [R0913(too-many-arguments), _Fak
 test\test_my_parameters_seed_visibility.py:239: [R0913(too-many-arguments), _FakeVisibilityState.__init__] Too many arguments (7/5)
 test\test_my_parameters_seed_visibility.py:805: [R0904(too-many-public-methods), MyParameterPreviewSummaryHelperTest] Too many public methods (48/20)
 ************* Module roll.test.test_project_sidecars
+test\test_project_sidecars.py:2978: [C0301(line-too-long), ] Line too long (232/210)
+test\test_project_sidecars.py:2979: [C0301(line-too-long), ] Line too long (232/210)
+test\test_project_sidecars.py:2980: [C0301(line-too-long), ] Line too long (232/210)
+test\test_project_sidecars.py:2981: [C0301(line-too-long), ] Line too long (232/210)
 test\test_project_sidecars.py:1928: [W0613(unused-argument), ProjectSidecarsTest.testBinningWorkerRunUsesOptionalProfilingPayload.SurveyStub.setupBinFromTemplates] Unused argument 'extended'
-test\test_project_sidecars.py:130: [R0904(too-many-public-methods), ProjectSidecarsTest] Too many public methods (143/20)
+test\test_project_sidecars.py:2951: [R0913(too-many-arguments), ProjectSidecarsTest.testApplyPropertyChangesPropagatesConfirmedSeedGridGrowStepsToNormalSeeds.FakeSeedParam.__init__] Too many arguments (7/5)
+test\test_project_sidecars.py:3084: [R0913(too-many-arguments), ProjectSidecarsTest.testApplyPropertyChangesPropagatesConfirmedSeedPatternToNormalSeeds.FakeSeedParam.__init__] Too many arguments (6/5)
+test\test_project_sidecars.py:130: [R0904(too-many-public-methods), ProjectSidecarsTest] Too many public methods (156/20)
 ************* Module roll.test.test_roll_survey_geometry
 test\test_roll_survey_geometry.py:28: [R0904(too-many-public-methods), RollSurveyGeometryTest] Too many public methods (21/20)
 ************* Module roll.test.test_sps_filters

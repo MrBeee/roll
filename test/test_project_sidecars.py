@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QEvent, QPointF, QRectF, Qt
-from qgis.PyQt.QtGui import QColor, QPen, QTransform
+from qgis.PyQt.QtGui import QColor, QPen, QTransform, QVector3D
 from qgis.PyQt.QtWidgets import QAction
 
 from .plugin_loader import loadPluginModule
@@ -32,6 +32,8 @@ propertyPanelControllerModule = loadPluginModule('property_panel_controller')
 printPresentationControllerModule = loadPluginModule('print_presentation_controller')
 layoutTabModule = loadPluginModule('roll_main_window_create_layout_tab')
 layout3DModule = loadPluginModule('layout_3D')
+myPoint3DModule = loadPluginModule('my_point3D')
+marineWizardModule = loadPluginModule('marine_wizard')
 
 RollMainWindow = rollMainWindowModule.RollMainWindow
 RollSurvey = rollSurveyModule.RollSurvey
@@ -126,6 +128,84 @@ class Layout3DHelperTest(unittest.TestCase):
             widget.close()
             widget.deleteLater()
 
+    def testRenderBaseLayersDrawsAreasInJustBlocksMode(self):
+        class FakePainter:
+            def __init__(self):
+                self.rects = []
+
+            def worldTransform(self):
+                return QTransform()
+
+            def setPen(self, *_):
+                pass
+
+            def setBrush(self, *_):
+                pass
+
+            def drawRect(self, rect):
+                self.rects.append(QRectF(rect))
+
+        class FakeOption:
+            @staticmethod
+            def levelOfDetailFromTransform(_):
+                return 1.0
+
+        invariantCalls = []
+        block = SimpleNamespace(
+            boundingBox=QRectF(0.0, 0.0, 100.0, 50.0),
+            recBoundingRect=QRectF(1.0, 2.0, 10.0, 11.0),
+            srcBoundingRect=QRectF(3.0, 4.0, 12.0, 13.0),
+            cmpBoundingRect=QRectF(5.0, 6.0, 14.0, 15.0),
+            templateList=[SimpleNamespace(totTemplateRect=QRectF(0.0, 0.0, 1.0, 1.0))],
+        )
+        survey = SimpleNamespace(
+            blockList=[block],
+            paintMode=rollSurveyModule.PaintMode.justBlocks,
+            paintDetails=(
+                rollSurveyModule.PaintDetails.recArea
+                | rollSurveyModule.PaintDetails.srcArea
+                | rollSurveyModule.PaintDetails.cmpArea
+            ),
+            lodScale=1.0,
+            viewRect=lambda: QRectF(-10.0, -10.0, 200.0, 200.0),
+            boundingRect=lambda: QRectF(-20.0, -20.0, 240.0, 240.0),
+            _renderInvariantSeedsIntoBase=lambda *args, **kwargs: invariantCalls.append((args, kwargs)),
+        )
+        painter = FakePainter()
+        option = FakeOption()
+        appSettings = SimpleNamespace(
+            lod0=0.1,
+            recAreaPen='rec-pen',
+            recAreaColor='#110000ff',
+            srcAreaPen='src-pen',
+            srcAreaColor='#11ff0000',
+            cmpAreaPen='cmp-pen',
+            cmpAreaColor='#1100ff00',
+        )
+
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=appSettings):
+            rollSurveyModule.RollSurvey._renderBaseLayers(survey, painter, option)
+
+        self.assertEqual(painter.rects, [block.recBoundingRect, block.srcBoundingRect, block.cmpBoundingRect, block.boundingBox])
+        self.assertEqual(invariantCalls, [])
+
+
+class MyPoint3DParameterTest(unittest.TestCase):
+    def testAxisEditEmitsParentValueChanged(self):
+        param = myPoint3DModule.MyPoint3DParameter(name='Seed origin', value=QVector3D(10.0, 20.0, -5.0))
+        received = []
+
+        def onValueChanged(changedParam, value):
+            received.append((changedParam, QVector3D(value)))
+
+        param.sigValueChanged.connect(onValueChanged)
+
+        param.child('X').setValue(15.0)
+
+        self.assertEqual(len(received), 1)
+        self.assertIs(received[0][0], param)
+        self.assertEqual((received[0][1].x(), received[0][1].y(), received[0][1].z()), (15.0, 20.0, -5.0))
+
 
 class ProjectSidecarsTest(unittest.TestCase):
     def setUp(self):
@@ -140,6 +220,41 @@ class ProjectSidecarsTest(unittest.TestCase):
 
     def createSurvey(self):
         return createTestSurvey('Phase0-Sidecars', QRectF(0.0, 0.0, 100.0, 50.0))
+
+    def testPlotLayoutDrawsCmpMarkerWhenSpiderBinHasNoLegs(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.survey.binTransform = QTransform()
+        self.mainWindow.survey.glbTransform = None
+        self.mainWindow.layoutImItem = None
+        self.mainWindow.imageType = 0
+        self.mainWindow.output.anaOutput = object()
+        self.mainWindow.output.binOutput = object()
+        self.mainWindow.spiderPoint = rollMainWindowModule.QPoint(12, 34)
+        self.mainWindow.spiderSrcX = None
+        self.mainWindow.spiderRecX = None
+        self.mainWindow.spiderText = pg.TextItem(text='spiderLabel')
+        self.mainWindow.spiderText.setPos(99.0, 101.0)
+
+        self.mainWindow.tbArea.setChecked(False)
+        self.mainWindow.tbTemplat.setChecked(False)
+        self.mainWindow.tbSpider.setChecked(True)
+        self.mainWindow.tbSpsList.setChecked(False)
+        self.mainWindow.tbRpsList.setChecked(False)
+        self.mainWindow.tbSrcList.setChecked(False)
+        self.mainWindow.tbRecList.setChecked(False)
+
+        plotResult = MagicMock()
+        with patch.object(self.mainWindow.layoutWidget, 'plot', return_value=plotResult) as plot:
+            self.mainWindow.plotLayout()
+
+        plot.assert_called_once_with(
+            x=[12.0],
+            y=[34.0],
+            symbol='o',
+            symbolSize=6,
+            symbolPen=(0, 0, 0, 100),
+            symbolBrush='g',
+        )
 
     def suppressModalDialogs(self):
         messageBox = rollMainWindowModule.QMessageBox
@@ -270,6 +385,10 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.assertTrue(self.mainWindow.actionSpsPoints.isEnabled())
             self.assertTrue(self.mainWindow.actionRecPoints.isEnabled())
             self.assertTrue(self.mainWindow.actionSrcPoints.isEnabled())
+            self.assertFalse(self.mainWindow.actionRpsPoints.isChecked())
+            self.assertFalse(self.mainWindow.actionSpsPoints.isChecked())
+            self.assertFalse(self.mainWindow.actionRecPoints.isChecked())
+            self.assertFalse(self.mainWindow.actionSrcPoints.isChecked())
             self.assertEqual(self.mainWindow.rpsLiveE.shape[0], 2)
             self.assertEqual(self.mainWindow.spsLiveE.shape[0], 1)
             self.assertEqual(self.mainWindow.recLiveE.shape[0], 1)
@@ -1925,7 +2044,7 @@ class ProjectSidecarsTest(unittest.TestCase):
             def calcNoShotPoints(self):
                 self.calcCalled = True
 
-            def setupBinFromTemplates(self, extended):
+            def setupBinFromTemplates(self, _):
                 return self.shouldSucceed
 
         with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
@@ -2132,6 +2251,33 @@ class ProjectSidecarsTest(unittest.TestCase):
         updateMenuStatus.assert_called_once_with(False)
         enableProcessingMenuItems.assert_called_once_with(True)
 
+    def testApplyPropertyChangesPreservesStreamerPlottingDetails(self):
+        surveyCopy = self.createSurvey()
+        surveyCopy.type = rollMainWindowModule.SurveyType.Streamer
+        self.mainWindow.survey.type = rollMainWindowModule.SurveyType.Streamer
+        self.mainWindow.survey.paintDetails = rollMainWindowModule.PaintDetails.srcAndRec | rollMainWindowModule.PaintDetails.templat
+        self.mainWindow.survey.paintMode = rollMainWindowModule.PaintMode.all
+        self.mainWindow.binAreaChanged = False
+
+        with patch.object(self.mainWindow.propertyPanelController, '_buildSurveyFromParameters', return_value=surveyCopy):
+            with patch.object(self.mainWindow, 'setPlottingDetails') as setPlottingDetails:
+                with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                    with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                        with patch.object(self.mainWindow, 'updatePatternList'):
+                            with patch.object(self.mainWindow, 'plotLayout'):
+                                with patch.object(propertyPanelControllerModule, 'refreshLayout3DFromSurvey'):
+                                    self.mainWindow.applyPropertyChanges()
+
+        setPlottingDetails.assert_not_called()
+        self.assertEqual(self.mainWindow.survey.type, rollMainWindowModule.SurveyType.Streamer)
+        self.assertEqual(
+            self.mainWindow.survey.paintDetails,
+            rollMainWindowModule.PaintDetails.srcAndRec | rollMainWindowModule.PaintDetails.templat,
+        )
+        self.assertEqual(self.mainWindow.survey.paintMode, rollMainWindowModule.PaintMode.all)
+        updateMenuStatus.assert_called_once_with(False)
+        enableProcessingMenuItems.assert_called_once_with(True)
+
     def testPropertyTreeStateChangedUpdatesWellDirectoryForWellFileValue(self):
         class FakeParam:
             def name(self):
@@ -2175,6 +2321,950 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.assertEqual(self.mainWindow.wellDirectory, 'D:/existing')
         syncWellDirectory.assert_not_called()
+
+    def testSeedNameChangeDetectedTracksNormalSeedRename(self):
+        class FakeSeedParam:
+            def __init__(self, name):
+                self._name = name
+
+            def name(self):
+                return self._name
+
+        param = FakeSeedParam('src-2')
+        controller = self.mainWindow.propertyPanelController
+        controller._trackedSeedNames[id(param)] = 'src-1'
+        self.mainWindow.parameters = SimpleNamespace(childPath=lambda _: ['Block list', 'template-1', 'src-2'])
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            self.mainWindow.propertyTreeStateChanged(param, [(param, 'name', 'src-2')])
+
+        self.assertEqual(controller._pendingSeedRenames[id(param)]['oldName'], 'src-1')
+        self.assertEqual(controller._pendingSeedRenames[id(param)]['newName'], 'src-2')
+
+    def testSeedColorChangeDetectedTracksNormalSeedColorChange(self):
+        class FakeSeedParam:
+            def __init__(self, name):
+                self._name = name
+
+            def name(self):
+                return self._name
+
+        class FakeColorParam:
+            def __init__(self, seedParam, color):
+                self._seedParam = seedParam
+                self._color = color
+
+            def name(self):
+                return 'Seed color'
+
+            def parent(self):
+                return self._seedParam
+
+            def value(self):
+                return self._color
+
+        seedParam = FakeSeedParam('src-1')
+        colorParam = FakeColorParam(seedParam, QColor('#77ff0000'))
+        controller = self.mainWindow.propertyPanelController
+        controller._trackedSeedColors[id(seedParam)] = QColor('#7700ff00')
+        self.mainWindow.parameters = SimpleNamespace(childPath=lambda _: ['Block list', 'template-1', 'src-1', 'Seed color'])
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            self.mainWindow.propertyTreeStateChanged(colorParam, [(colorParam, 'value', QColor('#77ff0000'))])
+
+        self.assertEqual(
+            controller._pendingSeedColors[id(seedParam)]['oldColor'].name(QColor.NameFormat.HexArgb),
+            QColor('#7700ff00').name(QColor.NameFormat.HexArgb),
+        )
+        self.assertEqual(
+            controller._pendingSeedColors[id(seedParam)]['newColor'].name(QColor.NameFormat.HexArgb),
+            QColor('#77ff0000').name(QColor.NameFormat.HexArgb),
+        )
+
+    def testSeedOriginShiftDetectedTracksNormalSeedOriginShift(self):
+        class FakeSeedParam:
+            def __init__(self, name):
+                self._name = name
+
+            def name(self):
+                return self._name
+
+        class FakeOriginParam:
+            def __init__(self, seedParam, origin):
+                self._seedParam = seedParam
+                self._origin = QVector3D(origin)
+
+            def name(self):
+                return 'Seed origin'
+
+            def parent(self):
+                return self._seedParam
+
+            def value(self):
+                return QVector3D(self._origin)
+
+        oldOrigin = QVector3D(10.0, 20.0, -5.0)
+        newOrigin = QVector3D(15.0, 18.0, -3.0)
+        seedParam = FakeSeedParam('src-1')
+        originParam = FakeOriginParam(seedParam, newOrigin)
+        controller = self.mainWindow.propertyPanelController
+        controller._trackedSeedOrigins[id(seedParam)] = QVector3D(oldOrigin)
+        self.mainWindow.parameters = SimpleNamespace(childPath=lambda _: ['Block list', 'template-1', 'src-1', 'Seed origin'])
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            self.mainWindow.propertyTreeStateChanged(originParam, [(originParam, 'value', QVector3D(newOrigin))])
+
+        pendingOrigin = controller._pendingSeedOrigins[id(seedParam)]
+        self.assertEqual((pendingOrigin['oldOrigin'].x(), pendingOrigin['oldOrigin'].y(), pendingOrigin['oldOrigin'].z()), (10.0, 20.0, -5.0))
+        self.assertEqual((pendingOrigin['newOrigin'].x(), pendingOrigin['newOrigin'].y(), pendingOrigin['newOrigin'].z()), (15.0, 18.0, -3.0))
+
+    def testSeedOriginShiftDetectedFromOriginAxisChildChange(self):
+        class FakeSeedParam:
+            def __init__(self, name):
+                self._name = name
+
+            def name(self):
+                return self._name
+
+        class FakeOriginParam:
+            def __init__(self, seedParam, origin):
+                self._seedParam = seedParam
+                self._origin = QVector3D(origin)
+
+            def name(self):
+                return 'Seed origin'
+
+            def parent(self):
+                return self._seedParam
+
+            def value(self):
+                return QVector3D(self._origin)
+
+        class FakeAxisParam:
+            def __init__(self, originParam, name):
+                self._originParam = originParam
+                self._name = name
+
+            def name(self):
+                return self._name
+
+            def parent(self):
+                return self._originParam
+
+        oldOrigin = QVector3D(10.0, 20.0, -5.0)
+        newOrigin = QVector3D(15.0, 20.0, -5.0)
+        seedParam = FakeSeedParam('src-1')
+        originParam = FakeOriginParam(seedParam, newOrigin)
+        axisParam = FakeAxisParam(originParam, 'X')
+        controller = self.mainWindow.propertyPanelController
+        controller._trackedSeedOrigins[id(seedParam)] = QVector3D(oldOrigin)
+        self.mainWindow.parameters = SimpleNamespace(childPath=lambda _: ['Block list', 'template-1', 'src-1', 'Seed origin', 'X'])
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            self.mainWindow.propertyTreeStateChanged(axisParam, [(axisParam, 'value', 15.0)])
+
+        pendingOrigin = controller._pendingSeedOrigins[id(seedParam)]
+        self.assertEqual((pendingOrigin['oldOrigin'].x(), pendingOrigin['oldOrigin'].y(), pendingOrigin['oldOrigin'].z()), (10.0, 20.0, -5.0))
+        self.assertEqual((pendingOrigin['newOrigin'].x(), pendingOrigin['newOrigin'].y(), pendingOrigin['newOrigin'].z()), (15.0, 20.0, -5.0))
+
+    def testSeedPatternChangeDetectedTracksNormalSeedPatternChange(self):
+        class FakeSeedParam:
+            def __init__(self, name):
+                self._name = name
+
+            def name(self):
+                return self._name
+
+        class FakePatternParam:
+            def __init__(self, seedParam, value):
+                self._seedParam = seedParam
+                self._value = value
+
+            def name(self):
+                return 'Seed pattern'
+
+            def parent(self):
+                return self._seedParam
+
+            def value(self):
+                return self._value
+
+        seedParam = FakeSeedParam('src-1')
+        patternParam = FakePatternParam(seedParam, 'pat-2')
+        controller = self.mainWindow.propertyPanelController
+        controller._trackedSeedPatterns[id(seedParam)] = 'pat-1'
+        self.mainWindow.parameters = SimpleNamespace(childPath=lambda _: ['Block list', 'template-1', 'src-1', 'Seed pattern'])
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            self.mainWindow.propertyTreeStateChanged(patternParam, [(patternParam, 'value', 'pat-2')])
+
+        pendingPattern = controller._pendingSeedPatterns[id(seedParam)]
+        self.assertEqual(pendingPattern['oldPattern'], 'pat-1')
+        self.assertEqual(pendingPattern['newPattern'], 'pat-2')
+
+    def testSeedGridGrowStepsChangeDetectedFromNestedChildChange(self):
+        class FakeSeedParam:
+            def __init__(self, name):
+                self._name = name
+
+            def name(self):
+                return self._name
+
+        class FakeGridParam:
+            def __init__(self, seedParam, growList):
+                self._seedParam = seedParam
+                self._growList = growList
+
+            def name(self):
+                return 'Grid grow steps'
+
+            def parent(self):
+                return self._seedParam
+
+            def value(self):
+                return self._growList
+
+        class FakeStepParam:
+            def __init__(self, gridParam, name):
+                self._gridParam = gridParam
+                self._name = name
+
+            def name(self):
+                return self._name
+
+            def parent(self):
+                return self._gridParam
+
+        class FakeLeafParam:
+            def __init__(self, stepParam, name):
+                self._stepParam = stepParam
+                self._name = name
+
+            def name(self):
+                return self._name
+
+            def parent(self):
+                return self._stepParam
+
+        def makeGrowList(values):
+            growList = []
+            for steps, dx, dy, dz in values:
+                translate = propertyPanelControllerModule.RollTranslate()
+                translate.steps = steps
+                translate.increment.setX(dx)
+                translate.increment.setY(dy)
+                translate.increment.setZ(dz)
+                growList.append(translate)
+            return growList
+
+        oldGrowList = makeGrowList(((1, 0.0, 0.0, 0.0), (2, 10.0, 0.0, 0.0), (3, 0.0, 5.0, 0.0)))
+        newGrowList = makeGrowList(((1, 0.0, 0.0, 0.0), (4, 10.0, 0.0, 0.0), (3, 0.0, 5.0, 0.0)))
+        seedParam = FakeSeedParam('src-1')
+        gridParam = FakeGridParam(seedParam, newGrowList)
+        stepParam = FakeStepParam(gridParam, 'Lines')
+        leafParam = FakeLeafParam(stepParam, 'N')
+        controller = self.mainWindow.propertyPanelController
+        controller._trackedSeedGridGrowLists[id(seedParam)] = controller._copyGrowList(oldGrowList)
+        self.mainWindow.parameters = SimpleNamespace(childPath=lambda _: ['Block list', 'template-1', 'src-1', 'Grid grow steps', 'Lines', 'N'])
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            self.mainWindow.propertyTreeStateChanged(leafParam, [(leafParam, 'value', 4)])
+
+        pendingGrowList = controller._pendingSeedGridGrowLists[id(seedParam)]
+        self.assertEqual(controller._growListKey(pendingGrowList['oldGrowList']), controller._growListKey(oldGrowList))
+        self.assertEqual(controller._growListKey(pendingGrowList['newGrowList']), controller._growListKey(newGrowList))
+
+    def testSeedGridGrowStepsChangeDetectedWhenParentValueIsStale(self):
+        class FakeSeedParam:
+            def __init__(self, name):
+                self._name = name
+
+            def name(self):
+                return self._name
+
+        class FakeValueParam:
+            def __init__(self, parent, name, value):
+                self._parent = parent
+                self._name = name
+                self._value = value
+
+            def name(self):
+                return self._name
+
+            def parent(self):
+                return self._parent
+
+            def value(self):
+                return self._value
+
+        class FakeStepParam:
+            def __init__(self, gridParam, name, values, *, staleTranslate):
+                self._gridParam = gridParam
+                self._name = name
+                self._staleTranslate = staleTranslate
+                self._children = {
+                    'N': FakeValueParam(self, 'N', values[0]),
+                    'dX': FakeValueParam(self, 'dX', values[1]),
+                    'dY': FakeValueParam(self, 'dY', values[2]),
+                    'dZ': FakeValueParam(self, 'dZ', values[3]),
+                }
+
+            def name(self):
+                return self._name
+
+            def parent(self):
+                return self._gridParam
+
+            def child(self, name):
+                return self._children[name]
+
+            def value(self):
+                return self._staleTranslate
+
+        class FakeGridParam:
+            def __init__(self, seedParam, oldGrowList, newGrowValues):
+                self._seedParam = seedParam
+                self._oldGrowList = oldGrowList
+                self._children = {
+                    stepName: FakeStepParam(self, stepName, stepValues, staleTranslate=oldGrowList[index])
+                    for index, (stepName, stepValues) in enumerate(zip(('Planes', 'Lines', 'Points'), newGrowValues))
+                }
+
+            def name(self):
+                return 'Grid grow steps'
+
+            def parent(self):
+                return self._seedParam
+
+            def child(self, name):
+                return self._children[name]
+
+            def value(self):
+                return self._oldGrowList
+
+        class FakeLeafParam:
+            def __init__(self, stepParam, name):
+                self._stepParam = stepParam
+                self._name = name
+
+            def name(self):
+                return self._name
+
+            def parent(self):
+                return self._stepParam
+
+        def makeGrowList(values):
+            growList = []
+            for steps, dx, dy, dz in values:
+                translate = propertyPanelControllerModule.RollTranslate()
+                translate.steps = steps
+                translate.increment.setX(dx)
+                translate.increment.setY(dy)
+                translate.increment.setZ(dz)
+                growList.append(translate)
+            return growList
+
+        oldGrowList = makeGrowList(((1, 0.0, 0.0, 0.0), (2, 10.0, 0.0, 0.0), (3, 0.0, 5.0, 0.0)))
+        newGrowValues = ((1, 0.0, 0.0, 0.0), (4, 10.0, 0.0, 0.0), (3, 0.0, 5.0, 0.0))
+        newGrowList = makeGrowList(newGrowValues)
+        seedParam = FakeSeedParam('src-1')
+        gridParam = FakeGridParam(seedParam, oldGrowList, newGrowValues)
+        stepParam = gridParam.child('Lines')
+        leafParam = FakeLeafParam(stepParam, 'N')
+        controller = self.mainWindow.propertyPanelController
+        controller._trackedSeedGridGrowLists[id(seedParam)] = controller._copyGrowList(oldGrowList)
+        self.mainWindow.parameters = SimpleNamespace(childPath=lambda _: ['Block list', 'template-1', 'src-1', 'Grid grow steps', 'Lines', 'N'])
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            self.mainWindow.propertyTreeStateChanged(leafParam, [(leafParam, 'value', 4)])
+
+        pendingGrowList = controller._pendingSeedGridGrowLists[id(seedParam)]
+        self.assertEqual(controller._growListKey(pendingGrowList['oldGrowList']), controller._growListKey(oldGrowList))
+        self.assertEqual(controller._growListKey(pendingGrowList['newGrowList']), controller._growListKey(newGrowList))
+
+    def testApplyPropertyChangesPropagatesConfirmedSeedRenameToNormalSeeds(self):
+        class FakeColorValue:
+            def __init__(self, color):
+                self._color = QColor(color)
+
+            def value(self):
+                return QColor(self._color)
+
+        class FakeFloatValue:
+            def __init__(self, value):
+                self._value = float(value)
+
+            def value(self):
+                return self._value
+
+        class FakePoint3DValue:
+            def __init__(self, x=0.0, y=0.0, z=0.0):
+                self._x = FakeFloatValue(x)
+                self._y = FakeFloatValue(y)
+                self._z = FakeFloatValue(z)
+
+            def value(self):
+                return QVector3D(self._x.value(), self._y.value(), self._z.value())
+
+        class FakeSeedParam:
+            def __init__(self, name, color='#7700ff00'):
+                self._name = name
+                self.parL = FakeColorValue(color)
+                self.parO = FakePoint3DValue()
+
+            def name(self):
+                return self._name
+
+            def setName(self, name):
+                self._name = name
+
+        renamedSeed = SimpleNamespace(name='src-2')
+        matchingSeedA = SimpleNamespace(name='src-1')
+        matchingSeedB = SimpleNamespace(name='src-1')
+        untouchedSeed = SimpleNamespace(name='rec-1')
+        workingTreeRenamedSeed = FakeSeedParam('src-2')
+        workingTreeMatchingSeedA = FakeSeedParam('src-1')
+        workingTreeMatchingSeedB = FakeSeedParam('src-1')
+        workingTreeUntouchedSeed = FakeSeedParam('rec-1')
+        surveyCopy = SimpleNamespace(
+            blockList=[
+                SimpleNamespace(
+                    templateList=[
+                        SimpleNamespace(seedList=[renamedSeed, matchingSeedA, untouchedSeed]),
+                        SimpleNamespace(seedList=[matchingSeedB]),
+                    ]
+                )
+            ],
+            checkIntegrity=lambda: True,
+        )
+
+        controller = self.mainWindow.propertyPanelController
+        controller._pendingSeedRenames = {1: {'oldName': 'src-1', 'newName': 'src-2'}}
+        self.mainWindow.paramTree = SimpleNamespace(
+            listAllItems=lambda: [
+                SimpleNamespace(param=workingTreeRenamedSeed),
+                SimpleNamespace(param=workingTreeMatchingSeedA),
+                SimpleNamespace(param=workingTreeMatchingSeedB),
+                SimpleNamespace(param=workingTreeUntouchedSeed),
+            ]
+        )
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            with patch.object(controller, '_buildSurveyFromParameters', return_value=surveyCopy):
+                with patch.object(controller, '_commitSurveyCopy') as commitSurveyCopy:
+                    with patch.object(self.mainWindow, 'setPlottingDetails'):
+                        with patch.object(self.mainWindow, 'updateMenuStatus'):
+                            with patch.object(self.mainWindow, 'enableProcessingMenuItems'):
+                                with patch.object(self.mainWindow, 'updatePatternList'):
+                                    with patch.object(self.mainWindow, 'plotLayout'):
+                                        with patch.object(propertyPanelControllerModule, 'refreshLayout3DFromSurvey'):
+                                            with patch.object(propertyPanelControllerModule.QMessageBox, 'question', return_value=propertyPanelControllerModule.QMessageBox.StandardButton.Yes) as question:
+                                                self.mainWindow.applyPropertyChanges()
+
+        question.assert_called_once()
+        self.assertEqual(renamedSeed.name, 'src-2')
+        self.assertEqual(matchingSeedA.name, 'src-2')
+        self.assertEqual(matchingSeedB.name, 'src-2')
+        self.assertEqual(untouchedSeed.name, 'rec-1')
+        self.assertEqual(workingTreeRenamedSeed.name(), 'src-2')
+        self.assertEqual(workingTreeMatchingSeedA.name(), 'src-2')
+        self.assertEqual(workingTreeMatchingSeedB.name(), 'src-2')
+        self.assertEqual(workingTreeUntouchedSeed.name(), 'rec-1')
+        commitSurveyCopy.assert_called_once_with(surveyCopy)
+
+    def testApplyPropertyChangesPropagatesConfirmedSeedColorToNormalSeeds(self):
+        class FakeColorValue:
+            def __init__(self, color):
+                self._color = QColor(color)
+
+            def value(self):
+                return QColor(self._color)
+
+            def setValue(self, color):
+                self._color = QColor(color)
+
+        class FakeSeedParam:
+            def __init__(self, name, color):
+                self._name = name
+                self.parL = FakeColorValue(color)
+                self.parO = FakePoint3DValue(QVector3D())
+
+            def name(self):
+                return self._name
+
+        class FakeFloatValue:
+            def __init__(self, value):
+                self._value = float(value)
+
+            def value(self):
+                return self._value
+
+            def setValue(self, value):
+                self._value = float(value)
+
+        class FakePoint3DValue:
+            def __init__(self, vector):
+                self._children = {
+                    'X': FakeFloatValue(vector.x()),
+                    'Y': FakeFloatValue(vector.y()),
+                    'Z': FakeFloatValue(vector.z()),
+                }
+
+            def value(self):
+                return QVector3D(self.child('X').value(), self.child('Y').value(), self.child('Z').value())
+
+            def child(self, name):
+                return self._children[name]
+
+        newColor = QColor('#77ff0000')
+        oldColor = QColor('#7700ff00')
+        renamedSeed = SimpleNamespace(name='src-1', color=QColor(newColor))
+        matchingSeedA = SimpleNamespace(name='src-1', color=QColor(oldColor))
+        matchingSeedB = SimpleNamespace(name='src-1', color=QColor(oldColor))
+        untouchedSeed = SimpleNamespace(name='rec-1', color=QColor(oldColor))
+        workingTreeChangedSeed = FakeSeedParam('src-1', newColor)
+        workingTreeMatchingSeedA = FakeSeedParam('src-1', oldColor)
+        workingTreeMatchingSeedB = FakeSeedParam('src-1', oldColor)
+        workingTreeUntouchedSeed = FakeSeedParam('rec-1', oldColor)
+        surveyCopy = SimpleNamespace(
+            blockList=[
+                SimpleNamespace(
+                    templateList=[
+                        SimpleNamespace(seedList=[renamedSeed, matchingSeedA, untouchedSeed]),
+                        SimpleNamespace(seedList=[matchingSeedB]),
+                    ]
+                )
+            ],
+            checkIntegrity=lambda: True,
+        )
+
+        controller = self.mainWindow.propertyPanelController
+        controller._pendingSeedColors = {1: {'param': workingTreeChangedSeed, 'oldColor': QColor(oldColor), 'newColor': QColor(newColor)}}
+        self.mainWindow.paramTree = SimpleNamespace(
+            listAllItems=lambda: [
+                SimpleNamespace(param=workingTreeChangedSeed),
+                SimpleNamespace(param=workingTreeMatchingSeedA),
+                SimpleNamespace(param=workingTreeMatchingSeedB),
+                SimpleNamespace(param=workingTreeUntouchedSeed),
+            ]
+        )
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            with patch.object(controller, '_buildSurveyFromParameters', return_value=surveyCopy):
+                with patch.object(controller, '_commitSurveyCopy') as commitSurveyCopy:
+                    with patch.object(self.mainWindow, 'setPlottingDetails'):
+                        with patch.object(self.mainWindow, 'updateMenuStatus'):
+                            with patch.object(self.mainWindow, 'enableProcessingMenuItems'):
+                                with patch.object(self.mainWindow, 'updatePatternList'):
+                                    with patch.object(self.mainWindow, 'plotLayout'):
+                                        with patch.object(propertyPanelControllerModule, 'refreshLayout3DFromSurvey'):
+                                            with patch.object(propertyPanelControllerModule.QMessageBox, 'question', return_value=propertyPanelControllerModule.QMessageBox.StandardButton.Yes) as question:
+                                                self.mainWindow.applyPropertyChanges()
+
+        question.assert_called_once()
+        self.assertEqual(renamedSeed.color.name(QColor.NameFormat.HexArgb), newColor.name(QColor.NameFormat.HexArgb))
+        self.assertEqual(matchingSeedA.color.name(QColor.NameFormat.HexArgb), newColor.name(QColor.NameFormat.HexArgb))
+        self.assertEqual(matchingSeedB.color.name(QColor.NameFormat.HexArgb), newColor.name(QColor.NameFormat.HexArgb))
+        self.assertEqual(untouchedSeed.color.name(QColor.NameFormat.HexArgb), oldColor.name(QColor.NameFormat.HexArgb))
+        self.assertEqual(workingTreeChangedSeed.parL.value().name(QColor.NameFormat.HexArgb), newColor.name(QColor.NameFormat.HexArgb))
+        self.assertEqual(workingTreeMatchingSeedA.parL.value().name(QColor.NameFormat.HexArgb), newColor.name(QColor.NameFormat.HexArgb))
+        self.assertEqual(workingTreeMatchingSeedB.parL.value().name(QColor.NameFormat.HexArgb), newColor.name(QColor.NameFormat.HexArgb))
+        self.assertEqual(workingTreeUntouchedSeed.parL.value().name(QColor.NameFormat.HexArgb), oldColor.name(QColor.NameFormat.HexArgb))
+        commitSurveyCopy.assert_called_once_with(surveyCopy)
+
+    def testApplyPropertyChangesPropagatesConfirmedSeedOriginShiftToNormalSeeds(self):
+        class FakeColorValue:
+            def __init__(self, color):
+                self._color = QColor(color)
+
+            def value(self):
+                return QColor(self._color)
+
+        class FakeFloatValue:
+            def __init__(self, value):
+                self._value = float(value)
+
+            def value(self):
+                return self._value
+
+            def setValue(self, value):
+                self._value = float(value)
+
+        class FakePoint3DValue:
+            def __init__(self, vector):
+                self._children = {
+                    'X': FakeFloatValue(vector.x()),
+                    'Y': FakeFloatValue(vector.y()),
+                    'Z': FakeFloatValue(vector.z()),
+                }
+
+            def value(self):
+                return QVector3D(self.child('X').value(), self.child('Y').value(), self.child('Z').value())
+
+            def child(self, name):
+                return self._children[name]
+
+        class FakeSeedParam:
+            def __init__(self, name, origin, color='#7700ff00'):
+                self._name = name
+                self.parL = FakeColorValue(color)
+                self.parO = FakePoint3DValue(origin)
+
+            def name(self):
+                return self._name
+
+        oldOrigin = QVector3D(10.0, 20.0, -5.0)
+        newOrigin = QVector3D(15.0, 18.0, -3.0)
+        shift = QVector3D(5.0, -2.0, 2.0)
+
+        changedSeed = SimpleNamespace(name='src-1', origin=QVector3D(newOrigin))
+        matchingSeedA = SimpleNamespace(name='src-1', origin=QVector3D(30.0, 40.0, 0.0))
+        matchingSeedB = SimpleNamespace(name='src-1', origin=QVector3D(-10.0, 5.0, 8.0))
+        matchingSeedC = SimpleNamespace(name='src-1', origin=QVector3D(100.0, -50.0, 12.0))
+        untouchedSeed = SimpleNamespace(name='rec-1', origin=QVector3D(1.0, 2.0, 3.0))
+        workingTreeChangedSeed = FakeSeedParam('src-1', newOrigin)
+        workingTreeMatchingSeedA = FakeSeedParam('src-1', QVector3D(30.0, 40.0, 0.0))
+        workingTreeMatchingSeedB = FakeSeedParam('src-1', QVector3D(-10.0, 5.0, 8.0))
+        workingTreeMatchingSeedC = FakeSeedParam('src-1', QVector3D(100.0, -50.0, 12.0))
+        workingTreeUntouchedSeed = FakeSeedParam('rec-1', QVector3D(1.0, 2.0, 3.0))
+        surveyCopy = SimpleNamespace(
+            blockList=[
+                SimpleNamespace(
+                    templateList=[
+                        SimpleNamespace(seedList=[changedSeed, matchingSeedA, untouchedSeed]),
+                        SimpleNamespace(seedList=[matchingSeedB]),
+                    ]
+                ),
+                SimpleNamespace(
+                    templateList=[
+                        SimpleNamespace(seedList=[matchingSeedC]),
+                    ]
+                )
+            ],
+            checkIntegrity=lambda: True,
+        )
+
+        controller = self.mainWindow.propertyPanelController
+        controller._pendingSeedOrigins = {1: {'param': workingTreeChangedSeed, 'oldOrigin': QVector3D(oldOrigin), 'newOrigin': QVector3D(newOrigin)}}
+        self.mainWindow.paramTree = SimpleNamespace(
+            listAllItems=lambda: [
+                SimpleNamespace(param=workingTreeChangedSeed),
+                SimpleNamespace(param=workingTreeMatchingSeedA),
+                SimpleNamespace(param=workingTreeMatchingSeedB),
+                SimpleNamespace(param=workingTreeMatchingSeedC),
+                SimpleNamespace(param=workingTreeUntouchedSeed),
+            ]
+        )
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            with patch.object(controller, '_buildSurveyFromParameters', return_value=surveyCopy):
+                with patch.object(controller, '_commitSurveyCopy') as commitSurveyCopy:
+                    with patch.object(self.mainWindow, 'setPlottingDetails'):
+                        with patch.object(self.mainWindow, 'updateMenuStatus'):
+                            with patch.object(self.mainWindow, 'enableProcessingMenuItems'):
+                                with patch.object(self.mainWindow, 'updatePatternList'):
+                                    with patch.object(self.mainWindow, 'plotLayout'):
+                                        with patch.object(propertyPanelControllerModule, 'refreshLayout3DFromSurvey'):
+                                            with patch.object(propertyPanelControllerModule.QMessageBox, 'question', return_value=propertyPanelControllerModule.QMessageBox.StandardButton.Yes) as question:
+                                                self.mainWindow.applyPropertyChanges()
+
+        question.assert_called_once()
+        self.assertEqual((changedSeed.origin.x(), changedSeed.origin.y(), changedSeed.origin.z()), (newOrigin.x(), newOrigin.y(), newOrigin.z()))
+        self.assertEqual((matchingSeedA.origin.x(), matchingSeedA.origin.y(), matchingSeedA.origin.z()), (35.0, 38.0, 2.0))
+        self.assertEqual((matchingSeedB.origin.x(), matchingSeedB.origin.y(), matchingSeedB.origin.z()), (-5.0, 3.0, 10.0))
+        self.assertEqual((matchingSeedC.origin.x(), matchingSeedC.origin.y(), matchingSeedC.origin.z()), (105.0, -52.0, 14.0))
+        self.assertEqual((untouchedSeed.origin.x(), untouchedSeed.origin.y(), untouchedSeed.origin.z()), (1.0, 2.0, 3.0))
+        self.assertEqual((workingTreeChangedSeed.parO.value().x(), workingTreeChangedSeed.parO.value().y(), workingTreeChangedSeed.parO.value().z()), (newOrigin.x(), newOrigin.y(), newOrigin.z()))
+        self.assertEqual((workingTreeMatchingSeedA.parO.value().x(), workingTreeMatchingSeedA.parO.value().y(), workingTreeMatchingSeedA.parO.value().z()), (35.0, 38.0, 2.0))
+        self.assertEqual((workingTreeMatchingSeedB.parO.value().x(), workingTreeMatchingSeedB.parO.value().y(), workingTreeMatchingSeedB.parO.value().z()), (-5.0, 3.0, 10.0))
+        self.assertEqual((workingTreeMatchingSeedC.parO.value().x(), workingTreeMatchingSeedC.parO.value().y(), workingTreeMatchingSeedC.parO.value().z()), (105.0, -52.0, 14.0))
+        self.assertEqual((workingTreeUntouchedSeed.parO.value().x(), workingTreeUntouchedSeed.parO.value().y(), workingTreeUntouchedSeed.parO.value().z()), (1.0, 2.0, 3.0))
+        self.assertEqual((shift.x(), shift.y(), shift.z()), (5.0, -2.0, 2.0))
+        commitSurveyCopy.assert_called_once_with(surveyCopy)
+
+    def testApplyPropertyChangesPropagatesConfirmedSeedGridGrowStepsToNormalSeeds(self):
+        class FakeColorValue:
+            def __init__(self, color):
+                self._color = QColor(color)
+
+            def value(self):
+                return QColor(self._color)
+
+        class FakeFloatValue:
+            def __init__(self, value):
+                self._value = value
+
+            def value(self):
+                return self._value
+
+            def setValue(self, value):
+                self._value = value
+
+        class FakePoint3DValue:
+            def __init__(self, vector):
+                self._children = {
+                    'X': FakeFloatValue(vector.x()),
+                    'Y': FakeFloatValue(vector.y()),
+                    'Z': FakeFloatValue(vector.z()),
+                }
+
+            def value(self):
+                return QVector3D(self.child('X').value(), self.child('Y').value(), self.child('Z').value())
+
+            def child(self, name):
+                return self._children[name]
+
+        class FakePatternValue:
+            def __init__(self, value):
+                self._value = value
+
+            def value(self):
+                return self._value
+
+            def setValue(self, value):
+                self._value = value
+
+        class FakeRollValue:
+            def __init__(self, steps, dx, dy, dz):
+                self._children = {
+                    'N': FakeFloatValue(steps),
+                    'dX': FakeFloatValue(dx),
+                    'dY': FakeFloatValue(dy),
+                    'dZ': FakeFloatValue(dz),
+                }
+
+            def child(self, name):
+                return self._children[name]
+
+        class FakeGridValue:
+            def __init__(self, growList):
+                self._children = {
+                    'Planes': FakeRollValue(growList[0].steps, growList[0].increment.x(), growList[0].increment.y(), growList[0].increment.z()),
+                    'Lines': FakeRollValue(growList[1].steps, growList[1].increment.x(), growList[1].increment.y(), growList[1].increment.z()),
+                    'Points': FakeRollValue(growList[2].steps, growList[2].increment.x(), growList[2].increment.y(), growList[2].increment.z()),
+                }
+
+            def child(self, name):
+                return self._children[name]
+
+            def value(self):
+                values = []
+                for stepName in ('Planes', 'Lines', 'Points'):
+                    translate = propertyPanelControllerModule.RollTranslate()
+                    stepParam = self.child(stepName)
+                    translate.steps = stepParam.child('N').value()
+                    translate.increment.setX(stepParam.child('dX').value())
+                    translate.increment.setY(stepParam.child('dY').value())
+                    translate.increment.setZ(stepParam.child('dZ').value())
+                    values.append(translate)
+                return values
+
+        class FakeSeedTypeValue:
+            def __init__(self, value):
+                self._value = value
+
+            def value(self):
+                return self._value
+
+        class FakeSeedParam:
+            def __init__(self, name, growList, *, pattern='<None>', color='#7700ff00', origin=None, seedType='Grid (roll along)'):
+                self._name = name
+                self.parL = FakeColorValue(color)
+                self.parO = FakePoint3DValue(QVector3D() if origin is None else origin)
+                self.parP = FakePatternValue(pattern)
+                self.parG = FakeGridValue(growList)
+                self.parT = FakeSeedTypeValue(seedType)
+
+            def name(self):
+                return self._name
+
+        def makeGrowList(values):
+            growList = []
+            for steps, dx, dy, dz in values:
+                translate = propertyPanelControllerModule.RollTranslate()
+                translate.steps = steps
+                translate.increment.setX(dx)
+                translate.increment.setY(dy)
+                translate.increment.setZ(dz)
+                growList.append(translate)
+            return growList
+
+        def growListKey(growList):
+            return tuple((translate.steps, translate.increment.x(), translate.increment.y(), translate.increment.z()) for translate in growList)
+
+        newGrowList = makeGrowList(((1, 0.0, 0.0, 0.0), (4, 10.0, 0.0, 0.0), (3, 0.0, 5.0, 0.0)))
+        oldGrowList = makeGrowList(((1, 0.0, 0.0, 0.0), (2, 1.0, 0.0, 0.0), (5, 0.0, 2.0, 0.0)))
+        changedSeed = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.rollingGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (4, 10.0, 0.0, 0.0), (3, 0.0, 5.0, 0.0)))))    # noqa: E501
+        matchingSeedA = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.rollingGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (2, 1.0, 0.0, 0.0), (5, 0.0, 2.0, 0.0)))))   # noqa: E501
+        matchingSeedB = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.fixedGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (1, 0.0, 1.0, 0.0), (2, 0.0, 0.0, 1.0)))))     # noqa: E501
+        untouchedSeed = SimpleNamespace(name='rec-1', type=propertyPanelControllerModule.SeedType.rollingGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (7, 7.0, 0.0, 0.0), (8, 0.0, 8.0, 0.0)))))   # noqa: E501
+        workingTreeChangedSeed = FakeSeedParam('src-1', newGrowList)
+        workingTreeMatchingSeedA = FakeSeedParam('src-1', oldGrowList)
+        workingTreeMatchingSeedB = FakeSeedParam('src-1', makeGrowList(((1, 0.0, 0.0, 0.0), (1, 0.0, 1.0, 0.0), (2, 0.0, 0.0, 1.0))), seedType='Grid (stationary)')
+        workingTreeUntouchedSeed = FakeSeedParam('rec-1', makeGrowList(((1, 0.0, 0.0, 0.0), (7, 7.0, 0.0, 0.0), (8, 0.0, 8.0, 0.0))))
+        surveyCopy = SimpleNamespace(
+            blockList=[
+                SimpleNamespace(
+                    templateList=[
+                        SimpleNamespace(seedList=[changedSeed, matchingSeedA, untouchedSeed]),
+                        SimpleNamespace(seedList=[matchingSeedB]),
+                    ]
+                )
+            ],
+            patternList=[],
+            checkIntegrity=lambda: True,
+        )
+
+        controller = self.mainWindow.propertyPanelController
+        controller._pendingSeedGridGrowLists = {1: {'param': workingTreeChangedSeed, 'oldGrowList': controller._copyGrowList(oldGrowList), 'newGrowList': controller._copyGrowList(newGrowList)}}
+        self.mainWindow.paramTree = SimpleNamespace(
+            listAllItems=lambda: [
+                SimpleNamespace(param=workingTreeChangedSeed),
+                SimpleNamespace(param=workingTreeMatchingSeedA),
+                SimpleNamespace(param=workingTreeMatchingSeedB),
+                SimpleNamespace(param=workingTreeUntouchedSeed),
+            ]
+        )
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            with patch.object(controller, '_buildSurveyFromParameters', return_value=surveyCopy):
+                with patch.object(controller, '_commitSurveyCopy') as commitSurveyCopy:
+                    with patch.object(self.mainWindow, 'setPlottingDetails'):
+                        with patch.object(self.mainWindow, 'updateMenuStatus'):
+                            with patch.object(self.mainWindow, 'enableProcessingMenuItems'):
+                                with patch.object(self.mainWindow, 'updatePatternList'):
+                                    with patch.object(self.mainWindow, 'plotLayout'):
+                                        with patch.object(propertyPanelControllerModule, 'refreshLayout3DFromSurvey'):
+                                            with patch.object(propertyPanelControllerModule.QMessageBox, 'question', return_value=propertyPanelControllerModule.QMessageBox.StandardButton.Yes) as question:
+                                                self.mainWindow.applyPropertyChanges()
+
+        question.assert_called_once()
+        self.assertEqual(growListKey(changedSeed.grid.growList), growListKey(newGrowList))
+        self.assertEqual(growListKey(matchingSeedA.grid.growList), growListKey(newGrowList))
+        self.assertEqual(growListKey(matchingSeedB.grid.growList), growListKey(newGrowList))
+        self.assertNotEqual(growListKey(untouchedSeed.grid.growList), growListKey(newGrowList))
+        self.assertEqual(growListKey(workingTreeChangedSeed.parG.value()), growListKey(newGrowList))
+        self.assertEqual(growListKey(workingTreeMatchingSeedA.parG.value()), growListKey(newGrowList))
+        self.assertEqual(growListKey(workingTreeMatchingSeedB.parG.value()), growListKey(newGrowList))
+        self.assertNotEqual(growListKey(workingTreeUntouchedSeed.parG.value()), growListKey(newGrowList))
+        commitSurveyCopy.assert_called_once_with(surveyCopy)
+
+    def testApplyPropertyChangesPropagatesConfirmedSeedPatternToNormalSeeds(self):
+        class FakeColorValue:
+            def __init__(self, color):
+                self._color = QColor(color)
+
+            def value(self):
+                return QColor(self._color)
+
+        class FakeFloatValue:
+            def __init__(self, value):
+                self._value = value
+
+            def value(self):
+                return self._value
+
+        class FakePoint3DValue:
+            def __init__(self, vector):
+                self._children = {
+                    'X': FakeFloatValue(vector.x()),
+                    'Y': FakeFloatValue(vector.y()),
+                    'Z': FakeFloatValue(vector.z()),
+                }
+
+            def value(self):
+                return QVector3D(self.child('X').value(), self.child('Y').value(), self.child('Z').value())
+
+            def child(self, name):
+                return self._children[name]
+
+        class FakePatternValue:
+            def __init__(self, value):
+                self._value = value
+
+            def value(self):
+                return self._value
+
+            def setValue(self, value):
+                self._value = value
+
+        class FakeSeedTypeValue:
+            def __init__(self, value):
+                self._value = value
+
+            def value(self):
+                return self._value
+
+        class FakeGridValue:
+            def value(self):
+                return [propertyPanelControllerModule.RollTranslate(), propertyPanelControllerModule.RollTranslate(), propertyPanelControllerModule.RollTranslate()]
+
+        class FakeSeedParam:
+            def __init__(self, name, pattern, *, color='#7700ff00', origin=None, seedType='Grid (roll along)'):
+                self._name = name
+                self.parL = FakeColorValue(color)
+                self.parO = FakePoint3DValue(QVector3D() if origin is None else origin)
+                self.parP = FakePatternValue(pattern)
+                self.parG = FakeGridValue()
+                self.parT = FakeSeedTypeValue(seedType)
+
+            def name(self):
+                return self._name
+
+        changedSeed = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.rollingGrid, patternNo=1)
+        matchingSeedA = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.rollingGrid, patternNo=0)
+        matchingSeedB = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.fixedGrid, patternNo=0)
+        untouchedSeed = SimpleNamespace(name='rec-1', type=propertyPanelControllerModule.SeedType.rollingGrid, patternNo=0)
+        workingTreeChangedSeed = FakeSeedParam('src-1', 'pat-2')
+        workingTreeMatchingSeedA = FakeSeedParam('src-1', 'pat-1')
+        workingTreeMatchingSeedB = FakeSeedParam('src-1', 'pat-1', seedType='Grid (stationary)')
+        workingTreeUntouchedSeed = FakeSeedParam('rec-1', 'pat-1')
+        surveyCopy = SimpleNamespace(
+            blockList=[
+                SimpleNamespace(
+                    templateList=[
+                        SimpleNamespace(seedList=[changedSeed, matchingSeedA, untouchedSeed]),
+                        SimpleNamespace(seedList=[matchingSeedB]),
+                    ]
+                )
+            ],
+            patternList=[SimpleNamespace(name='pat-1'), SimpleNamespace(name='pat-2')],
+            checkIntegrity=lambda: True,
+        )
+
+        controller = self.mainWindow.propertyPanelController
+        controller._pendingSeedPatterns = {1: {'param': workingTreeChangedSeed, 'oldPattern': 'pat-1', 'newPattern': 'pat-2'}}
+        self.mainWindow.paramTree = SimpleNamespace(
+            listAllItems=lambda: [
+                SimpleNamespace(param=workingTreeChangedSeed),
+                SimpleNamespace(param=workingTreeMatchingSeedA),
+                SimpleNamespace(param=workingTreeMatchingSeedB),
+                SimpleNamespace(param=workingTreeUntouchedSeed),
+            ]
+        )
+
+        with patch.object(propertyPanelControllerModule, 'MySeedParameter', FakeSeedParam):
+            with patch.object(controller, '_buildSurveyFromParameters', return_value=surveyCopy):
+                with patch.object(controller, '_commitSurveyCopy') as commitSurveyCopy:
+                    with patch.object(self.mainWindow, 'setPlottingDetails'):
+                        with patch.object(self.mainWindow, 'updateMenuStatus'):
+                            with patch.object(self.mainWindow, 'enableProcessingMenuItems'):
+                                with patch.object(self.mainWindow, 'updatePatternList'):
+                                    with patch.object(self.mainWindow, 'plotLayout'):
+                                        with patch.object(propertyPanelControllerModule, 'refreshLayout3DFromSurvey'):
+                                            with patch.object(propertyPanelControllerModule.QMessageBox, 'question', return_value=propertyPanelControllerModule.QMessageBox.StandardButton.Yes) as question:
+                                                self.mainWindow.applyPropertyChanges()
+
+        question.assert_called_once()
+        self.assertEqual(changedSeed.patternNo, 1)
+        self.assertEqual(matchingSeedA.patternNo, 1)
+        self.assertEqual(matchingSeedB.patternNo, 1)
+        self.assertEqual(untouchedSeed.patternNo, 0)
+        self.assertEqual(workingTreeChangedSeed.parP.value(), 'pat-2')
+        self.assertEqual(workingTreeMatchingSeedA.parP.value(), 'pat-2')
+        self.assertEqual(workingTreeMatchingSeedB.parP.value(), 'pat-2')
+        self.assertEqual(workingTreeUntouchedSeed.parP.value(), 'pat-1')
+        commitSurveyCopy.assert_called_once_with(surveyCopy)
 
     def testBinFromGeometryUsesRequestObjectAndResultSignal(self):
         class SignalStub:
@@ -2962,6 +4052,137 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.assertFalse(cancelled)
         self.assertEqual(self.mainWindow.sessionState.surveyNumber, 4)
+
+    def testMarineWizardPage2InitializesSourceSeparationFromSourceCount(self):
+        wizard = marineWizardModule.MarineSurveyWizard(self.mainWindow)
+        try:
+            page1 = wizard.page(0)
+            page2 = wizard.page(1)
+
+            page1.nSrc.setValue(4)
+            page1.updateParameters()
+
+            page2.initializePage()
+
+            self.assertEqual(page2.srcSepFactor.value(), 1)
+            self.assertAlmostEqual(page2.srcSeparation.value(), 25.0)
+            self.assertAlmostEqual(page2.field('srcSeparation'), 25.0)
+        finally:
+            wizard.close()
+            wizard.deleteLater()
+
+    def testMarineWizardPage2TopViewUpdatesWhenFactorChanges(self):
+        wizard = marineWizardModule.MarineSurveyWizard(self.mainWindow)
+        try:
+            page1 = wizard.page(0)
+            page2 = wizard.page(1)
+
+            page1.nSrc.setValue(4)
+            page1.updateParameters()
+
+            page2.initializePage()
+            page2.plotType.setCurrentIndex(1)
+
+            page2.srcSepFactor.setValue(2)
+            page2.updateSrcSepFactor()
+
+            sourceA = page2.parent.survey.blockList[0].templateList[0].seedList[0].origin
+            sourceB = page2.parent.survey.blockList[0].templateList[1].seedList[0].origin
+
+            self.assertEqual(page2.srcSepFactor.value(), 2)
+            self.assertAlmostEqual(page2.srcSeparation.value(), 50.0)
+            self.assertAlmostEqual(sourceB.y() - sourceA.y(), 50.0)
+        finally:
+            wizard.close()
+            wizard.deleteLater()
+
+    def testMarineWizardPage2TopViewFactorChangeInvalidatesSurveyPaintCache(self):
+        wizard = marineWizardModule.MarineSurveyWizard(self.mainWindow)
+        try:
+            page1 = wizard.page(0)
+            page2 = wizard.page(1)
+
+            page1.nSrc.setValue(4)
+            page1.updateParameters()
+
+            page2.initializePage()
+            page2.plotType.setCurrentIndex(1)
+            initialEpoch = page2.parent.survey._paintEpoch
+
+            page2.srcSepFactor.setValue(2)
+            page2.updateSrcSepFactor()
+
+            self.assertGreater(page2.parent.survey._paintEpoch, initialEpoch)
+        finally:
+            wizard.close()
+            wizard.deleteLater()
+
+    def testMarineWizardPage3XlineBinSizeMatchesCmpActXSpacing(self):
+        wizard = marineWizardModule.MarineSurveyWizard(self.mainWindow)
+        try:
+            page1 = wizard.page(0)
+            page2 = wizard.page(1)
+            page3 = wizard.page(2)
+
+            page1.nSrc.setValue(4)
+            page1.updateParameters()
+
+            page2.initializePage()
+            page3.initializePage()
+
+            self.assertAlmostEqual(page3.xlineBinSize(), 12.5)
+            self.assertAlmostEqual(page3.binX.value(), 12.5)
+        finally:
+            wizard.close()
+            wizard.deleteLater()
+
+    def testMarineWizardPage3XlineBinSizeUsesUniqueCmpActXValues(self):
+        wizard = marineWizardModule.MarineSurveyWizard(self.mainWindow)
+        try:
+            page1 = wizard.page(0)
+            page2 = wizard.page(1)
+            page3 = wizard.page(2)
+
+            page1.nSrc.setValue(4)
+            page1.updateParameters()
+
+            page2.initializePage()
+            page2.srcSepFactor.setValue(4)
+            page2.updateSrcSepFactor()
+            page3.initializePage()
+
+            self.assertAlmostEqual(page3.xlineBinSize(), 50.0)
+            self.assertAlmostEqual(page3.binX.value(), 50.0)
+        finally:
+            wizard.close()
+            wizard.deleteLater()
+
+    def testMarineWizardPage3BinXUpdatesAfterReturningFromPage2FactorChange(self):
+        wizard = marineWizardModule.MarineSurveyWizard(self.mainWindow)
+        try:
+            page1 = wizard.page(0)
+            page2 = wizard.page(1)
+            page3 = wizard.page(2)
+
+            page1.nSrc.setValue(4)
+            page1.updateParameters()
+
+            page2.initializePage()
+            page2.srcSepFactor.setValue(2)
+            page2.updateSrcSepFactor()
+            page3.initializePage()
+
+            self.assertAlmostEqual(page3.binX.value(), 25.0)
+
+            page2.srcSepFactor.setValue(1)
+            page2.updateSrcSepFactor()
+            page3.initializePage()
+
+            self.assertAlmostEqual(page3.xlineBinSize(), 12.5)
+            self.assertAlmostEqual(page3.binX.value(), 12.5)
+        finally:
+            wizard.close()
+            wizard.deleteLater()
 
     def testFileSaveAsCommitsDocumentContextOnlyAfterSuccessfulSave(self):
         originalProjectDirectory = self.mainWindow.projectDirectory

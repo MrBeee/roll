@@ -521,8 +521,8 @@ class Page2(SurveyWizardPage):
         self.srcSepFactor = QSpinBox()
         self.srcSepFactor.setRange(1, 10)
         self.srcSepFactor.setValue(self.parent.default('srcSepFactor'))
-        self.srcSepFactor.textChanged.connect(self.updateSourceSeparation)
-        self.srcSepFactor.editingFinished.connect(self.updateSourceSeparation)
+        self.srcSepFactor.textChanged.connect(self.updateSrcSepFactor)
+        self.srcSepFactor.editingFinished.connect(self.updateSrcSepFactor)
 
         self.srcSeparation = QDoubleSpinBox()
         self.srcSeparation.setEnabled(False)                                    # readonly
@@ -657,7 +657,7 @@ class Page2(SurveyWizardPage):
         self.parent.survey.offset.radOffsets.setX(0.0)
         self.parent.survey.offset.radOffsets.setY(maxRadialOffset)
 
-        self.plot()                                                             # refresh the plot
+        self.updateSrcSepFactor()                                           # recompute separation before the first plot refresh
 
     def cleanupPage(self):                                                      # needed to update previous page
         myPrint('cleanup of page 2')
@@ -677,7 +677,7 @@ class Page2(SurveyWizardPage):
             self.cabSepTail.setStyleSheet(dSpinBoxNormalStyle)
             self.cabSepTailLabel.setStyleSheet(labelNormalStyle)
 
-        self.updateSourceSeparation()                                           # cable separation affects source separation too; contains self.plot()
+        self.updateSrcSepFactor()                                           # cable separation affects source separation too; contains self.plot()
 
     def updateCableDepth(self):
         cabDepthHead = self.cabDepthHead.value()
@@ -691,7 +691,7 @@ class Page2(SurveyWizardPage):
             self.cabDepthTailLabel.setStyleSheet(labelNormalStyle)
         self.plot()                                                             # refresh the plot
 
-    def updateSourceSeparation(self):
+    def updateSrcSepFactor(self):
         nSrc = self.field('nSrc')
         cabSepHead = self.cabSepHead.value()
         srcSepFactor = self.srcSepFactor.value()
@@ -747,6 +747,7 @@ class Page2(SurveyWizardPage):
             rec0 = -0.5 * (nCab - 1) * dCab0                                    # first receiver
             src0 = -0.5 * (nSrc - 1) * dSrc                                     # first source actual location
             src1 = -0.5 * (nSrc - 1) * dCab0 / nSrc                             # first source nominal location (sep. factor == 1)
+
             cmp0 = 0.5 * (rec0 + src1)                                          # first cmp
             dCmp = 0.5 * dCab0 / nSrc                                           # cmp xline size
 
@@ -820,8 +821,8 @@ class Page2(SurveyWizardPage):
         nSrc = self.field('nSrc')
         nCab = self.field('nCab')
 
-        dCab0 = self.field('cabSepHead')
-        dCab9 = self.field('cabSepTail')
+        dCab0 = self.cabSepHead.value()
+        dCab9 = self.cabSepTail.value()
 
         fanning = True if dCab9 != dCab0 else False
         # Create a new survey skeleton, so we can simply update survey properties, without having to instantiate the underlying classes
@@ -831,17 +832,17 @@ class Page2(SurveyWizardPage):
         else:
             self.parent.survey.createBasicSkeleton(nTemplates=nSrc, nSrcSeeds=1, nRecSeeds=1)       # add  single block with template(s), with one seed for all streamers
 
-        sL = self.field('srcLayback')
-        rL = self.field('cabLayback')
+        sL = self.srcLayback.value()
+        rL = self.cabLayback.value()
         LB = rL - sL                                                            # relative source location (Lay back)
         cL = self.field('cabLength')                                            # streamer length
         gI = self.field('groupInt')                                             # group interval
         nGrp = round(cL / gI)                                                   # nr groups per streamer
 
-        recZ0 = -self.field('cabDepthHead')
-        recZ9 = -self.field('cabDepthTail')
+        recZ0 = -self.cabDepthHead.value()
+        recZ9 = -self.cabDepthTail.value()
 
-        dSrc = self.field('srcSeparation')
+        dSrc = self.srcSeparation.value()
         srcZ = -self.field('srcDepth')
         azim = self.field('aFeat')                                              # Feather angle
 
@@ -858,7 +859,9 @@ class Page2(SurveyWizardPage):
         if plotIndex == 1:                                                      # forward leg
             for i in range(nSrc):
                 templateNameFwd = f'Sailing Fwd-{i + 1}'                        # get suitable template name for all sources
+                sourceNameFwd = f'Src Fwd-{nSrc + 1}'
                 self.parent.survey.blockList[0].templateList[i].name = templateNameFwd
+                self.parent.survey.blockList[0].templateList[i].seedList[0].name = sourceNameFwd
 
                 # source fwd
                 srcX, srcY = rotatePoint2D(LB, src0 + i * dSrc, azim)                                                       # rotate source location
@@ -868,10 +871,15 @@ class Page2(SurveyWizardPage):
                 self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setY(srcY)                               # Seed origin
                 self.parent.survey.blockList[0].templateList[i].seedList[0].origin.setZ(srcZ)                               # Seed origin
 
+                # the source sits at seed #0; receiver(s) at the following seed(s)
+                # if there's fanning, each cable has its own direction, and requires its own seed
                 if fanning:
                     for j in range(nCab):
                         # we need to allow for streaer fanning; hence each streamer will have its own orientation
                         # this implies we can not 'grow' the spread to multiple streamers as a grow step in a grid
+
+                        receiverNameFwd = f'Rec Fwd-{nCab + 1}'
+                        self.parent.survey.blockList[0].templateList[i].seedList[j + 1].name = receiverNameFwd
 
                         dRec = rec9 - rec0 + j * (dCab9 - dCab0)                                                                # cross-line cable distance
                         azi = math.degrees(math.asin(dRec / cL9)) - azim                                                        # corrresponding azimuth
@@ -891,7 +899,10 @@ class Page2(SurveyWizardPage):
                         self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setX(dXGrp)  # group interval
                         self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setY(dYGrp)  # impact of fanning
                         self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setZ(dZGrp)  # normalized slant
-                else:                                                                                                       # no fanning
+                else:                                                                                                       # no fanning; all receivers in the same seed with the same name
+                    receiverNameFwd = 'Rec Fwd'
+                    self.parent.survey.blockList[0].templateList[i].seedList[1].name = receiverNameFwd
+
                     dRGrp = gI * math.cos(math.radians(dip))
                     dXGrp = -dRGrp
 
@@ -921,7 +932,9 @@ class Page2(SurveyWizardPage):
         elif plotIndex == 2:                                                    # return leg
             for i in range(nSrc):
                 templateNameBwd = f'Sailing Bwd-{i + 1}'                        # get suitable template name for all sources
+                sourceNameBwd = f'Src Bwd-{nSrc + 1}'
                 self.parent.survey.blockList[0].templateList[i].name = templateNameBwd
+                self.parent.survey.blockList[0].templateList[i].seedList[0].name = sourceNameBwd
 
                 # source bwd
                 srcX, srcY = rotatePoint2D(-LB, src0 + i * dSrc, -azim)                                                     # rotate source location
@@ -935,6 +948,9 @@ class Page2(SurveyWizardPage):
                     for j in range(nCab):
                         # we need to allow for streamer fanning; hence each streamer will have its own orientation
                         # this implies we can not 'grow' the spread to multiple streamers using a grow step in a grid
+
+                        receiverNameBwd = f'Rec Bwd-{nCab + 1}'
+                        self.parent.survey.blockList[0].templateList[i].seedList[j + 1].name = receiverNameBwd
 
                         dRec = rec9 - rec0 + j * (dCab9 - dCab0)                                                                # cross-line cable distance
                         azi = math.degrees(math.asin(dRec / cL9)) - azim                                                        # corrresponding azimuth
@@ -953,6 +969,9 @@ class Page2(SurveyWizardPage):
                         self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setY(dYGrp)  # no fanning (yet)
                         self.parent.survey.blockList[0].templateList[i].seedList[j + 1].grid.growList[2].increment.setZ(dZGrp)  # normalized slant
                 else:                                                                                                       # no fanning
+                    receiverNameBwd = 'Rec Bwd'
+                    self.parent.survey.blockList[0].templateList[i].seedList[1].name = receiverNameBwd
+
                     dRGrp = gI * math.cos(math.radians(dip))
                     dXGrp = dRGrp
 
@@ -984,6 +1003,7 @@ class Page2(SurveyWizardPage):
 
         self.parent.survey.calcSeedData()                                       # needed for circles, spirals & well-seeds; may affect bounding box
         self.parent.survey.calcBoundingRect()                                   # (re)calculate extent of survey
+        self.parent.survey.invalidatePaintCache()                               # force redraw when wizard reuses the same survey graphics item
 
 
 # Page3 =======================================================================
@@ -1012,6 +1032,8 @@ class Page3(SurveyWizardPage):
         self.binX.setDecimals(3)
 
         self.chkBingridAlign = QCheckBox('Match bin grid to SPI && RPI')
+        self.lastBinINatural = None
+        self.lastBinXNatural = None
 
         self.msg = QLineEdit('Max fold:')
         self.msg.setReadOnly(True)
@@ -1132,10 +1154,38 @@ class Page3(SurveyWizardPage):
         oriY = [0.0]
         _ = self.plotWidget.plot(x=oriX, y=oriY, symbol='h', symbolSize=12, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))  # origin marker; 'orig' return value not used
 
+    def xlineBinSize(self):
+        nSrc = self.field('nSrc')
+        nCab = self.field('nCab')
+        cmps = nSrc * nCab
+
+        if cmps < 2:
+            return 0.0
+
+        dCab0 = self.field('cabSepHead')
+        dSrc = self.field('srcSeparation')
+
+        cmpActX = np.zeros(shape=cmps, dtype=np.float32)
+
+        rec0 = -0.5 * (nCab - 1) * dCab0
+        src0 = -0.5 * (nSrc - 1) * dSrc
+
+        for nS in range(nSrc):
+            for nR in range(nCab):
+                cmpIndex = nS * nCab + nR
+                cmpActX[cmpIndex] = 0.5 * (src0 + nS * dSrc + rec0 + nR * dCab0)
+
+        cmpActX.sort()
+        cmpActX = np.unique(cmpActX)
+
+        if cmpActX.size < 2:
+            return 0.0
+
+        cmp = cmpActX.size // 2
+        return float(cmpActX[cmp + 1] - cmpActX[cmp])
+
     def updateParameters(self):
         # from other pages
-        dCab0 = self.field('cabSepHead')
-        nSrc = self.field('nSrc')
         cabLength = self.field('cabLength')                                     # streamer length
         srcShtInt = self.field('srcShtInt')                                     # shot point interval (per cmp line)
         recGrpInt = self.field('groupInt')                                      # group interval
@@ -1144,13 +1194,22 @@ class Page3(SurveyWizardPage):
         foldXNatural = 1.0
 
         binINatural = 0.5 * recGrpInt
-        binXNatural = 0.5 * dCab0 / nSrc
+        binXNatural = self.xlineBinSize()
+        naturalBinSizeChanged = (
+            self.lastBinINatural is None
+            or self.lastBinXNatural is None
+            or not math.isclose(self.lastBinINatural, binINatural)
+            or not math.isclose(self.lastBinXNatural, binXNatural)
+        )
+
+        self.lastBinINatural = binINatural
+        self.lastBinXNatural = binXNatural
 
         binIActual = self.field('binI')
         binXActual = self.field('binX')
 
         foldIActual = foldINatural * binIActual / binINatural
-        foldXActual = foldXNatural * binXActual / binXNatural
+        foldXActual = foldXNatural * binXActual / binXNatural if binXNatural > 0.0 else 0.0
 
         foldTActual = foldIActual * foldXActual
 
@@ -1160,15 +1219,19 @@ class Page3(SurveyWizardPage):
 
         self.msg.setText(foldText)
 
-        if self.chkBingridAlign.isChecked():                                    # adjust the bin grid if required
+        if self.chkBingridAlign.isChecked() and binXNatural > 0.0:              # adjust the bin grid if required
             self.binI.setSingleStep(binINatural)
             self.binX.setSingleStep(binXNatural)
 
-            stepsI = max(round(self.binI.value() / binINatural), 1)
-            stepsX = max(round(self.binX.value() / binXNatural), 1)
+            if naturalBinSizeChanged:
+                self.binI.setValue(binINatural)
+                self.binX.setValue(binXNatural)
+            else:
+                stepsI = max(round(self.binI.value() / binINatural), 1)
+                stepsX = max(round(self.binX.value() / binXNatural), 1)
 
-            self.binI.setValue(stepsI * binINatural)
-            self.binX.setValue(stepsX * binXNatural)
+                self.binI.setValue(stepsI * binINatural)
+                self.binX.setValue(stepsX * binXNatural)
         else:
             self.binI.setSingleStep(1.0)
             self.binX.setSingleStep(1.0)
@@ -1869,10 +1932,11 @@ class Page5(SurveyWizardPage):
         ################################################
         #       7       backward        yes     forwards
 
-        # so by flipping the direction of the even race tracks, we can create a survey with 'paired' forward and backward sailing
+        # so by flipping the direction of the even race tracks, we can create a surecNameBwdrvey with 'paired' forward and backward sailing
         # this reduces the number of sail line reversals by ~ 2, thereby reducing the amount of striping in the data
 
         # at present feathering is implemented partially: streamers are feathered, but the vessel isn't crabbing accordingly
+        # this is the 'final' occurance of `createBasicSkeleton` in creating the survey object in the wizard
 
         fanning = True if dCab9 != dCab0 else False
         if fanning:
@@ -1932,39 +1996,54 @@ class Page5(SurveyWizardPage):
             flip = trackNo % 2 == 1                                             # forward/backward direction of odd race tracks needs to be flipped
             trackNo += 1                                                        # make it ready for next iteration of i (=trackCount)
 
-            self.parent.survey.blockList[i + 0].name = f'Track-{trackNo}a'      # name the block after its role in a race track
-            self.parent.survey.blockList[i + 1].name = f'Track-{trackNo}b'      # name the block after its role in a race track
+            if flip:
+                blkNameFwd = 'Sailing Bwd'
+                blkNameBwd = 'Sailing Fwd'
+                tplNameFwd = 'Tpl Bwd'
+                tplNameBwd = 'Tpl Fwd'
+                recNameFwd = 'Rec Bwd'
+                recNameBwd = 'Rec Fwd'
+                srcNameFwd = 'Src Bwd'
+                srcNameBwd = 'Src Fwd'
+                PopInt = -self.field('srcPopInt')
+                RolInt = -self.field('srcShtInt')                           # shot point interval (per cmp line)
+                SrcFwdX0 = FF - 1.0 * LB - PI
+                SrcBwdX0 = 0.0
+                RecFwdX0 = FF + 1.0 * LB - PI
+                RecBwdX0 = 0.0
+                RecFwdDx = 1.0
+                RecBwdDx = -1.0
+            else:
+                blkNameFwd = 'Sailing Fwd'
+                blkNameBwd = 'Sailing Bwd'
+                tplNameFwd = 'Tpl Fwd'
+                tplNameBwd = 'Tpl Bwd'
+                recNameFwd = 'Rec Fwd'
+                recNameBwd = 'Rec Bwd'
+                srcNameFwd = 'Src Fwd'
+                srcNameBwd = 'Src Bwd'
+                PopInt = self.field('srcPopInt')                            # pop interval (subsequent firings)
+                RolInt = self.field('srcShtInt')                            # shot point interval (per cmp line)
+                SrcFwdX0 = 0.0
+                SrcBwdX0 = FF - 1.0 * LB - PI
+                RecFwdX0 = 0.0
+                RecBwdX0 = FF + 1.0 * LB - PI
+                RecFwdDx = -1.0
+                RecBwdDx = 1.0
+
+            self.parent.survey.blockList[i + 0].name = f'{blkNameFwd}-{trackNo}'   # name the block after its role in a race track
+            self.parent.survey.blockList[i + 1].name = f'{blkNameBwd}-{trackNo}'   # name the block after its role in a race track
 
             for j in range(nSrc):                                               # iterate over templates; each template contains 1 source point
                 # for every increment in j, the source point is moved by dSrcY in crossline direction, and moved by PopInt in inline direction
-
                 # iterate over all templates (= sources), start with sailing FORWARD in block i = 0
-                if flip:
-                    nameFwd = 'Sailing Bwd'
-                    nameBwd = 'Sailing Fwd'
-                    PopInt = -self.field('srcPopInt')
-                    RolInt = -self.field('srcShtInt')                           # shot point interval (per cmp line)
-                    SrcFwdX0 = FF - 1.0 * LB - PI
-                    SrcBwdX0 = 0.0
-                    RecFwdX0 = FF + 1.0 * LB - PI
-                    RecBwdX0 = 0.0
-                    RecFwdDx = 1.0
-                    RecBwdDx = -1.0
-                else:
-                    nameFwd = 'Sailing Fwd'
-                    nameBwd = 'Sailing Bwd'
-                    PopInt = self.field('srcPopInt')                            # pop interval (subsequent firings)
-                    RolInt = self.field('srcShtInt')                            # shot point interval (per cmp line)
-                    SrcFwdX0 = 0.0
-                    SrcBwdX0 = FF - 1.0 * LB - PI
-                    RecFwdX0 = 0.0
-                    RecBwdX0 = FF + 1.0 * LB - PI
-                    RecFwdDx = -1.0
-                    RecBwdDx = 1.0
 
-                self.parent.survey.blockList[i].templateList[j].name = f'{nameFwd}-{j + 1}'                                 # get suitable template name for all sources
+                self.parent.survey.blockList[i].templateList[j].name = f'{tplNameFwd}-{j + 1}'                                 # get suitable template name for all sources
 
                 # source seed fwd sailing
+                sourceNameFwd = f'{srcNameFwd}-{j + 1}'
+                self.parent.survey.blockList[i].templateList[j].seedList[0].name = sourceNameFwd
+
                 dX, dY = rotatePoint2D(LB, srcY0 + j * dSrcY, azim * RecBwdDx)                                              # rotate source seed location, based on layback, source y-location and azimuth
                 # self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setX(SrcFwdX0 + j * PopInt)              # The x-origin is shifted by the pop interval between source arrays
                 # self.parent.survey.blockList[i].templateList[j].seedList[0].origin.setY(blkOffFwd + srcY0 + j * dSrcY)      # The y-origin is shifted by the x-line interval between source arrays
@@ -1988,6 +2067,9 @@ class Page5(SurveyWizardPage):
                         # we need to allow for streamer fanning; hence each streamer will have its own orientation
                         # this implies we can not 'grow' the spread to multiple streamers as a grow step in a grid
 
+                        receiverNameFwd = f'{recNameFwd}-{nCab + 1}'
+                        self.parent.survey.blockList[i].templateList[j].seedList[k + 1].name = receiverNameFwd
+
                         dRec = recY9 - recY0 + k * (dCab9 - dCab0)                                                          # cross-line cable distance
                         azi = math.degrees(math.asin(dRec / cL9)) - azim                                                    # corrresponding azimuth
                         dRGrp = gI * math.cos(math.radians(dip))
@@ -2009,6 +2091,9 @@ class Page5(SurveyWizardPage):
                 else:
                     # no allowance for streamer fanning; all streamers will have the same orientation
                     # this implies we can 'grow' the spread to multiple streamers as a single grow step in a grid
+
+                    receiverNameFwd = recNameFwd
+                    self.parent.survey.blockList[i].templateList[j].seedList[1].name = receiverNameFwd
 
                     dRGrp = gI * math.cos(math.radians(dip))
                     dXGrp = dRGrp * RecFwdDx
@@ -2041,9 +2126,12 @@ class Page5(SurveyWizardPage):
                 # so i now becomes i + 1 and j is still the same                                         ############################################################################
                 #####################################################################################################################################################################
 
-                self.parent.survey.blockList[i + 1].templateList[j].name = f'{nameBwd}-{j + 1}'                             # get suitable template name for all sources
+                self.parent.survey.blockList[i + 1].templateList[j].name = f'{tplNameBwd}-{j + 1}'                             # get suitable template name for all sources
 
                 # source seed bwd sailing
+                sourceNameBwd = f'{srcNameBwd}-{j + 1}'
+                self.parent.survey.blockList[i + 1].templateList[j].seedList[0].name = sourceNameBwd
+
                 dX, dY = rotatePoint2D(LB, srcY0 + j * dSrcY, -azim * RecBwdDx)                                             # rotate source seed location, based on layback, source y-location and azimuth
                 # self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setX(SrcBwdX0 - j * PopInt)          # The x-origin is shifted by the pop interval between source arrays
                 # self.parent.survey.blockList[i + 1].templateList[j].seedList[0].origin.setY(blkOffBwd + srcY0 + j * dSrcY)  # The y-origin is shifted by the x-line interval between source arrays
@@ -2067,6 +2155,9 @@ class Page5(SurveyWizardPage):
                         # we need to allow for streamer fanning; hence each streamer will have its own orientation
                         # this implies we can not 'grow' the spread to multiple streamers as a grow step in a grid
 
+                        receiverNameBwd = f'{recNameBwd}-{nCab + 1}'
+                        self.parent.survey.blockList[i + 1].templateList[j].seedList[k + 1].name = receiverNameBwd
+
                         dRec = recY9 - recY0 + k * (dCab9 - dCab0)                                                          # cross-line cable distance
                         azi = math.degrees(math.asin(dRec / cL9)) - azim                                                    # corrresponding azimuth
                         dRGrp = gI * math.cos(math.radians(dip))
@@ -2088,6 +2179,9 @@ class Page5(SurveyWizardPage):
                 else:
                     # no allowance for streamer fanning; all streamers will have the same orientation
                     # this implies we can 'grow' the spread to multiple streamers as a single grow step in a grid
+
+                    receiverNameBwd = recNameBwd
+                    self.parent.survey.blockList[i + 1].templateList[j].seedList[1].name = receiverNameBwd
 
                     dRGrp = gI * math.cos(math.radians(dip))
                     dXGrp = dRGrp * RecBwdDx

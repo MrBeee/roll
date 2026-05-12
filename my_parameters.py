@@ -5,7 +5,7 @@ import os
 from pyqtgraph.parametertree import registerParameterType
 from qgis.PyQt.QtCore import QFileInfo
 from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtWidgets import QMessageBox
+from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
 from .aux_functions import myPrint
 from .enums_and_int_flags import SurveyType
@@ -681,7 +681,7 @@ class MyBinAnglesParameter(MyGroupParameter):
         })
 
         self.sigTreeStateChanged.connect(self.changed)
-        # QApplication.processEvents()
+        QApplication.processEvents()
 
     def changed(self):
         applyBinAnglesParameters(self)
@@ -1149,14 +1149,14 @@ class MyBlockParameterItem(MyGroupParameterItem):
         super().__init__(param, depth)
         self.initializePreviewItem(param)
 
-        # QApplication.processEvents()
+        QApplication.processEvents()
 
     def showPreviewInformation(self, param):
         nTemplates, nBlockShots = previewBlockSourceSummary(param)
 
         t = f'{nTemplates} template(s), {int(nBlockShots + 0.5)} src points'
 
-        # QApplication.processEvents()
+        QApplication.processEvents()
 
         self.updatePreviewLabelText(t)
         # myPrint(f'>>>{lineNo():5d} MyBlockParameterItem.showPreviewInformation | t = {t} <<<')
@@ -1200,7 +1200,7 @@ class MyBlockParameter(MyGroupParameter):
         self.sigNameChanged.connect(self.nameChanged)
         self.sigContextMenu.connect(self.contextMenu)
 
-        # QApplication.processEvents()
+        QApplication.processEvents()
 
     def nameChanged(self, _):
         self.block.name = self.name()

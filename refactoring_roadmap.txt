@@ -200,6 +200,7 @@ What is already done:
 What remains in this phase:
 1. No further Phase 1 work is required before moving to later phases.
 2. Only small cleanup/documentation opportunities remain.
+3. Optional persistence hardening: consider migrating the `.ana.npy` analysis sidecar from the current raw `np.memmap` layout to a true headered NumPy `.npy` memmap format, while keeping backward-compatible loading for existing raw sidecars during the transition. This would let the persistence boundary recover shape/dtype from the file header itself instead of relying only on caller-supplied shape plus byte-size inference, which should make validation, corruption detection, and future format checks simpler and less brittle.
 
 Exit criteria:
 Met for the current milestone:

@@ -196,7 +196,7 @@ The plugin works best using one or two QHD Screens (2560 x 1440 pixels) or large
 
 #### 6.1	Project size
 
-On the 6th May, the Addin contained `34,316` Source-Lines-Of-Code (SLOC) across `140` files. 
+On May 6th 2026, the Addin contained `34,316` Source-Lines-Of-Code (SLOC) across `140` files. 
 
 ##### Breakdown:
 

@@ -6,7 +6,7 @@ from qgis.PyQt.QtCore import QLineF, QRectF
 from qgis.PyQt.QtGui import QVector3D
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .aux_functions import toBool, toFloat, toInt
+from .aux_functions import toBool
 from .roll_translate import RollTranslate
 
 
@@ -21,6 +21,16 @@ class RollGrid:
         # calculated variables
         self.salvo = QLineF()                                                   # draws line From FIRST to LAST point of FIRST grow step (quick draw)
         self.points = 0                                                         # nr of points on grid
+
+    def calcPointCount(self):
+        self.normalizeGrowList()
+
+        pointCount = 1
+        for growStep in self.growList:
+            pointCount *= growStep.steps
+
+        self.points = pointCount
+        return pointCount
 
     def normalizeGrowList(self):
         while len(self.growList) < 3:                                           # Keep sparse XML compatible with the fixed three-step invariant
@@ -105,7 +115,7 @@ class RollGrid:
             gridElem.appendChild(nameElement)
 
         gridElem.setAttribute('roll', str(self.bRoll))
-        gridElem.setAttribute('points', str(self.points))
+        gridElem.setAttribute('points', str(self.calcPointCount()))
 
         for grow in self.growList:
             # if grow.steps > 1:                         # Only write grow steps that actually grow; otherwise we get too many empty grow steps in the XML
@@ -124,7 +134,6 @@ class RollGrid:
                 self.name = nameElem.text()
 
             self.bRoll = toBool(gridElem.attribute('roll'), True)
-            self.points = toInt(gridElem.attribute('points'))
 
             g = gridElem.firstChildElement('translate')
 
@@ -135,6 +144,7 @@ class RollGrid:
                 g = g.nextSiblingElement('translate')
 
             self.normalizeGrowList()
+            self.calcPointCount()
 
             return True
 
@@ -147,7 +157,6 @@ class RollGrid:
                 self.name = nameElem.text()
 
             self.bRoll = toBool(growListElem.attribute('roll'), True)
-            self.points = toFloat(growListElem.attribute('points'))
 
             g = growListElem.firstChildElement('translate')
             if g.isNull():
@@ -159,6 +168,7 @@ class RollGrid:
                 g = g.nextSiblingElement('translate')
 
             self.normalizeGrowList()
+            self.calcPointCount()
 
             return True
 

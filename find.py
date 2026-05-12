@@ -81,13 +81,13 @@ class FindNotepad(QDialog):
         self.updateButtons()
 
     def buildFlags(self):
-        flags = QTextDocument.FindFlags()
+        flags = QTextDocument.FindFlag(0)
         if self.matchCaseCheck.isChecked():
-            flags |= QTextDocument.FindCaseSensitively
+            flags |= QTextDocument.FindFlag.FindCaseSensitively
         if self.wholeWordCheck.isChecked():
-            flags |= QTextDocument.FindWholeWords
+            flags |= QTextDocument.FindFlag.FindWholeWords
         if self.dirUpRadio.isChecked():
-            flags |= QTextDocument.FindBackward
+            flags |= QTextDocument.FindFlag.FindBackward
         return flags
 
     def findNext(self):
@@ -100,10 +100,10 @@ class FindNotepad(QDialog):
 
         if not found and self.wrapCheck.isChecked():
             cursor = self.parent.textEdit.textCursor()
-            if flags & QTextDocument.FindBackward:
-                cursor.movePosition(QTextCursor.End)
+            if flags & QTextDocument.FindFlag.FindBackward:
+                cursor.movePosition(QTextCursor.MoveOperation.End)
             else:
-                cursor.movePosition(QTextCursor.Start)
+                cursor.movePosition(QTextCursor.MoveOperation.Start)
             self.parent.textEdit.setTextCursor(cursor)
             self.parent.textEdit.find(query, flags)
 
@@ -123,11 +123,11 @@ class FindNotepad(QDialog):
             return
 
         flags = self.buildFlags()
-        flags &= ~QTextDocument.FindBackward
+        flags &= ~QTextDocument.FindFlag.FindBackward
 
         blockCursor = self.parent.textEdit.textCursor()
         blockCursor.beginEditBlock()
-        blockCursor.movePosition(QTextCursor.Start)
+        blockCursor.movePosition(QTextCursor.MoveOperation.Start)
         self.parent.textEdit.setTextCursor(blockCursor)
 
         while self.parent.textEdit.find(query, flags):

@@ -1210,6 +1210,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def applyPropertyChanges(self):
         self.propertyPanelController.applyPropertyChanges()
 
+    def seedNameChangeDetected(self, param, oldName, newName):
+        self.propertyPanelController.seedNameChangeDetected(param, oldName, newName)
+
+    def seedColorChangeDetected(self, param, oldColor, newColor):
+        self.propertyPanelController.seedColorChangeDetected(param, oldColor, newColor)
+
+    def seedOriginShiftDetected(self, param, oldOrigin, newOrigin):
+        self.propertyPanelController.seedOriginShiftDetected(param, oldOrigin, newOrigin)
+
+    def seedGridGrowStepsChangeDetected(self, param, oldGrowList, newGrowList):
+        self.propertyPanelController.seedGridGrowStepsChangeDetected(param, oldGrowList, newGrowList)
+
+    def seedPatternChangeDetected(self, param, oldPattern, newPattern):
+        self.propertyPanelController.seedPatternChangeDetected(param, oldPattern, newPattern)
+
     def binningSettingsHaveChanged(self, *_):                                   # param, changes unused; replaced by *_
         self.binAreaChanged = True
 
@@ -2278,6 +2293,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     x=self.spiderRecX, y=self.spiderRecY, connect='pairs', symbol='o', pen=pg.mkPen('b', width=2), symbolSize=5, pxMode=False, symbolPen=pg.mkPen('b'), symbolBrush=QColor('#772929FF')
                 )
                 rec.setTransform(transform)
+            else:
+                cmpCoords = None
+                if self.spiderPoint != QPoint(-1, -1) and self.survey.binTransform is not None:
+                    invBin, invertOk = self.survey.binTransform.inverted()
+                    if invertOk:
+                        cmpX, cmpY = invBin.map(self.spiderPoint.x(), self.spiderPoint.y())
+                        if self.glob and self.survey.glbTransform is not None:
+                            cmpX, cmpY = self.survey.glbTransform.map(cmpX, cmpY)
+                        cmpCoords = (cmpX, cmpY)
+
+                if cmpCoords is not None:
+                    self.layoutWidget.plot(x=[cmpCoords[0]], y=[cmpCoords[1]], symbol='o', symbolSize=6, symbolPen=(0, 0, 0, 100), symbolBrush='g')
 
             if self.spiderText is not None:
                 self.layoutWidget.plotItem.addItem(self.spiderText)                 # show the spider label anyhow

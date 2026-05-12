@@ -77,10 +77,10 @@ class ProjectLoadApplier:
         mainWindow.sessionService.setArray(mainWindow.sessionState, 'srcGeom', sidecarResult.srcGeom)
         mainWindow.sessionService.setArray(mainWindow.sessionState, 'relGeom', sidecarResult.relGeom)
 
-        self._applyPointArrayState('rpsImport', ('rpsLiveE', 'rpsLiveN', 'rpsDeadE', 'rpsDeadN'), 'actionRpsPoints', boundAttr='rpsBound')
-        self._applyPointArrayState('spsImport', ('spsLiveE', 'spsLiveN', 'spsDeadE', 'spsDeadN'), 'actionSpsPoints', boundAttr='spsBound')
-        self._applyPointArrayState('recGeom', ('recLiveE', 'recLiveN', 'recDeadE', 'recDeadN'), 'actionRecPoints')
-        self._applyPointArrayState('srcGeom', ('srcLiveE', 'srcLiveN', 'srcDeadE', 'srcDeadN'), 'actionSrcPoints')
+        self._applyPointArrayState('rpsImport', ('rpsLiveE', 'rpsLiveN', 'rpsDeadE', 'rpsDeadN'), 'actionRpsPoints', boundAttr='rpsBound', checkedWhenAvailable=False)
+        self._applyPointArrayState('spsImport', ('spsLiveE', 'spsLiveN', 'spsDeadE', 'spsDeadN'), 'actionSpsPoints', boundAttr='spsBound', checkedWhenAvailable=False)
+        self._applyPointArrayState('recGeom', ('recLiveE', 'recLiveN', 'recDeadE', 'recDeadN'), 'actionRecPoints', checkedWhenAvailable=False)
+        self._applyPointArrayState('srcGeom', ('srcLiveE', 'srcLiveN', 'srcDeadE', 'srcDeadN'), 'actionSrcPoints', checkedWhenAvailable=False)
 
         self._refreshModelAndView('rpsModel', 'rpsImport', 'rpsView')
         self._refreshModelAndView('spsModel', 'spsImport', 'spsView')
@@ -89,7 +89,7 @@ class ProjectLoadApplier:
         self._refreshModelAndView('relModel', 'relGeom', 'relView')
         self._refreshModelAndView('srcModel', 'srcGeom', 'srcView')
 
-    def _applyPointArrayState(self, arrayAttr, liveDeadAttrs, actionAttr, boundAttr=None):
+    def _applyPointArrayState(self, arrayAttr, liveDeadAttrs, actionAttr, boundAttr=None, checkedWhenAvailable=True):
         del liveDeadAttrs, boundAttr
         mainWindow = self.mainWindow
         array = getattr(mainWindow, arrayAttr)
@@ -97,7 +97,7 @@ class ProjectLoadApplier:
 
         if array is not None:
             nImport = array.shape[0]
-            action.setChecked(nImport > 0)
+            action.setChecked(checkedWhenAvailable and nImport > 0)
             action.setEnabled(nImport > 0)
         else:
             action.setChecked(False)

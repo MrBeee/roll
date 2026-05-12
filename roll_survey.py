@@ -3899,10 +3899,6 @@ class RollSurvey(pg.GraphicsObject):
             p.setPen(pg.mkPen(1.0))                                             # use a grey pen for template borders
             p.setBrush(pg.mkBrush((192, 192, 192, 64)))                         # grey & semi-transparent, use for all templates
 
-            if self.paintMode == PaintMode.justBlocks:                          # just paint the blocks bounding box, irrespective of LOD
-                p.drawRect(block.boundingBox)                                   # draw bloc's rectangle
-                continue                                                        # we've done enough
-
             if self.paintDetails & PaintDetails.recArea:
                 # p.setOpacity(1.0)
                 p.setPen(appSettings.recAreaPen)
@@ -3920,6 +3916,12 @@ class RollSurvey(pg.GraphicsObject):
                 p.setPen(appSettings.cmpAreaPen)
                 p.setBrush(QBrush(QColor(appSettings.cmpAreaColor)))
                 p.drawRect(block.cmpBoundingRect)
+
+            if self.paintMode == PaintMode.justBlocks:                          # draw block outlines on top of any requested areas
+                p.setPen(pg.mkPen(1.0))
+                p.setBrush(pg.mkBrush((192, 192, 192, 64)))
+                p.drawRect(block.boundingBox)
+                continue                                                        # we've done enough
 
             # Draw invariant seeds once per template (circle/spiral/well)
             for template in block.templateList:
