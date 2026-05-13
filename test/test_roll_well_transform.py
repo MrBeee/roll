@@ -9,6 +9,7 @@ from unittest.mock import patch
 import numpy as np
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QPointF, QRectF
+from qgis.PyQt.QtGui import QVector3D
 
 from .utilities import getQgisApp
 
@@ -188,6 +189,120 @@ class RollWellTransformTest(unittest.TestCase):
 
         self.assertEqual((ahd0, dAhd, nAhd), (10.0, 15.0, 7))
         self.assertEqual((well.ahd0, well.dAhd, well.nAhd), (10.0, 15.0, 7))
+
+    def testCalcPointListIncludesTerminalSurveyPointInDisplayTrajectory(self):
+        survey = self.createSurvey()
+        well = self.createWell(survey)
+        well.origW = QVector3D(0.0, 0.0, 0.0)
+        well.origG = QPointF(0.0, 0.0)
+        well.origL = QPointF(0.0, 0.0)
+
+        class FakeDeviation:
+            def __init__(self):
+                self.md = np.array([2957.0], dtype=np.float64)
+                self.resampleCalls = []
+
+            def minimum_curvature(self):
+                return self
+
+            def resample(self, depths):
+                depths = list(depths)
+                self.resampleCalls.append(depths)
+                return FakePosition(depths)
+
+        class FakePosition:
+            def __init__(self, depths):
+                self._depths = np.asarray(depths, dtype=np.float64)
+
+            def to_wellhead(self, **_kwargs):
+                return self
+
+            def to_tvdss(self, **_kwargs):
+                return types.SimpleNamespace(
+                    easting=self._depths,
+                    northing=np.zeros_like(self._depths),
+                    depth=-self._depths,
+                )
+
+        fakeDeviation = FakeDeviation()
+        sampleData = np.array([[0.0, 0.0, 0.0, 2957.0]], dtype=np.float64)
+
+        def pathExists(path):
+            return path == well.name
+
+        with patch.object(rollWellModule.os.path, 'exists', side_effect=pathExists):
+            with patch.object(well, 'readHeader', return_value=True):
+                with patch.object(well, 'readWellHeader', return_value=({}, 0)):
+                    with patch.object(rollWellModule.np, 'loadtxt', return_value=sampleData):
+                        with patch.object(well, 'deviationFromXYZ', return_value=fakeDeviation):
+                            well.calcPointList(survey.crs, survey.glbTransform)
+
+        self.assertEqual(fakeDeviation.resampleCalls[1][-1], 2957.0)
+        self.assertAlmostEqual(well.pntList3D[-1].x(), 2957.0, places=4)
+        self.assertAlmostEqual(well.pntList3D[-1].y(), 0.0, places=4)
+        self.assertAlmostEqual(well.pntList3D[-1].z(), -2957.0, places=4)
+
+    def testCalcPointListTreatsWellColumnsAsEastNorthDepthMd(self):
+        survey = self.createSurvey()
+        well = self.createWell(survey)
+        well.origW = QVector3D(0.0, 0.0, 0.0)
+        well.origG = QPointF(0.0, 0.0)
+        well.origL = QPointF(0.0, 0.0)
+
+        class FakeDeviation:
+            def __init__(self):
+                self.md = np.array([10.0], dtype=np.float64)
+
+            def minimum_curvature(self):
+                return self
+
+            def resample(self, depths):
+                depths = np.asarray(list(depths), dtype=np.float64)
+                return FakePosition(depths)
+
+        class FakePosition:
+            def __init__(self, depths):
+                self._depths = depths
+
+            def to_wellhead(self, **_kwargs):
+                return self
+
+            def to_tvdss(self, **_kwargs):
+                return types.SimpleNamespace(
+                    easting=self._depths,
+                    northing=np.zeros_like(self._depths),
+                    depth=-self._depths,
+                )
+
+        sampleData = np.array(
+            [
+                [100.0, 200.0, -10.0, 0.0],
+                [110.0, 210.0, -20.0, 10.0],
+            ],
+            dtype=np.float64,
+        )
+
+        captured = {}
+
+        def pathExists(path):
+            return path == well.name
+
+        def fakeDeviationFromXYZ(north, east, depth):
+            captured['north'] = np.asarray(north, dtype=np.float64)
+            captured['east'] = np.asarray(east, dtype=np.float64)
+            captured['depth'] = np.asarray(depth, dtype=np.float64)
+            return FakeDeviation()
+
+        with patch.object(rollWellModule.os.path, 'exists', side_effect=pathExists):
+            with patch.object(well, 'readHeader', return_value=True):
+                with patch.object(well, 'readWellHeader', return_value=({}, 0)):
+                    with patch.object(rollWellModule.np, 'loadtxt', return_value=sampleData):
+                        with patch.object(well, 'deviationFromXYZ', side_effect=fakeDeviationFromXYZ):
+                            well.calcPointList(survey.crs, survey.glbTransform)
+
+        np.testing.assert_array_equal(captured['east'], np.array([100.0, 110.0], dtype=np.float64))
+        np.testing.assert_array_equal(captured['north'], np.array([200.0, 210.0], dtype=np.float64))
+        np.testing.assert_array_equal(captured['depth'], np.array([-10.0, -20.0], dtype=np.float64))
 
 
 if __name__ == '__main__':

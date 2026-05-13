@@ -473,7 +473,7 @@ class RollWell:
                 # read the 4 column ascii data; skip header rows
                 pos2D = np.loadtxt(f, delimiter=None, skiprows=index, comments='!')
 
-                north, east, depth, md = pos2D.T                                    # transpose array to 4 rows, and read these rows
+                east, north, depth, md = pos2D.T                                    # transpose array to 4 rows, and read these rows
                 self.ahdMax = md[-1]                                                # maximum along-hole-depth
 
                 # for next line; see position_log.py line 409 and further in imported module wellpathpy
@@ -523,6 +523,9 @@ class RollWell:
         # now display the well trajectory; use 2D points in local coordinates (well-crs -> project-crs -> local grid)
         steps = 50                                                              # start with 50 points along trajectory
         displayList = list(range(0, int(dev.md[-1]) + 1, steps))                # range only likes int values
+        finalDepth = float(dev.md[-1])
+        if not displayList or not math.isclose(float(displayList[-1]), finalDepth, rel_tol=0.0, abs_tol=1e-9):
+            displayList.append(finalDepth)
 
         # this is the key routine that resamples to (x, y, z) values
         pos = dev.minimum_curvature().resample(depths=displayList)              # use minimum curvature interpolation
