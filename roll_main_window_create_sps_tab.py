@@ -203,8 +203,16 @@ def createSpsTab(self):
     splitter2.addWidget(self.spsBottom)
     splitter2.setSizes([900, 100])
 
-    # ceate the main layout for the SPS tab
-    hbox = QHBoxLayout()
-    hbox.addWidget(splitter2)
+    # main layout for tabSps: create once, reuse on rebuild
+    tabLayout = self.tabSps.layout()
+    if tabLayout is None:
+        tabLayout = QHBoxLayout(self.tabSps)
+        tabLayout.setContentsMargins(0, 0, 0, 0)
+    else:
+        while tabLayout.count():
+            item = tabLayout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
 
-    self.tabSps.setLayout(hbox)
+    tabLayout.addWidget(splitter2)

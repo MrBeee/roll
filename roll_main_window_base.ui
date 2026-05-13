@@ -828,7 +828,7 @@
      <normaloff>resources/mActionStopThread.svg</normaloff>resources/mActionStopThread.svg</iconset>
    </property>
    <property name="text">
-    <string>&amp;Stop Processing thread</string>
+    <string>Stop Processing &amp;Thread</string>
    </property>
    <property name="shortcut">
     <string>Esc</string>
@@ -911,7 +911,7 @@
      <normaloff>resources/mActionGeomFromTemplates.svg</normaloff>resources/mActionGeomFromTemplates.svg</iconset>
    </property>
    <property name="text">
-    <string>&amp;Create Geometry from Templates</string>
+    <string>Create &amp;Geometry from Templates</string>
    </property>
    <property name="shortcut">
     <string>Alt+G</string>
@@ -923,7 +923,7 @@
      <normaloff>resources/mActionBasicBinFromGeometry.svg</normaloff>resources/mActionBasicBinFromGeometry.svg</iconset>
    </property>
    <property name="text">
-    <string>Basic Binning from Geometry</string>
+    <string>B&amp;asic Binning from Geometry</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+G</string>
@@ -935,7 +935,7 @@
      <normaloff>resources/mActionFullBinFromGeometry2.svg</normaloff>resources/mActionFullBinFromGeometry2.svg</iconset>
    </property>
    <property name="text">
-    <string>Full Binning from &amp;Geometry</string>
+    <string>F&amp;ull Binning from &amp;Geometry</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+G</string>
@@ -1010,7 +1010,7 @@
      <normaloff>resources/mActionBasicBinFromSps.svg</normaloff>resources/mActionBasicBinFromSps.svg</iconset>
    </property>
    <property name="text">
-    <string>Basic Binning from Imported SPS</string>
+    <string>Ba&amp;sic Binning from Imported SPS</string>
    </property>
    <property name="toolTip">
     <string>Basic Binning from &amp;Imported SPS</string>
@@ -1025,7 +1025,7 @@
      <normaloff>resources/mActionFullBinFromSps2.svg</normaloff>resources/mActionFullBinFromSps2.svg</iconset>
    </property>
    <property name="text">
-    <string>Full Binning from &amp;Imported &amp;SPS</string>
+    <string>Fu&amp;ll Binning from &amp;Imported &amp;SPS</string>
    </property>
    <property name="toolTip">
     <string>Full Binning from I&amp;mported SPS</string>
@@ -1707,7 +1707,7 @@
   </action>
   <action name="actionShift_Survey_Area">
    <property name="text">
-    <string>Shift Survey Location</string>
+    <string>Shift Survey Location...</string>
    </property>
   </action>
  </widget>

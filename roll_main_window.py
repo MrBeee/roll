@@ -45,7 +45,8 @@ from .chunked_data import ChunkedData
 from .display_dock import createDisplayDock
 from .document_context_service import DocumentContextService
 from .enums_and_int_flags import (AnalysisRedrawReason, Direction, MsgType,
-                                  PaintDetails, PaintMode, SurveyType)
+                                  PaintDetails, PaintMode, SeedType,
+                                  SurveyType)
 from .filter_service import FilterService
 from .find import FindNotepad
 from .import_service import ImportService
@@ -81,6 +82,7 @@ from .roll_survey import RollSurvey
 from .runtime_state import RuntimeState
 from .session_service import SessionService
 from .session_state import SessionState
+from .shift_survey_area_dialog import ShiftSurveyAreaDialog
 from .settings import SettingsDialog, readSettings, writeSettings
 from .spider_navigation_mixin import SpiderNavigationMixin
 from .sps_import_dialog import SpsImportDialog
@@ -811,6 +813,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionBasicBinFromSps.triggered.connect(self.basicBinFromSps)
         self.actionFullBinFromSps.triggered.connect(self.fullBinFromSps)
         self.actionGeometryFromTemplates.triggered.connect(self.createGeometryFromTemplates)
+        self.actionShift_Survey_Area.triggered.connect(self.shiftSurveyArea)
 
         # actions related to the help menu
         self.actionAbout.triggered.connect(self.onAbout)
@@ -2034,6 +2037,49 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.plotLayout()
         # self.layoutWidget.enableAutoRange()                                     # makes the plot 'fit' the survey outline.
 
+    def shiftSurveyArea(self):
+        success, deltaX, deltaY = ShiftSurveyAreaDialog.getShift(self)
+        if success:
+            self.applySurveyAreaShift(deltaX, deltaY)
+
+    def applySurveyAreaShift(self, deltaX, deltaY):
+        if self.survey is None:
+            return False
+
+        deltaX = float(deltaX)
+        deltaY = float(deltaY)
+        movedSeeds = 0
+
+        for block in self.survey.blockList:
+            for template in block.templateList:
+                for seed in template.seedList:
+                    if seed.type == SeedType.well:
+                        continue
+
+                    seed.origin.setX(seed.origin.x() + deltaX)
+                    seed.origin.setY(seed.origin.y() + deltaY)
+                    movedSeeds += 1
+
+        self.survey.calcTransforms()
+        self.survey.calcSeedData()
+        self.survey.calcPointArrays()
+        self.survey.calcBoundingRect()
+        self.survey.calcNoShotPoints()
+        self.survey.invalidatePaintCache()
+
+        self.resetNumpyArraysAndModels(clearImportedArrays=False, clearRuler=False)
+
+        plainText = self.survey.toXmlString()
+        self.textEdit.setTextViaCursor(plainText)
+        self.textEdit.document().setModified(True)
+
+        self.updateMenuStatus(True)
+        self.resetSurveyProperties()
+        self.plotLayout()
+        refreshLayout3DFromSurvey(self)
+        self.appendLogMessage(f'Edit&nbsp;&nbsp;&nbsp;: Shifted survey area by dx={deltaX:.2f}, dy={deltaY:.2f} for {movedSeeds:,} template seed(s)')
+        return True
+
     def stopPainting(self):
         if self.survey is not None:
             self.survey._cancelPaint = True                                     # to cancel painting in progress
@@ -2071,6 +2117,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.survey.invalidatePaintCache()                                      # make sure we repaint everything
         self.survey.update()
         self.plotLayout()
+        refreshLayout3DFromSurvey(self)
 
     def plotLayout(self):
         # first we are going to see how large the survey area is, to establish a boundingbox
@@ -2876,8 +2923,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.appendLogMessage('Created: new file')
             self.plotLayout()                                                   # update the survey, but not the xml-tab
 
-    def resetNumpyArraysAndModels(self):
-        """reset various analysis arrays"""
+    def resetNumpyArraysAndModels(self, clearImportedArrays=True, clearRuler=True):
+        """Reset derived survey arrays and plot models.
+
+        By default this clears both imported SPS/RPS/XPS arrays and geometry/
+        analysis arrays. Some edit operations, such as shifting template seed
+        origins, only need to invalidate geometry/analysis outputs while keeping
+        imported survey arrays intact.
+        """
 
         # numpy binning arrays
         self.layoutImg = None                                                   # numpy array to be displayed; binOutput / minOffset / maxOffset
@@ -2896,8 +2949,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.stkCelImItem = None
         self.offAziImItem = None
         self.kxyPatImItem = None
+        self.offAziPolarItems = []
+        self.offAziDisplayPolar = False
+        self.offAziDisplayDA = None
+        self.offAziDisplayDO = None
+        self.offAziDisplayAMin = None
+        self.offAziDisplayOMax = None
 
-        self.sessionService.clearSurveyArrays(self.sessionState)
+        if clearImportedArrays:
+            self.sessionService.clearSurveyArrays(self.sessionState)
+        else:
+            self.sessionState.clearGeometryArrays()
 
         # spider plot settings
         self.spiderPoint = QPoint(-1, -1)                                       # spider point 'out of scope'
@@ -2911,19 +2973,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionSpider.setChecked(False)                                     # reset spider plot to 'off'
 
         # export layers to QGIS
-        self.spsLayer = None                                                    # QGIS layer for sps point I/O
-        self.rpsLayer = None                                                    # QGIS layer for rpr point I/O
+        if clearImportedArrays:
+            self.spsLayer = None                                                # QGIS layer for sps point I/O
+            self.rpsLayer = None                                                # QGIS layer for rpr point I/O
+            self.spsField = None                                                # QGIS field for sps point selection I/O
+            self.rpsField = None                                                # QGIS field for rps point selection I/O
         self.srcLayer = None                                                    # QGIS layer for src point I/O
         self.recLayer = None                                                    # QGIS layer for rec point I/O
-        self.spsField = None                                                    # QGIS field for sps point selection I/O
-        self.rpsField = None                                                    # QGIS field for rps point selection I/O
         self.srcField = None                                                    # QGIS field for src point selection I/O
         self.recField = None                                                    # QGIS field for rec point selection I/O
 
         # ruler settings
-        self.lineROI = None                                                     # the ruler's dotted line
-        self.roiLabels = None                                                   # the ruler's three labels
-        self.rulerState = None                                                  # ruler's state, used to redisplay ruler at last used location
+        if clearRuler:
+            self.lineROI = None                                                 # the ruler's dotted line
+            self.roiLabels = None                                               # the ruler's three labels
+            self.rulerState = None                                              # ruler's state, used to redisplay ruler at last used location
 
         self.anaModel.setData(None)                                             # update the trace table model
 
@@ -2939,8 +3003,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.output.minOffset = None
         self.output.maxOffset = None
         self.output.rmsOffset = None
+        self.output.offsetGap = None
+        self.output.anaOutput = None
+        self.output.an2Output = None
         self.output.ofAziHist = None
         self.output.offstHist = None
+        self.output.recGeom = None
+        self.output.srcGeom = None
+        self.output.relGeom = None
+        self.output.relTemp = None
         self._resetOffAziDisplayLevels = True
 
         self.resetAnaTableModel()

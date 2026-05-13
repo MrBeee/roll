@@ -38,7 +38,7 @@ import traceback
 
 import numpy as np
 from qgis.PyQt.QtCore import QPointF, Qt
-from qgis.PyQt.QtGui import QVector3D
+from qgis.PyQt.QtGui import QColor, QVector3D
 from qgis.PyQt.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 from .enums_and_int_flags import SeedType
@@ -62,6 +62,40 @@ def _resolveReflectStyle(reflectorStyle=None):
         reflectorStyle.get('edgeWidth', defaultEdgeWidth),
         reflectorStyle.get('edgeStyle', defaultEdgeStyle),
     )
+
+
+def _colorToRgba(color):
+    if isinstance(color, tuple):
+        return color
+    qColor = QColor(color)
+    if not qColor.isValid():
+        qColor = QColor('#ff000000')
+    return (qColor.redF(), qColor.greenF(), qColor.blueF(), qColor.alphaF())
+
+
+def _pgSymbolToMplMarker(symbol):
+    markerMap = {
+        'o': 'o',
+        's': 's',
+        't': 'v',
+        't1': '^',
+        't2': '>',
+        't3': '<',
+        'd': 'D',
+        '+': '+',
+        'x': 'x',
+        'p': 'p',
+        'h': 'h',
+        'star': '*',
+        '|': '|',
+        '_': '_',
+        'arrow_up': '^',
+        'arrow_right': '>',
+        'arrow_down': 'v',
+        'arrow_left': '<',
+        'crosshair': 'x',
+    }
+    return markerMap.get(symbol, 'o')
 
 
 class Layout3DWidget(QWidget):
@@ -195,8 +229,10 @@ class Layout3DWidget(QWidget):
             self._canvas.draw_idle()
 
     def updateFromSurvey(self, survey, useGlobal: bool = False,
+                         showTemplates: bool = True,
                          showSeedPoints: bool = False,
                          dataPoints=None,
+                         pointSets=None,
                          spiderData=None,
                          binArea=None,
                          blockAreas=None,
@@ -210,6 +246,9 @@ class Layout3DWidget(QWidget):
             sample points only if ``showSeedPoints`` is True
           * well sample points -- only if ``showSeedPoints`` is True
             (in addition to the trajectory line)
+                    * visible REC / SRC / RPS / SPS point clouds -- when those
+                        same layers are enabled in the 2D map and *Show source and
+                        receiver points* is active
           * binning plane      -- when ``survey.binning.method`` is
                                    ``BinningType.plane``
           * binning sphere     -- when ``survey.binning.method`` is
@@ -228,6 +267,10 @@ class Layout3DWidget(QWidget):
         ``useGlobal=True`` matches the 2D "Projected" action: local
         coords are mapped through ``survey.glbTransform`` and the
         global plane / sphere objects are used.
+        ``showTemplates`` mirrors the 2D *Templates* toggle. When
+        false, template-owned seed geometries (wells / circles /
+        spirals) are omitted from the 3D scene and from its camera
+        extents.
         ``showSeedPoints`` mirrors the 2D *Show Points* / *Show
         Patterns* toggles.
         """
@@ -288,7 +331,7 @@ class Layout3DWidget(QWidget):
         # whose centre sits inside the data bbox but whose radius pokes
         # outside it. Expand xMin..yMax to include every seed XY point
         # so circles/spirals don't get clipped against the axis frame.
-        seedItems = self._collectSeedGeometries(survey, useGlobal)
+        seedItems = self._collectSeedGeometries(survey, useGlobal) if showTemplates else []
         zMin = -_DEFAULT_DEPTH
         for item in seedItems:
             pts = item['points']
@@ -324,6 +367,18 @@ class Layout3DWidget(QWidget):
                 yMin = min(yMin, float(by.min()))
                 yMax = max(yMax, float(by.max()))
         zMax = 0.0
+
+        if pointSets:
+            for pointSet in pointSets:
+                zs = pointSet.get('zs')
+                if zs is None or getattr(zs, 'size', 0) == 0:
+                    continue
+                zs = np.asarray(zs, dtype=np.float64)
+                if zs.size == 0:
+                    continue
+                zMin = min(zMin, float(np.min(zs)))
+                zMax = max(zMax, float(np.max(zs)))
+        zMax = max(zMax, 0.0)
         # Cache the data-driven Z range so scroll-zoom can keep the
         # depth axis pinned to the actual data extent.
         self._dataZMin = zMin
@@ -455,6 +510,12 @@ class Layout3DWidget(QWidget):
             try:
                 self._drawBlockAreas(blockAreaItems, blockAreas)
                 zMax = max(zMax, 0.95)
+            except Exception:                                   # pragma: no cover
+                pass
+
+        if pointSets:
+            try:
+                self._drawPointSets(survey, useGlobal, pointSets)
             except Exception:                                   # pragma: no cover
                 pass
 
@@ -615,6 +676,26 @@ class Layout3DWidget(QWidget):
             xs.append(mapped[0])
             ys.append(mapped[1])
         return min(xs), min(ys), max(xs), max(ys)
+
+    @staticmethod
+    def _mapPointsToActiveCrs(survey, useGlobal, xs, ys):
+        xs = np.asarray(xs, dtype=np.float64)
+        ys = np.asarray(ys, dtype=np.float64)
+        if useGlobal:
+            return xs, ys
+        transform = getattr(survey, 'glbTransform', None)
+        if transform is None:
+            return xs, ys
+        try:
+            inverted, ok = transform.inverted()
+        except Exception:                                       # pragma: no cover
+            return xs, ys
+        if not ok:
+            return xs, ys
+        m11, m12 = inverted.m11(), inverted.m12()
+        m21, m22 = inverted.m21(), inverted.m22()
+        dx, dy = inverted.dx(), inverted.dy()
+        return m11 * xs + m21 * ys + dx, m12 * xs + m22 * ys + dy
 
     @staticmethod
     def _mapGlobalBboxToLocal(survey, xMin, yMin, xMax, yMax):
@@ -1194,6 +1275,44 @@ class Layout3DWidget(QWidget):
                             facecolor='none', edgecolor='black',
                             linewidths=0.8, depthshade=False)
         self._artists.extend([srcPts, recPts, cmpPts])
+
+    def _drawPointSets(self, survey, useGlobal, pointSets):
+        ax = self._axes
+        if ax is None or not pointSets:
+            return
+
+        for pointSet in pointSets:
+            xs = pointSet.get('xs')
+            ys = pointSet.get('ys')
+            if xs is None or ys is None or getattr(xs, 'size', 0) == 0 or getattr(ys, 'size', 0) == 0:
+                continue
+
+            xs, ys = self._mapPointsToActiveCrs(survey, useGlobal, xs, ys)
+            zs = pointSet.get('zs')
+            if zs is None or getattr(zs, 'size', 0) != getattr(xs, 'size', 0):
+                zs = np.zeros_like(xs, dtype=np.float64)
+            else:
+                zs = np.asarray(zs, dtype=np.float64)
+            marker = _pgSymbolToMplMarker(pointSet.get('symbol', 'o'))
+            faceColor = _colorToRgba(pointSet.get('faceColor', '#ff000000'))
+            edgeColor = _colorToRgba(pointSet.get('edgeColor', '#ff000000'))
+            size = max(float(pointSet.get('size', 1.0)), 1.0)
+
+            scatter = ax.scatter(
+                xs,
+                ys,
+                zs,
+                s=size,
+                marker=marker,
+                c=[faceColor],
+                edgecolors=[edgeColor],
+                linewidths=0.8,
+                depthshade=False,
+                alpha=faceColor[3],
+                zorder=7,
+            )
+            scatter.set_clip_on(False)
+            self._artists.append(scatter)
 
     @staticmethod
     def _padRange(lo, hi, frac=0.05, minPad=1.0):

@@ -1,5 +1,6 @@
 import traceback
 
+import numpy as np
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QColor, QPen
 from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QFrame, QGroupBox,
@@ -7,6 +8,7 @@ from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QFrame, QGroupBox,
                                  QStackedWidget, QToolButton, QVBoxLayout,
                                  QWidget)
 
+from . import config
 from .config import toolButtonStyle
 from .enums_and_int_flags import MsgType
 
@@ -129,6 +131,95 @@ def _buildReflectorStyleConfig(self):
         edgeWidth=edgeWidth,
         edgeStyle=edgeStyle,
     )
+
+
+def _buildVisiblePointSets(self):
+    """Return visible 2D point layers to mirror into the 3D subset."""
+    appSettings = getattr(self, 'appSettings', None)
+    if appSettings is None:
+        return [], []
+
+    pointSets = []
+    dataPoints = []
+    tbAllList = getattr(self, 'tbAllList', None)
+    showAllPoints = tbAllList is not None and tbAllList.isChecked()
+
+    def _extractPointCoords(arrayAttr, xAttr, yAttr, isDead):
+        array = getattr(self, arrayAttr, None)
+        if array is not None and getattr(array, 'shape', (0,))[0] > 0:
+            dtypeNames = getattr(getattr(array, 'dtype', None), 'names', ()) or ()
+
+            if 'East' in dtypeNames and 'North' in dtypeNames:
+                if 'InUse' in dtypeNames:
+                    liveMask = array['InUse'] > 0
+                else:
+                    liveMask = np.ones(array.shape[0], dtype=bool)
+
+                mask = np.logical_not(liveMask) if isDead else liveMask
+                if not np.any(mask):
+                    return None, None, None
+
+                xs = np.asarray(array['East'][mask], dtype=np.float64)
+                ys = np.asarray(array['North'][mask], dtype=np.float64)
+
+                if 'Elev' in dtypeNames and 'Depth' in dtypeNames:
+                    zs = np.asarray(array['Elev'][mask] - array['Depth'][mask], dtype=np.float64)
+                elif 'Elev' in dtypeNames:
+                    zs = np.asarray(array['Elev'][mask], dtype=np.float64)
+                elif 'Depth' in dtypeNames:
+                    zs = np.asarray(-array['Depth'][mask], dtype=np.float64)
+                else:
+                    zs = np.zeros_like(xs, dtype=np.float64)
+
+                return xs, ys, zs
+
+        xs = getattr(self, xAttr, None)
+        ys = getattr(self, yAttr, None)
+        if xs is None or ys is None or getattr(xs, 'size', 0) == 0 or getattr(ys, 'size', 0) == 0:
+            return None, None, None
+
+        xs = np.asarray(xs, dtype=np.float64)
+        ys = np.asarray(ys, dtype=np.float64)
+        zs = np.zeros_like(xs, dtype=np.float64)
+        return xs, ys, zs
+
+    pointSpecs = (
+        ('tbSpsList', 'spsImport', 'spsLiveE', 'spsLiveN', 'spsPointSymbol', 'spsSymbolSize', 'spsBrushColor', '#000000', False),
+        ('tbSpsList', 'spsImport', 'spsDeadE', 'spsDeadN', 'spsPointSymbol', 'spsSymbolSize', config.spsBrushGrey, '#000000', True),
+        ('tbRpsList', 'rpsImport', 'rpsLiveE', 'rpsLiveN', 'rpsPointSymbol', 'rpsSymbolSize', 'rpsBrushColor', '#000000', False),
+        ('tbRpsList', 'rpsImport', 'rpsDeadE', 'rpsDeadN', 'rpsPointSymbol', 'rpsSymbolSize', config.rpsBrushGrey, '#000000', True),
+        ('tbSrcList', 'srcGeom', 'srcLiveE', 'srcLiveN', 'srcPointSymbol', 'srcSymbolSize', 'srcBrushColor', '#bdbdbd', False),
+        ('tbSrcList', 'srcGeom', 'srcDeadE', 'srcDeadN', 'srcPointSymbol', 'srcSymbolSize', config.srcBrushGrey, '#bdbdbd', True),
+        ('tbRecList', 'recGeom', 'recLiveE', 'recLiveN', 'recPointSymbol', 'recSymbolSize', 'recBrushColor', '#bdbdbd', False),
+        ('tbRecList', 'recGeom', 'recDeadE', 'recDeadN', 'recPointSymbol', 'recSymbolSize', config.recBrushGrey, '#bdbdbd', True),
+    )
+
+    for toggleName, arrayAttr, xAttr, yAttr, symbolAttr, sizeAttr, faceColorAttr, edgeColor, isDead in pointSpecs:
+        toggle = getattr(self, toggleName, None)
+        if toggle is None or not toggle.isChecked():
+            continue
+        if isDead and not showAllPoints:
+            continue
+
+        xs, ys, zs = _extractPointCoords(arrayAttr, xAttr, yAttr, isDead)
+        if xs is None or ys is None or zs is None or xs.size == 0 or ys.size == 0:
+            continue
+
+        faceColor = faceColorAttr if isinstance(faceColorAttr, str) and faceColorAttr.startswith('#') else getattr(appSettings, faceColorAttr)
+        pointSets.append(
+            dict(
+                xs=xs,
+                ys=ys,
+                zs=zs,
+                symbol=getattr(appSettings, symbolAttr),
+                size=getattr(appSettings, sizeAttr),
+                faceColor=faceColor,
+                edgeColor=edgeColor,
+            )
+        )
+        dataPoints.append((xs, ys))
+
+    return pointSets, dataPoints
 
 
 # Best-effort translation of pyqtgraph / colorcet map names to a
@@ -293,6 +384,8 @@ def refreshLayout3DFromSurvey(self):
         return
     survey = getattr(self, 'survey', None)
     useGlobal = bool(getattr(self, 'glob', False))
+    actionTemplates = getattr(self, 'actionTemplates', None)
+    showTemplates = True if actionTemplates is None else actionTemplates.isChecked()
 
     # Mirror the 2D *Show Points* / *Show Patterns* toggles. When either
     # is checked we render individual seed sample points in 3D too.
@@ -303,15 +396,10 @@ def refreshLayout3DFromSurvey(self):
             showSeedPoints = True
             break
 
-    # Pass the imported SPS / RPS point arrays so the 3D view can use
-    # the actual data footprint for its bounding box (the templates
-    # in ``survey.boundingRect()`` can extend well past the data).
-    dataPoints = []
-    for ePair in (('spsLiveE', 'spsLiveN'), ('recLiveE', 'recLiveN')):
-        xs = getattr(self, ePair[0], None)
-        ys = getattr(self, ePair[1], None)
-        if xs is not None and ys is not None:
-            dataPoints.append((xs, ys))
+    # Mirror the currently visible 2D point layers in 3D, including the
+    # same marker shape and color. The same visible sets also drive the
+    # 3D footprint so the camera matches what the 2D map is showing.
+    pointSets, dataPoints = _buildVisiblePointSets(self)
 
     # Mirror the 2D *Spider* toggle. When the spider is enabled and
     # has computed src/rec arrays, forward them so the 3D view can
@@ -346,41 +434,66 @@ def refreshLayout3DFromSurvey(self):
     reflectorStyle = _buildReflectorStyleConfig(self)
 
     try:
-        update(survey, useGlobal,
-               showSeedPoints=showSeedPoints,
-               dataPoints=dataPoints,
-               spiderData=spiderData,
-               binArea=binArea,
-               blockAreas=blockAreas,
-               analysisImage=analysisImage,
-               reflectorStyle=reflectorStyle)
+        update(
+            survey,
+            useGlobal,
+            showTemplates=showTemplates,
+            showSeedPoints=showSeedPoints,
+            dataPoints=dataPoints,
+            pointSets=pointSets,
+            spiderData=spiderData,
+            binArea=binArea,
+            blockAreas=blockAreas,
+            analysisImage=analysisImage,
+            reflectorStyle=reflectorStyle,
+        )
     except TypeError:
         # Backward-compat: older widget without the kwargs.
         try:
-            update(survey, useGlobal,
-                   showSeedPoints=showSeedPoints,
-                   dataPoints=dataPoints,
-                   spiderData=spiderData,
-                   binArea=binArea,
-                   blockAreas=blockAreas)
+            update(
+                survey,
+                useGlobal,
+                showTemplates=showTemplates,
+                showSeedPoints=showSeedPoints,
+                dataPoints=dataPoints,
+                pointSets=pointSets,
+                spiderData=spiderData,
+                binArea=binArea,
+                blockAreas=blockAreas,
+            )
         except TypeError:
             try:
-                update(survey, useGlobal,
-                       showSeedPoints=showSeedPoints,
-                       dataPoints=dataPoints,
-                       spiderData=spiderData,
-                       binArea=binArea)
+                update(
+                    survey,
+                    useGlobal,
+                    showTemplates=showTemplates,
+                    showSeedPoints=showSeedPoints,
+                    dataPoints=dataPoints,
+                    pointSets=pointSets,
+                    spiderData=spiderData,
+                    binArea=binArea,
+                )
             except TypeError:
                 try:
-                    update(survey, useGlobal,
-                           showSeedPoints=showSeedPoints,
-                           dataPoints=dataPoints,
-                           spiderData=spiderData)
+                    update(
+                        survey,
+                        useGlobal,
+                        showTemplates=showTemplates,
+                        showSeedPoints=showSeedPoints,
+                        dataPoints=dataPoints,
+                        pointSets=pointSets,
+                        spiderData=spiderData,
+                    )
                 except TypeError:
                     try:
-                        update(survey, useGlobal,
-                               showSeedPoints=showSeedPoints,
-                               dataPoints=dataPoints)
+                        update(
+                            survey,
+                            useGlobal,
+                            showTemplates=showTemplates,
+                            showSeedPoints=showSeedPoints,
+                            pointSets=pointSets,
+                            dataPoints=dataPoints,
+                        )
                     except TypeError:
                         try:
                             update(survey, useGlobal, showSeedPoints=showSeedPoints)

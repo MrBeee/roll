@@ -128,6 +128,83 @@ class Layout3DHelperTest(unittest.TestCase):
             widget.close()
             widget.deleteLater()
 
+    def testDrawPointSetsUsesProvidedDepthValues(self):
+        class ScatterStub:
+            def __init__(self):
+                self.clipOn = None
+
+            def set_clip_on(self, enabled):
+                self.clipOn = enabled
+
+        class AxesStub:
+            def __init__(self):
+                self.calls = []
+
+            def scatter(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return ScatterStub()
+
+        widget = Layout3DWidget()
+        try:
+            widget._axes = AxesStub()
+            widget._artists = []
+            survey = SimpleNamespace(glbTransform=None)
+
+            widget._drawPointSets(
+                survey,
+                False,
+                [
+                    dict(
+                        xs=np.array([10.0, 20.0], dtype=np.float64),
+                        ys=np.array([30.0, 40.0], dtype=np.float64),
+                        zs=np.array([-100.0, -250.0], dtype=np.float64),
+                        symbol='o',
+                        size=5.0,
+                        faceColor='#ff0000',
+                        edgeColor='#000000',
+                    )
+                ],
+            )
+
+            self.assertEqual(len(widget._axes.calls), 1)
+            args, _ = widget._axes.calls[0]
+            np.testing.assert_allclose(args[2], np.array([-100.0, -250.0], dtype=np.float64))
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def testUpdateFromSurveyExpandsDepthRangeForPointSets(self):
+        widget = Layout3DWidget()
+        try:
+            captured = {}
+            survey = SimpleNamespace(
+                glbTransform=None,
+                binning=SimpleNamespace(method=None),
+                boundingRect=lambda: QRectF(0.0, 0.0, 10.0, 10.0),
+            )
+
+            with patch.object(widget, '_applyAxisLimits', side_effect=lambda *args: captured.update(zMin=args[4], zMax=args[5])):
+                widget.updateFromSurvey(
+                    survey,
+                    False,
+                    showTemplates=False,
+                    pointSets=[dict(xs=np.array([1.0], dtype=np.float64), ys=np.array([2.0], dtype=np.float64), zs=np.array([-4500.0], dtype=np.float64))],
+                    dataPoints=[(np.array([1.0], dtype=np.float64), np.array([2.0], dtype=np.float64))],
+                )
+
+            self.assertEqual(captured['zMin'], -4500.0)
+            self.assertEqual(captured['zMax'], 0.0)
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def testPgSymbolToMplMarkerMapsCommonPyqtgraphSymbols(self):
+        self.assertEqual(layout3DModule._pgSymbolToMplMarker('o'), 'o')
+        self.assertEqual(layout3DModule._pgSymbolToMplMarker('t1'), '^')
+        self.assertEqual(layout3DModule._pgSymbolToMplMarker('t2'), '>')
+        self.assertEqual(layout3DModule._pgSymbolToMplMarker('star'), '*')
+        self.assertEqual(layout3DModule._pgSymbolToMplMarker('crosshair'), 'x')
+
     def testRenderBaseLayersDrawsAreasInJustBlocksMode(self):
         class FakePainter:
             def __init__(self):
@@ -1883,6 +1960,224 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertIs(self.mainWindow.layoutViewStack.currentWidget(), self.mainWindow.layoutWidget)
         self.assertIs(self.mainWindow.layout3DWidget, originalWidget)
         self.assertGreaterEqual(refreshLayout3D.call_count, 1)
+
+    def testRefreshLayout3DForwardsVisiblePointSetsWith2DStyles(self):
+        updateFromSurvey = MagicMock()
+        self.mainWindow.layout3DWidget = SimpleNamespace(updateFromSurvey=updateFromSurvey)
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.actionShowPoints.setChecked(True)
+        self.mainWindow.tbAllList.setChecked(True)
+        self.mainWindow.tbSpsList.setChecked(True)
+        self.mainWindow.tbRpsList.setChecked(True)
+        self.mainWindow.tbSrcList.setChecked(True)
+        self.mainWindow.tbRecList.setChecked(True)
+
+        self.mainWindow.spsLiveE = np.array([10.0], dtype=np.float64)
+        self.mainWindow.spsLiveN = np.array([20.0], dtype=np.float64)
+        self.mainWindow.spsDeadE = np.array([11.0], dtype=np.float64)
+        self.mainWindow.spsDeadN = np.array([21.0], dtype=np.float64)
+        self.mainWindow.rpsLiveE = np.array([30.0], dtype=np.float64)
+        self.mainWindow.rpsLiveN = np.array([40.0], dtype=np.float64)
+        self.mainWindow.rpsDeadE = np.array([31.0], dtype=np.float64)
+        self.mainWindow.rpsDeadN = np.array([41.0], dtype=np.float64)
+        self.mainWindow.srcLiveE = np.array([50.0], dtype=np.float64)
+        self.mainWindow.srcLiveN = np.array([60.0], dtype=np.float64)
+        self.mainWindow.srcDeadE = np.array([51.0], dtype=np.float64)
+        self.mainWindow.srcDeadN = np.array([61.0], dtype=np.float64)
+        self.mainWindow.recLiveE = np.array([70.0], dtype=np.float64)
+        self.mainWindow.recLiveN = np.array([80.0], dtype=np.float64)
+        self.mainWindow.recDeadE = np.array([71.0], dtype=np.float64)
+        self.mainWindow.recDeadN = np.array([81.0], dtype=np.float64)
+
+        layoutTabModule.refreshLayout3DFromSurvey(self.mainWindow)
+
+        kwargs = updateFromSurvey.call_args.kwargs
+        pointSets = kwargs['pointSets']
+
+        self.assertEqual(len(pointSets), 8)
+        self.assertEqual(pointSets[0]['symbol'], self.mainWindow.appSettings.spsPointSymbol)
+        self.assertEqual(pointSets[0]['faceColor'], self.mainWindow.appSettings.spsBrushColor)
+        self.assertEqual(pointSets[1]['faceColor'], config.spsBrushGrey)
+        self.assertEqual(pointSets[2]['symbol'], self.mainWindow.appSettings.rpsPointSymbol)
+        self.assertEqual(pointSets[2]['faceColor'], self.mainWindow.appSettings.rpsBrushColor)
+        self.assertEqual(pointSets[3]['faceColor'], config.rpsBrushGrey)
+        self.assertEqual(pointSets[4]['symbol'], self.mainWindow.appSettings.srcPointSymbol)
+        self.assertEqual(pointSets[4]['faceColor'], self.mainWindow.appSettings.srcBrushColor)
+        self.assertEqual(pointSets[5]['faceColor'], config.srcBrushGrey)
+        self.assertEqual(pointSets[6]['symbol'], self.mainWindow.appSettings.recPointSymbol)
+        self.assertEqual(pointSets[6]['faceColor'], self.mainWindow.appSettings.recBrushColor)
+        self.assertEqual(pointSets[7]['faceColor'], config.recBrushGrey)
+        self.assertEqual(len(kwargs['dataPoints']), 8)
+
+    def testRefreshLayout3DForwardsPointDepthsFromGeometryRecords(self):
+        updateFromSurvey = MagicMock()
+        self.mainWindow.layout3DWidget = SimpleNamespace(updateFromSurvey=updateFromSurvey)
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.tbAllList.setChecked(True)
+        self.mainWindow.tbSrcList.setChecked(True)
+        self.mainWindow.tbRecList.setChecked(True)
+
+        srcGeom = np.zeros(2, dtype=pntType1)
+        srcGeom[0]['East'] = 100.0
+        srcGeom[0]['North'] = 200.0
+        srcGeom[0]['Elev'] = 0.0
+        srcGeom[0]['Depth'] = 1500.0
+        srcGeom[0]['InUse'] = 1
+        srcGeom[1]['East'] = 110.0
+        srcGeom[1]['North'] = 210.0
+        srcGeom[1]['Elev'] = 10.0
+        srcGeom[1]['Depth'] = 810.0
+        srcGeom[1]['InUse'] = 0
+
+        recGeom = np.zeros(1, dtype=pntType1)
+        recGeom[0]['East'] = 300.0
+        recGeom[0]['North'] = 400.0
+        recGeom[0]['Elev'] = 5.0
+        recGeom[0]['Depth'] = 905.0
+        recGeom[0]['InUse'] = 1
+
+        self.mainWindow.srcGeom = srcGeom
+        self.mainWindow.recGeom = recGeom
+
+        layoutTabModule.refreshLayout3DFromSurvey(self.mainWindow)
+
+        pointSets = updateFromSurvey.call_args.kwargs['pointSets']
+        self.assertEqual(len(pointSets), 3)
+        np.testing.assert_allclose(pointSets[0]['zs'], np.array([-1500.0], dtype=np.float64))
+        np.testing.assert_allclose(pointSets[1]['zs'], np.array([-800.0], dtype=np.float64))
+        np.testing.assert_allclose(pointSets[2]['zs'], np.array([-900.0], dtype=np.float64))
+
+    def testRefreshLayout3DForwardsPointSetsEvenWhenShowPointsIsOff(self):
+        updateFromSurvey = MagicMock()
+        self.mainWindow.layout3DWidget = SimpleNamespace(updateFromSurvey=updateFromSurvey)
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.actionShowPoints.setChecked(False)
+        self.mainWindow.tbSpsList.setChecked(True)
+        self.mainWindow.spsLiveE = np.array([10.0], dtype=np.float64)
+        self.mainWindow.spsLiveN = np.array([20.0], dtype=np.float64)
+
+        layoutTabModule.refreshLayout3DFromSurvey(self.mainWindow)
+
+        kwargs = updateFromSurvey.call_args.kwargs
+        self.assertEqual(len(kwargs['pointSets']), 1)
+        self.assertEqual(len(kwargs['dataPoints']), 1)
+
+    def testApplySurveyAreaShiftMovesTemplateSeedsRebuildsDerivedStateAndKeepsWellAnchored(self):
+        survey = self.createSurvey()
+        survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=4, nPatterns=1)
+
+        template = survey.blockList[0].templateList[0]
+        srcSeed = template.seedList[0]
+        recSeed = template.seedList[1]
+        circleSeed = template.seedList[2]
+        spiralSeed = template.seedList[3]
+        wellSeed = template.seedList[4]
+        patternSeed = survey.patternList[0].seedList[0]
+
+        srcSeed.origin = QVector3D(10.0, 20.0, -5.0)
+        recSeed.origin = QVector3D(40.0, 50.0, 0.0)
+
+        circleSeed.type = rollSurveyModule.SeedType.circle
+        circleSeed.origin = QVector3D(100.0, 200.0, 0.0)
+        circleSeed.circle.radius = 10.0
+        circleSeed.circle.dist = 5.0
+        circleSeed.circle.calcNoPoints()
+
+        spiralSeed.type = rollSurveyModule.SeedType.spiral
+        spiralSeed.origin = QVector3D(300.0, 400.0, 0.0)
+        spiralSeed.spiral.radMin = 10.0
+        spiralSeed.spiral.radMax = 20.0
+        spiralSeed.spiral.radInc = 10.0
+        spiralSeed.spiral.dist = 5.0
+        spiralSeed.spiral.calcNoPoints()
+
+        wellSeed.type = rollSurveyModule.SeedType.well
+        wellSeed.origin = QVector3D(500.0, 600.0, -50.0)
+        patternSeed.origin = QVector3D(700.0, 800.0, 10.0)
+
+        with patch.object(wellSeed.well, 'calcPointList', return_value=([QVector3D(500.0, 600.0, -50.0), QVector3D(501.0, 601.0, -55.0)], QVector3D(500.0, 600.0, -50.0))):
+            survey.calcTransforms()
+            survey.calcSeedData()
+            survey.calcPointArrays()
+            survey.calcBoundingRect()
+            survey.calcNoShotPoints()
+
+            originalCirclePoint = QVector3D(circleSeed.pointList[0])
+            originalSpiralPoint = QVector3D(spiralSeed.pointList[0])
+            originalSpiralBounds = spiralSeed.spiral.path.boundingRect()
+
+            self.mainWindow.survey = survey
+            self.mainWindow.rpsImport = np.zeros(1, dtype=pntType1)
+            self.mainWindow.spsImport = np.zeros(1, dtype=pntType1)
+            self.mainWindow.xpsImport = np.zeros(1, dtype=relType2)
+            self.mainWindow.srcGeom = np.zeros(1, dtype=pntType1)
+            self.mainWindow.recGeom = np.zeros(1, dtype=pntType1)
+            self.mainWindow.relGeom = np.zeros(1, dtype=relType2)
+            self.mainWindow.output.binOutput = np.ones((1, 1), dtype=np.float32)
+            self.mainWindow.output.minOffset = np.ones((1, 1), dtype=np.float32)
+            self.mainWindow.output.maxOffset = np.ones((1, 1), dtype=np.float32)
+            self.mainWindow.output.rmsOffset = np.ones((1, 1), dtype=np.float32)
+            self.mainWindow.output.offsetGap = np.ones((1, 1), dtype=np.float32)
+            self.mainWindow.output.anaOutput = object()
+            self.mainWindow.output.an2Output = object()
+            self.mainWindow.output.ofAziHist = np.ones((1, 1), dtype=np.float32)
+            self.mainWindow.output.offstHist = np.ones((1, 1), dtype=np.float32)
+
+            with patch.object(self.mainWindow, 'resetSurveyProperties') as resetSurveyProperties:
+                with patch.object(self.mainWindow, 'plotLayout') as plotLayout:
+                    with patch.object(rollMainWindowModule, 'refreshLayout3DFromSurvey') as refreshLayout3D:
+                        success = self.mainWindow.applySurveyAreaShift(12.5, -7.5)
+
+        self.assertTrue(success)
+        self.assertEqual((srcSeed.origin.x(), srcSeed.origin.y(), srcSeed.origin.z()), (22.5, 12.5, -5.0))
+        self.assertEqual((recSeed.origin.x(), recSeed.origin.y(), recSeed.origin.z()), (52.5, 42.5, 0.0))
+        self.assertEqual((circleSeed.origin.x(), circleSeed.origin.y(), circleSeed.origin.z()), (112.5, 192.5, 0.0))
+        self.assertEqual((spiralSeed.origin.x(), spiralSeed.origin.y(), spiralSeed.origin.z()), (312.5, 392.5, 0.0))
+        self.assertEqual((wellSeed.origin.x(), wellSeed.origin.y(), wellSeed.origin.z()), (500.0, 600.0, -50.0))
+        self.assertEqual((patternSeed.origin.x(), patternSeed.origin.y(), patternSeed.origin.z()), (700.0, 800.0, 10.0))
+
+        self.assertAlmostEqual(circleSeed.pointList[0].x() - originalCirclePoint.x(), 12.5)
+        self.assertAlmostEqual(circleSeed.pointList[0].y() - originalCirclePoint.y(), -7.5)
+        self.assertAlmostEqual(float(circleSeed.pointArray[0, 0]) - originalCirclePoint.x(), 12.5)
+        self.assertAlmostEqual(float(circleSeed.pointArray[0, 1]) - originalCirclePoint.y(), -7.5)
+
+        self.assertAlmostEqual(spiralSeed.pointList[0].x() - originalSpiralPoint.x(), 12.5)
+        self.assertAlmostEqual(spiralSeed.pointList[0].y() - originalSpiralPoint.y(), -7.5)
+        self.assertAlmostEqual(float(spiralSeed.pointArray[0, 0]) - originalSpiralPoint.x(), 12.5)
+        self.assertAlmostEqual(float(spiralSeed.pointArray[0, 1]) - originalSpiralPoint.y(), -7.5)
+        shiftedSpiralBounds = spiralSeed.spiral.path.boundingRect()
+        self.assertAlmostEqual(shiftedSpiralBounds.left() - originalSpiralBounds.left(), 12.5)
+        self.assertAlmostEqual(shiftedSpiralBounds.top() - originalSpiralBounds.top(), -7.5)
+
+        self.assertIsNone(self.mainWindow.srcGeom)
+        self.assertIsNone(self.mainWindow.recGeom)
+        self.assertIsNone(self.mainWindow.relGeom)
+        self.assertIsNotNone(self.mainWindow.rpsImport)
+        self.assertIsNotNone(self.mainWindow.spsImport)
+        self.assertIsNotNone(self.mainWindow.xpsImport)
+        self.assertIsNone(self.mainWindow.output.binOutput)
+        self.assertIsNone(self.mainWindow.output.offsetGap)
+        self.assertIsNone(self.mainWindow.output.anaOutput)
+        self.assertIsNone(self.mainWindow.output.an2Output)
+        self.assertIsNone(self.mainWindow.output.ofAziHist)
+        self.assertIsNone(self.mainWindow.output.offstHist)
+
+        xmlText = self.mainWindow.textEdit.getTextViaCursor()
+        self.assertIn('x0="22.5"', xmlText)
+        self.assertIn('y0="12.5"', xmlText)
+        self.assertIn('x0="700.0"', xmlText)
+        self.assertTrue(self.mainWindow.textEdit.document().isModified())
+        resetSurveyProperties.assert_called_once_with()
+        self.assertGreaterEqual(plotLayout.call_count, 1)
+        refreshLayout3D.assert_called_once_with(self.mainWindow)
+
+    def testReplotLayoutRefreshes3DSubset(self):
+        self.mainWindow.survey = self.createSurvey()
+
+        with patch.object(self.mainWindow, 'plotLayout'), patch.object(rollMainWindowModule, 'refreshLayout3DFromSurvey') as refreshLayout3D:
+            self.mainWindow.replotLayout()
+
+        refreshLayout3D.assert_called_once_with(self.mainWindow)
 
     def testBinFromTemplatesUsesRequestObjectAndResultSignal(self):
         class SignalStub:

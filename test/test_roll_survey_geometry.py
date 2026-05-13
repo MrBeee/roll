@@ -1,6 +1,7 @@
 # coding=utf-8
 import unittest
 from collections import defaultdict
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
@@ -123,6 +124,64 @@ class RollSurveyGeometryTest(unittest.TestCase):
         np.testing.assert_array_equal(survey.output.relGeom['SrcPnt'], np.array([1000, 1001]))
         np.testing.assert_array_equal(survey.output.relGeom['RecMin'], np.array([1002, 1003]))
         np.testing.assert_array_equal(survey.output.relGeom['RecMax'], np.array([1002, 1003]))
+
+    def testSetupGeometryFromTemplatesKeepsInvariantCircleAndSpiralReceiversFixedAcrossTemplateRolls(self):
+        for seedType in (SeedType.circle, SeedType.spiral):
+            for useExperimental in (False, True):
+                with self.subTest(seedType=seedType, useExperimental=useExperimental):
+                    survey = self.createSurvey()
+                    survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+
+                    template = survey.blockList[0].templateList[0]
+                    template.rollList[2].steps = 2
+                    template.rollList[2].increment = QVector3D(10.0, 0.0, 0.0)
+
+                    srcSeed = next(seed for seed in template.seedList if seed.bSource)
+                    recSeed = next(seed for seed in template.seedList if not seed.bSource)
+                    srcSeed.origin = QVector3D(0.0, 0.0, 0.0)
+                    recSeed.type = seedType
+                    recSeed.bSource = False
+                    recSeed.pointList = [
+                        QVector3D(20.0, 0.0, 0.0),
+                        QVector3D(30.0, 0.0, 0.0),
+                    ]
+                    recSeed.calcPointArray()
+
+                    with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=useExperimental)):
+                        success = survey.setupGeometryFromTemplates()
+
+                    self.assertTrue(success)
+                    self.assertEqual(survey.output.recGeom.shape[0], 2)
+                    np.testing.assert_array_equal(survey.output.recGeom['Point'], np.array([1002, 1003]))
+                    np.testing.assert_array_equal(survey.output.relGeom['RecMin'], np.array([1002, 1002]))
+                    np.testing.assert_array_equal(survey.output.relGeom['RecMax'], np.array([1003, 1003]))
+
+    def testSetupGeometryFromTemplatesKeepsInvariantWellReceiversUniqueAcrossTemplateRolls(self):
+        for useExperimental in (False, True):
+            with self.subTest(useExperimental=useExperimental):
+                survey = self.createSurvey()
+                survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+
+                template = survey.blockList[0].templateList[0]
+                template.rollList[2].steps = 2
+                template.rollList[2].increment = QVector3D(10.0, 0.0, 0.0)
+
+                srcSeed = next(seed for seed in template.seedList if seed.bSource)
+                recSeed = next(seed for seed in template.seedList if not seed.bSource)
+                srcSeed.origin = QVector3D(0.0, 0.0, 0.0)
+                recSeed.type = SeedType.well
+                recSeed.bSource = False
+                recSeed.pointList = [QVector3D(20.0, 0.0, -float(z)) for z in range(5)]
+                recSeed.calcPointArray()
+
+                with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=useExperimental)):
+                    success = survey.setupGeometryFromTemplates()
+
+                self.assertTrue(success)
+                self.assertEqual(survey.output.recGeom.shape[0], 5)
+                self.assertEqual(len(np.unique(survey.output.recGeom['Depth'])), 5)
+                np.testing.assert_array_equal(survey.output.relGeom['RecMin'], np.array([1002, 1002]))
+                np.testing.assert_array_equal(survey.output.relGeom['RecMax'], np.array([1002, 1002]))
 
     def testCheckIntegrityRejectsMalformedTemplateWithoutRepairingRollList(self):
         survey = self.createSurvey()

@@ -550,6 +550,31 @@ class RollSurvey(pg.GraphicsObject):
                 for k in range(seed.grid.growList[2].steps):
                     yield off1 + seed.grid.growList[2].increment * k
 
+    @staticmethod
+    def _receiverSeedUsesTemplateRoll(seed) -> bool:
+        return seed.type < SeedType.circle
+
+    def _receiverSeedTemplateOffset(self, seed, npTemplateOffset):
+        if self._receiverSeedUsesTemplateRoll(seed):
+            return npTemplateOffset
+        return 0.0
+
+    def _shouldAppendReceiverSeedGeometry(self, seed) -> bool:
+        if self._receiverSeedUsesTemplateRoll(seed):
+            return True
+
+        emittedSeedIds = getattr(self.output, 'invariantReceiverSeedIds', None)
+        if emittedSeedIds is None:
+            emittedSeedIds = set()
+            self.output.invariantReceiverSeedIds = emittedSeedIds
+
+        seedId = id(seed)
+        if seedId in emittedSeedIds:
+            return False
+
+        emittedSeedIds.add(seedId)
+        return True
+
     def _recordInnermostExceptionLocation(self, e: BaseException) -> None:
         """Set self.errorText to point at the innermost frame of the active
         exception, not the catch site. Without walking to tb_next-end, the
@@ -838,10 +863,11 @@ class RollSurvey(pg.GraphicsObject):
         # =====================================================================
         recArrays = []
         recIsWell = []                                                          # per-seed boolean: True for well seeds (skip dedup)
+        recAppendGeom = []                                                      # per-seed boolean: append physical receiver geometry this rollout
         for recSeed in template.seedList:
             if recSeed.bSource:
                 continue
-            rPts = recSeed.pointArray + npTemplateOffset
+            rPts = recSeed.pointArray + self._receiverSeedTemplateOffset(recSeed, npTemplateOffset)
             if not block.borders.recBorder.isNull():
                 included = fnb.pointsInRect(rPts, block.borders.recBorder)
                 if included.shape[0] == 0:
@@ -850,6 +876,7 @@ class RollSurvey(pg.GraphicsObject):
             if rPts.shape[0] > 0:
                 recArrays.append(rPts)
                 recIsWell.append(np.full(rPts.shape[0], recSeed.type == SeedType.well, dtype=bool))
+                recAppendGeom.append(np.full(rPts.shape[0], self._shouldAppendReceiverSeedGeometry(recSeed), dtype=bool))
 
         if not recArrays:
             self.errorText = 'geomTemplate5(): no relTemp records created for this template'
@@ -857,6 +884,7 @@ class RollSurvey(pg.GraphicsObject):
 
         rPts = np.concatenate(recArrays, axis=0)
         isWellMask = np.concatenate(recIsWell, axis=0)
+        appendGeomMask = np.concatenate(recAppendGeom, axis=0)
         rx = rPts[:, 0]
         ry = rPts[:, 1]
         rz = rPts[:, 2]
@@ -931,8 +959,8 @@ class RollSurvey(pg.GraphicsObject):
             | (recPointI.astype(np.int64) + POINT_OFF)
         )
 
-        nonWellIdx = np.where(~isWellMask)[0]
-        wellIdx = np.where(isWellMask)[0]
+        nonWellIdx = np.where((~isWellMask) & appendGeomMask)[0]
+        wellIdx = np.where(isWellMask & appendGeomMask)[0]
 
         if nonWellIdx.size > 0:
             # First-occurrence-within-template via stable np.unique.
@@ -1115,7 +1143,8 @@ class RollSurvey(pg.GraphicsObject):
             if recSeed.bSource:
                 continue
 
-            recPoints = recSeed.pointArray + npTemplateOffset
+            recPoints = recSeed.pointArray + self._receiverSeedTemplateOffset(recSeed, npTemplateOffset)
+            appendGeometry = self._shouldAppendReceiverSeedGeometry(recSeed)
 
             if not block.borders.recBorder.isNull():
                 included = fnb.pointsInRect(recPoints, block.borders.recBorder)
@@ -1163,7 +1192,7 @@ class RollSurvey(pg.GraphicsObject):
                     if isNew:
                         inner[qz] = self.nRecRecord
 
-                if isNew:
+                if isNew and appendGeometry:
                     fnb.numbaSetPointRecord(self.output.recGeom, self.nRecRecord, recStkY, recStkX, nBlock, recLocX, recLocY, rec)
                     # fnb.numbaSetPointRecord uses nBlock -> Index consistent with recInd
                     self.nRecRecord += 1
