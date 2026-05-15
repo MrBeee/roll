@@ -7,7 +7,7 @@ name=Roll
 qgisMinimumVersion=3.34
 qgisMaximumVersion=4.99
 description=Design and analysis of 3D seismic survey geometries
-version=0.7.0
+version=0.7.1
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -34,7 +34,7 @@ about:<p>This plugin is intended to create and analyze 3D seismic survey geometr
   <li>As of version 3.34.6, QGIS upgraded Python from v3.9 to to v3.12 This speeds up calculations and solves some security issues.
   But when <i>upgrading</i> from an earlier QGIS version, it requires installing the above listed packages <b><i>again.</b></i> </li>
   <li>As of version 0.4.6 the plugin is compatible with Qt6. Note that with Qt6 the High DPI scaling issues have been resolved</li>
-  <li>As of version 0.6.3 the plugin is compatible with QGIS 4.0. Some numpy attribute names needed to be changed for NumPy 2.0</li></ul>
+  <li>As of version 0.6.3 the plugin is compatible with QGIS 4.0. Some numpy attribute names needed to be changed for NumPy 2.0 compatibility</li></ul>
   <p>
 
 
@@ -45,7 +45,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:  <p>2026-05-06 (0.7.0) Optimization of binning from templates and binning from geometry. Completed Flake8 code clean up.
+changelog:  <p>2026-05-15 (0.7.1) Added "Shift Survey Location..." dialog. Expanded 3D view for Subset of survey data. Updated Marine Survey Wizard for optimal x-line bin size.
+  <p>2026-05-06 (0.7.0) Optimization of binning from templates and binning from geometry. Completed Flake8 code clean up.
   <p>2026-05-01 (0.6.9) Added TWT option to inline and x-line offset displays. Started to fleece code using Flake8 
   <p>2026-04-30 (0.6.8) Added 3D view for Subset of survey data. Enabled by "Use experimental code" in the Settings dialog. Implemented faster worker thread routines, enabled by the same flag
   <p>2026-04-22 (0.6.7) Improved import and handling of SPS files.

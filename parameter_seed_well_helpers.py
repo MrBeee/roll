@@ -111,6 +111,15 @@ class WellParameterStateHelper:
             glbTransform=self.survey.glbTransform if self.survey is not None else None,
         )
 
+    def refreshHeaderOrRaise(self, *, name=None, crs=None):
+        return self.well.refreshHeaderFromCurrentStateOrRaise(
+            name=name,
+            crs=crs,
+            survey=self.survey,
+            surveyCrs=self.survey.crs if self.survey is not None else None,
+            glbTransform=self.survey.glbTransform if self.survey is not None else None,
+        )
+
     def applySamplingConstraints(self, *, ahd0, dAhd, nAhd):
         return self.well.applySamplingConstraints(ahd0=ahd0, dAhd=dAhd, nAhd=nAhd)
 

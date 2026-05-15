@@ -95,6 +95,23 @@ class WellParameterStateHelperTest(unittest.TestCase):
             glbTransform=survey.glbTransform,
         )
 
+    def testRefreshHeaderOrRaisePassesExplicitSurveyContext(self):
+        survey = createTestSurvey()
+        survey.crs = QgsCoordinateReferenceSystem('EPSG:28992')
+        well = RollWell('synthetic.well')
+        well.refreshHeaderFromCurrentStateOrRaise = Mock(return_value=True)
+
+        helper = WellParameterStateHelper(well, survey)
+        helper.refreshHeaderOrRaise()
+
+        well.refreshHeaderFromCurrentStateOrRaise.assert_called_once_with(
+            name=None,
+            crs=None,
+            survey=survey,
+            surveyCrs=survey.crs,
+            glbTransform=survey.glbTransform,
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

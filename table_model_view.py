@@ -62,7 +62,12 @@ class AnaTableModel(QAbstractTableModel):
                 elif index.column() == 15:                                      # Show True / False for unique values (last column)
                     value = 'True' if self._data[index.row(), index.column()] == -1.0 else ''
                 else:                                                           # Show floats for the remainder if fold > 0 (fold = col nr 2)
-                    value = f'{float(self._data[index.row(), index.column()]):,.2f}' if self._data[index.row(), 2] > 0 else ''
+                    # value = f'{float(self._data[index.row(), index.column()]):,.2f}' if self._data[index.row(), 2] > 0 else ''
+                    if self._data[index.row(), 2] > 0:
+                        value = f'{self._data[index.row(), index.column()]:,.2f}'
+                    else:
+                        value = ''
+
                     # value = str(self._data[index.row(), index.column()])
             else:
                 value = '  n/a  '
@@ -76,7 +81,11 @@ class AnaTableModel(QAbstractTableModel):
 
         return QVariant()
 
-    def setData(self, data):
+    def setData(self, *args):
+        if len(args) != 1:
+            return super().setData(*args)
+
+        data = args[0]
         """Modified to reset chunked data when direct data is set"""
         # self.beginResetModel()                                                  # https://doc.qt.io/qt-6/qabstractitemmodel.html#beginResetModel
         self._chunkedData = None
@@ -86,6 +95,7 @@ class AnaTableModel(QAbstractTableModel):
         # TL = QModelIndex(self.anaView.model().index(0, 0))
         # BR = QModelIndex(self.anaView.model().index(offset + fold - 1, 0))
         # self.dataChanged.emit(TL, BR)                                                 # needed to indicate that 'model' has changed
+        return True
 
     def setChunkedData(self, chunked_data):
         """Set the model to use chunked data instead of a direct data reference"""
@@ -688,7 +698,11 @@ class RpsTableModel(QAbstractTableModel):
     def getFormat(self):
         return self._format
 
-    def setData(self, data):
+    def setData(self, *args):
+        if len(args) != 1:
+            return super().setData(*args)
+
+        data = args[0]
         if data is not None and data.shape[0] > 0:
             self._names = data.dtype.names                                      # get the field names from the numpy array
             self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
@@ -706,6 +720,7 @@ class RpsTableModel(QAbstractTableModel):
 
         self.layoutChanged.emit()
         self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)            # don't communicate length of header to the view; hence 0, 0
+        return True
 
     def applySort(self, index):
         if self._data is None:
@@ -943,7 +958,11 @@ class SpsTableModel(QAbstractTableModel):
     def getFormat(self):
         return self._format
 
-    def setData(self, data):
+    def setData(self, *args):
+        if len(args) != 1:
+            return super().setData(*args)
+
+        data = args[0]
         if data is not None and data.shape[0] > 0:
             self._names = data.dtype.names                                      # get the field names from the numpy array
             self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
@@ -961,6 +980,7 @@ class SpsTableModel(QAbstractTableModel):
 
         self.layoutChanged.emit()
         self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)
+        return True
 
     def applySort(self, index):
         if self._data is None:
@@ -1157,7 +1177,11 @@ class XpsTableModel(QAbstractTableModel):
     def getFormat(self):
         return self._format
 
-    def setData(self, data):
+    def setData(self, *args):
+        if len(args) != 1:
+            return super().setData(*args)
+
+        data = args[0]
         if data is not None and data.shape[0] > 0:
             self._names = data.dtype.names                                      # get the field names from the numpy array
             self._minMax = np.zeros(shape=(2, len(self._names)), dtype=np.float32)
@@ -1173,6 +1197,7 @@ class XpsTableModel(QAbstractTableModel):
 
         self.layoutChanged.emit()
         self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)                        # don't communicate length of header to the view; hence 0, 0
+        return True
 
     def applySort(self, index):
         if self._data is None:

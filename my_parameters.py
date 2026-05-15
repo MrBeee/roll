@@ -63,7 +63,7 @@ from .roll_survey import RollSurvey
 from .roll_template import RollTemplate
 from .roll_translate import RollTranslate
 from .roll_unique import RollUnique
-from .roll_well import RollWell
+from .roll_well import RollWell, RollWellError
 
 # This file contains a collections of parameters, as defined in pyQtGraph
 # See: https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph/parametertree/Parameter.html
@@ -422,15 +422,20 @@ def applyWellSamplingFromParameters(wellParam):
 
 
 def refreshWellHeaderFromParameter(wellParam, *, showWarning=False, warningHandler=QMessageBox.warning):
-    success = wellParam.wellStateHelper.refreshHeader()
+    warningRequested = bool(showWarning)
+
+    try:
+        wellParam.wellStateHelper.refreshHeaderOrRaise()
+    except RollWellError as exc:
+        wellParam._syncOriginFieldsFromWell()
+        if warningRequested:
+            warningHandler(None, 'Well Seed error', str(exc))
+        return False
+
     wellParam._syncOriginFieldsFromWell()
+    applyWellSamplingFromParameters(wellParam)
 
-    if success:
-        applyWellSamplingFromParameters(wellParam)
-    elif showWarning:
-        warningHandler(None, 'Well Seed error', wellParam.well.errorText)
-
-    return success
+    return True
 
 
 def applyWellHeaderParameterChange(wellParam, *, attributeName, value, showWarning):

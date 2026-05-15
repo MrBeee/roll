@@ -326,6 +326,29 @@ class RollSurveyGeometryTest(unittest.TestCase):
         self.assertEqual(len(srcSeed.grid.growList), 2)
         warningMock.assert_called_once_with(None, 'Survey format error', 'Seed "src-1" should have exactly three grow steps')
 
+    def testCheckIntegrityRecalculatesTransformsForWellSeedsWhenMissing(self):
+        survey = self.createSurvey()
+        survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+
+        template = survey.blockList[0].templateList[0]
+        recSeed = next(seed for seed in template.seedList if not seed.bSource)
+        recSeed.type = SeedType.well
+        recSeed.well.name = 'existing.wws'
+
+        survey.glbTransform = None
+
+        with patch.object(rollSurveyModule.os.path, 'exists', return_value=True):
+            with patch.object(recSeed.well, 'refreshHeaderFromCurrentStateOrRaise', return_value=True) as refreshHeader:
+                success = survey.checkIntegrity()
+
+        self.assertTrue(success)
+        refreshHeader.assert_called_once_with(
+            survey=survey,
+            surveyCrs=survey.crs,
+            glbTransform=None,
+            recalcSurveyTransforms=True,
+        )
+
     def testCreateBasicSkeletonPatternSeedsStartWithThreeGrowSteps(self):
         survey = self.createSurvey()
         survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=1)

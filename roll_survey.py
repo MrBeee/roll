@@ -35,6 +35,7 @@ from .roll_seed import RollSeed
 from .roll_sphere import RollSphere
 from .roll_template import RollTemplate
 from .roll_unique import RollUnique
+from .roll_well import RollWellError
 from .sps_io_and_qc import pntType1, relType2
 
 
@@ -551,13 +552,20 @@ class RollSurvey(pg.GraphicsObject):
                     yield off1 + seed.grid.growList[2].increment * k
 
     @staticmethod
-    def _receiverSeedUsesTemplateRoll(seed) -> bool:
+    def _seedUsesTemplateRoll(seed) -> bool:
         return seed.type < SeedType.circle
 
-    def _receiverSeedTemplateOffset(self, seed, npTemplateOffset):
-        if self._receiverSeedUsesTemplateRoll(seed):
+    @staticmethod
+    def _receiverSeedUsesTemplateRoll(seed) -> bool:
+        return RollSurvey._seedUsesTemplateRoll(seed)
+
+    def _seedTemplateOffset(self, seed, npTemplateOffset):
+        if self._seedUsesTemplateRoll(seed):
             return npTemplateOffset
         return 0.0
+
+    def _receiverSeedTemplateOffset(self, seed, npTemplateOffset):
+        return self._seedTemplateOffset(seed, npTemplateOffset)
 
     def _shouldAppendReceiverSeedGeometry(self, seed) -> bool:
         if self._receiverSeedUsesTemplateRoll(seed):
@@ -804,7 +812,7 @@ class RollSurvey(pg.GraphicsObject):
             if not srcSeed.bSource:
                 continue
 
-            srcArray = srcSeed.pointArray + npTemplateOffset
+            srcArray = srcSeed.pointArray + self._seedTemplateOffset(srcSeed, npTemplateOffset)
             if not block.borders.srcBorder.isNull():
                 included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
                 if included.shape[0] == 0:
@@ -1116,7 +1124,7 @@ class RollSurvey(pg.GraphicsObject):
             if not srcSeed.bSource:
                 continue
 
-            srcArray = srcSeed.pointArray + npTemplateOffset
+            srcArray = srcSeed.pointArray + self._seedTemplateOffset(srcSeed, npTemplateOffset)
 
             if not block.borders.srcBorder.isNull():
                 included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
@@ -2428,7 +2436,7 @@ class RollSurvey(pg.GraphicsObject):
 
             if profile:
                 timer = perf_counter()
-            srcArray = srcSeed.pointArray + npTemplateOffset
+            srcArray = srcSeed.pointArray + self._seedTemplateOffset(srcSeed, npTemplateOffset)
 
             if not block.borders.srcBorder.isNull():
                 included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
@@ -2456,7 +2464,7 @@ class RollSurvey(pg.GraphicsObject):
 
                     if profile:
                         timer = perf_counter()
-                    recPoints = recSeed.pointArray + npTemplateOffset
+                    recPoints = recSeed.pointArray + self._seedTemplateOffset(recSeed, npTemplateOffset)
 
                     if not block.borders.recBorder.isNull():
                         included = fnb.pointsInRect(recPoints, block.borders.recBorder)
@@ -2543,7 +2551,7 @@ class RollSurvey(pg.GraphicsObject):
         for recSeed in template.seedList:
             if recSeed.bSource:
                 continue
-            recPoints = recSeed.pointArray + npTemplateOffset
+            recPoints = recSeed.pointArray + self._seedTemplateOffset(recSeed, npTemplateOffset)
             if recBorderActive:
                 included = fnb.pointsInRect(recPoints, block.borders.recBorder)
                 if included.shape[0] == 0:
@@ -2563,7 +2571,7 @@ class RollSurvey(pg.GraphicsObject):
             for srcSeed in template.seedList:
                 if not srcSeed.bSource:
                     continue
-                srcArray = srcSeed.pointArray + npTemplateOffset
+                srcArray = srcSeed.pointArray + self._seedTemplateOffset(srcSeed, npTemplateOffset)
                 if not block.borders.srcBorder.isNull():
                     included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
                     if included.shape[0] == 0:
@@ -2596,7 +2604,7 @@ class RollSurvey(pg.GraphicsObject):
 
             if profile:
                 timer = perf_counter()
-            srcArray = srcSeed.pointArray + npTemplateOffset
+            srcArray = srcSeed.pointArray + self._seedTemplateOffset(srcSeed, npTemplateOffset)
 
             if not block.borders.srcBorder.isNull():
                 included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
@@ -2684,7 +2692,7 @@ class RollSurvey(pg.GraphicsObject):
         for recSeed in template.seedList:
             if recSeed.bSource:
                 continue
-            recPoints = recSeed.pointArray + npTemplateOffset
+            recPoints = recSeed.pointArray + self._seedTemplateOffset(recSeed, npTemplateOffset)
             if recBorderActive:
                 included = fnb.pointsInRect(recPoints, block.borders.recBorder)
                 if included.shape[0] == 0:
@@ -2700,7 +2708,7 @@ class RollSurvey(pg.GraphicsObject):
             for srcSeed in template.seedList:
                 if not srcSeed.bSource:
                     continue
-                srcArray = srcSeed.pointArray + npTemplateOffset
+                srcArray = srcSeed.pointArray + self._seedTemplateOffset(srcSeed, npTemplateOffset)
                 if not block.borders.srcBorder.isNull():
                     included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
                     if included.shape[0] == 0:
@@ -2731,7 +2739,7 @@ class RollSurvey(pg.GraphicsObject):
             if not srcSeed.bSource:
                 continue
 
-            srcArray = srcSeed.pointArray + npTemplateOffset
+            srcArray = srcSeed.pointArray + self._seedTemplateOffset(srcSeed, npTemplateOffset)
 
             if not block.borders.srcBorder.isNull():
                 included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
@@ -2811,7 +2819,7 @@ class RollSurvey(pg.GraphicsObject):
         for recSeed in template.seedList:
             if recSeed.bSource:
                 continue
-            recPoints = recSeed.pointArray + npTemplateOffset
+            recPoints = recSeed.pointArray + self._seedTemplateOffset(recSeed, npTemplateOffset)
             if recBorderActive:
                 included = fnb.pointsInRect(recPoints, block.borders.recBorder)
                 if included.shape[0] == 0:
@@ -2831,7 +2839,7 @@ class RollSurvey(pg.GraphicsObject):
                 continue
             if profile:
                 timer = perf_counter()
-            srcArray = srcSeed.pointArray + npTemplateOffset
+            srcArray = srcSeed.pointArray + self._seedTemplateOffset(srcSeed, npTemplateOffset)
             if not block.borders.srcBorder.isNull():
                 included = fnb.pointsInRect(srcArray, block.borders.srcBorder)
                 if included.shape[0] == 0:
@@ -3576,8 +3584,15 @@ class RollSurvey(pg.GraphicsObject):
                             QMessageBox.warning(None, e, f'A well-seed should point to an existing well-file\nRemove seed or adjust name in well-seed "{seed.name}"')
                             return False
 
-                        if seed.well.errorText is not None:
-                            QMessageBox.warning(None, e, f'{seed.well.errorText} in well file:\n{wellName}\nRemove seed or correct error in well-seed "{seed.name}"')
+                        try:
+                            seed.well.refreshHeaderFromCurrentStateOrRaise(
+                                survey=self,
+                                surveyCrs=self.crs,
+                                glbTransform=self.glbTransform,
+                                recalcSurveyTransforms=self.glbTransform is None,
+                            )
+                        except RollWellError as exc:
+                            QMessageBox.warning(None, e, f'{exc} in well file:\n{wellName}\nRemove seed or correct error in well-seed "{seed.name}"')
                             return False
 
                         c = seed.well.crs                                       # check if crs is valid; not really needed already checked in RollWell

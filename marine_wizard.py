@@ -1186,21 +1186,22 @@ class Page3(SurveyWizardPage):
 
     def updateParameters(self):
         # from other pages
+        cabSepHead = self.field('cabSepHead')
         cabLength = self.field('cabLength')                                     # streamer length
         srcShtInt = self.field('srcShtInt')                                     # shot point interval (per cmp line)
         recGrpInt = self.field('groupInt')                                      # group interval
+        nSources = self.field('nSrc')
 
         foldINatural = 0.5 * cabLength / srcShtInt
-        foldXNatural = 1.0
+        # normally the fold in the x-line direction is one, unless the x-line bin size is larger than the natural x-line bin size,
+        # which is determined by the actual crossline spacing of the cablles and the number of sources;
+        # in that case, the fold in x-line direction increases proportionally to the ratio of natural to actual x-line bin size
 
+        binXMinimal = 0.5 * cabSepHead / nSources                                # cmp xline size when all sources shoot inside the two center cables
         binINatural = 0.5 * recGrpInt
         binXNatural = self.xlineBinSize()
-        naturalBinSizeChanged = (
-            self.lastBinINatural is None
-            or self.lastBinXNatural is None
-            or not math.isclose(self.lastBinINatural, binINatural)
-            or not math.isclose(self.lastBinXNatural, binXNatural)
-        )
+
+        foldXNatural = binXNatural / binXMinimal if binXMinimal > 0.0 else 1.0
 
         self.lastBinINatural = binINatural
         self.lastBinXNatural = binXNatural
@@ -1213,7 +1214,7 @@ class Page3(SurveyWizardPage):
 
         foldTActual = foldIActual * foldXActual
 
-        foldText = f'Max fold: {foldIActual:.1f} inline & {foldXActual:.1f} x-line, {foldTActual:.1f} fold total, in {binIActual:.2f} x {binXActual:.2f} m bins'
+        foldText = f'Max fold: {foldIActual:.1f} inline x {foldXActual:.1f} xline, {foldTActual:.1f} total, in {binIActual:.2f} x {binXActual:.2f} m bins'
 
         self.parent.survey.grid.fold = int(foldTActual * 1.5)                   # convenient point to update the max fold in the survey object
 
@@ -1223,15 +1224,14 @@ class Page3(SurveyWizardPage):
             self.binI.setSingleStep(binINatural)
             self.binX.setSingleStep(binXNatural)
 
-            if naturalBinSizeChanged:
-                self.binI.setValue(binINatural)
-                self.binX.setValue(binXNatural)
-            else:
-                stepsI = max(round(self.binI.value() / binINatural), 1)
-                stepsX = max(round(self.binX.value() / binXNatural), 1)
+            self.binI.setValue(binINatural)
+            self.binX.setValue(binXNatural)
 
-                self.binI.setValue(stepsI * binINatural)
-                self.binX.setValue(stepsX * binXNatural)
+            stepsI = max(round(self.binI.value() / binINatural), 1)
+            stepsX = max(round(self.binX.value() / binXNatural), 1)
+
+            self.binI.setValue(stepsI * binINatural)
+            self.binX.setValue(stepsX * binXNatural)
         else:
             self.binI.setSingleStep(1.0)
             self.binX.setSingleStep(1.0)

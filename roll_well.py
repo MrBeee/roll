@@ -14,12 +14,16 @@ from .aux_functions import myPrint, toFloat, toInt
 from .rdp import filterRdp
 
 
+class RollWellError(RuntimeError):
+    pass
+
+
 class RollWell:
     # assign default name
     def __init__(self, name: str = '') -> None:
         # input variables
         self.name = name                                                        # (relative) path to well file
-        self.errorText = None                                                   # text explaining which error occurred
+        self._lastError = None                                                  # cached compatibility error state
         self.crs = QgsCoordinateReferenceSystem('EPSG:23095')                   # ED50 / TM 5 NE (arbitrarily chosen)
         self.ahd0 = 1000.0                                                      # first (along hole) depth
         self.dAhd = 15.0                                                        # along hole depth increment
@@ -56,6 +60,33 @@ class RollWell:
     def survey(self):
         return self._surveyRef() if self._surveyRef else None                 # return the referenced survey, or None if not set
 
+    @property
+    def lastError(self):
+        return self._lastError
+
+    @property
+    def errorText(self):
+        return None if self._lastError is None else str(self._lastError)
+
+    @errorText.setter
+    def errorText(self, value):
+        if value is None or value == '':
+            self._lastError = None
+        elif isinstance(value, BaseException):
+            self._lastError = value if isinstance(value, RollWellError) else RollWellError(str(value))
+        else:
+            self._lastError = RollWellError(str(value))
+
+    def _clearError(self):
+        self._lastError = None
+
+    def _rememberError(self, error):
+        self.errorText = error
+        return self._lastError
+
+    def _raiseError(self, message):
+        raise self._rememberError(RollWellError(message))
+
     def _resolveSurveyContext(self, surveyCrs=None, glbTransform=None):
         survey = self.survey
 
@@ -73,6 +104,20 @@ class RollWell:
         self.origL = QPointF(-999.0, -999.0)
 
     def refreshHeaderFromCurrentState(self, *, name=None, crs=None, survey=None, surveyCrs=None, glbTransform=None, recalcSurveyTransforms=True):
+        try:
+            self.refreshHeaderFromCurrentStateOrRaise(
+                name=name,
+                crs=crs,
+                survey=survey,
+                surveyCrs=surveyCrs,
+                glbTransform=glbTransform,
+                recalcSurveyTransforms=recalcSurveyTransforms,
+            )
+            return True
+        except RollWellError:
+            return False
+
+    def refreshHeaderFromCurrentStateOrRaise(self, *, name=None, crs=None, survey=None, surveyCrs=None, glbTransform=None, recalcSurveyTransforms=True):
         if name is not None:
             self.name = name
 
@@ -91,11 +136,13 @@ class RollWell:
         if glbTransform is None and survey is not None:
             glbTransform = survey.glbTransform
 
-        success = self.readHeader(surveyCrs=surveyCrs, glbTransform=glbTransform)
-        if not success:
+        try:
+            self.readHeaderOrRaise(surveyCrs=surveyCrs, glbTransform=glbTransform)
+        except RollWellError:
             self.clearOrigins()
+            raise
 
-        return success
+        return True
 
     def applySamplingConstraints(self, *, ahd0=None, dAhd=None, nAhd=None):
         if ahd0 is not None:
@@ -168,31 +215,33 @@ class RollWell:
             self.name = None
 
     def readHeader(self, surveyCrs=None, glbTransform=None):
+        try:
+            self.readHeaderOrRaise(surveyCrs=surveyCrs, glbTransform=glbTransform)
+            return True
+        except RollWellError:
+            return False
+
+    def readHeaderOrRaise(self, surveyCrs=None, glbTransform=None):
         header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
-        self.errorText = None                                                   # text explaining which error occurred
+        self._clearError()
 
         surveyCrs, glbTransform = self._resolveSurveyContext(surveyCrs, glbTransform)
 
         if surveyCrs is None or not surveyCrs.isValid():
-            self.errorText = 'No valid survey CRS available'
-            return False
+            self._raiseError('No valid survey CRS available')
 
         if glbTransform is None:
-            self.errorText = 'No valid survey transform available'
-            return False
+            self._raiseError('No valid survey transform available')
 
         f = self.name
         if f is None or not os.path.exists(f):                                  # check filename first
-            self.errorText = 'No valid well file selected'
-            return False
+            self._raiseError('No valid well file selected')
 
         if not self.crs.isValid():                                              # then check CRS
-            self.errorText = 'An invalid CRS has been selected'
-            return False
+            self._raiseError('An invalid CRS has been selected')
 
         if self.crs.isGeographic():
-            self.errorText = 'geographic CRS selected (using lat/lon angles)'
-            return False
+            self._raiseError('geographic CRS selected (using lat/lon angles)')
 
         ext = QFileInfo(f).suffix()
 
@@ -237,28 +286,28 @@ class RollWell:
                 if header['elevation'] is None:
                     header['elevation'] = md[0] - depth[0]
             else:
-                self.errorText = f'unsupported file extension: {ext}'
-                return False
+                self._raiseError(f'unsupported file extension: {ext}')
 
-        except BaseException as e:
-            self.errorText = str(e)
-            return False
+        except (OSError, ValueError, np.exceptions.AxisError) as e:
+            raise self._rememberError(e) from e
 
         if header['surface_easting'] is None or header['surface_northing'] is None or header['elevation'] is None:
-            self.errorText = 'invalid or missing file header'
-            return False
+            self._raiseError('invalid or missing file header')
 
         self.origW = QVector3D(header['surface_easting'], header['surface_northing'], header['elevation'])
 
-        # note: Transform well crs to survey crs. if survey's crs and well's crs are the same, the wellToGlobalTransform has no effect
         wellToGlobalTransform = QgsCoordinateTransform(self.crs, surveyCrs, QgsProject.instance())
 
-        if not wellToGlobalTransform.isValid():                                 # no valid transform found
-            self.errorText = 'invalid coordinate transform'
-            return False
+        # Identical/equivalent CRSes should short-circuit through the transform itself.
+        if wellToGlobalTransform.isShortCircuited():
+            x0 = header['surface_easting']
+            y0 = header['surface_northing']
+        else:
+            if not wellToGlobalTransform.isValid():                             # no valid transform found
+                self._raiseError('invalid coordinate transform')
 
-        # now create the origin in global survey coordinates (well-crs -> project-crs)
-        x0, y0 = wellToGlobalTransform.transform(header['surface_easting'], header['surface_northing'])
+            # now create the origin in global survey coordinates (well-crs -> project-crs)
+            x0, y0 = wellToGlobalTransform.transform(header['surface_easting'], header['surface_northing'])
 
         x0 = round(x0, 2)
         y0 = round(y0, 2)
@@ -273,6 +322,120 @@ class RollWell:
         self.origL.setY(round(self.origL.y(), 2))
 
         return True
+
+    def _calcPointListImpl(self, surveyCrs=None, glbTransform=None, *, headerReader=None):
+        surveyCrs, glbTransform = self._resolveSurveyContext(surveyCrs, glbTransform)
+
+        if headerReader is None:
+            headerReader = self.readHeaderOrRaise
+
+        success = headerReader(surveyCrs, glbTransform)
+        if success is False:
+            self._raiseError(self.errorText or 'well header refresh failed')
+
+        f = self.name
+        a = self.ahd0
+        s = self.dAhd
+        n = self.nAhd
+        td = a + (n - 1) * s
+
+        # note: Transform well crs to survey crs. if survey's crs and well's crs are the same, the wellToGlobalTransform has no effect
+        wellToGlobalTransform = QgsCoordinateTransform(self.crs, surveyCrs, QgsProject.instance())
+
+        # create transform from global- to local coordinates
+        toLocalTransform, _ = glbTransform.inverted()
+
+        # create list of available ahd-depth-levels that show source/sensor positions
+        ahdList = list(np.linspace(a, td, num=n))
+
+        ext = QFileInfo(f).suffix()
+        dev = self._readDeviationSurvey(f, ext)
+
+        # this is the key routine that resamples a well trajectory into (x, y, z) values
+        pos = dev.minimum_curvature().resample(depths=ahdList)
+
+        # the following methods expect snake_case for input variables
+        posWellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
+        posTvdss = posWellhead.to_tvdss(datum_elevation=self.origW.z())
+
+        x = posTvdss.easting
+        y = posTvdss.northing
+        z = posTvdss.depth
+        n = len(x)
+
+        # first create the list of 3D points in survey coordinates (well-crs -> project-crs -> survey grid)
+
+        pointList = []                                                          # points to derive cdp coverage from
+        for i in range(n):                                                      # iterate over all points
+            # use 3D values; survey points reside below surface in a well
+            vector = QgsVector3D(x[i], y[i], z[i])
+
+            # wellToGlobalTransform may affect elevation
+            vector = wellToGlobalTransform.transform(vector)
+
+            # z-value not used in toLocalTransform
+            pnt2D = QPointF(vector.x(), vector.y())
+
+            # convert 2D point from global coordinates to survey coordinates
+            pnt2D = toLocalTransform.map(pnt2D)
+
+            # create 3D point to be added to list after survey transform
+            pnt3D = QVector3D(pnt2D.x(), pnt2D.y(), vector.z())
+
+            # points to derive cdp coverage from
+            pointList.append(pnt3D)
+
+        # now display the well trajectory; use 2D points in local coordinates (well-crs -> project-crs -> local grid)
+        steps = 50                                                              # start with 50 points along trajectory
+        displayList = list(range(0, int(dev.md[-1]) + 1, steps))                # range only likes int values
+        finalDepth = float(dev.md[-1])
+        if not displayList or not math.isclose(float(displayList[-1]), finalDepth, rel_tol=0.0, abs_tol=1e-9):
+            displayList.append(finalDepth)
+
+        # this is the key routine that resamples to (x, y, z) values
+        pos = dev.minimum_curvature().resample(depths=displayList)              # use minimum curvature interpolation
+
+        # the following methods expect snake_case for input variables
+        posWellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
+        posTvdss = posWellhead.to_tvdss(datum_elevation=self.origW.z())
+
+        # Build the dense 3D trajectory in local survey coordinates.
+        # Used by the 3D view to draw a smoothly-curved well path.
+        self.pntList3D = []
+        for ex, ny, dz in zip(posTvdss.easting, posTvdss.northing, posTvdss.depth):
+            v3 = QgsVector3D(float(ex), float(ny), float(dz))
+            v3 = wellToGlobalTransform.transform(v3)
+            pnt2D = toLocalTransform.map(QPointF(v3.x(), v3.y()))
+            self.pntList3D.append(QVector3D(pnt2D.x(), pnt2D.y(), v3.z()))
+
+        data = list(zip(posTvdss.easting, posTvdss.northing))                 # create list with (x, y) pairs
+
+        # create mask point list with 2.5 m accuracy
+        mask = filterRdp(data, threshold=2.5)                                   # create a numpy mask
+
+        # apply the mask and reduce mumber of points
+        data = np.array(data)[mask]                                             # apply the mask
+
+        # the (reduced) data points are still in well-crs coordinates
+        self.pntList2D = []                                                     # points to display on map
+
+        # create polygon to draw well trajectory
+        self.polygon = QPolygonF()
+        for p in data:                                                          # using point iterator
+            # wellToGlobalTransform may affect elevation
+            pnt2D = wellToGlobalTransform.transform(QgsPointXY(*p)).toQPointF()
+
+            # convert 2D point from global coordinates to survey coordinates
+            pnt2D = toLocalTransform.map(pnt2D)
+
+            # points to display on map
+            self.pntList2D.append(pnt2D)
+
+            # add points to polygon
+            self.polygon.append(pnt2D)
+
+        # return list and well origin in local coordinates; borrow z from well coords
+        return pointList, QVector3D(self.origL.x(), self.origL.y(), self.origW.z())
 
     def readWellHeader(self):
         header = {'datum': 'dfe', 'elevation_units': 'm', 'elevation': None, 'surface_coordinates_units': 'm', 'surface_easting': None, 'surface_northing': None}
@@ -433,144 +596,35 @@ class RollWell:
         mds = np.cumsum(mds)
         return wp.deviation(md=np.array(mds), inc=np.array(incs), azi=np.array(azis))
 
-    def calcPointList(self, surveyCrs=None, glbTransform=None):
-        # See: https://stackoverflow.com/questions/49322017/merging-1d-arrays-into-a-2d-array
-        # See: https://www.appsloveworld.com/numpy/100/17/how-can-i-efficiently-transfer-data-from-a-numpy-array-to-a-qpolygonf-when-using
-        # See: https://stackoverflow.com/questions/5081875/ctypes-beginner for working with ctypes
-
-        surveyCrs, glbTransform = self._resolveSurveyContext(surveyCrs, glbTransform)
-        success = self.readHeader(surveyCrs, glbTransform)
-
-        if not success:
-            return [], QVector3D(-999.0, -999.0, -999.0)
-
-        f = self.name
-        a = self.ahd0
-        s = self.dAhd
-        n = self.nAhd
-        td = a + (n - 1) * s
-
-        # note: Transform well crs to survey crs. if survey's crs and well's crs are the same, the wellToGlobalTransform has no effect
-        wellToGlobalTransform = QgsCoordinateTransform(self.crs, surveyCrs, QgsProject.instance())
-
-        # create transform from global- to local coordinates
-        toLocalTransform, _ = glbTransform.inverted()
-
-        # create list of available ahd-depth-levels that show source/sensor positions
-        ahdList = list(np.linspace(a, td, num=n))
-
-        ext = QFileInfo(f).suffix()
-
+    def _readDeviationSurvey(self, fileName, extension):
         try:
-            if ext == 'wws':                                                        # read contents well survey file
-                md, inc, azi = wp.read_csv(f, delimiter=None, skiprows=0, comments='#')
+            if extension == 'wws':                                              # read contents well survey file
+                md, inc, azi = wp.read_csv(fileName, delimiter=None, skiprows=0, comments='#')
+                return wp.deviation(md=md, inc=inc, azi=azi)
 
-                # get an approximate deviation survey from the position log
-                dev = wp.deviation(md=md, inc=inc, azi=azi)
-            elif ext == 'well':
-                _, index = self.readWellHeader()                                      # need index to get to the data
+            if extension == 'well':
+                _, index = self.readWellHeader()                                # need index to get to the data
+                pos2D = np.loadtxt(fileName, delimiter=None, skiprows=index, comments='!')
 
-                # read the 4 column ascii data; skip header rows
-                pos2D = np.loadtxt(f, delimiter=None, skiprows=index, comments='!')
+                east, north, depth, md = pos2D.T                                # transpose array to 4 rows, and read these rows
+                self.ahdMax = md[-1]                                            # maximum along-hole-depth
+                return self.deviationFromXYZ(north, east, depth)
 
-                east, north, depth, md = pos2D.T                                    # transpose array to 4 rows, and read these rows
-                self.ahdMax = md[-1]                                                # maximum along-hole-depth
+            self._raiseError(f'unsupported file extension: {extension}')
 
-                # for next line; see position_log.py line 409 and further in imported module wellpathpy
-                # from here, things are the same as for the wws solution
-                dev = self.deviationFromXYZ(north, east, depth)
-            else:
-                raise ValueError(f'unsupported file extension: {ext}')
-
+        except RollWellError:
+            raise
         except BaseException as e:
-            self.errorText = str(e)
+            raise self._rememberError(e) from e
+
+    def calcPointList(self, surveyCrs=None, glbTransform=None):
+        try:
+            return self._calcPointListImpl(surveyCrs, glbTransform, headerReader=self.readHeader)
+        except RollWellError:
             return [], QVector3D(-999.0, -999.0, -999.0)
 
-        # this is the key routine that resamples a well trajectory into (x, y, z) values
-        pos = dev.minimum_curvature().resample(depths=ahdList)
-
-        # the following methods expect snake_case for input variables
-        posWellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
-        posTvdss = posWellhead.to_tvdss(datum_elevation=self.origW.z())
-
-        x = posTvdss.easting
-        y = posTvdss.northing
-        z = posTvdss.depth
-        n = len(x)
-
-        # first create the list of 3D points in survey coordinates (well-crs -> project-crs -> survey grid)
-
-        pointList = []                                                          # points to derive cdp coverage from
-        for i in range(n):                                                      # iterate over all points
-            # use 3D values; survey points reside below surface in a well
-            vector = QgsVector3D(x[i], y[i], z[i])
-
-            # wellToGlobalTransform may affect elevation
-            vector = wellToGlobalTransform.transform(vector)
-
-            # z-value not used in toLocalTransform
-            pnt2D = QPointF(vector.x(), vector.y())
-
-            # convert 2D point from global coordinates to survey coordinates
-            pnt2D = toLocalTransform.map(pnt2D)
-
-            # create 3D point to be added to list after survey transform
-            pnt3D = QVector3D(pnt2D.x(), pnt2D.y(), vector.z())
-
-            # points to derive cdp coverage from
-            pointList.append(pnt3D)
-
-        # now display the well trajectory; use 2D points in local coordinates (well-crs -> project-crs -> local grid)
-        steps = 50                                                              # start with 50 points along trajectory
-        displayList = list(range(0, int(dev.md[-1]) + 1, steps))                # range only likes int values
-        finalDepth = float(dev.md[-1])
-        if not displayList or not math.isclose(float(displayList[-1]), finalDepth, rel_tol=0.0, abs_tol=1e-9):
-            displayList.append(finalDepth)
-
-        # this is the key routine that resamples to (x, y, z) values
-        pos = dev.minimum_curvature().resample(depths=displayList)              # use minimum curvature interpolation
-
-        # the following methods expect snake_case for input variables
-        posWellhead = pos.to_wellhead(surface_northing=self.origW.y(), surface_easting=self.origW.x())
-        posTvdss = posWellhead.to_tvdss(datum_elevation=self.origW.z())
-
-        # Build the dense 3D trajectory in local survey coordinates.
-        # Used by the 3D view to draw a smoothly-curved well path.
-        self.pntList3D = []
-        for ex, ny, dz in zip(posTvdss.easting, posTvdss.northing, posTvdss.depth):
-            v3 = QgsVector3D(float(ex), float(ny), float(dz))
-            v3 = wellToGlobalTransform.transform(v3)
-            pnt2D = toLocalTransform.map(QPointF(v3.x(), v3.y()))
-            self.pntList3D.append(QVector3D(pnt2D.x(), pnt2D.y(), v3.z()))
-
-        data = list(zip(posTvdss.easting, posTvdss.northing))                 # create list with (x, y) pairs
-
-        # create mask point list with 2.5 m accuracy
-        mask = filterRdp(data, threshold=2.5)                                   # create a numpy mask
-
-        # apply the mask and reduce mumber of points
-        data = np.array(data)[mask]                                             # apply the mask
-
-        # the (reduced) data points are still in well-crs coordinates
-        self.pntList2D = []                                                     # points to display on map
-
-        # create polygon to draw well trajectory
-        self.polygon = QPolygonF()
-        for p in data:                                                          # using point iterator
-            # wellToGlobalTransform may affect elevation
-            pnt2D = wellToGlobalTransform.transform(QgsPointXY(*p)).toQPointF()
-
-            # convert 2D point from global coordinates to survey coordinates
-            pnt2D = toLocalTransform.map(pnt2D)
-
-            # points to display on map
-            self.pntList2D.append(pnt2D)
-
-            # add points to polygon
-            self.polygon.append(pnt2D)
-
-        # return list and well origin in local coordinates; borrow z from well coords
-        return pointList, QVector3D(self.origL.x(), self.origL.y(), self.origW.z())
+    def calcPointListOrRaise(self, surveyCrs=None, glbTransform=None):
+        return self._calcPointListImpl(surveyCrs, glbTransform, headerReader=self.readHeaderOrRaise)
 
     def calcBoundingRect(self):
         return QRectF() if self.polygon is None or self.polygon.isEmpty() else self.polygon.boundingRect()

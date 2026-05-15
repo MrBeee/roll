@@ -12,6 +12,7 @@ myParametersModule = loadPluginModule('my_parameters')
 rollBinningModule = loadPluginModule('roll_binning')
 rollPatternModule = loadPluginModule('roll_pattern')
 rollSeedModule = loadPluginModule('roll_seed')
+rollWellModule = loadPluginModule('roll_well')
 
 SeedType = enumsModule.SeedType
 MySeedParameter = myParametersModule.MySeedParameter
@@ -59,6 +60,7 @@ BinningList = rollBinningModule.BinningList
 BinningType = rollBinningModule.BinningType
 RollPattern = rollPatternModule.RollPattern
 RollSeed = rollSeedModule.RollSeed
+RollWellError = rollWellModule.RollWellError
 
 
 class _FakePreviewNode:
@@ -338,6 +340,12 @@ class _FakeWellStateHelper:
     def refreshHeader(self):
         self.calls.append(('refreshHeader',))
         return self.refreshSuccess
+
+    def refreshHeaderOrRaise(self):
+        self.calls.append(('refreshHeader',))
+        if not self.refreshSuccess:
+            raise RollWellError('bad header')
+        return True
 
 
 class _FakeWellParameterController:
