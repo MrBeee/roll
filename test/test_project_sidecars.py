@@ -4193,6 +4193,63 @@ class ProjectSidecarsTest(unittest.TestCase):
 
                 scheduledCallbacks[0][1]()
 
+    def testBindJobSignalsRoutesSurveyLogMessagesUsingJobMessageType(self):
+        class SignalStub:
+            def __init__(self):
+                self.callbacks = []
+
+            def connect(self, callback):
+                self.callbacks.append(callback)
+
+        class SurveyStub:
+            def __init__(self):
+                self.progress = SignalStub()
+                self.message = SignalStub()
+                self.logMessage = SignalStub()
+
+        class WorkerStub:
+            def __init__(self):
+                self.survey = SurveyStub()
+                self.resultReady = SignalStub()
+                self.finished = SignalStub()
+                self.run = MagicMock()
+                self.deleteLater = MagicMock()
+
+        class ThreadStub:
+            def __init__(self):
+                self.started = SignalStub()
+                self.finished = SignalStub()
+                self.quit = MagicMock()
+                self.deleteLater = MagicMock()
+
+        controller = self.mainWindow.workerOperationController or binningWorkerMixinModule.WorkerOperationController(
+            self.mainWindow,
+            self.mainWindow._getWorkerRuntimeDependencies,
+        )
+        self.mainWindow.workerOperationController = controller
+
+        for msgType in (rollMainWindowModule.MsgType.Binning, rollMainWindowModule.MsgType.Geometry):
+            with self.subTest(msgType=msgType):
+                threadStub = ThreadStub()
+                workerStub = WorkerStub()
+                job = workerOperationControllerModule.WorkerJobSpec(
+                    name='job',
+                    progressLabelText='x',
+                    startMessage='y',
+                    startMessageType=msgType,
+                    workerFactory=lambda request, worker=workerStub: worker,
+                    request=object(),
+                    resultHandler=self.mainWindow.applyGeometryWorkerResult,
+                )
+
+                with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+                    controller._bindJobSignals(threadStub, workerStub, job)
+                    self.assertEqual(len(workerStub.survey.logMessage.callbacks), 1)
+
+                    workerStub.survey.logMessage.callbacks[0]('survey-log-line')
+
+                appendLogMessage.assert_called_with('survey-log-line', msgType)
+
         appendLogMessage.assert_any_call('Thread : worker thread is still running; waiting for thread to finish', rollMainWindowModule.MsgType.Warning)
 
     def testOnAppAboutToQuitSkipsResetWhenWorkerShutdownTimesOut(self):

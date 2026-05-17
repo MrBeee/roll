@@ -517,9 +517,10 @@ class RollSurvey(pg.GraphicsObject):
         for block in self.blockList:
             nTemplates = 0                                                      # reset for each block in case there no templates in a block
             for template in block.templateList:
-                nTemplates = 1
+                nTemplateRolls = 1
                 for roll in template.rollList:
-                    nTemplates *= roll.steps                                    # template is rolled a number of times
+                    nTemplateRolls *= roll.steps                                # template is rolled a number of times
+                nTemplates += nTemplateRolls
             self.nTemplates += nTemplates
         return self.nTemplates
 
@@ -1502,7 +1503,7 @@ class RollSurvey(pg.GraphicsObject):
         hasRel = self.output.relGeom is not None
         chosen = relBinningRoutine if hasRel else noRelBinningRoutine
         self.logMessage.emit(
-            f'Binning: useExperimental={appSettings.useExperimental}, hasRel={hasRel} -> {chosen.__name__}, fullAnalysis={fullAnalysis}'
+            f'Method : useExperimental={appSettings.useExperimental}, hasRel={hasRel} -> {chosen.__name__}, fullAnalysis={fullAnalysis}'
         )
 
         # Now do the binning; check if we haave a relation file or not
@@ -2402,7 +2403,7 @@ class RollSurvey(pg.GraphicsObject):
         # Announce which routine is actually being dispatched so we can
         # confirm at runtime that the useExperimental flag flowed through.
         self.logMessage.emit(
-            f'Binning: useExperimental={appSettings.useExperimental} -> {templateBinningRoutine.__name__}, fullAnalysis={fullAnalysis}'
+            f'Method : useExperimental={appSettings.useExperimental} -> {templateBinningRoutine.__name__}, fullAnalysis={fullAnalysis}'
         )
 
         try:

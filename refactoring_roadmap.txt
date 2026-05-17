@@ -4,6 +4,8 @@ D:\QGis\MyPlugins\roll\Refactoring_roadmap.txt
 
 Updated for the current codebase on 2026-05-12.
 
+2026-05-16 addendum: after comparing the roadmap against the current `markdown/` analysis notes, the next concrete refactoring slice is now explicitly narrowed to the Layout-tab 2D-to-3D bridge. When refactoring work resumes, prefer a small structural extraction around the `3D Subset` payload/styling bridge plus direct bridge-level tests, rather than opening another broad pass in `roll_survey.py` or `my_parameters.py`.
+
 The broad direction is still the same: keep persistence, import/QC logic, mutable session/runtime state, and worker lifecycle concerns out of `roll_main_window.py`, then clean up plotting/redraw boundaries before touching worker contracts or performance.
 
 This document reflects the live codebase after the `SessionState`, `SessionService`, `ImportService`, `AppSettings`, `RuntimeState`, `DocumentContextService`, `ProjectService`, `ProjectLoadApplier`, `WorkerOperationController`, `worker_result_appliers`, legacy-sidecar compatibility, offset-tab extraction, broader plot-interaction/status-bar cleanup work, the well survey-context cleanup, the seed/well parameter-state and creation-helper extractions, the remaining parameter-child wiring cleanup in `my_parameters.py`, the follow-up project-load layout-helper reuse, the MRU-owner cleanup in `SessionService`, the archiving of the last obvious legacy worker scaffolding, the follow-up move of the live Well-file directory propagation behavior into `PropertyPanelController`, and the opt-in matplotlib-based `3D Subset` surface in the Layout tab.
@@ -151,11 +153,13 @@ Still experimental:
 
 1. Keep the preserved reference implementations in `roll_survey.py` out of routine cleanup scope unless a change is specifically about comparing or replacing live algorithms.
 2. Prefer the next focused refactor in the layout-analysis surface seam, not in `roll_survey.py`: the remaining image-selection, status-text, export routing, and especially the now-expanded `3D Subset` payload/styling bridge in `roll_main_window_create_layout_tab.py` are better near-term targets than another parameter-tree move.
-3. Treat `my_parameters.py` and `marine_wizard.py` as the next two large follow-up hotspots after the layout seam, because they still combine substantial UI mutation with domain rules even after earlier helper extraction.
-4. Keep the stable `binFromGeometry8()` path available for comparison unless a new correctness issue appears; if the binning optimization track is revisited, decide whether the currently guarded `binFromGeometry10()` path should become the default rather than treating `binFromGeometry9()` as the next drop-in replacement.
-5. Revisit worker payload shape only if a measured simplification remains after the active geometry/binning layer is easier to reason about.
-6. Do performance work only after the structure stops moving.
-7. Treat any further `config.py` work as optional organization, not as the main architectural blocker.
+3. Make that layout follow-up concrete and narrow: first extract the 2D-to-3D payload-building, visibility/style translation, and refresh orchestration behind a small dedicated bridge module (for example `layout_3d_bridge.py`) while preserving the current `Layout3DWidget.updateFromSurvey()` contract.
+4. Add direct bridge-level tests for that first slice, especially visible point-layer mirroring, source/receiver depth forwarding, local/global mapping inputs, and the basic block/bin-area packaging path.
+5. Treat `my_parameters.py` and `marine_wizard.py` as the next two large follow-up hotspots after the layout seam, because they still combine substantial UI mutation with domain rules even after earlier helper extraction.
+6. Keep the stable `binFromGeometry8()` path available for comparison unless a new correctness issue appears; if the binning optimization track is revisited, decide whether the currently guarded `binFromGeometry10()` path should become the default rather than treating `binFromGeometry9()` as the next drop-in replacement.
+7. Revisit worker payload shape only if a measured simplification remains after the active geometry/binning layer is easier to reason about.
+8. Do performance work only after the structure stops moving.
+9. Treat any further `config.py` work as optional organization, not as the main architectural blocker.
 
 The earlier “create `SessionState` first” and “extract import/QC service first” recommendations are no longer current. Those seams are already good enough to move attention to plotting/redraw structure.
 
@@ -436,19 +440,25 @@ The following items should now be considered completed or reordered:
 **Recommended Next Step**
 
 If choosing one next step only, do this:
-1. Add a narrow direct test seam for the new `3D Subset` helper logic, then return to the remaining layout-analysis surface cleanup instead of opening another broad refactor track.
+1. Refactor the Layout-tab 2D-to-3D bridge as one small structural slice: move the `3D Subset` payload-building, visibility/style translation, and refresh orchestration out of `roll_main_window_create_layout_tab.py` into a narrow dedicated bridge module, then add direct bridge-level tests before widening scope.
 
 Why:
 1. The active geometry-generation path, live localization seam, live bin-update seam, and live completion tail in `roll_survey.py` now all have direct regression coverage and extracted helper boundaries.
 2. Recent regressions came from parameter-tree coupling, and the lower-level state/default/wiring duplication in `my_parameters.py` has now been reduced further, including the preview-item setup/update seams, the preview text/error-state helpers, two shared constructor clusters, the pattern-list synchronization callbacks, four higher-level `MySeedParameter` coordination slices, the repeated block/template seed traversal, the remaining pattern-list side-effect bundle, the repeated `MyWellParameter` sampling/header flow, the repeated circle/spiral apply flow, the repeated local/global grid apply flow, the repeated bin-angle apply flow, the repeated bin-offset normalization/apply flow, the repeated unique-offset apply flow, the repeated reflector aggregate apply flow, the repeated analysis aggregate apply flow, the repeated block/template aggregate apply flow, the repeated roll-list apply flow, the repeated roll-parameter XYZ apply flow, the repeated configuration apply flow, the repeated well-header attribute-change flow, and the repeated seed-type routing and refresh flows.
-3. The obvious worker cleanup tail is already substantially done, the Well-file property-panel seam has landed, the layout-analysis surface metadata seam now has centralized selection/export/status ownership with direct regressions, and the new `3D Subset` feature is the most visible surface that still lacks direct tests.
+3. The obvious worker cleanup tail is already substantially done, the Well-file property-panel seam has landed, the layout-analysis surface metadata seam now has centralized selection/export/status ownership with direct regressions, and the new `3D Subset` feature is the most visible surface that still lacks a narrow direct bridge seam.
 4. The SPS/RPS/XPS import slice is now at a deliberate stopping point: direct parser tests exist, direct file-reader tests exist, the duplicated batch loop is extracted, and `readRpsLine()` / `readSpsLine()` were intentionally not unified because SPS parsing is expected to evolve independently from RPS parsing.
+
+First-cut scope:
+1. Move the pure 3D payload-builder helpers first.
+2. Move the `refreshLayout3DFromSurvey()` orchestration behind the same bridge.
+3. Preserve the existing `Layout3DWidget.updateFromSurvey()` payload contract in the first slice.
+4. Stop after the bridge seam and its direct tests land; do not widen into broader Layout-tab cleanup or `roll_survey.py` work in the same pass.
 
 After that, the next step should be:
 1. keep the new document-context boundary, property-panel boundary, and layout-analysis metadata boundary stable, then prefer either one deliberately chosen parameter-tree behavior seam in `my_parameters.py` or selective worker/payload cleanup only if simplification value is clear.
 
 Estimated effort:
-small to medium: one deliberately chosen non-SPS seam, most likely in `my_parameters.py`, or a very small dead-code cleanup if a reference-only path can be proven unused.
+small to medium: one focused layout-analysis seam plus direct tests, followed later by one deliberately chosen non-SPS seam, most likely in `my_parameters.py`, or a very small dead-code cleanup if a reference-only path can be proven unused.
 
 **Backlog of Next 12 Tickets**
 

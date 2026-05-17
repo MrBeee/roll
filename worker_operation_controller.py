@@ -276,7 +276,7 @@ class WorkerOperationController:
         worker.survey.message.connect(self.window.threadMessage)
         logMessageSignal = getattr(worker.survey, 'logMessage', None)
         if logMessageSignal is not None and hasattr(self.window, 'appendLogMessage'):
-            logMessageSignal.connect(self.window.appendLogMessage)
+            logMessageSignal.connect(lambda message, msgType=job.startMessageType: self.window.appendLogMessage(message, msgType))
         worker.resultReady.connect(lambda result, currentJob=job: self._handleJobResult(currentJob, result))
         worker.finished.connect(thread.quit)
         workerDeleteLater = getattr(worker, 'deleteLater', None)
