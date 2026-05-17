@@ -245,30 +245,30 @@ class TableView(QTableView):
     def getFormat(entry):
         # fmt: off
         formatDict = dict(                                                      # used to format data being copied to clipboard
-            Code   = '%s',
-            Depth  = '%.1f',
-            East   = '%.1f',
-            Elev   = '%.1f',
-            Index  = '%d',
-            InSps  = '%d',
-            InRps  = '%d',
-            InUse  = '%d',
-            InXps  = '%d',
-            Line   = '%.2f',
-            LocX   = '%.1f',
-            LocY   ='%.1f',
-            North  = '%.1f',
-            Point  = '%.2f',
-            Record = '%d',                                                      # record number; ambiguous name superseded by 'RecNum'
-            RecNum = '%d',                                                      # record number; different name used earlier
-            RecLin = '%.2f',
-            RecMin = '%.2f',
-            RecMax = '%.2f',
-            RecInd = '%d',
-            SrcLin = '%.2f',
-            SrcPnt = '%.2f',
-            SrcInd = '%d',
-            Uniq   = '%d',
+            Code   = '%s',                                                      # noqa: 251
+            Depth  = '%.1f',                                                    # noqa: 251
+            East   = '%.1f',                                                    # noqa: 251
+            Elev   = '%.1f',                                                    # noqa: 251
+            Index  = '%d',                                                      # noqa: 251
+            InSps  = '%d',                                                      # noqa: 251
+            InRps  = '%d',                                                      # noqa: 251 
+            InUse  = '%d',                                                      # noqa: 251
+            InXps  = '%d',                                                      # noqa: 251
+            Line   = '%.2f',                                                    # noqa: 251 
+            LocX   = '%.1f',                                                    # noqa: 251 
+            LocY   ='%.1f',                                                     # noqa: 251
+            North  = '%.1f',                                                    # noqa: 251
+            Point  = '%.2f',                                                    # noqa: 251
+            Record = '%d',                                                      # noqa: 251 # record number; ambiguous name superseded by 'RecNum'
+            RecNum = '%d',                                                      # noqa: 251 # record number; different name used earlier
+            RecLin = '%.2f',                                                    # noqa: 251
+            RecMin = '%.2f',                                                    # noqa: 251
+            RecMax = '%.2f',                                                    # noqa: 251
+            RecInd = '%d',                                                      # noqa: 251
+            SrcLin = '%.2f',                                                    # noqa: 251
+            SrcPnt = '%.2f',                                                    # noqa: 251
+            SrcInd = '%d',                                                      # noqa: 251
+            Uniq   = '%d',                                                      # noqa: 251
             )
         # fmt:on
         return formatDict[entry]

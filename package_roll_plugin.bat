@@ -61,8 +61,9 @@ goto createStageDir
 
 :handleExistingZip
 if "%forceOverwrite%"=="1" goto deleteExistingZip
-choice /C YN /N /M "Output file already exists. Overwrite [Y/N]? "
-if errorlevel 2 exit /b 3
+set "overwriteReply="
+set /p "overwriteReply=Output file already exists. Overwrite [Y/N]? "
+if /I not "%overwriteReply:~0,1%"=="Y" exit /b 3
 
 :deleteExistingZip
 del /f /q "%outputZip%" >nul 2>&1
