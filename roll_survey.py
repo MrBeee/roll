@@ -986,10 +986,10 @@ class RollSurvey(pg.GraphicsObject):
 
         qz = np.rint(rz).astype(np.int64)                                       # 1-metre quantized z
         keys = (
-            (np.int64(recInd) << SHIFT_IND)
-            | ((qz + QZ_OFF) << SHIFT_QZ)
-            | ((recLineI.astype(np.int64) + LINE_OFF) << SHIFT_LINE)
-            | (recPointI.astype(np.int64) + POINT_OFF)
+            (np.int64(recInd) << SHIFT_IND) |                                   # noqa: W504
+            ((qz + QZ_OFF) << SHIFT_QZ) |                                       # noqa: W504
+            ((recLineI.astype(np.int64) + LINE_OFF) << SHIFT_LINE) |            # noqa: W504
+            (recPointI.astype(np.int64) + POINT_OFF)                            # noqa: W504
         )
 
         nonWellIdx = np.where((~isWellMask) & appendGeomMask)[0]
@@ -1282,9 +1282,9 @@ class RollSurvey(pg.GraphicsObject):
         ny = mapped[:, 1].astype(int)
 
         valid = (
-            (nx >= 0) & (ny >= 0)
-            & (nx < self.output.binOutput.shape[0])
-            & (ny < self.output.binOutput.shape[1])
+            (nx >= 0) & (ny >= 0) &                     # noqa: W504
+            (nx < self.output.binOutput.shape[0]) &     # noqa: W504
+            (ny < self.output.binOutput.shape[1])       # noqa: W504
         )
         if np.all(~valid):
             if profileBaseIndex is not None:
@@ -1490,10 +1490,10 @@ class RollSurvey(pg.GraphicsObject):
         recMask = np.zeros(self.output.recGeom.shape[0], dtype=bool)
         for relationIndex in range(minRecord, maxRecord):
             recMask |= (
-                (lookup.recIndex == lookup.relRecIndI[relationIndex])
-                & (lookup.recLineI == lookup.relRecLinI[relationIndex])
-                & (lookup.recPointI >= lookup.relRecMinI[relationIndex])
-                & (lookup.recPointI <= lookup.relRecMaxI[relationIndex])
+                (lookup.recIndex == lookup.relRecIndI[relationIndex]) &     # noqa: W504
+                (lookup.recLineI == lookup.relRecLinI[relationIndex]) &     # noqa: W504
+                (lookup.recPointI >= lookup.relRecMinI[relationIndex]) &    # noqa: W504
+                (lookup.recPointI <= lookup.relRecMaxI[relationIndex])      # noqa: W504
             )
 
         recArray = self.output.recGeom[recMask]
@@ -2214,9 +2214,9 @@ class RollSurvey(pg.GraphicsObject):
         ny = (binMat[1, 0] * cmpPoints[:, 0] + binMat[1, 1] * cmpPoints[:, 1] + binMat[1, 2]).astype(np.int64)
 
         valid = (
-            (nx >= 0) & (ny >= 0)
-            & (nx < self.output.binOutput.shape[0])
-            & (ny < self.output.binOutput.shape[1])
+            (nx >= 0) & (ny >= 0) &                     # noqa: W504
+            (nx < self.output.binOutput.shape[0]) &     # noqa: W504
+            (ny < self.output.binOutput.shape[1])       # noqa: W504
         )
         if not valid.any():
             if profileBaseIndex is not None:
@@ -2310,9 +2310,9 @@ class RollSurvey(pg.GraphicsObject):
         ny = (binMat[1, 0] * cmpPoints[:, 0] + binMat[1, 1] * cmpPoints[:, 1] + binMat[1, 2]).astype(np.int64)
 
         valid = (
-            (nx >= 0) & (ny >= 0)
-            & (nx < self.output.binOutput.shape[0])
-            & (ny < self.output.binOutput.shape[1])
+            (nx >= 0) & (ny >= 0) &                     # noqa: W504
+            (nx < self.output.binOutput.shape[0]) &     # noqa: W504
+            (ny < self.output.binOutput.shape[1])       # noqa: W504
         )
         if not valid.any():
             return False
@@ -3160,8 +3160,8 @@ class RollSurvey(pg.GraphicsObject):
             totalTime = np.linalg.norm(recPoints - srcExp, axis=1)
         else:
             totalTime = (
-                np.linalg.norm(cmpPoints - srcExp, axis=1)
-                + np.linalg.norm(cmpPoints - recPoints, axis=1)
+                np.linalg.norm(cmpPoints - srcExp, axis=1) +        # noqa: W504
+                np.linalg.norm(cmpPoints - recPoints, axis=1)       # noqa: W504
             )
         totalTime = (totalTime * self.binning.slowness).astype(np.float32, copy=False)
         if profileBaseIndex is not None:
@@ -3173,9 +3173,9 @@ class RollSurvey(pg.GraphicsObject):
         ny = (binMat[1, 0] * cmpPoints[:, 0] + binMat[1, 1] * cmpPoints[:, 1] + binMat[1, 2]).astype(np.int64)
 
         valid = (
-            (nx >= 0) & (ny >= 0)
-            & (nx < self.output.binOutput.shape[0])
-            & (ny < self.output.binOutput.shape[1])
+            (nx >= 0) & (ny >= 0) &                     # noqa: W504
+            (nx < self.output.binOutput.shape[0]) &     # noqa: W504
+            (ny < self.output.binOutput.shape[1])       # noqa: W504
         )
         if not valid.any():
             if profileBaseIndex is not None:

@@ -3626,13 +3626,13 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         # use &nbsp; (non-breaking-space) to prevent html eating up subsequent spaces !
         switch = {  # see: https://doc.qt.io/qt-6/qcolor.html
-            MsgType.Info:       f'<p>{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;info&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',            # info     = black
-            MsgType.Binning:    f'<p style="color:blue" >{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binning&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',    # Binning  = blue
-            MsgType.Geometry:   f'<p style="color:green">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;geometry&nbsp;&nbsp;&nbsp;{message}</p>',        # Geometry = green
-            MsgType.Debug:      f'<p style="color:darkCyan">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;debug&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Called : {message}</p>',  # Debug    = darkCyan
-            MsgType.Warning:    f'<p style="color:magenta">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;warning&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',  # Warning  = magenta
-            MsgType.Error:      f'<p style="color:red">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',  # Error     = red
-            MsgType.Exception:  f'<p style="color:red">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception&nbsp;&nbsp;{message}</p>',                  # exception = bold red
+            MsgType.Info:       f'<p>{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;info&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',                              # noqa: E241 # info      = black
+            MsgType.Binning:    f'<p style="color:blue" >{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binning&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',                         # noqa: E241 # Binning   = blue
+            MsgType.Geometry:   f'<p style="color:green">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;geometry&nbsp;&nbsp;&nbsp;{message}</p>',                              # noqa: E241 # Geometry  = green
+            MsgType.Debug:      f'<p style="color:darkCyan">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;debug&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Called : {message}</p>',   # noqa: E241 # Debug     = darkCyan
+            MsgType.Warning:    f'<p style="color:magenta">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;warning&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',                       # noqa: E241 # Warning   = magenta
+            MsgType.Error:      f'<p style="color:red">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',                 # noqa: E241 # Error     = red
+            MsgType.Exception:  f'<p style="color:red; font-weight:bold ">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception&nbsp;&nbsp;{message}</p>',                  # noqa: E241 # exception = bold red
         }
 
         self.logEdit.appendHtml(switch.get(index, 'Unknown Message type'))      # Adds the message to the widget

@@ -138,8 +138,8 @@ class Layout3DWidget(QWidget):
         except Exception as exc:                                # pragma: no cover
             placeholder = QLabel(
                 'matplotlib 3D is not available in this Python '
-                f'environment.\n\n{type(exc).__name__}: {exc}\n\n'
-                + traceback.format_exc()
+                f'environment.\n\n{type(exc).__name__}: {exc}\n\n' +  # noqa: W503, W504
+                traceback.format_exc()
             )
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             placeholder.setWordWrap(True)
@@ -564,9 +564,11 @@ class Layout3DWidget(QWidget):
         # Drawn after the analysis-area quad so its opaque pixels
         # overpaint the translucent black face fill; ``NaN`` cells
         # stay transparent and let the fill show through.
-        if (analysisImage is not None
-                and analysisImage.get('visible', False)
-                and analysisImage.get('data') is not None):
+        if (
+            analysisImage is not None and  # noqa: W503, W504
+            analysisImage.get('visible', False) and  # noqa: W503, W504
+            analysisImage.get('data') is not None
+        ):
             try:
                 self._drawAnalysisImage(survey, useGlobal, analysisImage)
                 zMax = max(zMax, 1.0)
@@ -824,9 +826,9 @@ class Layout3DWidget(QWidget):
                     if segPts:
                         segments = np.asarray(segPts, dtype=np.float64)
                         if transform is not None:
-                            m11 = transform.m11(); m12 = transform.m12()  # noqa: E702
-                            m21 = transform.m21(); m22 = transform.m22()  # noqa: E702
-                            dx = transform.dx();    dy = transform.dy()   # noqa: E702
+                            m11 = transform.m11(); m12 = transform.m12()  # noqa: E241, E702
+                            m21 = transform.m21(); m22 = transform.m22()  # noqa: E241, E702
+                            dx = transform.dx();    dy = transform.dy()   # noqa: E241, E702
                             x = segments[:, :, 0]
                             y = segments[:, :, 1]
                             nx = m11 * x + m21 * y + dx
@@ -862,10 +864,10 @@ class Layout3DWidget(QWidget):
                 # Prepend wellhead origin so trajectory starts at surface.
                 origin = getattr(seed, 'origin', None)
                 if isinstance(origin, QVector3D):
-                    if not pts or (
-                        isinstance(pts[0], QVector3D)
-                        and (pts[0].x(), pts[0].y(), pts[0].z())
-                        != (origin.x(), origin.y(), origin.z())
+                    if (
+                        not pts or  # noqa: W503, W504
+                        isinstance(pts[0], QVector3D) and  # noqa: W503, W504
+                        (pts[0].x(), pts[0].y(), pts[0].z()) != (origin.x(), origin.y(), origin.z())
                     ):
                         pts.insert(0, QVector3D(origin))
             if not pts:
@@ -918,10 +920,10 @@ class Layout3DWidget(QWidget):
             # ``QTransform.map`` is per-point only, but the full
             # 3x3 affine can be reconstructed from its m11/m12/m21/m22
             # /dx/dy components and applied with a single matmul.
-            m11 = transform.m11(); m12 = transform.m12()  # noqa: E702
-            m21 = transform.m21(); m22 = transform.m22()  # noqa: E702
-            dx = transform.dx();    dy = transform.dy()   # noqa: E702
-            x = arr[:, 0]; y = arr[:, 1]  # noqa: E702
+            m11 = transform.m11(); m12 = transform.m12()    # noqa: E241, E702
+            m21 = transform.m21(); m22 = transform.m22()    # noqa: E241, E702
+            dx = transform.dx();    dy = transform.dy()     # noqa: E241, E702
+            x = arr[:, 0]; y = arr[:, 1]                    # noqa: E241, E702
             nx = m11 * x + m21 * y + dx
             ny = m12 * x + m22 * y + dy
             arr[:, 0] = nx
@@ -945,10 +947,10 @@ class Layout3DWidget(QWidget):
         if rect is None or not rect.isValid():
             return None
         pts = [
-            (rect.left(),  rect.top()),
+            (rect.left(),  rect.top()),  # noqa: E241
             (rect.right(), rect.top()),
             (rect.right(), rect.bottom()),
-            (rect.left(),  rect.bottom()),
+            (rect.left(),  rect.bottom()),  # noqa: E241
         ]
         if useGlobal:
             glb = getattr(survey, 'glbTransform', None)
@@ -1040,9 +1042,9 @@ class Layout3DWidget(QWidget):
         if useGlobal:
             glb = getattr(survey, 'glbTransform', None)
             if glb is not None:
-                m11 = glb.m11(); m12 = glb.m12()  # noqa: E702
-                m21 = glb.m21(); m22 = glb.m22()  # noqa: E702
-                tdx = glb.dx();  tdy = glb.dy()   # noqa: E702
+                m11 = glb.m11(); m12 = glb.m12()  # noqa: E241, E702
+                m21 = glb.m21(); m22 = glb.m22()  # noqa: E241, E702
+                tdx = glb.dx();  tdy = glb.dy()   # noqa: E241, E702
                 Xn = m11 * X + m21 * Y + tdx
                 Yn = m12 * X + m22 * Y + tdy
                 X, Y = Xn, Yn
@@ -1052,7 +1054,7 @@ class Layout3DWidget(QWidget):
         # ``facecolors`` of shape (M-1, N-1) when X/Y/Z are (M, N).
         levels = analysisImage.get('levels', (0.0, 1.0))
         try:
-            lo = float(levels[0]); hi = float(levels[1])  # noqa: E702
+            lo = float(levels[0]); hi = float(levels[1])  # noqa: E241, E702
         except (TypeError, ValueError, IndexError):
             lo, hi = 0.0, 1.0
         if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
@@ -1098,10 +1100,10 @@ class Layout3DWidget(QWidget):
         if rect is None or not rect.isValid():
             return None
         pts = [
-            (rect.left(),  rect.top()),
+            (rect.left(), rect.top()),
             (rect.right(), rect.top()),
             (rect.right(), rect.bottom()),
-            (rect.left(),  rect.bottom()),
+            (rect.left(), rect.bottom()),
         ]
         if useGlobal:
             glb = getattr(survey, 'glbTransform', None)
@@ -1297,7 +1299,7 @@ class Layout3DWidget(QWidget):
                 # Vectorised affine: avoid per-point QTransform.map.
                 m11 = transform.m11(); m12 = transform.m12()  # noqa: E702
                 m21 = transform.m21(); m22 = transform.m22()  # noqa: E702
-                tdx = transform.dx();  tdy = transform.dy()   # noqa: E702
+                tdx = transform.dx();  tdy = transform.dy()   # noqa: E241, E702
                 nx = m11 * xs + m21 * ys + tdx
                 ny = m12 * xs + m22 * ys + tdy
                 xs, ys = nx, ny

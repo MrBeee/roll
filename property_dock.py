@@ -54,9 +54,9 @@ class _PropertyDockBuilder:
         w = self.w
         w.propertyLayout.addStretch()
         buttons = (
-            QDialogButtonBox.StandardButton.Ok
-            | QDialogButtonBox.StandardButton.Cancel
-            | QDialogButtonBox.StandardButton.Apply
+            QDialogButtonBox.StandardButton.Ok |           # noqa: W504
+            QDialogButtonBox.StandardButton.Cancel |       # noqa: W504
+            QDialogButtonBox.StandardButton.Apply
         )
         w.propertyButtonBox = QDialogButtonBox(buttons)
         w.propertyButtonBox.accepted.connect(w.applyPropertyChangesAndHide)

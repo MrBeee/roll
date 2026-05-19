@@ -439,17 +439,17 @@ def exportSurveyOutlinesToQgis(layerName, survey) -> bool:
             rect = QRectF()
 
             if index == 0:
-                name = f'{layerName}-rec-edge-b{nBlock+1}'
+                name = f'{layerName}-rec-edge-b{nBlock + 1}'
                 props = {'color': 'cyan', 'outline_color': 'black'}
                 attrib = ['Rec boundary', strBlock]
                 rect = block.recBoundingRect
             elif index == 1:
-                name = f'{layerName}-cmp-edge-b{nBlock+1}'
+                name = f'{layerName}-cmp-edge-b{nBlock + 1}'
                 props = {'color': 'green', 'outline_color': 'black'}
                 attrib = ['Cmp boundary', strBlock]
                 rect = block.cmpBoundingRect
             elif index == 2:
-                name = f'{layerName}-src-edge-b{nBlock+1}'
+                name = f'{layerName}-src-edge-b{nBlock + 1}'
                 props = {'color': 'red', 'outline_color': 'black'}
                 attrib = ['Src boundary', strBlock]
                 rect = block.srcBoundingRect

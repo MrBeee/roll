@@ -401,9 +401,9 @@ class Layout3DHelperTest(unittest.TestCase):
             blockList=[block],
             paintMode=rollSurveyModule.PaintMode.justBlocks,
             paintDetails=(
-                rollSurveyModule.PaintDetails.recArea
-                | rollSurveyModule.PaintDetails.srcArea
-                | rollSurveyModule.PaintDetails.cmpArea
+                rollSurveyModule.PaintDetails.recArea |  # noqa: W503, W504
+                rollSurveyModule.PaintDetails.srcArea |  # noqa: W503, W504
+                rollSurveyModule.PaintDetails.cmpArea
             ),
             lodScale=1.0,
             viewRect=lambda: QRectF(-10.0, -10.0, 200.0, 200.0),

@@ -104,9 +104,9 @@ class WorkerOperationController:
         activeOperation = self.activeOperation
         # Defensive: check for deleted thread object
         if (
-            activeOperation is None
-            or getattr(activeOperation, 'thread', None) is None
-            or not hasattr(activeOperation.thread, 'isRunning')
+            activeOperation is None or                              # noqa: W503, W504
+            getattr(activeOperation, 'thread', None) is None or     # noqa: W503, W504
+            not hasattr(activeOperation.thread, 'isRunning')
         ):
             return
 

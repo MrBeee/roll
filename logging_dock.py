@@ -29,9 +29,9 @@ class _LoggingDockBuilder:
         self.w.dockLogging = QDockWidget('Logging pane', self.w)
         self.w.dockLogging.setObjectName('dockLogging')
         areas = (
-            Qt.DockWidgetArea.LeftDockWidgetArea
-            | Qt.DockWidgetArea.BottomDockWidgetArea
-            | Qt.DockWidgetArea.TopDockWidgetArea
+            Qt.DockWidgetArea.LeftDockWidgetArea |      # noqa: W504
+            Qt.DockWidgetArea.BottomDockWidgetArea |    # noqa: W504
+            Qt.DockWidgetArea.TopDockWidgetArea
         )
         self.w.dockLogging.setAllowedAreas(areas)
         self.w.dockLogging.setStyleSheet(dockWidgetTitleStyle)

@@ -177,10 +177,7 @@ htmlhelp_basename = 'TemplateClassdoc'
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
-latex_documents = [
-  ('index', 'Roll.tex', u'Roll Documentation',
-   u'Duijndam.Dev', 'manual'),
-]
+latex_documents = [('index', 'Roll.tex', 'Roll Documentation', 'Duijndam.Dev', 'manual'),]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
@@ -210,7 +207,4 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    ('index', 'TemplateClass', u'Roll Documentation',
-     [u'Duijndam.Dev'], 1)
-]
+man_pages = [('index', 'TemplateClass', 'Roll Documentation', ['Duijndam.Dev'], 1)]

@@ -36,13 +36,13 @@ class FunctionsNumbaTest(unittest.TestCase):
 
     def testNumbaOffPlotsCanSelectAbsoluteInlineOrXlineComponents(self):
         slice2D = np.zeros((2, 16), dtype=np.float32)
-        slice2D[:,  9] = np.array([100.0, 200.0], dtype=np.float32)             # cmp-x
-        slice2D[:, 10] = np.array([300.0, 400.0], dtype=np.float32)             # cmp-y
-        slice2D[:,  3] = np.array([10.0, 20.0], dtype=np.float32)               # src-x
-        slice2D[:,  4] = np.array([1.0, 2.0], dtype=np.float32)                 # src-y
-        slice2D[:,  6] = np.array([14.0, 29.0], dtype=np.float32)               # rec-x
-        slice2D[:,  7] = np.array([6.0, 11.0], dtype=np.float32)                # rec-y
-        slice2D[:, 13] = np.array([99.0, 199.0], dtype=np.float32)              # offset
+        slice2D[:,  9] = np.array([100.0, 200.0], dtype=np.float32)             # cmp-x     # noqa: E241
+        slice2D[:, 10] = np.array([300.0, 400.0], dtype=np.float32)             # cmp-y     # noqa: E241
+        slice2D[:,  3] = np.array([10.0, 20.0], dtype=np.float32)               # src-x     # noqa: E241
+        slice2D[:,  4] = np.array([1.0, 2.0], dtype=np.float32)                 # src-y     # noqa: E241
+        slice2D[:,  6] = np.array([14.0, 29.0], dtype=np.float32)               # rec-x     # noqa: E241
+        slice2D[:,  7] = np.array([6.0, 11.0], dtype=np.float32)                # rec-y     # noqa: E241
+        slice2D[:, 13] = np.array([99.0, 199.0], dtype=np.float32)              # offset    # noqa: E241
 
         _, absInline = numbaOffInline(slice2D, 5.0, 0)
         _, inlineInline = numbaOffInline(slice2D, 5.0, 1)

@@ -48,7 +48,7 @@ class AnaTableModel(QAbstractTableModel):
 
         # the underlying data uses a 2D numpy array without any field names. So it is reliant on the header names and format strings for export to clipboard
         # fmt: off
-        self._format =  '%d',    '%d',   '%d',   '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',     '%.2f',   '%.2f',    '%d'  # noqa: E222
+        self._format =  '%d',    '%d',   '%d',   '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',  '%.2f',     '%.2f',   '%.2f',    '%d'         # noqa: E222, E241
         self._header = ['stake', 'line', 'fold', 'src-x', 'src-y', 'src-z', 'rec-x', 'rec-y', 'rec-z', 'cmp-x', 'cmp-y', 'cmp-z', 'TWT [ms]', 'offset', 'azimuth', 'unique']
         # fmt: on
 
@@ -614,9 +614,9 @@ class RpsTableModel(QAbstractTableModel):
 
         # Display columns (in order) mapped to dtype fields
         # fmt: off
-        self._displayFields =   ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']   # noqa: E222
-        self._header =          ['rec line', 'rec point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'in use']  # noqa: E222
-        self._format =           '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d'       # noqa: E222
+        self._displayFields =   ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']   # noqa: E222, E241
+        self._header =          ['rec line', 'rec point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'in use']  # noqa: E222, E241
+        self._format =           '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d'       # noqa: E222, E241
         # fmt: on
 
         self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
@@ -874,9 +874,9 @@ class SpsTableModel(QAbstractTableModel):
 
         # Display columns (in order) mapped to dtype fields
         # fmt: off
-        self._displayFields =   ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']    # noqa: E222
-        self._header =          ['src line', 'src point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'in use']   # noqa: E222
-        self._format =           '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d'        # noqa: E222
+        self._displayFields =   ['Line',     'Point',     'Index', 'Code', 'Depth', 'East',    'North',    'Elev',      'InUse']    # noqa: E222, E241
+        self._header =          ['src line', 'src point', 'index', 'code', 'depth', 'easting', 'northing', 'elevation', 'in use']   # noqa: E222, E241
+        self._format =           '%.2f',     '%.2f',      '%d',    '%s',   '%.1f',  '%.1f',    '%.1f',     '%.1f',      '%d'        # noqa: E222, E241
         # fmt: on
 
         self._minMax = np.zeros(shape=(2, len(self._displayFields)), dtype=np.float32)
@@ -1125,8 +1125,8 @@ class XpsTableModel(QAbstractTableModel):
         self._qSort = deque(maxlen=3)   # To support sorting on max 3 values
 
         # fmt: off
-        self._format =  '%.2f',     '%.2f',      '%d',        '%d',       '%.2f',     '%.2f',    '%.2f',    '%d',        '%d',     '%d',           '%d'             # noqa: E222
-        self._header = ['src line', 'src point', 'src index', 'record #', 'rec line', 'rec min', 'rec max', 'rec index', 'unique', 'in sps-table', 'in rps-table']  # noqa: E222
+        self._format =  '%.2f',     '%.2f',      '%d',        '%d',       '%.2f',     '%.2f',    '%.2f',    '%d',        '%d',     '%d',           '%d'             # noqa: E222, E241
+        self._header = ['src line', 'src point', 'src index', 'record #', 'rec line', 'rec min', 'rec max', 'rec index', 'unique', 'in sps-table', 'in rps-table']  # noqa: E222, E241
         # fmt: on
 
         self._minMax = np.zeros(shape=(2, len(self._header)), dtype=np.float32)  # Initial min and max values for each column (field) in the data array

@@ -328,8 +328,8 @@ def _ensureLayout3DWidget(self):
         widget = Layout3DWidget()
     except Exception as exc:                                # pragma: no cover
         msg = ('3D Subset view could not be initialized.\n\n'
-               f'{type(exc).__name__}: {exc}\n\n'
-               + traceback.format_exc())
+               f'{type(exc).__name__}: {exc}\n\n' +              # noqa: W504
+               traceback.format_exc())
         widget = QLabel(msg)
         widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
         widget.setWordWrap(True)

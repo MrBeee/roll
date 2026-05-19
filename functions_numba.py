@@ -81,10 +81,10 @@ def numbaSlice3D(slice3D: np.ndarray, unique=False):
 def numbaSliceStats(slice4D: np.ndarray, unique=False):
 
     # fmt: off
-    fold    = slice4D[:, :, :,  2]                                              # noqa: E221, # we are left with 1 dimension
-    offsets = slice4D[:, :, :, 13]                                              # noqa: E221, # we are left with 1 dimension
-    azimuth = slice4D[:, :, :, 14]                                              # noqa: E221, # we are left with 1 dimension
-    include = slice4D[:, :, :, 15]                                              # noqa: E221, # we are left with 1 dimension
+    fold    = slice4D[:, :, :,  2]                                              # noqa: E221, E241, # we are left with 1 dimension
+    offsets = slice4D[:, :, :, 13]                                              # noqa: E221, E241, # we are left with 1 dimension
+    azimuth = slice4D[:, :, :, 14]                                              # noqa: E221, E241, # we are left with 1 dimension
+    include = slice4D[:, :, :, 15]                                              # noqa: E221, E241, # we are left with 1 dimension
     # fmt: on
 
     if unique is True:                                                          # we'd like to use unique offsets
@@ -484,7 +484,7 @@ def numbaBinBatchParallel(
                     ny = int(binMat[1, 0] * cmpX + binMat[1, 1] * cmpY + binMat[1, 2])
 
                     if 0 <= nx < nx_max and 0 <= ny < ny_max:
-                        dist = ((src[0]-rec[0])**2 + (src[1]-rec[1])**2)**0.5
+                        dist = ((src[0] - rec[0]) ** 2 + (src[1] - rec[1]) ** 2) ** 0.5
                         if fullAnalysis:
                             fold = binOutput[nx, ny]
                             if fold < maxFold:

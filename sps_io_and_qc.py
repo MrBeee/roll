@@ -18,22 +18,22 @@ from .aux_functions import myPrint, toFloat, toInt
 pntType = np.dtype(
     [
         # fmt : off
-        ('RecID', 'U1'),  # A1 ('S' or 'R')
-        ('Line',  'f4'),  # F10.2
-        ('Point', 'f4'),  # F10.2
-        ('Blank', 'U2'),  # A2 ('  '). I.e. spacer after Point
-        ('Index', 'i4'),  # I1
-        ('Code',  'U2'),  # A2
-        ('Static','i4'),  # I4 # noqa: E231
-        ('Depth', 'f4'),  # I4
-        ('Datum', 'i4'),  # I4
-        ('Uhole', 'i4'),  # I2
-        ('Water', 'f4'),  # F6.1
-        ('East',  'f4'),  # F9.1
-        ('North', 'f4'),  # F10.1
-        ('Elev',  'f4'),  # F6.1
-        ('Day',   'i4'),  # I3
-        ('Time',  'U6'),  # 3I2
+        ('RecID', 'U1'),  # noqa: E241 # A1 ('S' or 'R')
+        ('Line',  'f4'),  # noqa: E241 # F10.2
+        ('Point', 'f4'),  # noqa: E241 # F10.2
+        ('Blank', 'U2'),  # noqa: E241 # A2 ('  '). I.e. spacer after Point
+        ('Index', 'i4'),  # noqa: E241 # I1
+        ('Code',  'U2'),  # noqa: E241 # A2
+        ('Static','i4'),  # noqa: E241 # I4 # noqa: E231
+        ('Depth', 'f4'),  # noqa: E241 # I4
+        ('Datum', 'i4'),  # noqa: E241 # I4
+        ('Uhole', 'i4'),  # noqa: E241 # I2
+        ('Water', 'f4'),  # noqa: E241 # F6.1
+        ('East',  'f4'),  # noqa: E241 # F9.1
+        ('North', 'f4'),  # noqa: E241 # F10.1
+        ('Elev',  'f4'),  # noqa: E241 # F6.1
+        ('Day',   'i4'),  # noqa: E241 # I3
+        ('Time',  'U6'),  # noqa: E241 # 3I2
         # fmt : on
     ]
 )
@@ -42,19 +42,19 @@ pntType = np.dtype(
 pntType1 = np.dtype(
     [
         # fmt : off
-        ('Line',  'f4'),  # F10.2
-        ('Point', 'f4'),  # F10.2
-        ('Index', 'i4'),  # I1
-        ('Code',  'U2'),  # A2
-        ('Depth', 'f4'),  # I4
-        ('East',  'f4'),  # F9.1
-        ('North', 'f4'),  # F10.1
-        ('Elev',  'f4'),  # F6.1
-        ('Uniq',  'i4'),  # check if record is unique
-        ('InXps', 'i4'),  # check if record is orphan
-        ('InUse', 'i4'),  # check if record is in use
-        ('LocX',  'f4'),  # F9.1
-        ('LocY',  'f4'),  # F10.1
+        ('Line',  'f4'),  # noqa: E241 # F10.2
+        ('Point', 'f4'),  # noqa: E241 # F10.2
+        ('Index', 'i4'),  # noqa: E241 # I1
+        ('Code',  'U2'),  # noqa: E241 # A2
+        ('Depth', 'f4'),  # noqa: E241 # I4
+        ('East',  'f4'),  # noqa: E241 # F9.1
+        ('North', 'f4'),  # noqa: E241 # F10.1
+        ('Elev',  'f4'),  # noqa: E241 # F6.1
+        ('Uniq',  'i4'),  # noqa: E241 # check if record is unique
+        ('InXps', 'i4'),  # noqa: E241 # check if record is orphan
+        ('InUse', 'i4'),  # noqa: E241 # check if record is in use
+        ('LocX',  'f4'),  # noqa: E241 # F9.1
+        ('LocY',  'f4'),  # noqa: E241 # F10.1
         # fmt : on
     ]
 )
@@ -89,88 +89,88 @@ pntType3 = np.dtype(
 pntType4 = np.dtype(
     [
         # fmt : off
-        ('Line',  'f4'),  # F10.2
-        ('Point', 'f4'),  # F10.2
-        ('Index', 'i4'),  # I1
-        ('Code',  'U2'),  # A2
-        ('Depth', 'f4'),  # I4
-        ('East',  'f4'),  # F9.1
-        ('North', 'f4'),  # F10.1
-        ('Elev',  'f4'),  # F6.1
-        ('Day',   'i4'),  # I3
-        ('Hour',  'i1'),  # I2
-        ('Min',   'i1'),  # I2
-        ('Sec',   'i1'),  # I2
-        ('Stub',  'i1'),  # I2
+        ('Line',  'f4'),  # noqa: E241 # F10.2
+        ('Point', 'f4'),  # noqa: E241 # F10.2
+        ('Index', 'i4'),  # noqa: E241 # I1
+        ('Code',  'U2'),  # noqa: E241 # A2
+        ('Depth', 'f4'),  # noqa: E241 # I4
+        ('East',  'f4'),  # noqa: E241 # F9.1
+        ('North', 'f4'),  # noqa: E241 # F10.1
+        ('Elev',  'f4'),  # noqa: E241 # F6.1
+        ('Day',   'i4'),  # noqa: E241 # I3
+        ('Hour',  'i1'),  # noqa: E241 # I2
+        ('Min',   'i1'),  # noqa: E241 # I2
+        ('Sec',   'i1'),  # noqa: E241 # I2
+        ('Stub',  'i1'),  # noqa: E241 # I2
         # fmt : on
     ])
 
 pntType5 = np.dtype(
     [
-        ('LocX', 'f4'),  # F9.1
-        ('LocY', 'f4'),  # F10.1
-        ('Elev', 'f4'),  # F6.1
+        ('LocX', 'f4'),  # noqa: E241 # F9.1
+        ('LocY', 'f4'),  # noqa: E241 # F10.1
+        ('Elev', 'f4'),  # noqa: E241 # F6.1
     ])
 
 relType = np.dtype(
     [
         # fmt : off
-        ('RecID',  'U1'),  # A1 ('X')
-        ('TapeNo', 'U8'),  # 3A2
-        ('RecNum', 'i4'),  # I8
-        ('RecInc', 'i4'),  # I1
-        ('Instru', 'U2'),  # A1
-        ('SrcLin', 'f4'),  # F10.2
-        ('SrcPnt', 'f4'),  # F10.2
-        ('SrcInd', 'i4'),  # I1
-        ('ChaMin', 'i4'),  # I5
-        ('ChaMax', 'i4'),  # I5
-        ('ChaInc', 'i4'),  # I1    (e.g. 3 to record 3C data; 4 for 4C nodes)
-        ('RecLin', 'f4'),  # F10.2
-        ('RecMin', 'f4'),  # F10.2
-        ('RecMax', 'f4'),  # F10.2
-        ('RecInd', 'i4'),  # I1
+        ('RecID',  'U1'),  # noqa: E241 # A1 ('X')
+        ('TapeNo', 'U8'),  # noqa: E241 # 3A2
+        ('RecNum', 'i4'),  # noqa: E241 # I8
+        ('RecInc', 'i4'),  # noqa: E241 # I1
+        ('Instru', 'U2'),  # noqa: E241 # A1
+        ('SrcLin', 'f4'),  # noqa: E241 # F10.2
+        ('SrcPnt', 'f4'),  # noqa: E241 # F10.2
+        ('SrcInd', 'i4'),  # noqa: E241 # I1
+        ('ChaMin', 'i4'),  # noqa: E241 # I5
+        ('ChaMax', 'i4'),  # noqa: E241 # I5
+        ('ChaInc', 'i4'),  # noqa: E241 # I1    (e.g. 3 to record 3C data; 4 for 4C nodes)
+        ('RecLin', 'f4'),  # noqa: E241 # F10.2
+        ('RecMin', 'f4'),  # noqa: E241 # F10.2
+        ('RecMax', 'f4'),  # noqa: E241 # F10.2
+        ('RecInd', 'i4'),  # noqa: E241 # I1
         # fmt : on
     ])
 
 relType2 = np.dtype(
     [
         # fmt : off
-        ('SrcLin', 'f4'),  # F10.2
-        ('SrcPnt', 'f4'),  # F10.2
-        ('SrcInd', 'i4'),  # I1
-        ('RecNum', 'i4'),  # I8
-        ('RecLin', 'f4'),  # F10.2
-        ('RecMin', 'f4'),  # F10.2
-        ('RecMax', 'f4'),  # F10.2
-        ('RecInd', 'i4'),  # I1
-        ('Uniq',   'i4'),  # check if record is unique
-        ('InSps',  'i4'),  # check if record is orphan
-        ('InRps',  'i4'),  # check if record is orphan
+        ('SrcLin', 'f4'),  # noqa: E241 # F10.2
+        ('SrcPnt', 'f4'),  # noqa: E241 # F10.2
+        ('SrcInd', 'i4'),  # noqa: E241 # I1
+        ('RecNum', 'i4'),  # noqa: E241 # I8
+        ('RecLin', 'f4'),  # noqa: E241 # F10.2
+        ('RecMin', 'f4'),  # noqa: E241 # F10.2
+        ('RecMax', 'f4'),  # noqa: E241 # F10.2
+        ('RecInd', 'i4'),  # noqa: E241 # I1
+        ('Uniq',   'i4'),  # noqa: E241 # check if record is unique
+        ('InSps',  'i4'),  # noqa: E241 # check if record is orphan
+        ('InRps',  'i4'),  # noqa: E241 # check if record is orphan
         # fmt : on
     ])
 
 relType3 = np.dtype(
     [
-        ('RecLin', 'f4'),  # F10.2
-        ('RecMin', 'f4'),  # F10.2
-        ('RecMax', 'f4'),  # F10.2
-        ('RecInd', 'i4'),  # I1
+        ('RecLin', 'f4'),  # noqa: E241 # F10.2
+        ('RecMin', 'f4'),  # noqa: E241 # F10.2
+        ('RecMax', 'f4'),  # noqa: E241 # F10.2
+        ('RecInd', 'i4'),  # noqa: E241 # I1
     ])
 
 anaType = np.dtype(
     [
         # fmt : off
-        ('SrcX', np.float32),  # Src (x, y)
-        ('SrcY', np.float32),
-        ('RecX', np.float32),  # Rec (x, y)
-        ('RecY', np.float32),
-        ('CmpX', np.float32),  # Cmp (x, y); needed for spider plot when binning against dipping plane
-        ('CmpY', np.float32),
-        ('SrcL', np.int32),    # SrcLine, SrcPoint
-        ('SrcP', np.int32),
-        ('RecL', np.int32),    # RecLine, RecPoint
-        ('RecP', np.int32),
+        ('SrcX', np.float32),  # noqa: E241 # Src (x, y)
+        ('SrcY', np.float32),  # noqa: E241 # Src (x, y)
+        ('RecX', np.float32),  # noqa: E241 # Rec (x, y)
+        ('RecY', np.float32),  # noqa: E241 # Rec (x, y)
+        ('CmpX', np.float32),  # noqa: E241 # Cmp (x, y); needed for spider plot when binning against dipping plane
+        ('CmpY', np.float32),  # noqa: E241 # Cmp (x, y); needed for spider plot when binning against dipping plane
+        ('SrcL', np.int32),    # noqa: E241 # SrcLine, SrcPoint
+        ('SrcP', np.int32),    # noqa: E241 
+        ('RecL', np.int32),    # noqa: E241 # RecLine, RecPoint
+        ('RecP', np.int32),    # noqa: E241 
         # fmt : on
     ])
 
@@ -536,8 +536,8 @@ def fileExportAsR01(parent, fileName, extension, view, crs):
         fn += extension                                                         # just add the file extension
 
     # fmt: 0ff
-    fmt = '%1s',  '%10.2f', '%10.2f', '%2s',   '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6s'
-    #     'RecID','Line',   'Point',  'Blank', 'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'
+    fmt = '%1s',  '%10.2f', '%10.2f', '%2s',   '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6s'      # noqa: E241 
+    #     'RecID','Line',   'Point',  'Blank', 'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'     # noqa: E241 
     # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
     # fmt: 0n
 
@@ -598,8 +598,8 @@ def fileExportAsS01(parent, fileName, extension, view, crs):
         fn += extension                                                         # just add the file extension
 
     # fmt: off
-    fmt = '%1s',  '%10.2f', '%10.2f', '%2s',   '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6s'
-    #     'RecID','Line',   'Point',  'Blank', 'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'
+    fmt = '%1s',  '%10.2f', '%10.2f', '%2s',   '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6s'      # noqa: E241 
+    #     'RecID','Line',   'Point',  'Blank', 'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'     # noqa: E241 
     # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
     # fmt: on
 
@@ -659,8 +659,8 @@ def fileExportAsX01(parent, fileName, extension, view, crs):
         fn += extension                                                         # just add the file extension
 
     # fmt: off
-    fmt = '%1s',   '%6s',    '%8d',    '%1d',    '%1s',    '%10.2f', '%10.2f', '%1d',    '%5d',    '%5d',    '%1d',    '%10.2f', '%10.2f', '%10.2f', '%1d'
-    #     'RecID', 'TapeNo', 'RecNum', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'
+    fmt = '%1s',   '%6s',    '%8d',    '%1d',    '%1s',    '%10.2f', '%10.2f', '%1d',    '%5d',    '%5d',    '%1d',    '%10.2f', '%10.2f', '%10.2f', '%1d'      # noqa: E241 
+    #     'RecID', 'TapeNo', 'RecNum', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'   # noqa: E241 
     # fmt: on
 
     # relType2 is used in the rel/rps model:
