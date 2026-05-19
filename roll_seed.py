@@ -181,7 +181,8 @@ class RollSeed:
     def calcPointArray(self):
 
         if self.type < SeedType.circle:                                         # for grid based seeds, the point array can be calculated directly from the grow steps
-            assert len(self.grid.growList) == 3, 'there must always be 3 grow steps for grid seeds'
+            # Normalized grid invariant.
+            assert len(self.grid.growList) == 3, 'there must always be 3 grow steps for grid seeds'  # nosec B101
 
             nSteps = 1
             for growStep in self.grid.growList:                                 # iterate through all grow steps

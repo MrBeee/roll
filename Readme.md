@@ -212,6 +212,15 @@ On May 6th 2026, the Addin contained `34,316` Source-Lines-Of-Code (SLOC) across
 
 This SLOC count excludes blank lines and lines starting with `#`, but still counts lines that contain code plus an inline comment.
 
+### 6.2	Vibe coding
+
+Using GPT5.4 or Gemini 3 to optimize the code using 'agents' that analyse binning and geometry generation routines, helps to find bottlenecks and speeds up the code, at the risk that bugs are introduced that are difficult to spot due to the large permutation in survey designs caused by varying number of blocks, templates, seeds and seed types. For that reason, for **binning** and **geometry generation** alternative routines are implemented: 
+
+1.  legacy code
+2. experimental code
+
+By extensive testing the experimental routines, they will be replacing the legacy routines over time. The selection is controlled by a flag in the settings dialog: `use experimental code` 
+
 
 
 ### 7	To Do
@@ -222,6 +231,7 @@ This SLOC count excludes blank lines and lines starting with `#`, but still coun
 
 
 ### 8	Changelog
+- 2026-05-19 (0.7.3) Fixed a bug in 'experimental' geometry generation, that caused 'fixed' grids to be interpreted as 'rolling' grids
 - 2026-05-17 (0.7.2) Fixed a bug in survey's template count, affecting progress message in geometry generation 
 - 2026-05-15 (0.7.1) Added "Shift Survey Location..." dialog. Expanded 3D view for Subset of survey data. Updated Marine Survey Wizard for optimal x-line bin size.
 - 2026-05-06 (0.7.0) Optimization of binning from templates and binning from geometry. Completed Flake8 code clean up.

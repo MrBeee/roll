@@ -21,7 +21,8 @@ import configparser
 import importlib
 import math
 import os
-import pickle
+# Used only for local serializability checks via pickle.dumps.
+import pickle  # nosec B403
 import re
 import sys
 from pathlib import Path
@@ -210,7 +211,8 @@ def maxCableLengthVsTurnSpeed(speed):
 
 
 def makePenFromParms(parms):
-    assert len(parms) == 6, "need 6 parameters for: ('color', 'width', 'style', 'capStyle', 'joinStyle', 'cosmetic')"
+    # Internal UI contract for pen serialization/deserialization.
+    assert len(parms) == 6, "need 6 parameters for: ('color', 'width', 'style', 'capStyle', 'joinStyle', 'cosmetic')"  # nosec B101
 
     ps = Qt.PenStyle
     cs = Qt.PenCapStyle

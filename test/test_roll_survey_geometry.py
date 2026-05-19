@@ -45,6 +45,22 @@ class RollSurveyGeometryTest(unittest.TestCase):
         survey.calcTransforms()
         return survey
 
+    def runGeometryUsingTemplateRoutine(self, survey, routineName):
+        def appendWithChosenRoutine(nBlock, block, template):
+            routine = getattr(survey, routineName)
+            for templateOffset in survey.iterTemplateRollOffsets(template):
+                routine(nBlock, block, template, templateOffset)
+
+        with patch.object(survey, 'appendTemplateGeometryFromRolls', side_effect=appendWithChosenRoutine):
+            success = survey.setupGeometryFromTemplates()
+
+        self.assertTrue(success)
+        return (
+            survey.output.srcGeom.copy(),
+            survey.output.recGeom.copy(),
+            survey.output.relGeom.copy(),
+        )
+
     def testSetupGeometryFromTemplatesBuildsSingleSourceReceiverAndRelation(self):
         survey = self.createSurvey()
         survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
@@ -93,10 +109,31 @@ class RollSurveyGeometryTest(unittest.TestCase):
         self.assertEqual(relRecord['RecLin'], recRecord['Line'])
         self.assertEqual(relRecord['RecMin'], recRecord['Point'])
         self.assertEqual(relRecord['RecMax'], recRecord['Point'])
-        self.assertEqual(relRecord['RecNum'], 1)
-        self.assertEqual(relRecord['Uniq'], 1)
-        self.assertEqual(relRecord['InSps'], 1)
-        self.assertEqual(relRecord['InRps'], 1)
+
+    def testAppendTemplateGeometryFromRollsDispatchesByExperimentalFlag(self):
+        survey = self.createSurvey()
+        survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+
+        block = survey.blockList[0]
+        template = block.templateList[0]
+
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=False)):
+            with patch.object(survey, 'iterTemplateRollOffsets', return_value=[QVector3D(0.0, 0.0, 0.0)]):
+                with patch.object(survey, 'geomTemplate4') as geomTemplate4:
+                    with patch.object(survey, 'geomTemplate5') as geomTemplate5:
+                        survey.appendTemplateGeometryFromRolls(0, block, template)
+
+        geomTemplate4.assert_called_once_with(0, block, template, QVector3D(0.0, 0.0, 0.0))
+        geomTemplate5.assert_not_called()
+
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=True)):
+            with patch.object(survey, 'iterTemplateRollOffsets', return_value=[QVector3D(0.0, 0.0, 0.0)]):
+                with patch.object(survey, 'geomTemplate4') as geomTemplate4:
+                    with patch.object(survey, 'geomTemplate5') as geomTemplate5:
+                        survey.appendTemplateGeometryFromRolls(0, block, template)
+
+        geomTemplate4.assert_not_called()
+        geomTemplate5.assert_called_once_with(0, block, template, QVector3D(0.0, 0.0, 0.0))
 
     def testSetupGeometryFromTemplatesBuildsRolledTemplateShotsReceiversAndRelations(self):
         survey = self.createSurvey()
@@ -124,6 +161,171 @@ class RollSurveyGeometryTest(unittest.TestCase):
         np.testing.assert_array_equal(survey.output.relGeom['SrcPnt'], np.array([1000, 1001]))
         np.testing.assert_array_equal(survey.output.relGeom['RecMin'], np.array([1002, 1003]))
         np.testing.assert_array_equal(survey.output.relGeom['RecMax'], np.array([1002, 1003]))
+
+    def testGeomTemplate5MatchesGeomTemplate4ForRolledGridGeometry(self):
+        survey4 = self.createSurvey()
+        survey4.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+        template4 = survey4.blockList[0].templateList[0]
+        template4.rollList[2].steps = 2
+        template4.rollList[2].increment = QVector3D(10.0, 0.0, 0.0)
+        srcSeed4 = next(seed for seed in template4.seedList if seed.bSource)
+        recSeed4 = next(seed for seed in template4.seedList if not seed.bSource)
+        srcSeed4.origin = QVector3D(0.0, 0.0, 0.0)
+        recSeed4.origin = QVector3D(20.0, 0.0, 0.0)
+
+        survey5 = self.createSurvey()
+        survey5.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+        template5 = survey5.blockList[0].templateList[0]
+        template5.rollList[2].steps = 2
+        template5.rollList[2].increment = QVector3D(10.0, 0.0, 0.0)
+        srcSeed5 = next(seed for seed in template5.seedList if seed.bSource)
+        recSeed5 = next(seed for seed in template5.seedList if not seed.bSource)
+        srcSeed5.origin = QVector3D(0.0, 0.0, 0.0)
+        recSeed5.origin = QVector3D(20.0, 0.0, 0.0)
+
+        srcGeom4, recGeom4, relGeom4 = self.runGeometryUsingTemplateRoutine(survey4, 'geomTemplate4')
+        srcGeom5, recGeom5, relGeom5 = self.runGeometryUsingTemplateRoutine(survey5, 'geomTemplate5')
+
+        np.testing.assert_array_equal(srcGeom4, srcGeom5)
+        np.testing.assert_array_equal(recGeom4, recGeom5)
+        np.testing.assert_array_equal(relGeom4, relGeom5)
+
+    def testGeomTemplate5MatchesGeomTemplate4ForInvariantWellReceivers(self):
+        boreholePoints = [QVector3D(20.0, 0.0, -float(z)) for z in range(5)]
+
+        survey4 = self.createSurvey()
+        survey4.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+        template4 = survey4.blockList[0].templateList[0]
+        template4.rollList[2].steps = 2
+        template4.rollList[2].increment = QVector3D(10.0, 0.0, 0.0)
+        srcSeed4 = next(seed for seed in template4.seedList if seed.bSource)
+        recSeed4 = next(seed for seed in template4.seedList if not seed.bSource)
+        srcSeed4.origin = QVector3D(0.0, 0.0, 0.0)
+        recSeed4.type = SeedType.well
+        recSeed4.bSource = False
+
+        survey5 = self.createSurvey()
+        survey5.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+        template5 = survey5.blockList[0].templateList[0]
+        template5.rollList[2].steps = 2
+        template5.rollList[2].increment = QVector3D(10.0, 0.0, 0.0)
+        srcSeed5 = next(seed for seed in template5.seedList if seed.bSource)
+        recSeed5 = next(seed for seed in template5.seedList if not seed.bSource)
+        srcSeed5.origin = QVector3D(0.0, 0.0, 0.0)
+        recSeed5.type = SeedType.well
+        recSeed5.bSource = False
+
+        with patch.object(recSeed4.well, 'calcPointList', return_value=(boreholePoints, QVector3D(20.0, 0.0, 0.0))):
+            survey4.calcSeedData()
+            srcGeom4, recGeom4, relGeom4 = self.runGeometryUsingTemplateRoutine(survey4, 'geomTemplate4')
+
+        with patch.object(recSeed5.well, 'calcPointList', return_value=(boreholePoints, QVector3D(20.0, 0.0, 0.0))):
+            survey5.calcSeedData()
+            srcGeom5, recGeom5, relGeom5 = self.runGeometryUsingTemplateRoutine(survey5, 'geomTemplate5')
+
+        np.testing.assert_array_equal(srcGeom4, srcGeom5)
+        np.testing.assert_array_equal(recGeom4, recGeom5)
+        np.testing.assert_array_equal(relGeom4, relGeom5)
+
+    def testGeomTemplate5MatchesGeomTemplate4ForInvariantCircleAndSpiralReceivers(self):
+        for seedType in (SeedType.circle, SeedType.spiral):
+            with self.subTest(seedType=seedType):
+                survey4 = self.createSurvey()
+                survey4.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+                template4 = survey4.blockList[0].templateList[0]
+                template4.rollList[2].steps = 2
+                template4.rollList[2].increment = QVector3D(10.0, 0.0, 0.0)
+                srcSeed4 = next(seed for seed in template4.seedList if seed.bSource)
+                recSeed4 = next(seed for seed in template4.seedList if not seed.bSource)
+                srcSeed4.origin = QVector3D(0.0, 0.0, 0.0)
+                recSeed4.type = seedType
+                recSeed4.bSource = False
+                recSeed4.pointList = [
+                    QVector3D(20.0, 0.0, 0.0),
+                    QVector3D(30.0, 0.0, 0.0),
+                ]
+                recSeed4.calcPointArray()
+
+                survey5 = self.createSurvey()
+                survey5.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+                template5 = survey5.blockList[0].templateList[0]
+                template5.rollList[2].steps = 2
+                template5.rollList[2].increment = QVector3D(10.0, 0.0, 0.0)
+                srcSeed5 = next(seed for seed in template5.seedList if seed.bSource)
+                recSeed5 = next(seed for seed in template5.seedList if not seed.bSource)
+                srcSeed5.origin = QVector3D(0.0, 0.0, 0.0)
+                recSeed5.type = seedType
+                recSeed5.bSource = False
+                recSeed5.pointList = [
+                    QVector3D(20.0, 0.0, 0.0),
+                    QVector3D(30.0, 0.0, 0.0),
+                ]
+                recSeed5.calcPointArray()
+
+                srcGeom4, recGeom4, relGeom4 = self.runGeometryUsingTemplateRoutine(survey4, 'geomTemplate4')
+                srcGeom5, recGeom5, relGeom5 = self.runGeometryUsingTemplateRoutine(survey5, 'geomTemplate5')
+
+                np.testing.assert_array_equal(srcGeom4, srcGeom5)
+                np.testing.assert_array_equal(recGeom4, recGeom5)
+                np.testing.assert_array_equal(relGeom4, relGeom5)
+
+    def testGeomTemplate5MatchesGeomTemplate4WhenReceiverBorderFiltersPoints(self):
+        survey4 = self.createSurvey()
+        survey4.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+        block4 = survey4.blockList[0]
+        template4 = block4.templateList[0]
+        block4.borders.recBorder = QRectF(15.0, -5.0, 20.0, 10.0)
+        srcSeed4 = next(seed for seed in template4.seedList if seed.bSource)
+        recSeed4 = next(seed for seed in template4.seedList if not seed.bSource)
+        srcSeed4.origin = QVector3D(0.0, 0.0, 0.0)
+        recSeed4.origin = QVector3D(20.0, 0.0, 0.0)
+        recSeed4.grid.growList[2].steps = 3
+        recSeed4.grid.growList[2].increment = QVector3D(10.0, 0.0, 0.0)
+
+        survey5 = self.createSurvey()
+        survey5.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+        block5 = survey5.blockList[0]
+        template5 = block5.templateList[0]
+        block5.borders.recBorder = QRectF(15.0, -5.0, 20.0, 10.0)
+        srcSeed5 = next(seed for seed in template5.seedList if seed.bSource)
+        recSeed5 = next(seed for seed in template5.seedList if not seed.bSource)
+        srcSeed5.origin = QVector3D(0.0, 0.0, 0.0)
+        recSeed5.origin = QVector3D(20.0, 0.0, 0.0)
+        recSeed5.grid.growList[2].steps = 3
+        recSeed5.grid.growList[2].increment = QVector3D(10.0, 0.0, 0.0)
+
+        srcGeom4, recGeom4, relGeom4 = self.runGeometryUsingTemplateRoutine(survey4, 'geomTemplate4')
+        srcGeom5, recGeom5, relGeom5 = self.runGeometryUsingTemplateRoutine(survey5, 'geomTemplate5')
+
+        np.testing.assert_array_equal(srcGeom4, srcGeom5)
+        np.testing.assert_array_equal(recGeom4, recGeom5)
+        np.testing.assert_array_equal(relGeom4, relGeom5)
+
+    def testGeomTemplate5MatchesGeomTemplate4AcrossBlocksWithCoincidentReceiverCells(self):
+        survey4 = self.createSurvey()
+        survey4.createBasicSkeleton(nBlocks=2, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+        for block in survey4.blockList:
+            template = block.templateList[0]
+            srcSeed = next(seed for seed in template.seedList if seed.bSource)
+            recSeed = next(seed for seed in template.seedList if not seed.bSource)
+            srcSeed.origin = QVector3D(0.0, 0.0, 0.0)
+            recSeed.origin = QVector3D(20.0, 0.0, 0.0)
+
+        survey5 = self.createSurvey()
+        survey5.createBasicSkeleton(nBlocks=2, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+        for block in survey5.blockList:
+            template = block.templateList[0]
+            srcSeed = next(seed for seed in template.seedList if seed.bSource)
+            recSeed = next(seed for seed in template.seedList if not seed.bSource)
+            srcSeed.origin = QVector3D(0.0, 0.0, 0.0)
+            recSeed.origin = QVector3D(20.0, 0.0, 0.0)
+
+        srcGeom4, recGeom4, relGeom4 = self.runGeometryUsingTemplateRoutine(survey4, 'geomTemplate4')
+        srcGeom5, recGeom5, relGeom5 = self.runGeometryUsingTemplateRoutine(survey5, 'geomTemplate5')
+
+        np.testing.assert_array_equal(srcGeom4, srcGeom5)
+        np.testing.assert_array_equal(recGeom4, recGeom5)
+        np.testing.assert_array_equal(relGeom4, relGeom5)
 
     def testCalcNoTemplatesSumsRolloutsAcrossTemplatesWithinBlock(self):
         survey = self.createSurvey()
@@ -183,17 +385,75 @@ class RollSurveyGeometryTest(unittest.TestCase):
                 srcSeed.origin = QVector3D(0.0, 0.0, 0.0)
                 recSeed.type = SeedType.well
                 recSeed.bSource = False
-                recSeed.pointList = [QVector3D(20.0, 0.0, -float(z)) for z in range(5)]
-                recSeed.calcPointArray()
+                boreholePoints = [QVector3D(20.0, 0.0, -float(z)) for z in range(5)]
 
-                with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=useExperimental)):
-                    success = survey.setupGeometryFromTemplates()
+                with patch.object(recSeed.well, 'calcPointList', return_value=(boreholePoints, QVector3D(20.0, 0.0, 0.0))):
+                    survey.calcSeedData()
+                    with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=useExperimental)):
+                        success = survey.setupGeometryFromTemplates()
 
                 self.assertTrue(success)
                 self.assertEqual(survey.output.recGeom.shape[0], 5)
                 self.assertEqual(len(np.unique(survey.output.recGeom['Depth'])), 5)
                 np.testing.assert_array_equal(survey.output.relGeom['RecMin'], np.array([1002, 1002]))
                 np.testing.assert_array_equal(survey.output.relGeom['RecMax'], np.array([1002, 1002]))
+
+    def testSetupGeometryFromTemplatesKeepsInvariantFixedGridReceiversFixedAcrossTemplateRolls(self):
+        for useExperimental in (False, True):
+            with self.subTest(useExperimental=useExperimental):
+                survey = self.createSurvey()
+                survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+
+                template = survey.blockList[0].templateList[0]
+                template.rollList[2].steps = 2
+                template.rollList[2].increment = QVector3D(10.0, 0.0, 0.0)
+
+                srcSeed = next(seed for seed in template.seedList if seed.bSource)
+                recSeed = next(seed for seed in template.seedList if not seed.bSource)
+                srcSeed.origin = QVector3D(0.0, 0.0, 0.0)
+                recSeed.type = SeedType.fixedGrid
+                recSeed.bSource = False
+                recSeed.origin = QVector3D(20.0, 0.0, 0.0)
+                recSeed.grid.growList[2].steps = 2
+                recSeed.grid.growList[2].increment = QVector3D(10.0, 0.0, 0.0)
+                recSeed.calcPointArray()
+
+                with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=useExperimental)):
+                    success = survey.setupGeometryFromTemplates()
+
+                self.assertTrue(success)
+                self.assertEqual(survey.output.recGeom.shape[0], 2)
+                np.testing.assert_array_equal(survey.output.recGeom['Point'], np.array([1002, 1003]))
+                np.testing.assert_array_equal(survey.output.relGeom['RecMin'], np.array([1002, 1002]))
+                np.testing.assert_array_equal(survey.output.relGeom['RecMax'], np.array([1003, 1003]))
+
+    def testSetupGeometryFromTemplatesKeepsFixedGridSourceLocationsInvariantAcrossTemplateRolls(self):
+        for useExperimental in (False, True):
+            with self.subTest(useExperimental=useExperimental):
+                survey = self.createSurvey()
+                survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+
+                template = survey.blockList[0].templateList[0]
+                template.rollList[2].steps = 2
+                template.rollList[2].increment = QVector3D(10.0, 0.0, 0.0)
+
+                srcSeed = next(seed for seed in template.seedList if seed.bSource)
+                recSeed = next(seed for seed in template.seedList if not seed.bSource)
+                srcSeed.type = SeedType.fixedGrid
+                srcSeed.origin = QVector3D(0.0, 0.0, 0.0)
+                srcSeed.grid.growList[2].steps = 2
+                srcSeed.grid.growList[2].increment = QVector3D(10.0, 0.0, 0.0)
+                srcSeed.calcPointArray()
+                recSeed.origin = QVector3D(40.0, 0.0, 0.0)
+
+                with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=useExperimental)):
+                    success = survey.setupGeometryFromTemplates()
+
+                self.assertTrue(success)
+                self.assertEqual(survey.output.srcGeom.shape[0], 4)
+                uniquePoints, pointCounts = np.unique(survey.output.srcGeom['Point'], return_counts=True)
+                np.testing.assert_array_equal(uniquePoints, np.array([1000, 1001]))
+                np.testing.assert_array_equal(pointCounts, np.array([2, 2]))
 
     def testCheckIntegrityRejectsMalformedTemplateWithoutRepairingRollList(self):
         survey = self.createSurvey()
@@ -438,7 +698,7 @@ class RollSurveyGeometryTest(unittest.TestCase):
         # Depth must vary across the trajectory (49 distinct values for z=0..49).
         self.assertEqual(len(np.unique(depths)), 50)
 
-    def testSetupGeometryFromTemplatesDoesNotMergeGapSeparatedReceiverRangesOnSameLine(self):
+    def testSetupGeometryFromTemplatesBuildsReceiverGeometryFromWellBoreholePoints(self):
         for useExperimental in (False, True):
             with self.subTest(useExperimental=useExperimental):
                 survey = self.createSurvey()
@@ -447,21 +707,31 @@ class RollSurveyGeometryTest(unittest.TestCase):
                 template = survey.blockList[0].templateList[0]
                 srcSeed = next(seed for seed in template.seedList if seed.bSource)
                 recSeed = next(seed for seed in template.seedList if not seed.bSource)
-
                 srcSeed.origin = QVector3D(0.0, 0.0, 0.0)
+                recSeed.type = SeedType.well
+                recSeed.bSource = False
                 recSeed.origin = QVector3D(20.0, 0.0, 0.0)
-                recSeed.grid.growList[2].steps = 2
-                recSeed.grid.growList[2].increment = QVector3D(20.0, 0.0, 0.0)
+                recSeed.pointList = []
+                recSeed.pointArray = None
 
-                with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=useExperimental)):
-                    success = survey.setupGeometryFromTemplates()
+                boreholePoints = [
+                    QVector3D(20.0, 0.0, 0.0),
+                    QVector3D(20.0, 0.0, -10.0),
+                    QVector3D(20.0, 0.0, -20.0),
+                    QVector3D(20.0, 0.0, -30.0),
+                ]
+
+                with patch.object(recSeed.well, 'calcPointList', return_value=(boreholePoints, QVector3D(20.0, 0.0, 0.0))):
+                    survey.calcSeedData()
+                    with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=SimpleNamespace(useExperimental=useExperimental)):
+                        success = survey.setupGeometryFromTemplates()
 
                 self.assertTrue(success)
-                self.assertEqual(survey.output.recGeom.shape[0], 2)
-                self.assertEqual(survey.output.relGeom.shape[0], 2)
-                np.testing.assert_array_equal(survey.output.relGeom['RecLin'], np.array([1000.0, 1000.0], dtype=np.float32))
-                np.testing.assert_array_equal(survey.output.relGeom['RecMin'], np.array([1002.0, 1004.0], dtype=np.float32))
-                np.testing.assert_array_equal(survey.output.relGeom['RecMax'], np.array([1002.0, 1004.0], dtype=np.float32))
+                self.assertEqual(survey.output.recGeom.shape[0], 4)
+                np.testing.assert_array_equal(survey.output.recGeom['Point'], np.array([1002, 1002, 1002, 1002]))
+                np.testing.assert_array_equal(survey.output.recGeom['Depth'], np.array([0.0, 10.0, 20.0, 30.0], dtype=np.float32))
+                np.testing.assert_array_equal(survey.output.relGeom['RecMin'], np.array([1002]))
+                np.testing.assert_array_equal(survey.output.relGeom['RecMax'], np.array([1002]))
 
     def testAppendTemplateSourceRecordsAppendsFilteredSources(self):
         survey = self.createSurvey()

@@ -82,8 +82,8 @@ from .roll_survey import RollSurvey
 from .runtime_state import RuntimeState
 from .session_service import SessionService
 from .session_state import SessionState
-from .shift_survey_area_dialog import ShiftSurveyAreaDialog
 from .settings import SettingsDialog, readSettings, writeSettings
+from .shift_survey_area_dialog import ShiftSurveyAreaDialog
 from .spider_navigation_mixin import SpiderNavigationMixin
 from .sps_import_dialog import SpsImportDialog
 from .sps_io_and_qc import (convertCrs, exportDataAsTxt, fileExportAsR01,
@@ -1771,7 +1771,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         del args
         try:
             refreshLayout3DFromSurvey(self)
-        except Exception:                                       # pragma: no cover
+        # Layout refresh should never break user edits.
+        except Exception:                                       # pragma: no cover  # nosec B110
             pass
 
     def exceptionHook(self, eType, eValue, eTraceback):
@@ -3376,13 +3377,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.appendLogMessage(f'Import : importing {len(dlg.rpsFiles)} rps-file(s), {len(dlg.spsFiles)} sps-file(s) and {len(dlg.xpsFiles)} xps-file(s)')
 
         spsFormat = next((item for item in self.appSettings.spsFormatList if item['name'] == spsDialect), None)
-        assert spsFormat is not None, f'No valid SPS dialect with name {spsDialect}'
+        # Dialog selection must match configured dialects.
+        assert spsFormat is not None, f'No valid SPS dialect with name {spsDialect}'  # nosec B101
 
         xpsFormat = next((item for item in self.appSettings.xpsFormatList if item['name'] == spsDialect), None)
-        assert xpsFormat is not None, f'No valid XPS dialect with name {spsDialect}'
+        # Dialog selection must match configured dialects.
+        assert xpsFormat is not None, f'No valid XPS dialect with name {spsDialect}'  # nosec B101
 
         rpsFormat = next((item for item in self.appSettings.rpsFormatList if item['name'] == spsDialect), None)
-        assert rpsFormat is not None, f'No valid RPS dialect with name {spsDialect}'
+        # Dialog selection must match configured dialects.
+        assert rpsFormat is not None, f'No valid RPS dialect with name {spsDialect}'  # nosec B101
 
         spsData = dlg.spsTab.toPlainText().splitlines() if dlg.spsFiles else None
         xpsData = dlg.xpsTab.toPlainText().splitlines() if dlg.xpsFiles else None

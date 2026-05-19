@@ -198,6 +198,168 @@ class Layout3DHelperTest(unittest.TestCase):
             widget.close()
             widget.deleteLater()
 
+    def testCollectSeedGeometriesIncludesFixedGridAsInvariant3DGeometry(self):
+        widget = Layout3DWidget()
+        try:
+            growList = [
+                SimpleNamespace(steps=2, increment=QVector3D(10.0, 0.0, 0.0)),
+                SimpleNamespace(steps=2, increment=QVector3D(0.0, 20.0, 0.0)),
+                SimpleNamespace(steps=3, increment=QVector3D(0.0, 0.0, -5.0)),
+            ]
+            fixedGridSeed = SimpleNamespace(
+                type=rollSurveyModule.SeedType.fixedGrid,
+                origin=QVector3D(100.0, 200.0, 0.0),
+                grid=SimpleNamespace(growList=growList),
+                pointArray=np.array(
+                    [
+                        [100.0, 200.0, 0.0],
+                        [100.0, 200.0, -5.0],
+                        [100.0, 200.0, -10.0],
+                        [100.0, 220.0, 0.0],
+                        [100.0, 220.0, -5.0],
+                        [100.0, 220.0, -10.0],
+                        [110.0, 200.0, 0.0],
+                        [110.0, 200.0, -5.0],
+                        [110.0, 200.0, -10.0],
+                        [110.0, 220.0, 0.0],
+                        [110.0, 220.0, -5.0],
+                        [110.0, 220.0, -10.0],
+                    ],
+                    dtype=np.float32,
+                ),
+                pointList=[],
+                color=QColor('#7787A4D9'),
+            )
+            survey = SimpleNamespace(
+                glbTransform=None,
+                blockList=[
+                    SimpleNamespace(
+                        templateList=[SimpleNamespace(seedList=[fixedGridSeed])],
+                    )
+                ],
+            )
+
+            items = widget._collectSeedGeometries(survey, False)
+
+            self.assertEqual(len(items), 1)
+            self.assertEqual(items[0]['kind'], 'fixedGrid')
+            np.testing.assert_allclose(items[0]['points'], fixedGridSeed.pointArray.astype(np.float64))
+            np.testing.assert_allclose(items[0]['samplePoints'], fixedGridSeed.pointArray.astype(np.float64))
+            self.assertEqual(items[0]['segments'].shape, (4, 2, 3))
+            np.testing.assert_allclose(items[0]['segments'][0, 0], np.array([100.0, 200.0, 0.0], dtype=np.float64))
+            np.testing.assert_allclose(items[0]['segments'][0, 1], np.array([100.0, 200.0, -10.0], dtype=np.float64))
+            np.testing.assert_allclose(items[0]['segments'][-1, 0], np.array([110.0, 220.0, 0.0], dtype=np.float64))
+            np.testing.assert_allclose(items[0]['segments'][-1, 1], np.array([110.0, 220.0, -10.0], dtype=np.float64))
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def testCollectSeedGeometriesBuildsFixedGridFromGrowListWhenPointArrayMissing(self):
+        widget = Layout3DWidget()
+        try:
+            growList = [
+                SimpleNamespace(steps=2, increment=QVector3D(10.0, 0.0, 0.0)),
+                SimpleNamespace(steps=2, increment=QVector3D(0.0, 20.0, 0.0)),
+                SimpleNamespace(steps=3, increment=QVector3D(0.0, 0.0, -5.0)),
+            ]
+            fixedGridSeed = SimpleNamespace(
+                type=rollSurveyModule.SeedType.fixedGrid,
+                origin=QVector3D(100.0, 200.0, 0.0),
+                grid=SimpleNamespace(
+                    growList=growList,
+                    iterPoints=lambda origin: [
+                        QVector3D(origin.x() + dx, origin.y() + dy, origin.z() + dz)
+                        for dx in (0.0, 10.0)
+                        for dy in (0.0, 20.0)
+                        for dz in (0.0, -5.0, -10.0)
+                    ],
+                ),
+                pointArray=None,
+                pointList=[],
+                color=QColor('#7787A4D9'),
+            )
+            survey = SimpleNamespace(
+                glbTransform=None,
+                blockList=[
+                    SimpleNamespace(
+                        templateList=[SimpleNamespace(seedList=[fixedGridSeed])],
+                    )
+                ],
+            )
+
+            items = widget._collectSeedGeometries(survey, False)
+
+            self.assertEqual(len(items), 1)
+            self.assertEqual(items[0]['kind'], 'fixedGrid')
+            self.assertEqual(items[0]['points'].shape, (12, 3))
+            self.assertEqual(items[0]['samplePoints'].shape, (12, 3))
+            self.assertEqual(items[0]['segments'].shape, (4, 2, 3))
+            np.testing.assert_allclose(items[0]['points'][0], np.array([100.0, 200.0, 0.0], dtype=np.float64))
+            np.testing.assert_allclose(items[0]['points'][-1], np.array([110.0, 220.0, -10.0], dtype=np.float64))
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def testCollectSeedGeometriesTransformsFixedGridSegmentsInGlobalMode(self):
+        widget = Layout3DWidget()
+        try:
+            growList = [
+                SimpleNamespace(steps=2, increment=QVector3D(10.0, 0.0, 0.0)),
+                SimpleNamespace(steps=2, increment=QVector3D(0.0, 20.0, 0.0)),
+                SimpleNamespace(steps=3, increment=QVector3D(0.0, 0.0, -5.0)),
+            ]
+            fixedGridSeed = SimpleNamespace(
+                type=rollSurveyModule.SeedType.fixedGrid,
+                origin=QVector3D(100.0, 200.0, 0.0),
+                grid=SimpleNamespace(growList=growList),
+                pointArray=np.array(
+                    [
+                        [100.0, 200.0, 0.0],
+                        [100.0, 200.0, -5.0],
+                        [100.0, 200.0, -10.0],
+                        [100.0, 220.0, 0.0],
+                        [100.0, 220.0, -5.0],
+                        [100.0, 220.0, -10.0],
+                        [110.0, 200.0, 0.0],
+                        [110.0, 200.0, -5.0],
+                        [110.0, 200.0, -10.0],
+                        [110.0, 220.0, 0.0],
+                        [110.0, 220.0, -5.0],
+                        [110.0, 220.0, -10.0],
+                    ],
+                    dtype=np.float32,
+                ),
+                pointList=[],
+                color=QColor('#7787A4D9'),
+            )
+            transform = QTransform()
+            transform.translate(1250.0, 2450.0)
+            transform.rotate(30.0)
+            survey = SimpleNamespace(
+                glbTransform=transform,
+                blockList=[
+                    SimpleNamespace(
+                        templateList=[SimpleNamespace(seedList=[fixedGridSeed])],
+                    )
+                ],
+            )
+
+            items = widget._collectSeedGeometries(survey, True)
+
+            self.assertEqual(len(items), 1)
+            self.assertEqual(items[0]['segments'].shape, (4, 2, 3))
+
+            expectedStart = np.array(transform.map(100.0, 200.0), dtype=np.float64)
+            expectedEnd = np.array(transform.map(110.0, 220.0), dtype=np.float64)
+            np.testing.assert_allclose(items[0]['segments'][0, 0, :2], expectedStart)
+            np.testing.assert_allclose(items[0]['segments'][-1, 0, :2], expectedEnd)
+
+            expectedY0 = transform.map(100.0, 200.0)[1]
+            self.assertAlmostEqual(float(items[0]['segments'][0, 1, 1]), expectedY0)
+        finally:
+            widget.close()
+            widget.deleteLater()
+
     def testPgSymbolToMplMarkerMapsCommonPyqtgraphSymbols(self):
         self.assertEqual(layout3DModule._pgSymbolToMplMarker('o'), 'o')
         self.assertEqual(layout3DModule._pgSymbolToMplMarker('t1'), '^')

@@ -34,7 +34,8 @@ class PointMarker:                                                              
         return self._symbol
 
     def setSymbol(self, symbol):
-        assert isinstance(symbol, str), 'Argument of wrong type!'
+        # Parameter tree only passes symbol names.
+        assert isinstance(symbol, str), 'Argument of wrong type!'  # nosec B101
         self._symbol = symbol
 
     def color(self):

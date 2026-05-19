@@ -45,7 +45,8 @@ class SurveyType(Enum):
     Slanted    = (2, "Slanted - legacy variation on orthogonal, aiming to reduce LMOS")     # noqa: E221
     Brick      = (3, "Brick - legacy variation on orthogonal, aiming to reduce LMOS")       # noqa: E221
     Zigzag     = (4, "zigzag - legacy manner acquiring narrrow azimuth vibroseis data")     # noqa: E221
-    Streamer   = (5, "streamer - towed streamer marine survey")                             # noqa: E221
+    Marine     = (5, "streamer - towed streamer marine survey")                             # noqa: E221
+    Streamer   = Marine                                                                     # noqa: E221  # backward-compatible alias
     # Orthogonal = ("Orthogonal", "Orthogonal - standard manner of acquiring land data")
     # Parallel   = ("Parallel",   "Parallel - standard manner of acquiring OBN data")
     # Slanted    = ("Slanted",    "Slanted - legacy variation on orthogonal, aiming to reduce LMOS")

@@ -40,7 +40,8 @@ class RollGrid:
             self.growList = self.growList[-3:]
 
     def iterPoints(self, origin):
-        assert len(self.growList) == 3, 'there must always be 3 grow steps for pattern grids'
+        # Normalized XML invariant.
+        assert len(self.growList) == 3, 'there must always be 3 grow steps for pattern grids'  # nosec B101
 
         for i in range(self.growList[0].steps):
             off0 = QVector3D(origin)
@@ -101,7 +102,8 @@ class RollGrid:
         endPoint = origin + lineLength                                          # set the endPoint
         self.salvo = QLineF(origin.toPointF(), endPoint.toPointF())             # this is the unshifted line
 
-        assert self.salvo.length() > 0.0, "avoid salvo's of zero length"
+        # Defensive geometry invariant.
+        assert self.salvo.length() > 0.0, "avoid salvo's of zero length"  # nosec B101
 
         # print(f"SALV= x1:{self.salvo.x1():11.2f} y1:{self.salvo.y1():11.2f}, x2:{self.salvo.x2():11.2f} y2:{self.salvo.y2():11.2f}")
 

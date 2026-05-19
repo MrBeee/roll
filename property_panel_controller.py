@@ -211,7 +211,8 @@ class PropertyPanelController:
         window.enableProcessingMenuItems(True)
 
     def updatePatternList(self, survey):
-        assert isinstance(survey, RollSurvey), 'make sure we have a RollSurvey object here'
+        # Controller contract.
+        assert isinstance(survey, RollSurvey), 'make sure we have a RollSurvey object here'  # nosec B101
 
         patternNames = [pattern.name for pattern in survey.patternList]
         combos = [self.window.pattern1, self.window.pattern2, self.window.pattern3, self.window.pattern4]

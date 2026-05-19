@@ -269,7 +269,8 @@ def _buildAnalysisImageConfig(self):
                 continue
             try:
                 got = fn()
-            except Exception:                                   # pragma: no cover
+            # Color-bar probing is best effort.
+            except Exception:                                   # pragma: no cover  # nosec B112
                 continue
             if got is None:
                 continue
@@ -290,7 +291,8 @@ def _buildAnalysisImageConfig(self):
         try:
             surface = resolver(imageType)
             cmapName = surface.get('colorMap', cmapName) or cmapName
-        except Exception:                                       # pragma: no cover
+        # Fall back to default colormap on resolver failure.
+        except Exception:                                       # pragma: no cover  # nosec B110
             pass
     cmapName = _CMAP_NAME_TO_MPL.get(cmapName, cmapName)
 
@@ -344,12 +346,14 @@ def _teardownLayout3DWidget(self):
     self.layout3DWidget = None
     try:
         self.layoutViewStack.removeWidget(widget)
-    except Exception:
+    # Widget teardown is best effort.
+    except Exception:  # nosec B110
         pass
     try:
         widget.setParent(None)
         widget.deleteLater()
-    except Exception:
+    # Widget teardown is best effort.
+    except Exception:  # nosec B110
         pass
 
 

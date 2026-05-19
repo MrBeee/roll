@@ -242,6 +242,8 @@ class Layout3DWidget(QWidget):
 
         Draws (in order, only when applicable):
           * well trajectories  -- always (line)
+                    * fixed grids        -- non-rolling salvo lines always;
+                        individual grid points only if ``showSeedPoints`` is True
           * circle / spiral seeds -- shape always (line); individual
             sample points only if ``showSeedPoints`` is True
           * well sample points -- only if ``showSeedPoints`` is True
@@ -390,7 +392,7 @@ class Layout3DWidget(QWidget):
         # spirals first, wells next, and circles last. That way a
         # circle whose footprint overlaps a dense spiral disk stays
         # fully visible (latest-drawn = on top).
-        drawOrder = {'spiral': 0, 'well': 1, 'circle': 2}
+        drawOrder = {'spiral': 0, 'fixedGrid': 1, 'well': 2, 'circle': 3}
         seedItems = sorted(seedItems,
                            key=lambda it: drawOrder.get(it['kind'], 3))
         ax = self._axes
@@ -424,6 +426,27 @@ class Layout3DWidget(QWidget):
                     scat = ax.scatter(samplePoints[:, 0], samplePoints[:, 1],
                                       samplePoints[:, 2], s=8, c=[color],
                                       alpha=alpha, depthshade=False)
+                    self._artists.append(scat)
+            elif kind == 'fixedGrid':
+                segments = item.get('segments')
+                if segments is not None and segments.shape[0] >= 1:
+                    from mpl_toolkits.mplot3d.art3d import Line3DCollection
+
+                    gridLines = Line3DCollection(
+                        segments,
+                        colors=color,
+                        linewidths=1.2,
+                        alpha=alpha,
+                    )
+                    ax.add_collection3d(gridLines)
+                    self._artists.append(gridLines)
+                samplePoints = item.get('samplePoints')
+                if showSeedPoints and samplePoints is not None and samplePoints.shape[0] >= 1:
+                    scat = ax.scatter(samplePoints[:, 0], samplePoints[:, 1],
+                                      samplePoints[:, 2], s=8, c=[color],
+                                      alpha=alpha, depthshade=False,
+                                      zorder=4)
+                    scat.set_clip_on(False)
                     self._artists.append(scat)
             else:
                 # Circle / spiral shape: always drawn as a connected
@@ -490,14 +513,16 @@ class Layout3DWidget(QWidget):
                         ):
                             try:
                                 pz = float(planeObj.depthAt(QPointF(cx, cy)))
-                            except Exception:                   # pragma: no cover
+                            except Exception:                   # pragma: no cover  # nosec B112
+                                # Best-effort plane sampling for display bounds.
                                 continue
                             if np.isfinite(pz):
                                 zMin = min(zMin, pz)
                 elif method == BinningType.sphere:
                     self._drawBinningSphere(survey, useGlobal,
                                             reflectorStyle=reflectorStyle)
-            except Exception:                                   # pragma: no cover
+            except Exception:                                   # pragma: no cover  # nosec B110
+                # Drawing failures must not break the tab.
                 # Drawing failures must never break the tab.
                 pass
 
@@ -510,13 +535,15 @@ class Layout3DWidget(QWidget):
             try:
                 self._drawBlockAreas(blockAreaItems, blockAreas)
                 zMax = max(zMax, 0.95)
-            except Exception:                                   # pragma: no cover
+            except Exception:                                   # pragma: no cover  # nosec B110
+                # Optional overlay draw.
                 pass
 
         if pointSets:
             try:
                 self._drawPointSets(survey, useGlobal, pointSets)
-            except Exception:                                   # pragma: no cover
+            except Exception:                                   # pragma: no cover  # nosec B110
+                # Optional point-set draw.
                 pass
 
         # Analysis (binning) area as a horizontal quad at z = 1 m. Drawn
@@ -527,7 +554,8 @@ class Layout3DWidget(QWidget):
             try:
                 self._drawAnalysisArea(analysisCorners, binArea)
                 zMax = max(zMax, 1.0)
-            except Exception:                                   # pragma: no cover
+            except Exception:                                   # pragma: no cover  # nosec B110
+                # Optional analysis quad draw.
                 pass
 
         # Analysis surface (fold / min-offset / max-offset / rms-offset
@@ -542,7 +570,8 @@ class Layout3DWidget(QWidget):
             try:
                 self._drawAnalysisImage(survey, useGlobal, analysisImage)
                 zMax = max(zMax, 1.0)
-            except Exception:                                   # pragma: no cover
+            except Exception:                                   # pragma: no cover  # nosec B110
+                # Optional analysis surface draw.
                 pass
 
         # Spider overlay (red src->cmp / blue rec->cmp ray segments).
@@ -733,7 +762,7 @@ class Layout3DWidget(QWidget):
         """Return seed geometries to draw in the 3D view.
 
         Each entry is ``dict(kind, points, color, alpha)`` where:
-          * ``kind``   -- ``'well'``, ``'circle'`` or ``'spiral'``
+                    * ``kind``   -- ``'fixedGrid'``, ``'well'``, ``'circle'`` or ``'spiral'``
           * ``points`` -- ``(N, 3)`` numpy array of survey-local-or-global xyz
           * ``color``  -- matplotlib hex color (``'#RRGGBB'``) from ``seed.color``
           * ``alpha``  -- 0..1 from ``seed.color`` alpha channel
@@ -748,7 +777,9 @@ class Layout3DWidget(QWidget):
             seedType = getattr(seed, 'type', None)
             if seedType is None:
                 continue
-            if seedType == SeedType.well:
+            if seedType == SeedType.fixedGrid:
+                kind = 'fixedGrid'
+            elif seedType == SeedType.well:
                 kind = 'well'
             elif seedType == SeedType.circle:
                 kind = 'circle'
@@ -758,7 +789,50 @@ class Layout3DWidget(QWidget):
                 continue
 
             pts = list(getattr(seed, 'pointList', None) or [])
+            segments = None
             spsPts = pts if kind == 'well' else None
+            if kind == 'fixedGrid':
+                grid = getattr(seed, 'grid', None)
+                origin = getattr(seed, 'origin', None)
+                if grid is None or origin is None:
+                    continue
+
+                pointArray = getattr(seed, 'pointArray', None)
+                if pointArray is not None and pointArray.shape[0] > 0:
+                    arr = np.asarray(pointArray, dtype=np.float64)
+                    pts = [tuple(row) for row in arr]
+                else:
+                    pts = list(grid.iterPoints(origin))
+                    if not pts:
+                        continue
+
+                growList = getattr(grid, 'growList', None)
+                if growList and len(growList) == 3 and isinstance(origin, QVector3D):
+                    segPts = []
+                    steps2 = max(int(getattr(growList[2], 'steps', 0)), 0)
+                    inc2 = getattr(growList[2], 'increment', QVector3D())
+                    for i in range(max(int(getattr(growList[0], 'steps', 0)), 0)):
+                        off0 = QVector3D(origin)
+                        off0 += growList[0].increment * i
+                        for j in range(max(int(getattr(growList[1], 'steps', 0)), 0)):
+                            start = QVector3D(off0)
+                            start += growList[1].increment * j
+                            end = QVector3D(start)
+                            if steps2 > 1:
+                                end += inc2 * (steps2 - 1)
+                            segPts.append(((start.x(), start.y(), start.z()), (end.x(), end.y(), end.z())))
+                    if segPts:
+                        segments = np.asarray(segPts, dtype=np.float64)
+                        if transform is not None:
+                            m11 = transform.m11(); m12 = transform.m12()  # noqa: E702
+                            m21 = transform.m21(); m22 = transform.m22()  # noqa: E702
+                            dx = transform.dx();    dy = transform.dy()   # noqa: E702
+                            x = segments[:, :, 0]
+                            y = segments[:, :, 1]
+                            nx = m11 * x + m21 * y + dx
+                            ny = m12 * x + m22 * y + dy
+                            segments[:, :, 0] = nx
+                            segments[:, :, 1] = ny
             if kind == 'well':
                 # Prefer the dense, curvature-preserving trajectory built
                 # for the 3D view. ``pointList`` only carries the few SPS
@@ -802,6 +876,8 @@ class Layout3DWidget(QWidget):
             samplePoints = None
             if kind == 'well' and spsPts:
                 samplePoints = self._pointsToArray(spsPts, transform)
+            elif kind == 'fixedGrid':
+                samplePoints = arr
 
             qcolor = getattr(seed, 'color', None)
             if qcolor is not None and qcolor.isValid():
@@ -814,6 +890,7 @@ class Layout3DWidget(QWidget):
                 alpha = 1.0
 
             items.append(dict(kind=kind, points=arr,
+                              segments=segments,
                               samplePoints=samplePoints,
                               color=color, alpha=alpha))
         return items
@@ -1376,18 +1453,17 @@ class Layout3DWidget(QWidget):
             try:
                 ax.set_box_aspect((1, 1, 1))
             except Exception:                                   # pragma: no cover
-                pass
+                # Optional aspect ratio support.
+                return
 
     def _onScroll(self, event):
-        """Zoom in/out about the cursor with the mouse wheel.
-
+        """
         Scroll-zoom only resizes the X / Y axes; the Z axis stays
-        pinned to the data extent (surface at z = 0 down to the deepest
-        sample) so the gray drawing box never floats above the surface
-        or shrinks above the well bottoms.
+        pinned to the data extent so the scene does not flatten or
+        stretch above the well bottoms.
         """
         ax = self._axes
-        if ax is None or event.inaxes is not ax:
+        if ax is None:
             return
 
         # Standard 10% per notch; scroll up = zoom in.
@@ -1476,15 +1552,18 @@ class Layout3DWidget(QWidget):
                 fmt.set_powerlimits((-3, 4))
                 axis.set_major_formatter(fmt)
             ax.zaxis.set_major_locator(MaxNLocator(nbins=5))
-        except Exception:                                       # pragma: no cover
+        except Exception:                                       # pragma: no cover  # nosec B110
+            # Matplotlib axis tweaks are optional.
             pass
         try:
             ax.set_box_aspect((1, 1, 0.5))
-        except Exception:
+        except Exception:  # nosec B110
+            # Matplotlib axis tweaks are optional.
             pass
         try:
             ax.view_init(elev=25, azim=-60)
-        except Exception:
+        except Exception:  # nosec B110
+            # Matplotlib camera setup is optional.
             pass
 
     # ------------------------------------------------------------------
@@ -1497,7 +1576,8 @@ class Layout3DWidget(QWidget):
         if not self._demoLoaded and self._axes is not None:
             try:
                 self.populateDemoContent()
-            except Exception:
+            except Exception:  # nosec B110
+                # Demo content should never block widget startup.
                 pass
             self._demoLoaded = True
         super().showEvent(event)

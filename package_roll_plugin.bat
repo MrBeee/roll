@@ -8,7 +8,7 @@ rem Default output:
 rem   If this script lives in ...\MyPlugins\roll, it creates ...\MyPlugins\roll.zip
 rem
 rem Usage:
-rem   .\package_roll_plugin.bat [/y] [/out path-to-zip] [/?]
+rem   .\package_roll_plugin.bat [/y] [/out path-to-zip] [/nosecurity] [/security-report path] [/?]
 rem ---------------------------------------------------------------------------
 
 set "scriptDir=%~dp0"
@@ -23,6 +23,9 @@ set "outputZip=%parentDir%\%pluginName%.zip"
 set "forceOverwrite=0"
 set "stageRoot=%TEMP%\%pluginName%_package_%RANDOM%%RANDOM%"
 set "stagePluginDir=%stageRoot%\%pluginName%"
+set "securityScript=%pluginDir%\run_security_checks_qgis.bat"
+set "securityReport="
+set "skipSecurity=0"
 
 if /I "%~1"=="/?" goto showHelp
 if /I "%~1"=="-?" goto showHelp
@@ -31,6 +34,8 @@ if /I "%~1"=="-?" goto showHelp
 if "%~1"=="" goto argsDone
 if /I "%~1"=="/y" goto setForceOverwrite
 if /I "%~1"=="/out" goto setOutputZip
+if /I "%~1"=="/nosecurity" goto setSkipSecurity
+if /I "%~1"=="/security-report" goto setSecurityReport
 echo Unrecognized argument: %~1
 echo.
 goto showHelp
@@ -50,9 +55,29 @@ shift
 shift
 goto parseArgs
 
+:setSkipSecurity
+set "skipSecurity=1"
+shift
+goto parseArgs
+
+:setSecurityReport
+if "%~2"=="" (
+    echo Missing path after /security-report
+    exit /b 2
+)
+for %%I in ("%~2") do set "securityReport=%%~fI"
+shift
+shift
+goto parseArgs
+
 :argsDone
 if not exist "%sevenZipExe%" (
     echo 7-Zip executable was not found: "%sevenZipExe%"
+    exit /b 1
+)
+
+if not "%skipSecurity%"=="1" if not exist "%securityScript%" (
+    echo Security check launcher was not found: "%securityScript%"
     exit /b 1
 )
 
@@ -89,6 +114,16 @@ set "robocopyExit=%ERRORLEVEL%"
 if %robocopyExit% GEQ 8 goto robocopyFailed
 
 for %%I in ("%outputZip%") do if not exist "%%~dpI" mkdir "%%~dpI" >nul 2>&1
+if not defined securityReport for %%I in ("%outputZip%") do set "securityReport=%%~dpI%pluginName%-security-checks-report.txt"
+if not "%skipSecurity%"=="1" (
+    for %%I in ("%securityReport%") do if not exist "%%~dpI" mkdir "%%~dpI" >nul 2>&1
+
+    echo Running security checks against staged plugin files
+    call "%securityScript%" --plugin-dir "%stagePluginDir%" --report "%securityReport%"
+    if errorlevel 1 goto securityChecksFailed
+) else (
+    echo Skipping security checks
+)
 
 echo Creating "%outputZip%"
 pushd "%stageRoot%" >nul
@@ -112,6 +147,13 @@ echo Robocopy failed with exit code %robocopyExit%.
 rd /s /q "%stageRoot%" >nul 2>&1
 exit /b %robocopyExit%
 
+:securityChecksFailed
+set "securityExit=%ERRORLEVEL%"
+echo Security checks failed with exit code %securityExit%.
+if defined securityReport echo Report saved to "%securityReport%"
+rd /s /q "%stageRoot%" >nul 2>&1
+exit /b %securityExit%
+
 :showHelp
 echo Package the current plugin folder into a zip file using 7-Zip.
 echo.
@@ -119,7 +161,14 @@ echo Examples:
 echo   .\%~nx0
 echo   .\%~nx0 /y
 echo   .\%~nx0 /out d:\temp\%pluginName%.zip
+echo   .\%~nx0 /security-report d:\temp\%pluginName%-security.txt
+echo   .\%~nx0 /nosecurity
 echo   %~nx0 /y
+echo.
+echo Before zipping, the script runs bandit, detect-secrets, and flake8
+echo against the cleaned staging folder and aborts if they report issues.
+echo Use /nosecurity to skip those checks entirely.
+echo Use /security-report to choose where the combined security report is written.
 echo.
 echo Default output:
 echo   "%parentDir%\%pluginName%.zip"

@@ -49,7 +49,8 @@ class TestInit(unittest.TestCase):
         parser.optionxform = str
         parser.read(file_path)
         message = f'Cannot find a section named "general" in {file_path}'
-        assert parser.has_section('general'), message
+        # Intentional test assertion for plugin metadata validation.
+        assert parser.has_section('general'), message  # nosec B101
         metadata.extend(parser.items('general'))
 
         for expectation in required_metadata:

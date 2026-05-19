@@ -766,12 +766,14 @@ def calculateLineStakeTransform(spsImport) -> []:
     # see: https://pyqtgraph.readthedocs.io/en/latest/api_reference/functions.html#pyqtgraph.solveBilinearTransform  for a more general solution
 
     nRecords = spsImport.shape[0]
-    assert nRecords > 2, "Not enough records in spsImport"
+    # SPS import requires at least a minimal record set.
+    assert nRecords > 2, "Not enough records in spsImport"  # nosec B101
 
     spsImport.sort(order=['Line', 'Point', 'Index'])                            # sort the data by line and point
     pointNumIncrement = spsImport['Point'][1:] - spsImport['Point'][:-1]        # get the point number increment
     pointNumIncrement = np.median(pointNumIncrement)                            # use median to avoid outliers
-    assert pointNumIncrement >= 0, "Point increment is not positive"
+    # Sorted SPS points must not regress.
+    assert pointNumIncrement >= 0, "Point increment is not positive"  # nosec B101
     if pointNumIncrement == 0:
         pointNumIncrement = 1.0                                                 # handle 2D data with no point increment
 

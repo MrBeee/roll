@@ -319,12 +319,30 @@ class RollSurvey(pg.GraphicsObject):
                     elif seed.type == SeedType.well:                            # well site
                         seed.pointList, seed.origin = seed.well.calcPointList(self.crs, self.glbTransform)  # calculate the well's point list
 
+    def ensureGeometrySeedData(self):
+        # Geometry generation consumes pointArray for non-grid seeds. Backfill
+        # pointList only when it has not been prepared yet, so we do not
+        # overwrite tests or call sites that intentionally seeded custom points.
+        for block in self.blockList:
+            for template in block.templateList:
+                for seed in template.seedList:
+                    if seed.type == SeedType.circle and len(seed.pointList) == 0:
+                        seed.pointList = seed.circle.calcPointList(seed.origin)
+                    elif seed.type == SeedType.spiral and len(seed.pointList) == 0:
+                        seed.pointList = seed.spiral.calcPointList(seed.origin)
+                    elif seed.type == SeedType.well and len(seed.pointList) == 0:
+                        seed.pointList, seed.origin = seed.well.calcPointList(self.crs, self.glbTransform)
+
     def createBasicSkeleton(self, nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=2):
 
-        assert nBlocks > 0, 'Need at least 1 block'
-        assert nTemplates > 0, 'Need at least 1 template'
-        assert nSrcSeeds > 0, 'Need at least 1 source seed'
-        assert nRecSeeds > 0, 'Need at least 1 receiver seed'
+        # Constructor invariant for generated skeletons.
+        assert nBlocks > 0, 'Need at least 1 block'  # nosec B101
+        # Constructor invariant for generated skeletons.
+        assert nTemplates > 0, 'Need at least 1 template'  # nosec B101
+        # Constructor invariant for generated skeletons.
+        assert nSrcSeeds > 0, 'Need at least 1 source seed'  # nosec B101
+        # Constructor invariant for generated skeletons.
+        assert nRecSeeds > 0, 'Need at least 1 receiver seed'  # nosec B101
         # nPatterns may be zero
 
         self.blockList = []                                                     # make sure, we start with an empty list
@@ -425,7 +443,8 @@ class RollSurvey(pg.GraphicsObject):
         self.localPlane = RollPlane.fromAnchorAndNormal(o2, n)                  # pylint: disable=E1101
 
         # now define the localSphere, based on the globalSphere
-        assert q == r, 'x- and y-scales need to be identical, preferrably 1.0'
+        # Current transform model assumes uniform XY scale.
+        assert q == r, 'x- and y-scales need to be identical, preferrably 1.0'  # nosec B101
 
         r0 = self.globalSphere.radius
         r1 = r0 * q
@@ -526,7 +545,8 @@ class RollSurvey(pg.GraphicsObject):
 
     def iterTemplateRollOffsets(self, template):
         length = len(template.rollList)
-        assert length == 3, 'there must always be 3 roll steps / grow steps'
+        # Normalized template invariant.
+        assert length == 3, 'there must always be 3 roll steps / grow steps'  # nosec B101
 
         for i in range(template.rollList[0].steps):
             off0 = QVector3D()
@@ -540,7 +560,8 @@ class RollSurvey(pg.GraphicsObject):
 
     def iterSeedGrowOffsets(self, seed, templateOffset):
         length = len(seed.grid.growList)
-        assert length == 3, 'there must always be 3 grow steps / roll steps'
+        # Normalized seed invariant.
+        assert length == 3, 'there must always be 3 grow steps / roll steps'  # nosec B101
 
         for i in range(seed.grid.growList[0].steps):
             off0 = QVector3D(templateOffset)
@@ -554,7 +575,7 @@ class RollSurvey(pg.GraphicsObject):
 
     @staticmethod
     def _seedUsesTemplateRoll(seed) -> bool:
-        return seed.type < SeedType.circle
+        return seed.type == SeedType.rollingGrid
 
     @staticmethod
     def _receiverSeedUsesTemplateRoll(seed) -> bool:
@@ -653,6 +674,9 @@ class RollSurvey(pg.GraphicsObject):
 
     def geometryFromTemplates(self) -> bool:
         try:
+            appSettings = getActiveAppSettings()
+            chosenRoutineName = 'geomTemplate5' if appSettings.useExperimental else 'geomTemplate4'
+            self.logMessage.emit(f'Method : useExperimental={appSettings.useExperimental} -> {chosenRoutineName}')
             self.calcPointArrays()                                              # first set up all point arrays
             # get all blocks
             for nBlock, block in enumerate(self.blockList):
@@ -3280,7 +3304,7 @@ class RollSurvey(pg.GraphicsObject):
         if self.unique.apply is False:                                          # slot offsets and azimuths and prune data
             return False
 
-        if self.output.anaOutput is None:                                       # this array is essential to calculate unique fold
+        if self.output.anaOutput is None or self.output.binOutput is None:      # these arrays are essential to calculate unique fold
             return False
 
         # Now we need to find unique rows in terms of line, stake, offset and azimuth values
@@ -3367,7 +3391,7 @@ class RollSurvey(pg.GraphicsObject):
     def calcRmsOffsetValues(self) -> bool:
         """code to calculate RMS offset increments as a post-processing step"""
 
-        if self.output.anaOutput is None:                                       # this array is essential to calculate rms offsets
+        if self.output.anaOutput is None or self.output.binOutput is None:      # these arrays are essential to calculate rms offsets
             return False
 
         self.message.emit('Calc RMS offset increments')
@@ -3435,7 +3459,7 @@ class RollSurvey(pg.GraphicsObject):
     def calcOffsetGapValues(self) -> bool:
         """code to calculate maximum offset gaps as a post-processing step"""
 
-        if self.output.anaOutput is None:                                       # this array is essential to calculate max offset gaps
+        if self.output.anaOutput is None or self.output.binOutput is None:      # these arrays are essential to calculate max offset gaps
             return False
 
         self.message.emit('Calc max offset gaps')
@@ -4067,7 +4091,8 @@ class RollSurvey(pg.GraphicsObject):
             templates = block.templateList
             while t < len(templates):
                 template = templates[t]
-                assert len(template.rollList) == 3, 'there must always be 3 roll steps / grow steps'
+                # Normalized template invariant.
+                assert len(template.rollList) == 3, 'there must always be 3 roll steps / grow steps'  # nosec B101
                 s0 = template.rollList[0].steps
                 s1 = template.rollList[1].steps
                 s2 = template.rollList[2].steps
@@ -4195,7 +4220,8 @@ class RollSurvey(pg.GraphicsObject):
 
                 length = len(seed.grid.growList)                                # how deep is the grow list ?
 
-                assert length == 3, 'there must always be 3 roll steps / grow steps'
+                # Normalized seed invariant.
+                assert length == 3, 'there must always be 3 roll steps / grow steps'  # nosec B101
 
                 for i in range(seed.grid.growList[0].steps):
                     for j in range(seed.grid.growList[1].steps):
