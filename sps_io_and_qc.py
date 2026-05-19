@@ -18,22 +18,22 @@ from .aux_functions import myPrint, toFloat, toInt
 pntType = np.dtype(
     [
         # fmt : off
-        ('RecID', 'U1'),  # noqa: E241 # A1 ('S' or 'R')
-        ('Line',  'f4'),  # noqa: E241 # F10.2
-        ('Point', 'f4'),  # noqa: E241 # F10.2
-        ('Blank', 'U2'),  # noqa: E241 # A2 ('  '). I.e. spacer after Point
-        ('Index', 'i4'),  # noqa: E241 # I1
-        ('Code',  'U2'),  # noqa: E241 # A2
-        ('Static','i4'),  # noqa: E241 # I4 # noqa: E231
-        ('Depth', 'f4'),  # noqa: E241 # I4
-        ('Datum', 'i4'),  # noqa: E241 # I4
-        ('Uhole', 'i4'),  # noqa: E241 # I2
-        ('Water', 'f4'),  # noqa: E241 # F6.1
-        ('East',  'f4'),  # noqa: E241 # F9.1
-        ('North', 'f4'),  # noqa: E241 # F10.1
-        ('Elev',  'f4'),  # noqa: E241 # F6.1
-        ('Day',   'i4'),  # noqa: E241 # I3
-        ('Time',  'U6'),  # noqa: E241 # 3I2
+        ('RecID',  'U1'),  # noqa: E241 # A1 ('S' or 'R')
+        ('Line',   'f4'),  # noqa: E241 # F10.2
+        ('Point',  'f4'),  # noqa: E241 # F10.2
+        ('Blank',  'U2'),  # noqa: E241 # A2 ('  '). I.e. spacer after Point
+        ('Index',  'i4'),  # noqa: E241 # I1
+        ('Code',   'U2'),  # noqa: E241 # A2
+        ('Static', 'i4'),  # noqa: E241 # I4
+        ('Depth',  'f4'),  # noqa: E241 # I4
+        ('Datum',  'i4'),  # noqa: E241 # I4
+        ('Uhole',  'i4'),  # noqa: E241 # I2
+        ('Water',  'f4'),  # noqa: E241 # F6.1
+        ('East',   'f4'),  # noqa: E241 # F9.1
+        ('North',  'f4'),  # noqa: E241 # F10.1
+        ('Elev',   'f4'),  # noqa: E241 # F6.1
+        ('Day',    'i4'),  # noqa: E241 # I3
+        ('Time',   'U6'),  # noqa: E241 # 3I2
         # fmt : on
     ]
 )
@@ -168,9 +168,9 @@ anaType = np.dtype(
         ('CmpX', np.float32),  # noqa: E241 # Cmp (x, y); needed for spider plot when binning against dipping plane
         ('CmpY', np.float32),  # noqa: E241 # Cmp (x, y); needed for spider plot when binning against dipping plane
         ('SrcL', np.int32),    # noqa: E241 # SrcLine, SrcPoint
-        ('SrcP', np.int32),    # noqa: E241 
+        ('SrcP', np.int32),    # noqa: E241
         ('RecL', np.int32),    # noqa: E241 # RecLine, RecPoint
-        ('RecP', np.int32),    # noqa: E241 
+        ('RecP', np.int32),    # noqa: E241
         # fmt : on
     ])
 
@@ -536,8 +536,8 @@ def fileExportAsR01(parent, fileName, extension, view, crs):
         fn += extension                                                         # just add the file extension
 
     # fmt: 0ff
-    fmt = '%1s',  '%10.2f', '%10.2f', '%2s',   '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6s'      # noqa: E241 
-    #     'RecID','Line',   'Point',  'Blank', 'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'     # noqa: E241 
+    fmt = '%1s',  '%10.2f', '%10.2f', '%2s',   '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6s'      # noqa: E241
+    #     'RecID','Line',   'Point',  'Blank', 'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'     # noqa: E241
     # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
     # fmt: 0n
 
@@ -598,8 +598,8 @@ def fileExportAsS01(parent, fileName, extension, view, crs):
         fn += extension                                                         # just add the file extension
 
     # fmt: off
-    fmt = '%1s',  '%10.2f', '%10.2f', '%2s',   '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6s'      # noqa: E241 
-    #     'RecID','Line',   'Point',  'Blank', 'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'     # noqa: E241 
+    fmt = '%1s',  '%10.2f', '%10.2f', '%2s',   '%1d',   '%2s',  '%4d',    '%4.1f', '%4d',   '%2d',   '%6.1f', '%9.1f', '%10.1f', '%6.1f', '%3d', '%6s'      # noqa: E241
+    #     'RecID','Line',   'Point',  'Blank', 'Index', 'Code', 'Static', 'Depth', 'Datum', 'Uhole', 'Water', 'East',  'North',  'Elev',  'Day', 'Time'     # noqa: E241
     # Note: Point is followed by two spaces (Col 22-23 as per SPS 2.1 format)
     # fmt: on
 
@@ -659,8 +659,8 @@ def fileExportAsX01(parent, fileName, extension, view, crs):
         fn += extension                                                         # just add the file extension
 
     # fmt: off
-    fmt = '%1s',   '%6s',    '%8d',    '%1d',    '%1s',    '%10.2f', '%10.2f', '%1d',    '%5d',    '%5d',    '%1d',    '%10.2f', '%10.2f', '%10.2f', '%1d'      # noqa: E241 
-    #     'RecID', 'TapeNo', 'RecNum', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'   # noqa: E241 
+    fmt = '%1s',   '%6s',    '%8d',    '%1d',    '%1s',    '%10.2f', '%10.2f', '%1d',    '%5d',    '%5d',    '%1d',    '%10.2f', '%10.2f', '%10.2f', '%1d'      # noqa: E241
+    #     'RecID', 'TapeNo', 'RecNum', 'RecInc', 'Instru', 'SrcLin', 'SrcPnt', 'SrcInd', 'ChaMin', 'ChaMax', 'ChaInc', 'RecLin', 'RecMin', 'RecMax', 'RecInd'   # noqa: E241
     # fmt: on
 
     # relType2 is used in the rel/rps model:

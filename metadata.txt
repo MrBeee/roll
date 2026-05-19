@@ -7,7 +7,7 @@ name=Roll
 qgisMinimumVersion=3.34
 qgisMaximumVersion=4.99
 description=Design and analysis of 3D seismic survey geometries
-version=0.7.3
+version=0.7.4
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -45,7 +45,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:  <p>2026-05-19 (0.7.3) Fixed a bug in 'experimental' geometry generation, that caused 'fixed' grids to be interpreted as 'rolling' grids
+changelog:  <p>2026-05-19 (0.7.4) Updated metadata project information
+  <p>2026-05-19 (0.7.3) Fixed a bug in 'experimental' geometry generation, that caused 'fixed' grids to be interpreted as 'rolling' grids
   <p>2026-05-17 (0.7.2) Fixed a bug in survey's template count, affecting progress message in geometry generation
   <p>2026-05-15 (0.7.1) Added "Shift Survey Location..." dialog. Expanded 3D view for Subset of survey data. Updated Marine Survey Wizard for optimal x-line bin size
   <p>2026-05-06 (0.7.0) Optimization of binning from templates and binning from geometry. Completed Flake8 code clean up

@@ -8,7 +8,7 @@ set "pyQgisBat="
 set "envBat="
 set "qgisRoot="
 set "reportFile="
-set "strictSelect=E24,W503,W504,E226"
+set "strictSelect=E121,E123,E126,E24,E226,E704,W503,W504"
 
 if defined QGIS_ROOT set "qgisRoot=%QGIS_ROOT%"
 

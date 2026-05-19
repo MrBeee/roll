@@ -176,7 +176,11 @@ But in case you get very familiar with the xml-structure, you can also inspect a
 
 The generated Geometry points, the imported SPS data, as well as the analysis plots can all be exported to QGIS. In QGIS, source- and receiver points can be moved, deleted, or marked as 'inactive'. These modifications can be loaded back into Roll, for a renewed analysis.   This process is described in much more detail in an html file, accessible from the Help menu in Roll.
 
+The result is a realistic coverage map, created by the edited sources and receivers located on their true position in space.
 
+![foldmap](images/foldmap.png)
+
+*Fold map of 'Noordoostpolder' example project*
 
 ### 6	Status
 
@@ -212,7 +216,7 @@ On May 6th 2026, the Addin contained `34,316` Source-Lines-Of-Code (SLOC) across
 
 This SLOC count excludes blank lines and lines starting with `#`, but still counts lines that contain code plus an inline comment.
 
-### 6.2	Vibe coding
+### 6.2	Vibe coding - `use experimental code` flag
 
 Using GPT5.4 or Gemini 3 to optimize the code using 'agents' that analyse binning and geometry generation routines, helps to find bottlenecks and speeds up the code, at the risk that bugs are introduced that are difficult to spot due to the large permutation in survey designs caused by varying number of blocks, templates, seeds and seed types. For that reason, for **binning** and **geometry generation** alternative routines are implemented: 
 
@@ -220,6 +224,14 @@ Using GPT5.4 or Gemini 3 to optimize the code using 'agents' that analyse binnin
 2. experimental code
 
 By extensive testing the experimental routines, they will be replacing the legacy routines over time. The selection is controlled by a flag in the settings dialog: `use experimental code` 
+
+### 6.3	3D View
+
+As Roll supports binning against a dipping plane, well trajectories and VSP geometries, it seemed logical to include showing a 3D view of the survey area. The implemented 3D view shows a subset of the survey's layout, as rolling templates would take way too much time to render in 3D. But all non-rolling seeds (grids, circles, spirals and well locations can be shown in a 3D setting) See the figure below, that also shows the contribution of different rays paths to a single bin
+
+![3D_vsp_image](images/3D_vsp_image.png)
+
+*3D representation of a survey area*
 
 
 
@@ -231,6 +243,7 @@ By extensive testing the experimental routines, they will be replacing the legac
 
 
 ### 8	Changelog
+- 2026-05-19 (0.7.4) Updated metadata project information
 - 2026-05-19 (0.7.3) Fixed a bug in 'experimental' geometry generation, that caused 'fixed' grids to be interpreted as 'rolling' grids
 - 2026-05-17 (0.7.2) Fixed a bug in survey's template count, affecting progress message in geometry generation 
 - 2026-05-15 (0.7.1) Added "Shift Survey Location..." dialog. Expanded 3D view for Subset of survey data. Updated Marine Survey Wizard for optimal x-line bin size.

@@ -269,7 +269,7 @@ class TableView(QTableView):
             SrcPnt = '%.2f',                                                    # noqa: 251
             SrcInd = '%d',                                                      # noqa: 251
             Uniq   = '%d',                                                      # noqa: 251
-            )
+        )
         # fmt:on
         return formatDict[entry]
 
