@@ -189,6 +189,7 @@
     <addaction name="actionHighDpi"/>
     <addaction name="actionQGisCheatSheet"/>
     <addaction name="actionQGisRollInterface"/>
+    <addaction name="actionSphinxDocumentation"/>
    </widget>
    <widget class="QMenu" name="menu_Processing">
     <property name="title">
@@ -1680,6 +1681,18 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+H</string>
+   </property>
+  </action>
+  <action name="actionSphinxDocumentation">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionEditHelpContent.svg</normaloff>resources/mActionEditHelpContent.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Roll Documentation</string>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
    </property>
   </action>
   <action name="actionStopPainting">

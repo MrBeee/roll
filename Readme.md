@@ -147,9 +147,39 @@ The geometry files themselves can also be exported as SPS-files.
 
 * In version 0.6.8 a 3D view has been added to the Layout tab, for a subset of survey geometry data. This is in particular useful for working with well-based seeds, think of VSPs
 
+### 3	3D View
+
+As Roll supports binning against a dipping plane, well trajectories and VSP geometries, it seemed logical to include showing a 3D view of the survey area. The implemented 3D view shows a subset of the survey's layout, as rolling templates would take way too much time to render in 3D. But all non-rolling seeds (grids, circles, spirals and well locations can be shown in a 3D setting) See the figure below, that also shows the contribution of different rays paths to a single bin
+
+![3D_vsp_image](images/3D_vsp_image.png)
+
+*3D representation of a survey area*
 
 
-### 3	Import of SPS data
+
+### 4	Survey wizards
+
+**Land** and **marine** surveys can be created using two separate wizards, that takes you through the different steps of defining the block(s), template(s) and grow factors. 
+
+#### 4.1 Land surveys
+
+The land survey wizard supports various types of survey geometries. Some designs are no longer in use (e.g. brick and zigzag) but these are included for completeness.  The different types that are supported are:
+
+1. Orthogonal
+2. Parallel
+3. Slanted
+4. Brick
+5. Zigzag
+
+#### 4.2.	Marine surveys
+
+The marine survey wizard honours minimal turning radius for the inner streamers (*using a minimal towing speed to keep the spread stable*) and a maximal turning radius for the outer streamer(s) (*based on maximum allowed towing forces the streamers can handle*).  Theory for this was developed in the thesis `Simplified Modeling of Seimic Survey Vessels to Determine Optimaal Maneuver Patterns` by Caio de Araujo Ferraz de Carvalho. Where formulas were not explicitly given, they have been reversed engineered, and checked against the numerous figures present in the thesis.
+
+In a towed marine survey, there is only one shot per template as the vessel moves, waiting for the next shot to be taken with a different source at a different location. Furthermore, data is acquired in 'racetracks' whereby east EW sail line is followed by a WE sail line acquired at a distance. The optimal number of sail lines in a racetrack is determined by the optimal turning radius, avoiding turns that are too tight ('tear drops') or turns that are too wide ('crossline sailing'). The wizard takes all of this into account when selecting optimal number of lines per race track.
+
+
+
+### 5	Import of SPS data
 
 If (legacy) SPS data is available, this can be imported from the file menu, and is treated in the same way as the internally generated geometry files. This makes it handy to analize survey performance based solely on SPS-data. This SPS data can also be exported as shapefiles to the current QGIS project.
 
@@ -161,7 +191,7 @@ As there are many flavors of SPS files, a number varieties have been predefined,
 
 
 
-### 4	Editing a survey file
+### 6	Editing a survey file
 
 As it is cumbersome to manipulate xml-data directly, the user is helped at two levels:
 
@@ -172,7 +202,7 @@ But in case you get very familiar with the xml-structure, you can also inspect a
 
 
 
-### 5	Interaction with QGIS
+### 7	Interaction with QGIS
 
 The generated Geometry points, the imported SPS data, as well as the analysis plots can all be exported to QGIS. In QGIS, source- and receiver points can be moved, deleted, or marked as 'inactive'. These modifications can be loaded back into Roll, for a renewed analysis.   This process is described in much more detail in an html file, accessible from the Help menu in Roll.
 
@@ -182,7 +212,7 @@ The result is a realistic coverage map, created by the edited sources and receiv
 
 *Fold map of 'Noordoostpolder' example project*
 
-### 6	Status
+### 8	Status
 
 On 8 Feb 2024, the first release of Roll has been published on [GitHub](https://github.com/MrBeee/roll). Initial release on the QGIS plugin website occurred on 13 March 2024.
 
@@ -198,7 +228,7 @@ Finally, see the 'Changelog' for already implemented functionality. Any [Issues]
 
 The plugin works best using one or two QHD Screens (2560 x 1440 pixels) or larger. As of QGIS V3.32 High DPI UI scaling issues have arisen. See the following discussion on GitHub <a href="https://github.com/qgis/QGIS/issues/53898">here</a>. The Help menu in Roll shows how you can mitigate against these issues. 
 
-#### 6.1	Project size
+#### 8.1	Project size
 
 On May 6th 2026, the Addin contained `34,316` Source-Lines-Of-Code (SLOC) across `140` files. 
 
@@ -216,7 +246,7 @@ On May 6th 2026, the Addin contained `34,316` Source-Lines-Of-Code (SLOC) across
 
 This SLOC count excludes blank lines and lines starting with `#`, but still counts lines that contain code plus an inline comment.
 
-### 6.2	Vibe coding - `use experimental code` flag
+#### 8.2	Vibe coding - `use experimental code` flag
 
 Using GPT5.4 or Gemini 3 to optimize the code using 'agents' that analyse binning and geometry generation routines, helps to find bottlenecks and speeds up the code, at the risk that bugs are introduced that are difficult to spot due to the large permutation in survey designs caused by varying number of blocks, templates, seeds and seed types. For that reason, for **binning** and **geometry generation** alternative routines are implemented: 
 
@@ -225,24 +255,17 @@ Using GPT5.4 or Gemini 3 to optimize the code using 'agents' that analyse binnin
 
 By extensive testing the experimental routines, they will be replacing the legacy routines over time. The selection is controlled by a flag in the settings dialog: `use experimental code` 
 
-### 6.3	3D View
-
-As Roll supports binning against a dipping plane, well trajectories and VSP geometries, it seemed logical to include showing a 3D view of the survey area. The implemented 3D view shows a subset of the survey's layout, as rolling templates would take way too much time to render in 3D. But all non-rolling seeds (grids, circles, spirals and well locations can be shown in a 3D setting) See the figure below, that also shows the contribution of different rays paths to a single bin
-
-![3D_vsp_image](images/3D_vsp_image.png)
-
-*3D representation of a survey area*
 
 
-
-### 7	To Do
+### 9	To Do
 
 - Improve Roll's analysis capabilities; think of multiple suppression and DMO smear
 - Expand the 3D Layout View, introduced in version 0.6.8
 
 
 
-### 8	Changelog
+### 10	Changelog
+- 2026-05-20 (0.7.5) Updated readme.md and final cleaning of flake8 warnings when uploading the plugin
 - 2026-05-19 (0.7.4) Updated metadata project information
 - 2026-05-19 (0.7.3) Fixed a bug in 'experimental' geometry generation, that caused 'fixed' grids to be interpreted as 'rolling' grids
 - 2026-05-17 (0.7.2) Fixed a bug in survey's template count, affecting progress message in geometry generation 

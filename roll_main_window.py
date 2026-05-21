@@ -821,6 +821,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionHighDpi.triggered.connect(self.onHighDpi)
         self.actionQGisCheatSheet.triggered.connect(self.onQGisCheatSheet)
         self.actionQGisRollInterface.triggered.connect(self.onQGisRollInterface)
+        self.actionSphinxDocumentation.triggered.connect(self.onSphinxDocumentation)
 
         self.actionStopThread.triggered.connect(self.stopWorkerThread)
 
@@ -3689,6 +3690,18 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if os.path.exists(urlName):
             urlName = 'file:///' + urlName.replace('\\', '/')                   # idea from CoPilot: convert to file:///
             webbrowser.open(urlName, new=0, autoraise=True)
+
+    def onSphinxDocumentation(self):
+        dirName = os.path.dirname(os.path.abspath(__file__))
+        urlName = os.path.join(dirName, 'help', 'build', 'html', 'index.html')
+        if os.path.exists(urlName):
+            urlName = 'file:///' + urlName.replace('\\', '/')
+            webbrowser.open(urlName, new=0, autoraise=True)
+            return
+
+        QMessageBox.information(self, 'Roll Sphinx Documentation',
+                                'Sphinx documentation has not been built yet.\n\n'
+                                'Run run_sphinx_documentation.bat from the plugin folder, then try again.')
 
     def clipboardHasText(self):
         return self.actionStateController.clipboardHasText()

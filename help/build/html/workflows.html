@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Workflows &#8212; Roll 0.7.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=a674670e"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Roll and QGIS Interface Guide" href="qgis-interface-guide.html" />
+    <link rel="prev" title="User Guide" href="user-guide.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="qgis-interface-guide.html" title="Roll and QGIS Interface Guide"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="user-guide.html" title="User Guide"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.5 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Workflows</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="workflows">
+<h1>Workflows<a class="headerlink" href="#workflows" title="Link to this heading">¶</a></h1>
+<section id="template-based-survey-design">
+<h2>Template-Based Survey Design<a class="headerlink" href="#template-based-survey-design" title="Link to this heading">¶</a></h2>
+<p>This is the core Roll workflow.</p>
+<ol class="arabic simple">
+<li><p>Create a new project or load an existing <code class="docutils literal notranslate"><span class="pre">.roll</span></code> file.</p></li>
+<li><p>Define one or more blocks and templates.</p></li>
+<li><p>Add source and receiver seeds, then configure grow and roll lists.</p></li>
+<li><p>Review the survey layout in the main plotting views.</p></li>
+<li><p>Save the project before running full binning, because Roll needs a named
+analysis file for memory-mapped output.</p></li>
+<li><p>Run basic or full binning from the Processing menu.</p></li>
+<li><p>Inspect the generated maps, plots, and trace information.</p></li>
+<li><p>Export outputs to QGIS or GeoTIFF where needed.</p></li>
+</ol>
+<p>This path starts from the compact survey definition and is generally the best
+choice when you are still designing the geometry rather than reviewing an
+existing acquisition.</p>
+</section>
+<section id="land-and-marine-wizards">
+<h2>Land and Marine Wizards<a class="headerlink" href="#land-and-marine-wizards" title="Link to this heading">¶</a></h2>
+<p>Roll includes separate wizards for land and marine survey creation.</p>
+<p>The land wizard supports several survey families, including orthogonal,
+parallel, slanted, brick, and zigzag layouts.</p>
+<p>The marine wizard is specialized for towed-streamer acquisition and considers
+turning-radius constraints when building race-track style acquisition plans.</p>
+</section>
+<section id="sps-driven-workflow">
+<h2>SPS-Driven Workflow<a class="headerlink" href="#sps-driven-workflow" title="Link to this heading">¶</a></h2>
+<p>Roll can also work from SPS data instead of from a template-first project.</p>
+<ol class="arabic simple">
+<li><p>Import SPS, RPS, and XPS style data through the file menu.</p></li>
+<li><p>Select or configure the correct fixed-width SPS dialect.</p></li>
+<li><p>Set the CRS and local survey grid.</p></li>
+<li><p>Export the resulting source and receiver layers to QGIS if needed.</p></li>
+<li><p>Run geometry-based analysis inside Roll.</p></li>
+</ol>
+<p>This path is useful when the survey already exists in legacy acquisition files
+and the main goal is QC, visualization, or re-analysis rather than design.</p>
+<p>Because Roll treats imported SPS data much like internally generated geometry,
+you can still export points to QGIS, perform edits there, and bring the changes
+back into Roll for analysis.</p>
+</section>
+<section id="qgis-round-trip-editing">
+<h2>QGIS Round-Trip Editing<a class="headerlink" href="#qgis-round-trip-editing" title="Link to this heading">¶</a></h2>
+<p>Generated geometry and imported SPS data can be exported to QGIS. In QGIS,
+points can be moved, deleted, or marked inactive and then imported back into
+Roll for renewed analysis.</p>
+<p>This workflow is documented in more detail in the <code class="docutils literal notranslate"><span class="pre">Roll</span> <span class="pre">and</span> <span class="pre">QGIS</span> <span class="pre">Interface</span>
+<span class="pre">Guide</span></code> page in this Sphinx site. The same static HTML guide also remains
+available directly from the Roll Help menu.</p>
+</section>
+<section id="d-and-well-oriented-work">
+<h2>3D and Well-Oriented Work<a class="headerlink" href="#d-and-well-oriented-work" title="Link to this heading">¶</a></h2>
+<p>Roll also supports a 3D view for a subset of the survey layout, including
+non-rolling seeds, grids, circles, spirals, and well-related geometry. This is
+particularly relevant for dipping-plane, well, and VSP-style use cases.</p>
+</section>
+<section id="packaging-the-documentation">
+<h2>Packaging the Documentation<a class="headerlink" href="#packaging-the-documentation" title="Link to this heading">¶</a></h2>
+<p>When you want the Sphinx documentation included in the plugin zip, run these
+steps from the plugin root:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">run_sphinx_documentation.bat</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">run_package_plugin.bat</span></code></p></li>
+</ol>
+<p>The packaging script copies the built <code class="docutils literal notranslate"><span class="pre">help/build/html</span></code> output into the zip
+when it is present.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Workflows</a><ul>
+<li><a class="reference internal" href="#template-based-survey-design">Template-Based Survey Design</a></li>
+<li><a class="reference internal" href="#land-and-marine-wizards">Land and Marine Wizards</a></li>
+<li><a class="reference internal" href="#sps-driven-workflow">SPS-Driven Workflow</a></li>
+<li><a class="reference internal" href="#qgis-round-trip-editing">QGIS Round-Trip Editing</a></li>
+<li><a class="reference internal" href="#d-and-well-oriented-work">3D and Well-Oriented Work</a></li>
+<li><a class="reference internal" href="#packaging-the-documentation">Packaging the Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="user-guide.html"
+                          title="previous chapter">User Guide</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="qgis-interface-guide.html"
+                          title="next chapter">Roll and QGIS Interface Guide</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/workflows.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="qgis-interface-guide.html" title="Roll and QGIS Interface Guide"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="user-guide.html" title="User Guide"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.5 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Workflows</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2022-present, Duijndam.Dev.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

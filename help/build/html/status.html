@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Status and Roadmap &#8212; Roll 0.7.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=a674670e"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Changelog" href="changelog.html" />
+    <link rel="prev" title="Roll and QGIS Interface Guide" href="qgis-interface-guide.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="changelog.html" title="Changelog"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="qgis-interface-guide.html" title="Roll and QGIS Interface Guide"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.5 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Status and Roadmap</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="status-and-roadmap">
+<h1>Status and Roadmap<a class="headerlink" href="#status-and-roadmap" title="Link to this heading">¶</a></h1>
+<section id="project-status">
+<h2>Project Status<a class="headerlink" href="#project-status" title="Link to this heading">¶</a></h2>
+<p>Roll was first published on GitHub on 8 February 2024 and first released on
+the QGIS plugin website on 13 March 2024.</p>
+<p>As of version 0.3.3, Roll is no longer considered experimental. As of version
+0.4.6, it is compatible with Qt 6 and therefore ready for QGIS 4.0. As of
+version 0.7.0, the project includes substantial Numba-based optimization for
+binning from templates and binning from geometry.</p>
+</section>
+<section id="current-characteristics">
+<h2>Current Characteristics<a class="headerlink" href="#current-characteristics" title="Link to this heading">¶</a></h2>
+<p>Roll uses memory-mapped analysis storage instead of a relational database for
+full binning output. This matches the project workload better than row-based
+storage with indexing and transaction overhead.</p>
+<p>The plugin works best on one or two QHD displays or larger. Large trace tables
+are handled in chunks to avoid overwhelming the Qt model/view system with very
+large in-memory table allocations.</p>
+</section>
+<section id="project-size">
+<h2>Project Size<a class="headerlink" href="#project-size" title="Link to this heading">¶</a></h2>
+<p>On 6 May 2026, the project contained:</p>
+<ul class="simple">
+<li><p>27,482 production Python source lines across 109 files;</p></li>
+<li><p>6,834 test Python source lines across 31 files; and</p></li>
+<li><p>34,316 total Python source lines across 140 files.</p></li>
+</ul>
+<p>For context:</p>
+<ul class="simple">
+<li><p>total Python lines including blanks and comments: 50,749;</p></li>
+<li><p>non-blank Python lines: 40,551; and</p></li>
+<li><p>the single <code class="docutils literal notranslate"><span class="pre">.ui</span></code> file adds 1,703 non-blank XML lines, although that is not
+included in the Python SLOC count.</p></li>
+</ul>
+</section>
+<section id="experimental-code-flag">
+<h2>Experimental Code Flag<a class="headerlink" href="#experimental-code-flag" title="Link to this heading">¶</a></h2>
+<p>Roll currently exposes a <code class="docutils literal notranslate"><span class="pre">use</span> <span class="pre">experimental</span> <span class="pre">code</span></code> setting. This allows newer
+binning and geometry-generation routines to be tested in realistic workflows
+before they fully replace legacy implementations.</p>
+<p>This split exists because survey behavior depends on many interacting factors,
+including blocks, templates, seeds, seed types, and geometry patterns. A safer
+incremental rollout is therefore more useful than a hard cut-over.</p>
+</section>
+<section id="to-do">
+<h2>To Do<a class="headerlink" href="#to-do" title="Link to this heading">¶</a></h2>
+<p>Current roadmap items include:</p>
+<ul class="simple">
+<li><p>improve analysis capabilities, including ideas around multiple suppression
+and DMO smear; and</p></li>
+<li><p>expand the 3D layout view introduced in version 0.6.8.</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Status and Roadmap</a><ul>
+<li><a class="reference internal" href="#project-status">Project Status</a></li>
+<li><a class="reference internal" href="#current-characteristics">Current Characteristics</a></li>
+<li><a class="reference internal" href="#project-size">Project Size</a></li>
+<li><a class="reference internal" href="#experimental-code-flag">Experimental Code Flag</a></li>
+<li><a class="reference internal" href="#to-do">To Do</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="qgis-interface-guide.html"
+                          title="previous chapter">Roll and QGIS Interface Guide</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="changelog.html"
+                          title="next chapter">Changelog</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/status.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="changelog.html" title="Changelog"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="qgis-interface-guide.html" title="Roll and QGIS Interface Guide"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.5 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Status and Roadmap</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2022-present, Duijndam.Dev.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

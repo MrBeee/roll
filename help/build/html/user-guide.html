@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>User Guide &#8212; Roll 0.7.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=a674670e"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Workflows" href="workflows.html" />
+    <link rel="prev" title="Roll Documentation" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="workflows.html" title="Workflows"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Roll Documentation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.5 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">User Guide</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="user-guide">
+<h1>User Guide<a class="headerlink" href="#user-guide" title="Link to this heading">¶</a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
+<p>Roll is built around designing a survey first and analyzing it second. The
+plugin supports both template-driven survey design and geometry-driven
+processing based on imported SPS data.</p>
+<p>At a high level, Roll lets you:</p>
+<ul class="simple">
+<li><p>create or load a survey project;</p></li>
+<li><p>define blocks, templates, seeds, patterns, and roll along behavior;</p></li>
+<li><p>generate geometry and run binning analysis;</p></li>
+<li><p>inspect analysis outputs inside Roll; and</p></li>
+<li><p>export geometry and raster outputs to QGIS.</p></li>
+</ul>
+</section>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">¶</a></h2>
+<p>Roll runs inside QGIS and expects its optional Python dependencies to be
+installed in the QGIS Python environment, typically from the OSGeo4W shell on
+Windows.</p>
+<p>Install dependencies from the OSGeo4W command shell with commands such as
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--upgrade</span> <span class="pre">package-name</span></code>.</p>
+<p>Important optional dependencies include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">debugpy</span></code> for debugging GUI and worker-thread code;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">numba</span></code> to accelerate numeric kernels;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">numpy</span></code> for numeric array processing;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pyqtgraph</span></code> for plotting and interactive visualization;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rasterio</span></code> for GeoTIFF export; and</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wellpathpy</span></code> for well trajectory support.</p></li>
+</ul>
+<p>When upgrading QGIS across Python major versions, these dependencies may need
+to be installed again in the new QGIS Python environment.</p>
+</section>
+<section id="core-concepts">
+<h2>Core Concepts<a class="headerlink" href="#core-concepts" title="Link to this heading">¶</a></h2>
+<p>Roll uses a small set of domain concepts throughout the UI and file format.</p>
+<dl class="simple">
+<dt>Block</dt><dd><p>A survey consists of one or more rectangular blocks.</p>
+</dd>
+<dt>Template</dt><dd><p>Each block contains one or more templates. A template describes how sources
+and receivers are arranged before rolling.</p>
+</dd>
+<dt>Seed</dt><dd><p>A seed is the starting location of a source or receiver definition.</p>
+</dd>
+<dt>Grow list</dt><dd><p>Each seed can be grown in up to three steps. These growth steps turn a point
+into a line, a line into a grid, and a grid into a repeated pattern.</p>
+</dd>
+<dt>Roll list</dt><dd><p>Each template can be rolled in up to three directions to repeat the template
+over the survey area.</p>
+</dd>
+<dt>Template versus geometry</dt><dd><p>Template-based processing keeps the compact survey definition. Geometry-based
+processing expands that definition into actual source and receiver positions.
+Receiver positions may repeat across templates, so relation data is used to
+preserve which receivers were active for each shot.</p>
+</dd>
+</dl>
+<p>Within a template, all active sources shoot into all active receivers in that
+template. Additional source and receiver seeds can be added where needed.</p>
+</section>
+<section id="project-files-and-outputs">
+<h2>Project files and outputs<a class="headerlink" href="#project-files-and-outputs" title="Link to this heading">¶</a></h2>
+<p>Roll project files use the <code class="docutils literal notranslate"><span class="pre">.roll</span></code> XML format. The project stores the survey
+hierarchy and CRS information, including the CRS as WKT on the XML root.</p>
+<p>Analysis outputs are stored alongside the project through sidecar files. Full
+binning uses a named memory-mapped analysis file so large trace datasets can be
+worked with incrementally instead of being loaded fully into memory.</p>
+<p>The template-based survey hierarchy is reflected in the XML project structure.</p>
+<div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="nt">&lt;block_list&gt;</span>
+<span class="w">   </span><span class="nt">&lt;block&gt;</span>
+<span class="w">      </span><span class="nt">&lt;name&gt;</span>Block-1<span class="nt">&lt;/name&gt;</span>
+<span class="w">      </span><span class="nt">&lt;borders&gt;</span>
+<span class="w">        </span><span class="nt">&lt;src_border</span><span class="w"> </span><span class="na">xmin=</span><span class="s">&quot;-20000.0&quot;</span><span class="w"> </span><span class="na">xmax=</span><span class="s">&quot;20000.0&quot;</span><span class="w"> </span><span class="na">ymin=</span><span class="s">&quot;-20000.0&quot;</span><span class="w"> </span><span class="na">ymax=</span><span class="s">&quot;20000.0&quot;</span><span class="nt">/&gt;</span>
+<span class="w">        </span><span class="nt">&lt;rec_border</span><span class="w"> </span><span class="na">xmin=</span><span class="s">&quot;0.0&quot;</span><span class="w"> </span><span class="na">xmax=</span><span class="s">&quot;0.0&quot;</span><span class="w"> </span><span class="na">ymin=</span><span class="s">&quot;0.0&quot;</span><span class="w"> </span><span class="na">ymax=</span><span class="s">&quot;0.0&quot;</span><span class="nt">/&gt;</span>
+<span class="w">      </span><span class="nt">&lt;/borders&gt;</span>
+<span class="w">      </span><span class="nt">&lt;template_list&gt;</span>
+<span class="w">         </span><span class="nt">&lt;template&gt;</span>
+<span class="w">            </span><span class="nt">&lt;name&gt;</span>Template-1<span class="nt">&lt;/name&gt;</span>
+<span class="w">            </span><span class="nt">&lt;roll_list&gt;</span>
+<span class="w">               </span><span class="nt">&lt;translate</span><span class="w"> </span><span class="na">n=</span><span class="s">&quot;10&quot;</span><span class="w"> </span><span class="na">dx=</span><span class="s">&quot;0.0&quot;</span><span class="w"> </span><span class="na">dy=</span><span class="s">&quot;200.0&quot;</span><span class="nt">/&gt;</span>
+<span class="w">               </span><span class="nt">&lt;translate</span><span class="w"> </span><span class="na">n=</span><span class="s">&quot;10&quot;</span><span class="w"> </span><span class="na">dx=</span><span class="s">&quot;250.0&quot;</span><span class="w"> </span><span class="na">dy=</span><span class="s">&quot;0.0&quot;</span><span class="nt">/&gt;</span>
+<span class="w">            </span><span class="nt">&lt;/roll_list&gt;</span>
+<span class="w">            </span><span class="nt">&lt;seed_list&gt;</span>
+<span class="w">               </span><span class="nt">&lt;seed</span><span class="w"> </span><span class="na">x0=</span><span class="s">&quot;5975.0&quot;</span><span class="w"> </span><span class="na">src=</span><span class="s">&quot;True&quot;</span><span class="w"> </span><span class="na">y0=</span><span class="s">&quot;625.0&quot;</span><span class="w"> </span><span class="na">argb=</span><span class="s">&quot;#77ff0000&quot;</span><span class="w"> </span><span class="na">typno=</span><span class="s">&quot;0&quot;</span><span class="w"> </span><span class="na">azi=</span><span class="s">&quot;False&quot;</span><span class="w"> </span><span class="na">patno=</span><span class="s">&quot;0&quot;</span><span class="nt">&gt;</span>
+<span class="w">                  </span><span class="nt">&lt;name&gt;</span>Src-1<span class="nt">&lt;/name&gt;</span>
+<span class="w">                  </span><span class="nt">&lt;grow_list&gt;</span>
+<span class="w">                     </span><span class="nt">&lt;translate</span><span class="w"> </span><span class="na">n=</span><span class="s">&quot;1&quot;</span><span class="w"> </span><span class="na">dx=</span><span class="s">&quot;250.0&quot;</span><span class="w"> </span><span class="na">dy=</span><span class="s">&quot;0.0&quot;</span><span class="nt">/&gt;</span>
+<span class="w">                     </span><span class="nt">&lt;translate</span><span class="w"> </span><span class="na">n=</span><span class="s">&quot;4&quot;</span><span class="w"> </span><span class="na">dx=</span><span class="s">&quot;0.0&quot;</span><span class="w"> </span><span class="na">dy=</span><span class="s">&quot;50.0&quot;</span><span class="nt">/&gt;</span>
+<span class="w">                  </span><span class="nt">&lt;/grow_list&gt;</span>
+<span class="w">               </span><span class="nt">&lt;/seed&gt;</span>
+<span class="w">               </span><span class="nt">&lt;seed</span><span class="w"> </span><span class="na">x0=</span><span class="s">&quot;0.0&quot;</span><span class="w"> </span><span class="na">src=</span><span class="s">&quot;False&quot;</span><span class="w"> </span><span class="na">y0=</span><span class="s">&quot;0.0&quot;</span><span class="w"> </span><span class="na">argb=</span><span class="s">&quot;#7700b0f0&quot;</span><span class="w"> </span><span class="na">typno=</span><span class="s">&quot;0&quot;</span><span class="w"> </span><span class="na">azi=</span><span class="s">&quot;False&quot;</span><span class="w"> </span><span class="na">patno=</span><span class="s">&quot;1&quot;</span><span class="nt">&gt;</span>
+<span class="w">                  </span><span class="nt">&lt;name&gt;</span>Rec-1<span class="nt">&lt;/name&gt;</span>
+<span class="w">                  </span><span class="nt">&lt;grow_list&gt;</span>
+<span class="w">                     </span><span class="nt">&lt;translate</span><span class="w"> </span><span class="na">n=</span><span class="s">&quot;8&quot;</span><span class="w"> </span><span class="na">dx=</span><span class="s">&quot;0.0&quot;</span><span class="w"> </span><span class="na">dy=</span><span class="s">&quot;200.0&quot;</span><span class="nt">/&gt;</span>
+<span class="w">                     </span><span class="nt">&lt;translate</span><span class="w"> </span><span class="na">n=</span><span class="s">&quot;240&quot;</span><span class="w"> </span><span class="na">dx=</span><span class="s">&quot;50.0&quot;</span><span class="w"> </span><span class="na">dy=</span><span class="s">&quot;0.0&quot;</span><span class="nt">/&gt;</span>
+<span class="w">                  </span><span class="nt">&lt;/grow_list&gt;</span>
+<span class="w">               </span><span class="nt">&lt;/seed&gt;</span>
+<span class="w">           </span><span class="nt">&lt;/seed_list&gt;</span>
+<span class="w">         </span><span class="nt">&lt;/template&gt;</span>
+<span class="w">      </span><span class="nt">&lt;/template_list&gt;</span>
+<span class="w">   </span><span class="nt">&lt;/block&gt;</span>
+<span class="nt">&lt;/block_list&gt;</span>
+</pre></div>
+</div>
+</section>
+<section id="main-outputs">
+<h2>Main Outputs<a class="headerlink" href="#main-outputs" title="Link to this heading">¶</a></h2>
+<p>Depending on the workflow and the chosen processing mode, Roll can produce:</p>
+<ul class="simple">
+<li><p>fold maps;</p></li>
+<li><p>minimum and maximum offset maps;</p></li>
+<li><p>RMS offset increment and maximum offset gap maps;</p></li>
+<li><p>spider plots for individual bins;</p></li>
+<li><p>trace-table views backed by analysis files; and</p></li>
+<li><p>georeferenced raster exports for use in QGIS.</p></li>
+</ul>
+<p>Full binning extends the basic outputs with detailed per-trace information such
+as line and stake numbers, source and receiver coordinates, CMP coordinates,
+travel time, offset, azimuth, and unique-fold related values.</p>
+<p>Analysis plots available in the main application include:</p>
+<ul class="simple">
+<li><p>inline and crossline offset displays;</p></li>
+<li><p>inline and crossline azimuth displays;</p></li>
+<li><p>inline and crossline stack-response views;</p></li>
+<li><p>single-bin <code class="docutils literal notranslate"><span class="pre">Kxy</span></code> stack response; and</p></li>
+<li><p>offset and offset-azimuth histograms.</p></li>
+</ul>
+</section>
+<section id="d-view">
+<h2>3D View<a class="headerlink" href="#d-view" title="Link to this heading">¶</a></h2>
+<p>Roll includes a 3D view for a subset of the survey layout. This is especially
+useful for dipping-plane surveys, well trajectories, and VSP-style geometry.
+Rolling templates are too expensive to render fully in 3D, so the view focuses
+on non-rolling seeds and related geometry that are most useful to inspect.</p>
+<figure class="align-default" id="id1">
+<img alt="3D representation of a survey area" src="_images/3D_vsp_image.png" />
+<figcaption>
+<p><span class="caption-text">3D representation of a survey area.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="survey-wizards">
+<h2>Survey Wizards<a class="headerlink" href="#survey-wizards" title="Link to this heading">¶</a></h2>
+<p>Roll provides separate wizards for land and marine survey design.</p>
+<p>The land wizard supports several survey families:</p>
+<ol class="arabic simple">
+<li><p>orthogonal</p></li>
+<li><p>parallel</p></li>
+<li><p>slanted</p></li>
+<li><p>brick</p></li>
+<li><p>zigzag</p></li>
+</ol>
+<p>The marine wizard is specialized for towed-streamer acquisition. It accounts
+for turning-radius constraints and race-track style acquisition planning when
+constructing practical survey layouts.</p>
+</section>
+<section id="importing-sps-data">
+<h2>Importing SPS Data<a class="headerlink" href="#importing-sps-data" title="Link to this heading">¶</a></h2>
+<p>Legacy SPS data can be imported through the file menu and processed in much the
+same way as internally generated geometry files.</p>
+<p>Roll ships with predefined SPS dialects and also allows users to define and
+store additional dialects by adjusting columns such as line number, point
+number, northing, and easting. This makes the plugin useful both for survey
+design and for QC or re-analysis of existing acquisition data.</p>
+</section>
+<section id="editing-survey-files">
+<h2>Editing Survey Files<a class="headerlink" href="#editing-survey-files" title="Link to this heading">¶</a></h2>
+<p>Roll helps users avoid direct XML editing in most cases.</p>
+<ol class="arabic simple">
+<li><p>New projects can be created with the land or marine survey wizard.</p></li>
+<li><p>Existing project content can be modified in the property pane, which updates
+the XML structure behind the scenes.</p></li>
+</ol>
+<p>Advanced users can still edit the XML directly and apply those changes through
+the refresh-document action.</p>
+</section>
+<section id="interaction-with-qgis">
+<h2>Interaction with QGIS<a class="headerlink" href="#interaction-with-qgis" title="Link to this heading">¶</a></h2>
+<p>Generated geometry, imported SPS data, and raster analysis products can all be
+exported to QGIS. In QGIS, source and receiver points can be moved, deleted, or
+marked inactive and then loaded back into Roll for renewed analysis.</p>
+<figure class="align-default" id="id2">
+<img alt="Fold map of the Noordoostpolder example project" src="_images/foldmap.png" />
+<figcaption>
+<p><span class="caption-text">Fold map of the Noordoostpolder example project.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="related-help">
+<h2>Related Help<a class="headerlink" href="#related-help" title="Link to this heading">¶</a></h2>
+<p>For the detailed QGIS editing and round-trip workflow, use the dedicated
+<code class="docutils literal notranslate"><span class="pre">Roll</span> <span class="pre">and</span> <span class="pre">QGIS</span> <span class="pre">Interface</span> <span class="pre">Guide</span></code> page in this Sphinx site or open the same
+static HTML guide directly from the Roll Help menu.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">User Guide</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li><a class="reference internal" href="#core-concepts">Core Concepts</a></li>
+<li><a class="reference internal" href="#project-files-and-outputs">Project files and outputs</a></li>
+<li><a class="reference internal" href="#main-outputs">Main Outputs</a></li>
+<li><a class="reference internal" href="#d-view">3D View</a></li>
+<li><a class="reference internal" href="#survey-wizards">Survey Wizards</a></li>
+<li><a class="reference internal" href="#importing-sps-data">Importing SPS Data</a></li>
+<li><a class="reference internal" href="#editing-survey-files">Editing Survey Files</a></li>
+<li><a class="reference internal" href="#interaction-with-qgis">Interaction with QGIS</a></li>
+<li><a class="reference internal" href="#related-help">Related Help</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="index.html"
+                          title="previous chapter">Roll Documentation</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="workflows.html"
+                          title="next chapter">Workflows</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/user-guide.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="workflows.html" title="Workflows"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Roll Documentation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.5 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">User Guide</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2022-present, Duijndam.Dev.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

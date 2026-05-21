@@ -27,6 +27,11 @@ pip-log.txt
 pip-delete-this-directory.txt
 *.log
 
+# PowerPoint files
+*.ppt
+*.pptx
+
+
 # Unit test / coverage reports 
 htmlcov/ 
 .tox/ 

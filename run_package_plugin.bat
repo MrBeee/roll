@@ -8,7 +8,8 @@ rem Default output:
 rem   If this script lives in ...\MyPlugins\roll, it creates ...\MyPlugins\roll.zip
 rem
 rem Usage:
-rem   .\package_roll_plugin.bat [/y] [/out path-to-zip] [/nosecurity] [/security-report path] [/?]
+rem   .\run_package_plugin.bat
+rem   .\run_package_plugin.bat [/y] [/out path-to-zip] [/nosecurity] [/security-report path] [/?]
 rem ---------------------------------------------------------------------------
 
 set "scriptDir=%~dp0"
@@ -24,6 +25,7 @@ set "forceOverwrite=0"
 set "stageRoot=%TEMP%\%pluginName%_package_%RANDOM%%RANDOM%"
 set "stagePluginDir=%stageRoot%\%pluginName%"
 set "securityScript=%pluginDir%\run_security_checks_qgis.bat"
+set "sphinxIndex=%pluginDir%\help\build\html\index.html"
 set "securityReport="
 set "skipSecurity=0"
 
@@ -81,6 +83,12 @@ if not "%skipSecurity%"=="1" if not exist "%securityScript%" (
     exit /b 1
 )
 
+if not exist "%sphinxIndex%" (
+    echo Sphinx documentation output was not found: "%sphinxIndex%"
+    echo Run run_sphinx_documentation.bat before packaging so the built HTML help is included.
+    exit /b 1
+)
+
 if exist "%outputZip%" goto handleExistingZip
 goto createStageDir
 
@@ -109,7 +117,7 @@ rem Exclude local tooling, test material, caches, reports, and packaging helpers
 rem that are useful in the repo but should not be uploaded with the plugin.
 robocopy "%pluginDir%" "%stagePluginDir%" /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP ^
     /XD .git .github __pycache__ __archive__ .vscode markdown test .pytest_cache .mypy_cache ^
-    /XF *.bat *.pyc *.pyo *.bak *.tmp *.orig *.log *.zip .flake8 Makefile chat.json .gitignore .pylintrc flake8-report.txt pylint-report.txt full_test_output.txt error_message.txt targeted_tests.log test_run.log test_stack_extract.txt >nul
+    /XF *.bat *.pyc *.pyo *.bak *.tmp *.orig *.log *.zip *.ppt *.pptx .flake8 Makefile chat.json .gitignore .pylintrc flake8-report.txt pylint-report.txt full_test_output.txt error_message.txt targeted_tests.log test_run.log test_stack_extract.txt >nul
 set "robocopyExit=%ERRORLEVEL%"
 if %robocopyExit% GEQ 8 goto robocopyFailed
 
@@ -172,6 +180,10 @@ echo Use /security-report to choose where the combined security report is writte
 echo.
 echo Default output:
 echo   "%parentDir%\%pluginName%.zip"
+echo.
+echo Packaging requires built Sphinx HTML help at:
+echo   "%sphinxIndex%"
+echo Run run_sphinx_documentation.bat before this script.
 echo.
 echo Excluded by default:
 echo   .git, .github, __pycache__, __archive__, .vscode, markdown, test,

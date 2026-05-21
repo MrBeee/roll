@@ -53,5 +53,12 @@
 
 ## Workflows (from repo docs)
 - Dependencies must be installed in the OSGeo4W/QGIS Python environment: debugpy, numba, numpy, pyqtgraph, rasterio, wellpathpy (see [Readme.md](Readme.md) and [metadata.txt](metadata.txt)).
-- Tests run via `make test` (uses nosetests and expects a QGIS Python env); translation tasks use `make transup`/`make transcompile` (see [Makefile](Makefile)).
-- Plugin packaging/deploy uses `make deploy`/`make zip` (see [Makefile](Makefile)).
+- Windows helper scripts in the repo root are the active local workflow entry points: `run_tests_qgis.bat`, `run_flake8_qgis.bat`, `run_security_checks_qgis.bat`, `run_sphinx_documentation.bat`, and `run_package_plugin.bat`.
+- `run_package_plugin.bat` creates the uploadable plugin zip directly; build Sphinx docs first with `run_sphinx_documentation.bat` when you want the generated HTML included in that zip.
+
+## External documentation
+- For PyQGIS and QGIS API questions, prefer the official PyQGIS documentation as the authoritative external reference: https://qgis.org/pyqgis/master/
+- `copilot-instructions.md` can point Copilot to that documentation, but it cannot automatically attach a live web page as chat context.
+- In current VS Code Copilot Chat, web content is typically referenced by pasting the URL directly into the prompt or by using `#fetch` with the URL.
+- If integrated browser sharing or browser tools are available in the current VS Code build, an open documentation page can also be shared with the agent, but that is a separate feature and might be experimental or admin-controlled.
+- If the user has already referenced the PyQGIS documentation URL in the prompt or via `#fetch`, prefer that live documentation over weaker secondary sources when answering API-specific questions.
