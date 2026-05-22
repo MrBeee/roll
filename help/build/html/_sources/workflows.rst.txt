@@ -57,8 +57,7 @@ points can be moved, deleted, or marked inactive and then imported back into
 Roll for renewed analysis.
 
 This workflow is documented in more detail in the ``Roll and QGIS Interface
-Guide`` page in this Sphinx site. The same static HTML guide also remains
-available directly from the Roll Help menu.
+Guide`` page in this Sphinx site.
 
 3D and Well-Oriented Work
 -------------------------

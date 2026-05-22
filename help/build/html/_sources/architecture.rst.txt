@@ -72,6 +72,5 @@ Documentation Boundary
 ----------------------
 
 The Sphinx documentation in ``help/source`` is intended to provide maintainable
-project documentation. The existing static HTML guide under ``resources`` is
-now also copied into the generated Sphinx site so the same QGIS round-trip
-guide can be reached both from Sphinx and directly from the plugin Help menu.
+project documentation. The QGIS round-trip guide is maintained directly in the
+reStructuredText sources so it can be updated alongside the rest of the help.

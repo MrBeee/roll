@@ -15,7 +15,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Architecture" href="architecture.html" />
+    <link rel="next" title="Roll Demo Deck" href="roll-demo.html" />
     <link rel="prev" title="Workflows" href="workflows.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="Related">
@@ -25,7 +25,7 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="architecture.html" title="Architecture"
+          <a href="roll-demo.html" title="Roll Demo Deck"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="workflows.html" title="Workflows"
@@ -42,18 +42,235 @@
             
   <section id="roll-and-qgis-interface-guide">
 <h1>Roll and QGIS Interface Guide<a class="headerlink" href="#roll-and-qgis-interface-guide" title="Link to this heading">¶</a></h1>
-<p>This page includes the existing static HTML guide that describes the Roll and
-QGIS round-trip workflow.</p>
-<p>The original static page is still shipped unchanged and remains directly
-available from the plugin Help menu through the existing interface entry.</p>
-<section id="open-standalone-guide">
-<h2>Open standalone guide<a class="headerlink" href="#open-standalone-guide" title="Link to this heading">¶</a></h2>
-<p>If the embedded view below is not convenient, open the standalone page here:</p>
-<p><a class="reference external" href="Essential_QGis_operations.html">Essential QGIS operations</a></p>
+<p>This guide describes the round-trip workflow between Roll and QGIS: exporting
+geometry or SPS data to QGIS, editing or filtering it there, and then importing
+the updated result back into Roll for renewed analysis.</p>
+<section id="add-a-point-layer">
+<h2>1. Add a Point Layer<a class="headerlink" href="#add-a-point-layer" title="Link to this heading">¶</a></h2>
+<p>Adding a point layer may be needed to show a requested survey outline from a
+client or a prospect outline from the geologist.</p>
+<ol class="arabic simple">
+<li><p>In QGIS, choose <code class="docutils literal notranslate"><span class="pre">Layer</span> <span class="pre">-&gt;</span> <span class="pre">Add</span> <span class="pre">layer</span> <span class="pre">-&gt;</span> <span class="pre">Add</span> <span class="pre">delimited</span> <span class="pre">text</span> <span class="pre">layer</span></code>.</p></li>
+<li><p>Select the file name.</p></li>
+<li><p>Optionally, give the layer a name that is different from the file name.</p></li>
+<li><p>Check the file format.</p></li>
+<li><p>Check the record and field options, including header lines when needed.</p></li>
+<li><p>Define the columns that represent X, Y, and optionally Z values.</p></li>
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">Add</span></code>.</p></li>
+<li><p>Using Full Zoom (<code class="docutils literal notranslate"><span class="pre">Ctrl+Shift+F</span></code>) in QGIS, zoom to the imported points.</p></li>
+</ol>
 </section>
-<section id="embedded-guide">
-<h2>Embedded guide<a class="headerlink" href="#embedded-guide" title="Link to this heading">¶</a></h2>
-<iframe src="Essential_QGis_operations.html" title="Roll and QGIS Interface Guide" style="width: 100%; min-height: 75vh; border: 1px solid #bdbdbd;"></iframe></section>
+<section id="create-a-line-layer-from-points">
+<h2>2. Create a Line Layer from Points<a class="headerlink" href="#create-a-line-layer-from-points" title="Link to this heading">¶</a></h2>
+<p>Once a point layer has been created, the points can be hard to spot after you
+zoom out. Turning them into connected lines improves visibility and also
+prepares them for polygon creation.</p>
+<ol class="arabic simple">
+<li><p>In QGIS, open <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">-&gt;</span> <span class="pre">Toolbox</span></code>.</p></li>
+<li><p>In the Processing Toolbox, choose <code class="docutils literal notranslate"><span class="pre">Vector</span> <span class="pre">creation</span> <span class="pre">-&gt;</span> <span class="pre">Points</span> <span class="pre">to</span> <span class="pre">path</span></code>.</p></li>
+<li><p>Select the input layer.</p></li>
+<li><p>Enable closed path creation if needed.</p></li>
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">Run</span></code> to create a multi-line layer in the order the points were
+listed.</p></li>
+</ol>
+</section>
+<section id="create-a-filled-polygon-layer-from-lines">
+<h2>3. Create a Filled Polygon Layer from Lines<a class="headerlink" href="#create-a-filled-polygon-layer-from-lines" title="Link to this heading">¶</a></h2>
+<p>Lines are easier to see than individual points, but line layers cannot be
+filled and cannot be used as clip boundaries. For that, you need polygons.</p>
+<ol class="arabic simple">
+<li><p>In QGIS, open <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">-&gt;</span> <span class="pre">Toolbox</span></code>.</p></li>
+<li><p>In the Processing Toolbox, choose
+<code class="docutils literal notranslate"><span class="pre">Vector</span> <span class="pre">geometry</span> <span class="pre">-&gt;</span> <span class="pre">Lines</span> <span class="pre">to</span> <span class="pre">polygons</span></code>.</p></li>
+<li><p>Select the input layer.</p></li>
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">Run</span></code> to create a filled polygon.</p></li>
+<li><p>Double-click the polygon to open Layer Properties.</p></li>
+<li><p>Under <code class="docutils literal notranslate"><span class="pre">Symbology</span></code>, choose a meaningful color.</p></li>
+<li><p>Reduce opacity below 100 percent so underlying layers remain visible.</p></li>
+<li><p>To add an outline:</p>
+<ul class="simple">
+<li><p>Add a symbol layer with the green plus icon.</p></li>
+<li><p>For the symbol layer type, choose <code class="docutils literal notranslate"><span class="pre">Outline:</span> <span class="pre">Simple</span> <span class="pre">Line</span></code>.</p></li>
+<li><p>Select an appropriate color and stroke width.</p></li>
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">OK</span></code>.</p></li>
+</ul>
+</li>
+<li><p>In the Layers panel, open the layer context menu and choose
+<code class="docutils literal notranslate"><span class="pre">Make</span> <span class="pre">permanent</span></code>.</p></li>
+<li><p>After the polygon outline has been added, you can delete the temporary line
+layer because it is no longer needed for the later src/rec and sps/rps
+editing steps.</p></li>
+</ol>
+</section>
+<section id="export-src-rec-and-sps-rps-data-from-roll-to-qgis">
+<h2>4. Export src/rec and sps/rps Data from Roll to QGIS<a class="headerlink" href="#export-src-rec-and-sps-rps-data-from-roll-to-qgis" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>In Roll, choose
+<code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">-&gt;</span> <span class="pre">Export</span> <span class="pre">to</span> <span class="pre">QGIS</span> <span class="pre">-&gt;</span> <span class="pre">Export</span> <span class="pre">Geometry</span> <span class="pre">-&gt;</span> <span class="pre">Export</span> <span class="pre">xxx</span> <span class="pre">Records</span> <span class="pre">to</span> <span class="pre">QGIS</span></code>.</p></li>
+<li><p>Alternatively, use the <code class="docutils literal notranslate"><span class="pre">SPS</span> <span class="pre">import</span></code> tab export buttons for SPS and RPS
+records.</p></li>
+<li><p>Alternatively, use the <code class="docutils literal notranslate"><span class="pre">Geometry</span></code> tab export buttons for SRC and REC
+records.</p></li>
+<li><p>Roll creates in-memory scratch layers in QGIS with the exported data.</p></li>
+</ol>
+</section>
+<section id="make-scratch-src-rec-and-sps-rps-layers-permanent">
+<h2>5. Make Scratch src/rec and sps/rps Layers Permanent<a class="headerlink" href="#make-scratch-src-rec-and-sps-rps-layers-permanent" title="Link to this heading">¶</a></h2>
+<p>To make the exported source and receiver data permanent and available the next
+time the QGIS project is opened:</p>
+<ol class="arabic simple">
+<li><p>In the Layers panel, open the scratch layer context menu and choose
+<code class="docutils literal notranslate"><span class="pre">Rename</span> <span class="pre">layer</span></code>.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">Ctrl+C</span></code> to copy the layer name, then press Escape without renaming.</p></li>
+<li><p>In the layer context menu, choose <code class="docutils literal notranslate"><span class="pre">Make</span> <span class="pre">Permanent</span></code>.</p></li>
+<li><p>Alternatively, use the scratch button on the right side of the layer name.</p></li>
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">ESRI</span> <span class="pre">Shapefile</span></code> as the file format.</p></li>
+<li><p>Select the ellipsis button next to the file name and navigate to the desired
+file location.</p></li>
+<li><p>Paste the copied layer name into the dialog’s <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">name</span></code> field.</p></li>
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">OK</span></code>. The layer is now permanent and will be restored when the
+project is opened again.</p></li>
+</ol>
+</section>
+<section id="truncate-src-rec-and-sps-rps-point-areas-in-qgis">
+<h2>6. Truncate src/rec and sps/rps Point Areas in QGIS<a class="headerlink" href="#truncate-src-rec-and-sps-rps-point-areas-in-qgis" title="Link to this heading">¶</a></h2>
+<p>Survey geometry in Roll is often created from rectangular blocks, while the
+real survey outline is usually constrained by concession boundaries, cities,
+lakes, or similar features. In QGIS you can either clip the points away or mark
+them inactive by testing whether they fall inside a polygon.</p>
+<section id="a-clipping-the-easy-way-out">
+<h3>6.a. Clipping: the Easy Way Out<a class="headerlink" href="#a-clipping-the-easy-way-out" title="Link to this heading">¶</a></h3>
+<p>Clipping removes all points outside a selected polygonal area. It is quick, but
+the removed points are not easy to reinstate later.</p>
+<ol class="arabic simple">
+<li><p>Choose <code class="docutils literal notranslate"><span class="pre">Vector</span> <span class="pre">-&gt;</span> <span class="pre">Geoprocessing</span> <span class="pre">Tools</span> <span class="pre">-&gt;</span> <span class="pre">Clip</span></code>.</p></li>
+<li><p>Select the point layer containing SRC/REC or SPS/RPS points as the input
+layer.</p></li>
+<li><p>Select the boundary polygon as the overlay layer.</p></li>
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">Run</span></code>.</p></li>
+<li><p>The clipped point layer is created as a scratch layer.</p></li>
+</ol>
+</section>
+<section id="b-clipping-future-proofing-your-edits">
+<h3>6.b. Clipping: Future-Proofing Your Edits<a class="headerlink" href="#b-clipping-future-proofing-your-edits" title="Link to this heading">¶</a></h3>
+<p>This approach first selects points inside a polygon and then writes the
+selection state into a permanent attribute, usually <code class="docutils literal notranslate"><span class="pre">inuse</span></code>.</p>
+<ol class="arabic simple">
+<li><p>Choose <code class="docutils literal notranslate"><span class="pre">Vector</span> <span class="pre">-&gt;</span> <span class="pre">Research</span> <span class="pre">Tools</span> <span class="pre">-&gt;</span> <span class="pre">Select</span> <span class="pre">by</span> <span class="pre">Location</span></code>.</p></li>
+<li><p>Select the appropriate SPS/RPS or SRC/REC point layer under
+<code class="docutils literal notranslate"><span class="pre">Select</span> <span class="pre">features</span> <span class="pre">from</span></code>.</p></li>
+<li><p>For the spatial test, choose <code class="docutils literal notranslate"><span class="pre">are</span> <span class="pre">within</span></code> and optionally <code class="docutils literal notranslate"><span class="pre">touch</span></code> relative
+to the boundary polygon.</p></li>
+<li><p>Select the polygon layer.</p></li>
+<li><p>Create a new selection.</p></li>
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">Run</span></code> to create a selection of points inside the polygon.</p></li>
+<li><p>Confirm that the selected points are highlighted in yellow and marked with a
+red cross.</p></li>
+<li><p>From the Attributes toolbar, open <code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">Calculator</span></code>.</p></li>
+<li><p>Alternatively, open the Attribute Table (<code class="docutils literal notranslate"><span class="pre">F6</span></code>) and then open the Field
+Calculator (<code class="docutils literal notranslate"><span class="pre">Ctrl+I</span></code>).</p></li>
+<li><p>Uncheck <code class="docutils literal notranslate"><span class="pre">Only</span> <span class="pre">update</span> <span class="pre">xxx</span> <span class="pre">selected</span> <span class="pre">feature(s)</span></code>. The calculation must update
+all features, not only the selected ones.</p></li>
+<li><p>Now either:</p>
+<ul class="simple">
+<li><p>Create a new 32-bit integer field using the default field length.</p></li>
+<li><p>Update an existing integer field, such as Roll’s <code class="docutils literal notranslate"><span class="pre">inuse</span></code> field.</p></li>
+</ul>
+</li>
+<li><p>In the expression widget, enter <code class="docutils literal notranslate"><span class="pre">is_selected()</span></code>.</p></li>
+<li><p>This function returns true (1) when a point record is selected and false (0)
+otherwise.</p></li>
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">OK</span></code> and let the calculation run on all point records in the active
+layer.</p></li>
+<li><p>After completion, verify the result in the Attribute Table.</p></li>
+<li><p>The modified point layer is now ready to be read back into Roll.</p></li>
+</ol>
+</section>
+</section>
+<section id="move-src-rec-and-sps-rps-points-in-qgis">
+<h2>7. Move src/rec and sps/rps Points in QGIS<a class="headerlink" href="#move-src-rec-and-sps-rps-points-in-qgis" title="Link to this heading">¶</a></h2>
+<p>To change any of the exported layers you must enable editing first.</p>
+<ol class="arabic simple">
+<li><p>In the Layers panel, open the point layer context menu and choose
+<code class="docutils literal notranslate"><span class="pre">Toggle</span> <span class="pre">editing</span></code>.</p></li>
+<li><p>A pencil icon appears next to the layer name.</p></li>
+<li><p>The pencil on the digitizing toolbar is also highlighted.</p></li>
+<li><p>In the digitizing toolbar, select the Vertex tool for the current layer.</p></li>
+<li><p>Use one of these vertex selection methods:</p>
+<ul class="simple">
+<li><p>Right-click to lock on a feature.</p></li>
+<li><p>Click and drag to select vertices by rectangle.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Alt+click</span></code> to select vertices by polygon.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Shift+click</span></code> or drag to add vertices to the selection.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl+click</span></code> or drag to remove vertices from the selection.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Shift+R</span></code> to enable range selection.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="read-src-rec-and-sps-rps-points-from-qgis-back-into-roll">
+<h2>8. Read src/rec and sps/rps Points from QGIS back into Roll<a class="headerlink" href="#read-src-rec-and-sps-rps-points-from-qgis-back-into-roll" title="Link to this heading">¶</a></h2>
+<p>Once changes have been made to overall source and receiver areas or to
+individual point locations in QGIS, including deleted points, you can read the
+modified point data back into Roll and rerun the analysis.</p>
+<ol class="arabic simple">
+<li><p>In Roll, use the <code class="docutils literal notranslate"><span class="pre">Geometry</span></code> tab <code class="docutils literal notranslate"><span class="pre">Read</span> <span class="pre">from</span> <span class="pre">QGIS</span></code> buttons for SRC and REC
+data.</p></li>
+<li><p>In Roll, use the <code class="docutils literal notranslate"><span class="pre">SPS</span> <span class="pre">import</span></code> tab <code class="docutils literal notranslate"><span class="pre">Read</span> <span class="pre">from</span> <span class="pre">QGIS</span></code> buttons for SPS and
+RPS data.</p></li>
+<li><p>In the layer dialog that opens:</p>
+<ul class="simple">
+<li><p>Select the correct QGIS point layer containing the SPS/RPS or SRC/REC
+data.</p></li>
+<li><p>Confirm that the selected point layer CRS matches the Roll project CRS.</p></li>
+<li><p>Decide whether to use a selection field code. This is normally the
+<code class="docutils literal notranslate"><span class="pre">inuse</span></code> field.</p></li>
+<li><p>To inspect the available fields in QGIS:</p>
+<ul>
+<li><p>Select the layer in the Layers panel.</p></li>
+<li><p>Open its context menu and choose <code class="docutils literal notranslate"><span class="pre">Open</span> <span class="pre">Attribute</span> <span class="pre">Table</span></code>
+(<code class="docutils literal notranslate"><span class="pre">Shift+F6</span></code>).</p></li>
+<li><p>Check the column headers. Roll expects the fields <code class="docutils literal notranslate"><span class="pre">line</span></code>, <code class="docutils literal notranslate"><span class="pre">stake</span></code>,
+<code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">code</span></code>, <code class="docutils literal notranslate"><span class="pre">depth</span></code>, <code class="docutils literal notranslate"><span class="pre">elev</span></code>, and <code class="docutils literal notranslate"><span class="pre">inuse</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inuse</span> <span class="pre">=</span> <span class="pre">0</span></code> deselects a point for analysis in Roll.</p></li>
+<li><p>Integer fields other than <code class="docutils literal notranslate"><span class="pre">inuse</span></code> can also be used to select
+active or passive points in Roll.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="process-data-edited-in-qgis-back-in-roll-and-show-results-in-qgis">
+<h2>9. Process Data Edited in QGIS Back in Roll and Show Results in QGIS<a class="headerlink" href="#process-data-edited-in-qgis-back-in-roll-and-show-results-in-qgis" title="Link to this heading">¶</a></h2>
+<p>After the edited Geometry or SPS data has been copied back into Roll:</p>
+<ol class="arabic simple">
+<li><p>In Roll’s processing menu, run <code class="docutils literal notranslate"><span class="pre">Binning</span> <span class="pre">from</span> <span class="pre">Geometry</span></code> or
+<code class="docutils literal notranslate"><span class="pre">Binning</span> <span class="pre">from</span> <span class="pre">Imported</span> <span class="pre">SPS</span></code>.</p></li>
+<li><p>Choose carefully between the two binning modes:</p>
+<ul class="simple">
+<li><p><strong>Full binning</strong> creates the RMS offset map, offset plots,
+offset/azimuth diagrams, and trace table content needed for the spider
+plot in the Layout pane. It uses a large memory-mapped
+<code class="docutils literal notranslate"><span class="pre">*.roll.ana.npy</span></code> array, so performance can degrade significantly on
+large areas.</p></li>
+<li><p><strong>Basic binning</strong> creates the fold map and minimum and maximum offsets on
+the fly while processing the source and receiver points. It is faster, but
+it does not create the richer offset products provided by full binning.</p></li>
+</ul>
+</li>
+<li><p>Once binning is complete, export the fold map and the minimum and maximum
+offsets to QGIS using either the buttons in the Display pane or the export
+options in the File menu.</p></li>
+<li><p>Select the appropriate folder and then choose a file name. Roll suggests a
+name automatically.</p></li>
+<li><p>The georeferenced TIFF file is then imported into the QGIS project.</p></li>
+<li><p>Areas with no data in the fold map or minimum and maximum offset plots are
+fully transparent in QGIS.</p></li>
+<li><p>From within QGIS, verify that the edits or deleted points still produce
+acceptable coverage plots.</p></li>
+</ol>
+</section>
 </section>
 
 
@@ -67,8 +284,19 @@ available from the plugin Help menu through the existing interface entry.</p>
     <h3><a href="index.html">Table of Contents</a></h3>
     <ul>
 <li><a class="reference internal" href="#">Roll and QGIS Interface Guide</a><ul>
-<li><a class="reference internal" href="#open-standalone-guide">Open standalone guide</a></li>
-<li><a class="reference internal" href="#embedded-guide">Embedded guide</a></li>
+<li><a class="reference internal" href="#add-a-point-layer">1. Add a Point Layer</a></li>
+<li><a class="reference internal" href="#create-a-line-layer-from-points">2. Create a Line Layer from Points</a></li>
+<li><a class="reference internal" href="#create-a-filled-polygon-layer-from-lines">3. Create a Filled Polygon Layer from Lines</a></li>
+<li><a class="reference internal" href="#export-src-rec-and-sps-rps-data-from-roll-to-qgis">4. Export src/rec and sps/rps Data from Roll to QGIS</a></li>
+<li><a class="reference internal" href="#make-scratch-src-rec-and-sps-rps-layers-permanent">5. Make Scratch src/rec and sps/rps Layers Permanent</a></li>
+<li><a class="reference internal" href="#truncate-src-rec-and-sps-rps-point-areas-in-qgis">6. Truncate src/rec and sps/rps Point Areas in QGIS</a><ul>
+<li><a class="reference internal" href="#a-clipping-the-easy-way-out">6.a. Clipping: the Easy Way Out</a></li>
+<li><a class="reference internal" href="#b-clipping-future-proofing-your-edits">6.b. Clipping: Future-Proofing Your Edits</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#move-src-rec-and-sps-rps-points-in-qgis">7. Move src/rec and sps/rps Points in QGIS</a></li>
+<li><a class="reference internal" href="#read-src-rec-and-sps-rps-points-from-qgis-back-into-roll">8. Read src/rec and sps/rps Points from QGIS back into Roll</a></li>
+<li><a class="reference internal" href="#process-data-edited-in-qgis-back-in-roll-and-show-results-in-qgis">9. Process Data Edited in QGIS Back in Roll and Show Results in QGIS</a></li>
 </ul>
 </li>
 </ul>
@@ -81,8 +309,8 @@ available from the plugin Help menu through the existing interface entry.</p>
   </div>
   <div>
     <h4>Next topic</h4>
-    <p class="topless"><a href="architecture.html"
-                          title="next chapter">Architecture</a></p>
+    <p class="topless"><a href="roll-demo.html"
+                          title="next chapter">Roll Demo Deck</a></p>
   </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
@@ -112,7 +340,7 @@ available from the plugin Help menu through the existing interface entry.</p>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="architecture.html" title="Architecture"
+          <a href="roll-demo.html" title="Roll Demo Deck"
              >next</a> |</li>
         <li class="right" >
           <a href="workflows.html" title="Workflows"

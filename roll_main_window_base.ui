@@ -412,7 +412,7 @@
   <action name="actionOpen">
    <property name="icon">
     <iconset>
-     <normaloff>resources/file_open.svg</normaloff>resources/file_open.svg</iconset>
+     <normaloff>resources/mActionFileOpen.svg</normaloff>resources/mActionFileOpen.svg</iconset>
    </property>
    <property name="text">
     <string>Open Survey</string>
@@ -433,7 +433,7 @@
   <action name="actionNewLandSurvey">
    <property name="icon">
     <iconset>
-     <normaloff>resources/Land_new.svg</normaloff>resources/Land_new.svg</iconset>
+     <normaloff>resources/mActionNewLandSurvey.svg</normaloff>resources/mActionNewLandSurvey.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Land/OBN Survey Wizard</string>
@@ -448,7 +448,7 @@
   <action name="actionNewMarineSurvey">
    <property name="icon">
     <iconset>
-     <normaloff>resources/Marine_new.svg</normaloff>resources/Marine_new.svg</iconset>
+     <normaloff>resources/mActionNewMarineSurvey.svg</normaloff>resources/mActionNewMarineSurvey.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Marine Survey Wizard</string>
@@ -463,7 +463,7 @@
   <action name="actionSave">
    <property name="icon">
     <iconset>
-     <normaloff>resources/file_save.svg</normaloff>resources/file_save.svg</iconset>
+     <normaloff>resources/mActionFileSave.svg</normaloff>resources/mActionFileSave.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Save Survey</string>
@@ -652,7 +652,7 @@
   <action name="actionSettings">
    <property name="icon">
     <iconset>
-     <normaloff>resources/settings.svg</normaloff>resources/settings.svg</iconset>
+     <normaloff>resources/mActionSettings.svg</normaloff>resources/mActionSettings.svg</iconset>
    </property>
    <property name="text">
     <string>Settings</string>
@@ -694,7 +694,7 @@
   <action name="actionNew">
    <property name="icon">
     <iconset>
-     <normaloff>resources/file_new.svg</normaloff>resources/file_new.svg</iconset>
+     <normaloff>resources/mActionFileNew.svg</normaloff>resources/mActionFileNew.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;New empty document</string>
@@ -757,7 +757,7 @@
    </property>
    <property name="icon">
     <iconset>
-     <normaloff>resources/earth2.svg</normaloff>resources/earth2.svg</iconset>
+     <normaloff>resources/mActionProjected.svg</normaloff>resources/mActionProjected.svg</iconset>
    </property>
    <property name="text">
     <string>Projected</string>
@@ -885,7 +885,7 @@
   <action name="actionImportSPS">
    <property name="icon">
     <iconset>
-     <normaloff>resources/file_import_sps.svg</normaloff>resources/file_import_sps.svg</iconset>
+     <normaloff>resources/mActionFileImportSps.svg</normaloff>resources/mActionFileImportSps.svg</iconset>
    </property>
    <property name="text">
     <string>Import SPS files...</string>
@@ -1665,7 +1665,7 @@
   <action name="actionQGisCheatSheet">
    <property name="icon">
     <iconset>
-     <normaloff>resources/QGIS_logo_2017.svg</normaloff>resources/QGIS_logo_2017.svg</iconset>
+     <normaloff>resources/qgis-icon32.svg</normaloff>resources/qgis-icon32.svg</iconset>
    </property>
    <property name="text">
     <string>QGis Cheat Sheet</string>
@@ -1674,7 +1674,7 @@
   <action name="actionQGisRollInterface">
    <property name="icon">
     <iconset>
-     <normaloff>resources/QGIS_logo_2017.svg</normaloff>resources/QGIS_logo_2017.svg</iconset>
+     <normaloff>resources/qgis-icon32.svg</normaloff>resources/qgis-icon32.svg</iconset>
    </property>
    <property name="text">
     <string>QGis-Roll Interface</string>

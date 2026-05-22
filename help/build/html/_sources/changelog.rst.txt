@@ -3,6 +3,7 @@ Changelog
 
 Recent releases are summarized below.
 
+* 2026-05-22 (0.7.6) Implemented first steps of Sphinx documentation, acessible from F1
 * 2026-05-20 (0.7.5) Updated ``Readme.md`` and completed final flake8 cleanup for plugin upload.
 * 2026-05-19 (0.7.4) Updated metadata project information.
 * 2026-05-19 (0.7.3) Fixed an experimental geometry-generation bug affecting fixed grids.

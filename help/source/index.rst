@@ -4,9 +4,7 @@ Roll Documentation
 Roll is a QGIS plugin for designing and analyzing 3D seismic survey geometries.
 This Sphinx site provides a minimal project manual for users and contributors.
 
-The detailed HTML guide for the Roll and QGIS round-trip is included here as a
-Sphinx page and also remains available from the plugin Help menu as a direct
-static HTML page.
+The Roll and QGIS round-trip workflow is documented directly in this help site.
 
 .. toctree::
    :maxdepth: 2

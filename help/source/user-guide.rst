@@ -212,5 +212,4 @@ Related Help
 ------------
 
 For the detailed QGIS editing and round-trip workflow, use the dedicated
-``Roll and QGIS Interface Guide`` page in this Sphinx site or open the same
-static HTML guide directly from the Roll Help menu.
+``Roll and QGIS Interface Guide`` page in this Sphinx site.

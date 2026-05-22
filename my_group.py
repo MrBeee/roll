@@ -153,7 +153,7 @@ class MyGroupParameterItem(GroupParameterItem):
                     self.contextMenu.addSeparator()
                     continue
 
-                iconFile = name + 'Icon.svg'
+                iconFile = f"mActionDynamic{name[:1].upper()}{name[1:]}.svg"
                 iconFile = os.path.join(resourceDir, iconFile)
                 if os.path.exists(iconFile):
                     if name == 'rename':

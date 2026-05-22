@@ -58,3 +58,4 @@ Current roadmap items include:
 * improve analysis capabilities, including ideas around multiple suppression
   and DMO smear; and
 * expand the 3D layout view introduced in version 0.6.8.
+* expand Sphinx documentation

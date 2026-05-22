@@ -97,6 +97,7 @@ set "SPHINXMODE=path"
 
 if "%TARGET%" == "html" (
     call :runSphinx html %BUILDDIR%/html
+    call :stripHtmlBuildMetadata %BUILDDIR%/html
     echo.
     echo.Build finished. The HTML pages are in help\%BUILDDIR%\html.
     goto end
@@ -253,6 +254,11 @@ if exist "%candidateDir%\python-qgis.bat" if not defined pyQgisBat set "pyQgisBa
 if exist "%candidateDir%\python-qgis-ltr.bat" if not defined pyQgisBat set "pyQgisBat=%candidateDir%\python-qgis-ltr.bat"
 if exist "%candidateDir%\python-qgis-ltr-qt6.bat" if not defined pyQgisBat set "pyQgisBat=%candidateDir%\python-qgis-ltr-qt6.bat"
 if exist "%candidateDir%\python-qgis-dev.bat" if not defined pyQgisBat set "pyQgisBat=%candidateDir%\python-qgis-dev.bat"
+goto :eof
+
+:stripHtmlBuildMetadata
+del /f /q "%~1\.buildinfo" >nul 2>&1
+del /f /q "%~1\.buildinfo.bak" >nul 2>&1
 goto :eof
 
 :missingSphinx

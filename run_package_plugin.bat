@@ -117,7 +117,7 @@ rem Exclude local tooling, test material, caches, reports, and packaging helpers
 rem that are useful in the repo but should not be uploaded with the plugin.
 robocopy "%pluginDir%" "%stagePluginDir%" /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP ^
     /XD .git .github __pycache__ __archive__ .vscode markdown test .pytest_cache .mypy_cache ^
-    /XF *.bat *.pyc *.pyo *.bak *.tmp *.orig *.log *.zip *.ppt *.pptx .flake8 Makefile chat.json .gitignore .pylintrc flake8-report.txt pylint-report.txt full_test_output.txt error_message.txt targeted_tests.log test_run.log test_stack_extract.txt >nul
+    /XF *.bat *.pyc *.pyo *.bak *.tmp *.orig *.log *.zip *.ppt *.pptx .buildinfo .buildinfo.bak .flake8 Makefile chat.json .gitignore .pylintrc flake8-report.txt pylint-report.txt full_test_output.txt error_message.txt targeted_tests.log test_run.log test_stack_extract.txt >nul
 set "robocopyExit=%ERRORLEVEL%"
 if %robocopyExit% GEQ 8 goto robocopyFailed
 

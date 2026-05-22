@@ -3682,14 +3682,16 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         QMessageBox.about(self, 'QGis Cheat Sheet', qgisCheatSheetText())
 
     def onQGisRollInterface(self):
-        # See: https://stackoverflow.com/questions/4216985/call-to-operating-system-to-open-url
-
         dirName = os.path.dirname(os.path.abspath(__file__))
-        urlName = os.path.join(dirName, 'resources', 'Essential_QGis_operations.html')
-        # urlName = 'file:///D:/qGIS/MyPlugins/roll/resources/Essential_QGis_operations.html'
+        urlName = os.path.join(dirName, 'help', 'build', 'html', 'qgis-interface-guide.html')
         if os.path.exists(urlName):
-            urlName = 'file:///' + urlName.replace('\\', '/')                   # idea from CoPilot: convert to file:///
+            urlName = 'file:///' + urlName.replace('\\', '/')
             webbrowser.open(urlName, new=0, autoraise=True)
+            return
+
+        QMessageBox.information(self, 'Roll and QGIS Interface Guide',
+                                'The Sphinx guide page has not been built yet.\n\n'
+                                'Run run_sphinx_documentation.bat from the plugin folder, then try again.')
 
     def onSphinxDocumentation(self):
         dirName = os.path.dirname(os.path.abspath(__file__))

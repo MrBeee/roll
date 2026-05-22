@@ -137,7 +137,7 @@ The geometry files themselves can also be exported as SPS-files.
 
 * As of version 0.6.3 Roll is compatible with QGIS 4.0, and therefore with PyQt6 and numpy 2.0. This was done as part of a refactoring effort aided by the [GitHub Copilot](https://code.visualstudio.com/docs/copilot/overview) in VS Code. A number of LLM models are available in Copilot, some of which tried hard to wreck my code. 
 
-* In version 0.6.4, a polar diagram was added for the offset/azimuth histogram and refactoring of code continued. The code for the polar diagram was completed using '[vibe coding](https://en.wikipedia.org/wiki/Vibe_coding)'. This agent driven approach was also used to develop a series of unit tests in the test subdirectory. As of version 5.4 GPT has become stable and trustworthy enough to work in agent mode, optimizing the source code and implementing new features. This LLM was also used consistently during code refactoring
+* In version 0.6.4, a polar diagram was added for the offset/azimuth histogram and refactoring of code continued. The code for the polar diagram was completed using ['agentic coding'](https://cloud.google.com/discover/what-is-agentic-coding). This agent-driven approach was also used to develop a series of unit tests in the test subdirectory. As of version 5.4 GPT has become stable and trustworthy enough to work in agent mode, optimizing the source code and implementing new features. This LLM was also used consistently during code refactoring
 
   >You may remember, when Plug-and-Play (PnP) was introduced in the early 1990s to manage hardware updates, it did not always work out-of-the-box (understatement) and people often called it "Plug-and-Pray". With AI coding at the moment, we are at the stage where software development has turned into "Prompt-and-Pray".
 
@@ -246,7 +246,7 @@ On May 6th 2026, the Addin contained `34,316` Source-Lines-Of-Code (SLOC) across
 
 This SLOC count excludes blank lines and lines starting with `#`, but still counts lines that contain code plus an inline comment.
 
-#### 8.2	Vibe coding - `use experimental code` flag
+#### 8.2	Agentic coding - `use experimental code` flag
 
 Using GPT5.4 or Gemini 3 to optimize the code using 'agents' that analyse binning and geometry generation routines, helps to find bottlenecks and speeds up the code, at the risk that bugs are introduced that are difficult to spot due to the large permutation in survey designs caused by varying number of blocks, templates, seeds and seed types. For that reason, for **binning** and **geometry generation** alternative routines are implemented: 
 
@@ -259,72 +259,7 @@ By extensive testing the experimental routines, they will be replacing the legac
 
 ### 9	To Do
 
-- Improve Roll's analysis capabilities; think of multiple suppression and DMO smear
+- Improve Roll's analysis capabilities; think of multiple suppression and DMO smear, CFP analysis
 - Expand the 3D Layout View, introduced in version 0.6.8
+- Expand Sphinx documentation
 
-
-
-### 10	Changelog
-- 2026-05-20 (0.7.5) Updated readme.md and final cleaning of flake8 warnings when uploading the plugin
-- 2026-05-19 (0.7.4) Updated metadata project information
-- 2026-05-19 (0.7.3) Fixed a bug in 'experimental' geometry generation, that caused 'fixed' grids to be interpreted as 'rolling' grids
-- 2026-05-17 (0.7.2) Fixed a bug in survey's template count, affecting progress message in geometry generation 
-- 2026-05-15 (0.7.1) Added "Shift Survey Location..." dialog. Expanded 3D view for Subset of survey data. Updated Marine Survey Wizard for optimal x-line bin size.
-- 2026-05-06 (0.7.0) Optimization of binning from templates and binning from geometry. Completed Flake8 code clean up.
-- 2026-05-01 (0.6.9) Added TWT option to inline and x-line offset displays. Started to fleece code using Flake8.
-- 2026-04-30 (0.6.8) Added 3D view for Subset of survey data. Enabled by "Use experimental code" in the Settings dialog. Implemented faster worker thread routines, enabled by the same flag
-- 2026-04-22 (0.6.7) Improved import and handling of SPS files.
-- 2026-04-21 (0.6.6) Added 'Max Offset Gap' analysis. Fixed bug crashing app when worker thread was interrupted. Improved readability of items in Parameter tree (property pane).
-- 2026-04-16 (0.6.5) Added inline and x-line offsets to |offset| plots and mouse tracking in statusbar for all plots. Continued refactoring code.
-- 2026-04-09 (0.6.4) Added a polar diagram for the offset/azimuth histogram and continued refactoring of code
-- 2026-03-10 (0.6.3) Some numpy attribute names needed to be changed for NumPy 2.0 compatibility in QGIS 4.0
-- 2026-03-08 (0.6.2) Reformatting of code to make attribute & variable names compatible with QGIS' use of camelCase, rather than snake_case. Some minor tweaks applied
-- 2026-02-25 (0.6.1) Fixed a bug related to reading Boolean values reliably from xml text input
-- 2026-02-23 (0.6.0) Made Roll a 'standalone' app for testing and debugging purposes. Raised minimum QGIS version to 3.34
-- 2026-02-13 (0.5.9) Made fold-map transparent for areas where fold = 0. Added context menu in SPS and Geometry tables, to edit 'in-use' status
-- 2026-02-10 (0.5.8) Fixed a small bug in copying charts to the clipboard
-- 2026-02-07 (0.5.7) Updated 'Find and Replace' dialog for direct Xml editing. Fixed enum bugs to ensure Qt6 compatibility
-- 2026-02-07 (0.5.6) Added 'Preview & Print' to the file menu for the xml file and the pyqtgraph charts. Implemented copy & paste for pyqtgraph charts
-- 2026-02-06 (0.5.5) Fixed bug in azimuth range in Offset/Azimuth diagram
-- 2026-02-03 (0.5.4) Improved import and export of SPS data
-- 2026-01-29 (0.5.3) Fixed pattern management (adding/moving/renaming/removing patterns) in the Property panel
-- 2026-01-28 (0.5.2) Fixed bug resulting in coverage gaps at block boundaries for multi block (marine) surveys, when working from geometry data
-- 2025-12-03 (0.5.1) Updated SPS file import and implemented flexible SPS format definition by the end user. 
-  - Binning can now be done in absence of a relation file (*.xps), using offset limits solely
-- 2025-09-22 (0.5.0) Some significant changes; 
-  - progressive painting, keeps user interface alive while painting large survey objects; 
-  - debugging uses Debugpy instead of Debugvs; 
-  - well files accessed through relative paths
-- 2025-09-22 (0.4.9) Small bug fixes related to using - *or not using* - numba
-- 2025-09-19 (0.4.8) Use chunked data-access when using very large memory-mapped analysis files
-- 2025-09-17 (0.4.7) Removed a bug that caused QGIS to crash, when using very large memory-mapped analysis files
-- 2025-09-12 (0.4.6) The code has been reformatted to be compatible with Qt6. It should still be backwards compatible with Qt5  
-- 2025-06-09 (0.4.5) Accept projects that are created from SPS-data only (i.e. projects that are not template-based)
-- 2025-06-01 (0.4.4) changed the way SPS source points are shown in QGIS: (point, line) has become (line, point) except for parallel/NAZ surveys
-- 2025-05-11 (0.4.3) several improvements in transferring data from Roll to QGIS and vice versa. Created html help page in help menu
-- 2025-03-05 (0.4.2) refactoring of parameter management code, speeding up display in property pane of surveys with many blocks & seed points
-- 2025-02-22 (0.4.1) implemented feathering in Marine Wizard; enabled selective drawing of survey details (lines and/or points and/or patterns)
-- 2025-02-15 (0.4.0) updated Marine Wizard; simplifying data structure in case there's no streamer fanning, significantly speeding up property editing
-- 2025-02-11 (0.3.9) implemented Marine Wizard for streamer surveys and improved Level of Detail (LOD) rendering in Layout pane
-- 2024-11-02 (0.3.8) improved editing patterns in Property pane and displaying hem in the Pattern tab. 
-- 2024-10-22 (0.3.7) introduced multiple seeds per pattern, allowing for very complex pattern layout. Ensured backwards compatibility.  
-- 2024-10-15 (0.3.6) added 'pattern' tab for pattern display & analysis. Added convolution with patterns to kx-ky stack response. Fixed an assertion bug in Land Wizard.  
-- 2024-10-09 (0.3.5) moved statistics calculations to extended binning. Updated metadata.txt to describe installation of plugin
-- 2024-07/27 (0.3.4) "inuse" field added to src & rec points in QGIS. Categorized Symbol Renderer implemented to display used/unused points in QGIS.
-- 2024-07/24 (0.3.3) Interface with QGIS improved. Display active / inactive points separately. Fixed rasterio CRS bug. Cleared experimental flag.
-- 2024-07/08 (0.3.2) Geometry creation from templates now runs significantly faster. Fixed some bugs in Land Survey Wizard.
-- 2024-06-02 (0.3.1) Created a 'display' menu. This allows for closing the display pane, when using *smallish* full HD displays. Fixed some bugs.
-- 2024-05-27 (0.3.0) reduced minimal width of Geometry & SPS tables, in order to make working with a *smallish* full HD (1920x1080) screen easier.
-- 2024-05-23 (0.2.9) expanded numba @jit functions, added rms-offset plot on Layout tab. Fixed some bugs. Implemented function profiling.
-- 2024-05-04 (0.2.8) implemented numba @jit, to speed up calculations. Added stack-response analysis and |O| & O/A Histograms. Fixed some bugs.
-- 2024-04-22 (0.2.7) removed all numba @jit references, as exception handling with numba causes problems. Will revisit later.
-- 2024-04-21 (0.2.6) added 'Analysis' tab, containing:
-  - The Trace table (full binning results)
-  - In-/ and X-line offsets
-  - In-/ and X-line azimuths
-  - In-/ and X-line stack response
-- 2024-04-13 (0.2.5) included TWT values in trace table and implemented 'Unique Fold' capability.
-- 2024-04-08 (0.2.4) improved handling of well-files.
-- 2024-03-30 (0.2.3) updated metadata.txt (a) about text and (b) dependencies.
-- 2024-03-30 (0.2.2) improved handling of line- and stake numbers; refactoring of parameter handling.
-- 2024-03-13 (0.2.1) Initial release on the QGIS plugin website.
