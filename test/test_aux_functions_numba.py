@@ -5,15 +5,15 @@ import numpy as np
 
 from .plugin_loader import loadPluginModule
 
-functionsNumbaModule = loadPluginModule('functions_numba')
+auxFunctionsNumbaModule = loadPluginModule('aux_functions_numba')
 
-numbaNdft1D = functionsNumbaModule.numbaNdft1D
-numbaNdft2D = functionsNumbaModule.numbaNdft2D
-numbaOffInline = functionsNumbaModule.numbaOffInline
-numbaOffXline = functionsNumbaModule.numbaOffXline
+numbaNdft1D = auxFunctionsNumbaModule.numbaNdft1D
+numbaNdft2D = auxFunctionsNumbaModule.numbaNdft2D
+numbaOffInline = auxFunctionsNumbaModule.numbaOffInline
+numbaOffXline = auxFunctionsNumbaModule.numbaOffXline
 
 
-class FunctionsNumbaTest(unittest.TestCase):
+class AuxFunctionsNumbaTest(unittest.TestCase):
     def testNumbaNdft1DReturnsFiniteValuesForZeroAmplitudeResponse(self):
         slice3D = np.zeros((1, 2, 16), dtype=np.float32)
         slice3D[0, 0, 13] = 0.0

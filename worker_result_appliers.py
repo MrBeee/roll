@@ -6,6 +6,36 @@ from typing import Callable
 from .enums_and_int_flags import MsgType
 
 
+def _copyCfpDisplayOutputs(window, result) -> None:
+    window.output.cfpSourceBeamImage = result.sourceBeamImage
+    window.output.cfpReceiverBeamImage = result.receiverBeamImage
+    window.output.cfpResolutionImage = result.resolutionImage
+    window.output.cfpRadonSourceBeamImage = result.radonSourceBeamImage
+    window.output.cfpRadonReceiverBeamImage = result.radonReceiverBeamImage
+    window.output.cfpRadonAvpImage = result.radonAvpImage
+    window.output.cfpSourceBeamX0 = result.sourceBeamX0
+    window.output.cfpSourceBeamY0 = result.sourceBeamY0
+    window.output.cfpSourceBeamDx = result.sourceBeamDx
+    window.output.cfpSourceBeamDy = result.sourceBeamDy
+    window.output.cfpRadonX0 = result.radonX0
+    window.output.cfpRadonY0 = result.radonY0
+    window.output.cfpRadonDx = result.radonDx
+    window.output.cfpRadonDy = result.radonDy
+    window.output.cfpFrequency = result.frequency
+
+
+def _showCfpAnalysisTab(window) -> None:
+    mainTabWidget = getattr(window, 'mainTabWidget', None)
+    analysisTabWidget = getattr(window, 'analysisTabWidget', None)
+    tabCfp = getattr(window, 'tabCfp', None)
+
+    if mainTabWidget is not None and analysisTabWidget is not None and hasattr(mainTabWidget, 'setCurrentWidget'):
+        mainTabWidget.setCurrentWidget(analysisTabWidget)
+
+    if analysisTabWidget is not None and tabCfp is not None and hasattr(analysisTabWidget, 'setCurrentWidget'):
+        analysisTabWidget.setCurrentWidget(tabCfp)
+
+
 class BinningResultApplier:
     def __init__(self, window, runtimeDependenciesProvider: Callable[[], dict[str, object]]) -> None:
         self.window = window
@@ -235,3 +265,98 @@ class GeometryResultApplier:
 
         self.window.saveSurveyDataSidecars()
         return 'Analysis results have been saved.'
+
+
+class CfpFromTemplatesResultApplier:
+    def __init__(self, window, runtimeDependenciesProvider: Callable[[], dict[str, object]]) -> None:
+        self.window = window
+        self.runtimeDependenciesProvider = runtimeDependenciesProvider
+
+    def apply(self, result, elapsed: timedelta) -> None:
+        if not result.success:
+            self.window.appendLogMessage('Thread : . . . aborted CFP template scan', MsgType.Error)
+            self.window.appendLogMessage(f'Thread : . . . {result.errorText}', MsgType.Error)
+            self.runtimeDependenciesProvider()['QMessageBox'].information(self.window, 'Interrupted', 'Worker thread aborted')
+            return
+
+        self.window.appendLogMessage(
+            f"Thread : Completed 'CFP analysis from Templates'. Elapsed time:{elapsed} ",
+            MsgType.Analysis,
+        )
+        self.window.appendLogMessage(
+            (
+                'Thread : . . . '
+                f'local target=({result.focalX:.2f}, {result.focalY:.2f}, {result.focalZ:.2f}), '
+                f'aperture={result.maxDipDegrees:.1f}deg, radius={result.apertureRadius:.2f}m, '
+                f'frequency={result.frequency:.1f}Hz, Vint={result.vint:.1f}m/s'
+            ),
+            MsgType.Analysis,
+        )
+        self.window.appendLogMessage(
+            (
+                'Thread : . . . '
+                f'contributing rolled template positions: {result.templateContributionCount:,} '
+                f'out of a total of: {result.totalTemplateCount:,}'
+            ),
+            MsgType.Analysis,
+        )
+
+        _copyCfpDisplayOutputs(self.window, result)
+        self.window.renderSelectedCfpSlice()
+        _showCfpAnalysisTab(self.window)
+        self.runtimeDependenciesProvider()['QMessageBox'].information(
+            self.window,
+            'Done',
+            f'Worker thread completed. {result.templateContributionCount:,} rolled template positions contributed.',
+        )
+
+
+class CfpFromTraceTableResultApplier:
+    def __init__(self, window, runtimeDependenciesProvider: Callable[[], dict[str, object]]) -> None:
+        self.window = window
+        self.runtimeDependenciesProvider = runtimeDependenciesProvider
+
+    def apply(self, result, elapsed: timedelta) -> None:
+        if not result.success:
+            self.window.appendLogMessage('Thread : . . . aborted CFP trace-table scan', MsgType.Error)
+            self.window.appendLogMessage(f'Thread : . . . {result.errorText}', MsgType.Error)
+            self.runtimeDependenciesProvider()['QMessageBox'].information(self.window, 'Interrupted', 'Worker thread aborted')
+            return
+
+        self.window.appendLogMessage(
+            f"Thread : Completed 'CFP analysis from Trace Table'. Elapsed time:{elapsed} ",
+            MsgType.Analysis,
+        )
+        self.window.appendLogMessage(
+            (
+                'Thread : . . . '
+                f'local target=({result.focalX:.2f}, {result.focalY:.2f}, {result.focalZ:.2f}), '
+                f'aperture={result.maxDipDegrees:.1f}deg, radius={result.apertureRadius:.2f}m, Vint={result.vint:.1f}m/s'
+            ),
+            MsgType.Analysis,
+        )
+        self.window.appendLogMessage(
+            f'Thread : . . . trace-table chunks processed: {result.chunkCount:,}',
+            MsgType.Analysis,
+        )
+        self.window.appendLogMessage(
+            (
+                'Thread : . . . '
+                f'contributing traces surviving aperture filter: {result.contributingTraceCount:,} '
+                f'out of: {result.totalTraceCount:,} active trace rows'
+            ),
+            MsgType.Analysis,
+        )
+
+        _copyCfpDisplayOutputs(self.window, result)
+
+        self.window.renderSelectedCfpSlice()
+        _showCfpAnalysisTab(self.window)
+        self.runtimeDependenciesProvider()['QMessageBox'].information(
+            self.window,
+            'Done',
+            (
+                'Worker thread completed. '
+                f'{result.contributingTraceCount:,} traces contributed across {result.chunkCount:,} chunks.'
+            ),
+        )

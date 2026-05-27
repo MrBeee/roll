@@ -42,7 +42,7 @@
 
 ## Worker threads and performance
 - Long-running binning/geometry work runs in `QThread` via `BinningWorkerMixin` in [binning_worker_mixin.py](binning_worker_mixin.py) and worker classes in [worker_threads.py](worker_threads.py). Follow the `binFromTemplates`/`binFromSps` pattern: create worker, move to thread, connect `progress`/`message` signals, and finish with `binningThreadFinished`.
-- Heavy math and optional JIT live in [functions_numba.py](functions_numba.py); keep `nonumba.py` in mind when adding fallback paths.
+- Heavy math and optional JIT live in [aux_functions_numba.py](aux_functions_numba.py); keep `nonumba.py` in mind when adding fallback paths.
 
 ## Project-specific conventions
 - UI uses PyQtGraph for plotting and progressive painting (see `RollSurvey`’s framebuffer fields and `paint()` logic in [roll_survey.py](roll_survey.py)). Avoid direct painting in the UI thread for large datasets.

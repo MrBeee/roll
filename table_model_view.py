@@ -251,11 +251,11 @@ class TableView(QTableView):
             Elev   = '%.1f',                                                    # noqa: 251
             Index  = '%d',                                                      # noqa: 251
             InSps  = '%d',                                                      # noqa: 251
-            InRps  = '%d',                                                      # noqa: 251 
+            InRps  = '%d',                                                      # noqa: 251
             InUse  = '%d',                                                      # noqa: 251
             InXps  = '%d',                                                      # noqa: 251
-            Line   = '%.2f',                                                    # noqa: 251 
-            LocX   = '%.1f',                                                    # noqa: 251 
+            Line   = '%.2f',                                                    # noqa: 251
+            LocX   = '%.1f',                                                    # noqa: 251
             LocY   ='%.1f',                                                     # noqa: 251
             North  = '%.1f',                                                    # noqa: 251
             Point  = '%.2f',                                                    # noqa: 251

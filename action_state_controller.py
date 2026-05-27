@@ -13,6 +13,7 @@ class ActionStateController:
 
     def updateMenuStatus(self, resetAnalysis=True):
         window = self.window
+        self.updateExperimentalProcessingActionVisibility()
 
         if resetAnalysis:
             window.actionArea.setChecked(True)
@@ -94,20 +95,33 @@ class ActionStateController:
 
     def enableProcessingMenuItems(self, enable=True):
         window = self.window
+        self.updateExperimentalProcessingActionVisibility()
 
         nTemplates = window.survey.calcNoTemplates() if window.survey is not None else 0
+        experimentalEnabled = bool(window.appSettings.useExperimental)
         hasGeometryInputs = enable is True and window.srcGeom is not None and window.recGeom is not None
         hasSpsInputs = enable is True and window.spsImport is not None and window.rpsImport is not None
+        hasTraceTable = enable is True and window.output.anaOutput is not None
 
         self._setActionStates(
             ('actionBasicBinFromTemplates', enable and nTemplates > 0),
             ('actionFullBinFromTemplates', enable and nTemplates > 0),
             ('actionGeometryFromTemplates', enable and nTemplates > 0),
+            ('actionCFPAnalysisFromTemplates', enable and experimentalEnabled and nTemplates > 0),
+            ('actionCFPAnalysisFromTraceTable', experimentalEnabled and hasTraceTable),
             ('actionBasicBinFromGeometry', hasGeometryInputs),
             ('actionFullBinFromGeometry', hasGeometryInputs),
             ('actionBasicBinFromSps', hasSpsInputs),
             ('actionFullBinFromSps', hasSpsInputs),
             ('actionStopThread', not enable),
+        )
+
+    def updateExperimentalProcessingActionVisibility(self):
+        experimentalEnabled = bool(self.window.appSettings.useExperimental)
+
+        self._setActionVisibility(
+            ('actionCFPAnalysisFromTemplates', experimentalEnabled),
+            ('actionCFPAnalysisFromTraceTable', experimentalEnabled),
         )
 
     def clipboardHasText(self):
@@ -181,3 +195,7 @@ class ActionStateController:
     def _setActionStates(self, *entries) -> None:
         for actionName, enabled in entries:
             getattr(self.window, actionName).setEnabled(enabled)
+
+    def _setActionVisibility(self, *entries) -> None:
+        for actionName, visible in entries:
+            getattr(self.window, actionName).setVisible(visible)

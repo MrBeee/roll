@@ -11,6 +11,7 @@ class MsgType(Enum):
     Warning = 4
     Error = 5
     Exception = 6
+    Analysis = 7
 
 
 class Direction(Enum):

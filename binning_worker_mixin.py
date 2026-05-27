@@ -11,10 +11,24 @@ from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
 from .enums_and_int_flags import MsgType
 from .worker_operation_controller import WorkerOperationController
-from .worker_result_appliers import BinningResultApplier, GeometryResultApplier
-from .worker_threads import (BinFromGeometryWorker, BinningFromGeometryResult,
-                             BinningFromTemplatesResult, BinningWorker,
-                             GeometryFromTemplatesResult, GeometryWorker)
+from .worker_result_appliers import (
+    BinningResultApplier,
+    CfpFromTraceTableResultApplier,
+    CfpFromTemplatesResultApplier,
+    GeometryResultApplier,
+)
+from .worker_threads import (
+    BinFromGeometryWorker,
+    BinningFromGeometryResult,
+    BinningFromTemplatesResult,
+    CfpFromTraceTableResult,
+    CfpFromTraceTableWorker,
+    BinningWorker,
+    CfpFromTemplatesResult,
+    CfpFromTemplatesWorker,
+    GeometryFromTemplatesResult,
+    GeometryWorker,
+)
 
 
 class BinningWorkerMixin:
@@ -27,6 +41,8 @@ class BinningWorkerMixin:
             'BinningWorker': BinningWorker,
             'BinFromGeometryWorker': BinFromGeometryWorker,
             'GeometryWorker': GeometryWorker,
+            'CfpFromTemplatesWorker': CfpFromTemplatesWorker,
+            'CfpFromTraceTableWorker': CfpFromTraceTableWorker,
             'timer': timer,
             'QMessageBox': QMessageBox,
         }
@@ -40,6 +56,12 @@ class BinningWorkerMixin:
 
         if getattr(self, 'geometryResultApplier', None) is None:
             self.geometryResultApplier = GeometryResultApplier(self, self._getWorkerRuntimeDependencies)
+
+        if getattr(self, 'cfpFromTemplatesResultApplier', None) is None:
+            self.cfpFromTemplatesResultApplier = CfpFromTemplatesResultApplier(self, self._getWorkerRuntimeDependencies)
+
+        if getattr(self, 'cfpFromTraceTableResultApplier', None) is None:
+            self.cfpFromTraceTableResultApplier = CfpFromTraceTableResultApplier(self, self._getWorkerRuntimeDependencies)
 
     def finalizeAnalysisMemmap(self, shape):
         if not self.fileName or self.output.anaOutput is None:
@@ -303,6 +325,16 @@ class BinningWorkerMixin:
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startGeometryFromTemplates()
 
+    def cfpAnalysisFromTemplates(self):
+        self._logOperationStart('Starting CFP analysis from templates; preparing worker thread...', MsgType.Analysis)
+        self._ensureWorkerOperationComponents()
+        self.workerOperationController.startCfpAnalysisFromTemplates()
+
+    def cfpAnalysisFromTraceTable(self):
+        self._logOperationStart('Starting CFP analysis from trace table; preparing worker thread...', MsgType.Analysis)
+        self._ensureWorkerOperationComponents()
+        self.workerOperationController.startCfpAnalysisFromTraceTable()
+
     def threadProgress(self, value: int):
         if self.progressBar is not None:
             self.progressBar.setValue(value)
@@ -322,6 +354,22 @@ class BinningWorkerMixin:
     def geometryThreadFinished(self, result: GeometryFromTemplatesResult):
         self._ensureWorkerOperationComponents()
         self.workerOperationController.finishCurrentOperation(result, self.applyGeometryWorkerResult, resetAnalysis=False, completionTabIndex=3)
+
+    def applyCfpFromTemplatesWorkerResult(self, result, elapsed):
+        self._ensureWorkerOperationComponents()
+        self.cfpFromTemplatesResultApplier.apply(result, elapsed)
+
+    def cfpFromTemplatesThreadFinished(self, result: CfpFromTemplatesResult):
+        self._ensureWorkerOperationComponents()
+        self.workerOperationController.finishCurrentOperation(result, self.applyCfpFromTemplatesWorkerResult, resetAnalysis=False)
+
+    def applyCfpFromTraceTableWorkerResult(self, result, elapsed):
+        self._ensureWorkerOperationComponents()
+        self.cfpFromTraceTableResultApplier.apply(result, elapsed)
+
+    def cfpFromTraceTableThreadFinished(self, result: CfpFromTraceTableResult):
+        self._ensureWorkerOperationComponents()
+        self.workerOperationController.finishCurrentOperation(result, self.applyCfpFromTraceTableWorkerResult, resetAnalysis=False)
 
     def showStatusbarWidgets(self):
         self.progressBar.setValue(0)

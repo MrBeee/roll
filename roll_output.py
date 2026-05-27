@@ -21,6 +21,21 @@ class RollOutput:
         self.an2Output = None                                                   # partially flattened version of self.anaOutput (N x 16)
         self.ofAziHist = None                                                   # numpy array with azimuth/offset histogram
         self.offstHist = None                                                   # numpy array with slotted offset histogram
+        self.cfpSourceBeamImage = None                                          # CFP xy-slice of source beam (trace-table path)
+        self.cfpReceiverBeamImage = None                                        # CFP xy-slice of receiver beam (trace-table path)
+        self.cfpResolutionImage = None                                          # CFP xy-slice of resolution function (trace-table path)
+        self.cfpRadonSourceBeamImage = None                                     # CFP Radon transform of source beam
+        self.cfpRadonReceiverBeamImage = None                                   # CFP Radon transform of receiver beam
+        self.cfpRadonAvpImage = None                                            # CFP AVP function in Radon domain
+        self.cfpSourceBeamX0 = 0.0                                              # x-origin of CFP source beam image
+        self.cfpSourceBeamY0 = 0.0                                              # y-origin of CFP source beam image
+        self.cfpSourceBeamDx = 1.0                                              # x-sampling of CFP source beam image
+        self.cfpSourceBeamDy = 1.0                                              # y-sampling of CFP source beam image
+        self.cfpRadonX0 = 0.0                                                   # p_x origin of CFP Radon-domain image [ms/m]
+        self.cfpRadonY0 = 0.0                                                   # p_y origin of CFP Radon-domain image [ms/m]
+        self.cfpRadonDx = 1.0                                                   # p_x sampling of CFP Radon-domain image [ms/m]
+        self.cfpRadonDy = 1.0                                                   # p_y sampling of CFP Radon-domain image [ms/m]
+        self.cfpFrequency = 40.0                                                # frequency used for the currently displayed CFP beam
 
         self.recGeom = None                                                     # numpy array with list of receiver locations
         self.srcGeom = None                                                     # numpy array with list of source locations

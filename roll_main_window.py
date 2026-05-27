@@ -29,12 +29,12 @@ from qgis.PyQt.QtWidgets import (QAction, QApplication, QFileDialog,
                                  QWidget)
 from qgis.PyQt.QtXml import QDomDocument
 
-# from .functions_numba import (numbaAziInline, numbaAziXline,
-#                               numbaFilterSlice2D, numbaNdft1D, numbaNdft2D,
-#                               numbaOffInline, numbaOffsetBin, numbaOffXline,
-#                               numbaSlice3D, numbaSliceStats)
+# from .aux_functions_numba import (numbaAziInline, numbaAziXline,
+#                                   numbaFilterSlice2D, numbaNdft1D, numbaNdft2D,
+#                                   numbaOffInline, numbaOffsetBin, numbaOffXline,
+#                                   numbaSlice3D, numbaSliceStats)
+from . import aux_functions_numba as fnb
 from . import config  # used to pass initial settings
-from . import functions_numba as fnb
 from .action_state_controller import ActionStateController
 from .app_settings import AppSettings
 from .aux_classes import LineROI
@@ -67,6 +67,7 @@ from .qgis_interface import (CreateQgisRasterLayer, ExportRasterLayerToQgis,
                              exportSurveyOutlinesToQgis,
                              identifyQgisPointLayer, readQgisPointLayer)
 from .roll_binning import BinningType
+from .roll_main_window_create_cfp_tab import createCfpTab
 from .roll_main_window_create_geom_tab import createGeomTab
 from .roll_main_window_create_layout_tab import (
     _onMainTabChangedFor3D, _teardownLayout3DWidget, createLayoutTab,
@@ -516,6 +517,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.stkTrkImItem = None
         self.stkBinImItem = None
         self.stkCelImItem = None
+        self.cfpImItem = None
         self.offAziImItem = None
         self.kxyPatImItem = None
 
@@ -524,6 +526,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.stkTrkColorBar = None
         self.stkBinColorBar = None
         self.stkCelColorBar = None
+        self.cfpColorBar = None
         self.offAziColorBar = None
         self.offAziPolarItems = []
         self._updatingOffAziColorBarLevels = False
@@ -619,6 +622,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             'Stack response for inline direction',
             'Stack response for x-line direction',
             'Kx-Ky single bin stack response',
+            'CFP analysis',
             '|Offset| distribution in binning area',
             'Offset/azimuth distribution in binning area',
             'Pattern information',
@@ -633,9 +637,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.stkTrkWidget = self.createPlotWidget(self.plotTitles[5], 'inline', '|Kr|', 'm', ' 1/km', False)
         self.stkBinWidget = self.createPlotWidget(self.plotTitles[6], 'x-line', '|Kr|', 'm', ' 1/km', False)
         self.stkCelWidget = self.createPlotWidget(self.plotTitles[7], 'Kx', 'Ky', '1/km', '1/km')
-        self.offsetWidget = self.createPlotWidget(self.plotTitles[8], '|offset|', 'frequency', 'm', ' #', False)
-        self.offAziWidget = self.createPlotWidget(self.plotTitles[9], 'azimuth', '|offset|', 'deg', 'm', False)
-        self.arraysWidget = self.createPlotWidget(self.plotTitles[10], 'inline', 'x-line', 'm', 'm')
+        self.cfpWidget = self.createPlotWidget(self.plotTitles[8], 'inline', 'x-line', 'm', 'm', False)
+        self.offsetWidget = self.createPlotWidget(self.plotTitles[9], '|offset|', 'frequency', 'm', ' #', False)
+        self.offAziWidget = self.createPlotWidget(self.plotTitles[10], 'azimuth', '|offset|', 'deg', 'm', False)
+        self.arraysWidget = self.createPlotWidget(self.plotTitles[11], 'inline', 'x-line', 'm', 'm')
 
         # Create the various views (tabs) on the data
         # Use QCodeEditor with a XmlHighlighter instead of a 'plain' QPlainTextEdit
@@ -651,6 +656,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.tabSps = QWidget()
         self.tabTraces = QWidget()
         self.tabKxKyStack = QWidget()
+        self.tabCfp = QWidget()
         self.tabOffTrk = QWidget()
         self.tabOffBin = QWidget()
         self.tabOffAzi = QWidget()
@@ -667,6 +673,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         createSpsTab(self)
         createTraceTableTab(self)
         createStackResponseTab(self)
+        createCfpTab(self)
         createOffsetTabs(self)
         createOffAziTab(self)
 
@@ -688,8 +695,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.analysisTabWidget.addTab(self.stkTrkWidget, 'Stack Inline')
         self.analysisTabWidget.addTab(self.stkBinWidget, 'Stack X-line')
         self.analysisTabWidget.addTab(self.tabKxKyStack, 'Kx-Ky Stack')
+        self.analysisTabWidget.addTab(self.tabCfp, 'CFP Analysis')
         self.analysisTabWidget.addTab(self.offsetWidget, '|O| Histogram')
         self.analysisTabWidget.addTab(self.tabOffAzi, 'O/A Histogram')
+        self.cfpTabIndex = self.analysisTabWidget.indexOf(self.tabCfp)
+        self.updateExperimentalAnalysisTabVisibility()
         # self.arraysWidget is embedded in the layout of the 'pattern' tab
         # self.analysisTabWidget.addTab(self.stkCelWidget, 'Kx-Ky Stack')
         # self.analysisTabWidget.currentChanged.connect(self.onAnalysisTabChange)   # active tab changed!
@@ -813,6 +823,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionBasicBinFromSps.triggered.connect(self.basicBinFromSps)
         self.actionFullBinFromSps.triggered.connect(self.fullBinFromSps)
         self.actionGeometryFromTemplates.triggered.connect(self.createGeometryFromTemplates)
+        self.actionCFPAnalysisFromTemplates.triggered.connect(self.cfpAnalysisFromTemplates)
+        self.actionCFPAnalysisFromTraceTable.triggered.connect(self.cfpAnalysisFromTraceTable)
         self.actionShift_Survey_Area.triggered.connect(self.shiftSurveyArea)
 
         # actions related to the help menu
@@ -988,6 +1000,123 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             return
 
         self.updateVisiblePlotWidget(2)
+
+    def getSelectedCfpView(self) -> int:
+        actionGroup = getattr(self, 'cfpViewActionGroup', None)
+        if actionGroup is None:
+            return 0
+
+        action = actionGroup.checkedAction()
+        data = action.data() if action is not None else 0
+        return int(data) if data is not None else 0
+
+    def getSelectedCfpSlice(self) -> int:
+        view = self.getSelectedCfpView()
+        return view if view < 3 else 0
+
+    def getSelectedCfpRadonTransform(self) -> int:
+        view = self.getSelectedCfpView()
+        return view - 3 if view >= 3 else 0
+
+    def cfpSliceTitle(self, component: int) -> str:
+        frequency = float(getattr(self.output, 'cfpFrequency', 40.0))
+        titles = {
+            0: f'xy-slice of source beam, frequency = {frequency:g} Hz',
+            1: f'xy-slice of receiver beam, frequency = {frequency:g} Hz',
+            2: f'xy-slice of resolution function, frequency = {frequency:g} Hz',
+        }
+        return titles.get(component, titles[0])
+
+    def cfpSliceImageForComponent(self, component: int):
+        if component == 1:
+            return self.output.cfpReceiverBeamImage
+        if component == 2:
+            return self.output.cfpResolutionImage
+        return self.output.cfpSourceBeamImage
+
+    def cfpRadonTitle(self, component: int) -> str:
+        frequency = float(getattr(self.output, 'cfpFrequency', 40.0))
+        titles = {
+            0: f'Radon transform of source beam, frequency = {frequency:g} Hz',
+            1: f'Radon transform of receiver beam, frequency = {frequency:g} Hz',
+            2: f'AVP-function in the Radon domain, frequency = {frequency:g} Hz',
+        }
+        return titles.get(component, titles[0])
+
+    def cfpRadonImageForComponent(self, component: int):
+        if component == 1:
+            return self.output.cfpRadonReceiverBeamImage
+        if component == 2:
+            return self.output.cfpRadonAvpImage
+        return self.output.cfpRadonSourceBeamImage
+
+    def updateCfpPlotAxes(self, mode: str) -> None:
+        styles = {'color': '#000', 'font-size': '10pt'}
+        if mode == 'radon':
+            self.cfpWidget.setLabel('bottom', 'p_x', units='ms/m', **styles)
+            self.cfpWidget.setLabel('left', 'p_y', units='ms/m', **styles)
+            return
+
+        self.cfpWidget.setLabel('bottom', 'inline', units='m', **styles)
+        self.cfpWidget.setLabel('left', 'x-line', units='m', **styles)
+
+    def renderSelectedCfpView(self) -> None:
+        selectedView = self.getSelectedCfpView()
+        mode = 'radon' if selectedView >= 3 else 'slice'
+
+        if mode == 'radon':
+            component = self.getSelectedCfpRadonTransform()
+            image = self.cfpRadonImageForComponent(component)
+            title = self.cfpRadonTitle(component)
+            x0 = self.output.cfpRadonX0
+            y0 = self.output.cfpRadonY0
+            dx = self.output.cfpRadonDx
+            dy = self.output.cfpRadonDy
+            levels = (0.0, 1.0)
+            label = 'amplitude'
+            limits = (0.0, 1.0)
+            rounding = 0.1
+        else:
+            component = self.getSelectedCfpSlice()
+            image = self.cfpSliceImageForComponent(component)
+            title = self.cfpSliceTitle(component)
+            x0 = self.output.cfpSourceBeamX0
+            y0 = self.output.cfpSourceBeamY0
+            dx = self.output.cfpSourceBeamDx
+            dy = self.output.cfpSourceBeamDy
+            levels = (-60.0, 0.0)
+            label = 'dB'
+            limits = (-60.0, 0.0)
+            rounding = 10.0
+
+        self.updateCfpPlotAxes(mode)
+
+        if image is not None:
+            self.prepareAnalysisImageAndColorBar(
+                self.cfpWidget,
+                image,
+                x0,
+                y0,
+                dx,
+                dy,
+                'cfpImItem',
+                'cfpColorBar',
+                levels=levels,
+                label=label,
+                limits=limits,
+                rounding=rounding,
+            )
+
+        self.cfpWidget.setTitle(title, color='b', size='16pt')
+
+    def renderSelectedCfpSlice(self) -> None:
+        self.renderSelectedCfpView()
+
+    def onCfpSliceChanged(self):
+        self.renderSelectedCfpView()
+
+    def onCfpRadonTransformChanged(self):
+        self.renderSelectedCfpView()
 
     def onOffAziColorBarLevelsChanged(self, *_):
         if getattr(self, '_updatingOffAziColorBarLevels', False):
@@ -3010,6 +3139,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.output.an2Output = None
         self.output.ofAziHist = None
         self.output.offstHist = None
+        self.output.cfpSourceBeamImage = None
+        self.output.cfpReceiverBeamImage = None
+        self.output.cfpResolutionImage = None
+        self.output.cfpRadonSourceBeamImage = None
+        self.output.cfpRadonReceiverBeamImage = None
+        self.output.cfpRadonAvpImage = None
+        self.output.cfpSourceBeamX0 = 0.0
+        self.output.cfpSourceBeamY0 = 0.0
+        self.output.cfpSourceBeamDx = 1.0
+        self.output.cfpSourceBeamDy = 1.0
+        self.output.cfpRadonX0 = 0.0
+        self.output.cfpRadonY0 = 0.0
+        self.output.cfpRadonDx = 1.0
+        self.output.cfpRadonDy = 1.0
+        self.output.cfpFrequency = 40.0
         self.output.recGeom = None
         self.output.srcGeom = None
         self.output.relGeom = None
@@ -3025,9 +3169,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.resetPlotWidget(self.stkTrkWidget, self.plotTitles[5])
         self.resetPlotWidget(self.stkBinWidget, self.plotTitles[6])
         self.resetPlotWidget(self.stkCelWidget, self.plotTitles[7])
-        self.resetPlotWidget(self.offsetWidget, self.plotTitles[8])
-        self.resetPlotWidget(self.offAziWidget, self.plotTitles[9])
-        self.resetPlotWidget(self.arraysWidget, self.plotTitles[10])
+        self.resetPlotWidget(self.cfpWidget, self.plotTitles[8])
+        self.resetPlotWidget(self.offsetWidget, self.plotTitles[9])
+        self.resetPlotWidget(self.offAziWidget, self.plotTitles[10])
+        self.resetPlotWidget(self.arraysWidget, self.plotTitles[11])
 
         self.updateMenuStatus(True)                                             # keep menu status in sync with program's state; and reset analysis figure
 
@@ -3540,9 +3685,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.updateSettings()
 
     def updateSettings(self):
+        self.actionStateController.updateExperimentalProcessingActionVisibility()
+        self.enableProcessingMenuItems(not self.actionStopThread.isEnabled())
         updateLayoutMethodControlsVisibility(self)
+        self.updateExperimentalAnalysisTabVisibility()
         self.handleImageSelection()
         self.plotLayout()
+
+    def updateExperimentalAnalysisTabVisibility(self):
+        cfpTabIndex = getattr(self, 'cfpTabIndex', -1)
+        if cfpTabIndex < 0:
+            return
+
+        self.analysisTabWidget.setTabVisible(cfpTabIndex, bool(self.appSettings.useExperimental))
 
     def fileExportAnaAsCsv(self):
         # export comma separated values
@@ -3630,6 +3785,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             MsgType.Info:       f'<p>{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;info&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',                              # noqa: E241 # info      = black
             MsgType.Binning:    f'<p style="color:blue" >{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binning&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',                         # noqa: E241 # Binning   = blue
             MsgType.Geometry:   f'<p style="color:green">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;geometry&nbsp;&nbsp;&nbsp;{message}</p>',                              # noqa: E241 # Geometry  = green
+            MsgType.Analysis:   f'<p style="color:darkViolet">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;analysis&nbsp;&nbsp;&nbsp;{message}</p>',                         # noqa: E241 # Analysis  = dark purple
             MsgType.Debug:      f'<p style="color:darkCyan">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;debug&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Called : {message}</p>',   # noqa: E241 # Debug     = darkCyan
             MsgType.Warning:    f'<p style="color:magenta">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;warning&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',                       # noqa: E241 # Warning   = magenta
             MsgType.Error:      f'<p style="color:red">{dateTime}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{message}</p>',                 # noqa: E241 # Error     = red

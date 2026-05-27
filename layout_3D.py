@@ -1256,7 +1256,7 @@ class Layout3DWidget(QWidget):
         """Draw the 3D spider rays for one selected bin.
 
         ``spiderData`` is a dict with the pair-arrays produced by
-        ``functions_numba.numbaSpiderBin`` /
+        ``aux_functions_numba.numbaSpiderBin`` /
         ``SpiderNavigationMixin._spiderLegArraysPython``:
 
         ``{'srcX', 'srcY', 'srcZ', 'recX', 'recY', 'recZ'}`` — each

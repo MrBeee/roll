@@ -62,9 +62,15 @@ BinningFromGeometryResult = workerThreadsModule.BinningFromGeometryResult
 GeometryFromTemplatesRequest = workerThreadsModule.GeometryFromTemplatesRequest
 GeometryProfilingPayload = workerThreadsModule.GeometryProfilingPayload
 GeometryFromTemplatesResult = workerThreadsModule.GeometryFromTemplatesResult
+CfpFromTemplatesRequest = workerThreadsModule.CfpFromTemplatesRequest
+CfpFromTemplatesResult = workerThreadsModule.CfpFromTemplatesResult
+CfpFromTraceTableRequest = workerThreadsModule.CfpFromTraceTableRequest
+CfpFromTraceTableResult = workerThreadsModule.CfpFromTraceTableResult
 BinningWorker = workerThreadsModule.BinningWorker
 BinFromGeometryWorker = workerThreadsModule.BinFromGeometryWorker
 GeometryWorker = workerThreadsModule.GeometryWorker
+CfpFromTemplatesWorker = workerThreadsModule.CfpFromTemplatesWorker
+CfpFromTraceTableWorker = workerThreadsModule.CfpFromTraceTableWorker
 Layout3DWidget = layout3DModule.Layout3DWidget
 
 
@@ -1475,6 +1481,69 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertFalse(self.mainWindow.actionFullBinFromGeometry.isEnabled())
         self.assertFalse(self.mainWindow.actionFullBinFromSps.isEnabled())
         self.assertTrue(self.mainWindow.actionStopThread.isEnabled())
+
+    def testEnableProcessingMenuItemsControlsCfpActionsFromExperimentalFlagAndTraceTable(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.appSettings.useExperimental = True
+        self.mainWindow.output.anaOutput = np.zeros((2, 2, 1, 1), dtype=np.float32)
+
+        with patch.object(self.mainWindow.survey, 'calcNoTemplates', return_value=2):
+            self.mainWindow.enableProcessingMenuItems(True)
+
+        self.assertTrue(self.mainWindow.actionCFPAnalysisFromTemplates.isVisible())
+        self.assertTrue(self.mainWindow.actionCFPAnalysisFromTraceTable.isVisible())
+        self.assertTrue(self.mainWindow.actionCFPAnalysisFromTemplates.isEnabled())
+        self.assertTrue(self.mainWindow.actionCFPAnalysisFromTraceTable.isEnabled())
+
+        self.mainWindow.output.anaOutput = None
+
+        with patch.object(self.mainWindow.survey, 'calcNoTemplates', return_value=2):
+            self.mainWindow.enableProcessingMenuItems(True)
+
+        self.assertTrue(self.mainWindow.actionCFPAnalysisFromTemplates.isEnabled())
+        self.assertFalse(self.mainWindow.actionCFPAnalysisFromTraceTable.isEnabled())
+
+    def testUpdateSettingsHidesCfpActionsWhenExperimentalCodeIsDisabled(self):
+        self.mainWindow.appSettings.useExperimental = False
+        self.mainWindow.appSettings.activate()
+
+        with patch.object(self.mainWindow, 'handleImageSelection'), patch.object(self.mainWindow, 'plotLayout'):
+            self.mainWindow.updateSettings()
+
+        self.assertFalse(self.mainWindow.actionCFPAnalysisFromTemplates.isVisible())
+        self.assertFalse(self.mainWindow.actionCFPAnalysisFromTraceTable.isVisible())
+
+    def testCfpAnalysisTabIsInsertedWithImageAndColorBar(self):
+        cfpTabIndex = self.mainWindow.analysisTabWidget.indexOf(self.mainWindow.tabCfp)
+
+        self.assertGreaterEqual(cfpTabIndex, 0)
+        self.assertEqual(self.mainWindow.analysisTabWidget.tabText(cfpTabIndex), 'CFP Analysis')
+        self.assertEqual(self.mainWindow.analysisTabWidget.tabText(cfpTabIndex - 1), 'Kx-Ky Stack')
+        self.assertEqual(self.mainWindow.analysisTabWidget.tabText(cfpTabIndex + 1), '|O| Histogram')
+        self.assertIsNotNone(self.mainWindow.cfpImItem)
+        self.assertIsNotNone(self.mainWindow.cfpColorBar)
+        self.assertEqual(self.mainWindow.cfpSliceChoice.title(), 'XY slices')
+        self.assertEqual(self.mainWindow.cfpRadonChoice.title(), 'Radon transforms')
+        self.assertTrue(self.mainWindow.actionCfpSliceSourceBeam.isChecked())
+        self.assertFalse(self.mainWindow.actionCfpRadonSrcBeam.isChecked())
+
+    def testUpdateSettingsHidesCfpAnalysisTabWhenExperimentalCodeIsDisabled(self):
+        cfpTabIndex = self.mainWindow.analysisTabWidget.indexOf(self.mainWindow.tabCfp)
+        self.mainWindow.appSettings.useExperimental = False
+        self.mainWindow.appSettings.activate()
+
+        with patch.object(self.mainWindow, 'handleImageSelection'), patch.object(self.mainWindow, 'plotLayout'):
+            self.mainWindow.updateSettings()
+
+        self.assertFalse(self.mainWindow.analysisTabWidget.isTabVisible(cfpTabIndex))
+
+        self.mainWindow.appSettings.useExperimental = True
+        self.mainWindow.appSettings.activate()
+
+        with patch.object(self.mainWindow, 'handleImageSelection'), patch.object(self.mainWindow, 'plotLayout'):
+            self.mainWindow.updateSettings()
+
+        self.assertTrue(self.mainWindow.analysisTabWidget.isTabVisible(cfpTabIndex))
 
     def testCopyFallsBackToPlotClipboardWhenFocusCopyUnavailable(self):
         with patch.object(self.mainWindow.actionStateController, 'invokeFocusMethod', return_value=False) as invokeFocusMethod:
@@ -3551,10 +3620,10 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         newGrowList = makeGrowList(((1, 0.0, 0.0, 0.0), (4, 10.0, 0.0, 0.0), (3, 0.0, 5.0, 0.0)))
         oldGrowList = makeGrowList(((1, 0.0, 0.0, 0.0), (2, 1.0, 0.0, 0.0), (5, 0.0, 2.0, 0.0)))
-        changedSeed = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.rollingGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (4, 10.0, 0.0, 0.0), (3, 0.0, 5.0, 0.0)))))    # noqa: E501
-        matchingSeedA = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.rollingGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (2, 1.0, 0.0, 0.0), (5, 0.0, 2.0, 0.0)))))   # noqa: E501
-        matchingSeedB = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.fixedGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (1, 0.0, 1.0, 0.0), (2, 0.0, 0.0, 1.0)))))     # noqa: E501
-        untouchedSeed = SimpleNamespace(name='rec-1', type=propertyPanelControllerModule.SeedType.rollingGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (7, 7.0, 0.0, 0.0), (8, 0.0, 8.0, 0.0)))))   # noqa: E501
+        changedSeed = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.rollingGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (4, 10.0, 0.0, 0.0), (3, 0.0, 5.0, 0.0)))))    # noqa: E501  # pylint: disable=C0301
+        matchingSeedA = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.rollingGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (2, 1.0, 0.0, 0.0), (5, 0.0, 2.0, 0.0)))))   # noqa: E501  # pylint: disable=C0301
+        matchingSeedB = SimpleNamespace(name='src-1', type=propertyPanelControllerModule.SeedType.fixedGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (1, 0.0, 1.0, 0.0), (2, 0.0, 0.0, 1.0)))))     # noqa: E501  # pylint: disable=C0301
+        untouchedSeed = SimpleNamespace(name='rec-1', type=propertyPanelControllerModule.SeedType.rollingGrid, grid=SimpleNamespace(growList=makeGrowList(((1, 0.0, 0.0, 0.0), (7, 7.0, 0.0, 0.0), (8, 0.0, 8.0, 0.0)))))   # noqa: E501  # pylint: disable=C0301
         workingTreeChangedSeed = FakeSeedParam('src-1', newGrowList)
         workingTreeMatchingSeedA = FakeSeedParam('src-1', oldGrowList)
         workingTreeMatchingSeedB = FakeSeedParam('src-1', makeGrowList(((1, 0.0, 0.0, 0.0), (1, 0.0, 1.0, 0.0), (2, 0.0, 0.0, 1.0))), seedType='Grid (stationary)')
@@ -4076,6 +4145,139 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
+    def testCreateCfpAnalysisFromTemplatesUsesRequestObjectAndResultSignal(self):
+        class SignalStub:
+            def __init__(self):
+                self.connect = MagicMock()
+
+        class SurveyStub:
+            def __init__(self):
+                self.progress = SignalStub()
+                self.message = SignalStub()
+
+        class WorkerStub:
+            def __init__(self, request):
+                self.request = request
+                self.survey = SurveyStub()
+                self.resultReady = SignalStub()
+                self.finished = SignalStub()
+                self.run = MagicMock()
+                self.moveToThread = MagicMock()
+                self.deleteLater = MagicMock()
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = False
+        threadStub.started = SignalStub()
+        threadStub.finished = SignalStub()
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.spiderPoint = rollMainWindowModule.QPoint(3, 4)
+
+        with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
+            with patch.object(binningWorkerMixinModule, 'CfpFromTemplatesWorker', side_effect=WorkerStub) as workerFactory:
+                self.mainWindow.cfpAnalysisFromTemplates()
+
+        request = workerFactory.call_args.args[0]
+        self.assertIsInstance(request, CfpFromTemplatesRequest)
+        self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
+        self.assertEqual(request.frequency, 40.0)
+        self.assertEqual(request.maxDipDegrees, self.mainWindow.survey.angles.reflection.y())
+        self.assertEqual(request.vint, self.mainWindow.survey.binning.vint)
+        self.assertAlmostEqual(request.focalZ, self.mainWindow.survey.localPlane.anchor.z(), places=4)
+        self.mainWindow.worker.resultReady.connect.assert_called_once()
+        self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
+        self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
+        threadStub.finished.connect.assert_any_call(threadStub.deleteLater)
+        threadStub.finished.connect.assert_any_call(self.mainWindow.workerOperationController._onThreadFinished)
+        self.mainWindow.thread = None
+        self.mainWindow.worker = None
+
+    def testCreateCfpAnalysisFromTemplatesFallsBackToAnalysisAreaCenterWithoutSpiderPoint(self):
+        class SignalStub:
+            def __init__(self):
+                self.connect = MagicMock()
+
+        class SurveyStub:
+            def __init__(self):
+                self.progress = SignalStub()
+                self.message = SignalStub()
+
+        class WorkerStub:
+            def __init__(self, request):
+                self.request = request
+                self.survey = SurveyStub()
+                self.resultReady = SignalStub()
+                self.finished = SignalStub()
+                self.run = MagicMock()
+                self.moveToThread = MagicMock()
+                self.deleteLater = MagicMock()
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = False
+        threadStub.started = SignalStub()
+        threadStub.finished = SignalStub()
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.spiderPoint = rollMainWindowModule.QPoint(-1, -1)
+
+        with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
+            with patch.object(binningWorkerMixinModule, 'CfpFromTemplatesWorker', side_effect=WorkerStub) as workerFactory:
+                self.mainWindow.cfpAnalysisFromTemplates()
+
+        request = workerFactory.call_args.args[0]
+        self.assertEqual(request.focalX, 50.0)
+        self.assertEqual(request.focalY, 25.0)
+        self.mainWindow.thread = None
+        self.mainWindow.worker = None
+
+    def testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal(self):
+        class SignalStub:
+            def __init__(self):
+                self.connect = MagicMock()
+
+        class SurveyStub:
+            def __init__(self):
+                self.progress = SignalStub()
+                self.message = SignalStub()
+
+        class WorkerStub:
+            def __init__(self, request):
+                self.request = request
+                self.survey = SurveyStub()
+                self.resultReady = SignalStub()
+                self.finished = SignalStub()
+                self.run = MagicMock()
+                self.moveToThread = MagicMock()
+                self.deleteLater = MagicMock()
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = False
+        threadStub.started = SignalStub()
+        threadStub.finished = SignalStub()
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.spiderPoint = rollMainWindowModule.QPoint(3, 4)
+        self.mainWindow.output.anaOutput = np.zeros((2, 2, 2, 16), dtype=np.float32)
+        self.mainWindow.output.an2Output = self.mainWindow.output.anaOutput.reshape(8, 16)
+
+        with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
+            with patch.object(binningWorkerMixinModule, 'CfpFromTraceTableWorker', side_effect=WorkerStub) as workerFactory:
+                self.mainWindow.cfpAnalysisFromTraceTable()
+
+        request = workerFactory.call_args.args[0]
+        self.assertIsInstance(request, CfpFromTraceTableRequest)
+        self.assertIs(request.analysisRows, self.mainWindow.output.an2Output)
+        self.assertEqual(request.chunkSize, 100_000)
+        self.assertEqual(request.frequency, 40.0)
+        self.assertEqual(request.debugpyEnabled, self.mainWindow.appSettings.debugpy)
+        self.assertEqual(request.maxDipDegrees, self.mainWindow.survey.angles.reflection.y())
+        self.assertEqual(request.vint, self.mainWindow.survey.binning.vint)
+        self.assertAlmostEqual(request.focalZ, self.mainWindow.survey.localPlane.anchor.z(), places=4)
+        self.mainWindow.worker.resultReady.connect.assert_called_once()
+        self.mainWindow.worker.finished.connect.assert_any_call(threadStub.quit)
+        self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
+        threadStub.finished.connect.assert_any_call(threadStub.deleteLater)
+        threadStub.finished.connect.assert_any_call(self.mainWindow.workerOperationController._onThreadFinished)
+        self.mainWindow.thread = None
+        self.mainWindow.worker = None
+
     def testGeometryWorkerRunUsesOptionalProfilingPayload(self):
         class SurveyStub:
             def __init__(self):
@@ -4127,6 +4329,165 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.assertEqual(len(resultEvents), 1)
         self.assertIsNone(resultEvents[0].profiling)
+
+    def testCfpFromTemplatesWorkerRunUsesResultPayload(self):
+        class SignalCollector:
+            def __init__(self):
+                self.values = []
+
+            def emit(self, value):
+                self.values.append(value)
+
+        class SurveyStub:
+            def __init__(self):
+                self.errorText = 'cfp setup failed'
+                self.cfpTemplateContributionCount = 7
+                self.nTemplates = 11
+                self.cfpApertureRadius = 12.5
+                self.output = SimpleNamespace(rctOutput=QRectF(0.0, 0.0, 20.0, 10.0))
+                self.grid = SimpleNamespace(binSize=QPointF(10.0, 5.0))
+                self.progress = SignalCollector()
+                self.message = SignalCollector()
+                self.xmlString = None
+                self.createArrays = None
+                self.setupArgs = None
+
+            def fromXmlString(self, xmlString, createArrays):
+                self.xmlString = xmlString
+                self.createArrays = createArrays
+
+            def scanCfpTemplates(self, focalX, focalY, focalZ, maxDipDegrees, vint, contributionHandler=None, progressStart=0, progressEnd=100):
+                self.setupArgs = (focalX, focalY, focalZ, maxDipDegrees, vint)
+                self.progress.emit(progressEnd)
+                if contributionHandler is not None:
+                    contributionHandler(
+                        np.array([[0.0, 0.0, 0.0], [10.0, 0.0, 0.0]], dtype=np.float32),
+                        np.array([[0.0, 5.0, 0.0], [10.0, 5.0, 0.0]], dtype=np.float32),
+                    )
+                return True
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            worker = CfpFromTemplatesWorker(
+                CfpFromTemplatesRequest(xmlString='<survey />', focalX=1.0, focalY=2.0, focalZ=-3.0, frequency=40.0, maxDipDegrees=40.0, vint=2500.0)
+            )
+
+            resultEvents = []
+            worker.resultReady.connect(resultEvents.append)
+
+            worker.run()
+
+        self.assertEqual(len(resultEvents), 1)
+        self.assertIsInstance(resultEvents[0], CfpFromTemplatesResult)
+        self.assertTrue(resultEvents[0].success)
+        self.assertEqual(resultEvents[0].templateContributionCount, 7)
+        self.assertEqual(resultEvents[0].totalTemplateCount, 11)
+        self.assertEqual(resultEvents[0].frequency, 40.0)
+        self.assertEqual(resultEvents[0].apertureRadius, 12.5)
+        self.assertEqual(resultEvents[0].vint, 2500.0)
+        self.assertEqual(resultEvents[0].sourceBeamImage.shape, (2, 2))
+        self.assertEqual(resultEvents[0].receiverBeamImage.shape, (2, 2))
+        self.assertEqual(resultEvents[0].resolutionImage.shape, (2, 2))
+        self.assertEqual(resultEvents[0].radonSourceBeamImage.shape, (128, 128))
+        self.assertEqual(resultEvents[0].radonReceiverBeamImage.shape, (128, 128))
+        self.assertEqual(resultEvents[0].radonAvpImage.shape, (128, 128))
+        self.assertEqual(worker.survey.progress.values[0], 0)
+        self.assertEqual(worker.survey.progress.values[-1], 100)
+        # Verify two separate 0-100 progress phases: phase 1 ends at 100, then phase 2 starts at 0
+        self.assertGreaterEqual(len(worker.survey.progress.values), 3)
+        phase1_idx = next((i for i in range(len(worker.survey.progress.values) - 1) if worker.survey.progress.values[i] == 100 and worker.survey.progress.values[i + 1] == 0), None)
+        self.assertIsNotNone(phase1_idx, "Expected phase 1 to end at 100 and phase 2 to start at 0")
+
+    def testCfpFromTraceTableWorkerRunUsesChunkedResultPayload(self):
+        class SignalCollector:
+            def __init__(self):
+                self.values = []
+
+            def emit(self, value):
+                self.values.append(value)
+
+        class SurveyStub:
+            def __init__(self):
+                self.errorText = 'cfp trace-table failed'
+                self.progress = SignalCollector()
+                self.message = SignalCollector()
+                self.output = SimpleNamespace(rctOutput=QRectF(0.0, 0.0, 20.0, 10.0))
+                self.grid = SimpleNamespace(binSize=QPointF(10.0, 5.0))
+                self.xmlString = None
+                self.createArrays = None
+
+            def fromXmlString(self, xmlString, createArrays):
+                self.xmlString = xmlString
+                self.createArrays = createArrays
+
+        analysisRows = np.zeros((5, 16), dtype=np.float32)
+        analysisRows[0, 2] = 1.0
+        analysisRows[0, 3] = 1.0
+        analysisRows[0, 4] = 1.0
+        analysisRows[0, 6] = 1.0
+        analysisRows[0, 7] = 1.0
+        analysisRows[1, 3] = 2.0
+        analysisRows[1, 4] = 2.0
+        analysisRows[1, 6] = 2.0
+        analysisRows[1, 7] = 2.0
+        analysisRows[2, 2] = 1.0
+        analysisRows[2, 3] = 50.0
+        analysisRows[2, 4] = 50.0
+        analysisRows[2, 6] = 50.0
+        analysisRows[2, 7] = 50.0
+        analysisRows[3, 2] = 1.0
+        analysisRows[3, 3] = 3.0
+        analysisRows[3, 4] = 3.0
+        analysisRows[3, 6] = 3.0
+        analysisRows[3, 7] = 3.0
+        analysisRows[4, 2] = 1.0
+        analysisRows[4, 3] = 4.0
+        analysisRows[4, 4] = 4.0
+        analysisRows[4, 6] = 40.0
+        analysisRows[4, 7] = 40.0
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            worker = CfpFromTraceTableWorker(
+                CfpFromTraceTableRequest(
+                    xmlString='<survey />',
+                    analysisRows=analysisRows,
+                    focalX=0.0,
+                    focalY=0.0,
+                    focalZ=-10.0,
+                    maxDipDegrees=45.0,
+                    vint=2500.0,
+                    chunkSize=2,
+                )
+            )
+
+            resultEvents = []
+            worker.resultReady.connect(resultEvents.append)
+
+            worker.run()
+
+        self.assertEqual(len(resultEvents), 1)
+        self.assertIsInstance(resultEvents[0], CfpFromTraceTableResult)
+        self.assertTrue(resultEvents[0].success)
+        self.assertEqual(resultEvents[0].chunkCount, 3)
+        self.assertEqual(resultEvents[0].totalTraceCount, 4)
+        self.assertEqual(resultEvents[0].contributingTraceCount, 2)
+        self.assertEqual(resultEvents[0].frequency, 40.0)
+        self.assertAlmostEqual(resultEvents[0].apertureRadius, 10.0, places=4)
+        self.assertEqual(resultEvents[0].vint, 2500.0)
+        self.assertEqual(resultEvents[0].sourceBeamImage.shape, (2, 2))
+        self.assertEqual(resultEvents[0].receiverBeamImage.shape, (2, 2))
+        self.assertEqual(resultEvents[0].resolutionImage.shape, (2, 2))
+        self.assertEqual(resultEvents[0].radonSourceBeamImage.shape, (128, 128))
+        self.assertEqual(resultEvents[0].radonReceiverBeamImage.shape, (128, 128))
+        self.assertEqual(resultEvents[0].radonAvpImage.shape, (128, 128))
+        self.assertAlmostEqual(float(resultEvents[0].sourceBeamImage.max()), 0.0, places=4)
+        self.assertAlmostEqual(float(resultEvents[0].radonSourceBeamImage.max()), 1.0, places=4)
+        self.assertEqual(worker.survey.progress.values[0], 0)
+        self.assertEqual(worker.survey.progress.values[-1], 100)
+        # Verify two separate 0-100 progress phases: phase 1 ends at 100, then phase 2 starts at 0
+        self.assertGreaterEqual(len(worker.survey.progress.values), 5)
+        phase1_idx = next((i for i in range(len(worker.survey.progress.values) - 1) if worker.survey.progress.values[i] == 100 and worker.survey.progress.values[i + 1] == 0), None)
+        self.assertIsNotNone(phase1_idx, "Expected phase 1 to end at 100 and phase 2 to start at 0")
+        self.assertGreater(len(worker.survey.message.values), 3)
 
     def testGeometryThreadFinishedUsesResultObject(self):
         result = GeometryFromTemplatesResult(
@@ -4198,6 +4559,267 @@ class ProjectSidecarsTest(unittest.TestCase):
         updateMenuStatus.assert_called_once_with(False)
         enableProcessingMenuItems.assert_called_once_with(True)
         hideStatusbarWidgets.assert_called_once()
+
+    def testCfpFromTemplatesThreadFinishedUsesResultObject(self):
+        result = CfpFromTemplatesResult(
+            success=True,
+            templateContributionCount=5,
+            totalTemplateCount=12,
+            focalX=10.0,
+            focalY=20.0,
+            focalZ=-2000.0,
+            frequency=40.0,
+            maxDipDegrees=40.0,
+            apertureRadius=1678.199,
+            vint=2200.0,
+            sourceBeamImage=np.zeros((2, 3), dtype=np.float32),
+            receiverBeamImage=np.ones((2, 3), dtype=np.float32),
+            resolutionImage=np.full((2, 3), 2.0, dtype=np.float32),
+            radonSourceBeamImage=np.zeros((4, 5), dtype=np.float32),
+            radonReceiverBeamImage=np.ones((4, 5), dtype=np.float32),
+            radonAvpImage=np.full((4, 5), 0.5, dtype=np.float32),
+            sourceBeamX0=100.0,
+            sourceBeamY0=200.0,
+            sourceBeamDx=25.0,
+            sourceBeamDy=50.0,
+            radonX0=-0.25,
+            radonY0=-0.25,
+            radonDx=0.01,
+            radonDy=0.01,
+        )
+
+        self.mainWindow.startTime = 0.0
+        self.mainWindow.thread = object()
+        self.mainWindow.worker = object()
+
+        with patch.object(binningWorkerMixinModule, 'timer', return_value=1.0):
+            with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+                with patch.object(self.mainWindow, 'renderSelectedCfpSlice') as renderSelectedCfpSlice:
+                    with patch.object(self.mainWindow.mainTabWidget, 'setCurrentWidget') as setMainCurrentWidget:
+                        with patch.object(self.mainWindow.analysisTabWidget, 'setCurrentWidget') as setAnalysisCurrentWidget:
+                            with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                                with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                                    with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                                        with patch.object(binningWorkerMixinModule.QMessageBox, 'information') as information:
+                                            self.mainWindow.cfpFromTemplatesThreadFinished(result)
+
+        appendLogMessage.assert_any_call(
+            "Thread : Completed 'CFP analysis from Templates'. Elapsed time:0:00:01 ",
+            rollMainWindowModule.MsgType.Analysis,
+        )
+        appendLogMessage.assert_any_call(
+            'Thread : . . . contributing rolled template positions: 5 out of a total of: 12',
+            rollMainWindowModule.MsgType.Analysis,
+        )
+        renderSelectedCfpSlice.assert_called_once_with()
+        setMainCurrentWidget.assert_called_once_with(self.mainWindow.analysisTabWidget)
+        setAnalysisCurrentWidget.assert_called_once_with(self.mainWindow.tabCfp)
+        self.assertIs(self.mainWindow.output.cfpSourceBeamImage, result.sourceBeamImage)
+        self.assertIs(self.mainWindow.output.cfpReceiverBeamImage, result.receiverBeamImage)
+        self.assertIs(self.mainWindow.output.cfpResolutionImage, result.resolutionImage)
+        self.assertIs(self.mainWindow.output.cfpRadonSourceBeamImage, result.radonSourceBeamImage)
+        self.assertIs(self.mainWindow.output.cfpRadonReceiverBeamImage, result.radonReceiverBeamImage)
+        self.assertIs(self.mainWindow.output.cfpRadonAvpImage, result.radonAvpImage)
+        self.assertEqual(self.mainWindow.output.cfpSourceBeamX0, 100.0)
+        self.assertEqual(self.mainWindow.output.cfpSourceBeamY0, 200.0)
+        self.assertEqual(self.mainWindow.output.cfpSourceBeamDx, 25.0)
+        self.assertEqual(self.mainWindow.output.cfpSourceBeamDy, 50.0)
+        self.assertEqual(self.mainWindow.output.cfpRadonX0, -0.25)
+        self.assertEqual(self.mainWindow.output.cfpRadonY0, -0.25)
+        self.assertEqual(self.mainWindow.output.cfpRadonDx, 0.01)
+        self.assertEqual(self.mainWindow.output.cfpRadonDy, 0.01)
+        self.assertEqual(self.mainWindow.output.cfpFrequency, 40.0)
+        self.assertIsNone(self.mainWindow.thread)
+        self.assertIsNone(self.mainWindow.worker)
+        updateMenuStatus.assert_called_once_with(False)
+        enableProcessingMenuItems.assert_called_once_with(True)
+        hideStatusbarWidgets.assert_called_once()
+        information.assert_called_once()
+
+    def testCfpFromTraceTableThreadFinishedUsesResultObject(self):
+        result = CfpFromTraceTableResult(
+            success=True,
+            chunkCount=3360,
+            totalTraceCount=336000000,
+            contributingTraceCount=12345,
+            focalX=10.0,
+            focalY=20.0,
+            focalZ=-2000.0,
+            frequency=40.0,
+            maxDipDegrees=40.0,
+            apertureRadius=1678.199,
+            vint=2200.0,
+            sourceBeamImage=np.zeros((2, 3), dtype=np.float32),
+            receiverBeamImage=np.ones((2, 3), dtype=np.float32),
+            resolutionImage=np.full((2, 3), 2.0, dtype=np.float32),
+            radonSourceBeamImage=np.zeros((4, 5), dtype=np.float32),
+            radonReceiverBeamImage=np.ones((4, 5), dtype=np.float32),
+            radonAvpImage=np.full((4, 5), 0.5, dtype=np.float32),
+            sourceBeamX0=100.0,
+            sourceBeamY0=200.0,
+            sourceBeamDx=25.0,
+            sourceBeamDy=50.0,
+            radonX0=-0.25,
+            radonY0=-0.25,
+            radonDx=0.01,
+            radonDy=0.01,
+        )
+
+        self.mainWindow.startTime = 0.0
+        self.mainWindow.thread = object()
+        self.mainWindow.worker = object()
+
+        with patch.object(binningWorkerMixinModule, 'timer', return_value=1.0):
+            with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+                with patch.object(self.mainWindow, 'renderSelectedCfpSlice') as renderSelectedCfpSlice:
+                    with patch.object(self.mainWindow.mainTabWidget, 'setCurrentWidget') as setMainCurrentWidget:
+                        with patch.object(self.mainWindow.analysisTabWidget, 'setCurrentWidget') as setAnalysisCurrentWidget:
+                            with patch.object(self.mainWindow, 'updateMenuStatus') as updateMenuStatus:
+                                with patch.object(self.mainWindow, 'enableProcessingMenuItems') as enableProcessingMenuItems:
+                                    with patch.object(self.mainWindow, 'hideStatusbarWidgets') as hideStatusbarWidgets:
+                                        with patch.object(binningWorkerMixinModule.QMessageBox, 'information') as information:
+                                            self.mainWindow.cfpFromTraceTableThreadFinished(result)
+
+        appendLogMessage.assert_any_call(
+            "Thread : Completed 'CFP analysis from Trace Table'. Elapsed time:0:00:01 ",
+            rollMainWindowModule.MsgType.Analysis,
+        )
+        appendLogMessage.assert_any_call(
+            'Thread : . . . trace-table chunks processed: 3,360',
+            rollMainWindowModule.MsgType.Analysis,
+        )
+        appendLogMessage.assert_any_call(
+            'Thread : . . . contributing traces surviving aperture filter: 12,345 out of: 336,000,000 active trace rows',
+            rollMainWindowModule.MsgType.Analysis,
+        )
+        renderSelectedCfpSlice.assert_called_once_with()
+        setMainCurrentWidget.assert_called_once_with(self.mainWindow.analysisTabWidget)
+        setAnalysisCurrentWidget.assert_called_once_with(self.mainWindow.tabCfp)
+        self.assertIs(self.mainWindow.output.cfpSourceBeamImage, result.sourceBeamImage)
+        self.assertIs(self.mainWindow.output.cfpReceiverBeamImage, result.receiverBeamImage)
+        self.assertIs(self.mainWindow.output.cfpResolutionImage, result.resolutionImage)
+        self.assertIs(self.mainWindow.output.cfpRadonSourceBeamImage, result.radonSourceBeamImage)
+        self.assertIs(self.mainWindow.output.cfpRadonReceiverBeamImage, result.radonReceiverBeamImage)
+        self.assertIs(self.mainWindow.output.cfpRadonAvpImage, result.radonAvpImage)
+        self.assertEqual(self.mainWindow.output.cfpSourceBeamX0, 100.0)
+        self.assertEqual(self.mainWindow.output.cfpSourceBeamY0, 200.0)
+        self.assertEqual(self.mainWindow.output.cfpSourceBeamDx, 25.0)
+        self.assertEqual(self.mainWindow.output.cfpSourceBeamDy, 50.0)
+        self.assertEqual(self.mainWindow.output.cfpRadonX0, -0.25)
+        self.assertEqual(self.mainWindow.output.cfpRadonY0, -0.25)
+        self.assertEqual(self.mainWindow.output.cfpRadonDx, 0.01)
+        self.assertEqual(self.mainWindow.output.cfpRadonDy, 0.01)
+        self.assertEqual(self.mainWindow.output.cfpFrequency, 40.0)
+        self.assertIsNone(self.mainWindow.thread)
+        self.assertIsNone(self.mainWindow.worker)
+        updateMenuStatus.assert_called_once_with(False)
+        enableProcessingMenuItems.assert_called_once_with(True)
+        hideStatusbarWidgets.assert_called_once()
+        information.assert_called_once()
+
+    def testOnCfpSliceChangedRendersReceiverAndResolutionImages(self):
+        self.mainWindow.output.cfpSourceBeamImage = np.zeros((2, 2), dtype=np.float32)
+        self.mainWindow.output.cfpReceiverBeamImage = np.ones((2, 2), dtype=np.float32)
+        self.mainWindow.output.cfpResolutionImage = np.full((2, 2), 2.0, dtype=np.float32)
+        self.mainWindow.output.cfpSourceBeamX0 = 10.0
+        self.mainWindow.output.cfpSourceBeamY0 = 20.0
+        self.mainWindow.output.cfpSourceBeamDx = 5.0
+        self.mainWindow.output.cfpSourceBeamDy = 6.0
+        self.mainWindow.output.cfpFrequency = 40.0
+
+        with patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
+            self.mainWindow.actionCfpSliceReceiverBeam.setChecked(True)
+            self.mainWindow.onCfpSliceChanged()
+
+            prepareAnalysisImageAndColorBar.assert_called_once_with(
+                self.mainWindow.cfpWidget,
+                self.mainWindow.output.cfpReceiverBeamImage,
+                10.0,
+                20.0,
+                5.0,
+                6.0,
+                'cfpImItem',
+                'cfpColorBar',
+                levels=(-60.0, 0.0),
+                label='dB',
+                limits=(-60.0, 0.0),
+                rounding=10.0,
+            )
+
+        self.assertEqual(self.mainWindow.cfpWidget.plotItem.titleLabel.text, 'xy-slice of receiver beam, frequency = 40 Hz')
+
+        with patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
+            self.mainWindow.actionCfpSliceResolution.setChecked(True)
+            self.mainWindow.onCfpSliceChanged()
+
+            prepareAnalysisImageAndColorBar.assert_called_once_with(
+                self.mainWindow.cfpWidget,
+                self.mainWindow.output.cfpResolutionImage,
+                10.0,
+                20.0,
+                5.0,
+                6.0,
+                'cfpImItem',
+                'cfpColorBar',
+                levels=(-60.0, 0.0),
+                label='dB',
+                limits=(-60.0, 0.0),
+                rounding=10.0,
+            )
+
+        self.assertEqual(self.mainWindow.cfpWidget.plotItem.titleLabel.text, 'xy-slice of resolution function, frequency = 40 Hz')
+
+    def testOnCfpRadonTransformChangedRendersRadonImages(self):
+        self.mainWindow.output.cfpRadonSourceBeamImage = np.zeros((3, 3), dtype=np.float32)
+        self.mainWindow.output.cfpRadonReceiverBeamImage = np.ones((3, 3), dtype=np.float32)
+        self.mainWindow.output.cfpRadonAvpImage = np.full((3, 3), 0.5, dtype=np.float32)
+        self.mainWindow.output.cfpRadonX0 = -0.25
+        self.mainWindow.output.cfpRadonY0 = -0.20
+        self.mainWindow.output.cfpRadonDx = 0.01
+        self.mainWindow.output.cfpRadonDy = 0.02
+        self.mainWindow.output.cfpFrequency = 40.0
+
+        with patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
+            self.mainWindow.actionCfpRadonRecBeam.setChecked(True)
+            self.mainWindow.onCfpRadonTransformChanged()
+
+            prepareAnalysisImageAndColorBar.assert_called_once_with(
+                self.mainWindow.cfpWidget,
+                self.mainWindow.output.cfpRadonReceiverBeamImage,
+                -0.25,
+                -0.20,
+                0.01,
+                0.02,
+                'cfpImItem',
+                'cfpColorBar',
+                levels=(0.0, 1.0),
+                label='amplitude',
+                limits=(0.0, 1.0),
+                rounding=0.1,
+            )
+
+        self.assertEqual(self.mainWindow.cfpWidget.plotItem.titleLabel.text, 'Radon transform of receiver beam, frequency = 40 Hz')
+
+        with patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
+            self.mainWindow.actionCfpRadonAvpFunction.setChecked(True)
+            self.mainWindow.onCfpRadonTransformChanged()
+
+            prepareAnalysisImageAndColorBar.assert_called_once_with(
+                self.mainWindow.cfpWidget,
+                self.mainWindow.output.cfpRadonAvpImage,
+                -0.25,
+                -0.20,
+                0.01,
+                0.02,
+                'cfpImItem',
+                'cfpColorBar',
+                levels=(0.0, 1.0),
+                label='amplitude',
+                limits=(0.0, 1.0),
+                rounding=0.1,
+            )
+
+        self.assertEqual(self.mainWindow.cfpWidget.plotItem.titleLabel.text, 'AVP-function in the Radon domain, frequency = 40 Hz')
 
     def testStopWorkerThreadIgnoresLateResultAndResetsIdleUi(self):
         self.suppressModalDialogs()

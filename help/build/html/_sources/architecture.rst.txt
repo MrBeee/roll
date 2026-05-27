@@ -32,7 +32,7 @@ Processing Model
 Long-running geometry and binning work is pushed onto ``QThread`` workers.
 This keeps the GUI responsive while heavy processing runs in the background.
 
-Numeric hot paths live in ``functions_numba.py`` with fallback behavior kept in
+Numeric hot paths live in ``aux_functions_numba.py`` with fallback behavior kept in
 mind for environments where Numba is unavailable.
 
 Output and Analysis Storage

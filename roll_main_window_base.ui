@@ -210,6 +210,9 @@
     <addaction name="actionBasicBinFromSps"/>
     <addaction name="actionFullBinFromSps"/>
     <addaction name="separator"/>
+    <addaction name="actionCFPAnalysisFromTemplates"/>
+    <addaction name="actionCFPAnalysisFromTraceTable"/>
+    <addaction name="separator"/>
     <addaction name="actionGeometryFromTemplates"/>
     <addaction name="separator"/>
     <addaction name="actionStopThread"/>
@@ -1721,6 +1724,30 @@
   <action name="actionShift_Survey_Area">
    <property name="text">
     <string>Shift Survey Location...</string>
+   </property>
+  </action>
+  <action name="actionCFPAnalysisFromTemplates">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionCFPAnalysisFromTemplates.svg</normaloff>resources/mActionCFPAnalysisFromTemplates.svg</iconset>
+   </property>
+   <property name="text">
+    <string>CFP analysis from Templates</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionCFPAnalysisFromTraceTable">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionCFPAnalysisFromTraceTable.svg</normaloff>resources/mActionCFPAnalysisFromTraceTable.svg</iconset>
+   </property>
+   <property name="text">
+    <string>CFP analysis from Trace Table</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+L</string>
    </property>
   </action>
  </widget>

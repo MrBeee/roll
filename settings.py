@@ -47,7 +47,7 @@ def _applyNumbaSetting(useNumba):
         return
 
     numba.config.DISABLE_JIT = not useNumba                                    # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
-    moduleName = f'{__package__}.functions_numba'
+    moduleName = f'{__package__}.aux_functions_numba'
     module = sys.modules.get(moduleName)
     if module is not None:
         importlib.reload(module)                                                # reloading will ensure proper value of numba.config.DISABLE_JIT is being used

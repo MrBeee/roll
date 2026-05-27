@@ -26,8 +26,8 @@ import pyqtgraph as pg
 from qgis.PyQt.QtCore import QItemSelection, QItemSelectionModel, QPoint, Qt
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
-# from .functions_numba import numbaSpiderBin
-from . import functions_numba as fnb
+# from .aux_functions_numba import numbaSpiderBin
+from . import aux_functions_numba as fnb
 from .enums_and_int_flags import Direction, MsgType
 
 

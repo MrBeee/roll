@@ -5,6 +5,7 @@ import math
 import os
 import sys
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from time import perf_counter
 
@@ -17,8 +18,8 @@ from qgis.PyQt.QtGui import (QBrush, QColor, QGuiApplication, QImage, QPainter,
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
+from . import aux_functions_numba as fnb
 from . import config
-from . import functions_numba as fnb
 from .app_settings import getActiveAppSettings
 from .aux_functions import containsPoint3D
 from .enums_and_int_flags import PaintDetails, PaintMode, SeedType, SurveyType
@@ -51,9 +52,9 @@ class GeometryRelationBinningLookup:
     relRecMinI: np.ndarray
     relRecMaxI: np.ndarray
 
-# from .functions_numba import (clipLineF, numbaFixRelationRecord,
-#                               numbaSetPointRecord, numbaSetRelationRecord,
-#                               numbaSliceStats, pointsInRect)
+# from .aux_functions_numba import (clipLineF, numbaFixRelationRecord,
+#                                   numbaSetPointRecord, numbaSetRelationRecord,
+#                                   numbaSliceStats, pointsInRect)
 # See: https://realpython.com/python-multiple-constructors/#instantiating-classes-in-python for multiple constructors
 # See: https://stackoverflow.com/questions/39513191/python-operator-overloading-with-multiple-operands for operator overlaoding
 # See: https://realpython.com/operator-function-overloading/#overloading-built-in-operators
@@ -174,6 +175,8 @@ class RollSurvey(pg.GraphicsObject):
         self.recMax = 0                                                         # to set up the highest rec number on a line
 
         self.threadProgress = 0                                                 # progress percentage
+        self.cfpTemplateContributionCount = 0                                   # managed in CFP template scan worker
+        self.cfpApertureRadius = 0.0                                            # managed in CFP template scan worker
         self.errorText = None                                                   # text explaining which error occurred
 
         self.binTransform = None                                                # binning transform
@@ -671,6 +674,206 @@ class RollSurvey(pg.GraphicsObject):
             success = False
 
         return success
+
+    @staticmethod
+    def _pointsInsideRect(pointArray: np.ndarray, rect: QRectF) -> np.ndarray:
+        if pointArray is None or pointArray.shape[0] == 0:
+            return pointArray
+
+        rect = QRectF(rect).normalized()
+        included = (
+            (pointArray[:, 0] >= rect.left()) &
+            (pointArray[:, 0] <= rect.right()) &
+            (pointArray[:, 1] >= rect.top()) &
+            (pointArray[:, 1] <= rect.bottom())
+        )
+        return pointArray[included, :]
+
+    def _updateTemplateScanProgress(self, progressStart: int = 0, progressEnd: int = 100) -> None:
+        if QThread.currentThread().isInterruptionRequested():
+            raise StopIteration
+
+        self.nTemplate += 1
+        if self.nTemplates <= 0:
+            return
+
+        progressSpan = max(progressEnd - progressStart, 0)
+        threadProgress = progressStart + ((progressSpan * self.nTemplate) // self.nTemplates)
+        if threadProgress > self.threadProgress:
+            self.threadProgress = threadProgress
+            self.progress.emit(threadProgress)
+
+    def _seedBoundingRectForTemplateOffset(self, seed, block, templateOffset: QVector3D) -> QRectF:
+        seedRect = QRectF(seed.boundingBox)
+        if seed.bSource:
+            if self._seedUsesTemplateRoll(seed):
+                seedRect.translate(templateOffset.x(), templateOffset.y())
+            border = block.borders.srcBorder
+        else:
+            if self._receiverSeedUsesTemplateRoll(seed):
+                seedRect.translate(templateOffset.x(), templateOffset.y())
+            border = block.borders.recBorder
+
+        if border.isValid():
+            seedRect = seedRect.intersected(border)
+
+        return seedRect.normalized()
+
+    def _seedPointsForTemplateOffset(self, seed, block, npTemplateOffset: np.ndarray) -> np.ndarray:
+        if seed.bSource:
+            pointArray = seed.pointArray + self._seedTemplateOffset(seed, npTemplateOffset)
+            border = block.borders.srcBorder
+        else:
+            pointArray = seed.pointArray + self._receiverSeedTemplateOffset(seed, npTemplateOffset)
+            border = block.borders.recBorder
+
+        if border.isValid():
+            pointArray = self._pointsInsideRect(pointArray, border)
+
+        return pointArray
+
+    def _filterPointsByCfpRadius(self, pointArray: np.ndarray, focalX: float, focalY: float, radiusSquared: float) -> np.ndarray:
+        if pointArray is None or pointArray.shape[0] == 0:
+            return pointArray
+
+        dx = pointArray[:, 0] - focalX
+        dy = pointArray[:, 1] - focalY
+        return pointArray[dx * dx + dy * dy <= radiusSquared]
+
+    @staticmethod
+    def _filterPointsForCfp(pointArray: np.ndarray, apertureRect: QRectF, focalX: float, focalY: float, radiusSquared: float) -> np.ndarray:
+        if pointArray is None or pointArray.shape[0] == 0:
+            return pointArray
+
+        included = (
+            (pointArray[:, 0] >= apertureRect.left()) &
+            (pointArray[:, 0] <= apertureRect.right()) &
+            (pointArray[:, 1] >= apertureRect.top()) &
+            (pointArray[:, 1] <= apertureRect.bottom())
+        )
+        if not np.any(included):
+            return pointArray[:0]
+
+        dx = pointArray[:, 0] - focalX
+        dy = pointArray[:, 1] - focalY
+        included &= (dx * dx + dy * dy <= radiusSquared)
+        return pointArray[included, :]
+
+    def _collectTemplatePointsForCfp(
+        self,
+        block,
+        template,
+        templateOffset: QVector3D,
+        apertureRect: QRectF,
+        focalX: float,
+        focalY: float,
+        radiusSquared: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        emptyPoints = np.empty((0, 3), dtype=np.float32)
+        templateRect = QRectF()
+        for seed in template.seedList:
+            seedRect = self._seedBoundingRectForTemplateOffset(seed, block, templateOffset)
+            if seedRect.isNull() or not seedRect.isValid():
+                continue
+            templateRect |= seedRect
+
+        if templateRect.isNull() or not templateRect.intersects(apertureRect):
+            return emptyPoints, emptyPoints
+
+        npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
+        sourcePointArrays = []
+        receiverPointArrays = []
+
+        for seed in template.seedList:
+            pointArray = self._seedPointsForTemplateOffset(seed, block, npTemplateOffset)
+            if pointArray is None or pointArray.shape[0] == 0:
+                continue
+
+            pointArray = self._filterPointsForCfp(pointArray, apertureRect, focalX, focalY, radiusSquared)
+            if pointArray.shape[0] == 0:
+                continue
+
+            if seed.bSource:
+                sourcePointArrays.append(pointArray)
+            else:
+                receiverPointArrays.append(pointArray)
+
+        if not sourcePointArrays or not receiverPointArrays:
+            return emptyPoints, emptyPoints
+
+        sourcePoints = sourcePointArrays[0] if len(sourcePointArrays) == 1 else np.concatenate(sourcePointArrays, axis=0)
+        receiverPoints = receiverPointArrays[0] if len(receiverPointArrays) == 1 else np.concatenate(receiverPointArrays, axis=0)
+        return sourcePoints, receiverPoints
+
+    def _templateContributesToCfp(self, block, template, templateOffset: QVector3D, apertureRect: QRectF, focalX: float, focalY: float, radiusSquared: float) -> bool:
+        sourcePoints, receiverPoints = self._collectTemplatePointsForCfp(block, template, templateOffset, apertureRect, focalX, focalY, radiusSquared)
+        return sourcePoints.shape[0] > 0 and receiverPoints.shape[0] > 0
+
+    def scanCfpTemplates(
+        self,
+        focalX: float,
+        focalY: float,
+        focalZ: float,
+        maxDipDegrees: float,
+        vint: float,
+        contributionHandler: Callable[[np.ndarray, np.ndarray], None] | None = None,
+        progressStart: int = 0,
+        progressEnd: int = 100,
+    ) -> bool:
+        try:
+            self.calcNoTemplates()
+            self.calcBoundingRect()
+            self.calcPointArrays()
+            self.nTemplate = 0
+            self.threadProgress = 0
+            self.cfpTemplateContributionCount = 0
+            self.cfpApertureRadius = abs(focalZ) * math.tan(math.radians(maxDipDegrees))
+
+            apertureRect = QRectF(
+                focalX - self.cfpApertureRadius,
+                focalY - self.cfpApertureRadius,
+                self.cfpApertureRadius * 2.0,
+                self.cfpApertureRadius * 2.0,
+            ).normalized()
+            radiusSquared = self.cfpApertureRadius * self.cfpApertureRadius
+
+            self.message.emit('CFP template scan - evaluating rolling templates')
+            self.logMessage.emit(
+                f'CFP: local target=({focalX:.2f}, {focalY:.2f}, {focalZ:.2f}), aperture={maxDipDegrees:.1f}deg, radius={self.cfpApertureRadius:.2f}m, Vint={vint:.1f}m/s'
+            )
+
+            for block in self.blockList:
+                for template in block.templateList:
+                    for templateOffset in self.iterTemplateRollOffsets(template):
+                        self._updateTemplateScanProgress(progressStart, progressEnd)
+                        sourcePoints, receiverPoints = self._collectTemplatePointsForCfp(
+                            block,
+                            template,
+                            templateOffset,
+                            apertureRect,
+                            focalX,
+                            focalY,
+                            radiusSquared,
+                        )
+                        if sourcePoints.shape[0] == 0 or receiverPoints.shape[0] == 0:
+                            continue
+
+                        self.cfpTemplateContributionCount += 1
+                        if contributionHandler is not None:
+                            contributionHandler(sourcePoints, receiverPoints)
+
+            self.progress.emit(progressEnd)
+            return True
+
+        except StopIteration:
+            self.errorText = 'CFP template scan cancelled by user'
+            return False
+        except BaseException as e:
+            self._recordInnermostExceptionLocation(e)
+            return False
+
+    def setupCfpFromTemplates(self, focalX: float, focalY: float, focalZ: float, maxDipDegrees: float, vint: float) -> bool:
+        return self.scanCfpTemplates(focalX, focalY, focalZ, maxDipDegrees, vint)
 
     def geometryFromTemplates(self) -> bool:
         try:
@@ -2295,7 +2498,7 @@ class RollSurvey(pg.GraphicsObject):
         branch: instead of running a Python ``for k in range(N):`` loop with
         per-element scalar writes into ``self.output.anaOutput``, this
         helper dispatches the per-trace work to the compiled kernel
-        ``numbaApplyBinUpdatesAnalysis`` (functions_numba.py). Filtering,
+        ``numbaApplyBinUpdatesAnalysis`` (aux_functions_numba.py). Filtering,
         bin/stake transforms, fold cap, and per-bin min/max offset
         semantics are preserved bit-for-bit.
 

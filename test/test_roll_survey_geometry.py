@@ -162,6 +162,25 @@ class RollSurveyGeometryTest(unittest.TestCase):
         np.testing.assert_array_equal(survey.output.relGeom['RecMin'], np.array([1002, 1003]))
         np.testing.assert_array_equal(survey.output.relGeom['RecMax'], np.array([1002, 1003]))
 
+    def testSetupCfpFromTemplatesCountsOnlyRolledTemplatesInsideAperture(self):
+        survey = self.createSurvey()
+        survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+
+        template = survey.blockList[0].templateList[0]
+        template.rollList[2].steps = 3
+        template.rollList[2].increment = QVector3D(100.0, 0.0, 0.0)
+
+        srcSeed = next(seed for seed in template.seedList if seed.bSource)
+        recSeed = next(seed for seed in template.seedList if not seed.bSource)
+        srcSeed.origin = QVector3D(0.0, 0.0, 0.0)
+        recSeed.origin = QVector3D(20.0, 0.0, 0.0)
+
+        success = survey.setupCfpFromTemplates(10.0, 0.0, -20.0, 45.0, 2000.0)
+
+        self.assertTrue(success)
+        self.assertEqual(survey.cfpTemplateContributionCount, 1)
+        self.assertAlmostEqual(survey.cfpApertureRadius, 20.0, places=4)
+
     def testGeomTemplate5MatchesGeomTemplate4ForRolledGridGeometry(self):
         survey4 = self.createSurvey()
         survey4.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)

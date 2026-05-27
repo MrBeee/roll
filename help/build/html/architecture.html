@@ -63,7 +63,7 @@ hierarchy together with metadata such as the CRS WKT string.</p>
 <h2>Processing Model<a class="headerlink" href="#processing-model" title="Link to this heading">¶</a></h2>
 <p>Long-running geometry and binning work is pushed onto <code class="docutils literal notranslate"><span class="pre">QThread</span></code> workers.
 This keeps the GUI responsive while heavy processing runs in the background.</p>
-<p>Numeric hot paths live in <code class="docutils literal notranslate"><span class="pre">functions_numba.py</span></code> with fallback behavior kept in
+<p>Numeric hot paths live in <code class="docutils literal notranslate"><span class="pre">aux_functions_numba.py</span></code> with fallback behavior kept in
 mind for environments where Numba is unavailable.</p>
 </section>
 <section id="output-and-analysis-storage">

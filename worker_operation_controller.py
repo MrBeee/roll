@@ -10,6 +10,7 @@ from qgis.PyQt.QtCore import QThread
 from .enums_and_int_flags import MsgType
 from .worker_threads import (BinningFromGeometryRequest,
                              BinningFromTemplatesRequest,
+                             CfpFromTemplatesRequest, CfpFromTraceTableRequest,
                              GeometryFromTemplatesRequest)
 
 
@@ -110,6 +111,24 @@ class WorkerOperationController:
 
     def startGeometryFromTemplates(self) -> bool:
         return self._startJob(self._buildGeometryFromTemplatesJob())
+
+    def startCfpAnalysisFromTemplates(self) -> bool:
+        if self.window.survey is None:
+            self.window.appendLogMessage('Thread : No survey has been defined', MsgType.Error)
+            return False
+
+        return self._startJob(self._buildCfpAnalysisFromTemplatesJob())
+
+    def startCfpAnalysisFromTraceTable(self) -> bool:
+        if self.window.survey is None:
+            self.window.appendLogMessage('Thread : No survey has been defined', MsgType.Error)
+            return False
+
+        if self.window.output.anaOutput is None:
+            self.window.appendLogMessage('Thread : Trace table has not been defined', MsgType.Error)
+            return False
+
+        return self._startJob(self._buildCfpAnalysisFromTraceTableJob())
 
     def stopCurrentOperation(self) -> None:
         activeOperation = self.activeOperation
@@ -262,6 +281,124 @@ class WorkerOperationController:
             resultHandler=self.window.applyGeometryWorkerResult,
             completionTabIndex=3,
         )
+
+    def _buildCfpAnalysisFromTemplatesJob(self) -> WorkerJobSpec:
+        dependencies = self.runtimeDependenciesProvider()
+        focalX, focalY = self._resolveLocalCfpTargetXY()
+        localPlane = getattr(self.window.survey, 'localPlane', None)
+        focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
+        maxDipDegrees = self._resolveCfpMaxDipDegrees()
+        request = CfpFromTemplatesRequest(
+            xmlString=self.window.survey.toXmlString(),
+            focalX=focalX,
+            focalY=focalY,
+            focalZ=focalZ,
+            frequency=40.0,
+            maxDipDegrees=maxDipDegrees,
+            vint=self.window.survey.binning.vint,
+            debugpyEnabled=self.window.appSettings.debugpy,
+        )
+        return WorkerJobSpec(
+            name='cfp-from-templates',
+            progressLabelText='CFP from Templates - rolling template scan',
+            startMessage=(
+                "Thread : Started 'CFP analysis from Templates'"
+                f' at local x={focalX:.2f}, y={focalY:.2f}, z={focalZ:.2f}, Vint={self.window.survey.binning.vint:.1f}m/s'
+            ),
+            startMessageType=MsgType.Analysis,
+            workerFactory=dependencies['CfpFromTemplatesWorker'],
+            request=request,
+            resultHandler=self.window.applyCfpFromTemplatesWorkerResult,
+        )
+
+    def _buildCfpAnalysisFromTraceTableJob(self) -> WorkerJobSpec:
+        dependencies = self.runtimeDependenciesProvider()
+        focalX, focalY = self._resolveLocalCfpTargetXY()
+        localPlane = getattr(self.window.survey, 'localPlane', None)
+        focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
+        maxDipDegrees = self._resolveCfpMaxDipDegrees()
+        analysisRows = self.window.output.an2Output
+        if analysisRows is None:
+            analysisRows = self.window.output.anaOutput.reshape(-1, self.window.output.anaOutput.shape[-1])
+
+        request = CfpFromTraceTableRequest(
+            xmlString=self.window.survey.toXmlString(),
+            analysisRows=analysisRows,
+            focalX=focalX,
+            focalY=focalY,
+            focalZ=focalZ,
+            frequency=40.0,
+            maxDipDegrees=maxDipDegrees,
+            vint=self.window.survey.binning.vint,
+            chunkSize=100_000,
+            debugpyEnabled=self.window.appSettings.debugpy,
+        )
+        return WorkerJobSpec(
+            name='cfp-from-trace-table',
+            progressLabelText='CFP from Trace Table - chunked relation scan',
+            startMessage=(
+                "Thread : Started 'CFP analysis from Trace Table'"
+                f' at local x={focalX:.2f}, y={focalY:.2f}, z={focalZ:.2f}, Vint={self.window.survey.binning.vint:.1f}m/s'
+            ),
+            startMessageType=MsgType.Analysis,
+            workerFactory=dependencies['CfpFromTraceTableWorker'],
+            request=request,
+            resultHandler=self.window.applyCfpFromTraceTableWorkerResult,
+        )
+
+    def _resolveLocalCfpTargetXY(self) -> tuple[float, float]:
+        spiderPoint = getattr(self.window, 'spiderPoint', None)
+        survey = self.window.survey
+        fallbackTarget = self._resolveAnalysisAreaCenterXY()
+        if (
+            spiderPoint is None or
+            survey is None or
+            survey.binTransform is None or
+            not hasattr(spiderPoint, 'x') or
+            not hasattr(spiderPoint, 'y') or
+            (spiderPoint.x() == -1 and spiderPoint.y() == -1)
+        ):
+            return fallbackTarget
+
+        invBinTransform, invertOk = survey.binTransform.inverted()
+        if not invertOk:
+            return fallbackTarget
+
+        focalX, focalY = invBinTransform.map(spiderPoint.x(), spiderPoint.y())
+        return (float(focalX), float(focalY))
+
+    def _resolveAnalysisAreaCenterXY(self) -> tuple[float, float]:
+        survey = self.window.survey
+        if survey is None:
+            return (0.0, 0.0)
+
+        outputRect = getattr(getattr(survey, 'output', None), 'rctOutput', None)
+        if outputRect is None or not hasattr(outputRect, 'isValid') or not outputRect.isValid():
+            return (0.0, 0.0)
+
+        center = outputRect.center()
+        return (float(center.x()), float(center.y()))
+
+    def _resolveCfpMaxDipDegrees(self) -> float:
+        defaultMaxDipDegrees = 40.0
+        survey = self.window.survey
+        if survey is None:
+            return defaultMaxDipDegrees
+
+        reflection = getattr(getattr(survey, 'angles', None), 'reflection', None)
+        if reflection is None or not hasattr(reflection, 'y'):
+            return defaultMaxDipDegrees
+
+        try:
+            maxDipDegrees = float(reflection.y())
+        except (TypeError, ValueError):
+            return defaultMaxDipDegrees
+
+        if maxDipDegrees < 0.0:
+            return 0.0
+        if maxDipDegrees > 90.0:
+            return 90.0
+        return maxDipDegrees
 
     def _startJob(self, job: WorkerJobSpec) -> bool:
         self._showRunningUi(job.progressLabelText)

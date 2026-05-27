@@ -1,10 +1,16 @@
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
-from qgis.PyQt.QtCore import QObject, pyqtSignal
+import numpy as np
+from qgis.PyQt.QtCore import QObject, QThread, pyqtSignal
 
+from .cfp_aux_functions_numba import (
+    compute_monochromatic_beam_xy_grid,
+    compute_monochromatic_weighted_beam_xy_grid, compute_radon_images_numba,
+    compute_xy_beam_images_numba, filter_sps_relations_by_aperture)
 from .roll_survey import RollSurvey
 
 # debugpy  is needed to debug a worker thread.
@@ -25,6 +31,69 @@ except ImportError:
 # first approach; subclass QThread - no longer recommended with Python 3.0
 # See: https://stackoverflow.com/questions/9190169/threading-and-information-passing-how-to
 # See: https://www.programiz.com/python-programming/shallow-deep-copy for deep copy info
+
+
+def _callPythonFallback(pyFunc: object, *args):
+    if not callable(pyFunc):
+        raise ImportError('Numba fallback function is not callable')
+    return cast(Callable[..., Any], pyFunc)(*args)
+
+
+def computeMonochromaticBeamXyGridSafe(evalX, evalY, evalZ, surfX, surfY, surfZ, frequency, vint):
+    try:
+        return compute_monochromatic_beam_xy_grid(evalX, evalY, evalZ, surfX, surfY, surfZ, frequency, vint)
+    except ImportError:
+        pyFunc = getattr(compute_monochromatic_beam_xy_grid, 'py_func', None)
+        if pyFunc is None or not callable(pyFunc):
+            raise
+        return _callPythonFallback(pyFunc, evalX, evalY, evalZ, surfX, surfY, surfZ, frequency, vint)
+
+
+def computeMonochromaticWeightedBeamXyGridSafe(evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint):
+    try:
+        return compute_monochromatic_weighted_beam_xy_grid(evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint)
+    except ImportError:
+        pyFunc = getattr(compute_monochromatic_weighted_beam_xy_grid, 'py_func', None)
+        if pyFunc is None or not callable(pyFunc):
+            raise
+        return _callPythonFallback(pyFunc, evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint)
+
+
+def filterSpsRelationsByApertureSafe(focalX, focalY, apertureRadius, srcX, srcY, recX, recY):
+    try:
+        return filter_sps_relations_by_aperture(focalX, focalY, apertureRadius, srcX, srcY, recX, recY)
+    except ImportError:
+        pyFunc = getattr(filter_sps_relations_by_aperture, 'py_func', None)
+        if pyFunc is None or not callable(pyFunc):
+            raise
+        return _callPythonFallback(pyFunc, focalX, focalY, apertureRadius, srcX, srcY, recX, recY)
+
+
+def computeRadonImagesSafe(sourceField, receiverField, evalX, evalY, px, py, frequency):
+    try:
+        return compute_radon_images_numba(sourceField, receiverField, evalX, evalY, px, py, frequency)
+    except ImportError:
+        pyFunc = getattr(compute_radon_images_numba, 'py_func', None)
+        if pyFunc is None or not callable(pyFunc):
+            raise
+        return _callPythonFallback(pyFunc, sourceField, receiverField, evalX, evalY, px, py, frequency)
+
+
+def computeXyBeamImagesSafe(sourceField, receiverField, dbMin=-60.0):
+    try:
+        return compute_xy_beam_images_numba(sourceField, receiverField, dbMin)
+    except ImportError:
+        pyFunc = getattr(compute_xy_beam_images_numba, 'py_func', None)
+        if pyFunc is None or not callable(pyFunc):
+            raise
+        return _callPythonFallback(pyFunc, sourceField, receiverField, dbMin)
+
+
+def _emitWorkerPhase(progressHandler, messageHandler, progress: int, message: str | None = None) -> None:
+    if progressHandler is not None:
+        progressHandler(int(progress))
+    if messageHandler is not None and message:
+        messageHandler(message)
 
 
 @dataclass
@@ -110,6 +179,32 @@ class GeometryFromTemplatesRequest:
 
 
 @dataclass
+class CfpFromTemplatesRequest:
+    xmlString: str
+    focalX: float = 0.0
+    focalY: float = 0.0
+    focalZ: float = -2000.0
+    frequency: float = 40.0
+    maxDipDegrees: float = 40.0
+    vint: float = 2000.0
+    debugpyEnabled: bool = False
+
+
+@dataclass
+class CfpFromTraceTableRequest:
+    xmlString: str
+    analysisRows: Any = None
+    focalX: float = 0.0
+    focalY: float = 0.0
+    focalZ: float = -2000.0
+    frequency: float = 40.0
+    maxDipDegrees: float = 40.0
+    vint: float = 2000.0
+    chunkSize: int = 100_000
+    debugpyEnabled: bool = False
+
+
+@dataclass
 class GeometryProfilingPayload:
     timerTmin: Any
     timerTmax: Any
@@ -125,6 +220,348 @@ class GeometryFromTemplatesResult:
     relGeom: Any = None
     srcGeom: Any = None
     profiling: GeometryProfilingPayload | None = None
+
+
+@dataclass
+class CfpFromTemplatesResult:
+    success: bool
+    errorText: str = ''
+    templateContributionCount: int = 0
+    totalTemplateCount: int = 0
+    focalX: float = 0.0
+    focalY: float = 0.0
+    focalZ: float = 0.0
+    frequency: float = 40.0
+    maxDipDegrees: float = 0.0
+    apertureRadius: float = 0.0
+    vint: float = 0.0
+    sourceBeamImage: Any = None
+    receiverBeamImage: Any = None
+    resolutionImage: Any = None
+    radonSourceBeamImage: Any = None
+    radonReceiverBeamImage: Any = None
+    radonAvpImage: Any = None
+    sourceBeamX0: float = 0.0
+    sourceBeamY0: float = 0.0
+    sourceBeamDx: float = 1.0
+    sourceBeamDy: float = 1.0
+    radonX0: float = 0.0
+    radonY0: float = 0.0
+    radonDx: float = 1.0
+    radonDy: float = 1.0
+
+
+@dataclass
+class CfpFromTraceTableResult:
+    success: bool
+    errorText: str = ''
+    chunkCount: int = 0
+    totalTraceCount: int = 0
+    contributingTraceCount: int = 0
+    focalX: float = 0.0
+    focalY: float = 0.0
+    focalZ: float = 0.0
+    frequency: float = 40.0
+    maxDipDegrees: float = 0.0
+    apertureRadius: float = 0.0
+    vint: float = 0.0
+    sourceBeamImage: Any = None
+    receiverBeamImage: Any = None
+    resolutionImage: Any = None
+    radonSourceBeamImage: Any = None
+    radonReceiverBeamImage: Any = None
+    radonAvpImage: Any = None
+    sourceBeamX0: float = 0.0
+    sourceBeamY0: float = 0.0
+    sourceBeamDx: float = 1.0
+    sourceBeamDy: float = 1.0
+    radonX0: float = 0.0
+    radonY0: float = 0.0
+    radonDx: float = 1.0
+    radonDy: float = 1.0
+
+
+class CfpBeamAccumulator:
+    def __init__(self, survey: RollSurvey, focalZ: float, frequency: float, vint: float):
+        self.survey = survey
+        self.focalZ = focalZ
+        self.frequency = frequency
+        self.vint = vint
+        self.flushThresholdPoints = 250_000
+        self.weightCollapseThresholdPoints = 2_048
+        self.sourceBeamField = None
+        self.receiverBeamField = None
+        self.sourceBeamImage = None
+        self.receiverBeamImage = None
+        self.resolutionImage = None
+        self.radonSourceBeamImage = None
+        self.radonReceiverBeamImage = None
+        self.radonAvpImage = None
+        self.sourceBeamX0 = 0.0
+        self.sourceBeamY0 = 0.0
+        self.sourceBeamDx = 1.0
+        self.sourceBeamDy = 1.0
+        self.radonX0 = 0.0
+        self.radonY0 = 0.0
+        self.radonDx = 1.0
+        self.radonDy = 1.0
+        self.evalX = None
+        self.evalY = None
+        self._bufferedSourceArrays = []
+        self._bufferedReceiverArrays = []
+        self._bufferedSourcePointCount = 0
+        self._bufferedReceiverPointCount = 0
+
+    def initializeGrid(self) -> bool:
+        outputRect = getattr(self.survey.output, 'rctOutput', None)
+        grid = getattr(self.survey, 'grid', None)
+        binSize = getattr(grid, 'binSize', None)
+        if outputRect is None or binSize is None:
+            self.survey.errorText = 'analysis area has not been defined'
+            return False
+
+        width = float(outputRect.width())
+        height = float(outputRect.height())
+        dx = float(binSize.x())
+        dy = float(binSize.y())
+        if dx <= 0.0 or dy <= 0.0:
+            self.survey.errorText = 'analysis area sampling is invalid'
+            return False
+
+        nx = max(int(np.ceil(width / dx)), 1)
+        ny = max(int(np.ceil(height / dy)), 1)
+        self.sourceBeamX0 = float(outputRect.left())
+        self.sourceBeamY0 = float(outputRect.top())
+        self.sourceBeamDx = dx
+        self.sourceBeamDy = dy
+        self.evalX = self.sourceBeamX0 + np.arange(nx, dtype=np.float64) * dx
+        self.evalY = self.sourceBeamY0 + np.arange(ny, dtype=np.float64) * dy
+        self.sourceBeamField = np.zeros((ny, nx), dtype=np.complex128)
+        self.receiverBeamField = np.zeros((ny, nx), dtype=np.complex128)
+        self.sourceBeamImage = None
+        self.receiverBeamImage = None
+        self.resolutionImage = None
+        self.radonSourceBeamImage = None
+        self.radonReceiverBeamImage = None
+        self.radonAvpImage = None
+        return True
+
+    def accumulateCoordinates(self, srcX, srcY, srcZ, recX, recY, recZ, srcWeights=None, recWeights=None) -> None:
+        if self.sourceBeamField is None or self.receiverBeamField is None or self.evalX is None or self.evalY is None:
+            return
+
+        if srcX.size == 0 or recX.size == 0:
+            return
+
+        srcX = np.ascontiguousarray(srcX, dtype=np.float64)
+        srcY = np.ascontiguousarray(srcY, dtype=np.float64)
+        srcZ = np.ascontiguousarray(srcZ, dtype=np.float64)
+        recX = np.ascontiguousarray(recX, dtype=np.float64)
+        recY = np.ascontiguousarray(recY, dtype=np.float64)
+        recZ = np.ascontiguousarray(recZ, dtype=np.float64)
+
+        if srcWeights is None:
+            self.sourceBeamField += computeMonochromaticBeamXyGridSafe(
+                self.evalX,
+                self.evalY,
+                self.focalZ,
+                srcX,
+                srcY,
+                srcZ,
+                self.frequency,
+                self.vint,
+            )
+        else:
+            self.sourceBeamField += computeMonochromaticWeightedBeamXyGridSafe(
+                self.evalX,
+                self.evalY,
+                self.focalZ,
+                srcX,
+                srcY,
+                srcZ,
+                np.ascontiguousarray(srcWeights, dtype=np.float64),
+                self.frequency,
+                self.vint,
+            )
+
+        if recWeights is None:
+            self.receiverBeamField += computeMonochromaticBeamXyGridSafe(
+                self.evalX,
+                self.evalY,
+                self.focalZ,
+                recX,
+                recY,
+                recZ,
+                self.frequency,
+                self.vint,
+            )
+        else:
+            self.receiverBeamField += computeMonochromaticWeightedBeamXyGridSafe(
+                self.evalX,
+                self.evalY,
+                self.focalZ,
+                recX,
+                recY,
+                recZ,
+                np.ascontiguousarray(recWeights, dtype=np.float64),
+                self.frequency,
+                self.vint,
+            )
+
+    def _collapsePointWeights(self, points: np.ndarray) -> tuple[np.ndarray, np.ndarray | None]:
+        if points is None or points.shape[0] == 0:
+            return np.empty((0, 3), dtype=np.float32), None
+
+        if points.shape[0] < self.weightCollapseThresholdPoints:
+            return points, None
+
+        collapsedPoints, counts = np.unique(np.ascontiguousarray(points[:, :3], dtype=np.float32), axis=0, return_counts=True)
+        if collapsedPoints.shape[0] == points.shape[0]:
+            return collapsedPoints, None
+
+        return collapsedPoints, counts.astype(np.float64, copy=False)
+
+    def _bufferPointArrays(self, sourcePoints, receiverPoints) -> None:
+        self._bufferedSourceArrays.append(sourcePoints)
+        self._bufferedReceiverArrays.append(receiverPoints)
+        self._bufferedSourcePointCount += int(sourcePoints.shape[0])
+        self._bufferedReceiverPointCount += int(receiverPoints.shape[0])
+
+    def flushBufferedPointArrays(self) -> None:
+        if not self._bufferedSourceArrays or not self._bufferedReceiverArrays:
+            return
+
+        sourcePoints = self._bufferedSourceArrays[0] if len(self._bufferedSourceArrays) == 1 else np.concatenate(self._bufferedSourceArrays, axis=0)
+        receiverPoints = self._bufferedReceiverArrays[0] if len(self._bufferedReceiverArrays) == 1 else np.concatenate(self._bufferedReceiverArrays, axis=0)
+
+        self._bufferedSourceArrays = []
+        self._bufferedReceiverArrays = []
+        self._bufferedSourcePointCount = 0
+        self._bufferedReceiverPointCount = 0
+
+        sourcePoints, sourceWeights = self._collapsePointWeights(sourcePoints)
+        receiverPoints, receiverWeights = self._collapsePointWeights(receiverPoints)
+
+        self.accumulateCoordinates(
+            sourcePoints[:, 0],
+            sourcePoints[:, 1],
+            sourcePoints[:, 2],
+            receiverPoints[:, 0],
+            receiverPoints[:, 1],
+            receiverPoints[:, 2],
+            sourceWeights,
+            receiverWeights,
+        )
+
+    def accumulatePointArrays(self, sourcePoints, receiverPoints) -> None:
+        if sourcePoints is None or receiverPoints is None:
+            return
+
+        if sourcePoints.shape[0] == 0 or receiverPoints.shape[0] == 0:
+            return
+
+        self._bufferPointArrays(sourcePoints, receiverPoints)
+        if max(self._bufferedSourcePointCount, self._bufferedReceiverPointCount) >= self.flushThresholdPoints:
+            self.flushBufferedPointArrays()
+
+    def _fieldToDbImage(self, field) -> Any:
+        from .cfp_aux_functions_numba import convert_to_db_image_numba
+        try:
+            return convert_to_db_image_numba(field)
+        except ImportError:
+            pyFunc = getattr(convert_to_db_image_numba, 'py_func', None)
+            return _callPythonFallback(pyFunc, field)
+
+    def _fieldToUnitImage(self, field) -> Any:
+        from .cfp_aux_functions_numba import convert_to_unit_image_numba
+        try:
+            return convert_to_unit_image_numba(field)
+        except ImportError:
+            pyFunc = getattr(convert_to_unit_image_numba, 'py_func', None)
+            return _callPythonFallback(pyFunc, field)
+
+    def _finalizeRadonImages(self, progressHandler=None, messageHandler=None, progressStart: int = 0, progressEnd: int = 100, phaseLabel: str = 'CFP analysis') -> None:
+        if self.sourceBeamField is None or self.receiverBeamField is None or self.evalX is None or self.evalY is None:
+            self.radonSourceBeamImage = None
+            self.radonReceiverBeamImage = None
+            self.radonAvpImage = None
+            return
+
+        phaseStart = int(progressStart)
+        phaseEnd = int(progressEnd)
+        _emitWorkerPhase(progressHandler, messageHandler, phaseStart, f'{phaseLabel} - preparing Radon transform grids')
+
+        sampleCount = 128
+        velocity = max(abs(float(self.vint)), 1.0)
+        px = np.linspace(-1.0 / velocity, 1.0 / velocity, sampleCount, dtype=np.float64)
+        py = np.linspace(-1.0 / velocity, 1.0 / velocity, sampleCount, dtype=np.float64)
+
+        _emitWorkerPhase(progressHandler, messageHandler, phaseStart + max((phaseEnd - phaseStart) // 3, 1), f'{phaseLabel} - synthesizing Radon-domain fields')
+
+        # Highly integrated Numba path computes everything: Transform, AVP, and Unit Images in fused passes.
+        self.radonSourceBeamImage, self.radonReceiverBeamImage, self.radonAvpImage = computeRadonImagesSafe(
+            self.sourceBeamField,
+            self.receiverBeamField,
+            self.evalX,
+            self.evalY,
+            px, py, self.frequency
+        )
+
+        # BACKUP OLD CODE (Separate transform and normalization):
+        # ---------------------------------------------------------------------
+        # radonSourceField, radonReceiverField, radonAvpField = computeRadonImagesSafe(...)
+        # radonAvpField = np.conj(radonSourceField) * radonReceiverField
+        # self.radonSourceBeamImage = self._fieldToUnitImage(radonSourceField)
+        # self.radonReceiverBeamImage = self._fieldToUnitImage(radonReceiverField)
+        # self.radonAvpImage = self._fieldToUnitImage(radonAvpField)
+        # ---------------------------------------------------------------------
+        pxMs = px * 1000.0
+        pyMs = py * 1000.0
+        self.radonX0 = float(pxMs[0])
+        self.radonY0 = float(pyMs[0])
+        self.radonDx = float(pxMs[1] - pxMs[0]) if sampleCount > 1 else 1.0
+        self.radonDy = float(pyMs[1] - pyMs[0]) if sampleCount > 1 else 1.0
+        _emitWorkerPhase(progressHandler, messageHandler, phaseEnd, f'{phaseLabel} - Radon transforms completed')
+
+    def finalizeImages(self, progressHandler=None, messageHandler=None, progressStart: int = 0, progressEnd: int = 100, phaseLabel: str = 'CFP analysis') -> None:
+        phaseStart = int(progressStart)
+        phaseEnd = int(progressEnd)
+        phaseSpan = max(phaseEnd - phaseStart, 0)
+        flushProgress = phaseStart + max(phaseSpan // 5, 1)
+        xyProgress = phaseStart + max((2 * phaseSpan) // 5, 1)
+        resolutionProgress = phaseStart + max((3 * phaseSpan) // 5, 1)
+        radonStart = phaseStart + max((4 * phaseSpan) // 5, 1)
+
+        _emitWorkerPhase(progressHandler, messageHandler, phaseStart, f'{phaseLabel} - flushing buffered template contributions')
+        self.flushBufferedPointArrays()
+        _emitWorkerPhase(progressHandler, messageHandler, flushProgress, f'{phaseLabel} - converting XY beam slices')
+
+        # Fused Numba path computes Source, Receiver, and Resolution images in a single call.
+        self.sourceBeamImage, self.receiverBeamImage, self.resolutionImage = computeXyBeamImagesSafe(
+            self.sourceBeamField, self.receiverBeamField
+        )
+
+        _emitWorkerPhase(progressHandler, messageHandler, xyProgress, f'{phaseLabel} - XY beam slices converted')
+        _emitWorkerPhase(progressHandler, messageHandler, resolutionProgress, f'{phaseLabel} - building Radon transforms')
+        self._finalizeRadonImages(progressHandler, messageHandler, radonStart, phaseEnd, phaseLabel)
+
+    def buildPayload(self) -> dict[str, Any]:
+        return {
+            'sourceBeamImage': self.sourceBeamImage,
+            'receiverBeamImage': self.receiverBeamImage,
+            'resolutionImage': self.resolutionImage,
+            'radonSourceBeamImage': self.radonSourceBeamImage,
+            'radonReceiverBeamImage': self.radonReceiverBeamImage,
+            'radonAvpImage': self.radonAvpImage,
+            'sourceBeamX0': self.sourceBeamX0,
+            'sourceBeamY0': self.sourceBeamY0,
+            'sourceBeamDx': self.sourceBeamDx,
+            'sourceBeamDy': self.sourceBeamDy,
+            'radonX0': self.radonX0,
+            'radonY0': self.radonY0,
+            'radonDx': self.radonDx,
+            'radonDy': self.radonDy,
+        }
 
 
 class BinFromGeometryWorker(QObject):
@@ -355,4 +792,263 @@ class GeometryWorker(QObject):
             relGeom=output.relGeom,
             srcGeom=output.srcGeom,
             profiling=profiling,
+        )
+
+
+class CfpFromTemplatesWorker(QObject):
+    finished = pyqtSignal()
+    resultReady = pyqtSignal(object)
+
+    def __init__(self, request: CfpFromTemplatesRequest):
+        super().__init__()
+        self.survey = RollSurvey()
+        self.debugpyEnabled = request.debugpyEnabled
+        self.focalX = request.focalX
+        self.focalY = request.focalY
+        self.focalZ = request.focalZ
+        self.frequency = request.frequency
+        self.maxDipDegrees = request.maxDipDegrees
+        self.vint = request.vint
+        self.beamAccumulator = CfpBeamAccumulator(self.survey, self.focalZ, self.frequency, self.vint)
+
+        self.survey.fromXmlString(request.xmlString, False)
+
+    def run(self):
+        """Long-running task."""
+
+        try:
+            if haveDebugpy and self.debugpyEnabled:
+                debugpy.debug_this_thread()
+
+            self.survey.progress.emit(0)
+            success = self.beamAccumulator.initializeGrid()
+            if success:
+                success = self.survey.scanCfpTemplates(
+                    self.focalX,
+                    self.focalY,
+                    self.focalZ,
+                    self.maxDipDegrees,
+                    self.vint,
+                    contributionHandler=self.beamAccumulator.accumulatePointArrays,
+                    progressStart=0,
+                    progressEnd=100,
+                )
+            if success:
+                self.survey.progress.emit(0)
+                self.beamAccumulator.finalizeImages(
+                    progressHandler=self.survey.progress.emit,
+                    messageHandler=self.survey.message.emit,
+                    progressStart=0,
+                    progressEnd=100,
+                    phaseLabel='CFP from Templates',
+                )
+        except BaseException as e:
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.survey.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            del (fileName, funcName, lineNo)
+            success = False
+
+        self.resultReady.emit(self.buildResult(success))
+        self.finished.emit()
+
+    def buildResult(self, success: bool) -> CfpFromTemplatesResult:
+        payload = self.beamAccumulator.buildPayload()
+        if not success:
+            return CfpFromTemplatesResult(
+                success=False,
+                errorText=self.survey.errorText,
+                templateContributionCount=self.survey.cfpTemplateContributionCount,
+                totalTemplateCount=max(self.survey.nTemplates, 0),
+                focalX=self.focalX,
+                focalY=self.focalY,
+                focalZ=self.focalZ,
+                frequency=self.frequency,
+                maxDipDegrees=self.maxDipDegrees,
+                apertureRadius=self.survey.cfpApertureRadius,
+                vint=self.vint,
+                **payload,
+            )
+
+        return CfpFromTemplatesResult(
+            success=True,
+            templateContributionCount=self.survey.cfpTemplateContributionCount,
+            totalTemplateCount=max(self.survey.nTemplates, 0),
+            focalX=self.focalX,
+            focalY=self.focalY,
+            focalZ=self.focalZ,
+            frequency=self.frequency,
+            maxDipDegrees=self.maxDipDegrees,
+            apertureRadius=self.survey.cfpApertureRadius,
+            vint=self.vint,
+            **payload,
+        )
+
+
+class CfpFromTraceTableWorker(QObject):
+    finished = pyqtSignal()
+    resultReady = pyqtSignal(object)
+
+    def __init__(self, request: CfpFromTraceTableRequest):
+        super().__init__()
+        self.survey = RollSurvey()
+        self.debugpyEnabled = request.debugpyEnabled
+        self.analysisRows = request.analysisRows
+        self.focalX = request.focalX
+        self.focalY = request.focalY
+        self.focalZ = request.focalZ
+        self.frequency = request.frequency
+        self.maxDipDegrees = request.maxDipDegrees
+        self.vint = request.vint
+        self.chunkSize = max(int(request.chunkSize), 1)
+        self.chunkCount = 0
+        self.totalTraceCount = 0
+        self.contributingTraceCount = 0
+        self.apertureRadius = abs(self.focalZ) * np.tan(np.radians(self.maxDipDegrees))
+        self.beamAccumulator = CfpBeamAccumulator(self.survey, self.focalZ, self.frequency, self.vint)
+
+        self.survey.fromXmlString(request.xmlString, False)
+
+    def run(self):
+        """Long-running task."""
+
+        try:
+            if haveDebugpy and self.debugpyEnabled:
+                debugpy.debug_this_thread()
+
+            self.survey.progress.emit(0)
+            success = self._scanTraceTable()
+        except BaseException as e:
+            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
+            lineNo = str(sys.exc_info()[2].tb_lineno)
+            self.survey.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
+            del (fileName, funcName, lineNo)
+            success = False
+
+        self.resultReady.emit(self.buildResult(success))
+        self.finished.emit()
+
+    def _scanTraceTable(self) -> bool:
+        if self.analysisRows is None:
+            self.survey.errorText = 'trace table has not been defined'
+            return False
+
+        if len(getattr(self.analysisRows, 'shape', ())) != 2 or self.analysisRows.shape[1] < 9:
+            self.survey.errorText = 'trace table has invalid shape'
+            return False
+
+        totalRows = int(self.analysisRows.shape[0])
+        self.chunkCount = (totalRows + self.chunkSize - 1) // self.chunkSize if totalRows > 0 else 0
+        self.totalTraceCount = 0
+        self.contributingTraceCount = 0
+
+        if not self.beamAccumulator.initializeGrid():
+            return False
+
+        if self.chunkCount == 0:
+            self.survey.progress.emit(100)
+            self.survey.message.emit('CFP from Trace Table - no trace rows available')
+            return True
+
+        currentThread = QThread.currentThread()
+        for chunkIndex in range(self.chunkCount):
+            if currentThread.isInterruptionRequested():
+                self.survey.errorText = 'CFP trace-table scan cancelled'
+                return False
+
+            startRow = chunkIndex * self.chunkSize
+            endRow = min(startRow + self.chunkSize, totalRows)
+            chunk = self.analysisRows[startRow:endRow]
+            activeMask = chunk[:, 2] > 0.0
+            activeTraceCount = int(np.count_nonzero(activeMask))
+            self.totalTraceCount += activeTraceCount
+
+            if activeTraceCount > 0:
+                activeChunk = chunk[activeMask]
+                validIndices = filterSpsRelationsByApertureSafe(
+                    self.focalX,
+                    self.focalY,
+                    self.apertureRadius,
+                    activeChunk[:, 3],
+                    activeChunk[:, 4],
+                    activeChunk[:, 6],
+                    activeChunk[:, 7],
+                )
+                self.contributingTraceCount += int(validIndices.shape[0])
+                self._accumulateBeams(activeChunk, validIndices)
+
+            progress = ((chunkIndex + 1) * 100) // self.chunkCount
+            self.survey.progress.emit(progress)
+            self.survey.message.emit(
+                f'CFP from Trace Table - processed chunk {chunkIndex + 1:,}/{self.chunkCount:,}'
+            )
+
+        self.survey.progress.emit(0)
+        self.beamAccumulator.finalizeImages(
+            progressHandler=self.survey.progress.emit,
+            messageHandler=self.survey.message.emit,
+            progressStart=0,
+            progressEnd=100,
+            phaseLabel='CFP from Trace Table',
+        )
+        return True
+
+    def _initializeSourceBeamGrid(self) -> bool:
+        return self.beamAccumulator.initializeGrid()
+
+    def _accumulateBeams(self, activeChunk, validIndices) -> None:
+        if validIndices.shape[0] == 0:
+            return
+
+        srcX = np.ascontiguousarray(activeChunk[validIndices, 3], dtype=np.float64)
+        srcY = np.ascontiguousarray(activeChunk[validIndices, 4], dtype=np.float64)
+        srcZ = np.ascontiguousarray(activeChunk[validIndices, 5], dtype=np.float64)
+        recX = np.ascontiguousarray(activeChunk[validIndices, 6], dtype=np.float64)
+        recY = np.ascontiguousarray(activeChunk[validIndices, 7], dtype=np.float64)
+        recZ = np.ascontiguousarray(activeChunk[validIndices, 8], dtype=np.float64)
+
+        # Optimize Trace Table path by collapsing redundant stations within the chunk.
+        srcPoints = np.column_stack((srcX, srcY, srcZ))
+        recPoints = np.column_stack((recX, recY, recZ))
+
+        # Use the same accumulation logic as templates to benefit from weight collapsing
+        self.beamAccumulator.accumulatePointArrays(
+            srcPoints.astype(np.float32, copy=False),
+            recPoints.astype(np.float32, copy=False)
+        )
+
+    def buildResult(self, success: bool) -> CfpFromTraceTableResult:
+        payload = self.beamAccumulator.buildPayload()
+        if not success:
+            return CfpFromTraceTableResult(
+                success=False,
+                errorText=self.survey.errorText,
+                chunkCount=self.chunkCount,
+                totalTraceCount=self.totalTraceCount,
+                contributingTraceCount=self.contributingTraceCount,
+                focalX=self.focalX,
+                focalY=self.focalY,
+                focalZ=self.focalZ,
+                frequency=self.frequency,
+                maxDipDegrees=self.maxDipDegrees,
+                apertureRadius=self.apertureRadius,
+                vint=self.vint,
+                **payload,
+            )
+
+        return CfpFromTraceTableResult(
+            success=True,
+            chunkCount=self.chunkCount,
+            totalTraceCount=self.totalTraceCount,
+            contributingTraceCount=self.contributingTraceCount,
+            focalX=self.focalX,
+            focalY=self.focalY,
+            focalZ=self.focalZ,
+            frequency=self.frequency,
+            maxDipDegrees=self.maxDipDegrees,
+            apertureRadius=self.apertureRadius,
+            vint=self.vint,
+            **payload,
         )

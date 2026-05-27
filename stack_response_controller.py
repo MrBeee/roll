@@ -4,7 +4,7 @@ import numpy as np
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import QPoint
 
-from . import functions_numba as fnb
+from . import aux_functions_numba as fnb
 from .enums_and_int_flags import Direction
 
 
