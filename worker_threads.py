@@ -8,6 +8,7 @@ import numpy as np
 from qgis.PyQt.QtCore import QObject, QThread, pyqtSignal
 
 from .cfp_aux_functions_numba import (
+    calculate_panel_snr_numba, compute_illumination_row_numba,
     compute_monochromatic_beam_xy_grid,
     compute_monochromatic_weighted_beam_xy_grid, compute_radon_images_numba,
     compute_xy_beam_images_numba, filter_sps_relations_by_aperture)
@@ -40,23 +41,34 @@ def _callPythonFallback(pyFunc: object, *args):
 
 
 def computeMonochromaticBeamXyGridSafe(evalX, evalY, evalZ, surfX, surfY, surfZ, frequency, vint):
+
+    """
+    KISS: Try Numba, if it fails, log and tell user to disable Numba in settings, then raise.
+    No silent fallback. This is the only supported wrapper for CFP beam grid calculation.
+    """
+    import logging
+    import traceback
     try:
         return compute_monochromatic_beam_xy_grid(evalX, evalY, evalZ, surfX, surfY, surfZ, frequency, vint)
-    except ImportError:
-        pyFunc = getattr(compute_monochromatic_beam_xy_grid, 'py_func', None)
-        if pyFunc is None or not callable(pyFunc):
-            raise
-        return _callPythonFallback(pyFunc, evalX, evalY, evalZ, surfX, surfY, surfZ, frequency, vint)
+    except Exception as e:
+        tb = traceback.format_exc()
+        logging.error(f"CFP beam grid calculation failed: {e}\nTraceback:\n{tb}")
+        raise RuntimeError(f"CFP beam grid calculation failed: {e}\nSee log for traceback and details.") from e
 
 
 def computeMonochromaticWeightedBeamXyGridSafe(evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint):
+    """
+    KISS: Try Numba, if it fails, log and tell user to disable Numba in settings, then raise.
+    No silent fallback. This is the only supported wrapper for weighted CFP beam grid calculation.
+    """
+    import logging
+    import traceback
     try:
         return compute_monochromatic_weighted_beam_xy_grid(evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint)
-    except ImportError:
-        pyFunc = getattr(compute_monochromatic_weighted_beam_xy_grid, 'py_func', None)
-        if pyFunc is None or not callable(pyFunc):
-            raise
-        return _callPythonFallback(pyFunc, evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint)
+    except Exception as e:
+        tb = traceback.format_exc()
+        logging.error(f"CFP weighted beam grid calculation failed: {e}\nTraceback:\n{tb}")
+        raise RuntimeError(f"CFP weighted beam grid calculation failed: {e}\nSee log for traceback and details.") from e
 
 
 def filterSpsRelationsByApertureSafe(focalX, focalY, apertureRadius, srcX, srcY, recX, recY):
@@ -80,13 +92,18 @@ def computeRadonImagesSafe(sourceField, receiverField, evalX, evalY, px, py, fre
 
 
 def computeXyBeamImagesSafe(sourceField, receiverField, dbMin=-60.0):
+
+    """
+    KISS: Try Numba, if it fails, log and tell user to disable Numba in settings, then raise.
+    No silent fallback. This is the only supported wrapper for beam image calculation.
+    """
     try:
         return compute_xy_beam_images_numba(sourceField, receiverField, dbMin)
-    except ImportError:
-        pyFunc = getattr(compute_xy_beam_images_numba, 'py_func', None)
-        if pyFunc is None or not callable(pyFunc):
-            raise
-        return _callPythonFallback(pyFunc, sourceField, receiverField, dbMin)
+    except Exception as e:
+        import logging
+        logging.error(f"Numba beam image calculation failed: {e}")
+        logging.error("Numba failed; please disable Numba in the settings panel and retry.")
+        raise RuntimeError("Numba failed; please disable Numba in the settings panel and retry.") from e
 
 
 def _emitWorkerPhase(progressHandler, messageHandler, progress: int, message: str | None = None) -> None:
@@ -94,6 +111,13 @@ def _emitWorkerPhase(progressHandler, messageHandler, progress: int, message: st
         progressHandler(int(progress))
     if messageHandler is not None and message:
         messageHandler(message)
+
+
+def _copyArrayIfNumpy(arr: Any) -> Any:
+    """Helper to ensure NumPy arrays are copied before crossing thread boundaries."""
+    if isinstance(arr, np.ndarray):
+        return np.copy(arr)
+    return arr
 
 
 @dataclass
@@ -123,7 +147,7 @@ class BinningFromTemplatesResult:
     rmsOffset: Any = None
     minOffsetGap: float | None = None
     maxOffsetGap: float | None = None
-    offsetGap: Any = None
+    gapOffset: Any = None
     ofAziHist: Any = None
     offstHist: Any = None
     cmpTransform: Any = None
@@ -162,7 +186,7 @@ class BinningFromGeometryResult:
     rmsOffset: Any = None
     minOffsetGap: float | None = None
     maxOffsetGap: float | None = None
-    offsetGap: Any = None
+    gapOffset: Any = None
     ofAziHist: Any = None
     offstHist: Any = None
     cmpTransform: Any = None
@@ -188,6 +212,7 @@ class CfpFromTemplatesRequest:
     maxDipDegrees: float = 40.0
     vint: float = 2000.0
     debugpyEnabled: bool = False
+    matlab_compat: bool = True
 
 
 @dataclass
@@ -202,6 +227,21 @@ class CfpFromTraceTableRequest:
     vint: float = 2000.0
     chunkSize: int = 100_000
     debugpyEnabled: bool = False
+    matlab_compat: bool = True
+
+
+@dataclass
+class CfpAmplitudeMapRequest:
+    xmlString: str
+    srcGeom: Any
+    relGeom: Any
+    recGeom: Any
+    focalZ: float = -2000.0
+    maxDipDegrees: float = 40.0
+    vint: float = 2000.0
+    frequencies: np.ndarray = None
+    debugpyEnabled: bool = False
+    matlab_compat: bool = True
 
 
 @dataclass
@@ -241,6 +281,9 @@ class CfpFromTemplatesResult:
     radonSourceBeamImage: Any = None
     radonReceiverBeamImage: Any = None
     radonAvpImage: Any = None
+    sourceSnr: float = 0.0
+    receiverSnr: float = 0.0
+    avpSnr: float = 0.0
     sourceBeamX0: float = 0.0
     sourceBeamY0: float = 0.0
     sourceBeamDx: float = 1.0
@@ -249,6 +292,19 @@ class CfpFromTemplatesResult:
     radonY0: float = 0.0
     radonDx: float = 1.0
     radonDy: float = 1.0
+
+
+@dataclass
+class CfpAmplitudeMapResult:
+    success: bool
+    errorText: str = ''
+    amplitudeMap: Any = None
+    x0: float = 0.0
+    y0: float = 0.0
+    dx: float = 1.0
+    dy: float = 1.0
+    isPartial: bool = False
+    elapsed: Any = None
 
 
 @dataclass
@@ -271,6 +327,9 @@ class CfpFromTraceTableResult:
     radonSourceBeamImage: Any = None
     radonReceiverBeamImage: Any = None
     radonAvpImage: Any = None
+    sourceSnr: float = 0.0
+    receiverSnr: float = 0.0
+    avpSnr: float = 0.0
     sourceBeamX0: float = 0.0
     sourceBeamY0: float = 0.0
     sourceBeamDx: float = 1.0
@@ -282,11 +341,14 @@ class CfpFromTraceTableResult:
 
 
 class CfpBeamAccumulator:
-    def __init__(self, survey: RollSurvey, focalZ: float, frequency: float, vint: float):
+    def __init__(self, survey: RollSurvey, focalZ: float, frequency: float, vint: float, maxDipDegrees: float, focalX: float | None = None, focalY: float | None = None):
         self.survey = survey
         self.focalZ = focalZ
         self.frequency = frequency
         self.vint = vint
+        self.maxDipDegrees = maxDipDegrees
+        self.focalX = focalX
+        self.focalY = focalY
         self.flushThresholdPoints = 250_000
         self.weightCollapseThresholdPoints = 2_048
         self.sourceBeamField = None
@@ -297,10 +359,15 @@ class CfpBeamAccumulator:
         self.radonSourceBeamImage = None
         self.radonReceiverBeamImage = None
         self.radonAvpImage = None
+        self.sourceSnr = 0.0
+        self.receiverSnr = 0.0
+        self.avpSnr = 0.0
         self.sourceBeamX0 = 0.0
         self.sourceBeamY0 = 0.0
         self.sourceBeamDx = 1.0
         self.sourceBeamDy = 1.0
+        self.focalX = None if focalX is None else float(focalX)
+        self.focalY = None if focalY is None else float(focalY)
         self.radonX0 = 0.0
         self.radonY0 = 0.0
         self.radonDx = 1.0
@@ -334,10 +401,14 @@ class CfpBeamAccumulator:
         self.sourceBeamY0 = float(outputRect.top())
         self.sourceBeamDx = dx
         self.sourceBeamDy = dy
-        self.evalX = self.sourceBeamX0 + np.arange(nx, dtype=np.float64) * dx
-        self.evalY = self.sourceBeamY0 + np.arange(ny, dtype=np.float64) * dy
-        self.sourceBeamField = np.zeros((ny, nx), dtype=np.complex128)
-        self.receiverBeamField = np.zeros((ny, nx), dtype=np.complex128)
+        if self.focalX is None:
+            self.focalX = self.sourceBeamX0 + width * 0.5
+        if self.focalY is None:
+            self.focalY = self.sourceBeamY0 + height * 0.5
+        self.evalX = np.ascontiguousarray(self.sourceBeamX0 + np.arange(nx, dtype=np.float32) * dx, dtype=np.float32)
+        self.evalY = np.ascontiguousarray(self.sourceBeamY0 + np.arange(ny, dtype=np.float32) * dy, dtype=np.float32)
+        self.sourceBeamField = np.zeros((ny, nx), dtype=np.complex64)
+        self.receiverBeamField = np.zeros((ny, nx), dtype=np.complex64)
         self.sourceBeamImage = None
         self.receiverBeamImage = None
         self.resolutionImage = None
@@ -353,12 +424,12 @@ class CfpBeamAccumulator:
         if srcX.size == 0 or recX.size == 0:
             return
 
-        srcX = np.ascontiguousarray(srcX, dtype=np.float64)
-        srcY = np.ascontiguousarray(srcY, dtype=np.float64)
-        srcZ = np.ascontiguousarray(srcZ, dtype=np.float64)
-        recX = np.ascontiguousarray(recX, dtype=np.float64)
-        recY = np.ascontiguousarray(recY, dtype=np.float64)
-        recZ = np.ascontiguousarray(recZ, dtype=np.float64)
+        srcX = np.ascontiguousarray(srcX, dtype=np.float32)
+        srcY = np.ascontiguousarray(srcY, dtype=np.float32)
+        srcZ = np.ascontiguousarray(srcZ, dtype=np.float32)
+        recX = np.ascontiguousarray(recX, dtype=np.float32)
+        recY = np.ascontiguousarray(recY, dtype=np.float32)
+        recZ = np.ascontiguousarray(recZ, dtype=np.float32)
 
         if srcWeights is None:
             self.sourceBeamField += computeMonochromaticBeamXyGridSafe(
@@ -493,19 +564,27 @@ class CfpBeamAccumulator:
 
         sampleCount = 128
         velocity = max(abs(float(self.vint)), 1.0)
-        px = np.linspace(-1.0 / velocity, 1.0 / velocity, sampleCount, dtype=np.float64)
-        py = np.linspace(-1.0 / velocity, 1.0 / velocity, sampleCount, dtype=np.float64)
+        limitP = 1.0 / velocity
+        px = np.linspace(-limitP, limitP, sampleCount, dtype=np.float32)
+        py = np.linspace(-limitP, limitP, sampleCount, dtype=np.float32)
 
         _emitWorkerPhase(progressHandler, messageHandler, phaseStart + max((phaseEnd - phaseStart) // 3, 1), f'{phaseLabel} - synthesizing Radon-domain fields')
 
         # Highly integrated Numba path computes everything: Transform, AVP, and Unit Images in fused passes.
-        self.radonSourceBeamImage, self.radonReceiverBeamImage, self.radonAvpImage = computeRadonImagesSafe(
-            self.sourceBeamField,
-            self.receiverBeamField,
-            self.evalX,
-            self.evalY,
-            px, py, self.frequency
-        )
+        try:
+            self.radonSourceBeamImage, self.radonReceiverBeamImage, self.radonAvpImage = computeRadonImagesSafe(
+                self.sourceBeamField,
+                self.receiverBeamField,
+                np.ascontiguousarray(self.evalX - self.focalX, dtype=np.float32),
+                np.ascontiguousarray(self.evalY - self.focalY, dtype=np.float32),
+                px, py, self.frequency
+            )
+            self.sourceSnr = calculate_panel_snr_numba(self.radonSourceBeamImage)
+            self.receiverSnr = calculate_panel_snr_numba(self.radonReceiverBeamImage)
+            self.avpSnr = calculate_panel_snr_numba(self.radonAvpImage)
+        except Exception as e:
+            self.survey.errorText = f"Radon/SNR calculation failed: {e}"
+            raise   # Re-raise to be caught by the worker's BaseException
 
         # BACKUP OLD CODE (Separate transform and normalization):
         # ---------------------------------------------------------------------
@@ -536,10 +615,14 @@ class CfpBeamAccumulator:
         self.flushBufferedPointArrays()
         _emitWorkerPhase(progressHandler, messageHandler, flushProgress, f'{phaseLabel} - converting XY beam slices')
 
-        # Fused Numba path computes Source, Receiver, and Resolution images in a single call.
-        self.sourceBeamImage, self.receiverBeamImage, self.resolutionImage = computeXyBeamImagesSafe(
-            self.sourceBeamField, self.receiverBeamField
-        )
+        try:
+            # Fused Numba path computes Source, Receiver, and Resolution images in a single call.
+            self.sourceBeamImage, self.receiverBeamImage, self.resolutionImage = computeXyBeamImagesSafe(
+                self.sourceBeamField, self.receiverBeamField
+            )
+        except Exception as e:
+            self.survey.errorText = f"XY beam image conversion failed: {e}"
+            raise   # Re-raise to be caught by the worker's BaseException
 
         _emitWorkerPhase(progressHandler, messageHandler, xyProgress, f'{phaseLabel} - XY beam slices converted')
         _emitWorkerPhase(progressHandler, messageHandler, resolutionProgress, f'{phaseLabel} - building Radon transforms')
@@ -547,12 +630,15 @@ class CfpBeamAccumulator:
 
     def buildPayload(self) -> dict[str, Any]:
         return {
-            'sourceBeamImage': self.sourceBeamImage,
-            'receiverBeamImage': self.receiverBeamImage,
-            'resolutionImage': self.resolutionImage,
-            'radonSourceBeamImage': self.radonSourceBeamImage,
-            'radonReceiverBeamImage': self.radonReceiverBeamImage,
-            'radonAvpImage': self.radonAvpImage,
+            'sourceBeamImage': _copyArrayIfNumpy(self.sourceBeamImage),
+            'receiverBeamImage': _copyArrayIfNumpy(self.receiverBeamImage),
+            'resolutionImage': _copyArrayIfNumpy(self.resolutionImage),
+            'radonSourceBeamImage': _copyArrayIfNumpy(self.radonSourceBeamImage),
+            'radonReceiverBeamImage': _copyArrayIfNumpy(self.radonReceiverBeamImage),
+            'radonAvpImage': _copyArrayIfNumpy(self.radonAvpImage),
+            'sourceSnr': self.sourceSnr,
+            'receiverSnr': self.receiverSnr,
+            'avpSnr': self.avpSnr,
             'sourceBeamX0': self.sourceBeamX0,
             'sourceBeamY0': self.sourceBeamY0,
             'sourceBeamDx': self.sourceBeamDx,
@@ -604,8 +690,9 @@ class BinFromGeometryWorker(QObject):
             del (fileName, funcName, lineNo)
             success = False
 
-        self.resultReady.emit(self.buildResult(success))
-        self.finished.emit()
+        finally:
+            self.resultReady.emit(self.buildResult(success))
+            self.finished.emit()
 
     def buildResult(self, success: bool) -> BinningFromGeometryResult:
         profiling = None
@@ -623,8 +710,8 @@ class BinFromGeometryWorker(QObject):
         output = self.survey.output
         minRmsOffset = None if output.rmsOffset is None else max(output.minRmsOffset, 0)
         maxRmsOffset = None if output.rmsOffset is None else max(output.maxRmsOffset, 0)
-        minOffsetGap = None if output.offsetGap is None else max(output.minOffsetGap, 0)
-        maxOffsetGap = None if output.offsetGap is None else max(output.maxOffsetGap, 0)
+        minOffsetGap = None if output.gapOffset is None else max(output.minOffsetGap, 0)
+        maxOffsetGap = None if output.gapOffset is None else max(output.maxOffsetGap, 0)
         return BinningFromGeometryResult(
             success=True,
             binOutput=output.binOutput,
@@ -641,7 +728,7 @@ class BinFromGeometryWorker(QObject):
             rmsOffset=output.rmsOffset,
             minOffsetGap=minOffsetGap,
             maxOffsetGap=maxOffsetGap,
-            offsetGap=output.offsetGap,
+            gapOffset=output.gapOffset,
             ofAziHist=output.ofAziHist,
             offstHist=output.offstHist,
             cmpTransform=self.survey.cmpTransform,
@@ -685,8 +772,9 @@ class BinningWorker(QObject):
             del (fileName, funcName, lineNo)
             success = False
 
-        self.resultReady.emit(self.buildResult(success))
-        self.finished.emit()
+        finally:
+            self.resultReady.emit(self.buildResult(success))
+            self.finished.emit()
 
     def buildResult(self, success: bool) -> BinningFromTemplatesResult:
         profiling = None
@@ -704,8 +792,8 @@ class BinningWorker(QObject):
         output = self.survey.output
         minRmsOffset = None if output.rmsOffset is None else max(output.minRmsOffset, 0)
         maxRmsOffset = None if output.rmsOffset is None else max(output.maxRmsOffset, 0)
-        minOffsetGap = None if output.offsetGap is None else max(output.minOffsetGap, 0)
-        maxOffsetGap = None if output.offsetGap is None else max(output.maxOffsetGap, 0)
+        minOffsetGap = None if output.gapOffset is None else max(output.minOffsetGap, 0)
+        maxOffsetGap = None if output.gapOffset is None else max(output.maxOffsetGap, 0)
         return BinningFromTemplatesResult(
             success=True,
             binOutput=output.binOutput,
@@ -722,7 +810,7 @@ class BinningWorker(QObject):
             rmsOffset=output.rmsOffset,
             minOffsetGap=minOffsetGap,
             maxOffsetGap=maxOffsetGap,
-            offsetGap=output.offsetGap,
+            gapOffset=output.gapOffset,
             ofAziHist=output.ofAziHist,
             offstHist=output.offstHist,
             cmpTransform=self.survey.cmpTransform,
@@ -809,7 +897,8 @@ class CfpFromTemplatesWorker(QObject):
         self.frequency = request.frequency
         self.maxDipDegrees = request.maxDipDegrees
         self.vint = request.vint
-        self.beamAccumulator = CfpBeamAccumulator(self.survey, self.focalZ, self.frequency, self.vint)
+        self.matlab_compat = getattr(request, 'matlab_compat', False)
+        self.beamAccumulator = CfpBeamAccumulator(self.survey, self.focalZ, self.frequency, self.vint, self.maxDipDegrees, self.focalX, self.focalY)
 
         self.survey.fromXmlString(request.xmlString, False)
 
@@ -843,15 +932,15 @@ class CfpFromTemplatesWorker(QObject):
                     phaseLabel='CFP from Templates',
                 )
         except BaseException as e:
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.survey.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
-            del (fileName, funcName, lineNo)
+            self.survey._recordInnermostExceptionLocation(e)
             success = False
-
-        self.resultReady.emit(self.buildResult(success))
-        self.finished.emit()
+        finally:
+            try:
+                self.resultReady.emit(self.buildResult(success))
+            except BaseException as e:
+                self.survey._recordInnermostExceptionLocation(e)
+            finally:
+                self.finished.emit()
 
     def buildResult(self, success: bool) -> CfpFromTemplatesResult:
         payload = self.beamAccumulator.buildPayload()
@@ -886,6 +975,211 @@ class CfpFromTemplatesWorker(QObject):
         )
 
 
+class CfpAmplitudeMapWorker(QObject):
+    finished = pyqtSignal()
+    resultReady = pyqtSignal(object)
+    partialResultReady = pyqtSignal(object)
+
+    def __init__(self, request: CfpAmplitudeMapRequest):
+        super().__init__()
+        self.survey = RollSurvey()
+        self.request = request
+        self.matlab_compat = getattr(request, 'matlab_compat', False)
+        self.survey.fromXmlString(request.xmlString, False)
+        self.survey.output.srcGeom = request.srcGeom
+        self.survey.output.relGeom = request.relGeom
+        self.survey.output.recGeom = request.recGeom
+
+    def run(self):
+        try:
+            if haveDebugpy and self.request.debugpyEnabled:
+                debugpy.debug_this_thread()
+
+            self.survey.progress.emit(0)
+
+            # 1. Setup Grid based on Analysis Area
+            outputRect = self.survey.output.rctOutput
+            dx, dy = self.survey.grid.binSize.x(), self.survey.grid.binSize.y()
+            nx = max(int(np.ceil(outputRect.width() / dx)), 1)
+            ny = max(int(np.ceil(outputRect.height() / dy)), 1)
+
+            x0, y0 = float(outputRect.left()), float(outputRect.top())
+            evalX = np.ascontiguousarray(x0 + np.arange(nx, dtype=np.float32) * dx)
+            ampMap = np.zeros((ny, nx), dtype=np.float32)
+
+            # Unified trace collection
+            if self.survey.output.relGeom is not None:
+                self.survey.prepareGeometryRelationBinningLookup()
+                srcCoords, recCoords, relWeights = self._gatherTracesFromRelations()
+            else:
+                srcCoords, recCoords, relWeights = self._gatherTracesFromTemplates()
+
+            if srcCoords.shape[0] == 0:
+                raise ValueError("No active traces available for Illumination mapping")
+
+            apertureRadius = abs(self.request.focalZ) * np.tan(np.radians(self.request.maxDipDegrees))
+            freqs = self.request.frequencies if self.request.frequencies is not None else np.array([20.0, 40.0], dtype=np.float32)
+            partialEmitEvery = max(1, ny // 20)
+
+            # 3. Iterate over the Grid
+            currentThread = QThread.currentThread()
+            for iy in range(ny):
+                if currentThread.isInterruptionRequested():
+                    raise StopIteration
+
+                focalY = y0 + iy * dy
+
+                # Parallel row computation via Numba
+                ampMap[iy, :] = compute_illumination_row_numba(
+                    focalY, evalX, self.request.focalZ,
+                    srcCoords, recCoords, relWeights,
+                    freqs, self.request.vint, apertureRadius,
+                    self.matlab_compat
+                )
+
+                self.survey.progress.emit(int((iy + 1) * 100 / ny))
+                self.survey.message.emit(f"CFP Amplitude Map - row {iy+1}/{ny}")
+
+                # Emit throttled partial results to limit UI redraw and copy overhead.
+                if (iy + 1) % partialEmitEvery == 0 or (iy + 1) == ny:
+                    partial = CfpAmplitudeMapResult(
+                        success=True,
+                        amplitudeMap=np.copy(ampMap),
+                        x0=x0,
+                        y0=y0,
+                        dx=dx,
+                        dy=dy,
+                        isPartial=True,
+                    )
+                    self.partialResultReady.emit(partial)
+
+            # Normalize result
+            maxVal = ampMap.max()
+            if maxVal > 0:
+                ampMap /= maxVal
+
+            result = CfpAmplitudeMapResult(
+                success=True, amplitudeMap=ampMap, x0=x0, y0=y0, dx=dx, dy=dy
+            )
+            self.resultReady.emit(result)
+
+        except StopIteration:
+            self.resultReady.emit(CfpAmplitudeMapResult(success=False, errorText="Cancelled"))
+        except Exception as e:
+            self.resultReady.emit(CfpAmplitudeMapResult(success=False, errorText=str(e)))
+        finally:
+            self.finished.emit()
+
+    def _gatherTracesFromRelations(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Internal helper to extract aligned trace arrays from relation and geometry tables."""
+        rel = self.survey.output.relGeom
+        srcGeom = self.survey.output.srcGeom
+        recGeom = self.survey.output.recGeom
+        if rel is None or srcGeom is None or recGeom is None:
+            return np.empty((0, 3), dtype=np.float32), np.empty((0, 3), dtype=np.float32), np.empty(0, dtype=np.float32)
+
+        if rel.shape[0] == 0 or srcGeom.shape[0] == 0 or recGeom.shape[0] == 0:
+            return np.empty((0, 3), dtype=np.float32), np.empty((0, 3), dtype=np.float32), np.empty(0, dtype=np.float32)
+
+        srcGeom = np.sort(srcGeom, order=['Index', 'Line', 'Point'])
+        recGeom = np.sort(recGeom, order=['Index', 'Line', 'Point'])
+
+        srcKeys = np.rec.fromarrays(
+            [
+                srcGeom['Index'].astype(np.int32),
+                np.rint(srcGeom['Line']).astype(np.int32),
+                np.rint(srcGeom['Point']).astype(np.int32),
+            ],
+            names='Ind,Lin,Pnt',
+        )
+        relSrcKeys = np.rec.fromarrays(
+            [
+                rel['SrcInd'].astype(np.int32),
+                np.rint(rel['SrcLin']).astype(np.int32),
+                np.rint(rel['SrcPnt']).astype(np.int32),
+            ],
+            names='Ind,Lin,Pnt',
+        )
+
+        srcIdx = np.searchsorted(srcKeys, relSrcKeys, side='left')
+        validSrc = srcIdx < srcKeys.shape[0]
+        if srcKeys.shape[0] > 0:
+            safeSrcIdx = np.minimum(srcIdx, srcKeys.shape[0] - 1)
+            validSrc &= srcKeys[safeSrcIdx] == relSrcKeys
+        else:
+            safeSrcIdx = np.zeros(rel.shape[0], dtype=np.int64)
+
+        recKeys = np.rec.fromarrays(
+            [
+                recGeom['Index'].astype(np.int32),
+                np.rint(recGeom['Line']).astype(np.int32),
+                np.rint(recGeom['Point']).astype(np.int32),
+            ],
+            names='Ind,Lin,Pnt',
+        )
+        relRecKeys = np.rec.fromarrays(
+            [
+                rel['RecInd'].astype(np.int32),
+                np.rint(rel['RecLin']).astype(np.int32),
+                np.rint(rel['RecMin']).astype(np.int32),
+            ],
+            names='Ind,Lin,Pnt',
+        )
+
+        recIdx = np.searchsorted(recKeys, relRecKeys, side='left')
+        validRec = recIdx < recKeys.shape[0]
+        if recKeys.shape[0] > 0:
+            safeRecIdx = np.minimum(recIdx, recKeys.shape[0] - 1)
+            validRec &= recKeys[safeRecIdx] == relRecKeys
+        else:
+            safeRecIdx = np.zeros(rel.shape[0], dtype=np.int64)
+
+        validRange = rel['RecMax'] >= rel['RecMin']
+        validMask = validSrc & validRec & validRange
+        if not np.any(validMask):
+            return np.empty((0, 3), dtype=np.float32), np.empty((0, 3), dtype=np.float32), np.empty(0, dtype=np.float32)
+
+        srcPick = safeSrcIdx[validMask]
+        recPick = safeRecIdx[validMask]
+        relValid = rel[validMask]
+
+        # Aligned source trace arrays
+        sX = srcGeom['LocX'][srcPick].astype(np.float32)
+        sY = srcGeom['LocY'][srcPick].astype(np.float32)
+        sZ = (srcGeom['Elev'][srcPick] - srcGeom['Depth'][srcPick]).astype(np.float32)
+        src_xyz = np.column_stack((sX, sY, sZ))
+
+        # Aligned receiver proxy arrays
+        rX = recGeom['LocX'][recPick].astype(np.float32)
+        rY = recGeom['LocY'][recPick].astype(np.float32)
+        rZ = (recGeom['Elev'][recPick] - recGeom['Depth'][recPick]).astype(np.float32)
+        rec_xyz = np.column_stack((rX, rY, rZ))
+
+        weights = (relValid['RecMax'] - relValid['RecMin'] + 1.0).astype(np.float32)
+        return src_xyz, rec_xyz, weights
+
+    def _gatherTracesFromTemplates(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Expands rolling templates to full trace coordinate arrays for mapping."""
+        src_list = []
+        rec_list = []
+
+        def contributionHandler(srcPoints, recPoints):
+            src_list.append(srcPoints)
+            rec_list.append(recPoints)
+
+        self.survey.scanCfpTemplates(
+            self.survey.output.rctOutput.center().x(), self.survey.output.rctOutput.center().y(),
+            self.request.focalZ, 90.0, self.request.vint, contributionHandler=contributionHandler
+        )
+
+        if not src_list:
+            return np.empty((0, 3), dtype=np.float32), np.empty((0, 3), dtype=np.float32), np.empty(0, dtype=np.float32)
+
+        src_xyz = np.concatenate(src_list, axis=0).astype(np.float32)
+        rec_xyz = np.concatenate(rec_list, axis=0).astype(np.float32)
+        return src_xyz, rec_xyz, np.ones(src_xyz.shape[0], dtype=np.float32)
+
+
 class CfpFromTraceTableWorker(QObject):
     finished = pyqtSignal()
     resultReady = pyqtSignal(object)
@@ -901,12 +1195,13 @@ class CfpFromTraceTableWorker(QObject):
         self.frequency = request.frequency
         self.maxDipDegrees = request.maxDipDegrees
         self.vint = request.vint
+        self.matlab_compat = getattr(request, 'matlab_compat', False)
         self.chunkSize = max(int(request.chunkSize), 1)
         self.chunkCount = 0
         self.totalTraceCount = 0
         self.contributingTraceCount = 0
         self.apertureRadius = abs(self.focalZ) * np.tan(np.radians(self.maxDipDegrees))
-        self.beamAccumulator = CfpBeamAccumulator(self.survey, self.focalZ, self.frequency, self.vint)
+        self.beamAccumulator = CfpBeamAccumulator(self.survey, self.focalZ, self.frequency, self.vint, self.maxDipDegrees, self.focalX, self.focalY)
 
         self.survey.fromXmlString(request.xmlString, False)
 
@@ -927,8 +1222,9 @@ class CfpFromTraceTableWorker(QObject):
             del (fileName, funcName, lineNo)
             success = False
 
-        self.resultReady.emit(self.buildResult(success))
-        self.finished.emit()
+        finally:
+            self.resultReady.emit(self.buildResult(success))
+            self.finished.emit()
 
     def _scanTraceTable(self) -> bool:
         if self.analysisRows is None:
@@ -975,6 +1271,7 @@ class CfpFromTraceTableWorker(QObject):
                     activeChunk[:, 4],
                     activeChunk[:, 6],
                     activeChunk[:, 7],
+                    self.matlab_compat
                 )
                 self.contributingTraceCount += int(validIndices.shape[0])
                 self._accumulateBeams(activeChunk, validIndices)

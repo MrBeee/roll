@@ -36,6 +36,56 @@ def _showCfpAnalysisTab(window) -> None:
         analysisTabWidget.setCurrentWidget(tabCfp)
 
 
+def _logCfpSnr(window, result) -> None:
+    """Unified helper to log Radon-domain SNR metrics."""
+    window.appendLogMessage(
+        (
+            'Thread : . . . '
+            f'SNR (Radon): Source={result.sourceSnr:.1f}dB, '
+            f'Receiver={result.receiverSnr:.1f}dB, '
+            f'AVP={result.avpSnr:.1f}dB'
+        ),
+        MsgType.Analysis,
+    )
+
+
+class CfpAmplitudeMapResultApplier:
+    def __init__(self, window, runtimeDependenciesProvider: Callable[[], dict[str, object]]) -> None:
+        self.window = window
+        self.runtimeDependenciesProvider = runtimeDependenciesProvider
+
+    def apply(self, result, elapsed: timedelta) -> None:
+        if not result.success:
+            self.window.appendLogMessage(f'Thread : CFP Amplitude Map failed - {result.errorText}', MsgType.Error)
+            return
+
+        # Update output
+        self.window.output.cfpOutput = result.amplitudeMap
+
+        # Update layout image view
+        self.window.imageType = 6  # New type for CFP Illumination
+        self.window.layoutImg = result.amplitudeMap
+
+        # For partial updates, determine scaling based on current data
+        import numpy as np
+        maxVal = float(np.nanmax(result.amplitudeMap)) if np.any(np.isfinite(result.amplitudeMap)) else 1.0
+        levels = (0.0, maxVal if maxVal > 0 else 1.0)
+
+        self.window.prepareLayoutImageAndColorBar(
+            self.window.layoutImg,
+            self.window.appSettings.foldDispCmap,
+            'CFP illumination',
+            levels=levels,
+        )
+        self.window.plotLayout()
+
+        if not getattr(result, 'isPartial', False):
+            self.window.appendLogMessage(f'Thread : CFP Amplitude Map completed. Elapsed: {elapsed}', MsgType.Analysis)
+            self.runtimeDependenciesProvider()['QMessageBox'].information(
+                self.window, 'Done', f'CFP Illumination Map calculation completed.\nElapsed time: {elapsed}'
+            )
+
+
 class BinningResultApplier:
     def __init__(self, window, runtimeDependenciesProvider: Callable[[], dict[str, object]]) -> None:
         self.window = window
@@ -81,6 +131,9 @@ class BinningResultApplier:
         self.window.output.binOutput = result.binOutput
         self.window.output.minOffset = result.minOffset
         self.window.output.maxOffset = result.maxOffset
+        self.window.output.rmsOffset = result.rmsOffset
+        self.window.output.gapOffset = result.gapOffset
+
         self.window.output.minimumFold = result.minimumFold
         self.window.output.maximumFold = result.maximumFold
         self.window.output.minMinOffset = result.minMinOffset
@@ -89,10 +142,8 @@ class BinningResultApplier:
         self.window.output.maxMaxOffset = result.maxMaxOffset
         self.window.output.minRmsOffset = 0.0 if result.minRmsOffset is None else result.minRmsOffset
         self.window.output.maxRmsOffset = 0.0 if result.maxRmsOffset is None else result.maxRmsOffset
-        self.window.output.rmsOffset = result.rmsOffset
         self.window.output.minOffsetGap = 0.0 if result.minOffsetGap is None else result.minOffsetGap
         self.window.output.maxOffsetGap = 0.0 if result.maxOffsetGap is None else result.maxOffsetGap
-        self.window.output.offsetGap = result.offsetGap
         self.window.output.ofAziHist = result.ofAziHist
         self.window.output.offstHist = result.offstHist
 
@@ -115,7 +166,7 @@ class BinningResultApplier:
                 f'Thread : . . . Rms-offsets: Min:{self.window.output.minRmsOffset:.2f}m - Max:{self.window.output.maxRmsOffset:.2f}m ',
                 MsgType.Binning,
             )
-        if self.window.output.offsetGap is not None:
+        if self.window.output.gapOffset is not None:
             self.window.appendLogMessage(
                 f'Thread : . . . Max-gap&nbsp; &nbsp;: Min:{self.window.output.minOffsetGap:.2f}m - Max:{self.window.output.maxOffsetGap:.2f}m ',
                 MsgType.Binning,
@@ -302,6 +353,7 @@ class CfpFromTemplatesResultApplier:
         )
 
         _copyCfpDisplayOutputs(self.window, result)
+        _logCfpSnr(self.window, result)
         self.window.renderSelectedCfpSlice()
         _showCfpAnalysisTab(self.window)
         self.runtimeDependenciesProvider()['QMessageBox'].information(
@@ -349,6 +401,7 @@ class CfpFromTraceTableResultApplier:
         )
 
         _copyCfpDisplayOutputs(self.window, result)
+        _logCfpSnr(self.window, result)
 
         self.window.renderSelectedCfpSlice()
         _showCfpAnalysisTab(self.window)

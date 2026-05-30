@@ -42,6 +42,9 @@ class BinningFromTemplatesResult:
     binOutput: Any = None
     minOffset: Any = None
     maxOffset: Any = None
+    rmsOffset: Any = None
+    gapOffset: Any = None
+
     minimumFold: float = 0.0
     maximumFold: float = 0.0
     minMinOffset: float = 0.0
@@ -50,10 +53,8 @@ class BinningFromTemplatesResult:
     maxMaxOffset: float = 0.0
     minRmsOffset: float | None = None
     maxRmsOffset: float | None = None
-    rmsOffset: Any = None
     minOffsetGap: float | None = None
     maxOffsetGap: float | None = None
-    offsetGap: Any = None
     ofAziHist: Any = None
     offstHist: Any = None
     cmpTransform: Any = None
@@ -89,7 +90,7 @@ class BinningFromGeometryResult:
     rmsOffset: Any = None
     minOffsetGap: float | None = None
     maxOffsetGap: float | None = None
-    offsetGap: Any = None
+    gapOffset: Any = None
     ofAziHist: Any = None
     offstHist: Any = None
     cmpTransform: Any = None
@@ -198,8 +199,8 @@ class BinFromGeometryWorker(QObject):
         output = self.survey.output
         minRmsOffset = None if output.rmsOffset is None else max(output.minRmsOffset, 0)
         maxRmsOffset = None if output.rmsOffset is None else max(output.maxRmsOffset, 0)
-        minOffsetGap = None if output.offsetGap is None else max(output.minOffsetGap, 0)
-        maxOffsetGap = None if output.offsetGap is None else max(output.maxOffsetGap, 0)
+        minOffsetGap = None if output.gapOffset is None else max(output.minOffsetGap, 0)
+        maxOffsetGap = None if output.gapOffset is None else max(output.maxOffsetGap, 0)
         return BinningFromGeometryResult(
             success=True,
             binOutput=output.binOutput,
@@ -216,7 +217,7 @@ class BinFromGeometryWorker(QObject):
             rmsOffset=output.rmsOffset,
             minOffsetGap=minOffsetGap,
             maxOffsetGap=maxOffsetGap,
-            offsetGap=output.offsetGap,
+            gapOffset=output.gapOffset,
             ofAziHist=output.ofAziHist,
             offstHist=output.offstHist,
             cmpTransform=self.survey.cmpTransform,
@@ -268,8 +269,8 @@ class BinningWorker(QObject):
         output = self.survey.output
         minRmsOffset = None if output.rmsOffset is None else max(output.minRmsOffset, 0)
         maxRmsOffset = None if output.rmsOffset is None else max(output.maxRmsOffset, 0)
-        minOffsetGap = None if output.offsetGap is None else max(output.minOffsetGap, 0)
-        maxOffsetGap = None if output.offsetGap is None else max(output.maxOffsetGap, 0)
+        minOffsetGap = None if output.gapOffset is None else max(output.minOffsetGap, 0)
+        maxOffsetGap = None if output.gapOffset is None else max(output.maxOffsetGap, 0)
         return BinningFromTemplatesResult(
             success=True,
             binOutput=output.binOutput,
@@ -286,7 +287,7 @@ class BinningWorker(QObject):
             rmsOffset=output.rmsOffset,
             minOffsetGap=minOffsetGap,
             maxOffsetGap=maxOffsetGap,
-            offsetGap=output.offsetGap,
+            gapOffset=output.gapOffset,
             ofAziHist=output.ofAziHist,
             offstHist=output.offstHist,
             cmpTransform=self.survey.cmpTransform,

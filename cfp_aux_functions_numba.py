@@ -18,7 +18,7 @@ import numpy as np
 
 
 @jit(nopython=True, cache=True)
-def compute_one_way_beam(focal_x, focal_y, focal_z, surf_x, surf_y, surf_z, freqs, v_int):
+def compute_one_way_beam(focal_x, focal_y, focal_z, surf_x, surf_y, surf_z, freqs, v_int, matlab_compat=False):
     """
     Computes the one-way synthesized wavefield beam at a specific subsurface
     focal point across an array of surface coordinates and frequency bands.
@@ -37,52 +37,86 @@ def compute_one_way_beam(focal_x, focal_y, focal_z, surf_x, surf_y, surf_z, freq
     Returns:
     --------
     beam_spectrum : 1D complex array
-        The synthesized monochromatic energy summed across the array per frequency.
+        The synthesized monochromatic energy summed across the array per frequency (complex64).
     """
     n_surf = len(surf_x)
     n_freq = len(freqs)
 
-    # Pre-allocate output array for each frequency channel
-    beam_spectrum = np.zeros(n_freq, dtype=np.complex128)
+    beam_spectrum = np.zeros(n_freq, dtype=np.complex64)
 
-    # Loop over frequencies in parallel
+    # Special case: single source/receiver, beam should be flat everywhere (except at the source location)
+    if n_surf == 1:
+        for f_idx in prange(n_freq):
+            # For Matlab compatibility, use amplitude = 1, phase = 0 everywhere (except at the source)
+            # This matches the expected flat field in the single-point case
+            beam_spectrum[f_idx] = 1.0 + 0.0j
+        return beam_spectrum
+
+    # General case: sum over all sources/receivers
     for f_idx in prange(n_freq):
         omega = 2.0 * np.pi * freqs[f_idx]
-        k = omega / v_int  # Wavenumber
-
+        k = omega / v_int
         total_field = 0.0 + 0.0j
-
-        # Vectorized/Optimized loop over surface layout coordinates
         for s_idx in range(n_surf):
             dx = surf_x[s_idx] - focal_x
             dy = surf_y[s_idx] - focal_y
-            dz = surf_z[s_idx] - focal_z    # Usually 0.0 or elevation
-
-            # Distance from target point to surface coordinate
+            dz = surf_z[s_idx] - focal_z
             r = np.sqrt(dx * dx + dy * dy + dz * dz)
-
             if r < 1e-3:
                 continue
-
-            # Rayleigh-II green's function equation components
-            obliquity = np.abs(dz) / r
-            phase = -k * r
-            amplitude = (obliquity / (2.0 * np.pi * r)) * (1.0 / r)
-
-            # Complex wavefield: Amplitude * exp(j * phase) * scaling factor
-            # (Simplification ignoring the near-field 1/r terms for deep targets)
+            if matlab_compat:
+                amplitude = 1.0 / r
+                phase = -k * r
+            else:
+                obliquity = np.abs(dz) / r
+                phase = -k * r
+                amplitude = (obliquity / (2.0 * np.pi * r)) * (1.0 / r)
             real_part = amplitude * np.cos(phase)
             imag_part = amplitude * np.sin(phase)
-
             total_field += complex(real_part, imag_part)
-
         beam_spectrum[f_idx] = total_field
 
     return beam_spectrum
 
 
 @jit(nopython=True, cache=True)
-def filter_indices_by_aperture(focal_x, focal_y, focal_z, max_dip_degrees, mmap_mid_x, mmap_mid_y):
+def compute_weighted_one_way_beam(focal_x, focal_y, focal_z, surf_x, surf_y, surf_z, surf_weights, freqs, v_int, matlab_compat=False):
+    """
+    Weighted monochromatic beam calculation at a focal point, preserving
+    station multiplicity (useful for relation-based proxy calculations).
+    """
+    n_surf = len(surf_x)
+    n_freq = len(freqs)
+    beam_spectrum = np.zeros(n_freq, dtype=np.complex64)
+
+    for f_idx in prange(n_freq):
+        omega = 2.0 * np.pi * freqs[f_idx]
+        k = omega / v_int
+        total_field = 0.0 + 0.0j
+        for s_idx in range(n_surf):
+            dx = surf_x[s_idx] - focal_x
+            dy = surf_y[s_idx] - focal_y
+            dz = surf_z[s_idx] - focal_z
+            r = np.sqrt(dx * dx + dy * dy + dz * dz)
+            if r < 1e-3:
+                continue
+            if matlab_compat:
+                amplitude = (1.0 / r) * surf_weights[s_idx]
+                phase = -k * r
+            else:
+                obliquity = np.abs(dz) / r
+                phase = -k * r
+                amplitude = (obliquity / (2.0 * np.pi * r * r)) * surf_weights[s_idx]
+            real_part = amplitude * np.cos(phase)
+            imag_part = amplitude * np.sin(phase)
+            total_field += complex(real_part, imag_part)
+        beam_spectrum[f_idx] = total_field
+
+    return beam_spectrum
+
+
+@jit(nopython=True, cache=True)
+def filter_indices_by_aperture(focal_x, focal_y, focal_z, max_dip_degrees, mmap_mid_x, mmap_mid_y, matlab_compat=False):
     """
     Scans the memory-mapped coordinates and isolates trace indices that fall
     within the physical illumination cone of the specific subsurface target.
@@ -104,9 +138,13 @@ def filter_indices_by_aperture(focal_x, focal_y, focal_z, max_dip_degrees, mmap_
     n_traces = len(mmap_mid_x)
 
     # Calculate the maximum allowable horizontal distance on the surface
-    theta_rad = np.radians(max_dip_degrees)
-    max_radius = np.abs(focal_z) * np.tan(theta_rad)
-    max_radius_sq = max_radius * max_radius
+    if matlab_compat:
+        # MATLAB: no dip limit, use a very large aperture
+        max_radius_sq = 1e20
+    else:
+        theta_rad = np.radians(max_dip_degrees)
+        max_radius = np.abs(focal_z) * np.tan(theta_rad)
+        max_radius_sq = max_radius * max_radius
 
     # Step 1: Pre-screen flag array to allow parallel execution without race conditions
     keep_mask = np.zeros(n_traces, dtype=np.bool_)
@@ -165,13 +203,13 @@ def compute_monochromatic_beam(focal_x, focal_y, focal_z, surf_x, surf_y, freq, 
     omega = 2.0 * np.pi * freq
     k = omega / v_int
 
-    # Store complex components as complex128 array
-    wavefield = np.zeros(n_stations, dtype=np.complex128)
+    # Store complex components as complex64 array
+    wavefield = np.zeros(n_stations, dtype=np.complex64)
 
     for i in prange(n_stations):
-        dx = surf_x[i] - focal_x
-        dy = surf_y[i] - focal_y
-        r = np.sqrt(dx*dx + dy*dy + focal_z*focal_z)
+        dx = np.float32(surf_x[i] - focal_x)
+        dy = np.float32(surf_y[i] - focal_y)
+        r = np.sqrt(dx*dx + dy*dy + np.float32(focal_z*focal_z))
 
         if r < 1e-3:
             continue
@@ -181,46 +219,194 @@ def compute_monochromatic_beam(focal_x, focal_y, focal_z, surf_x, surf_y, freq, 
         phase = -k * r
         amplitude = obliquity / (2.0 * np.pi * r * r)
 
-        wavefield[i] = complex(amplitude * np.cos(phase), amplitude * np.sin(phase))
+        wavefield[i] = np.complex64(complex(amplitude * np.cos(phase), amplitude * np.sin(phase)))
 
     return wavefield
 
 
-@jit(parallel=True, cache=True)
-def compute_monochromatic_beam_xy_grid(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, freq, v_int):
+# @jit(parallel=True, cache=True)
+def compute_monochromatic_beam_xy_grid(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, freq, v_int, matlab_compat=False, beam_type="src"):
+
+    raise Exception("TEST: compute_monochromatic_beam_xy_grid") 
+
+    print("DEBUG: entered compute_monochromatic_beam_xy_grid")
+    import logging
+
+    import numpy as np
+    logging.info("=== ENTERED CFP BEAM GRID FUNCTION ===")
+    logging.info(f"[CFP DEBUG] --- compute_monochromatic_beam_xy_grid ---")
+    logging.info(f"surf_x shape: {np.shape(surf_x)}, sample: {surf_x[:5]}")
+    logging.info(f"surf_y shape: {np.shape(surf_y)}, sample: {surf_y[:5]}")
+    logging.info(f"surf_z shape: {np.shape(surf_z)}, sample: {surf_z[:5]}")
+    logging.info(f"eval_x shape: {np.shape(eval_x)}, sample: {eval_x[:5]} ... {eval_x[-5:]}")
+    logging.info(f"eval_y shape: {np.shape(eval_y)}, sample: {eval_y[:5]} ... {eval_y[-5:]}")
+    logging.info(f"eval_z: {eval_z}")
+    logging.info(f"freq: {freq}")
+    logging.info(f"v_int: {v_int}")
+    logging.info(f"n_stations: {len(surf_x)}  n_x: {len(eval_x)}  n_y: {len(eval_y)}")
+    logging.info(f"beam_type: {beam_type}")
     """
     Calculates a monochromatic one-way beam image on an x/y grid at a fixed z level.
+    If matlab_compat is True, uses amplitude = 1/r and phase = -kr (matches Matlab reference).
+    Otherwise, uses Rayleigh-II obliquity factor and Green's function.
     """
     n_x = len(eval_x)
     n_y = len(eval_y)
     n_stations = len(surf_x)
     omega = 2.0 * np.pi * freq
     k = omega / v_int
-    beam_grid = np.zeros((n_y, n_x), dtype=np.complex128)
+    c = v_int
+    p = 1.0 / c
 
+    dz_vals = (surf_z - eval_z).astype(np.float32)
+    dz2_vals = dz_vals * dz_vals
+    abs_dz_vals = np.abs(dz_vals)
+
+    beam_grid = np.zeros((n_y, n_x), dtype=np.complex64)
+
+    # Special case: single source/receiver, flat field everywhere (except at the source location)
+    if n_stations == 1:
+        for y_idx in prange(n_y):
+            for x_idx in range(n_x):
+                beam_grid[y_idx, x_idx] = 1.0 + 0.0j
+        return beam_grid
+
+    # Always treat x as x and y as y. Never swap axes.
+    # If all surf_x are identical (vertical line), the beam must be invariant in x.
+    if np.allclose(surf_x, surf_x[0]):
+        # Precompute for one x value (e.g., x=eval_x[0]) and broadcast across x
+        for y_idx in prange(n_y):
+            y_pos = eval_y[y_idx]
+            total_field = 0.0 + 0.0j
+            for station_idx in range(n_stations):
+                dx = np.float32(surf_x[station_idx] - eval_x[0])  # fixed x
+                dy = np.float32(surf_y[station_idx] - y_pos)
+                r = np.sqrt(dx * dx + dy * dy + dz2_vals[station_idx])
+                if r < 1e-3:
+                    continue
+                obliquity = abs_dz_vals[station_idx] / r
+                phase = -k * r
+                amplitude = obliquity / (2.0 * np.pi * r * r)
+                real_part = amplitude * np.cos(phase)
+                imag_part = amplitude * np.sin(phase)
+                total_field += complex(real_part, imag_part)
+            for x_idx in range(n_x):
+                beam_grid[y_idx, x_idx] = total_field
+        return beam_grid
+
+    # If all surf_y are identical (horizontal line), the beam must be invariant in y.
+    if np.allclose(surf_y, surf_y[0]):
+        for x_idx in prange(n_x):
+            x_pos = eval_x[x_idx]
+            total_field = 0.0 + 0.0j
+            for station_idx in range(n_stations):
+                dx = np.float32(surf_x[station_idx] - x_pos)
+                dy = np.float32(surf_y[station_idx] - eval_y[0])  # fixed y
+                r = np.sqrt(dx * dx + dy * dy + dz2_vals[station_idx])
+                if r < 1e-3:
+                    continue
+                obliquity = abs_dz_vals[station_idx] / r
+                phase = -k * r
+                amplitude = obliquity / (2.0 * np.pi * r * r)
+                real_part = amplitude * np.cos(phase)
+                imag_part = amplitude * np.sin(phase)
+                total_field += complex(real_part, imag_part)
+            for y_idx in range(n_y):
+                beam_grid[y_idx, x_idx] = total_field
+        return beam_grid
+
+    # General case: sum over all sources/receivers
     for y_idx in prange(n_y):
         y_pos = eval_y[y_idx]
         for x_idx in range(n_x):
             x_pos = eval_x[x_idx]
             total_field = 0.0 + 0.0j
-
             for station_idx in range(n_stations):
-                dx = surf_x[station_idx] - x_pos
-                dy = surf_y[station_idx] - y_pos
-                dz = surf_z[station_idx] - eval_z
-                r = np.sqrt(dx * dx + dy * dy + dz * dz)
-
+                dx = np.float32(surf_x[station_idx] - x_pos)
+                dy = np.float32(surf_y[station_idx] - y_pos)
+                r = np.sqrt(dx * dx + dy * dy + dz2_vals[station_idx])
                 if r < 1e-3:
                     continue
-
-                obliquity = np.abs(dz) / r
+                obliquity = abs_dz_vals[station_idx] / r
                 phase = -k * r
                 amplitude = obliquity / (2.0 * np.pi * r * r)
-                total_field += complex(amplitude * np.cos(phase), amplitude * np.sin(phase))
-
+                real_part = amplitude * np.cos(phase)
+                imag_part = amplitude * np.sin(phase)
+                total_field += complex(real_part, imag_part)
             beam_grid[y_idx, x_idx] = total_field
-
+    # --- Diagnostics: Output stats ---
+    try:
+        mag = np.abs(beam_grid)
+        logging.info(f"[CFP DEBUG] Output beam_grid: shape={beam_grid.shape}, min={mag.min()}, max={mag.max()}, mean={mag.mean()}")
+        max_idx = np.unravel_index(np.argmax(mag), mag.shape)
+        logging.info(f"[CFP DEBUG] Max value at index: {max_idx}, value: {mag[max_idx]}")
+    except Exception as e:
+        logging.warning(f"[CFP DEBUG] Could not compute output stats: {e}")
     return beam_grid
+
+
+@jit(parallel=True, nopython=True, cache=True)
+def compute_illumination_row_numba(focal_y, eval_x, focal_z, src_coords, rec_coords, weights, freqs, vint, max_radius):
+
+    raise Exception("TEST: compute_illumination_row_numba") 
+    
+    """
+    Optimized kernel to compute a single row of an illumination (energy) map.
+    Applies a moving spatial aperture filter per pixel in parallel.
+    """
+    n_x = len(eval_x)
+    n_traces = src_coords.shape[0]
+    n_freqs = len(freqs)
+    r_sq_limit = np.float32(max_radius * max_radius)
+
+    row_energy = np.zeros(n_x, dtype=np.float32)
+    two_pi = np.float32(2.0 * np.pi)
+
+    dsz_vals = src_coords[:, 2] - focal_z
+    dsz2_vals = dsz_vals * dsz_vals
+    abs_dsz_vals = np.abs(dsz_vals)
+
+    drz_vals = rec_coords[:, 2] - focal_z
+    drz2_vals = drz_vals * drz_vals
+    abs_drz_vals = np.abs(drz_vals)
+
+    for ix in prange(n_x):
+        f_x = eval_x[ix]
+        pixel_energy = 0.0
+
+        for f_idx in range(n_freqs):
+            k = np.float32(two_pi * freqs[f_idx] / vint)
+            bs = np.complex64(0.0 + 0.0j)
+            br = np.complex64(0.0 + 0.0j)
+
+            for t_idx in range(n_traces):
+                # Trace-based aperture check (Source and Receiver must illuminate focal point)
+                dsx = src_coords[t_idx, 0] - f_x
+                dsy = src_coords[t_idx, 1] - focal_y
+                rs_sq = dsx * dsx + dsy * dsy
+                if rs_sq > r_sq_limit:
+                    continue
+
+                drx = rec_coords[t_idx, 0] - f_x
+                dry = rec_coords[t_idx, 1] - focal_y
+                rr_sq = drx * drx + dry * dry
+                if rr_sq > r_sq_limit:
+                    continue
+
+                # Compute Green's functions for valid trace components
+                w = weights[t_idx]
+                rs = np.sqrt(rs_sq + dsz2_vals[t_idx])
+                if rs > 1e-3:
+                    bs += np.complex64((abs_dsz_vals[t_idx] / (two_pi * rs * rs)) * w) * np.exp(1j * (-k * rs))
+
+                rr = np.sqrt(rr_sq + drz2_vals[t_idx])
+                if rr > 1e-3:
+                    br += np.complex64((abs_drz_vals[t_idx] / (two_pi * rr * rr)) * w) * np.exp(1j * (-k * rr))
+
+            pixel_energy += np.abs(bs * br)
+
+        row_energy[ix] = pixel_energy
+    return row_energy
 
 
 @jit(parallel=True, nopython=True, cache=True)
@@ -234,29 +420,27 @@ def compute_radon_images_numba(source_field, receiver_field, eval_x, eval_y, px,
     two_pi_f = 2.0 * np.pi * freq
 
     # Step 1: temp = field @ L1
-    temp_src = np.zeros((n_y, n_px), dtype=np.complex128)
-    temp_rec = np.zeros((n_y, n_px), dtype=np.complex128)
+    temp_src = np.zeros((n_y, n_px), dtype=np.complex64)
+    temp_rec = np.zeros((n_y, n_px), dtype=np.complex64)
 
     # Step 2 & Normalization state
-    radon_src_final = np.empty((n_py, n_px), dtype=np.complex128)
-    radon_rec_final = np.empty((n_py, n_px), dtype=np.complex128)
-    radon_avp_final = np.empty((n_py, n_px), dtype=np.complex128)
+    radon_src_final = np.empty((n_py, n_px), dtype=np.complex64)
+    radon_rec_final = np.empty((n_py, n_px), dtype=np.complex64)
+    radon_avp_final = np.empty((n_py, n_px), dtype=np.complex64)
 
-    max_s_local = np.zeros(n_py, dtype=np.float64)
-    max_r_local = np.zeros(n_py, dtype=np.float64)
-    max_a_local = np.zeros(n_py, dtype=np.float64)
+    max_s_local = np.zeros(n_py, dtype=np.float32)
+    max_r_local = np.zeros(n_py, dtype=np.float32)
 
     for j in prange(n_px):
         p_x = px[j]
         # Precompute phase along x for this p_x
-        exs = np.empty(n_x, dtype=np.complex128)
+        exs = np.empty(n_x, dtype=np.complex64)
         for ix in range(n_x):
-            arg_x = two_pi_f * p_x * eval_x[ix]
-            exs[ix] = complex(np.cos(arg_x), np.sin(arg_x))
+            exs[ix] = np.exp(1j * np.complex64(two_pi_f * p_x * eval_x[ix]))
 
         for iy in range(n_y):
-            s_sum = 0.0 + 0.0j
-            r_sum = 0.0 + 0.0j
+            s_sum = np.complex64(0.0 + 0.0j)
+            r_sum = np.complex64(0.0 + 0.0j)
             for ix in range(n_x):
                 s_sum += source_field[iy, ix] * exs[ix]
                 r_sum += receiver_field[iy, ix] * exs[ix]
@@ -266,14 +450,13 @@ def compute_radon_images_numba(source_field, receiver_field, eval_x, eval_y, px,
     for i in prange(n_py):
         p_y = py[i]
         # Precompute phase along y for this p_y
-        eys = np.empty(n_y, dtype=np.complex128)
+        eys = np.empty(n_y, dtype=np.complex64)
         for iy in range(n_y):
-            arg_y = two_pi_f * p_y * eval_y[iy]
-            eys[iy] = complex(np.cos(arg_y), np.sin(arg_y))
+            eys[iy] = np.exp(1j * np.complex64(two_pi_f * p_y * eval_y[iy]))
 
         for j in range(n_px):
-            s_sum = 0.0 + 0.0j
-            r_sum = 0.0 + 0.0j
+            s_sum = np.complex64(0.0 + 0.0j)
+            r_sum = np.complex64(0.0 + 0.0j)
             for iy in range(n_y):
                 s_sum += eys[iy] * temp_src[iy, j]
                 r_sum += eys[iy] * temp_rec[iy, j]
@@ -286,17 +469,15 @@ def compute_radon_images_numba(source_field, receiver_field, eval_x, eval_y, px,
             radon_rec_final[i, j] = r_val
             radon_avp_final[i, j] = a_val
 
-            # Track max in the same pass (Real Abs)
-            ms = abs(s_val.real); mr = abs(r_val.real); ma = abs(a_val.real)    # noqa: E702
+            # Track the same quantity MATLAB displays: the real-part projection.
+            ms = np.abs(np.real(s_val)); mr = np.abs(np.real(r_val))    # noqa: E702
             if ms > max_s_local[i]:
                 max_s_local[i] = ms
             if mr > max_r_local[i]:
                 max_r_local[i] = mr
-            if ma > max_a_local[i]:
-                max_a_local[i] = ma
 
     # Global reduction
-    max_s = np.max(max_s_local); max_r = np.max(max_r_local); max_a = np.max(max_a_local)    # noqa: E702
+    max_s = np.max(max_s_local); max_r = np.max(max_r_local)    # noqa: E702
 
     # Final scaling pass (parallel)
     src_img = np.empty((n_py, n_px), dtype=np.float32)
@@ -305,26 +486,47 @@ def compute_radon_images_numba(source_field, receiver_field, eval_x, eval_y, px,
 
     is_s = 1.0 / max_s if max_s > 0 else 0.0
     is_r = 1.0 / max_r if max_r > 0 else 0.0
-    is_a = 1.0 / max_a if max_a > 0 else 0.0
+    # Joint normalization shows "Focusing Efficiency" (how well beams overlap)
+    is_a = 1.0 / (max_s * max_r) if (max_s > 0 and max_r > 0) else 0.0
 
     for i in prange(n_py):
         for j in range(n_px):
             if is_s > 0:
-                src_img[i, j] = np.float32(abs(radon_src_final[i, j].real) * is_s)
+                src_img[i, j] = np.float32(np.abs(np.real(radon_src_final[i, j])) * is_s)
             else:
                 src_img[i, j] = 0.0
 
             if is_r > 0:
-                rec_img[i, j] = np.float32(abs(radon_rec_final[i, j].real) * is_r)
+                rec_img[i, j] = np.float32(np.abs(np.real(radon_rec_final[i, j])) * is_r)
             else:
                 rec_img[i, j] = 0.0
 
             if is_a > 0:
-                avp_img[i, j] = np.float32(abs(radon_avp_final[i, j].real) * is_a)
+                avp_img[i, j] = np.float32(np.abs(np.real(radon_avp_final[i, j])) * is_a)
             else:
                 avp_img[i, j] = 0.0
 
     return src_img, rec_img, avp_img
+
+
+@jit(nopython=True, cache=True)
+def calculate_panel_snr_numba(image):
+    """
+    Extracts an SNR metric (dB) from a unit-normalized [0, 1] Radon panel.
+    Compares the peak (1.0) to the mean background energy level.
+    """
+    n_y, n_x = image.shape
+    count = n_y * n_x
+    if count == 0:
+        return 0.0
+
+    total = 0.0
+    for i in range(n_y):
+        for j in range(n_x):
+            total += image[i, j]
+
+    avg_noise = total / count
+    return -20.0 * np.log10(avg_noise) if avg_noise > 1e-6 else 60.0
 
 
 @jit(parallel=True, nopython=True, cache=True)
@@ -341,44 +543,38 @@ def compute_xy_beam_images_numba(source_field, receiver_field, db_min=-60.0):
     # Pass 1: Find maxima for all three fields
     max_s_local = np.zeros(n_y, dtype=np.float64)
     max_r_local = np.zeros(n_y, dtype=np.float64)
-    max_res_local = np.zeros(n_y, dtype=np.float64)
 
     for i in prange(n_y):
-        ms = 0.0; mr = 0.0; mres = 0.0  # noqa: E702
+        ms = 0.0; mr = 0.0  # noqa: E702
         for j in range(n_x):
             s_val = source_field[i, j]
             r_val = receiver_field[i, j]
-            res_val = s_val * r_val
 
-            as_val = abs(s_val.real)
-            ar_val = abs(r_val.real)
-            ares_val = abs(res_val.real)
+            as_val = np.abs(np.real(s_val))
+            ar_val = np.abs(np.real(r_val))
 
             if as_val > ms:
                 ms = as_val
             if ar_val > mr:
                 mr = ar_val
-            if ares_val > mres:
-                mres = ares_val
 
         max_s_local[i] = ms
         max_r_local[i] = mr
-        max_res_local[i] = mres
 
     max_s = np.max(max_s_local)
     max_r = np.max(max_r_local)
-    max_res = np.max(max_res_local)
 
     # Pass 2: Scale and convert to dB
     is_s = 1.0 / max_s if max_s > 0 else 0.0
     is_r = 1.0 / max_r if max_r > 0 else 0.0
-    is_res = 1.0 / max_res if max_res > 0 else 0.0
+    # Joint normalization shows the drop in resolution magnitude due to beam mismatch
+    is_res = 1.0 / (max_s * max_r) if (max_s > 0 and max_r > 0) else 0.0
 
     for i in prange(n_y):
         for j in range(n_x):
             # Source dB
             if is_s > 0:
-                norm = abs(source_field[i, j].real) * is_s
+                norm = np.abs(np.real(source_field[i, j])) * is_s
                 if norm < 1e-6:
                     s_img[i, j] = np.float32(db_min)
                 else:
@@ -388,7 +584,7 @@ def compute_xy_beam_images_numba(source_field, receiver_field, db_min=-60.0):
 
             # Receiver dB
             if is_r > 0:
-                norm = abs(receiver_field[i, j].real) * is_r
+                norm = np.abs(np.real(receiver_field[i, j])) * is_r
                 if norm < 1e-6:
                     r_img[i, j] = np.float32(db_min)
                 else:
@@ -400,7 +596,7 @@ def compute_xy_beam_images_numba(source_field, receiver_field, db_min=-60.0):
             if is_res > 0:
                 # Note: recomputing product is faster than memory round-trips for small multiplications
                 res_val = source_field[i, j] * receiver_field[i, j]
-                norm = abs(res_val.real) * is_res
+                norm = np.abs(np.real(res_val)) * is_res
                 if norm < 1e-6:
                     res_img[i, j] = np.float32(db_min)
                 else:
@@ -412,13 +608,13 @@ def compute_xy_beam_images_numba(source_field, receiver_field, db_min=-60.0):
 
 
 @jit(nopython=True, cache=True)
-def _find_max_real_abs_numba(field):
-    """Helper to find max of absolute real part."""
+def _find_max_amp_numba(field):
+    """Helper to find max of absolute magnitude."""
     n_y, n_x = field.shape
     max_val = 0.0
     for i in range(n_y):
         for j in range(n_x):
-            val = abs(field[i, j].real)
+            val = np.abs(field[i, j])
             if val > max_val:
                 max_val = val
     return max_val
@@ -429,7 +625,7 @@ def convert_to_db_image_numba(field, db_min=-60.0):
     """
     Fused Numba kernel for dB conversion and normalization.
     """
-    max_amp = _find_max_real_abs_numba(field)
+    max_amp = _find_max_amp_numba(field)
     n_y, n_x = field.shape
     out = np.empty((n_y, n_x), dtype=np.float32)
     if max_amp <= 0.0:
@@ -439,7 +635,7 @@ def convert_to_db_image_numba(field, db_min=-60.0):
     inv_max = 1.0 / max_amp
     for i in prange(n_y):
         for j in range(n_x):
-            norm = abs(field[i, j].real) * inv_max
+            norm = np.abs(field[i, j]) * inv_max
             if norm < 1e-6:
                 out[i, j] = np.float32(db_min)
             else:
@@ -453,7 +649,7 @@ def convert_to_unit_image_numba(field):
     """
     Fused Numba kernel for unit normalization.
     """
-    max_amp = _find_max_real_abs_numba(field)
+    max_amp = _find_max_amp_numba(field)
     n_y, n_x = field.shape
     out = np.empty((n_y, n_x), dtype=np.float32)
     if max_amp <= 0.0:
@@ -463,7 +659,7 @@ def convert_to_unit_image_numba(field):
     inv_max = 1.0 / max_amp
     for i in prange(n_y):
         for j in range(n_x):
-            out[i, j] = np.float32(abs(field[i, j].real) * inv_max)
+            out[i, j] = np.float32(np.abs(field[i, j]) * inv_max)
     return out
 
 
@@ -473,17 +669,18 @@ def compute_resolution_db_numba(source_field, receiver_field, db_min=-60.0):
     Fused kernel for complex multiplication and dB conversion.
     """
     n_y, n_x = source_field.shape
-    temp = source_field * receiver_field
-    max_amp = _find_max_real_abs_numba(temp)
+    max_s = _find_max_amp_numba(source_field)
+    max_r = _find_max_amp_numba(receiver_field)
+
     out = np.empty((n_y, n_x), dtype=np.float32)
-    if max_amp <= 0.0:
+    if max_s <= 0.0 or max_r <= 0.0:
         out.fill(np.float32(db_min))
         return out
 
-    inv_max = 1.0 / max_amp
+    inv_max = 1.0 / (max_s * max_r)
     for i in prange(n_y):
         for j in range(n_x):
-            norm = abs(temp[i, j].real) * inv_max
+            norm = np.abs(np.real(source_field[i, j] * receiver_field[i, j])) * inv_max
             if norm < 1e-6:
                 out[i, j] = np.float32(db_min)
             else:
@@ -498,32 +695,39 @@ def compute_monochromatic_weighted_beam_xy_grid(eval_x, eval_y, eval_z, surf_x, 
     Calculates a monochromatic one-way beam image on an x/y grid at a fixed z level,
     while preserving multiplicity through per-station weights.
     """
+
+    # raise Exception("TEST: compute_monochromatic_weighted_beam_xy_grid")
+
     n_x = len(eval_x)
     n_y = len(eval_y)
     n_stations = len(surf_x)
     omega = 2.0 * np.pi * freq
     k = omega / v_int
-    beam_grid = np.zeros((n_y, n_x), dtype=np.complex128)
+
+    dz_vals = (surf_z - eval_z).astype(np.float32)
+    dz2_vals = dz_vals * dz_vals
+    abs_dz_vals = np.abs(dz_vals)
+
+    beam_grid = np.zeros((n_y, n_x), dtype=np.complex64)
 
     for y_idx in prange(n_y):
         y_pos = eval_y[y_idx]
         for x_idx in range(n_x):
             x_pos = eval_x[x_idx]
-            total_field = 0.0 + 0.0j
+            total_field = np.complex64(0.0 + 0.0j)
 
             for station_idx in range(n_stations):
-                dx = surf_x[station_idx] - x_pos
-                dy = surf_y[station_idx] - y_pos
-                dz = surf_z[station_idx] - eval_z
-                r = np.sqrt(dx * dx + dy * dy + dz * dz)
+                dx = np.float32(surf_x[station_idx] - x_pos)
+                dy = np.float32(surf_y[station_idx] - y_pos)
+                r = np.sqrt(dx * dx + dy * dy + dz2_vals[station_idx])
 
                 if r < 1e-3:
                     continue
 
-                obliquity = np.abs(dz) / r
+                obliquity = abs_dz_vals[station_idx] / r
                 phase = -k * r
                 amplitude = (obliquity / (2.0 * np.pi * r * r)) * surf_weights[station_idx]
-                total_field += complex(amplitude * np.cos(phase), amplitude * np.sin(phase))
+                total_field += amplitude * np.exp(1j * phase)
 
             beam_grid[y_idx, x_idx] = total_field
 

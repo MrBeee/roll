@@ -63,7 +63,7 @@ class ProjectSidecarLoadResult:
     minOffset: np.ndarray | None = None
     maxOffset: np.ndarray | None = None
     rmsOffset: np.ndarray | None = None
-    offsetGap: np.ndarray | None = None
+    gapOffset: np.ndarray | None = None
     offstHist: np.ndarray | None = None
     ofAziHist: np.ndarray | None = None
     minimumFold: int = 0
@@ -212,7 +212,7 @@ class ProjectService:
         self.saveArraySidecar(fileName, '.min.npy', output.minOffset)
         self.saveArraySidecar(fileName, '.max.npy', output.maxOffset)
         self.saveArraySidecar(fileName, '.rms.npy', output.rmsOffset)
-        self.saveArraySidecar(fileName, '.gap.npy', output.offsetGap)
+        self.saveArraySidecar(fileName, '.gap.npy', output.gapOffset)
 
         if includeHistograms:
             self.saveArraySidecar(fileName, '.off.npy', output.offstHist)
@@ -321,9 +321,9 @@ class ProjectService:
 
         gapResult = self.loadSizedArraySidecar(fileName, '.gap.npy', (nx, ny))
         if gapResult.valid:
-            result.offsetGap = gapResult.array
-            result.maxOffsetGap = float(result.offsetGap.max())
-            result.minOffsetGap = max(float(result.offsetGap.min()), 0.0)
+            result.gapOffset = gapResult.array
+            result.maxOffsetGap = float(result.gapOffset.max())
+            result.minOffsetGap = max(float(result.gapOffset.min()), 0.0)
             self._appendMessage(result, 'info', f'Loaded : . . . Max-gap&nbsp; &nbsp;: Min:{result.minOffsetGap:.2f}m - Max:{result.maxOffsetGap:.2f}m ')
         elif gapResult.exists:
             self._appendMessage(result, 'error', 'Loaded : . . . Max-gap&nbsp; &nbsp;: Wrong dimensions, compared to analysis area - file ignored')

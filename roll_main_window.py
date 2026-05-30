@@ -499,7 +499,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # display parameters in Layout tab
         self.imageType = 0                                                      # 1 = fold map
         self.layoutMax = 0.0                                                    # max value for image's colorbar (minimum is always 0)
-        self.layoutImg = None                                                   # numpy array to be displayed; binOutput / minOffset / maxOffset / rmsOffset / offsetGap
+        self.layoutImg = None                                                   # numpy array to be displayed; binOutput / minOffset / maxOffset / rmsOffset / gapOffset
 
         # analysis numpy arrays
         self.inlineStk = None                                                   # numpy array with inline Kr stack reponse
@@ -1801,6 +1801,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.imageType = 5
         self.handleImageSelection()
 
+    def onActionAmpMTriggered(self):
+        self.imageType = 6
+        self.handleImageSelection()
+
     def _resolveLayoutAnalysisSurface(self, imageType=None):
         imageType = self.imageType if imageType is None else imageType
         if imageType == 0:
@@ -1819,10 +1823,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         surfaceDefinitions = {
             1: dict(imageAttr='binOutput', maxAttr='maximumFold', label='fold', statusLabel='fold', valueKind='int', fileSuffix='bin', fileExportLabel='fold map', qgisExportLabel='fold map'),
-            2: dict(imageAttr='minOffset', maxAttr='maxMinOffset', label='minimum offset', statusLabel='|min offset|', valueKind='float', fileSuffix='min', fileExportLabel='min-offsets', qgisExportLabel='min-offset map'),  # noqa: E501 # pylint: disable=C0301
-            3: dict(imageAttr='maxOffset', maxAttr='maxMaxOffset', label='maximum offset', statusLabel='|max offset|', valueKind='float', fileSuffix='max', fileExportLabel='max-offsets', qgisExportLabel='max-offset map'),  # noqa: E501 # pylint: disable=C0301
-            4: dict(imageAttr='rmsOffset', maxAttr='maxRmsOffset', label='rms offset increments', statusLabel='rms offset inc', valueKind='float', fileSuffix='rms', fileExportLabel='rms-offsets', qgisExportLabel='rms-offset map'),  # noqa: E501 # pylint: disable=C0301
-            5: dict(imageAttr='offsetGap', maxAttr='maxOffsetGap', label='maximum offset gap', statusLabel='max offset gap', valueKind='float', fileSuffix='gap', fileExportLabel='max-offset gaps', qgisExportLabel='max-offset gap map'),  # noqa: E501 # pylint: disable=C0301
+            2: dict(imageAttr='minOffset', maxAttr='maxMinOffset', label='minimum offset', statusLabel='|min offset|', valueKind='float', fileSuffix='min', fileExportLabel='min-offsets', qgisExportLabel='min-offset map'),                   # noqa: E501 # pylint: disable=C0301
+            3: dict(imageAttr='maxOffset', maxAttr='maxMaxOffset', label='maximum offset', statusLabel='|max offset|', valueKind='float', fileSuffix='max', fileExportLabel='max-offsets', qgisExportLabel='max-offset map'),                   # noqa: E501 # pylint: disable=C0301
+            4: dict(imageAttr='rmsOffset', maxAttr='maxRmsOffset', label='rms offset increments', statusLabel='rms offset inc', valueKind='float', fileSuffix='rms', fileExportLabel='rms-offsets', qgisExportLabel='rms-offset map'),          # noqa: E501 # pylint: disable=C0301
+            5: dict(imageAttr='gapOffset', maxAttr='maxOffsetGap', label='maximum offset gap', statusLabel='max offset gap', valueKind='float', fileSuffix='gap', fileExportLabel='max-offset gaps', qgisExportLabel='max-offset gap map'),     # noqa: E501 # pylint: disable=C0301
+            6: dict(imageAttr='cfpOutput', maxAttr=None, label='CFP illumination', statusLabel='illumination', valueKind='float', fileSuffix='amp', fileExportLabel='amplitude map', qgisExportLabel='amplitude map'),                    # noqa: E501 # pylint: disable=C0301
         }
 
         if imageType not in surfaceDefinitions:
@@ -1832,7 +1837,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return {
             'imageType': imageType,
             'imageData': getattr(self.output, definition['imageAttr']),
-            'maxValue': getattr(self.output, definition['maxAttr']),
+            'maxValue': getattr(self.output, definition['maxAttr']) if definition['maxAttr'] else 1.0,
             'label': definition['label'],
             'statusLabel': definition['statusLabel'],
             'valueKind': definition['valueKind'],
@@ -1872,6 +1877,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         layoutSurface = self._resolveLayoutAnalysisSurface()
         self.layoutImg = layoutSurface['imageData']                             # don't make a copy, create a view
         self.layoutMax = layoutSurface['maxValue']
+
+        if self.imageType == 6 and self.layoutImg is not None:
+            self.layoutMax = float(np.nanmax(self.layoutImg)) if np.any(np.isfinite(self.layoutImg)) else 1.0
 
         # Make no-data bins transparent.
         if self.layoutImg is not None:
@@ -1953,6 +1961,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if np.isnan(value):
             return f'{label}: no data'
 
+        if label == 'dB':
+            return f'{value:,.3f} dB'
+
         return f'{label}: {value:,.3f}'
 
     def _formatOffAziPolarValue(self, mousePoint):
@@ -1999,6 +2010,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if getattr(self, 'offAziDisplayPolar', False):
                 return self._formatOffAziPolarValue(mousePoint)
             return self._formatSampledImageValue(self.offAziImItem, pos)
+        if plotWidget == self.cfpWidget:
+            label = 'amplitude' if self.getSelectedCfpView() >= 3 else 'dB'
+            return self._formatSampledImageValue(self.cfpImItem, pos, label=label)
         return None
 
     def _setGenericPlotMouseStatus(self, plotWidget, pos, mousePoint):
@@ -3134,11 +3148,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.output.minOffset = None
         self.output.maxOffset = None
         self.output.rmsOffset = None
-        self.output.offsetGap = None
+        self.output.gapOffset = None
         self.output.anaOutput = None
         self.output.an2Output = None
         self.output.ofAziHist = None
         self.output.offstHist = None
+        self.output.cfpOutput = None
         self.output.cfpSourceBeamImage = None
         self.output.cfpReceiverBeamImage = None
         self.output.cfpResolutionImage = None

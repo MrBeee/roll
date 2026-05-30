@@ -858,9 +858,16 @@ class RollSurvey(pg.GraphicsObject):
                         if sourcePoints.shape[0] == 0 or receiverPoints.shape[0] == 0:
                             continue
 
+                        nSrc = sourcePoints.shape[0]
+                        nRec = receiverPoints.shape[0]
+                        # Expand to aligned trace pairs so the accumulator's collapsing
+                        # logic accurately captures multiplicity.
+                        sourceExp = np.repeat(sourcePoints, nRec, axis=0)
+                        receiverExp = np.tile(receiverPoints, (nSrc, 1))
+
                         self.cfpTemplateContributionCount += 1
                         if contributionHandler is not None:
-                            contributionHandler(sourcePoints, receiverPoints)
+                            contributionHandler(sourceExp, receiverExp)
 
             self.progress.emit(progressEnd)
             return True
@@ -1657,9 +1664,15 @@ class RollSurvey(pg.GraphicsObject):
     def prepareGeometryRelationBinningLookup(self):
         self.ensureGeometryLocalCoordinates()
 
-        self.output.srcGeom.sort(order=['Index', 'Line', 'Point'])
-        self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
-        self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+        if self.output.srcGeom is not None:
+            self.output.srcGeom.sort(order=['Index', 'Point', 'Line'])
+        if self.output.recGeom is not None:
+            self.output.recGeom.sort(order=['Index', 'Line', 'Point'])
+        if self.output.relGeom is not None:
+            self.output.relGeom.sort(order=['SrcInd', 'SrcLin', 'SrcPnt', 'RecInd', 'RecLin', 'RecMin', 'RecMax'])
+
+        if self.output.srcGeom is None or self.output.recGeom is None or self.output.relGeom is None:
+            return None
 
         srcIndI = self.output.srcGeom['Index'].astype(np.int32)
         srcLinI = np.rint(self.output.srcGeom['Line']).astype(np.int32)
@@ -3670,8 +3683,8 @@ class RollSurvey(pg.GraphicsObject):
         rows = self.output.anaOutput.shape[0]
         cols = self.output.anaOutput.shape[1]
 
-        self.output.offsetGap = np.zeros(shape=(rows, cols), dtype=np.float32)
-        self.output.offsetGap.fill(-np.inf)
+        self.output.gapOffset = np.zeros(shape=(rows, cols), dtype=np.float32)
+        self.output.gapOffset.fill(-np.inf)
 
         self.nShotPoint = 0
         self.nShotPoints = rows * cols
@@ -3703,20 +3716,20 @@ class RollSurvey(pg.GraphicsObject):
                         else:
                             maxGap = 0.0
 
-                        self.output.offsetGap[row, col] = maxGap
+                        self.output.gapOffset[row, col] = maxGap
                     except IndexError:
                         continue
             except IndexError:
                 continue
 
-        validMask = np.isfinite(self.output.offsetGap)
+        validMask = np.isfinite(self.output.gapOffset)
         if np.any(validMask):
-            validGapValues = self.output.offsetGap[validMask]
+            validGapValues = self.output.gapOffset[validMask]
             self.output.maxOffsetGap = float(validGapValues.max())
             self.output.minOffsetGap = max(float(validGapValues.min()), 0.0)
-            self.output.offsetGap[~validMask] = 0.0
+            self.output.gapOffset[~validMask] = 0.0
         else:
-            self.output.offsetGap.fill(0.0)
+            self.output.gapOffset.fill(0.0)
             self.output.maxOffsetGap = 0.0
             self.output.minOffsetGap = 0.0
 

@@ -5,13 +5,11 @@ import pyqtgraph as pg
 from qgis.PyQt.QtCore import QRectF, QThread, pyqtSignal
 from qgis.PyQt.QtWidgets import QVBoxLayout, QWidget
 
-from .cfp_aux_functions_numba import (compute_monochromatic_beam,
-                                      compute_one_way_beam,
-                                      filter_indices_by_aperture,
-                                      filter_sps_relations_by_aperture)
+from .cfp_aux_functions_numba import (compute_one_way_beam,
+                                      filter_indices_by_aperture)
 
 
-def calculate_resolution_matrix(focal_x, focal_y, focal_z, src_coords, rec_coords, freqs, v_int):
+def calculate_resolution_matrix(focal_x, focal_y, focal_z, src_coords, rec_coords, freqs, v_int, matlab_compat=False):
     """
     Computes the final round-trip focal beam response (Resolution Matrix).
     """
@@ -19,14 +17,14 @@ def calculate_resolution_matrix(focal_x, focal_y, focal_z, src_coords, rec_coord
     B_s = compute_one_way_beam(
         focal_x, focal_y, focal_z,
         src_coords['x'], src_coords['y'], src_coords['z'],
-        freqs, v_int
+        freqs, v_int, matlab_compat=matlab_compat
     )
 
     # 2. Synthesize Receiver Beam
     B_r = compute_one_way_beam(
         focal_x, focal_y, focal_z,
         rec_coords['x'], rec_coords['y'], rec_coords['z'],
-        freqs, v_int
+        freqs, v_int, matlab_compat=matlab_compat
     )
 
     # 3. Double-Focusing Synthesis (Element-wise multiplication in frequency)
@@ -74,7 +72,7 @@ def extract_active_geometry_vectors(mmap_data, active_trace_indices):
     return src_x, src_y, src_z, rec_x, rec_y, rec_z
 
 
-def evaluate_subsurface_focal_point(focal_coord, mmap_data, active_indices, freqs, v_int):
+def evaluate_subsurface_focal_point(focal_coord, mmap_data, active_indices, freqs, v_int, matlab_compat=False):
     """
     Acts as the main operational wrapper bridging Roll's memory architecture
     and the high-speed numba Rayleigh propagation functions.
@@ -96,14 +94,14 @@ def evaluate_subsurface_focal_point(focal_coord, mmap_data, active_indices, freq
     B_s = compute_one_way_beam(
         f_x, f_y, f_z,
         src_x, src_y, src_z,
-        freqs, v_int
+        freqs, v_int, matlab_compat=matlab_compat
     )
 
     # 3. Call the numba njit function for the Receiver Wavefront Beam
     B_r = compute_one_way_beam(
         f_x, f_y, f_z,
         rec_x, rec_y, rec_z,
-        freqs, v_int
+        freqs, v_int, matlab_compat=matlab_compat
     )
 
     # 4. Synthesize round-trip focal energy response across the spectrum
@@ -116,7 +114,7 @@ def evaluate_subsurface_focal_point(focal_coord, mmap_data, active_indices, freq
     return total_energy
 
 
-def generate_horizon_illumination_map(target_z, x_range, y_range, step_size, mmap_data, active_indices, freqs, v_int, max_dip):
+def generate_horizon_illumination_map(target_z, x_range, y_range, step_size, mmap_data, active_indices, freqs, v_int, max_dip, matlab_compat=False):
     """
     Generates a full 2D grid matrix mapping illumination anomalies and
     footprints at target depth using spatial aperture pre-filtering.
@@ -160,7 +158,8 @@ def generate_horizon_illumination_map(target_z, x_range, y_range, step_size, mma
                 mmap_data,
                 max_dip,        # Placed into the execution thread chain
                 freqs,
-                v_int
+                v_int,
+                matlab_compat=matlab_compat
             )
             illumination_matrix[j, i] = energy
 
@@ -172,7 +171,7 @@ def generate_horizon_illumination_map(target_z, x_range, y_range, step_size, mma
     return grid_x, grid_y, illumination_matrix
 
 
-def evaluate_subsurface_focal_point_optimized(focal_coord, mmap_data, max_dip, freqs, v_int):
+def evaluate_subsurface_focal_point_optimized(focal_coord, mmap_data, max_dip, freqs, v_int, matlab_compat=False):
     """
     Optimized wrapper that filters out non-illuminating surface traces
     before executing the heavy Rayleigh integral math.
@@ -185,7 +184,8 @@ def evaluate_subsurface_focal_point_optimized(focal_coord, mmap_data, max_dip, f
         f_x, f_y, f_z,
         max_dip,
         mmap_data['midpoint_x'],
-        mmap_data['midpoint_y']
+        mmap_data['midpoint_y'],
+        matlab_compat=matlab_compat
     )
 
     # If no surface traces illuminate this deep point, skip entirely
@@ -198,8 +198,8 @@ def evaluate_subsurface_focal_point_optimized(focal_coord, mmap_data, max_dip, f
     )
 
     # 3. Perform wavefield extrapolation only on the surviving traces
-    B_s = compute_one_way_beam(f_x, f_y, f_z, src_x, src_y, src_z, freqs, v_int)
-    B_r = compute_one_way_beam(f_x, f_y, f_z, rec_x, rec_y, rec_z, freqs, v_int)
+    B_s = compute_one_way_beam(f_x, f_y, f_z, src_x, src_y, src_z, freqs, v_int, matlab_compat=matlab_compat)
+    B_r = compute_one_way_beam(f_x, f_y, f_z, rec_x, rec_y, rec_z, freqs, v_int, matlab_compat=matlab_compat)
 
     # 4. Synthesize round-trip focal energy response
     B_res = B_s * B_r
@@ -341,103 +341,3 @@ def on_cfp_calculation_complete(self, grid_x, grid_y, illumination_matrix):
 
     # Re-enable controls
     self.ui.btnRunCFP.setEnabled(True)
-
-
-def expand_filtered_template_geometry(focal_x, focal_y, max_radius, template_manager):
-    """
-    SKELETON TEMPLATE FOR GEMINI TO EXPAND INSIDE VS CODE.
-
-    This function must scan through Roll's active template patch roll-positions,
-    filter them geometrically, and return clean 1D numpy arrays for the
-    Numba wavefield engine.
-    """
-    # Keep track of valid source and receiver coordinates
-    valid_src_x = []
-    valid_src_y = []
-    valid_rec_x = []
-    valid_rec_y = []
-
-    # Define the bounding box of the focal point's illumination aperture
-    f_xmin = focal_x - max_radius
-    f_xmax = focal_x + max_radius
-    f_ymin = focal_y - max_radius
-    f_ymax = focal_y + max_radius
-
-    max_radius_sq = max_radius * max_radius
-
-    # --- GEMINI VS CODE INSTRUCTION START ---
-    # TODO: Connect this loop to Roll's actual template roll tracking logic
-    # Example placeholder:
-    for roll_step in template_manager.get_all_active_roll_positions():
-
-        # STAGE 1: Fast Bounding Box Check on the whole template block
-        p_xmin, p_xmax, p_ymin, p_ymax = roll_step.get_bounding_box()
-
-        # If the template patch bounding box does not overlap with the focal aperture box, skip it completely!
-        if (p_xmin > f_xmax or p_xmax < f_xmin or p_ymin > f_ymax or p_ymax < f_ymin):
-            continue
-
-        # STAGE 2: Detailed Radial Check on individual stations within the overlapping patch
-        # Extract individual source and receiver positions for this active template step
-
-        # current_sources = roll_step.get_absolute_source_coordinates()
-        # current_receivers = roll_step.get_absolute_receiver_coordinates()
-
-        # Match them based on your layout relationships
-        for src, rec in roll_step.get_valid_trace_pairings():
-            # Check if BOTH source and receiver fall inside the focal circle radius
-            ds_sq = (src.x - focal_x)**2 + (src.y - focal_y)**2
-            dr_sq = (rec.x - focal_x)**2 + (rec.y - focal_y)**2
-
-            if ds_sq <= max_radius_sq and dr_sq <= max_radius_sq:
-                valid_src_x.append(src.x)
-                valid_src_y.append(src.y)
-                valid_rec_x.append(rec.x)
-                valid_rec_y.append(rec.y)
-    # --- GEMINI VS CODE INSTRUCTION END ---
-
-    # Return standard, contiguous 1D float64 numpy arrays ready for @nb.njit
-    return (
-        np.array(valid_src_x, dtype=np.float64),
-        np.array(valid_src_y, dtype=np.float64),
-        np.array(valid_rec_x, dtype=np.float64),
-        np.array(valid_rec_y, dtype=np.float64)
-    )
-
-
-def compute_cfp_at_coordinate(focal_coord, geometry_source_type, mmap_data, freqs, v_int, max_dip):
-    """
-    Unified manager called inside Roll's background execution loops.
-    """
-    fx, fy, fz = focal_coord
-    max_radius = np.abs(fz) * np.tan(np.radians(max_dip))
-
-    if geometry_source_type == "template":
-        # Execute bounding box / template seed expansion filter
-        src_x, src_y, rec_x, rec_y = expand_filtered_template_geometry(fx, fy, max_radius, mmap_data)
-    else:
-        # Execute relation table screening using the numba function
-        valid_idx = filter_sps_relations_by_aperture(
-            fx, fy, max_radius,
-            mmap_data['source_x'], mmap_data['source_y'],
-            mmap_data['receiver_x'], mmap_data['receiver_y']
-        )
-        # Pull records into continuous arrays
-        src_x = mmap_data['source_x'][valid_idx]
-        src_y = mmap_data['source_y'][valid_idx]
-        rec_x = mmap_data['receiver_x'][valid_idx]
-        rec_y = mmap_data['receiver_y'][valid_idx]
-
-    if len(src_x) == 0 or len(rec_x) == 0:
-        return 0.0
-
-    # Execute wavefield calculation loops across the frequency list
-    total_focal_energy = 0.0
-    for freq in freqs:
-        B_s = compute_monochromatic_beam(fx, fy, fz, src_x, src_y, freq, v_int)
-        B_r = compute_monochromatic_beam(fx, fy, fz, rec_x, rec_y, freq, v_int)
-
-        # Calculate the Focal-Beam Matrix energy resolution at this frequency
-        total_focal_energy += np.sum(np.abs(B_s * B_r))
-
-    return total_focal_energy

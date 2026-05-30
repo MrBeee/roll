@@ -425,6 +425,12 @@ class WorkerOperationController:
         logMessageSignal = getattr(worker.survey, 'logMessage', None)
         if logMessageSignal is not None and hasattr(self.window, 'appendLogMessage'):
             logMessageSignal.connect(lambda message, msgType=job.startMessageType: self.window.appendLogMessage(message, msgType))
+
+        # Wire partial results to the job's result handler for visual progress
+        partialSignal = getattr(worker, 'partialResultReady', None)
+        if partialSignal is not None:
+            partialSignal.connect(lambda res: job.resultHandler(res, self.elapsedTime()))
+
         worker.resultReady.connect(lambda result, currentJob=job: self._handleJobResult(currentJob, result))
         worker.finished.connect(thread.quit)
         workerDeleteLater = getattr(worker, 'deleteLater', None)

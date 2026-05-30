@@ -11,24 +11,17 @@ from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
 from .enums_and_int_flags import MsgType
 from .worker_operation_controller import WorkerOperationController
-from .worker_result_appliers import (
-    BinningResultApplier,
-    CfpFromTraceTableResultApplier,
-    CfpFromTemplatesResultApplier,
-    GeometryResultApplier,
-)
-from .worker_threads import (
-    BinFromGeometryWorker,
-    BinningFromGeometryResult,
-    BinningFromTemplatesResult,
-    CfpFromTraceTableResult,
-    CfpFromTraceTableWorker,
-    BinningWorker,
-    CfpFromTemplatesResult,
-    CfpFromTemplatesWorker,
-    GeometryFromTemplatesResult,
-    GeometryWorker,
-)
+from .worker_result_appliers import (BinningResultApplier,
+                                     CfpAmplitudeMapResultApplier,
+                                     CfpFromTemplatesResultApplier,
+                                     CfpFromTraceTableResultApplier,
+                                     GeometryResultApplier)
+from .worker_threads import (BinFromGeometryWorker, BinningFromGeometryResult,
+                             BinningFromTemplatesResult, BinningWorker,
+                             CfpAmplitudeMapWorker, CfpFromTemplatesResult,
+                             CfpFromTemplatesWorker, CfpFromTraceTableResult,
+                             CfpFromTraceTableWorker,
+                             GeometryFromTemplatesResult, GeometryWorker)
 
 
 class BinningWorkerMixin:
@@ -42,6 +35,7 @@ class BinningWorkerMixin:
             'BinFromGeometryWorker': BinFromGeometryWorker,
             'GeometryWorker': GeometryWorker,
             'CfpFromTemplatesWorker': CfpFromTemplatesWorker,
+            'CfpAmplitudeMapWorker': CfpAmplitudeMapWorker,
             'CfpFromTraceTableWorker': CfpFromTraceTableWorker,
             'timer': timer,
             'QMessageBox': QMessageBox,
@@ -62,6 +56,9 @@ class BinningWorkerMixin:
 
         if getattr(self, 'cfpFromTraceTableResultApplier', None) is None:
             self.cfpFromTraceTableResultApplier = CfpFromTraceTableResultApplier(self, self._getWorkerRuntimeDependencies)
+
+        if getattr(self, 'cfpAmplitudeMapResultApplier', None) is None:
+            self.cfpAmplitudeMapResultApplier = CfpAmplitudeMapResultApplier(self, self._getWorkerRuntimeDependencies)
 
     def finalizeAnalysisMemmap(self, shape):
         if not self.fileName or self.output.anaOutput is None:

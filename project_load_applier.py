@@ -22,7 +22,7 @@ class ProjectLoadApplier:
         mainWindow.output.minOffset = sidecarResult.minOffset
         mainWindow.output.maxOffset = sidecarResult.maxOffset
         mainWindow.output.rmsOffset = sidecarResult.rmsOffset
-        mainWindow.output.offsetGap = sidecarResult.offsetGap
+        mainWindow.output.gapOffset = sidecarResult.gapOffset
         mainWindow.output.offstHist = sidecarResult.offstHist
         mainWindow.output.ofAziHist = sidecarResult.ofAziHist
         mainWindow.output.minimumFold = sidecarResult.minimumFold

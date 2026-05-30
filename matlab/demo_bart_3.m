@@ -24,7 +24,7 @@ xr = (1:120) * 50;	% 6 km spread (minus 50 m)
 xr = xr - mean(xr);	% spread around x = 0
 
 % define number of receiver lines in a template, around y = 0
-yr = (1:4) * 200;		% 8 lines spaced 150 m
+yr = (1:8) * 750;		% 8 lines spaced 150 m
 yr = yr-mean(yr);		% spread around y = 0
 
 % convert xr, yr to a meshgrid
@@ -39,7 +39,7 @@ clear xr yr zr;
 
 % source geometry
 % define the shot line around y = 0
-ys = (1:32) * 50;		% one only
+ys = (1:15) * 50;		% one only
 ys = ys - mean(ys);	% shot line around y = 0
 
 % define x-coordinates
@@ -106,7 +106,7 @@ x = -800 : 12.5 : 800;
 y = x;
 
 % write the results to the current directory 
-fnam = 'demo_bart_4';
+fnam = 'demo_bart_3';
 posno = 1;
 result_file = [fnam, num2str(posno)];
 
@@ -241,5 +241,14 @@ clear *_s I Bs Br AVP
 
 save([result_file, '.mat']); % save result, add number to end of filename to identify different target pos. 
 
+
+
 % display the results 
 acq_disp_analysis_result(result_file); 
+
+disp('Plots are open. Press Enter in the terminal to close them.');
+pause;
+close all hidden;
+close all force;
+delete(findall(0, 'type', 'figure'));
+drawnow();

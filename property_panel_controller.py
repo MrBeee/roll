@@ -743,7 +743,7 @@ class PropertyPanelController:
         window.output.minOffset = None
         window.output.maxOffset = None
         window.output.rmsOffset = None
-        window.output.offsetGap = None
+        window.output.gapOffset = None
         window.output.ofAziHist = None
         window.output.offstHist = None
 
