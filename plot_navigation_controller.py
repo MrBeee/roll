@@ -16,6 +16,7 @@ class PlotNavigationController:
         ('offsetWidget', 8),
         ('offAziWidget', 9),
         ('arraysWidget', 10),
+        ('cfpWidget', 11),
     )
 
     def __init__(self, window) -> None:
@@ -78,6 +79,10 @@ class PlotNavigationController:
 
         if index == 10:
             window.dispatchAnalysisRedraw('patterns', AnalysisRedrawReason.visiblePlotActivated)
+            return
+
+        if index == 11:
+            window.renderSelectedCfpView()
             return
 
         if window.output.anaOutput is None:

@@ -47,12 +47,16 @@ def _applyNumbaSetting(useNumba):
         return
 
     numba.config.DISABLE_JIT = not useNumba                                    # disable/enable numba pre-compilation in @jit decorator. See 'decorators.py' in numba/core folder
-    moduleName = f'{__package__}.aux_functions_numba'
-    module = sys.modules.get(moduleName)
-    if module is not None:
-        importlib.reload(module)                                                # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
-    else:
-        importlib.import_module(moduleName)                                     # load it for the first time, which will ensure proper value of numba.config.DISABLE_JIT is being used
+    for moduleName in (
+        f'{__package__}.aux_functions_numba',
+        f'{__package__}.cfp_aux_functions_numba',
+        f'{__package__}.worker_threads',
+    ):
+        module = sys.modules.get(moduleName)
+        if module is not None:
+            importlib.reload(module)                                            # reloading will ensure proper value of numba.config.DISABLE_JIT is being used
+        else:
+            importlib.import_module(moduleName)                                 # load it for the first time, which will ensure proper value of numba.config.DISABLE_JIT is being used
 
 
 class SettingsDialog(QDialog):

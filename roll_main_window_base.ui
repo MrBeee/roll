@@ -212,6 +212,7 @@
     <addaction name="separator"/>
     <addaction name="actionCFPAnalysisFromTemplates"/>
     <addaction name="actionCFPAnalysisFromTraceTable"/>
+    <addaction name="actionCFPAnalysisFromGeometryTables"/>
     <addaction name="separator"/>
     <addaction name="actionGeometryFromTemplates"/>
     <addaction name="separator"/>
@@ -1748,6 +1749,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+L</string>
+   </property>
+  </action>
+  <action name="actionCFPAnalysisFromGeometryTables">
+   <property name="text">
+    <string>CFP analysis from Geometry tables</string>
    </property>
   </action>
  </widget>

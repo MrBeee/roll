@@ -11,7 +11,8 @@ from .cfp_aux_functions_numba import (
     calculate_panel_snr_numba, compute_illumination_row_numba,
     compute_monochromatic_beam_xy_grid,
     compute_monochromatic_weighted_beam_xy_grid, compute_radon_images_numba,
-    compute_xy_beam_images_numba, filter_sps_relations_by_aperture)
+    compute_xy_beam_images_numba, filter_sps_relations_by_aperture,
+    scan_cfp_geometry_relations_numba)
 from .roll_survey import RollSurvey
 
 # debugpy  is needed to debug a worker thread.
@@ -72,6 +73,16 @@ def filterSpsRelationsByApertureSafe(focalX, focalY, apertureRadius, srcX, srcY,
         if pyFunc is None or not callable(pyFunc):
             raise
         return _callPythonFallback(pyFunc, focalX, focalY, apertureRadius, srcX, srcY, recX, recY)
+
+
+def scanCfpGeometryRelationsSafe(*args):
+    try:
+        return scan_cfp_geometry_relations_numba(*args)
+    except ImportError:
+        pyFunc = getattr(scan_cfp_geometry_relations_numba, 'py_func', None)
+        if pyFunc is None or not callable(pyFunc):
+            raise
+        return _callPythonFallback(pyFunc, *args)
 
 
 def computeRadonImagesSafe(sourceField, receiverField, evalX, evalY, px, py, frequency):
@@ -228,6 +239,24 @@ class CfpFromTraceTableRequest:
 
 
 @dataclass
+class CfpFromGeometryTablesRequest:
+    xmlString: str
+    srcGeom: Any
+    relGeom: Any
+    recGeom: Any
+    focalX: float = 0.0
+    focalY: float = 0.0
+    focalZ: float = -2000.0
+    frequency: float = 40.0
+    maxDipDegrees: float = 40.0
+    vint: float = 2000.0
+    chunkSize: int = 25_000
+    debugpyEnabled: bool = False
+    matlab_compat: bool = True
+    sourceName: str = 'Geometry Tables'
+
+
+@dataclass
 class CfpAmplitudeMapRequest:
     xmlString: str
     srcGeom: Any
@@ -337,6 +366,49 @@ class CfpFromTraceTableResult:
     radonDy: float = 1.0
 
 
+@dataclass
+class CfpFromGeometryTablesResult:
+    success: bool
+    errorText: str = ''
+    sourceName: str = 'Geometry Tables'
+    chunkCount: int = 0
+    totalRelationCount: int = 0
+    contributingRelationCount: int = 0
+    totalTraceCount: int = 0
+    contributingTraceCount: int = 0
+    inactiveSourceCount: int = 0
+    inactiveReceiverCount: int = 0
+    inactiveSourceRelationCount: int = 0
+    sourceOrphanRelationCount: int = 0
+    receiverOrphanRelationCount: int = 0
+    missingSourceCount: int = 0
+    missingReceiverCount: int = 0
+    focalX: float = 0.0
+    focalY: float = 0.0
+    focalZ: float = 0.0
+    frequency: float = 40.0
+    maxDipDegrees: float = 0.0
+    apertureRadius: float = 0.0
+    vint: float = 0.0
+    sourceBeamImage: Any = None
+    receiverBeamImage: Any = None
+    resolutionImage: Any = None
+    radonSourceBeamImage: Any = None
+    radonReceiverBeamImage: Any = None
+    radonAvpImage: Any = None
+    sourceSnr: float = 0.0
+    receiverSnr: float = 0.0
+    avpSnr: float = 0.0
+    sourceBeamX0: float = 0.0
+    sourceBeamY0: float = 0.0
+    sourceBeamDx: float = 1.0
+    sourceBeamDy: float = 1.0
+    radonX0: float = 0.0
+    radonY0: float = 0.0
+    radonDx: float = 1.0
+    radonDy: float = 1.0
+
+
 class CfpBeamAccumulator:
     def __init__(self, survey: RollSurvey, focalZ: float, frequency: float, vint: float, maxDipDegrees: float, focalX: float | None = None, focalY: float | None = None):
         self.survey = survey
@@ -388,20 +460,25 @@ class CfpBeamAccumulator:
         height = float(outputRect.height())
         dx = float(binSize.x())
         dy = float(binSize.y())
+
+        # added Bart, for quick settings:
+        # width = height = 800
+        # dx = dy = 12.5
+
         if dx <= 0.0 or dy <= 0.0:
             self.survey.errorText = 'analysis area sampling is invalid'
             return False
 
         nx = max(int(np.ceil(width / dx)), 1)
         ny = max(int(np.ceil(height / dy)), 1)
-        self.sourceBeamX0 = float(outputRect.left())
-        self.sourceBeamY0 = float(outputRect.top())
         self.sourceBeamDx = dx
         self.sourceBeamDy = dy
         if self.focalX is None:
-            self.focalX = self.sourceBeamX0 + width * 0.5
+            self.focalX = float(outputRect.center().x())
         if self.focalY is None:
-            self.focalY = self.sourceBeamY0 + height * 0.5
+            self.focalY = float(outputRect.center().y())
+        self.sourceBeamX0 = self.focalX - width * 0.5
+        self.sourceBeamY0 = self.focalY - height * 0.5
         self.evalX = np.ascontiguousarray(self.sourceBeamX0 + np.arange(nx, dtype=np.float32) * dx, dtype=np.float32)
         self.evalY = np.ascontiguousarray(self.sourceBeamY0 + np.arange(ny, dtype=np.float32) * dy, dtype=np.float32)
         self.sourceBeamField = np.zeros((ny, nx), dtype=np.complex64)
@@ -552,6 +629,7 @@ class CfpBeamAccumulator:
         _emitWorkerPhase(progressHandler, messageHandler, phaseStart, f'{phaseLabel} - preparing Radon transform grids')
 
         sampleCount = 128
+        sampleCount = 256
         velocity = max(abs(float(self.vint)), 1.0)
         limitP = 1.0 / velocity
         px = np.linspace(-limitP, limitP, sampleCount, dtype=np.float32)
@@ -575,12 +653,10 @@ class CfpBeamAccumulator:
             self.survey.errorText = f"Radon/SNR calculation failed: {e}"
             raise   # Re-raise to be caught by the worker's BaseException
 
-        pxMs = px * 1000.0
-        pyMs = py * 1000.0
-        self.radonX0 = float(pxMs[0])
-        self.radonY0 = float(pyMs[0])
-        self.radonDx = float(pxMs[1] - pxMs[0]) if sampleCount > 1 else 1.0
-        self.radonDy = float(pyMs[1] - pyMs[0]) if sampleCount > 1 else 1.0
+        self.radonX0 = float(px[0])
+        self.radonY0 = float(py[0])
+        self.radonDx = float(px[1] - px[0]) if sampleCount > 1 else 1.0
+        self.radonDy = float(py[1] - py[0]) if sampleCount > 1 else 1.0
         _emitWorkerPhase(progressHandler, messageHandler, phaseEnd, f'{phaseLabel} - Radon transforms completed')
 
     def finalizeImages(self, progressHandler=None, messageHandler=None, progressStart: int = 0, progressEnd: int = 100, phaseLabel: str = 'CFP analysis') -> None:
@@ -1158,6 +1234,292 @@ class CfpAmplitudeMapWorker(QObject):
         src_xyz = np.concatenate(src_list, axis=0).astype(np.float32)
         rec_xyz = np.concatenate(rec_list, axis=0).astype(np.float32)
         return src_xyz, rec_xyz, np.ones(src_xyz.shape[0], dtype=np.float32)
+
+
+class CfpFromGeometryTablesWorker(QObject):
+    finished = pyqtSignal()
+    resultReady = pyqtSignal(object)
+
+    def __init__(self, request: CfpFromGeometryTablesRequest):
+        super().__init__()
+        self.survey = RollSurvey()
+        self.debugpyEnabled = request.debugpyEnabled
+        self.srcGeom = request.srcGeom
+        self.relGeom = request.relGeom
+        self.recGeom = request.recGeom
+        self.sourceName = getattr(request, 'sourceName', 'Geometry Tables')
+        self.focalX = request.focalX
+        self.focalY = request.focalY
+        self.focalZ = request.focalZ
+        self.frequency = request.frequency
+        self.maxDipDegrees = request.maxDipDegrees
+        self.vint = request.vint
+        self.matlab_compat = getattr(request, 'matlab_compat', False)
+        self.chunkSize = max(int(request.chunkSize), 1)
+        self.chunkCount = 0
+        self.totalRelationCount = 0
+        self.contributingRelationCount = 0
+        self.totalTraceCount = 0
+        self.contributingTraceCount = 0
+        self.inactiveSourceCount = 0
+        self.inactiveReceiverCount = 0
+        self.inactiveSourceRelationCount = 0
+        self.sourceOrphanRelationCount = 0
+        self.receiverOrphanRelationCount = 0
+        self.missingSourceCount = 0
+        self.missingReceiverCount = 0
+        self.inactiveSourceKeys = set()
+        self.apertureRadius = abs(self.focalZ) * np.tan(np.radians(self.maxDipDegrees))
+        self.beamAccumulator = CfpBeamAccumulator(self.survey, self.focalZ, self.frequency, self.vint, self.maxDipDegrees, self.focalX, self.focalY)
+
+        self.survey.fromXmlString(request.xmlString, False)
+        self.survey.output.srcGeom = request.srcGeom
+        self.survey.output.relGeom = request.relGeom
+        self.survey.output.recGeom = request.recGeom
+
+    @staticmethod
+    def _roundedIntField(table, fieldName: str) -> np.ndarray:
+        return np.rint(table[fieldName]).astype(np.int64, copy=False)
+
+    @staticmethod
+    def _intField(table, fieldName: str) -> np.ndarray:
+        return table[fieldName].astype(np.int64, copy=False)
+
+    @staticmethod
+    def _onesIntArray(size: int) -> np.ndarray:
+        return np.ones(size, dtype=np.int64)
+
+    @staticmethod
+    def _inUseMask(table) -> np.ndarray:
+        if 'InUse' not in table.dtype.names:
+            return np.ones(table.shape[0], dtype=bool)
+        return table['InUse'] != 0
+
+    @staticmethod
+    def _sortedSourceArrays(table):
+        if table.shape[0] == 0:
+            emptyInt = np.empty(0, dtype=np.int64)
+            emptyFloat = np.empty(0, dtype=np.float32)
+            return emptyInt, emptyInt, emptyInt, emptyFloat, emptyFloat, emptyFloat
+
+        sourceInd = CfpFromGeometryTablesWorker._intField(table, 'Index')
+        sourceLine = CfpFromGeometryTablesWorker._roundedIntField(table, 'Line')
+        sourcePoint = CfpFromGeometryTablesWorker._roundedIntField(table, 'Point')
+        order = np.lexsort((sourcePoint, sourceLine, sourceInd))
+        sourceInd = np.ascontiguousarray(sourceInd[order], dtype=np.int64)
+        sourceLine = np.ascontiguousarray(sourceLine[order], dtype=np.int64)
+        sourcePoint = np.ascontiguousarray(sourcePoint[order], dtype=np.int64)
+        sourceX = np.ascontiguousarray(table['LocX'][order], dtype=np.float32)
+        sourceY = np.ascontiguousarray(table['LocY'][order], dtype=np.float32)
+        sourceZ = np.ascontiguousarray(table['Elev'][order] - table['Depth'][order], dtype=np.float32)
+        return sourceInd, sourceLine, sourcePoint, sourceX, sourceY, sourceZ
+
+    @staticmethod
+    def _sortedReceiverArrays(table):
+        if table.shape[0] == 0:
+            emptyInt = np.empty(0, dtype=np.int64)
+            emptyFloat = np.empty(0, dtype=np.float32)
+            return emptyInt, emptyInt, emptyInt, emptyFloat, emptyFloat, emptyFloat, emptyInt, emptyInt, emptyInt, emptyInt
+
+        receiverInd = CfpFromGeometryTablesWorker._intField(table, 'Index')
+        receiverLine = CfpFromGeometryTablesWorker._roundedIntField(table, 'Line')
+        receiverPoint = CfpFromGeometryTablesWorker._roundedIntField(table, 'Point')
+        order = np.lexsort((receiverPoint, receiverLine, receiverInd))
+        receiverInd = np.ascontiguousarray(receiverInd[order], dtype=np.int64)
+        receiverLine = np.ascontiguousarray(receiverLine[order], dtype=np.int64)
+        receiverPoint = np.ascontiguousarray(receiverPoint[order], dtype=np.int64)
+        receiverX = np.ascontiguousarray(table['LocX'][order], dtype=np.float32)
+        receiverY = np.ascontiguousarray(table['LocY'][order], dtype=np.float32)
+        receiverZ = np.ascontiguousarray(table['Elev'][order] - table['Depth'][order], dtype=np.float32)
+
+        groupBreaks = np.empty(receiverInd.shape[0], dtype=bool)
+        groupBreaks[0] = True
+        groupBreaks[1:] = (receiverInd[1:] != receiverInd[:-1]) | (receiverLine[1:] != receiverLine[:-1])
+        groupStart = np.flatnonzero(groupBreaks).astype(np.int64, copy=False)
+        groupEnd = np.empty_like(groupStart)
+        groupEnd[:-1] = groupStart[1:]
+        groupEnd[-1] = receiverInd.shape[0]
+        groupInd = np.ascontiguousarray(receiverInd[groupStart], dtype=np.int64)
+        groupLine = np.ascontiguousarray(receiverLine[groupStart], dtype=np.int64)
+        return receiverInd, receiverLine, receiverPoint, receiverX, receiverY, receiverZ, groupInd, groupLine, groupStart, groupEnd
+
+    def _buildSourceScanArrays(self):
+        sourceMask = self._inUseMask(self.srcGeom)
+        self.inactiveSourceCount = int(np.count_nonzero(~sourceMask))
+        activeSourceArrays = self._sortedSourceArrays(self.srcGeom[sourceMask])
+        inactiveSourceArrays = self._sortedSourceArrays(self.srcGeom[~sourceMask])
+        return activeSourceArrays, inactiveSourceArrays
+
+    def _buildReceiverScanArrays(self):
+        receiverMask = self._inUseMask(self.recGeom)
+        self.inactiveReceiverCount = int(np.count_nonzero(~receiverMask))
+        return self._sortedReceiverArrays(self.recGeom[receiverMask])
+
+    def _relationChunkArrays(self, relationChunk):
+        relationCount = relationChunk.shape[0]
+        relInSps = self._intField(relationChunk, 'InSps') if 'InSps' in relationChunk.dtype.names else self._onesIntArray(relationCount)
+        relInRps = self._intField(relationChunk, 'InRps') if 'InRps' in relationChunk.dtype.names else self._onesIntArray(relationCount)
+        return (
+            self._intField(relationChunk, 'SrcInd'),
+            self._roundedIntField(relationChunk, 'SrcLin'),
+            self._roundedIntField(relationChunk, 'SrcPnt'),
+            self._intField(relationChunk, 'RecInd'),
+            self._roundedIntField(relationChunk, 'RecLin'),
+            self._roundedIntField(relationChunk, 'RecMin'),
+            self._roundedIntField(relationChunk, 'RecMax'),
+            np.ascontiguousarray(relInSps, dtype=np.int64),
+            np.ascontiguousarray(relInRps, dtype=np.int64),
+        )
+
+    def run(self):
+        try:
+            if haveDebugpy and self.debugpyEnabled:
+                debugpy.debug_this_thread()
+
+            self.survey.progress.emit(0)
+            success = self._scanGeometryTables()
+        except BaseException as e:
+            self.survey._recordInnermostExceptionLocation(e)
+            success = False
+        finally:
+            try:
+                self.resultReady.emit(self.buildResult(success))
+            except BaseException as e:
+                self.survey._recordInnermostExceptionLocation(e)
+            finally:
+                self.finished.emit()
+
+    def _scanGeometryTables(self) -> bool:
+        if self.srcGeom is None or self.relGeom is None or self.recGeom is None:
+            self.survey.errorText = 'source, relation, or receiver geometry table has not been defined'
+            return False
+
+        if not self.beamAccumulator.initializeGrid():
+            return False
+
+        totalRelations = int(self.relGeom.shape[0])
+        self.totalRelationCount = totalRelations
+        self.chunkCount = (totalRelations + self.chunkSize - 1) // self.chunkSize if totalRelations > 0 else 0
+
+        if totalRelations == 0:
+            self.survey.progress.emit(100)
+            self.survey.message.emit(f'CFP from {self.sourceName} - no relation records available')
+            return True
+
+        self.survey.message.emit(f'CFP from {self.sourceName} - building geometry scan arrays')
+        activeSourceArrays, inactiveSourceArrays = self._buildSourceScanArrays()
+        sourceInd, sourceLine, sourcePoint, sourceX, sourceY, sourceZ = activeSourceArrays
+        inactiveSourceInd, inactiveSourceLine, inactiveSourcePoint, _, _, _ = inactiveSourceArrays
+        _, _, receiverPoint, receiverX, receiverY, receiverZ, receiverGroupInd, receiverGroupLine, receiverGroupStart, receiverGroupEnd = self._buildReceiverScanArrays()
+
+        sourceWeights = np.zeros(sourceInd.shape[0], dtype=np.float64)
+        receiverWeights = np.zeros(receiverPoint.shape[0], dtype=np.float64)
+        apertureRadiusSquared = self.apertureRadius * self.apertureRadius
+
+        currentThread = QThread.currentThread()
+        for chunkIndex in range(self.chunkCount):
+            if currentThread.isInterruptionRequested():
+                self.survey.errorText = f'CFP from {self.sourceName} cancelled'
+                return False
+
+            startRow = chunkIndex * self.chunkSize
+            endRow = min(startRow + self.chunkSize, totalRelations)
+            chunkArrays = self._relationChunkArrays(self.relGeom[startRow:endRow])
+            (
+                totalTraceCount,
+                contributingRelationCount,
+                contributingTraceCount,
+                inactiveSourceRelationCount,
+                sourceOrphanRelationCount,
+                receiverOrphanRelationCount,
+                missingSourceCount,
+                missingReceiverCount,
+            ) = scanCfpGeometryRelationsSafe(
+                *chunkArrays,
+                sourceInd,
+                sourceLine,
+                sourcePoint,
+                sourceX,
+                sourceY,
+                inactiveSourceInd,
+                inactiveSourceLine,
+                inactiveSourcePoint,
+                receiverGroupInd,
+                receiverGroupLine,
+                receiverGroupStart,
+                receiverGroupEnd,
+                receiverPoint,
+                receiverX,
+                receiverY,
+                sourceWeights,
+                receiverWeights,
+                self.focalX,
+                self.focalY,
+                apertureRadiusSquared,
+            )
+            self.totalTraceCount += int(totalTraceCount)
+            self.contributingRelationCount += int(contributingRelationCount)
+            self.contributingTraceCount += int(contributingTraceCount)
+            self.inactiveSourceRelationCount += int(inactiveSourceRelationCount)
+            self.sourceOrphanRelationCount += int(sourceOrphanRelationCount)
+            self.receiverOrphanRelationCount += int(receiverOrphanRelationCount)
+            self.missingSourceCount += int(missingSourceCount)
+            self.missingReceiverCount += int(missingReceiverCount)
+
+            progress = ((chunkIndex + 1) * 100) // self.chunkCount
+            self.survey.progress.emit(progress)
+            self.survey.message.emit(f'CFP from {self.sourceName} - processed chunk {chunkIndex + 1:,}/{self.chunkCount:,}')
+
+        sourceMask = sourceWeights > 0.0
+        receiverMask = receiverWeights > 0.0
+        self.beamAccumulator.accumulateCoordinates(
+            sourceX[sourceMask],
+            sourceY[sourceMask],
+            sourceZ[sourceMask],
+            receiverX[receiverMask],
+            receiverY[receiverMask],
+            receiverZ[receiverMask],
+            sourceWeights[sourceMask],
+            receiverWeights[receiverMask],
+        )
+
+        self.survey.progress.emit(0)
+        self.beamAccumulator.finalizeImages(
+            progressHandler=self.survey.progress.emit,
+            messageHandler=self.survey.message.emit,
+            progressStart=0,
+            progressEnd=100,
+            phaseLabel=f'CFP from {self.sourceName}',
+        )
+        return True
+
+    def buildResult(self, success: bool) -> CfpFromGeometryTablesResult:
+        payload = self.beamAccumulator.buildPayload()
+        return CfpFromGeometryTablesResult(
+            success=success,
+            errorText='' if success else self.survey.errorText,
+            sourceName=self.sourceName,
+            chunkCount=self.chunkCount,
+            totalRelationCount=self.totalRelationCount,
+            contributingRelationCount=self.contributingRelationCount,
+            totalTraceCount=self.totalTraceCount,
+            contributingTraceCount=self.contributingTraceCount,
+            inactiveSourceCount=self.inactiveSourceCount,
+            inactiveReceiverCount=self.inactiveReceiverCount,
+            inactiveSourceRelationCount=self.inactiveSourceRelationCount,
+            sourceOrphanRelationCount=self.sourceOrphanRelationCount,
+            receiverOrphanRelationCount=self.receiverOrphanRelationCount,
+            missingSourceCount=self.missingSourceCount,
+            missingReceiverCount=self.missingReceiverCount,
+            focalX=self.focalX,
+            focalY=self.focalY,
+            focalZ=self.focalZ,
+            frequency=self.frequency,
+            maxDipDegrees=self.maxDipDegrees,
+            apertureRadius=self.apertureRadius,
+            vint=self.vint,
+            **payload,
+        )
 
 
 class CfpFromTraceTableWorker(QObject):

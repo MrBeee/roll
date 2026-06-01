@@ -10,6 +10,7 @@ from qgis.PyQt.QtCore import QThread
 from .enums_and_int_flags import MsgType
 from .worker_threads import (BinningFromGeometryRequest,
                              BinningFromTemplatesRequest,
+                             CfpFromGeometryTablesRequest,
                              CfpFromTemplatesRequest, CfpFromTraceTableRequest,
                              GeometryFromTemplatesRequest)
 
@@ -129,6 +130,17 @@ class WorkerOperationController:
             return False
 
         return self._startJob(self._buildCfpAnalysisFromTraceTableJob())
+
+    def startCfpAnalysisFromGeometryTables(self) -> bool:
+        if self.window.survey is None:
+            self.window.appendLogMessage('Thread : No survey has been defined', MsgType.Error)
+            return False
+
+        if not self._hasCfpGeometryTables():
+            self.window.appendLogMessage('Thread : Source, relation, and receiver geometry/SPS tables have not all been defined', MsgType.Error)
+            return False
+
+        return self._startJob(self._buildCfpAnalysisFromGeometryTablesJob())
 
     def stopCurrentOperation(self) -> None:
         activeOperation = self.activeOperation
@@ -345,6 +357,54 @@ class WorkerOperationController:
             request=request,
             resultHandler=self.window.applyCfpFromTraceTableWorkerResult,
         )
+
+    def _buildCfpAnalysisFromGeometryTablesJob(self) -> WorkerJobSpec:
+        dependencies = self.runtimeDependenciesProvider()
+        srcGeom, relGeom, recGeom, sourceName = self._resolveCfpGeometryTables()
+        focalX, focalY = self._resolveLocalCfpTargetXY()
+        localPlane = getattr(self.window.survey, 'localPlane', None)
+        focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
+        maxDipDegrees = self._resolveCfpMaxDipDegrees()
+
+        request = CfpFromGeometryTablesRequest(
+            xmlString=self.window.survey.toXmlString(),
+            srcGeom=srcGeom,
+            relGeom=relGeom,
+            recGeom=recGeom,
+            focalX=focalX,
+            focalY=focalY,
+            focalZ=focalZ,
+            frequency=40.0,
+            maxDipDegrees=maxDipDegrees,
+            vint=self.window.survey.binning.vint,
+            chunkSize=25_000,
+            debugpyEnabled=self.window.appSettings.debugpy,
+            sourceName=sourceName,
+        )
+        return WorkerJobSpec(
+            name='cfp-from-geometry-tables',
+            progressLabelText=f'CFP from {sourceName} - relation scan',
+            startMessage=(
+                f"Thread : Started 'CFP analysis from {sourceName}'"
+                f' at local x={focalX:.2f}, y={focalY:.2f}, z={focalZ:.2f}, Vint={self.window.survey.binning.vint:.1f}m/s'
+            ),
+            startMessageType=MsgType.Analysis,
+            workerFactory=dependencies['CfpFromGeometryTablesWorker'],
+            request=request,
+            resultHandler=self.window.applyCfpFromGeometryTablesWorkerResult,
+        )
+
+    def _hasCfpGeometryTables(self) -> bool:
+        return (
+            self.window.srcGeom is not None and self.window.relGeom is not None and self.window.recGeom is not None
+        ) or (
+            self.window.spsImport is not None and self.window.xpsImport is not None and self.window.rpsImport is not None
+        )
+
+    def _resolveCfpGeometryTables(self):
+        if self.window.srcGeom is not None and self.window.relGeom is not None and self.window.recGeom is not None:
+            return self.window.srcGeom, self.window.relGeom, self.window.recGeom, 'Geometry Tables'
+        return self.window.spsImport, self.window.xpsImport, self.window.rpsImport, 'Imported SPS Tables'
 
     def _resolveLocalCfpTargetXY(self) -> tuple[float, float]:
         spiderPoint = getattr(self.window, 'spiderPoint', None)

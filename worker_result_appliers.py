@@ -414,3 +414,87 @@ class CfpFromTraceTableResultApplier:
                 f'{result.contributingTraceCount:,} traces contributed across {result.chunkCount:,} chunks.'
             ),
         )
+
+
+class CfpFromGeometryTablesResultApplier:
+    def __init__(self, window, runtimeDependenciesProvider: Callable[[], dict[str, object]]) -> None:
+        self.window = window
+        self.runtimeDependenciesProvider = runtimeDependenciesProvider
+
+    def apply(self, result, elapsed: timedelta) -> None:
+        sourceName = getattr(result, 'sourceName', 'Geometry Tables')
+        if not result.success:
+            self.window.appendLogMessage(f'Thread : . . . aborted CFP scan from {sourceName}', MsgType.Error)
+            self.window.appendLogMessage(f'Thread : . . . {result.errorText}', MsgType.Error)
+            self.runtimeDependenciesProvider()['QMessageBox'].information(self.window, 'Interrupted', 'Worker thread aborted')
+            return
+
+        self.window.appendLogMessage(
+            f"Thread : Completed 'CFP analysis from {sourceName}'. Elapsed time:{elapsed} ",
+            MsgType.Analysis,
+        )
+        self.window.appendLogMessage(
+            (
+                'Thread : . . . '
+                f'local target=({result.focalX:.2f}, {result.focalY:.2f}, {result.focalZ:.2f}), '
+                f'aperture={result.maxDipDegrees:.1f}deg, radius={result.apertureRadius:.2f}m, '
+                f'frequency={result.frequency:.1f}Hz, Vint={result.vint:.1f}m/s'
+            ),
+            MsgType.Analysis,
+        )
+        self.window.appendLogMessage(
+            (
+                'Thread : . . . '
+                f'contributing relation records: {result.contributingRelationCount:,} '
+                f'out of: {result.totalRelationCount:,}; '
+                f'contributing receiver traces: {result.contributingTraceCount:,} '
+                f'out of: {result.totalTraceCount:,} resolved traces'
+            ),
+            MsgType.Analysis,
+        )
+        if result.inactiveSourceCount or result.inactiveReceiverCount:
+            self.window.appendLogMessage(
+                (
+                    'Thread : . . . '
+                    f'inactive source records ignored: {result.inactiveSourceCount:,}; '
+                    f'inactive receiver records ignored: {result.inactiveReceiverCount:,}'
+                ),
+                MsgType.Analysis,
+            )
+        if result.inactiveSourceRelationCount:
+            self.window.appendLogMessage(
+                f'Thread : . . . relation records ignored because source is inactive: {result.inactiveSourceRelationCount:,}',
+                MsgType.Analysis,
+            )
+        if result.sourceOrphanRelationCount or result.receiverOrphanRelationCount:
+            self.window.appendLogMessage(
+                (
+                    'Thread : . . . '
+                    f'relation records flagged as source orphans: {result.sourceOrphanRelationCount:,}; '
+                    f'receiver orphans: {result.receiverOrphanRelationCount:,}'
+                ),
+                MsgType.Warning,
+            )
+        if result.missingSourceCount or result.missingReceiverCount:
+            self.window.appendLogMessage(
+                (
+                    'Thread : . . . '
+                    f'missing source lookups: {result.missingSourceCount:,}; '
+                    f'missing receiver ranges: {result.missingReceiverCount:,}'
+                ),
+                MsgType.Warning,
+            )
+
+        _copyCfpDisplayOutputs(self.window, result)
+        _logCfpSnr(self.window, result)
+
+        self.window.renderSelectedCfpSlice()
+        _showCfpAnalysisTab(self.window)
+        self.runtimeDependenciesProvider()['QMessageBox'].information(
+            self.window,
+            'Done',
+            (
+                'Worker thread completed. '
+                f'{result.contributingTraceCount:,} traces contributed from {sourceName}.'
+            ),
+        )

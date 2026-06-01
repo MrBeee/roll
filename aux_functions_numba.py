@@ -677,7 +677,7 @@ def pointInPolygon(xy, poly):
 # 20-40 s first-call JIT compile is paid only once per (numba, numpy,
 # python) version triple, not on every QGIS restart.
 # ----------------------------------------------------------------------------
-@jit(nopython=True, cache=True)
+@jit(nopython=True, cache=False)
 def numbaApplyBinUpdatesAnalysis(
     nx,                # int64[N]
     ny,                # int64[N]
@@ -737,7 +737,7 @@ def numbaApplyBinUpdatesAnalysis(
 # Same write hazard caveat: parallel=False because per-(x, y) fold counter
 # is not safe to race across threads. cache=True keeps the JIT artifact.
 # ----------------------------------------------------------------------------
-@jit(nopython=True, cache=True)
+@jit(nopython=True, cache=False)
 def numbaApplyBinUpdatesAnalysisBatch(
     nx,                # int64[N]
     ny,                # int64[N]

@@ -101,6 +101,10 @@ class ActionStateController:
         experimentalEnabled = bool(window.appSettings.useExperimental)
         hasGeometryInputs = enable is True and window.srcGeom is not None and window.recGeom is not None
         hasSpsInputs = enable is True and window.spsImport is not None and window.rpsImport is not None
+        hasCfpGeometryInputs = enable is True and (
+            (window.srcGeom is not None and window.relGeom is not None and window.recGeom is not None) or
+            (window.spsImport is not None and window.xpsImport is not None and window.rpsImport is not None)
+        )
         hasTraceTable = enable is True and window.output.anaOutput is not None
 
         self._setActionStates(
@@ -109,6 +113,7 @@ class ActionStateController:
             ('actionGeometryFromTemplates', enable and nTemplates > 0),
             ('actionCFPAnalysisFromTemplates', enable and experimentalEnabled and nTemplates > 0),
             ('actionCFPAnalysisFromTraceTable', experimentalEnabled and hasTraceTable),
+            ('actionCFPAnalysisFromGeometryTables', experimentalEnabled and hasCfpGeometryInputs),
             ('actionBasicBinFromGeometry', hasGeometryInputs),
             ('actionFullBinFromGeometry', hasGeometryInputs),
             ('actionBasicBinFromSps', hasSpsInputs),
@@ -122,6 +127,7 @@ class ActionStateController:
         self._setActionVisibility(
             ('actionCFPAnalysisFromTemplates', experimentalEnabled),
             ('actionCFPAnalysisFromTraceTable', experimentalEnabled),
+            ('actionCFPAnalysisFromGeometryTables', experimentalEnabled),
         )
 
     def clipboardHasText(self):

@@ -1,5 +1,3 @@
-# this section contains experimental code for CFP (Common Focal Point) analysis;
-
 try:
     from numba import jit, prange
 except ImportError:
@@ -17,156 +15,218 @@ except ImportError:
 import numpy as np
 
 
-@jit(nopython=True, cache=True)
-def compute_one_way_beam(focal_x, focal_y, focal_z, surf_x, surf_y, surf_z, freqs, v_int, matlab_compat=False):
-    """
-    Computes the one-way synthesized wavefield beam at a specific subsurface
-    focal point across an array of surface coordinates and frequency bands.
+@jit(nopython=True, cache=False)
+def _compare_source_key(src_ind, src_line, src_point, key_ind, key_line, key_point, idx):
+    if key_ind[idx] < src_ind:
+        return -1
+    if key_ind[idx] > src_ind:
+        return 1
+    if key_line[idx] < src_line:
+        return -1
+    if key_line[idx] > src_line:
+        return 1
+    if key_point[idx] < src_point:
+        return -1
+    if key_point[idx] > src_point:
+        return 1
+    return 0
 
-    Parameters:
-    -----------
-    focal_x, focal_y, focal_z : float
-        Coordinates of the target subsurface focal point.
-    surf_x, surf_y, surf_z : 1D float arrays
-        Coordinates of the active surface channels (either sources or receivers).
-    freqs : 1D float array
-        The discrete frequency spectrum to evaluate (e.g., 10 to 60 Hz).
-    v_int : float
-        Interval velocity (vint from your XML configuration).
 
-    Returns:
-    --------
-    beam_spectrum : 1D complex array
-        The synthesized monochromatic energy summed across the array per frequency (complex64).
-    """
-    n_surf = len(surf_x)
-    n_freq = len(freqs)
+@jit(nopython=True, cache=False)
+def _find_source_key(src_ind, src_line, src_point, key_ind, key_line, key_point):
+    left = 0
+    right = key_ind.shape[0]
+    while left < right:
+        mid = (left + right) // 2
+        cmp = _compare_source_key(src_ind, src_line, src_point, key_ind, key_line, key_point, mid)
+        if cmp < 0:
+            left = mid + 1
+        elif cmp > 0:
+            right = mid
+        else:
+            return mid
+    return -1
 
-    beam_spectrum = np.zeros(n_freq, dtype=np.complex64)
 
-    # Special case: single source/receiver, beam should be flat everywhere (except at the source location)
-    if n_surf == 1:
-        for f_idx in prange(n_freq):
-            # For Matlab compatibility, use amplitude = 1, phase = 0 everywhere (except at the source)
-            # This matches the expected flat field in the single-point case
-            beam_spectrum[f_idx] = 1.0 + 0.0j
-        return beam_spectrum
+@jit(nopython=True, cache=False)
+def _compare_line_key(rec_ind, rec_line, key_ind, key_line, idx):
+    if key_ind[idx] < rec_ind:
+        return -1
+    if key_ind[idx] > rec_ind:
+        return 1
+    if key_line[idx] < rec_line:
+        return -1
+    if key_line[idx] > rec_line:
+        return 1
+    return 0
 
-    # General case: sum over all sources/receivers
-    for f_idx in prange(n_freq):
-        omega = 2.0 * np.pi * freqs[f_idx]
-        k = omega / v_int
-        total_field = 0.0 + 0.0j
-        for s_idx in range(n_surf):
-            dx = surf_x[s_idx] - focal_x
-            dy = surf_y[s_idx] - focal_y
-            dz = surf_z[s_idx] - focal_z
-            r = np.sqrt(dx * dx + dy * dy + dz * dz)
-            if r < 1e-3:
-                continue
-            if matlab_compat:
-                amplitude = 1.0 / r
-                phase = -k * r
+
+@jit(nopython=True, cache=False)
+def _find_line_key(rec_ind, rec_line, key_ind, key_line):
+    left = 0
+    right = key_ind.shape[0]
+    while left < right:
+        mid = (left + right) // 2
+        cmp = _compare_line_key(rec_ind, rec_line, key_ind, key_line, mid)
+        if cmp < 0:
+            left = mid + 1
+        elif cmp > 0:
+            right = mid
+        else:
+            return mid
+    return -1
+
+
+@jit(nopython=True, cache=False)
+def _lower_bound_int(values, start, end, target):
+    left = start
+    right = end
+    while left < right:
+        mid = (left + right) // 2
+        if values[mid] < target:
+            left = mid + 1
+        else:
+            right = mid
+    return left
+
+
+@jit(nopython=True, cache=False)
+def _upper_bound_int(values, start, end, target):
+    left = start
+    right = end
+    while left < right:
+        mid = (left + right) // 2
+        if values[mid] <= target:
+            left = mid + 1
+        else:
+            right = mid
+    return left
+
+
+@jit(nopython=True, cache=False)
+def scan_cfp_geometry_relations_numba(
+    rel_src_ind,
+    rel_src_line,
+    rel_src_point,
+    rel_rec_ind,
+    rel_rec_line,
+    rel_rec_min,
+    rel_rec_max,
+    rel_in_sps,
+    rel_in_rps,
+    src_ind,
+    src_line,
+    src_point,
+    src_x,
+    src_y,
+    inactive_src_ind,
+    inactive_src_line,
+    inactive_src_point,
+    rec_group_ind,
+    rec_group_line,
+    rec_group_start,
+    rec_group_end,
+    rec_point,
+    rec_x,
+    rec_y,
+    source_weights,
+    receiver_weights,
+    focal_x,
+    focal_y,
+    aperture_radius_squared,
+):
+    total_trace_count = 0
+    contributing_relation_count = 0
+    contributing_trace_count = 0
+    inactive_source_relation_count = 0
+    source_orphan_relation_count = 0
+    receiver_orphan_relation_count = 0
+    missing_source_count = 0
+    missing_receiver_count = 0
+
+    n_rel = rel_src_ind.shape[0]
+    for rel_idx in range(n_rel):
+        if rel_in_sps[rel_idx] == 0:
+            source_orphan_relation_count += 1
+            continue
+
+        if rel_in_rps[rel_idx] == 0:
+            receiver_orphan_relation_count += 1
+            continue
+
+        src_idx = _find_source_key(
+            rel_src_ind[rel_idx],
+            rel_src_line[rel_idx],
+            rel_src_point[rel_idx],
+            src_ind,
+            src_line,
+            src_point,
+        )
+        if src_idx < 0:
+            inactive_src_idx = _find_source_key(
+                rel_src_ind[rel_idx],
+                rel_src_line[rel_idx],
+                rel_src_point[rel_idx],
+                inactive_src_ind,
+                inactive_src_line,
+                inactive_src_point,
+            )
+            if inactive_src_idx >= 0:
+                inactive_source_relation_count += 1
             else:
-                obliquity = np.abs(dz) / r
-                phase = -k * r
-                amplitude = (obliquity / (2.0 * np.pi * r)) * (1.0 / r)
-            real_part = amplitude * np.cos(phase)
-            imag_part = amplitude * np.sin(phase)
-            total_field += complex(real_part, imag_part)
-        beam_spectrum[f_idx] = total_field
+                missing_source_count += 1
+            continue
 
-    return beam_spectrum
+        source_dx = src_x[src_idx] - focal_x
+        source_dy = src_y[src_idx] - focal_y
+        if source_dx * source_dx + source_dy * source_dy > aperture_radius_squared:
+            continue
 
+        rec_group_idx = _find_line_key(rel_rec_ind[rel_idx], rel_rec_line[rel_idx], rec_group_ind, rec_group_line)
+        if rec_group_idx < 0:
+            missing_receiver_count += 1
+            continue
 
-@jit(nopython=True, cache=True)
-def compute_weighted_one_way_beam(focal_x, focal_y, focal_z, surf_x, surf_y, surf_z, surf_weights, freqs, v_int, matlab_compat=False):
-    """
-    Weighted monochromatic beam calculation at a focal point, preserving
-    station multiplicity (useful for relation-based proxy calculations).
-    """
-    n_surf = len(surf_x)
-    n_freq = len(freqs)
-    beam_spectrum = np.zeros(n_freq, dtype=np.complex64)
+        rec_min = rel_rec_min[rel_idx]
+        rec_max = rel_rec_max[rel_idx]
+        if rec_max < rec_min:
+            continue
 
-    for f_idx in prange(n_freq):
-        omega = 2.0 * np.pi * freqs[f_idx]
-        k = omega / v_int
-        total_field = 0.0 + 0.0j
-        for s_idx in range(n_surf):
-            dx = surf_x[s_idx] - focal_x
-            dy = surf_y[s_idx] - focal_y
-            dz = surf_z[s_idx] - focal_z
-            r = np.sqrt(dx * dx + dy * dy + dz * dz)
-            if r < 1e-3:
-                continue
-            if matlab_compat:
-                amplitude = (1.0 / r) * surf_weights[s_idx]
-                phase = -k * r
-            else:
-                obliquity = np.abs(dz) / r
-                phase = -k * r
-                amplitude = (obliquity / (2.0 * np.pi * r * r)) * surf_weights[s_idx]
-            real_part = amplitude * np.cos(phase)
-            imag_part = amplitude * np.sin(phase)
-            total_field += complex(real_part, imag_part)
-        beam_spectrum[f_idx] = total_field
+        group_start = rec_group_start[rec_group_idx]
+        group_end = rec_group_end[rec_group_idx]
+        left = _lower_bound_int(rec_point, group_start, group_end, rec_min)
+        right = _upper_bound_int(rec_point, group_start, group_end, rec_max)
+        if right <= left:
+            missing_receiver_count += 1
+            continue
 
-    return beam_spectrum
+        total_trace_count += right - left
+        receiver_count = 0
+        for rec_idx in range(left, right):
+            receiver_dx = rec_x[rec_idx] - focal_x
+            receiver_dy = rec_y[rec_idx] - focal_y
+            if receiver_dx * receiver_dx + receiver_dy * receiver_dy <= aperture_radius_squared:
+                receiver_weights[rec_idx] += 1.0
+                receiver_count += 1
 
+        if receiver_count > 0:
+            source_weights[src_idx] += receiver_count
+            contributing_relation_count += 1
+            contributing_trace_count += receiver_count
 
-@jit(nopython=True, cache=True)
-def filter_indices_by_aperture(focal_x, focal_y, focal_z, max_dip_degrees, mmap_mid_x, mmap_mid_y, matlab_compat=False):
-    """
-    Scans the memory-mapped coordinates and isolates trace indices that fall
-    within the physical illumination cone of the specific subsurface target.
-
-    Parameters:
-    -----------
-    focal_x, focal_y, focal_z : float
-        Coordinates of the target subsurface focal point.
-    max_dip_degrees : float
-        The maximum structural dip angle to clear for imaging (e.g., 35.0 or 45.0).
-    mmap_mid_x, mmap_mid_y : 1D float arrays (Memory-Mapped)
-        The horizontal surface midpoints for ALL traces in the survey design file.
-
-    Returns:
-    --------
-    valid_indices : 1D int64 array
-        The filtered subset of indices to pass to your extraction engine.
-    """
-    n_traces = len(mmap_mid_x)
-
-    # Calculate the maximum allowable horizontal distance on the surface
-    if matlab_compat:
-        # MATLAB: no dip limit, use a very large aperture
-        max_radius_sq = 1e20
-    else:
-        theta_rad = np.radians(max_dip_degrees)
-        max_radius = np.abs(focal_z) * np.tan(theta_rad)
-        max_radius_sq = max_radius * max_radius
-
-    # Step 1: Pre-screen flag array to allow parallel execution without race conditions
-    keep_mask = np.zeros(n_traces, dtype=np.bool_)
-
-    for i in prange(n_traces):
-        dx = mmap_mid_x[i] - focal_x
-        dy = mmap_mid_y[i] - focal_y
-
-        # Euclidean distance squared (avoids calculating expensive square roots)
-        distance_sq = dx * dx + dy * dy
-
-        if distance_sq <= max_radius_sq:
-            keep_mask[i] = True
-
-    # Step 2: Extract active index locations
-    # (Using non-parallel standard loop to cleanly compress the index mask)
-    valid_indices = np.where(keep_mask)[0]
-
-    return valid_indices
+    return (
+        total_trace_count,
+        contributing_relation_count,
+        contributing_trace_count,
+        inactive_source_relation_count,
+        source_orphan_relation_count,
+        receiver_orphan_relation_count,
+        missing_source_count,
+        missing_receiver_count,
+    )
 
 
-@jit(parallel=True, cache=True)
+@jit(parallel=True, nopython=True, cache=False)
 def filter_sps_relations_by_aperture(focal_x, focal_y, max_radius, src_x, src_y, rec_x, rec_y):
     """
     Screens memory-mapped active relation arrays to isolate traces where
@@ -194,7 +254,7 @@ def filter_sps_relations_by_aperture(focal_x, focal_y, max_radius, src_x, src_y,
     return np.where(keep_mask)[0]
 
 
-@jit(parallel=True, cache=True)
+@jit(parallel=True, nopython=True, cache=False)
 def compute_monochromatic_beam(focal_x, focal_y, focal_z, surf_x, surf_y, freq, v_int):
     """
     Calculates a single frequency wavefront component for the isolated target channels.
@@ -237,7 +297,7 @@ def compute_monochromatic_beam_xy_grid(eval_x, eval_y, eval_z, surf_x, surf_y, s
     return _compute_ft_beam_xy_grid_numba(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, freq, v_int, focal_x, focal_y)
 
 
-@jit(parallel=True, nopython=True, cache=True)
+@jit(parallel=True, nopython=True, cache=False)
 def _compute_ft_beam_xy_grid_numba(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, freq, v_int, focal_x, focal_y):
     n_x = len(eval_x)
     n_y = len(eval_y)
@@ -290,7 +350,7 @@ def _compute_ft_beam_xy_grid_numba(eval_x, eval_y, eval_z, surf_x, surf_y, surf_
     return beam_grid
 
 
-@jit(parallel=True, nopython=True, cache=True)
+@jit(parallel=True, nopython=True, cache=False)
 def compute_illumination_row_numba(focal_y, eval_x, focal_z, src_coords, rec_coords, weights, freqs, vint, max_radius, matlab_compat=False):
     """
     Optimized kernel to compute a single row of an illumination (energy) map.
@@ -352,7 +412,7 @@ def compute_illumination_row_numba(focal_y, eval_x, focal_z, src_coords, rec_coo
     return row_energy
 
 
-@jit(parallel=True, nopython=True, cache=True)
+@jit(parallel=True, nopython=True, cache=False)
 def compute_radon_images_numba(source_field, receiver_field, eval_x, eval_y, px, py, freq):
     """
     Computes Radon-domain unit-normalized images directly to avoid multiple grid passes.
@@ -452,7 +512,7 @@ def compute_radon_images_numba(source_field, receiver_field, eval_x, eval_y, px,
     return src_img, rec_img, avp_img
 
 
-@jit(nopython=True, cache=True)
+@jit(nopython=True, cache=False)
 def calculate_panel_snr_numba(image):
     """
     Extracts an SNR metric (dB) from a unit-normalized [0, 1] Radon panel.
@@ -472,7 +532,7 @@ def calculate_panel_snr_numba(image):
     return -20.0 * np.log10(avg_noise) if avg_noise > 1e-6 else 60.0
 
 
-@jit(parallel=True, nopython=True, cache=True)
+@jit(parallel=True, nopython=True, cache=False)
 def compute_xy_beam_images_numba(source_field, receiver_field, db_min=-60.0):
     """
     Fused Numba kernel to generate Source, Receiver, and Resolution dB images
@@ -550,88 +610,6 @@ def compute_xy_beam_images_numba(source_field, receiver_field, db_min=-60.0):
     return s_img, r_img, res_img
 
 
-@jit(nopython=True, cache=True)
-def _find_max_amp_numba(field):
-    """Helper to find max of absolute magnitude."""
-    n_y, n_x = field.shape
-    max_val = 0.0
-    for i in range(n_y):
-        for j in range(n_x):
-            val = np.abs(field[i, j])
-            if val > max_val:
-                max_val = val
-    return max_val
-
-
-@jit(parallel=True, nopython=True, cache=True)
-def convert_to_db_image_numba(field, db_min=-60.0):
-    """
-    Fused Numba kernel for dB conversion and normalization.
-    """
-    max_amp = _find_max_amp_numba(field)
-    n_y, n_x = field.shape
-    out = np.empty((n_y, n_x), dtype=np.float32)
-    if max_amp <= 0.0:
-        out.fill(np.float32(db_min))
-        return out
-
-    inv_max = 1.0 / max_amp
-    for i in prange(n_y):
-        for j in range(n_x):
-            norm = np.abs(field[i, j]) * inv_max
-            if norm < 1e-6:
-                out[i, j] = np.float32(db_min)
-            else:
-                val = 20.0 * np.log10(norm)
-                out[i, j] = np.float32(max(val, db_min))
-    return out
-
-
-@jit(parallel=True, nopython=True, cache=True)
-def convert_to_unit_image_numba(field):
-    """
-    Fused Numba kernel for unit normalization.
-    """
-    max_amp = _find_max_amp_numba(field)
-    n_y, n_x = field.shape
-    out = np.empty((n_y, n_x), dtype=np.float32)
-    if max_amp <= 0.0:
-        out.fill(np.float32(0.0))
-        return out
-
-    inv_max = 1.0 / max_amp
-    for i in prange(n_y):
-        for j in range(n_x):
-            out[i, j] = np.float32(np.abs(field[i, j]) * inv_max)
-    return out
-
-
-@jit(parallel=True, nopython=True, cache=True)
-def compute_resolution_db_numba(source_field, receiver_field, db_min=-60.0):
-    """
-    Fused kernel for complex multiplication and dB conversion.
-    """
-    n_y, n_x = source_field.shape
-    max_s = _find_max_amp_numba(source_field)
-    max_r = _find_max_amp_numba(receiver_field)
-
-    out = np.empty((n_y, n_x), dtype=np.float32)
-    if max_s <= 0.0 or max_r <= 0.0:
-        out.fill(np.float32(db_min))
-        return out
-
-    inv_max = 1.0 / (max_s * max_r)
-    for i in prange(n_y):
-        for j in range(n_x):
-            norm = np.abs(np.real(source_field[i, j] * receiver_field[i, j])) * inv_max
-            if norm < 1e-6:
-                out[i, j] = np.float32(db_min)
-            else:
-                val = 20.0 * np.log10(norm)
-                out[i, j] = np.float32(max(val, db_min))
-    return out
-
-
 def compute_monochromatic_weighted_beam_xy_grid(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, surf_weights, freq, v_int, focal_x=0.0, focal_y=0.0):
     """
     Calculates the Fourier/slowness CFP beam while preserving multiplicity through
@@ -640,7 +618,7 @@ def compute_monochromatic_weighted_beam_xy_grid(eval_x, eval_y, eval_z, surf_x, 
     return _compute_weighted_ft_beam_xy_grid_numba(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, surf_weights, freq, v_int, focal_x, focal_y)
 
 
-@jit(parallel=True, nopython=True, cache=True)
+@jit(parallel=True, nopython=True, cache=False)
 def _compute_weighted_ft_beam_xy_grid_numba(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, surf_weights, freq, v_int, focal_x, focal_y):
     n_x = len(eval_x)
     n_y = len(eval_y)

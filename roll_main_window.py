@@ -664,6 +664,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.tabGeom.installEventFilter(self)                                   # catch the 'Show' event to connect to toolbar buttons
         self.tabSps.installEventFilter(self)                                    # catch the 'Show' event to connect to toolbar buttons
         self.tabTraces.installEventFilter(self)                                 # catch the 'Show' event to connect to toolbar buttons
+        self.tabCfp.installEventFilter(self)                                    # catch the 'Show' event to connect to toolbar buttons
 
         # The following functions have been removed from this file's class definition, to reduce the size of 'roll_main_window.py'
         # They now reside in separate source files. Therefore self.createLayoutTab() is now called as createLayoutTab(self) instead.
@@ -825,6 +826,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionGeometryFromTemplates.triggered.connect(self.createGeometryFromTemplates)
         self.actionCFPAnalysisFromTemplates.triggered.connect(self.cfpAnalysisFromTemplates)
         self.actionCFPAnalysisFromTraceTable.triggered.connect(self.cfpAnalysisFromTraceTable)
+        self.actionCFPAnalysisFromGeometryTables.triggered.connect(self.cfpAnalysisFromGeometryTables)
         self.actionShift_Survey_Area.triggered.connect(self.shiftSurveyArea)
 
         # actions related to the help menu
@@ -1055,8 +1057,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def updateCfpPlotAxes(self, mode: str) -> None:
         styles = {'color': '#000', 'font-size': '10pt'}
         if mode == 'radon':
-            self.cfpWidget.setLabel('bottom', 'p_x', units='ms/m', **styles)
-            self.cfpWidget.setLabel('left', 'p_y', units='ms/m', **styles)
+            self.cfpWidget.setLabel('bottom', 'p_x', units='s/m', **styles)
+            self.cfpWidget.setLabel('left', 'p_y', units='s/m', **styles)
             return
 
         self.cfpWidget.setLabel('bottom', 'inline', units='m', **styles)
@@ -1074,11 +1076,28 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             y0 = self.output.cfpRadonY0
             dx = self.output.cfpRadonDx
             dy = self.output.cfpRadonDy
-            levels = (0.0, 1.0)
-            label = 'amplitude (0 - 1)'
-            limits = (0.0, 1.0)
-            rounding = 0.1
-            colorBarTickSpacing = (0.1, 0.05)
+            if component == 2:
+                avpMax = 0.0
+                if image is not None:
+                    imageArray = np.asarray(image)
+                    finiteImage = imageArray[np.isfinite(imageArray)]
+                    if finiteImage.size > 0:
+                        avpMax = max(float(np.max(finiteImage)), 0.0)
+                if avpMax <= 0.0:
+                    avpMax = 1.0
+                if image is not None:
+                    image = np.nan_to_num(np.asarray(image, dtype=np.float32) / avpMax, nan=0.0, posinf=0.0, neginf=0.0)
+                levels = (0.0, 1.0)
+                label = 'amplitude / local max (0 - 1)'
+                limits = (0.0, 1.0)
+                rounding = 0.1
+                colorBarTickSpacing = (0.1, 0.05)
+            else:
+                levels = (0.0, 1.0)
+                label = 'amplitude (0 - 1)'
+                limits = (0.0, 1.0)
+                rounding = 0.1
+                colorBarTickSpacing = (0.1, 0.05)
         else:
             component = self.getSelectedCfpSlice()
             image = self.cfpSliceImageForComponent(component)
@@ -1320,6 +1339,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.Type.Show:                                             # do 'cheap' test first
+            if source == getattr(self, 'tabCfp', None):
+                if self.plotViewStateController.handleShownWidget(self.cfpWidget):
+                    return True
             if self.plotViewStateController.handleShownWidget(source):
                 return True
 
