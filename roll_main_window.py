@@ -1020,10 +1020,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def cfpSliceTitle(self, component: int) -> str:
         frequency = float(getattr(self.output, 'cfpFrequency', 40.0))
+        depth = abs(float(getattr(self.output, 'cfpFocalZ', 0.0)))
         titles = {
-            0: f'xy-slice of source beam, frequency = {frequency:g} Hz',
-            1: f'xy-slice of receiver beam, frequency = {frequency:g} Hz',
-            2: f'xy-slice of resolution function, frequency = {frequency:g} Hz',
+            0: f'xy-slice of source beam, frequency = {frequency:g} Hz, depth = {depth:g} m',
+            1: f'xy-slice of receiver beam, frequency = {frequency:g} Hz, depth = {depth:g} m',
+            2: f'xy-slice of resolution function, frequency = {frequency:g} Hz, depth = {depth:g} m',
         }
         return titles.get(component, titles[0])
 
@@ -1036,10 +1037,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def cfpRadonTitle(self, component: int) -> str:
         frequency = float(getattr(self.output, 'cfpFrequency', 40.0))
+        depth = abs(float(getattr(self.output, 'cfpFocalZ', 0.0)))
         titles = {
-            0: f'Radon transform of source beam, frequency = {frequency:g} Hz',
-            1: f'Radon transform of receiver beam, frequency = {frequency:g} Hz',
-            2: f'AVP-function in the Radon domain, frequency = {frequency:g} Hz',
+            0: f'Radon transform of source beam, frequency = {frequency:g} Hz, depth = {depth:g} m',
+            1: f'Radon transform of receiver beam, frequency = {frequency:g} Hz, depth = {depth:g} m',
+            2: f'AVP-function in the Radon domain, frequency = {frequency:g} Hz, depth = {depth:g} m',
         }
         return titles.get(component, titles[0])
 
@@ -1073,9 +1075,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             dx = self.output.cfpRadonDx
             dy = self.output.cfpRadonDy
             levels = (0.0, 1.0)
-            label = 'amplitude'
+            label = 'amplitude (0 - 1)'
             limits = (0.0, 1.0)
             rounding = 0.1
+            colorBarTickSpacing = (0.1, 0.05)
         else:
             component = self.getSelectedCfpSlice()
             image = self.cfpSliceImageForComponent(component)
@@ -1085,9 +1088,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             dx = self.output.cfpSourceBeamDx
             dy = self.output.cfpSourceBeamDy
             levels = (-60.0, 0.0)
-            label = 'dB'
+            label = 'dB (-60 - 0)'
             limits = (-60.0, 0.0)
             rounding = 10.0
+            colorBarTickSpacing = None
 
         self.updateCfpPlotAxes(mode)
 
@@ -1105,6 +1109,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 label=label,
                 limits=limits,
                 rounding=rounding,
+                colorBarTickSpacing=colorBarTickSpacing,
             )
 
         self.cfpWidget.setTitle(title, color='b', size='16pt')
@@ -2650,6 +2655,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         label='dB attenuation',
         limits=(-100.0, 0.0),
         rounding=10.0,
+        colorBarTickSpacing=None,
     ):
         imageItem = self.createAnalysisImageItem(imageData, x0, y0, dx, dy, levels=levels)
 
@@ -2671,6 +2677,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     values=levels,
                 )
                 colorBar.setLevels(low=levels[0], high=levels[1])
+                labelAxis = colorBar.getAxis('bottom') if colorBar.horizontal else colorBar.getAxis('left')
+                labelAxis.setLabel(label)
+                valueAxis = getattr(colorBar, 'axis', labelAxis)
+                valueAxis.setRange(levels[0], levels[1])
+                if colorBarTickSpacing is None:
+                    valueAxis.setTickSpacing()
+                else:
+                    valueAxis.setTickSpacing(colorBarTickSpacing[0], colorBarTickSpacing[1])
             except TypeError as exc:
                 self.appendLogMessage(f'Colorbar init failed: {exc}', MsgType.Error)
                 colorBar = None
@@ -2679,6 +2693,17 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 colorBar.setImageItem(imageItem)
                 colorBar.setLevels(low=levels[0], high=levels[1])
                 colorBar.setColorMap(colorMapObj)
+                if colorBar.horizontal:
+                    labelAxis = colorBar.getAxis('bottom')
+                else:
+                    labelAxis = colorBar.getAxis('left')
+                labelAxis.setLabel(label)
+                valueAxis = getattr(colorBar, 'axis', labelAxis)
+                valueAxis.setRange(levels[0], levels[1])
+                if colorBarTickSpacing is None:
+                    valueAxis.setTickSpacing()
+                else:
+                    valueAxis.setTickSpacing(colorBarTickSpacing[0], colorBarTickSpacing[1])
             except TypeError as exc:
                 self.appendLogMessage(f'Colorbar setColorMap failed: {exc}', MsgType.Error)
 
@@ -3169,6 +3194,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.output.cfpRadonDx = 1.0
         self.output.cfpRadonDy = 1.0
         self.output.cfpFrequency = 40.0
+        self.output.cfpFocalZ = 0.0
         self.output.recGeom = None
         self.output.srcGeom = None
         self.output.relGeom = None

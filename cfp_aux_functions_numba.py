@@ -224,136 +224,79 @@ def compute_monochromatic_beam(focal_x, focal_y, focal_z, surf_x, surf_y, freq, 
     return wavefield
 
 
-# @jit(parallel=True, cache=True)
-def compute_monochromatic_beam_xy_grid(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, freq, v_int, matlab_compat=False, beam_type="src"):
-
-    raise Exception("TEST: compute_monochromatic_beam_xy_grid") 
-
-    print("DEBUG: entered compute_monochromatic_beam_xy_grid")
-    import logging
-
-    import numpy as np
-    logging.info("=== ENTERED CFP BEAM GRID FUNCTION ===")
-    logging.info(f"[CFP DEBUG] --- compute_monochromatic_beam_xy_grid ---")
-    logging.info(f"surf_x shape: {np.shape(surf_x)}, sample: {surf_x[:5]}")
-    logging.info(f"surf_y shape: {np.shape(surf_y)}, sample: {surf_y[:5]}")
-    logging.info(f"surf_z shape: {np.shape(surf_z)}, sample: {surf_z[:5]}")
-    logging.info(f"eval_x shape: {np.shape(eval_x)}, sample: {eval_x[:5]} ... {eval_x[-5:]}")
-    logging.info(f"eval_y shape: {np.shape(eval_y)}, sample: {eval_y[:5]} ... {eval_y[-5:]}")
-    logging.info(f"eval_z: {eval_z}")
-    logging.info(f"freq: {freq}")
-    logging.info(f"v_int: {v_int}")
-    logging.info(f"n_stations: {len(surf_x)}  n_x: {len(eval_x)}  n_y: {len(eval_y)}")
-    logging.info(f"beam_type: {beam_type}")
+def compute_monochromatic_beam_xy_grid(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, freq, v_int, matlab_compat=False, beam_type="src", focal_x=0.0, focal_y=0.0):
     """
-    Calculates a monochromatic one-way beam image on an x/y grid at a fixed z level.
-    If matlab_compat is True, uses amplitude = 1/r and phase = -kr (matches Matlab reference).
-    Otherwise, uses Rayleigh-II obliquity factor and Green's function.
+    Calculates a monochromatic one-way beam image on an x/y grid at the focal depth.
+
+    This follows the Fourier/slowness formulation used by acq_ftbeam_homogen.m for
+    the z == z1 case.  The beam phase is controlled by the slowness vector from
+    each surface station to the focal point, not by a fresh spherical distance from
+    each station to each output pixel.
     """
+    _ = (matlab_compat, beam_type)
+    return _compute_ft_beam_xy_grid_numba(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, freq, v_int, focal_x, focal_y)
+
+
+@jit(parallel=True, nopython=True, cache=True)
+def _compute_ft_beam_xy_grid_numba(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, freq, v_int, focal_x, focal_y):
     n_x = len(eval_x)
     n_y = len(eval_y)
     n_stations = len(surf_x)
     omega = 2.0 * np.pi * freq
-    k = omega / v_int
     c = v_int
     p = 1.0 / c
 
-    dz_vals = (surf_z - eval_z).astype(np.float32)
-    dz2_vals = dz_vals * dz_vals
-    abs_dz_vals = np.abs(dz_vals)
-
     beam_grid = np.zeros((n_y, n_x), dtype=np.complex64)
 
-    # Special case: single source/receiver, flat field everywhere (except at the source location)
-    if n_stations == 1:
-        for y_idx in prange(n_y):
-            for x_idx in range(n_x):
-                beam_grid[y_idx, x_idx] = 1.0 + 0.0j
+    if n_stations == 0:
         return beam_grid
 
-    # Always treat x as x and y as y. Never swap axes.
-    # If all surf_x are identical (vertical line), the beam must be invariant in x.
-    if np.allclose(surf_x, surf_x[0]):
-        # Precompute for one x value (e.g., x=eval_x[0]) and broadcast across x
-        for y_idx in prange(n_y):
-            y_pos = eval_y[y_idx]
-            total_field = 0.0 + 0.0j
-            for station_idx in range(n_stations):
-                dx = np.float32(surf_x[station_idx] - eval_x[0])  # fixed x
-                dy = np.float32(surf_y[station_idx] - y_pos)
-                r = np.sqrt(dx * dx + dy * dy + dz2_vals[station_idx])
-                if r < 1e-3:
-                    continue
-                obliquity = abs_dz_vals[station_idx] / r
-                phase = -k * r
-                amplitude = obliquity / (2.0 * np.pi * r * r)
-                real_part = amplitude * np.cos(phase)
-                imag_part = amplitude * np.sin(phase)
-                total_field += complex(real_part, imag_part)
-            for x_idx in range(n_x):
-                beam_grid[y_idx, x_idx] = total_field
-        return beam_grid
+    slowness_x = np.empty(n_stations, dtype=np.float32)
+    slowness_y = np.empty(n_stations, dtype=np.float32)
+    station_weight = np.empty(n_stations, dtype=np.float32)
+    scale = 1.0 / (4.0 * np.pi * np.pi)
+    omega_over_c = p * omega
 
-    # If all surf_y are identical (horizontal line), the beam must be invariant in y.
-    if np.allclose(surf_y, surf_y[0]):
-        for x_idx in prange(n_x):
-            x_pos = eval_x[x_idx]
-            total_field = 0.0 + 0.0j
-            for station_idx in range(n_stations):
-                dx = np.float32(surf_x[station_idx] - x_pos)
-                dy = np.float32(surf_y[station_idx] - eval_y[0])  # fixed y
-                r = np.sqrt(dx * dx + dy * dy + dz2_vals[station_idx])
-                if r < 1e-3:
-                    continue
-                obliquity = abs_dz_vals[station_idx] / r
-                phase = -k * r
-                amplitude = obliquity / (2.0 * np.pi * r * r)
-                real_part = amplitude * np.cos(phase)
-                imag_part = amplitude * np.sin(phase)
-                total_field += complex(real_part, imag_part)
-            for y_idx in range(n_y):
-                beam_grid[y_idx, x_idx] = total_field
-        return beam_grid
+    for station_idx in range(n_stations):
+        dx_focus = surf_x[station_idx] - focal_x
+        dy_focus = surf_y[station_idx] - focal_y
+        dz_focus = surf_z[station_idx] - eval_z
+        r_focus = np.sqrt(dx_focus * dx_focus + dy_focus * dy_focus + dz_focus * dz_focus)
+        if r_focus < 1e-3:
+            slowness_x[station_idx] = 0.0
+            slowness_y[station_idx] = 0.0
+            station_weight[station_idx] = 0.0
+            continue
+        slowness_x[station_idx] = p * dx_focus / r_focus
+        slowness_y[station_idx] = p * dy_focus / r_focus
+        jacobian = (dz_focus * dz_focus) / (r_focus * r_focus * r_focus * r_focus)
+        station_weight[station_idx] = scale * jacobian * omega_over_c * omega_over_c
 
-    # General case: sum over all sources/receivers
     for y_idx in prange(n_y):
-        y_pos = eval_y[y_idx]
+        y_pos = eval_y[y_idx] - focal_y
         for x_idx in range(n_x):
-            x_pos = eval_x[x_idx]
+            x_pos = eval_x[x_idx] - focal_x
             total_field = 0.0 + 0.0j
             for station_idx in range(n_stations):
-                dx = np.float32(surf_x[station_idx] - x_pos)
-                dy = np.float32(surf_y[station_idx] - y_pos)
-                r = np.sqrt(dx * dx + dy * dy + dz2_vals[station_idx])
-                if r < 1e-3:
+                amplitude = station_weight[station_idx]
+                if amplitude == 0.0:
                     continue
-                obliquity = abs_dz_vals[station_idx] / r
-                phase = -k * r
-                amplitude = obliquity / (2.0 * np.pi * r * r)
+                phase = omega * (x_pos * slowness_x[station_idx] + y_pos * slowness_y[station_idx])
                 real_part = amplitude * np.cos(phase)
                 imag_part = amplitude * np.sin(phase)
                 total_field += complex(real_part, imag_part)
             beam_grid[y_idx, x_idx] = total_field
-    # --- Diagnostics: Output stats ---
-    try:
-        mag = np.abs(beam_grid)
-        logging.info(f"[CFP DEBUG] Output beam_grid: shape={beam_grid.shape}, min={mag.min()}, max={mag.max()}, mean={mag.mean()}")
-        max_idx = np.unravel_index(np.argmax(mag), mag.shape)
-        logging.info(f"[CFP DEBUG] Max value at index: {max_idx}, value: {mag[max_idx]}")
-    except Exception as e:
-        logging.warning(f"[CFP DEBUG] Could not compute output stats: {e}")
+
     return beam_grid
 
 
 @jit(parallel=True, nopython=True, cache=True)
-def compute_illumination_row_numba(focal_y, eval_x, focal_z, src_coords, rec_coords, weights, freqs, vint, max_radius):
-
-    raise Exception("TEST: compute_illumination_row_numba") 
-    
+def compute_illumination_row_numba(focal_y, eval_x, focal_z, src_coords, rec_coords, weights, freqs, vint, max_radius, matlab_compat=False):
     """
     Optimized kernel to compute a single row of an illumination (energy) map.
     Applies a moving spatial aperture filter per pixel in parallel.
     """
+    _ = matlab_compat
     n_x = len(eval_x)
     n_traces = src_coords.shape[0]
     n_freqs = len(freqs)
@@ -689,44 +632,59 @@ def compute_resolution_db_numba(source_field, receiver_field, db_min=-60.0):
     return out
 
 
-@jit(parallel=True, cache=True)
-def compute_monochromatic_weighted_beam_xy_grid(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, surf_weights, freq, v_int):
+def compute_monochromatic_weighted_beam_xy_grid(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, surf_weights, freq, v_int, focal_x=0.0, focal_y=0.0):
     """
-    Calculates a monochromatic one-way beam image on an x/y grid at a fixed z level,
-    while preserving multiplicity through per-station weights.
+    Calculates the Fourier/slowness CFP beam while preserving multiplicity through
+    per-station weights.
     """
+    return _compute_weighted_ft_beam_xy_grid_numba(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, surf_weights, freq, v_int, focal_x, focal_y)
 
-    # raise Exception("TEST: compute_monochromatic_weighted_beam_xy_grid")
 
+@jit(parallel=True, nopython=True, cache=True)
+def _compute_weighted_ft_beam_xy_grid_numba(eval_x, eval_y, eval_z, surf_x, surf_y, surf_z, surf_weights, freq, v_int, focal_x, focal_y):
     n_x = len(eval_x)
     n_y = len(eval_y)
     n_stations = len(surf_x)
     omega = 2.0 * np.pi * freq
-    k = omega / v_int
-
-    dz_vals = (surf_z - eval_z).astype(np.float32)
-    dz2_vals = dz_vals * dz_vals
-    abs_dz_vals = np.abs(dz_vals)
+    p = 1.0 / v_int
 
     beam_grid = np.zeros((n_y, n_x), dtype=np.complex64)
 
+    if n_stations == 0:
+        return beam_grid
+
+    slowness_x = np.empty(n_stations, dtype=np.float32)
+    slowness_y = np.empty(n_stations, dtype=np.float32)
+    station_weight = np.empty(n_stations, dtype=np.float32)
+    scale = 1.0 / (4.0 * np.pi * np.pi)
+    omega_over_c = p * omega
+
+    for station_idx in range(n_stations):
+        dx_focus = surf_x[station_idx] - focal_x
+        dy_focus = surf_y[station_idx] - focal_y
+        dz_focus = surf_z[station_idx] - eval_z
+        r_focus = np.sqrt(dx_focus * dx_focus + dy_focus * dy_focus + dz_focus * dz_focus)
+        if r_focus < 1e-3:
+            slowness_x[station_idx] = 0.0
+            slowness_y[station_idx] = 0.0
+            station_weight[station_idx] = 0.0
+            continue
+        slowness_x[station_idx] = p * dx_focus / r_focus
+        slowness_y[station_idx] = p * dy_focus / r_focus
+        jacobian = (dz_focus * dz_focus) / (r_focus * r_focus * r_focus * r_focus)
+        station_weight[station_idx] = scale * jacobian * omega_over_c * omega_over_c * surf_weights[station_idx]
+
     for y_idx in prange(n_y):
-        y_pos = eval_y[y_idx]
+        y_pos = eval_y[y_idx] - focal_y
         for x_idx in range(n_x):
-            x_pos = eval_x[x_idx]
+            x_pos = eval_x[x_idx] - focal_x
             total_field = np.complex64(0.0 + 0.0j)
 
             for station_idx in range(n_stations):
-                dx = np.float32(surf_x[station_idx] - x_pos)
-                dy = np.float32(surf_y[station_idx] - y_pos)
-                r = np.sqrt(dx * dx + dy * dy + dz2_vals[station_idx])
-
-                if r < 1e-3:
+                amplitude = station_weight[station_idx]
+                if amplitude == 0.0:
                     continue
-
-                obliquity = abs_dz_vals[station_idx] / r
-                phase = -k * r
-                amplitude = (obliquity / (2.0 * np.pi * r * r)) * surf_weights[station_idx]
+                phase = omega * (x_pos * slowness_x[station_idx] + y_pos * slowness_y[station_idx])
                 total_field += amplitude * np.exp(1j * phase)
 
             beam_grid[y_idx, x_idx] = total_field

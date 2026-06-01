@@ -1,0 +1,27 @@
+.\3d_cfp_analysis.py:7:20: E261 at least two spaces before inline comment
+.\3d_cfp_analysis.py:16:18: E261 at least two spaces before inline comment
+.\3d_cfp_analysis.py:17:17: E261 at least two spaces before inline comment
+.\3d_cfp_analysis.py:19:21: E261 at least two spaces before inline comment
+.\3d_cfp_analysis.py:32:59: W291 trailing whitespace
+.\3d_cfp_analysis.py:38:1: E302 expected 2 blank lines, found 1
+.\3d_cfp_analysis.py:41:1: W293 blank line contains whitespace
+.\3d_cfp_analysis.py:45:1: W293 blank line contains whitespace
+.\3d_cfp_analysis.py:50:1: W293 blank line contains whitespace
+.\3d_cfp_analysis.py:53:25: E261 at least two spaces before inline comment
+.\3d_cfp_analysis.py:54:1: W293 blank line contains whitespace
+.\3d_cfp_analysis.py:58:1: W293 blank line contains whitespace
+.\3d_cfp_analysis.py:62:1: E305 expected 2 blank lines after class or function definition, found 1
+.\3d_cfp_analysis.py:116:1: E305 expected 2 blank lines after class or function definition, found 1
+.\3d_cfp_analysis.py:160:29: E702 multiple statements on one line (semicolon)
+.\3d_cfp_analysis.py:160:56: E702 multiple statements on one line (semicolon)
+.\3d_cfp_analysis.py:167:29: E702 multiple statements on one line (semicolon)
+.\3d_cfp_analysis.py:178:26: E702 multiple statements on one line (semicolon)
+.\3d_cfp_analysis.py:179:15: E702 multiple statements on one line (semicolon)
+.\3d_cfp_analysis.py:188:29: E702 multiple statements on one line (semicolon)
+.\3d_cfp_analysis.py:189:15: E702 multiple statements on one line (semicolon)
+.\acq_ftbeam_homogen.py:407:13: E741 ambiguous variable name 'l'
+.\acq_ftbeam_homogen.py:467:13: E741 ambiguous variable name 'l'
+.\acq_rolltempl_pp.py:175:9: E741 ambiguous variable name 'I'
+.\acq_rolltempl_pp.py:180:9: E741 ambiguous variable name 'I'
+.\acq_rolltempl_pp.py:186:9: E741 ambiguous variable name 'l'
+.\demo_bart_4.py:103:9: E741 ambiguous variable name 'l'

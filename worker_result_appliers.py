@@ -22,6 +22,7 @@ def _copyCfpDisplayOutputs(window, result) -> None:
     window.output.cfpRadonDx = result.radonDx
     window.output.cfpRadonDy = result.radonDy
     window.output.cfpFrequency = result.frequency
+    window.output.cfpFocalZ = result.focalZ
 
 
 def _showCfpAnalysisTab(window) -> None:

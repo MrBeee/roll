@@ -40,38 +40,31 @@ def _callPythonFallback(pyFunc: object, *args):
     return cast(Callable[..., Any], pyFunc)(*args)
 
 
-def computeMonochromaticBeamXyGridSafe(evalX, evalY, evalZ, surfX, surfY, surfZ, frequency, vint):
+def computeMonochromaticBeamXyGridSafe(evalX, evalY, evalZ, surfX, surfY, surfZ, frequency, vint, focalX=0.0, focalY=0.0):
 
     """
-    KISS: Try Numba, if it fails, log and tell user to disable Numba in settings, then raise.
+    KISS: Try Numba; if it fails, raise a clear error.
     No silent fallback. This is the only supported wrapper for CFP beam grid calculation.
     """
-    import logging
-    import traceback
     try:
-        return compute_monochromatic_beam_xy_grid(evalX, evalY, evalZ, surfX, surfY, surfZ, frequency, vint)
+        return compute_monochromatic_beam_xy_grid(evalX, evalY, evalZ, surfX, surfY, surfZ, frequency, vint, focal_x=focalX, focal_y=focalY)
     except Exception as e:
-        tb = traceback.format_exc()
-        logging.error(f"CFP beam grid calculation failed: {e}\nTraceback:\n{tb}")
-        raise RuntimeError(f"CFP beam grid calculation failed: {e}\nSee log for traceback and details.") from e
+        raise RuntimeError(f"CFP beam grid calculation failed: {e}") from e
 
 
-def computeMonochromaticWeightedBeamXyGridSafe(evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint):
+def computeMonochromaticWeightedBeamXyGridSafe(evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint, focalX=0.0, focalY=0.0):
     """
-    KISS: Try Numba, if it fails, log and tell user to disable Numba in settings, then raise.
+    KISS: Try Numba; if it fails, raise a clear error.
     No silent fallback. This is the only supported wrapper for weighted CFP beam grid calculation.
     """
-    import logging
-    import traceback
     try:
-        return compute_monochromatic_weighted_beam_xy_grid(evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint)
+        return compute_monochromatic_weighted_beam_xy_grid(evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint, focal_x=focalX, focal_y=focalY)
     except Exception as e:
-        tb = traceback.format_exc()
-        logging.error(f"CFP weighted beam grid calculation failed: {e}\nTraceback:\n{tb}")
-        raise RuntimeError(f"CFP weighted beam grid calculation failed: {e}\nSee log for traceback and details.") from e
+        raise RuntimeError(f"CFP weighted beam grid calculation failed: {e}") from e
 
 
-def filterSpsRelationsByApertureSafe(focalX, focalY, apertureRadius, srcX, srcY, recX, recY):
+def filterSpsRelationsByApertureSafe(focalX, focalY, apertureRadius, srcX, srcY, recX, recY, matlabCompat=False):
+    _ = matlabCompat
     try:
         return filter_sps_relations_by_aperture(focalX, focalY, apertureRadius, srcX, srcY, recX, recY)
     except ImportError:
@@ -94,15 +87,12 @@ def computeRadonImagesSafe(sourceField, receiverField, evalX, evalY, px, py, fre
 def computeXyBeamImagesSafe(sourceField, receiverField, dbMin=-60.0):
 
     """
-    KISS: Try Numba, if it fails, log and tell user to disable Numba in settings, then raise.
+    KISS: Try Numba; if it fails, raise a clear error.
     No silent fallback. This is the only supported wrapper for beam image calculation.
     """
     try:
         return compute_xy_beam_images_numba(sourceField, receiverField, dbMin)
     except Exception as e:
-        import logging
-        logging.error(f"Numba beam image calculation failed: {e}")
-        logging.error("Numba failed; please disable Numba in the settings panel and retry.")
         raise RuntimeError("Numba failed; please disable Numba in the settings panel and retry.") from e
 
 
@@ -118,6 +108,13 @@ def _copyArrayIfNumpy(arr: Any) -> Any:
     if isinstance(arr, np.ndarray):
         return np.copy(arr)
     return arr
+
+
+def _copyCfpImageForRollPlot(arr: Any) -> Any:
+    """Copy CFP images from numerical row/column order into Roll plot x/y order."""
+    if isinstance(arr, np.ndarray) and arr.ndim == 2:
+        return np.ascontiguousarray(arr.T)
+    return _copyArrayIfNumpy(arr)
 
 
 @dataclass
@@ -441,6 +438,8 @@ class CfpBeamAccumulator:
                 srcZ,
                 self.frequency,
                 self.vint,
+                self.focalX,
+                self.focalY,
             )
         else:
             self.sourceBeamField += computeMonochromaticWeightedBeamXyGridSafe(
@@ -453,6 +452,8 @@ class CfpBeamAccumulator:
                 np.ascontiguousarray(srcWeights, dtype=np.float64),
                 self.frequency,
                 self.vint,
+                self.focalX,
+                self.focalY,
             )
 
         if recWeights is None:
@@ -465,6 +466,8 @@ class CfpBeamAccumulator:
                 recZ,
                 self.frequency,
                 self.vint,
+                self.focalX,
+                self.focalY,
             )
         else:
             self.receiverBeamField += computeMonochromaticWeightedBeamXyGridSafe(
@@ -477,6 +480,8 @@ class CfpBeamAccumulator:
                 np.ascontiguousarray(recWeights, dtype=np.float64),
                 self.frequency,
                 self.vint,
+                self.focalX,
+                self.focalY,
             )
 
     def _collapsePointWeights(self, points: np.ndarray) -> tuple[np.ndarray, np.ndarray | None]:
@@ -535,22 +540,6 @@ class CfpBeamAccumulator:
         if max(self._bufferedSourcePointCount, self._bufferedReceiverPointCount) >= self.flushThresholdPoints:
             self.flushBufferedPointArrays()
 
-    def _fieldToDbImage(self, field) -> Any:
-        from .cfp_aux_functions_numba import convert_to_db_image_numba
-        try:
-            return convert_to_db_image_numba(field)
-        except ImportError:
-            pyFunc = getattr(convert_to_db_image_numba, 'py_func', None)
-            return _callPythonFallback(pyFunc, field)
-
-    def _fieldToUnitImage(self, field) -> Any:
-        from .cfp_aux_functions_numba import convert_to_unit_image_numba
-        try:
-            return convert_to_unit_image_numba(field)
-        except ImportError:
-            pyFunc = getattr(convert_to_unit_image_numba, 'py_func', None)
-            return _callPythonFallback(pyFunc, field)
-
     def _finalizeRadonImages(self, progressHandler=None, messageHandler=None, progressStart: int = 0, progressEnd: int = 100, phaseLabel: str = 'CFP analysis') -> None:
         if self.sourceBeamField is None or self.receiverBeamField is None or self.evalX is None or self.evalY is None:
             self.radonSourceBeamImage = None
@@ -586,14 +575,6 @@ class CfpBeamAccumulator:
             self.survey.errorText = f"Radon/SNR calculation failed: {e}"
             raise   # Re-raise to be caught by the worker's BaseException
 
-        # BACKUP OLD CODE (Separate transform and normalization):
-        # ---------------------------------------------------------------------
-        # radonSourceField, radonReceiverField, radonAvpField = computeRadonImagesSafe(...)
-        # radonAvpField = np.conj(radonSourceField) * radonReceiverField
-        # self.radonSourceBeamImage = self._fieldToUnitImage(radonSourceField)
-        # self.radonReceiverBeamImage = self._fieldToUnitImage(radonReceiverField)
-        # self.radonAvpImage = self._fieldToUnitImage(radonAvpField)
-        # ---------------------------------------------------------------------
         pxMs = px * 1000.0
         pyMs = py * 1000.0
         self.radonX0 = float(pxMs[0])
@@ -630,12 +611,12 @@ class CfpBeamAccumulator:
 
     def buildPayload(self) -> dict[str, Any]:
         return {
-            'sourceBeamImage': _copyArrayIfNumpy(self.sourceBeamImage),
-            'receiverBeamImage': _copyArrayIfNumpy(self.receiverBeamImage),
-            'resolutionImage': _copyArrayIfNumpy(self.resolutionImage),
-            'radonSourceBeamImage': _copyArrayIfNumpy(self.radonSourceBeamImage),
-            'radonReceiverBeamImage': _copyArrayIfNumpy(self.radonReceiverBeamImage),
-            'radonAvpImage': _copyArrayIfNumpy(self.radonAvpImage),
+            'sourceBeamImage': _copyCfpImageForRollPlot(self.sourceBeamImage),
+            'receiverBeamImage': _copyCfpImageForRollPlot(self.receiverBeamImage),
+            'resolutionImage': _copyCfpImageForRollPlot(self.resolutionImage),
+            'radonSourceBeamImage': _copyCfpImageForRollPlot(self.radonSourceBeamImage),
+            'radonReceiverBeamImage': _copyCfpImageForRollPlot(self.radonReceiverBeamImage),
+            'radonAvpImage': _copyCfpImageForRollPlot(self.radonAvpImage),
             'sourceSnr': self.sourceSnr,
             'receiverSnr': self.receiverSnr,
             'avpSnr': self.avpSnr,
@@ -1033,8 +1014,7 @@ class CfpAmplitudeMapWorker(QObject):
                 ampMap[iy, :] = compute_illumination_row_numba(
                     focalY, evalX, self.request.focalZ,
                     srcCoords, recCoords, relWeights,
-                    freqs, self.request.vint, apertureRadius,
-                    self.matlab_compat
+                    freqs, self.request.vint, apertureRadius
                 )
 
                 self.survey.progress.emit(int((iy + 1) * 100 / ny))
@@ -1044,7 +1024,7 @@ class CfpAmplitudeMapWorker(QObject):
                 if (iy + 1) % partialEmitEvery == 0 or (iy + 1) == ny:
                     partial = CfpAmplitudeMapResult(
                         success=True,
-                        amplitudeMap=np.copy(ampMap),
+                        amplitudeMap=_copyCfpImageForRollPlot(ampMap),
                         x0=x0,
                         y0=y0,
                         dx=dx,
@@ -1059,7 +1039,7 @@ class CfpAmplitudeMapWorker(QObject):
                 ampMap /= maxVal
 
             result = CfpAmplitudeMapResult(
-                success=True, amplitudeMap=ampMap, x0=x0, y0=y0, dx=dx, dy=dy
+                success=True, amplitudeMap=_copyCfpImageForRollPlot(ampMap), x0=x0, y0=y0, dx=dx, dy=dy
             )
             self.resultReady.emit(result)
 
@@ -1270,8 +1250,7 @@ class CfpFromTraceTableWorker(QObject):
                     activeChunk[:, 3],
                     activeChunk[:, 4],
                     activeChunk[:, 6],
-                    activeChunk[:, 7],
-                    self.matlab_compat
+                    activeChunk[:, 7]
                 )
                 self.contributingTraceCount += int(validIndices.shape[0])
                 self._accumulateBeams(activeChunk, validIndices)
@@ -1291,9 +1270,6 @@ class CfpFromTraceTableWorker(QObject):
             phaseLabel='CFP from Trace Table',
         )
         return True
-
-    def _initializeSourceBeamGrid(self) -> bool:
-        return self.beamAccumulator.initializeGrid()
 
     def _accumulateBeams(self, activeChunk, validIndices) -> None:
         if validIndices.shape[0] == 0:
