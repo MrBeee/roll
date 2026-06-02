@@ -825,8 +825,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionFullBinFromSps.triggered.connect(self.fullBinFromSps)
         self.actionGeometryFromTemplates.triggered.connect(self.createGeometryFromTemplates)
         self.actionCFPAnalysisFromTemplates.triggered.connect(self.cfpAnalysisFromTemplates)
-        self.actionCFPAnalysisFromTraceTable.triggered.connect(self.cfpAnalysisFromTraceTable)
-        self.actionCFPAnalysisFromGeometryTables.triggered.connect(self.cfpAnalysisFromGeometryTables)
+        self.actionCFPAnalysisFromGeometry.triggered.connect(self.cfpAnalysisFromGeometryTables)
+        self.actionCFPPlaneAnalysisFromTemplates.triggered.connect(self.cfpPlaneAnalysisFromTemplates)
+        self.actionCFPPlaneAnalysisFromGeometry.triggered.connect(self.cfpPlaneAnalysisFromGeometryTables)
         self.actionShift_Survey_Area.triggered.connect(self.shiftSurveyArea)
 
         # actions related to the help menu
@@ -1646,6 +1647,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def exportGapToQGIS(self):
         self._exportLayoutAnalysisSurface(5, toQgis=True)
 
+    def exportIlluminationToQGIS(self):
+        self._exportLayoutAnalysisSurface(6, toQgis=True)
+
     def exportRpsToQgis(self):
         if self.rpsImport is not None and self.survey is not None and self.survey.crs is not None:
             if not self.fileName:                                               # filename ="" normally indicates working with 'new' file !
@@ -1828,7 +1832,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.imageType = 5
         self.handleImageSelection()
 
-    def onActionAmpMTriggered(self):
+    def onActionIlluminationTriggered(self):
         self.imageType = 6
         self.handleImageSelection()
 
@@ -1854,7 +1858,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             3: dict(imageAttr='maxOffset', maxAttr='maxMaxOffset', label='maximum offset', statusLabel='|max offset|', valueKind='float', fileSuffix='max', fileExportLabel='max-offsets', qgisExportLabel='max-offset map'),                   # noqa: E501 # pylint: disable=C0301
             4: dict(imageAttr='rmsOffset', maxAttr='maxRmsOffset', label='rms offset increments', statusLabel='rms offset inc', valueKind='float', fileSuffix='rms', fileExportLabel='rms-offsets', qgisExportLabel='rms-offset map'),          # noqa: E501 # pylint: disable=C0301
             5: dict(imageAttr='gapOffset', maxAttr='maxOffsetGap', label='maximum offset gap', statusLabel='max offset gap', valueKind='float', fileSuffix='gap', fileExportLabel='max-offset gaps', qgisExportLabel='max-offset gap map'),     # noqa: E501 # pylint: disable=C0301
-            6: dict(imageAttr='cfpOutput', maxAttr=None, label='CFP illumination', statusLabel='illumination', valueKind='float', fileSuffix='amp', fileExportLabel='amplitude map', qgisExportLabel='amplitude map'),                    # noqa: E501 # pylint: disable=C0301
+            6: dict(imageAttr='cfpOutput', maxAttr=None, label='Illumination', statusLabel='illumination', valueKind='float', fileSuffix='amp', fileExportLabel='illumination map', qgisExportLabel='illumination map'),                    # noqa: E501 # pylint: disable=C0301
         }
 
         if imageType not in surfaceDefinitions:
@@ -1909,12 +1913,14 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.layoutMax = float(np.nanmax(self.layoutImg)) if np.any(np.isfinite(self.layoutImg)) else 1.0
 
         # Make no-data bins transparent.
-        if self.layoutImg is not None:
+        if self.layoutImg is not None and self.output.binOutput is not None and self.output.binOutput.shape == self.layoutImg.shape:
             mask = self.output.binOutput == 0
             if np.any(mask):
                 img = self.layoutImg.astype(np.float32, copy=True)
                 img[mask] = np.nan
                 self.layoutImg = img
+
+        rounding = 0.01 if self.imageType == 6 else 10.0
 
         self.prepareLayoutImageAndColorBar(
             self.layoutImg,
@@ -1922,7 +1928,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             layoutSurface['label'],
             levels=(0.0, self.layoutMax),
             limits=(0, None),
-            rounding=10.0,
+            rounding=rounding,
         )
 
         self.plotLayout()
@@ -2782,6 +2788,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                         pass
 
         if self.layoutColorBar is not None:
+            self._configureLayoutColorBarInteraction(limits, rounding)
             self.layoutColorBar.setImageItem(self.layoutImItem)
             self.layoutColorBar.setLevels(low=levels[0], high=levels[1])
             try:
@@ -2791,6 +2798,25 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.setColorbarLabel(label)
 
         return imageItem
+
+    def _configureLayoutColorBarInteraction(self, limits, rounding):
+        colorBar = self.layoutColorBar
+        if colorBar is None:
+            return
+
+        rounding = float(rounding or 1.0)
+        if rounding <= 0.0:
+            rounding = 1.0
+        colorBar.rounding = rounding
+
+        if limits is None:
+            colorBar.lo_lim = None
+            colorBar.hi_lim = None
+            return
+
+        lowLimit, highLimit = limits
+        colorBar.lo_lim = None if lowLimit is None else float(rounding * np.floor(float(lowLimit) / rounding))
+        colorBar.hi_lim = None if highLimit is None else float(rounding * np.ceil(float(highLimit) / rounding))
 
     def plotStkTrk(self, nY: int, stkY: int, x0: float, dx: float):
         self.stackResponseController.plotStkTrk(nY, stkY, x0, dx)

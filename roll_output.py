@@ -22,9 +22,9 @@ class RollOutput:
         self.an2Output = None                                                   # partially flattened version of self.anaOutput (N x 16)
         self.ofAziHist = None                                                   # numpy array with azimuth/offset histogram
         self.offstHist = None                                                   # numpy array with slotted offset histogram
-        self.cfpSourceBeamImage = None                                          # CFP xy-slice of source beam (trace-table path)
-        self.cfpReceiverBeamImage = None                                        # CFP xy-slice of receiver beam (trace-table path)
-        self.cfpResolutionImage = None                                          # CFP xy-slice of resolution function (trace-table path)
+        self.cfpSourceBeamImage = None                                          # CFP xy-slice of source beam
+        self.cfpReceiverBeamImage = None                                        # CFP xy-slice of receiver beam
+        self.cfpResolutionImage = None                                          # CFP xy-slice of resolution function
         self.cfpRadonSourceBeamImage = None                                     # CFP Radon transform of source beam
         self.cfpRadonReceiverBeamImage = None                                   # CFP Radon transform of receiver beam
         self.cfpRadonAvpImage = None                                            # CFP AVP function in Radon domain

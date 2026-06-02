@@ -57,14 +57,17 @@ class CfpAmplitudeMapResultApplier:
 
     def apply(self, result, elapsed: timedelta) -> None:
         if not result.success:
-            self.window.appendLogMessage(f'Thread : CFP Amplitude Map failed - {result.errorText}', MsgType.Error)
+            self.window.appendLogMessage(f'Thread : CFP illumination map failed - {result.errorText}', MsgType.Error)
             return
 
         # Update output
         self.window.output.cfpOutput = result.amplitudeMap
+        actionIllumination = getattr(self.window, 'actionIllumination', None)
+        if actionIllumination is not None:
+            actionIllumination.setChecked(True)
 
         # Update layout image view
-        self.window.imageType = 6  # New type for CFP Illumination
+        self.window.imageType = 6
         self.window.layoutImg = result.amplitudeMap
 
         # For partial updates, determine scaling based on current data
@@ -75,15 +78,16 @@ class CfpAmplitudeMapResultApplier:
         self.window.prepareLayoutImageAndColorBar(
             self.window.layoutImg,
             self.window.appSettings.foldDispCmap,
-            'CFP illumination',
+            'Illumination',
             levels=levels,
+            rounding=0.01,
         )
         self.window.plotLayout()
 
         if not getattr(result, 'isPartial', False):
-            self.window.appendLogMessage(f'Thread : CFP Amplitude Map completed. Elapsed: {elapsed}', MsgType.Analysis)
+            self.window.appendLogMessage(f'Thread : CFP illumination map completed. Elapsed: {elapsed}', MsgType.Analysis)
             self.runtimeDependenciesProvider()['QMessageBox'].information(
-                self.window, 'Done', f'CFP Illumination Map calculation completed.\nElapsed time: {elapsed}'
+                self.window, 'Done', f'CFP illumination map calculation completed.\nElapsed time: {elapsed}'
             )
 
 
@@ -361,58 +365,6 @@ class CfpFromTemplatesResultApplier:
             self.window,
             'Done',
             f'Worker thread completed. {result.templateContributionCount:,} rolled template positions contributed.',
-        )
-
-
-class CfpFromTraceTableResultApplier:
-    def __init__(self, window, runtimeDependenciesProvider: Callable[[], dict[str, object]]) -> None:
-        self.window = window
-        self.runtimeDependenciesProvider = runtimeDependenciesProvider
-
-    def apply(self, result, elapsed: timedelta) -> None:
-        if not result.success:
-            self.window.appendLogMessage('Thread : . . . aborted CFP trace-table scan', MsgType.Error)
-            self.window.appendLogMessage(f'Thread : . . . {result.errorText}', MsgType.Error)
-            self.runtimeDependenciesProvider()['QMessageBox'].information(self.window, 'Interrupted', 'Worker thread aborted')
-            return
-
-        self.window.appendLogMessage(
-            f"Thread : Completed 'CFP analysis from Trace Table'. Elapsed time:{elapsed} ",
-            MsgType.Analysis,
-        )
-        self.window.appendLogMessage(
-            (
-                'Thread : . . . '
-                f'local target=({result.focalX:.2f}, {result.focalY:.2f}, {result.focalZ:.2f}), '
-                f'aperture={result.maxDipDegrees:.1f}deg, radius={result.apertureRadius:.2f}m, Vint={result.vint:.1f}m/s'
-            ),
-            MsgType.Analysis,
-        )
-        self.window.appendLogMessage(
-            f'Thread : . . . trace-table chunks processed: {result.chunkCount:,}',
-            MsgType.Analysis,
-        )
-        self.window.appendLogMessage(
-            (
-                'Thread : . . . '
-                f'contributing traces surviving aperture filter: {result.contributingTraceCount:,} '
-                f'out of: {result.totalTraceCount:,} active trace rows'
-            ),
-            MsgType.Analysis,
-        )
-
-        _copyCfpDisplayOutputs(self.window, result)
-        _logCfpSnr(self.window, result)
-
-        self.window.renderSelectedCfpSlice()
-        _showCfpAnalysisTab(self.window)
-        self.runtimeDependenciesProvider()['QMessageBox'].information(
-            self.window,
-            'Done',
-            (
-                'Worker thread completed. '
-                f'{result.contributingTraceCount:,} traces contributed across {result.chunkCount:,} chunks.'
-            ),
         )
 
 

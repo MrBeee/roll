@@ -5,7 +5,7 @@
 
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QKeySequence
-from qgis.PyQt.QtWidgets import (QActionGroup, QDockWidget, QGroupBox,
+from qgis.PyQt.QtWidgets import (QAction, QActionGroup, QDockWidget, QGroupBox,
                                  QHBoxLayout, QPushButton, QToolButton,
                                  QVBoxLayout, QWidget)
 
@@ -102,6 +102,10 @@ class _DisplayDockBuilder:
         w.tbMaxO = self._toggleButton(w.actionMaxO)
         w.tbRmsO = self._toggleButton(w.actionRmsO)
         w.tbGapO = self._toggleButton(w.actionGapO)
+        w.actionIllumination = QAction('Illumination', w)
+        w.actionIllumination.setToolTip('Show CFP illumination in Layout view')
+        w.actionIllumination.setEnabled(False)
+        w.tbIllumination = self._toggleButton(w.actionIllumination, textOnly=True)
 
         w.actionArea.setChecked(True)
 
@@ -118,7 +122,7 @@ class _DisplayDockBuilder:
         w.setupSpiderActions()
 
         w.analysisActionGroup = QActionGroup(w)
-        for action in (w.actionNone, w.actionArea, w.actionFold, w.actionMinO, w.actionMaxO, w.actionRmsO, w.actionGapO):
+        for action in (w.actionNone, w.actionArea, w.actionFold, w.actionMinO, w.actionMaxO, w.actionRmsO, w.actionGapO, w.actionIllumination):
             w.analysisActionGroup.addAction(action)
 
         w.actionNone.triggered.connect(w.onActionNoneTriggered)
@@ -128,10 +132,12 @@ class _DisplayDockBuilder:
         w.actionMaxO.triggered.connect(w.onActionMaxOTriggered)
         w.actionRmsO.triggered.connect(w.onActionRmsOTriggered)
         w.actionGapO.triggered.connect(w.onActionGapOTriggered)
+        w.actionIllumination.triggered.connect(w.onActionIlluminationTriggered)
 
         layout = QVBoxLayout()
         for button in (w.tbNone, w.tbArea, w.tbFold, w.tbMinO, w.tbMaxO, w.tbRmsO, w.tbGapO):
             layout.addWidget(button, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(w.tbIllumination, 0, Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(QHLine())
         layout.addWidget(w.tbSpider, 0, Qt.AlignmentFlag.AlignHCenter)
 
@@ -151,6 +157,7 @@ class _DisplayDockBuilder:
         w.btnMaxToQGIS = self._exportButton('Max Offset')
         w.btnRmsToQGIS = self._exportButton('Rms Offset')
         w.btnGapToQGIS = self._exportButton('Offset Gap')
+        w.btnIlluminationToQGIS = self._exportButton('Illumination')
 
         layout = QVBoxLayout()
         layout.addWidget(w.btnBinToQGIS)
@@ -158,6 +165,7 @@ class _DisplayDockBuilder:
         layout.addWidget(w.btnMaxToQGIS)
         layout.addWidget(w.btnRmsToQGIS)
         layout.addWidget(w.btnGapToQGIS)
+        layout.addWidget(w.btnIlluminationToQGIS)
         w.analysisToQgis.setLayout(layout)
 
     def _composeLayout(self):

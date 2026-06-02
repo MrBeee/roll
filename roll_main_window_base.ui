@@ -201,6 +201,29 @@
      </property>
      <addaction name="actionShift_Survey_Area"/>
     </widget>
+    <widget class="QMenu" name="menuCFPPointAnalysis">
+     <property name="title">
+      <string>CFP Point Analysis</string>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>resources/mActionCFPPointAnalysis.svg</normaloff>resources/mActionCFPPointAnalysis.svg</iconset>
+     </property>
+     <addaction name="separator"/>
+     <addaction name="actionCFPAnalysisFromTemplates"/>
+     <addaction name="actionCFPAnalysisFromGeometry"/>
+    </widget>
+    <widget class="QMenu" name="menuCFP_Plane_analysis_2">
+     <property name="title">
+      <string>CFP Plane analysis</string>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>resources/mActionCFPPlaneAnalysis.svg</normaloff>resources/mActionCFPPlaneAnalysis.svg</iconset>
+     </property>
+     <addaction name="actionCFPPlaneAnalysisFromTemplates"/>
+     <addaction name="actionCFPPlaneAnalysisFromGeometry"/>
+    </widget>
     <addaction name="actionBasicBinFromTemplates"/>
     <addaction name="actionFullBinFromTemplates"/>
     <addaction name="separator"/>
@@ -210,9 +233,8 @@
     <addaction name="actionBasicBinFromSps"/>
     <addaction name="actionFullBinFromSps"/>
     <addaction name="separator"/>
-    <addaction name="actionCFPAnalysisFromTemplates"/>
-    <addaction name="actionCFPAnalysisFromTraceTable"/>
-    <addaction name="actionCFPAnalysisFromGeometryTables"/>
+    <addaction name="menuCFPPointAnalysis"/>
+    <addaction name="menuCFP_Plane_analysis_2"/>
     <addaction name="separator"/>
     <addaction name="actionGeometryFromTemplates"/>
     <addaction name="separator"/>
@@ -1739,21 +1761,42 @@
     <string>Ctrl+L</string>
    </property>
   </action>
-  <action name="actionCFPAnalysisFromTraceTable">
+  <action name="actionCFPAnalysisFromGeometry">
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionCFPAnalysisFromTraceTable.svg</normaloff>resources/mActionCFPAnalysisFromTraceTable.svg</iconset>
+     <normaloff>resources/mActionCFPAnalysisFromGeometry.svg</normaloff>resources/mActionCFPAnalysisFromGeometry.svg</iconset>
    </property>
    <property name="text">
-    <string>CFP analysis from Trace Table</string>
+    <string>CFP analysis from Geometry</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+L</string>
    </property>
   </action>
-  <action name="actionCFPAnalysisFromGeometryTables">
+  <action name="actionCFPPlaneAnalysisFromTemplates">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionCFPAnalysisFromTemplates.svg</normaloff>resources/mActionCFPAnalysisFromTemplates.svg</iconset>
+   </property>
    <property name="text">
-    <string>CFP analysis from Geometry tables</string>
+    <string>CFP analysis from Templates</string>
+   </property>
+   <property name="toolTip">
+    <string>CFP acq imprint analysis from Templates</string>
+   </property>
+  </action>
+  <action name="actionCFPPlaneAnalysisFromGeometry">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionCFPAnalysisFromGeometry.svg</normaloff>resources/mActionCFPAnalysisFromGeometry.svg</iconset>
+   </property>
+   <property name="text">
+    <string>CFP Analysis from Geometry</string>
+   </property>
+  </action>
+  <action name="actionCFP_Analysis_from_Geometry_Tables">
+   <property name="text">
+    <string>CFP Analysis from Geometry</string>
    </property>
   </action>
  </widget>

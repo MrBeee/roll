@@ -5,13 +5,16 @@ from datetime import timedelta
 from math import ceil
 from typing import Any, Callable, Protocol, cast
 
+import numpy as np
+
 from qgis.PyQt.QtCore import QThread
 
 from .enums_and_int_flags import MsgType
 from .worker_threads import (BinningFromGeometryRequest,
                              BinningFromTemplatesRequest,
+                             CfpAmplitudeMapRequest,
                              CfpFromGeometryTablesRequest,
-                             CfpFromTemplatesRequest, CfpFromTraceTableRequest,
+                             CfpFromTemplatesRequest,
                              GeometryFromTemplatesRequest)
 
 
@@ -120,17 +123,6 @@ class WorkerOperationController:
 
         return self._startJob(self._buildCfpAnalysisFromTemplatesJob())
 
-    def startCfpAnalysisFromTraceTable(self) -> bool:
-        if self.window.survey is None:
-            self.window.appendLogMessage('Thread : No survey has been defined', MsgType.Error)
-            return False
-
-        if self.window.output.anaOutput is None:
-            self.window.appendLogMessage('Thread : Trace table has not been defined', MsgType.Error)
-            return False
-
-        return self._startJob(self._buildCfpAnalysisFromTraceTableJob())
-
     def startCfpAnalysisFromGeometryTables(self) -> bool:
         if self.window.survey is None:
             self.window.appendLogMessage('Thread : No survey has been defined', MsgType.Error)
@@ -141,6 +133,24 @@ class WorkerOperationController:
             return False
 
         return self._startJob(self._buildCfpAnalysisFromGeometryTablesJob())
+
+    def startCfpPlaneAnalysisFromTemplates(self) -> bool:
+        if self.window.survey is None:
+            self.window.appendLogMessage('Thread : No survey has been defined', MsgType.Error)
+            return False
+
+        return self._startJob(self._buildCfpPlaneAnalysisFromTemplatesJob())
+
+    def startCfpPlaneAnalysisFromGeometryTables(self) -> bool:
+        if self.window.survey is None:
+            self.window.appendLogMessage('Thread : No survey has been defined', MsgType.Error)
+            return False
+
+        if self.window.srcGeom is None or self.window.relGeom is None or self.window.recGeom is None:
+            self.window.appendLogMessage('Thread : Source, relation, and receiver geometry tables have not all been defined', MsgType.Error)
+            return False
+
+        return self._startJob(self._buildCfpPlaneAnalysisFromGeometryTablesJob())
 
     def stopCurrentOperation(self) -> None:
         activeOperation = self.activeOperation
@@ -323,41 +333,6 @@ class WorkerOperationController:
             resultHandler=self.window.applyCfpFromTemplatesWorkerResult,
         )
 
-    def _buildCfpAnalysisFromTraceTableJob(self) -> WorkerJobSpec:
-        dependencies = self.runtimeDependenciesProvider()
-        focalX, focalY = self._resolveLocalCfpTargetXY()
-        localPlane = getattr(self.window.survey, 'localPlane', None)
-        focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
-        maxDipDegrees = self._resolveCfpMaxDipDegrees()
-        analysisRows = self.window.output.an2Output
-        if analysisRows is None:
-            analysisRows = self.window.output.anaOutput.reshape(-1, self.window.output.anaOutput.shape[-1])
-
-        request = CfpFromTraceTableRequest(
-            xmlString=self.window.survey.toXmlString(),
-            analysisRows=analysisRows,
-            focalX=focalX,
-            focalY=focalY,
-            focalZ=focalZ,
-            frequency=40.0,
-            maxDipDegrees=maxDipDegrees,
-            vint=self.window.survey.binning.vint,
-            chunkSize=100_000,
-            debugpyEnabled=self.window.appSettings.debugpy,
-        )
-        return WorkerJobSpec(
-            name='cfp-from-trace-table',
-            progressLabelText='CFP from Trace Table - chunked relation scan',
-            startMessage=(
-                "Thread : Started 'CFP analysis from Trace Table'"
-                f' at local x={focalX:.2f}, y={focalY:.2f}, z={focalZ:.2f}, Vint={self.window.survey.binning.vint:.1f}m/s'
-            ),
-            startMessageType=MsgType.Analysis,
-            workerFactory=dependencies['CfpFromTraceTableWorker'],
-            request=request,
-            resultHandler=self.window.applyCfpFromTraceTableWorkerResult,
-        )
-
     def _buildCfpAnalysisFromGeometryTablesJob(self) -> WorkerJobSpec:
         dependencies = self.runtimeDependenciesProvider()
         srcGeom, relGeom, recGeom, sourceName = self._resolveCfpGeometryTables()
@@ -392,6 +367,64 @@ class WorkerOperationController:
             workerFactory=dependencies['CfpFromGeometryTablesWorker'],
             request=request,
             resultHandler=self.window.applyCfpFromGeometryTablesWorkerResult,
+        )
+
+    def _buildCfpPlaneAnalysisFromTemplatesJob(self) -> WorkerJobSpec:
+        dependencies = self.runtimeDependenciesProvider()
+        localPlane = getattr(self.window.survey, 'localPlane', None)
+        focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
+        maxDipDegrees = self._resolveCfpMaxDipDegrees()
+        request = CfpAmplitudeMapRequest(
+            xmlString=self.window.survey.toXmlString(),
+            srcGeom=None,
+            relGeom=None,
+            recGeom=None,
+            focalZ=focalZ,
+            maxDipDegrees=maxDipDegrees,
+            vint=self.window.survey.binning.vint,
+            frequencies=np.array([40.0], dtype=np.float32),
+            debugpyEnabled=self.window.appSettings.debugpy,
+        )
+        return WorkerJobSpec(
+            name='cfp-illumination-from-templates',
+            progressLabelText='CFP illumination - Templates',
+            startMessage=(
+                "Thread : Started 'CFP illumination from Templates'"
+                f' at z={focalZ:.2f}, aperture={maxDipDegrees:.1f}deg, Vint={self.window.survey.binning.vint:.1f}m/s'
+            ),
+            startMessageType=MsgType.Analysis,
+            workerFactory=dependencies['CfpAmplitudeMapWorker'],
+            request=request,
+            resultHandler=self.window.applyCfpAmplitudeMapWorkerResult,
+        )
+
+    def _buildCfpPlaneAnalysisFromGeometryTablesJob(self) -> WorkerJobSpec:
+        dependencies = self.runtimeDependenciesProvider()
+        localPlane = getattr(self.window.survey, 'localPlane', None)
+        focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
+        maxDipDegrees = self._resolveCfpMaxDipDegrees()
+        request = CfpAmplitudeMapRequest(
+            xmlString=self.window.survey.toXmlString(),
+            srcGeom=self.window.srcGeom,
+            relGeom=self.window.relGeom,
+            recGeom=self.window.recGeom,
+            focalZ=focalZ,
+            maxDipDegrees=maxDipDegrees,
+            vint=self.window.survey.binning.vint,
+            frequencies=np.array([40.0], dtype=np.float32),
+            debugpyEnabled=self.window.appSettings.debugpy,
+        )
+        return WorkerJobSpec(
+            name='cfp-illumination-from-geometry-tables',
+            progressLabelText='CFP illumination - Geometry Tables',
+            startMessage=(
+                "Thread : Started 'CFP illumination from Geometry Tables'"
+                f' at z={focalZ:.2f}, aperture={maxDipDegrees:.1f}deg, Vint={self.window.survey.binning.vint:.1f}m/s'
+            ),
+            startMessageType=MsgType.Analysis,
+            workerFactory=dependencies['CfpAmplitudeMapWorker'],
+            request=request,
+            resultHandler=self.window.applyCfpAmplitudeMapWorkerResult,
         )
 
     def _hasCfpGeometryTables(self) -> bool:

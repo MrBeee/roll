@@ -15,15 +15,13 @@ from .worker_result_appliers import (BinningResultApplier,
                                      CfpAmplitudeMapResultApplier,
                                      CfpFromGeometryTablesResultApplier,
                                      CfpFromTemplatesResultApplier,
-                                     CfpFromTraceTableResultApplier,
                                      GeometryResultApplier)
 from .worker_threads import (BinFromGeometryWorker, BinningFromGeometryResult,
                              BinningFromTemplatesResult, BinningWorker,
-                             CfpAmplitudeMapWorker,
+                             CfpAmplitudeMapResult, CfpAmplitudeMapWorker,
                              CfpFromGeometryTablesResult,
                              CfpFromGeometryTablesWorker,
                              CfpFromTemplatesResult, CfpFromTemplatesWorker,
-                             CfpFromTraceTableResult, CfpFromTraceTableWorker,
                              GeometryFromTemplatesResult, GeometryWorker)
 
 
@@ -39,7 +37,6 @@ class BinningWorkerMixin:
             'GeometryWorker': GeometryWorker,
             'CfpFromTemplatesWorker': CfpFromTemplatesWorker,
             'CfpAmplitudeMapWorker': CfpAmplitudeMapWorker,
-            'CfpFromTraceTableWorker': CfpFromTraceTableWorker,
             'CfpFromGeometryTablesWorker': CfpFromGeometryTablesWorker,
             'timer': timer,
             'QMessageBox': QMessageBox,
@@ -57,9 +54,6 @@ class BinningWorkerMixin:
 
         if getattr(self, 'cfpFromTemplatesResultApplier', None) is None:
             self.cfpFromTemplatesResultApplier = CfpFromTemplatesResultApplier(self, self._getWorkerRuntimeDependencies)
-
-        if getattr(self, 'cfpFromTraceTableResultApplier', None) is None:
-            self.cfpFromTraceTableResultApplier = CfpFromTraceTableResultApplier(self, self._getWorkerRuntimeDependencies)
 
         if getattr(self, 'cfpFromGeometryTablesResultApplier', None) is None:
             self.cfpFromGeometryTablesResultApplier = CfpFromGeometryTablesResultApplier(self, self._getWorkerRuntimeDependencies)
@@ -334,15 +328,20 @@ class BinningWorkerMixin:
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startCfpAnalysisFromTemplates()
 
-    def cfpAnalysisFromTraceTable(self):
-        self._logOperationStart('Starting CFP analysis from trace table; preparing worker thread...', MsgType.Analysis)
-        self._ensureWorkerOperationComponents()
-        self.workerOperationController.startCfpAnalysisFromTraceTable()
-
     def cfpAnalysisFromGeometryTables(self):
         self._logOperationStart('Starting CFP analysis from geometry/SPS tables; preparing worker thread...', MsgType.Analysis)
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startCfpAnalysisFromGeometryTables()
+
+    def cfpPlaneAnalysisFromTemplates(self):
+        self._logOperationStart('Starting CFP illumination map from templates; preparing worker thread...', MsgType.Analysis)
+        self._ensureWorkerOperationComponents()
+        self.workerOperationController.startCfpPlaneAnalysisFromTemplates()
+
+    def cfpPlaneAnalysisFromGeometryTables(self):
+        self._logOperationStart('Starting CFP illumination map from geometry tables; preparing worker thread...', MsgType.Analysis)
+        self._ensureWorkerOperationComponents()
+        self.workerOperationController.startCfpPlaneAnalysisFromGeometryTables()
 
     def threadProgress(self, value: int):
         if self.progressBar is not None:
@@ -372,14 +371,6 @@ class BinningWorkerMixin:
         self._ensureWorkerOperationComponents()
         self.workerOperationController.finishCurrentOperation(result, self.applyCfpFromTemplatesWorkerResult, resetAnalysis=False)
 
-    def applyCfpFromTraceTableWorkerResult(self, result, elapsed):
-        self._ensureWorkerOperationComponents()
-        self.cfpFromTraceTableResultApplier.apply(result, elapsed)
-
-    def cfpFromTraceTableThreadFinished(self, result: CfpFromTraceTableResult):
-        self._ensureWorkerOperationComponents()
-        self.workerOperationController.finishCurrentOperation(result, self.applyCfpFromTraceTableWorkerResult, resetAnalysis=False)
-
     def applyCfpFromGeometryTablesWorkerResult(self, result, elapsed):
         self._ensureWorkerOperationComponents()
         self.cfpFromGeometryTablesResultApplier.apply(result, elapsed)
@@ -387,6 +378,14 @@ class BinningWorkerMixin:
     def cfpFromGeometryTablesThreadFinished(self, result: CfpFromGeometryTablesResult):
         self._ensureWorkerOperationComponents()
         self.workerOperationController.finishCurrentOperation(result, self.applyCfpFromGeometryTablesWorkerResult, resetAnalysis=False)
+
+    def applyCfpAmplitudeMapWorkerResult(self, result, elapsed):
+        self._ensureWorkerOperationComponents()
+        self.cfpAmplitudeMapResultApplier.apply(result, elapsed)
+
+    def cfpAmplitudeMapThreadFinished(self, result: CfpAmplitudeMapResult):
+        self._ensureWorkerOperationComponents()
+        self.workerOperationController.finishCurrentOperation(result, self.applyCfpAmplitudeMapWorkerResult, resetAnalysis=False)
 
     def showStatusbarWidgets(self):
         self.progressBar.setValue(0)

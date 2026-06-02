@@ -11,8 +11,7 @@ from .cfp_aux_functions_numba import (
     calculate_panel_snr_numba, compute_illumination_row_numba,
     compute_monochromatic_beam_xy_grid,
     compute_monochromatic_weighted_beam_xy_grid, compute_radon_images_numba,
-    compute_xy_beam_images_numba, filter_sps_relations_by_aperture,
-    scan_cfp_geometry_relations_numba)
+    compute_xy_beam_images_numba, scan_cfp_geometry_relations_numba)
 from .roll_survey import RollSurvey
 
 # debugpy  is needed to debug a worker thread.
@@ -62,17 +61,6 @@ def computeMonochromaticWeightedBeamXyGridSafe(evalX, evalY, evalZ, surfX, surfY
         return compute_monochromatic_weighted_beam_xy_grid(evalX, evalY, evalZ, surfX, surfY, surfZ, surfWeights, frequency, vint, focal_x=focalX, focal_y=focalY)
     except Exception as e:
         raise RuntimeError(f"CFP weighted beam grid calculation failed: {e}") from e
-
-
-def filterSpsRelationsByApertureSafe(focalX, focalY, apertureRadius, srcX, srcY, recX, recY, matlabCompat=False):
-    _ = matlabCompat
-    try:
-        return filter_sps_relations_by_aperture(focalX, focalY, apertureRadius, srcX, srcY, recX, recY)
-    except ImportError:
-        pyFunc = getattr(filter_sps_relations_by_aperture, 'py_func', None)
-        if pyFunc is None or not callable(pyFunc):
-            raise
-        return _callPythonFallback(pyFunc, focalX, focalY, apertureRadius, srcX, srcY, recX, recY)
 
 
 def scanCfpGeometryRelationsSafe(*args):
@@ -224,21 +212,6 @@ class CfpFromTemplatesRequest:
 
 
 @dataclass
-class CfpFromTraceTableRequest:
-    xmlString: str
-    analysisRows: Any = None
-    focalX: float = 0.0
-    focalY: float = 0.0
-    focalZ: float = -2000.0
-    frequency: float = 40.0
-    maxDipDegrees: float = 40.0
-    vint: float = 2000.0
-    chunkSize: int = 100_000
-    debugpyEnabled: bool = False
-    matlab_compat: bool = True
-
-
-@dataclass
 class CfpFromGeometryTablesRequest:
     xmlString: str
     srcGeom: Any
@@ -334,39 +307,6 @@ class CfpAmplitudeMapResult:
 
 
 @dataclass
-class CfpFromTraceTableResult:
-    success: bool
-    errorText: str = ''
-    chunkCount: int = 0
-    totalTraceCount: int = 0
-    contributingTraceCount: int = 0
-    focalX: float = 0.0
-    focalY: float = 0.0
-    focalZ: float = 0.0
-    frequency: float = 40.0
-    maxDipDegrees: float = 0.0
-    apertureRadius: float = 0.0
-    vint: float = 0.0
-    sourceBeamImage: Any = None
-    receiverBeamImage: Any = None
-    resolutionImage: Any = None
-    radonSourceBeamImage: Any = None
-    radonReceiverBeamImage: Any = None
-    radonAvpImage: Any = None
-    sourceSnr: float = 0.0
-    receiverSnr: float = 0.0
-    avpSnr: float = 0.0
-    sourceBeamX0: float = 0.0
-    sourceBeamY0: float = 0.0
-    sourceBeamDx: float = 1.0
-    sourceBeamDy: float = 1.0
-    radonX0: float = 0.0
-    radonY0: float = 0.0
-    radonDx: float = 1.0
-    radonDy: float = 1.0
-
-
-@dataclass
 class CfpFromGeometryTablesResult:
     success: bool
     errorText: str = ''
@@ -445,6 +385,8 @@ class CfpBeamAccumulator:
         self.evalY = None
         self._bufferedSourceArrays = []
         self._bufferedReceiverArrays = []
+        self._bufferedSourceWeights = []
+        self._bufferedReceiverWeights = []
         self._bufferedSourcePointCount = 0
         self._bufferedReceiverPointCount = 0
 
@@ -561,22 +503,69 @@ class CfpBeamAccumulator:
                 self.focalY,
             )
 
-    def _collapsePointWeights(self, points: np.ndarray) -> tuple[np.ndarray, np.ndarray | None]:
+    def _collapsePointWeights(self, points: np.ndarray, weights: np.ndarray | None = None, force: bool = False) -> tuple[np.ndarray, np.ndarray | None]:
         if points is None or points.shape[0] == 0:
             return np.empty((0, 3), dtype=np.float32), None
 
-        if points.shape[0] < self.weightCollapseThresholdPoints:
-            return points, None
+        if weights is not None:
+            weights = np.ascontiguousarray(weights, dtype=np.float64)
 
-        collapsedPoints, counts = np.unique(np.ascontiguousarray(points[:, :3], dtype=np.float32), axis=0, return_counts=True)
+        if not force and points.shape[0] < self.weightCollapseThresholdPoints:
+            return points, weights
+
+        pointCoords = np.ascontiguousarray(points[:, :3], dtype=np.float32)
+        if weights is None:
+            collapsedPoints, counts = np.unique(pointCoords, axis=0, return_counts=True)
+            if collapsedPoints.shape[0] == points.shape[0]:
+                return collapsedPoints, None
+
+            return collapsedPoints, counts.astype(np.float64, copy=False)
+
+        collapsedPoints, inverse = np.unique(pointCoords, axis=0, return_inverse=True)
         if collapsedPoints.shape[0] == points.shape[0]:
-            return collapsedPoints, None
+            return pointCoords, weights
 
-        return collapsedPoints, counts.astype(np.float64, copy=False)
+        collapsedWeights = np.bincount(inverse, weights=weights).astype(np.float64, copy=False)
+        return collapsedPoints, collapsedWeights
 
-    def _bufferPointArrays(self, sourcePoints, receiverPoints) -> None:
+    def compactBufferedPointArrays(self) -> None:
+        if not self._bufferedSourceArrays or not self._bufferedReceiverArrays:
+            return
+
+        sourcePoints = self._bufferedSourceArrays[0] if len(self._bufferedSourceArrays) == 1 else np.concatenate(self._bufferedSourceArrays, axis=0)
+        receiverPoints = self._bufferedReceiverArrays[0] if len(self._bufferedReceiverArrays) == 1 else np.concatenate(self._bufferedReceiverArrays, axis=0)
+        sourceWeights = self._combineBufferedWeights(self._bufferedSourceWeights, self._bufferedSourceArrays)
+        receiverWeights = self._combineBufferedWeights(self._bufferedReceiverWeights, self._bufferedReceiverArrays)
+
+        sourcePoints, sourceWeights = self._collapsePointWeights(sourcePoints, sourceWeights, force=True)
+        receiverPoints, receiverWeights = self._collapsePointWeights(receiverPoints, receiverWeights, force=True)
+
+        self._bufferedSourceArrays = [sourcePoints]
+        self._bufferedReceiverArrays = [receiverPoints]
+        self._bufferedSourceWeights = [sourceWeights]
+        self._bufferedReceiverWeights = [receiverWeights]
+        self._bufferedSourcePointCount = int(sourcePoints.shape[0])
+        self._bufferedReceiverPointCount = int(receiverPoints.shape[0])
+
+    @staticmethod
+    def _combineBufferedWeights(weightArrays, pointArrays) -> np.ndarray | None:
+        if not any(weights is not None for weights in weightArrays):
+            return None
+
+        combinedWeights = []
+        for points, weights in zip(pointArrays, weightArrays):
+            if weights is None:
+                combinedWeights.append(np.ones(points.shape[0], dtype=np.float64))
+            else:
+                combinedWeights.append(np.ascontiguousarray(weights, dtype=np.float64))
+
+        return combinedWeights[0] if len(combinedWeights) == 1 else np.concatenate(combinedWeights)
+
+    def _bufferPointArrays(self, sourcePoints, receiverPoints, sourceWeights=None, receiverWeights=None) -> None:
         self._bufferedSourceArrays.append(sourcePoints)
         self._bufferedReceiverArrays.append(receiverPoints)
+        self._bufferedSourceWeights.append(sourceWeights)
+        self._bufferedReceiverWeights.append(receiverWeights)
         self._bufferedSourcePointCount += int(sourcePoints.shape[0])
         self._bufferedReceiverPointCount += int(receiverPoints.shape[0])
 
@@ -586,14 +575,18 @@ class CfpBeamAccumulator:
 
         sourcePoints = self._bufferedSourceArrays[0] if len(self._bufferedSourceArrays) == 1 else np.concatenate(self._bufferedSourceArrays, axis=0)
         receiverPoints = self._bufferedReceiverArrays[0] if len(self._bufferedReceiverArrays) == 1 else np.concatenate(self._bufferedReceiverArrays, axis=0)
+        sourceWeights = self._combineBufferedWeights(self._bufferedSourceWeights, self._bufferedSourceArrays)
+        receiverWeights = self._combineBufferedWeights(self._bufferedReceiverWeights, self._bufferedReceiverArrays)
 
         self._bufferedSourceArrays = []
         self._bufferedReceiverArrays = []
+        self._bufferedSourceWeights = []
+        self._bufferedReceiverWeights = []
         self._bufferedSourcePointCount = 0
         self._bufferedReceiverPointCount = 0
 
-        sourcePoints, sourceWeights = self._collapsePointWeights(sourcePoints)
-        receiverPoints, receiverWeights = self._collapsePointWeights(receiverPoints)
+        sourcePoints, sourceWeights = self._collapsePointWeights(sourcePoints, sourceWeights)
+        receiverPoints, receiverWeights = self._collapsePointWeights(receiverPoints, receiverWeights)
 
         self.accumulateCoordinates(
             sourcePoints[:, 0],
@@ -616,6 +609,23 @@ class CfpBeamAccumulator:
         self._bufferPointArrays(sourcePoints, receiverPoints)
         if max(self._bufferedSourcePointCount, self._bufferedReceiverPointCount) >= self.flushThresholdPoints:
             self.flushBufferedPointArrays()
+
+    def accumulateWeightedPointArrays(self, sourcePoints, receiverPoints, sourceWeights, receiverWeights) -> None:
+        if sourcePoints is None or receiverPoints is None:
+            return
+
+        if sourcePoints.shape[0] == 0 or receiverPoints.shape[0] == 0:
+            return
+
+        if sourceWeights is None or receiverWeights is None:
+            return
+
+        if sourceWeights.shape[0] != sourcePoints.shape[0] or receiverWeights.shape[0] != receiverPoints.shape[0]:
+            raise ValueError('weighted CFP point arrays must match their weight arrays')
+
+        self._bufferPointArrays(sourcePoints, receiverPoints, sourceWeights, receiverWeights)
+        if max(self._bufferedSourcePointCount, self._bufferedReceiverPointCount) >= self.flushThresholdPoints:
+            self.compactBufferedPointArrays()
 
     def _finalizeRadonImages(self, progressHandler=None, messageHandler=None, progressStart: int = 0, progressEnd: int = 100, phaseLabel: str = 'CFP analysis') -> None:
         if self.sourceBeamField is None or self.receiverBeamField is None or self.evalX is None or self.evalY is None:
@@ -975,11 +985,12 @@ class CfpFromTemplatesWorker(QObject):
                     self.focalZ,
                     self.maxDipDegrees,
                     self.vint,
-                    contributionHandler=self.beamAccumulator.accumulatePointArrays,
+                    weightedContributionHandler=self.beamAccumulator.accumulateWeightedPointArrays,
                     progressStart=0,
                     progressEnd=100,
                 )
             if success:
+                self.survey.message.emit('CFP from Templates - Please wait, finalizing images...')
                 self.survey.progress.emit(0)
                 self.beamAccumulator.finalizeImages(
                     progressHandler=self.survey.progress.emit,
@@ -1035,7 +1046,7 @@ class CfpFromTemplatesWorker(QObject):
 class CfpAmplitudeMapWorker(QObject):
     finished = pyqtSignal()
     resultReady = pyqtSignal(object)
-    partialResultReady = pyqtSignal(object)
+    # partialResultReady = pyqtSignal(object)
 
     def __init__(self, request: CfpAmplitudeMapRequest):
         super().__init__()
@@ -1061,22 +1072,22 @@ class CfpAmplitudeMapWorker(QObject):
             ny = max(int(np.ceil(outputRect.height() / dy)), 1)
 
             x0, y0 = float(outputRect.left()), float(outputRect.top())
-            evalX = np.ascontiguousarray(x0 + np.arange(nx, dtype=np.float32) * dx)
+            evalX = np.ascontiguousarray(x0 + (np.arange(nx, dtype=np.float32) + 0.5) * dx)
             ampMap = np.zeros((ny, nx), dtype=np.float32)
 
-            # Unified trace collection
-            if self.survey.output.relGeom is not None:
+            # Trace collection follows the input trajectory selected by the request.
+            if self.survey.output.srcGeom is not None and self.survey.output.relGeom is not None and self.survey.output.recGeom is not None:
                 self.survey.prepareGeometryRelationBinningLookup()
-                srcCoords, recCoords, relWeights = self._gatherTracesFromRelations()
+                srcCoords, srcWeights, recCoords, recWeights = self._gatherTracesFromRelations()
             else:
-                srcCoords, recCoords, relWeights = self._gatherTracesFromTemplates()
+                srcCoords, srcWeights, recCoords, recWeights = self._gatherTracesFromTemplates()
 
-            if srcCoords.shape[0] == 0:
+            if srcCoords.shape[0] == 0 or recCoords.shape[0] == 0:
                 raise ValueError("No active traces available for Illumination mapping")
 
             apertureRadius = abs(self.request.focalZ) * np.tan(np.radians(self.request.maxDipDegrees))
-            freqs = self.request.frequencies if self.request.frequencies is not None else np.array([20.0, 40.0], dtype=np.float32)
-            partialEmitEvery = max(1, ny // 20)
+            freqs = self.request.frequencies if self.request.frequencies is not None else np.array([40.0], dtype=np.float32)
+            # partialEmitEvery = max(1, ny // 20)
 
             # 3. Iterate over the Grid
             currentThread = QThread.currentThread()
@@ -1084,30 +1095,30 @@ class CfpAmplitudeMapWorker(QObject):
                 if currentThread.isInterruptionRequested():
                     raise StopIteration
 
-                focalY = y0 + iy * dy
+                focalY = y0 + (iy + 0.5) * dy
 
                 # Parallel row computation via Numba
                 ampMap[iy, :] = compute_illumination_row_numba(
                     focalY, evalX, self.request.focalZ,
-                    srcCoords, recCoords, relWeights,
+                    srcCoords, srcWeights, recCoords, recWeights,
                     freqs, self.request.vint, apertureRadius
                 )
 
                 self.survey.progress.emit(int((iy + 1) * 100 / ny))
-                self.survey.message.emit(f"CFP Amplitude Map - row {iy+1}/{ny}")
+                self.survey.message.emit(f"CFP illumination - row {iy+1}/{ny}")
 
-                # Emit throttled partial results to limit UI redraw and copy overhead.
-                if (iy + 1) % partialEmitEvery == 0 or (iy + 1) == ny:
-                    partial = CfpAmplitudeMapResult(
-                        success=True,
-                        amplitudeMap=_copyCfpImageForRollPlot(ampMap),
-                        x0=x0,
-                        y0=y0,
-                        dx=dx,
-                        dy=dy,
-                        isPartial=True,
-                    )
-                    self.partialResultReady.emit(partial)
+                # # Emit throttled partial results to limit UI redraw and copy overhead.
+                # if (iy + 1) % partialEmitEvery == 0 or (iy + 1) == ny:
+                #     partial = CfpAmplitudeMapResult(
+                #         success=True,
+                #         amplitudeMap=_copyCfpImageForRollPlot(ampMap),
+                #         x0=x0,
+                #         y0=y0,
+                #         dx=dx,
+                #         dy=dy,
+                #         isPartial=True,
+                #     )
+                #     self.partialResultReady.emit(partial)
 
             # Normalize result
             maxVal = ampMap.max()
@@ -1126,19 +1137,43 @@ class CfpAmplitudeMapWorker(QObject):
         finally:
             self.finished.emit()
 
-    def _gatherTracesFromRelations(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Internal helper to extract aligned trace arrays from relation and geometry tables."""
+    @staticmethod
+    def _emptyWeightedStations() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        emptyPoints = np.empty((0, 3), dtype=np.float32)
+        emptyWeights = np.empty(0, dtype=np.float32)
+        return emptyPoints, emptyWeights, emptyPoints, emptyWeights
+
+    @staticmethod
+    def _inUseMask(table) -> np.ndarray:
+        if 'InUse' not in table.dtype.names:
+            return np.ones(table.shape[0], dtype=bool)
+        return table['InUse'] != 0
+
+    @staticmethod
+    def _collapseWeightedCoordinates(points: np.ndarray, weights: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        if points.shape[0] == 0:
+            return np.empty((0, 3), dtype=np.float32), np.empty(0, dtype=np.float32)
+
+        uniquePoints, inverse = np.unique(np.ascontiguousarray(points, dtype=np.float32), axis=0, return_inverse=True)
+        uniqueWeights = np.zeros(uniquePoints.shape[0], dtype=np.float64)
+        np.add.at(uniqueWeights, inverse, np.asarray(weights, dtype=np.float64))
+        return np.ascontiguousarray(uniquePoints, dtype=np.float32), np.ascontiguousarray(uniqueWeights, dtype=np.float32)
+
+    def _gatherTracesFromRelations(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Extract weighted source/receiver station arrays from relation and geometry tables."""
         rel = self.survey.output.relGeom
         srcGeom = self.survey.output.srcGeom
         recGeom = self.survey.output.recGeom
         if rel is None or srcGeom is None or recGeom is None:
-            return np.empty((0, 3), dtype=np.float32), np.empty((0, 3), dtype=np.float32), np.empty(0, dtype=np.float32)
+            return self._emptyWeightedStations()
 
         if rel.shape[0] == 0 or srcGeom.shape[0] == 0 or recGeom.shape[0] == 0:
-            return np.empty((0, 3), dtype=np.float32), np.empty((0, 3), dtype=np.float32), np.empty(0, dtype=np.float32)
+            return self._emptyWeightedStations()
 
-        srcGeom = np.sort(srcGeom, order=['Index', 'Line', 'Point'])
-        recGeom = np.sort(recGeom, order=['Index', 'Line', 'Point'])
+        srcGeom = np.sort(srcGeom[self._inUseMask(srcGeom)], order=['Index', 'Line', 'Point'])
+        recGeom = np.sort(recGeom[self._inUseMask(recGeom)], order=['Index', 'Line', 'Point'])
+        if srcGeom.shape[0] == 0 or recGeom.shape[0] == 0:
+            return self._emptyWeightedStations()
 
         srcKeys = np.rec.fromarrays(
             [
@@ -1165,75 +1200,98 @@ class CfpAmplitudeMapWorker(QObject):
         else:
             safeSrcIdx = np.zeros(rel.shape[0], dtype=np.int64)
 
-        recKeys = np.rec.fromarrays(
-            [
-                recGeom['Index'].astype(np.int32),
-                np.rint(recGeom['Line']).astype(np.int32),
-                np.rint(recGeom['Point']).astype(np.int32),
-            ],
-            names='Ind,Lin,Pnt',
-        )
-        relRecKeys = np.rec.fromarrays(
-            [
-                rel['RecInd'].astype(np.int32),
-                np.rint(rel['RecLin']).astype(np.int32),
-                np.rint(rel['RecMin']).astype(np.int32),
-            ],
-            names='Ind,Lin,Pnt',
-        )
-
-        recIdx = np.searchsorted(recKeys, relRecKeys, side='left')
-        validRec = recIdx < recKeys.shape[0]
-        if recKeys.shape[0] > 0:
-            safeRecIdx = np.minimum(recIdx, recKeys.shape[0] - 1)
-            validRec &= recKeys[safeRecIdx] == relRecKeys
-        else:
-            safeRecIdx = np.zeros(rel.shape[0], dtype=np.int64)
-
+        relInSps = rel['InSps'] != 0 if 'InSps' in rel.dtype.names else np.ones(rel.shape[0], dtype=bool)
+        relInRps = rel['InRps'] != 0 if 'InRps' in rel.dtype.names else np.ones(rel.shape[0], dtype=bool)
         validRange = rel['RecMax'] >= rel['RecMin']
-        validMask = validSrc & validRec & validRange
+        validMask = validSrc & relInSps & relInRps & validRange
         if not np.any(validMask):
-            return np.empty((0, 3), dtype=np.float32), np.empty((0, 3), dtype=np.float32), np.empty(0, dtype=np.float32)
+            return self._emptyWeightedStations()
 
-        srcPick = safeSrcIdx[validMask]
-        recPick = safeRecIdx[validMask]
-        relValid = rel[validMask]
+        recIndex = recGeom['Index'].astype(np.int32)
+        recLine = np.rint(recGeom['Line']).astype(np.int32)
+        recPoint = np.rint(recGeom['Point']).astype(np.int32)
+        groupLookup = {}
+        groupStart = 0
+        while groupStart < recGeom.shape[0]:
+            groupEnd = groupStart + 1
+            while groupEnd < recGeom.shape[0] and recIndex[groupEnd] == recIndex[groupStart] and recLine[groupEnd] == recLine[groupStart]:
+                groupEnd += 1
+            groupLookup[(int(recIndex[groupStart]), int(recLine[groupStart]))] = (groupStart, groupEnd)
+            groupStart = groupEnd
 
-        # Aligned source trace arrays
-        sX = srcGeom['LocX'][srcPick].astype(np.float32)
-        sY = srcGeom['LocY'][srcPick].astype(np.float32)
-        sZ = (srcGeom['Elev'][srcPick] - srcGeom['Depth'][srcPick]).astype(np.float32)
-        src_xyz = np.column_stack((sX, sY, sZ))
+        sourceWeights = np.zeros(srcGeom.shape[0], dtype=np.float64)
+        receiverWeights = np.zeros(recGeom.shape[0], dtype=np.float64)
 
-        # Aligned receiver proxy arrays
-        rX = recGeom['LocX'][recPick].astype(np.float32)
-        rY = recGeom['LocY'][recPick].astype(np.float32)
-        rZ = (recGeom['Elev'][recPick] - recGeom['Depth'][recPick]).astype(np.float32)
-        rec_xyz = np.column_stack((rX, rY, rZ))
+        validRows = np.flatnonzero(validMask)
+        relRecInd = rel['RecInd'].astype(np.int32)
+        relRecLine = np.rint(rel['RecLin']).astype(np.int32)
+        relRecMin = np.rint(rel['RecMin']).astype(np.int32)
+        relRecMax = np.rint(rel['RecMax']).astype(np.int32)
 
-        weights = (relValid['RecMax'] - relValid['RecMin'] + 1.0).astype(np.float32)
-        return src_xyz, rec_xyz, weights
+        for relIdx in validRows:
+            group = groupLookup.get((int(relRecInd[relIdx]), int(relRecLine[relIdx])))
+            if group is None:
+                continue
 
-    def _gatherTracesFromTemplates(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Expands rolling templates to full trace coordinate arrays for mapping."""
+            start, end = group
+            first = start + np.searchsorted(recPoint[start:end], relRecMin[relIdx], side='left')
+            last = start + np.searchsorted(recPoint[start:end], relRecMax[relIdx], side='right')
+            if last <= first:
+                continue
+
+            sourceWeights[safeSrcIdx[relIdx]] += float(last - first)
+            receiverWeights[first:last] += 1.0
+
+        sourceMask = sourceWeights > 0.0
+        receiverMask = receiverWeights > 0.0
+        if not np.any(sourceMask) or not np.any(receiverMask):
+            return self._emptyWeightedStations()
+
+        sourcePoints = np.column_stack(
+            (
+                srcGeom['LocX'][sourceMask].astype(np.float32),
+                srcGeom['LocY'][sourceMask].astype(np.float32),
+                (srcGeom['Elev'][sourceMask] - srcGeom['Depth'][sourceMask]).astype(np.float32),
+            )
+        )
+        receiverPoints = np.column_stack(
+            (
+                recGeom['LocX'][receiverMask].astype(np.float32),
+                recGeom['LocY'][receiverMask].astype(np.float32),
+                (recGeom['Elev'][receiverMask] - recGeom['Depth'][receiverMask]).astype(np.float32),
+            )
+        )
+        return (
+            np.ascontiguousarray(sourcePoints, dtype=np.float32),
+            np.ascontiguousarray(sourceWeights[sourceMask], dtype=np.float32),
+            np.ascontiguousarray(receiverPoints, dtype=np.float32),
+            np.ascontiguousarray(receiverWeights[receiverMask], dtype=np.float32),
+        )
+
+    def _gatherTracesFromTemplates(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Extract weighted source/receiver station arrays from rolling templates."""
         src_list = []
+        src_weight_list = []
         rec_list = []
+        rec_weight_list = []
 
-        def contributionHandler(srcPoints, recPoints):
+        def contributionHandler(srcPoints, recPoints, srcWeights, recWeights):
             src_list.append(srcPoints)
+            src_weight_list.append(srcWeights)
             rec_list.append(recPoints)
+            rec_weight_list.append(recWeights)
 
         self.survey.scanCfpTemplates(
             self.survey.output.rctOutput.center().x(), self.survey.output.rctOutput.center().y(),
-            self.request.focalZ, 90.0, self.request.vint, contributionHandler=contributionHandler
+            self.request.focalZ, 90.0, self.request.vint, weightedContributionHandler=contributionHandler
         )
 
         if not src_list:
-            return np.empty((0, 3), dtype=np.float32), np.empty((0, 3), dtype=np.float32), np.empty(0, dtype=np.float32)
+            return self._emptyWeightedStations()
 
-        src_xyz = np.concatenate(src_list, axis=0).astype(np.float32)
-        rec_xyz = np.concatenate(rec_list, axis=0).astype(np.float32)
-        return src_xyz, rec_xyz, np.ones(src_xyz.shape[0], dtype=np.float32)
+        srcPoints, srcWeights = self._collapseWeightedCoordinates(np.concatenate(src_list, axis=0), np.concatenate(src_weight_list, axis=0))
+        recPoints, recWeights = self._collapseWeightedCoordinates(np.concatenate(rec_list, axis=0), np.concatenate(rec_weight_list, axis=0))
+        return srcPoints, srcWeights, recPoints, recWeights
 
 
 class CfpFromGeometryTablesWorker(QObject):
@@ -1470,6 +1528,9 @@ class CfpFromGeometryTablesWorker(QObject):
             self.survey.progress.emit(progress)
             self.survey.message.emit(f'CFP from {self.sourceName} - processed chunk {chunkIndex + 1:,}/{self.chunkCount:,}')
 
+        self.survey.progress.emit(100)
+        self.survey.message.emit(f'CFP from {self.sourceName} - Please wait, finalizing images...')
+
         sourceMask = sourceWeights > 0.0
         receiverMask = receiverWeights > 0.0
         self.beamAccumulator.accumulateCoordinates(
@@ -1511,173 +1572,6 @@ class CfpFromGeometryTablesWorker(QObject):
             receiverOrphanRelationCount=self.receiverOrphanRelationCount,
             missingSourceCount=self.missingSourceCount,
             missingReceiverCount=self.missingReceiverCount,
-            focalX=self.focalX,
-            focalY=self.focalY,
-            focalZ=self.focalZ,
-            frequency=self.frequency,
-            maxDipDegrees=self.maxDipDegrees,
-            apertureRadius=self.apertureRadius,
-            vint=self.vint,
-            **payload,
-        )
-
-
-class CfpFromTraceTableWorker(QObject):
-    finished = pyqtSignal()
-    resultReady = pyqtSignal(object)
-
-    def __init__(self, request: CfpFromTraceTableRequest):
-        super().__init__()
-        self.survey = RollSurvey()
-        self.debugpyEnabled = request.debugpyEnabled
-        self.analysisRows = request.analysisRows
-        self.focalX = request.focalX
-        self.focalY = request.focalY
-        self.focalZ = request.focalZ
-        self.frequency = request.frequency
-        self.maxDipDegrees = request.maxDipDegrees
-        self.vint = request.vint
-        self.matlab_compat = getattr(request, 'matlab_compat', False)
-        self.chunkSize = max(int(request.chunkSize), 1)
-        self.chunkCount = 0
-        self.totalTraceCount = 0
-        self.contributingTraceCount = 0
-        self.apertureRadius = abs(self.focalZ) * np.tan(np.radians(self.maxDipDegrees))
-        self.beamAccumulator = CfpBeamAccumulator(self.survey, self.focalZ, self.frequency, self.vint, self.maxDipDegrees, self.focalX, self.focalY)
-
-        self.survey.fromXmlString(request.xmlString, False)
-
-    def run(self):
-        """Long-running task."""
-
-        try:
-            if haveDebugpy and self.debugpyEnabled:
-                debugpy.debug_this_thread()
-
-            self.survey.progress.emit(0)
-            success = self._scanTraceTable()
-        except BaseException as e:
-            fileName = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            funcName = sys.exc_info()[2].tb_frame.f_code.co_name
-            lineNo = str(sys.exc_info()[2].tb_lineno)
-            self.survey.errorText = f'file: {fileName}, function: {funcName}(), line: {lineNo}, error: {str(e)}'
-            del (fileName, funcName, lineNo)
-            success = False
-
-        finally:
-            self.resultReady.emit(self.buildResult(success))
-            self.finished.emit()
-
-    def _scanTraceTable(self) -> bool:
-        if self.analysisRows is None:
-            self.survey.errorText = 'trace table has not been defined'
-            return False
-
-        if len(getattr(self.analysisRows, 'shape', ())) != 2 or self.analysisRows.shape[1] < 9:
-            self.survey.errorText = 'trace table has invalid shape'
-            return False
-
-        totalRows = int(self.analysisRows.shape[0])
-        self.chunkCount = (totalRows + self.chunkSize - 1) // self.chunkSize if totalRows > 0 else 0
-        self.totalTraceCount = 0
-        self.contributingTraceCount = 0
-
-        if not self.beamAccumulator.initializeGrid():
-            return False
-
-        if self.chunkCount == 0:
-            self.survey.progress.emit(100)
-            self.survey.message.emit('CFP from Trace Table - no trace rows available')
-            return True
-
-        currentThread = QThread.currentThread()
-        for chunkIndex in range(self.chunkCount):
-            if currentThread.isInterruptionRequested():
-                self.survey.errorText = 'CFP trace-table scan cancelled'
-                return False
-
-            startRow = chunkIndex * self.chunkSize
-            endRow = min(startRow + self.chunkSize, totalRows)
-            chunk = self.analysisRows[startRow:endRow]
-            activeMask = chunk[:, 2] > 0.0
-            activeTraceCount = int(np.count_nonzero(activeMask))
-            self.totalTraceCount += activeTraceCount
-
-            if activeTraceCount > 0:
-                activeChunk = chunk[activeMask]
-                validIndices = filterSpsRelationsByApertureSafe(
-                    self.focalX,
-                    self.focalY,
-                    self.apertureRadius,
-                    activeChunk[:, 3],
-                    activeChunk[:, 4],
-                    activeChunk[:, 6],
-                    activeChunk[:, 7]
-                )
-                self.contributingTraceCount += int(validIndices.shape[0])
-                self._accumulateBeams(activeChunk, validIndices)
-
-            progress = ((chunkIndex + 1) * 100) // self.chunkCount
-            self.survey.progress.emit(progress)
-            self.survey.message.emit(
-                f'CFP from Trace Table - processed chunk {chunkIndex + 1:,}/{self.chunkCount:,}'
-            )
-
-        self.survey.progress.emit(0)
-        self.beamAccumulator.finalizeImages(
-            progressHandler=self.survey.progress.emit,
-            messageHandler=self.survey.message.emit,
-            progressStart=0,
-            progressEnd=100,
-            phaseLabel='CFP from Trace Table',
-        )
-        return True
-
-    def _accumulateBeams(self, activeChunk, validIndices) -> None:
-        if validIndices.shape[0] == 0:
-            return
-
-        srcX = np.ascontiguousarray(activeChunk[validIndices, 3], dtype=np.float64)
-        srcY = np.ascontiguousarray(activeChunk[validIndices, 4], dtype=np.float64)
-        srcZ = np.ascontiguousarray(activeChunk[validIndices, 5], dtype=np.float64)
-        recX = np.ascontiguousarray(activeChunk[validIndices, 6], dtype=np.float64)
-        recY = np.ascontiguousarray(activeChunk[validIndices, 7], dtype=np.float64)
-        recZ = np.ascontiguousarray(activeChunk[validIndices, 8], dtype=np.float64)
-
-        # Optimize Trace Table path by collapsing redundant stations within the chunk.
-        srcPoints = np.column_stack((srcX, srcY, srcZ))
-        recPoints = np.column_stack((recX, recY, recZ))
-
-        # Use the same accumulation logic as templates to benefit from weight collapsing
-        self.beamAccumulator.accumulatePointArrays(
-            srcPoints.astype(np.float32, copy=False),
-            recPoints.astype(np.float32, copy=False)
-        )
-
-    def buildResult(self, success: bool) -> CfpFromTraceTableResult:
-        payload = self.beamAccumulator.buildPayload()
-        if not success:
-            return CfpFromTraceTableResult(
-                success=False,
-                errorText=self.survey.errorText,
-                chunkCount=self.chunkCount,
-                totalTraceCount=self.totalTraceCount,
-                contributingTraceCount=self.contributingTraceCount,
-                focalX=self.focalX,
-                focalY=self.focalY,
-                focalZ=self.focalZ,
-                frequency=self.frequency,
-                maxDipDegrees=self.maxDipDegrees,
-                apertureRadius=self.apertureRadius,
-                vint=self.vint,
-                **payload,
-            )
-
-        return CfpFromTraceTableResult(
-            success=True,
-            chunkCount=self.chunkCount,
-            totalTraceCount=self.totalTraceCount,
-            contributingTraceCount=self.contributingTraceCount,
             focalX=self.focalX,
             focalY=self.focalY,
             focalZ=self.focalZ,

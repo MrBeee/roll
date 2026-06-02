@@ -227,34 +227,6 @@ def scan_cfp_geometry_relations_numba(
 
 
 @jit(parallel=True, nopython=True, cache=False)
-def filter_sps_relations_by_aperture(focal_x, focal_y, max_radius, src_x, src_y, rec_x, rec_y):
-    """
-    Screens memory-mapped active relation arrays to isolate traces where
-    BOTH source and receiver contribute to the CFP focal point.
-    """
-    n_traces = len(src_x)
-    keep_mask = np.zeros(n_traces, dtype=np.bool_)
-    r_sq = max_radius * max_radius
-
-    for i in prange(n_traces):
-        # 1. Evaluate Source Proximity
-        dsx = src_x[i] - focal_x
-        dsy = src_y[i] - focal_y
-        if (dsx*dsx + dsy*dsy) > r_sq:
-            continue  # Source is outside aperture
-
-        # 2. Evaluate Receiver Proximity
-        drx = rec_x[i] - focal_x
-        dry = rec_y[i] - focal_y
-        if (drx*drx + dry*dry) > r_sq:
-            continue  # Receiver is outside aperture
-
-        keep_mask[i] = True
-
-    return np.where(keep_mask)[0]
-
-
-@jit(parallel=True, nopython=True, cache=False)
 def compute_monochromatic_beam(focal_x, focal_y, focal_z, surf_x, surf_y, freq, v_int):
     """
     Calculates a single frequency wavefront component for the isolated target channels.
@@ -351,14 +323,15 @@ def _compute_ft_beam_xy_grid_numba(eval_x, eval_y, eval_z, surf_x, surf_y, surf_
 
 
 @jit(parallel=True, nopython=True, cache=False)
-def compute_illumination_row_numba(focal_y, eval_x, focal_z, src_coords, rec_coords, weights, freqs, vint, max_radius, matlab_compat=False):
+def compute_illumination_row_numba(focal_y, eval_x, focal_z, src_coords, src_weights, rec_coords, rec_weights, freqs, vint, max_radius, matlab_compat=False):
     """
     Optimized kernel to compute a single row of an illumination (energy) map.
     Applies a moving spatial aperture filter per pixel in parallel.
     """
     _ = matlab_compat
     n_x = len(eval_x)
-    n_traces = src_coords.shape[0]
+    n_sources = src_coords.shape[0]
+    n_receivers = rec_coords.shape[0]
     n_freqs = len(freqs)
     r_sq_limit = np.float32(max_radius * max_radius)
 
@@ -382,29 +355,29 @@ def compute_illumination_row_numba(focal_y, eval_x, focal_z, src_coords, rec_coo
             bs = np.complex64(0.0 + 0.0j)
             br = np.complex64(0.0 + 0.0j)
 
-            for t_idx in range(n_traces):
-                # Trace-based aperture check (Source and Receiver must illuminate focal point)
-                dsx = src_coords[t_idx, 0] - f_x
-                dsy = src_coords[t_idx, 1] - focal_y
+            for src_idx in range(n_sources):
+                dsx = src_coords[src_idx, 0] - f_x
+                dsy = src_coords[src_idx, 1] - focal_y
                 rs_sq = dsx * dsx + dsy * dsy
                 if rs_sq > r_sq_limit:
                     continue
 
-                drx = rec_coords[t_idx, 0] - f_x
-                dry = rec_coords[t_idx, 1] - focal_y
+                w = src_weights[src_idx]
+                rs = np.sqrt(rs_sq + dsz2_vals[src_idx])
+                if rs > 1e-3:
+                    bs += np.complex64((abs_dsz_vals[src_idx] / (two_pi * rs * rs)) * w) * np.exp(1j * (-k * rs))
+
+            for rec_idx in range(n_receivers):
+                drx = rec_coords[rec_idx, 0] - f_x
+                dry = rec_coords[rec_idx, 1] - focal_y
                 rr_sq = drx * drx + dry * dry
                 if rr_sq > r_sq_limit:
                     continue
 
-                # Compute Green's functions for valid trace components
-                w = weights[t_idx]
-                rs = np.sqrt(rs_sq + dsz2_vals[t_idx])
-                if rs > 1e-3:
-                    bs += np.complex64((abs_dsz_vals[t_idx] / (two_pi * rs * rs)) * w) * np.exp(1j * (-k * rs))
-
-                rr = np.sqrt(rr_sq + drz2_vals[t_idx])
+                w = rec_weights[rec_idx]
+                rr = np.sqrt(rr_sq + drz2_vals[rec_idx])
                 if rr > 1e-3:
-                    br += np.complex64((abs_drz_vals[t_idx] / (two_pi * rr * rr)) * w) * np.exp(1j * (-k * rr))
+                    br += np.complex64((abs_drz_vals[rec_idx] / (two_pi * rr * rr)) * w) * np.exp(1j * (-k * rr))
 
             pixel_energy += np.abs(bs * br)
 

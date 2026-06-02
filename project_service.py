@@ -64,6 +64,7 @@ class ProjectSidecarLoadResult:
     maxOffset: np.ndarray | None = None
     rmsOffset: np.ndarray | None = None
     gapOffset: np.ndarray | None = None
+    cfpOutput: np.ndarray | None = None
     offstHist: np.ndarray | None = None
     ofAziHist: np.ndarray | None = None
     minimumFold: int = 0
@@ -87,7 +88,7 @@ class ProjectSidecarLoadResult:
 
 
 class ProjectService:
-    analysisSidecarSuffixes = ('.bin.npy', '.min.npy', '.max.npy', '.rms.npy', '.gap.npy', '.off.npy', '.azi.npy', '.ana.npy')
+    analysisSidecarSuffixes = ('.bin.npy', '.min.npy', '.max.npy', '.rms.npy', '.gap.npy', '.cfp.npy', '.off.npy', '.azi.npy', '.ana.npy')
 
     def readProjectText(self, fileName):
         qFile = QFile(fileName)
@@ -213,6 +214,7 @@ class ProjectService:
         self.saveArraySidecar(fileName, '.max.npy', output.maxOffset)
         self.saveArraySidecar(fileName, '.rms.npy', output.rmsOffset)
         self.saveArraySidecar(fileName, '.gap.npy', output.gapOffset)
+        self.saveArraySidecar(fileName, '.cfp.npy', output.cfpOutput)
 
         if includeHistograms:
             self.saveArraySidecar(fileName, '.off.npy', output.offstHist)
@@ -327,6 +329,13 @@ class ProjectService:
             self._appendMessage(result, 'info', f'Loaded : . . . Max-gap&nbsp; &nbsp;: Min:{result.minOffsetGap:.2f}m - Max:{result.maxOffsetGap:.2f}m ')
         elif gapResult.exists:
             self._appendMessage(result, 'error', 'Loaded : . . . Max-gap&nbsp; &nbsp;: Wrong dimensions, compared to analysis area - file ignored')
+
+        cfpResult = self.loadSizedArraySidecar(fileName, '.cfp.npy', (nx, ny))
+        if cfpResult.valid:
+            result.cfpOutput = cfpResult.array
+            self._appendMessage(result, 'info', 'Loaded : . . . CFP illumination map')
+        elif cfpResult.exists:
+            self._appendMessage(result, 'error', 'Loaded : . . . CFP illumination: Wrong dimensions, compared to analysis area - file ignored')
 
         offResult = self.loadHistogramSidecar(fileName, '.off.npy', 2)
         if offResult.valid:

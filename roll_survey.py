@@ -817,6 +817,7 @@ class RollSurvey(pg.GraphicsObject):
         maxDipDegrees: float,
         vint: float,
         contributionHandler: Callable[[np.ndarray, np.ndarray], None] | None = None,
+        weightedContributionHandler: Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], None] | None = None,
         progressStart: int = 0,
         progressEnd: int = 100,
     ) -> bool:
@@ -860,13 +861,15 @@ class RollSurvey(pg.GraphicsObject):
 
                         nSrc = sourcePoints.shape[0]
                         nRec = receiverPoints.shape[0]
-                        # Expand to aligned trace pairs so the accumulator's collapsing
-                        # logic accurately captures multiplicity.
-                        sourceExp = np.repeat(sourcePoints, nRec, axis=0)
-                        receiverExp = np.tile(receiverPoints, (nSrc, 1))
 
                         self.cfpTemplateContributionCount += 1
-                        if contributionHandler is not None:
+                        if weightedContributionHandler is not None:
+                            sourceWeights = np.full(nSrc, nRec, dtype=np.float64)
+                            receiverWeights = np.full(nRec, nSrc, dtype=np.float64)
+                            weightedContributionHandler(sourcePoints, receiverPoints, sourceWeights, receiverWeights)
+                        elif contributionHandler is not None:
+                            sourceExp = np.repeat(sourcePoints, nRec, axis=0)
+                            receiverExp = np.tile(receiverPoints, (nSrc, 1))
                             contributionHandler(sourceExp, receiverExp)
 
             self.progress.emit(progressEnd)

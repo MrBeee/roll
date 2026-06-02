@@ -744,6 +744,7 @@ class PropertyPanelController:
         window.output.maxOffset = None
         window.output.rmsOffset = None
         window.output.gapOffset = None
+        window.output.cfpOutput = None
         window.output.ofAziHist = None
         window.output.offstHist = None
 
@@ -763,6 +764,7 @@ class PropertyPanelController:
             self.window.fileName + '.max.npy',
             self.window.fileName + '.rms.npy',
             self.window.fileName + '.gap.npy',
+            self.window.fileName + '.cfp.npy',
             self.window.fileName + '.ana.npy',
         ]
 

@@ -61,6 +61,7 @@ class ActionStateController:
             ('actionMaxO', window.output.maxOffset is not None),
             ('actionRmsO', window.output.rmsOffset is not None),
             ('actionGapO', window.output.gapOffset is not None),
+            ('actionIllumination', window.output.cfpOutput is not None),
             ('actionSpider', window.output.anaOutput is not None and window.output.binOutput is not None),
             ('actionMoveLt', window.output.anaOutput is not None),
             ('actionMoveRt', window.output.anaOutput is not None),
@@ -71,6 +72,7 @@ class ActionStateController:
             ('btnMaxToQGIS', window.output.maxOffset is not None),
             ('btnRmsToQGIS', window.output.rmsOffset is not None),
             ('btnGapToQGIS', window.output.gapOffset is not None),
+            ('btnIlluminationToQGIS', window.output.cfpOutput is not None),
             ('actionExportFoldMapToQGIS', window.output.binOutput is not None),
             ('actionExportMinOffsetsToQGIS', window.output.minOffset is not None),
             ('actionExportMaxOffsetsToQGIS', window.output.maxOffset is not None),
@@ -101,19 +103,20 @@ class ActionStateController:
         experimentalEnabled = bool(window.appSettings.useExperimental)
         hasGeometryInputs = enable is True and window.srcGeom is not None and window.recGeom is not None
         hasSpsInputs = enable is True and window.spsImport is not None and window.rpsImport is not None
+        hasCfpPlaneGeometryInputs = enable is True and window.srcGeom is not None and window.relGeom is not None and window.recGeom is not None
         hasCfpGeometryInputs = enable is True and (
             (window.srcGeom is not None and window.relGeom is not None and window.recGeom is not None) or
             (window.spsImport is not None and window.xpsImport is not None and window.rpsImport is not None)
         )
-        hasTraceTable = enable is True and window.output.anaOutput is not None
 
         self._setActionStates(
             ('actionBasicBinFromTemplates', enable and nTemplates > 0),
             ('actionFullBinFromTemplates', enable and nTemplates > 0),
             ('actionGeometryFromTemplates', enable and nTemplates > 0),
             ('actionCFPAnalysisFromTemplates', enable and experimentalEnabled and nTemplates > 0),
-            ('actionCFPAnalysisFromTraceTable', experimentalEnabled and hasTraceTable),
-            ('actionCFPAnalysisFromGeometryTables', experimentalEnabled and hasCfpGeometryInputs),
+            ('actionCFPAnalysisFromGeometry', experimentalEnabled and hasCfpGeometryInputs),
+            ('actionCFPPlaneAnalysisFromTemplates', enable and experimentalEnabled and nTemplates > 0),
+            ('actionCFPPlaneAnalysisFromGeometry', experimentalEnabled and hasCfpPlaneGeometryInputs),
             ('actionBasicBinFromGeometry', hasGeometryInputs),
             ('actionFullBinFromGeometry', hasGeometryInputs),
             ('actionBasicBinFromSps', hasSpsInputs),
@@ -126,8 +129,9 @@ class ActionStateController:
 
         self._setActionVisibility(
             ('actionCFPAnalysisFromTemplates', experimentalEnabled),
-            ('actionCFPAnalysisFromTraceTable', experimentalEnabled),
-            ('actionCFPAnalysisFromGeometryTables', experimentalEnabled),
+            ('actionCFPAnalysisFromGeometry', experimentalEnabled),
+            ('actionCFPPlaneAnalysisFromTemplates', experimentalEnabled),
+            ('actionCFPPlaneAnalysisFromGeometry', experimentalEnabled),
         )
 
     def clipboardHasText(self):

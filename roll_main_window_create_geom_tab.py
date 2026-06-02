@@ -132,6 +132,7 @@ def createGeomTab(self):
     self.btnMaxToQGIS.pressed.connect(self.exportMaxToQGIS)
     self.btnRmsToQGIS.pressed.connect(self.exportRmsToQGIS)
     self.btnGapToQGIS.pressed.connect(self.exportGapToQGIS)
+    self.btnIlluminationToQGIS.pressed.connect(self.exportIlluminationToQGIS)
 
     label1.setStyleSheet(purpleLabelStyle)
     label1.setAlignment(Qt.AlignmentFlag.AlignCenter)
