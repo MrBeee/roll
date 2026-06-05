@@ -39,12 +39,25 @@ def _showCfpAnalysisTab(window) -> None:
 
 def _logCfpSnr(window, result) -> None:
     """Unified helper to log Radon-domain SNR metrics."""
+    radonShape = None
+    radonImage = getattr(result, 'radonAvpImage', None)
+    if radonImage is not None:
+        radonShape = getattr(radonImage, 'shape', None)
+
+    radonDx = float(getattr(result, 'radonDx', 0.0) or 0.0)
+    radonDy = float(getattr(result, 'radonDy', 0.0) or 0.0)
+    radonN = None
+    if isinstance(radonShape, tuple) and len(radonShape) == 2:
+        radonN = f'{radonShape[1]}x{radonShape[0]}'
+
     window.appendLogMessage(
         (
             'Thread : . . . '
             f'SNR (Radon): Source={result.sourceSnr:.1f}dB, '
             f'Receiver={result.receiverSnr:.1f}dB, '
             f'AVP={result.avpSnr:.1f}dB'
+            + (f', grid={radonN}' if radonN is not None else '')
+            + (f', dp=({radonDx:.3e}, {radonDy:.3e}) s/m' if radonDx > 0.0 and radonDy > 0.0 else '')
         ),
         MsgType.Analysis,
     )
@@ -57,14 +70,19 @@ class CfpAmplitudeMapResultApplier:
 
     def apply(self, result, elapsed: timedelta) -> None:
         if not result.success:
-            self.window.appendLogMessage(f'Thread : CFP illumination map failed - {result.errorText}', MsgType.Error)
+            self.window.appendLogMessage(f'Thread : CFP coherent illumination map failed - {result.errorText}', MsgType.Error)
             return
 
         # Update output
         self.window.output.cfpOutput = result.amplitudeMap
+        self.window.output.cfpOutputIncoherentQc = result.incoherentAmplitudeMap
         actionIllumination = getattr(self.window, 'actionIllumination', None)
         if actionIllumination is not None:
             actionIllumination.setChecked(True)
+
+        actionIlluminationQc = getattr(self.window, 'actionIlluminationQcIncoherent', None)
+        if actionIlluminationQc is not None:
+            actionIlluminationQc.setEnabled(result.incoherentAmplitudeMap is not None)
 
         # Update layout image view
         self.window.imageType = 6
@@ -85,7 +103,11 @@ class CfpAmplitudeMapResultApplier:
         self.window.plotLayout()
 
         if not getattr(result, 'isPartial', False):
-            self.window.appendLogMessage(f'Thread : CFP illumination map completed. Elapsed: {elapsed}', MsgType.Analysis)
+            if result.incoherentAmplitudeMap is not None:
+                self.window.appendLogMessage('Thread : . . . incoherent illumination QC map computed (diagnostic only).', MsgType.Analysis)
+                self.window.appendLogMessage(f'Thread : CFP coherent illumination map completed (with incoherent QC companion). Elapsed: {elapsed}', MsgType.Analysis)
+            else:
+                self.window.appendLogMessage(f'Thread : CFP coherent illumination map completed. Elapsed: {elapsed}', MsgType.Analysis)
             self.runtimeDependenciesProvider()['QMessageBox'].information(
                 self.window, 'Done', f'CFP illumination map calculation completed.\nElapsed time: {elapsed}'
             )

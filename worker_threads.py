@@ -2,14 +2,16 @@ import os
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
+from numbers import Real
 from typing import Any, cast
 
 import numpy as np
 from qgis.PyQt.QtCore import QObject, QThread, pyqtSignal
 
+from . import config
 from .cfp_aux_functions_numba import (
-    calculate_panel_snr_numba, compute_illumination_row_numba,
-    compute_monochromatic_beam_xy_grid,
+    calculate_panel_snr_numba, compute_illumination_row_incoherent_numba,
+    compute_illumination_row_numba, compute_monochromatic_beam_xy_grid,
     compute_monochromatic_weighted_beam_xy_grid, compute_radon_images_numba,
     compute_xy_beam_images_numba, scan_cfp_geometry_relations_numba)
 from .roll_survey import RollSurvey
@@ -116,6 +118,20 @@ def _copyCfpImageForRollPlot(arr: Any) -> Any:
     return _copyArrayIfNumpy(arr)
 
 
+def _safeNonNegative(value: Any) -> float | None:
+    if isinstance(value, Real):
+        return max(float(value), 0.0)
+    return None
+
+
+def _recordInnermostExceptionLocation(survey: Any, exception: BaseException) -> None:
+    recorder = getattr(survey, '_recordInnermostExceptionLocation', None)
+    if callable(recorder):
+        recorder(exception)
+    else:
+        survey.errorText = str(exception)
+
+
 @dataclass
 class BinningFromTemplatesRequest:
     xmlString: str
@@ -207,6 +223,8 @@ class CfpFromTemplatesRequest:
     frequency: float = 40.0
     maxDipDegrees: float = 40.0
     vint: float = 2000.0
+    cfpArray: tuple[float, float, float] | None = None
+    radonSize: int = config.radonSize
     debugpyEnabled: bool = False
     matlab_compat: bool = True
 
@@ -223,6 +241,8 @@ class CfpFromGeometryTablesRequest:
     frequency: float = 40.0
     maxDipDegrees: float = 40.0
     vint: float = 2000.0
+    cfpArray: tuple[float, float, float] | None = None
+    radonSize: int = config.radonSize
     chunkSize: int = 25_000
     debugpyEnabled: bool = False
     matlab_compat: bool = True
@@ -239,6 +259,7 @@ class CfpAmplitudeMapRequest:
     maxDipDegrees: float = 40.0
     vint: float = 2000.0
     frequencies: np.ndarray = None
+    computeIncoherentQc: bool = False
     debugpyEnabled: bool = False
     matlab_compat: bool = True
 
@@ -298,6 +319,7 @@ class CfpAmplitudeMapResult:
     success: bool
     errorText: str = ''
     amplitudeMap: Any = None
+    incoherentAmplitudeMap: Any = None
     x0: float = 0.0
     y0: float = 0.0
     dx: float = 1.0
@@ -350,7 +372,18 @@ class CfpFromGeometryTablesResult:
 
 
 class CfpBeamAccumulator:
-    def __init__(self, survey: RollSurvey, focalZ: float, frequency: float, vint: float, maxDipDegrees: float, focalX: float | None = None, focalY: float | None = None):
+    def __init__(
+        self,
+        survey: RollSurvey,
+        focalZ: float,
+        frequency: float,
+        vint: float,
+        maxDipDegrees: float,
+        focalX: float | None = None,
+        focalY: float | None = None,
+        cfpArray: tuple[float, float, float] | None = None,
+        radonSize: int = config.radonSize,
+    ):
         self.survey = survey
         self.focalZ = focalZ
         self.frequency = frequency
@@ -383,6 +416,8 @@ class CfpBeamAccumulator:
         self.radonDy = 1.0
         self.evalX = None
         self.evalY = None
+        self.cfpArray = cfpArray
+        self.radonSize = max(int(radonSize), 2)
         self._bufferedSourceArrays = []
         self._bufferedReceiverArrays = []
         self._bufferedSourceWeights = []
@@ -394,35 +429,72 @@ class CfpBeamAccumulator:
         outputRect = getattr(self.survey.output, 'rctOutput', None)
         grid = getattr(self.survey, 'grid', None)
         binSize = getattr(grid, 'binSize', None)
-        if outputRect is None or binSize is None:
-            self.survey.errorText = 'analysis area has not been defined'
-            return False
+        useConfiguredBeamGrid = self.cfpArray is not None
 
-        width = float(outputRect.width())
-        height = float(outputRect.height())
-        dx = float(binSize.x())
-        dy = float(binSize.y())
+        if useConfiguredBeamGrid:
+            try:
+                beamMin, beamMax, beamStep = self.cfpArray
+                beamMin = float(beamMin)
+                beamMax = float(beamMax)
+                beamStep = float(beamStep)
+            except (TypeError, ValueError):
+                self.survey.errorText = 'CFP beam settings are invalid'
+                return False
 
-        # added Bart, for quick settings:
-        # width = height = 800
-        # dx = dy = 12.5
+            if beamStep <= 0.0 or beamMax <= beamMin:
+                self.survey.errorText = 'CFP beam settings are invalid'
+                return False
 
-        if dx <= 0.0 or dy <= 0.0:
-            self.survey.errorText = 'analysis area sampling is invalid'
-            return False
+            dx = beamStep
+            dy = beamStep
+            width = beamMax - beamMin
+            height = width
+            nx = max(int(round(width / dx)) + 1, 1)
+            ny = max(int(round(height / dy)) + 1, 1)
+        else:
+            if outputRect is None or binSize is None:
+                self.survey.errorText = 'analysis area has not been defined'
+                return False
 
-        nx = max(int(np.ceil(width / dx)), 1)
-        ny = max(int(np.ceil(height / dy)), 1)
+            width = float(outputRect.width())
+            height = float(outputRect.height())
+            dx = float(binSize.x())
+            dy = float(binSize.y())
+
+            if dx <= 0.0 or dy <= 0.0:
+                self.survey.errorText = 'analysis area sampling is invalid'
+                return False
+
+            nx = max(int(np.ceil(width / dx)), 1)
+            ny = max(int(np.ceil(height / dy)), 1)
+
         self.sourceBeamDx = dx
         self.sourceBeamDy = dy
         if self.focalX is None:
+            if outputRect is None:
+                self.survey.errorText = 'analysis area has not been defined'
+                return False
             self.focalX = float(outputRect.center().x())
         if self.focalY is None:
+            if outputRect is None:
+                self.survey.errorText = 'analysis area has not been defined'
+                return False
             self.focalY = float(outputRect.center().y())
-        self.sourceBeamX0 = self.focalX - width * 0.5
-        self.sourceBeamY0 = self.focalY - height * 0.5
-        self.evalX = np.ascontiguousarray(self.sourceBeamX0 + np.arange(nx, dtype=np.float32) * dx, dtype=np.float32)
-        self.evalY = np.ascontiguousarray(self.sourceBeamY0 + np.arange(ny, dtype=np.float32) * dy, dtype=np.float32)
+
+        if useConfiguredBeamGrid:
+            evalX0 = self.focalX + beamMin
+            evalY0 = self.focalY + beamMin
+        else:
+            evalX0 = self.focalX - width * 0.5
+            evalY0 = self.focalY - height * 0.5
+
+        # ImageItem coordinates are pixel-edge based, while CFP eval grids are sampled at pixel centers.
+        # Store display origins at the lower-left pixel edge so plotted coordinates match beam sample locations.
+        self.sourceBeamX0 = evalX0 - 0.5 * dx
+        self.sourceBeamY0 = evalY0 - 0.5 * dy
+
+        self.evalX = np.ascontiguousarray(evalX0 + np.arange(nx, dtype=np.float32) * dx, dtype=np.float32)
+        self.evalY = np.ascontiguousarray(evalY0 + np.arange(ny, dtype=np.float32) * dy, dtype=np.float32)
         self.sourceBeamField = np.zeros((ny, nx), dtype=np.complex64)
         self.receiverBeamField = np.zeros((ny, nx), dtype=np.complex64)
         self.sourceBeamImage = None
@@ -638,8 +710,7 @@ class CfpBeamAccumulator:
         phaseEnd = int(progressEnd)
         _emitWorkerPhase(progressHandler, messageHandler, phaseStart, f'{phaseLabel} - preparing Radon transform grids')
 
-        sampleCount = 128
-        sampleCount = 256
+        sampleCount = self.radonSize
         velocity = max(abs(float(self.vint)), 1.0)
         limitP = 1.0 / velocity
         px = np.linspace(-limitP, limitP, sampleCount, dtype=np.float32)
@@ -775,10 +846,10 @@ class BinFromGeometryWorker(QObject):
             return BinningFromGeometryResult(success=False, errorText=self.survey.errorText, profiling=profiling)
 
         output = self.survey.output
-        minRmsOffset = None if output.rmsOffset is None else max(output.minRmsOffset, 0)
-        maxRmsOffset = None if output.rmsOffset is None else max(output.maxRmsOffset, 0)
-        minOffsetGap = None if output.gapOffset is None else max(output.minOffsetGap, 0)
-        maxOffsetGap = None if output.gapOffset is None else max(output.maxOffsetGap, 0)
+        minRmsOffset = _safeNonNegative(output.minRmsOffset) if output.rmsOffset is not None else None
+        maxRmsOffset = _safeNonNegative(output.maxRmsOffset) if output.rmsOffset is not None else None
+        minOffsetGap = _safeNonNegative(output.minOffsetGap) if output.gapOffset is not None else None
+        maxOffsetGap = _safeNonNegative(output.maxOffsetGap) if output.gapOffset is not None else None
         return BinningFromGeometryResult(
             success=True,
             binOutput=output.binOutput,
@@ -857,10 +928,10 @@ class BinningWorker(QObject):
             return BinningFromTemplatesResult(success=False, errorText=self.survey.errorText, profiling=profiling)
 
         output = self.survey.output
-        minRmsOffset = None if output.rmsOffset is None else max(output.minRmsOffset, 0)
-        maxRmsOffset = None if output.rmsOffset is None else max(output.maxRmsOffset, 0)
-        minOffsetGap = None if output.gapOffset is None else max(output.minOffsetGap, 0)
-        maxOffsetGap = None if output.gapOffset is None else max(output.maxOffsetGap, 0)
+        minRmsOffset = _safeNonNegative(output.minRmsOffset) if output.rmsOffset is not None else None
+        maxRmsOffset = _safeNonNegative(output.maxRmsOffset) if output.rmsOffset is not None else None
+        minOffsetGap = _safeNonNegative(output.minOffsetGap) if output.gapOffset is not None else None
+        maxOffsetGap = _safeNonNegative(output.maxOffsetGap) if output.gapOffset is not None else None
         return BinningFromTemplatesResult(
             success=True,
             binOutput=output.binOutput,
@@ -964,8 +1035,20 @@ class CfpFromTemplatesWorker(QObject):
         self.frequency = request.frequency
         self.maxDipDegrees = request.maxDipDegrees
         self.vint = request.vint
+        self.cfpArray = request.cfpArray
+        self.radonSize = request.radonSize
         self.matlab_compat = getattr(request, 'matlab_compat', False)
-        self.beamAccumulator = CfpBeamAccumulator(self.survey, self.focalZ, self.frequency, self.vint, self.maxDipDegrees, self.focalX, self.focalY)
+        self.beamAccumulator = CfpBeamAccumulator(
+            self.survey,
+            self.focalZ,
+            self.frequency,
+            self.vint,
+            self.maxDipDegrees,
+            self.focalX,
+            self.focalY,
+            self.cfpArray,
+            self.radonSize,
+        )
 
         self.survey.fromXmlString(request.xmlString, False)
 
@@ -979,16 +1062,29 @@ class CfpFromTemplatesWorker(QObject):
             self.survey.progress.emit(0)
             success = self.beamAccumulator.initializeGrid()
             if success:
-                success = self.survey.scanCfpTemplates(
-                    self.focalX,
-                    self.focalY,
-                    self.focalZ,
-                    self.maxDipDegrees,
-                    self.vint,
-                    weightedContributionHandler=self.beamAccumulator.accumulateWeightedPointArrays,
-                    progressStart=0,
-                    progressEnd=100,
-                )
+                try:
+                    success = self.survey.scanCfpTemplates(
+                        self.focalX,
+                        self.focalY,
+                        self.focalZ,
+                        self.maxDipDegrees,
+                        self.vint,
+                        weightedContributionHandler=self.beamAccumulator.accumulateWeightedPointArrays,
+                        progressStart=0,
+                        progressEnd=100,
+                    )
+                except TypeError as typeError:
+                    if 'weightedContributionHandler' not in str(typeError):
+                        raise
+                    success = self.survey.scanCfpTemplates(
+                        self.focalX,
+                        self.focalY,
+                        self.focalZ,
+                        self.maxDipDegrees,
+                        self.vint,
+                        progressStart=0,
+                        progressEnd=100,
+                    )
             if success:
                 self.survey.message.emit('CFP from Templates - Please wait, finalizing images...')
                 self.survey.progress.emit(0)
@@ -1000,13 +1096,13 @@ class CfpFromTemplatesWorker(QObject):
                     phaseLabel='CFP from Templates',
                 )
         except BaseException as e:
-            self.survey._recordInnermostExceptionLocation(e)
+            _recordInnermostExceptionLocation(self.survey, e)
             success = False
         finally:
             try:
                 self.resultReady.emit(self.buildResult(success))
             except BaseException as e:
-                self.survey._recordInnermostExceptionLocation(e)
+                _recordInnermostExceptionLocation(self.survey, e)
             finally:
                 self.finished.emit()
 
@@ -1074,13 +1170,19 @@ class CfpAmplitudeMapWorker(QObject):
             x0, y0 = float(outputRect.left()), float(outputRect.top())
             evalX = np.ascontiguousarray(x0 + (np.arange(nx, dtype=np.float32) + 0.5) * dx)
             ampMap = np.zeros((ny, nx), dtype=np.float32)
+            incoherentAmpMap = np.zeros((ny, nx), dtype=np.float32) if self.request.computeIncoherentQc else None
+            gatherProgressEnd = 25
 
             # Trace collection follows the input trajectory selected by the request.
             if self.survey.output.srcGeom is not None and self.survey.output.relGeom is not None and self.survey.output.recGeom is not None:
+                self.survey.message.emit('CFP illumination - gathering active geometry traces')
+                self.survey.progress.emit(5)
                 self.survey.prepareGeometryRelationBinningLookup()
                 srcCoords, srcWeights, recCoords, recWeights = self._gatherTracesFromRelations()
+                self.survey.progress.emit(gatherProgressEnd)
             else:
-                srcCoords, srcWeights, recCoords, recWeights = self._gatherTracesFromTemplates()
+                self.survey.message.emit('CFP illumination - gathering template rollouts')
+                srcCoords, srcWeights, recCoords, recWeights = self._gatherTracesFromTemplates(0, gatherProgressEnd)
 
             if srcCoords.shape[0] == 0 or recCoords.shape[0] == 0:
                 raise ValueError("No active traces available for Illumination mapping")
@@ -1103,8 +1205,21 @@ class CfpAmplitudeMapWorker(QObject):
                     srcCoords, srcWeights, recCoords, recWeights,
                     freqs, self.request.vint, apertureRadius
                 )
+                if incoherentAmpMap is not None:
+                    incoherentAmpMap[iy, :] = compute_illumination_row_incoherent_numba(
+                        focalY,
+                        evalX,
+                        self.request.focalZ,
+                        srcCoords,
+                        srcWeights,
+                        recCoords,
+                        recWeights,
+                        freqs,
+                        self.request.vint,
+                        apertureRadius,
+                    )
 
-                self.survey.progress.emit(int((iy + 1) * 100 / ny))
+                self.survey.progress.emit(gatherProgressEnd + int((iy + 1) * (100 - gatherProgressEnd) / ny))
                 self.survey.message.emit(f"CFP illumination - row {iy+1}/{ny}")
 
                 # # Emit throttled partial results to limit UI redraw and copy overhead.
@@ -1125,8 +1240,21 @@ class CfpAmplitudeMapWorker(QObject):
             if maxVal > 0:
                 ampMap /= maxVal
 
+            incoherentResultMap = None
+            if incoherentAmpMap is not None:
+                incoherentMax = incoherentAmpMap.max()
+                if incoherentMax > 0:
+                    incoherentAmpMap /= incoherentMax
+                incoherentResultMap = _copyCfpImageForRollPlot(incoherentAmpMap)
+
             result = CfpAmplitudeMapResult(
-                success=True, amplitudeMap=_copyCfpImageForRollPlot(ampMap), x0=x0, y0=y0, dx=dx, dy=dy
+                success=True,
+                amplitudeMap=_copyCfpImageForRollPlot(ampMap),
+                incoherentAmplitudeMap=incoherentResultMap,
+                x0=x0,
+                y0=y0,
+                dx=dx,
+                dy=dy,
             )
             self.resultReady.emit(result)
 
@@ -1268,23 +1396,64 @@ class CfpAmplitudeMapWorker(QObject):
             np.ascontiguousarray(receiverWeights[receiverMask], dtype=np.float32),
         )
 
-    def _gatherTracesFromTemplates(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def _gatherTracesFromTemplates(self, progressStart: int = 0, progressEnd: int = 25) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Extract weighted source/receiver station arrays from rolling templates."""
         src_list = []
         src_weight_list = []
         rec_list = []
         rec_weight_list = []
 
-        def contributionHandler(srcPoints, recPoints, srcWeights, recWeights):
-            src_list.append(srcPoints)
-            src_weight_list.append(srcWeights)
-            rec_list.append(recPoints)
-            rec_weight_list.append(recWeights)
+        # For illumination maps, keep station gathering independent from any
+        # single focal point. The per-cell aperture is applied later in the
+        # row kernel, so pre-filtering here would incorrectly center-bias maps.
+        self.survey.calcNoTemplates()
+        self.survey.calcBoundingRect()
+        self.survey.calcPointArrays()
 
-        self.survey.scanCfpTemplates(
-            self.survey.output.rctOutput.center().x(), self.survey.output.rctOutput.center().y(),
-            self.request.focalZ, 90.0, self.request.vint, weightedContributionHandler=contributionHandler
-        )
+        outputRect = self.survey.output.rctOutput
+        totalTemplates = max(int(self.survey.nTemplates), 1)
+        processedTemplates = 0
+        currentThread = QThread.currentThread()
+
+        for block in self.survey.blockList:
+            for template in block.templateList:
+                for templateOffset in self.survey.iterTemplateRollOffsets(template):
+                    if currentThread.isInterruptionRequested():
+                        raise StopIteration
+
+                    processedTemplates += 1
+                    progress = progressStart + int(processedTemplates * max(progressEnd - progressStart, 0) / totalTemplates)
+                    self.survey.progress.emit(progress)
+                    npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
+                    templateSrc = []
+                    templateRec = []
+
+                    for seed in template.seedList:
+                        if seed.bSource:
+                            pointArray = seed.pointArray + self.survey._seedTemplateOffset(seed, npTemplateOffset)
+                        else:
+                            pointArray = seed.pointArray + self.survey._receiverSeedTemplateOffset(seed, npTemplateOffset)
+
+                        pointArray = self.survey._pointsInsideRect(pointArray, outputRect)
+                        if pointArray is None or pointArray.shape[0] == 0:
+                            continue
+                        if seed.bSource:
+                            templateSrc.append(pointArray)
+                        else:
+                            templateRec.append(pointArray)
+
+                    if not templateSrc or not templateRec:
+                        continue
+
+                    srcPoints = templateSrc[0] if len(templateSrc) == 1 else np.concatenate(templateSrc, axis=0)
+                    recPoints = templateRec[0] if len(templateRec) == 1 else np.concatenate(templateRec, axis=0)
+
+                    nSrc = srcPoints.shape[0]
+                    nRec = recPoints.shape[0]
+                    src_list.append(srcPoints)
+                    rec_list.append(recPoints)
+                    src_weight_list.append(np.full(nSrc, nRec, dtype=np.float64))
+                    rec_weight_list.append(np.full(nRec, nSrc, dtype=np.float64))
 
         if not src_list:
             return self._emptyWeightedStations()
@@ -1312,6 +1481,8 @@ class CfpFromGeometryTablesWorker(QObject):
         self.frequency = request.frequency
         self.maxDipDegrees = request.maxDipDegrees
         self.vint = request.vint
+        self.cfpArray = request.cfpArray
+        self.radonSize = request.radonSize
         self.matlab_compat = getattr(request, 'matlab_compat', False)
         self.chunkSize = max(int(request.chunkSize), 1)
         self.chunkCount = 0
@@ -1328,7 +1499,17 @@ class CfpFromGeometryTablesWorker(QObject):
         self.missingReceiverCount = 0
         self.inactiveSourceKeys = set()
         self.apertureRadius = abs(self.focalZ) * np.tan(np.radians(self.maxDipDegrees))
-        self.beamAccumulator = CfpBeamAccumulator(self.survey, self.focalZ, self.frequency, self.vint, self.maxDipDegrees, self.focalX, self.focalY)
+        self.beamAccumulator = CfpBeamAccumulator(
+            self.survey,
+            self.focalZ,
+            self.frequency,
+            self.vint,
+            self.maxDipDegrees,
+            self.focalX,
+            self.focalY,
+            self.cfpArray,
+            self.radonSize,
+        )
 
         self.survey.fromXmlString(request.xmlString, False)
         self.survey.output.srcGeom = request.srcGeom
@@ -1437,13 +1618,13 @@ class CfpFromGeometryTablesWorker(QObject):
             self.survey.progress.emit(0)
             success = self._scanGeometryTables()
         except BaseException as e:
-            self.survey._recordInnermostExceptionLocation(e)
+            _recordInnermostExceptionLocation(self.survey, e)
             success = False
         finally:
             try:
                 self.resultReady.emit(self.buildResult(success))
             except BaseException as e:
-                self.survey._recordInnermostExceptionLocation(e)
+                _recordInnermostExceptionLocation(self.survey, e)
             finally:
                 self.finished.emit()
 

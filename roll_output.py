@@ -18,7 +18,8 @@ class RollOutput:
         self.rmsOffset = None                                                   # numpy array with rms offset increments
         self.gapOffset = None                                                   # numpy array with maximum offset gaps
         self.anaOutput = None                                                   # memory mapped numpy trace record array
-        self.cfpOutput = None                                             # 2D illumination mask
+        self.cfpOutput = None                                                   # coherent 2D illumination map (physics-facing)
+        self.cfpOutputIncoherentQc = None                                       # incoherent 2D illumination QC map (diagnostic)
         self.an2Output = None                                                   # partially flattened version of self.anaOutput (N x 16)
         self.ofAziHist = None                                                   # numpy array with azimuth/offset histogram
         self.offstHist = None                                                   # numpy array with slotted offset histogram

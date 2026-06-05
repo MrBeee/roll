@@ -1,11 +1,23 @@
 @echo off
+rem preferred usage: ".\run_unittest_suite.bat --report test-report.txt"
 setlocal EnableExtensions
 
 set "rollDir=%~dp0"
 set "pluginDir=%rollDir:~0,-1%"
+set "testRunner=%pluginDir%\run_unittest_suite.py"
 set "pyQgisBat="
 set "envBat="
 set "qgisRoot="
+set "reportFile="
+set "statusLinesArg="
+
+if /I "%~1"=="--report" (
+    set "reportFile=%~2"
+    shift
+    shift
+)
+
+if not defined reportFile if defined TEST_REPORT_FILE set "reportFile=%TEST_REPORT_FILE%"
 
 if defined QGIS_ROOT set "qgisRoot=%QGIS_ROOT%"
 
@@ -39,9 +51,12 @@ if not defined pyQgisBat for %%D in ("C:\OSGeo4W" "C:\OSGeo4W64") do (
 
 if "%~1"=="" (
     set "TEST_TARGETS=discover -s test -t . -p test_*.py"
+    set "statusLinesArg=--status-lines"
 ) else (
     set "TEST_TARGETS=%*"
 )
+
+set "PYTHONUNBUFFERED=1"
 
 if defined pyQgisBat goto :runWithPyQgisBat
 if defined envBat goto :runWithEnv
@@ -60,7 +75,7 @@ if defined qgisAppDir (
     set "PYTHONPATH=%pluginDir%;%PYTHONPATH%"
 )
 echo Using "%pyQgisBat%"
-call "%pyQgisBat%" -m unittest %TEST_TARGETS%
+call :runTestsBat "%pyQgisBat%"
 set "testExitCode=%ERRORLEVEL%"
 goto :reportResult
 
@@ -95,7 +110,7 @@ set "PATH=%qgisAppDir%\bin;%PATH%"
 
 cd /d "%pluginDir%"
 echo Using "%osgeoRoot%\bin\python.exe"
-"%osgeoRoot%\bin\python.exe" -m unittest %TEST_TARGETS%
+call :runTestsExe "%osgeoRoot%\bin\python.exe"
 set "testExitCode=%ERRORLEVEL%"
 goto :reportResult
 
@@ -103,6 +118,7 @@ goto :reportResult
 set "candidateDir=%~1"
 if exist "%candidateDir%\python-qgis.bat" if not defined pyQgisBat set "pyQgisBat=%candidateDir%\python-qgis.bat"
 if exist "%candidateDir%\python-qgis-ltr.bat" if not defined pyQgisBat set "pyQgisBat=%candidateDir%\python-qgis-ltr.bat"
+if exist "%candidateDir%\python-qgis-ltr-qt6.bat" if not defined pyQgisBat set "pyQgisBat=%candidateDir%\python-qgis-ltr-qt6.bat"
 if exist "%candidateDir%\python-qgis-dev.bat" if not defined pyQgisBat set "pyQgisBat=%candidateDir%\python-qgis-dev.bat"
 goto :eof
 
@@ -123,6 +139,26 @@ if not defined qgisAppDir for /f "delims=" %%A in ('dir /b /ad "%qgisInstallRoot
 )
 goto :eof
 
+:runTestsBat
+set "pythonCmd=%~1"
+if defined reportFile (
+    echo Writing test output to "%reportFile%"
+    call "%pythonCmd%" "%testRunner%" %statusLinesArg% --report "%reportFile%" %TEST_TARGETS%
+) else (
+    call "%pythonCmd%" "%testRunner%" %statusLinesArg% %TEST_TARGETS%
+)
+exit /b %ERRORLEVEL%
+
+:runTestsExe
+set "pythonCmd=%~1"
+if defined reportFile (
+    echo Writing test output to "%reportFile%"
+    "%pythonCmd%" "%testRunner%" %statusLinesArg% --report "%reportFile%" %TEST_TARGETS%
+) else (
+    "%pythonCmd%" "%testRunner%" %statusLinesArg% %TEST_TARGETS%
+)
+exit /b %ERRORLEVEL%
+
 :reportResult
 if "%testExitCode%"=="0" (
     echo.
@@ -131,4 +167,5 @@ if "%testExitCode%"=="0" (
     echo.
     echo TESTS FAILED ^(exit code %testExitCode%^)
 )
+if defined reportFile echo Report saved to "%reportFile%"
 exit /b %testExitCode%

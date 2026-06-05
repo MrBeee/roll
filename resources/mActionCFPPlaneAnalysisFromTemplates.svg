@@ -4,23 +4,21 @@
    width="32"
    version="1.1"
    id="svg8"
-   sodipodi:docname="mActionCFPPointAnalysis.svg"
+   sodipodi:docname="mActionCFPPlaneAnalysisFromTemplates.svg"
    inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <defs
      id="defs12">
-    <linearGradient
-       id="swatch2"
-       inkscape:swatch="solid">
-      <stop
-         style="stop-color:#000000;stop-opacity:1;"
-         offset="0"
-         id="stop2" />
-    </linearGradient>
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 16 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="32 : 16 : 1"
+       inkscape:persp3d-origin="16 : 10.666667 : 1"
+       id="perspective6" />
     <rect
        x="-10.936709"
        y="13.148978"
@@ -63,16 +61,6 @@
          style="fill:#ffffff;stroke:none"
          id="rect3051" />
     </symbol>
-    <linearGradient
-       inkscape:collect="always"
-       xlink:href="#swatch2"
-       id="linearGradient2"
-       x1="18.16553"
-       y1="8.5998058"
-       x2="26.453748"
-       y2="8.5998058"
-       gradientUnits="userSpaceOnUse"
-       gradientTransform="translate(1.8072055,-0.31158715)" />
   </defs>
   <sodipodi:namedview
      id="namedview10"
@@ -86,7 +74,7 @@
      showgrid="false"
      inkscape:zoom="32.09375"
      inkscape:cx="9.6592016"
-     inkscape:cy="8.9892892"
+     inkscape:cy="9.4566699"
      inkscape:window-width="3840"
      inkscape:window-height="2054"
      inkscape:window-x="-11"
@@ -116,7 +104,7 @@
   <text
      xml:space="preserve"
      id="text1"
-     style="fill:#660080;text-orientation:auto;stroke-width:0.7;text-align:start;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1)" />
+     style="text-align:start;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1);display:inline;fill:#660080;stroke-width:0.7" />
   <text
      xml:space="preserve"
      style="text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#660080;stroke-width:0.7"
@@ -125,10 +113,11 @@
      id="text2"><tspan
        sodipodi:role="line"
        id="tspan2" /></text>
-  <circle
-     style="fill:#660080;stroke:url(#linearGradient2);stroke-width:0.7"
-     id="path1"
-     cx="24.116844"
-     cy="8.2882185"
-     r="4.1441092" />
+  <rect
+     style="fill:#660080;stroke-width:0.335461"
+     id="rect17"
+     width="8.9113932"
+     height="2.5238557"
+     x="21.499514"
+     y="8.7867575" />
 </svg>

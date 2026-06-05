@@ -637,7 +637,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.stkTrkWidget = self.createPlotWidget(self.plotTitles[5], 'inline', '|Kr|', 'm', ' 1/km', False)
         self.stkBinWidget = self.createPlotWidget(self.plotTitles[6], 'x-line', '|Kr|', 'm', ' 1/km', False)
         self.stkCelWidget = self.createPlotWidget(self.plotTitles[7], 'Kx', 'Ky', '1/km', '1/km')
-        self.cfpWidget = self.createPlotWidget(self.plotTitles[8], 'inline', 'x-line', 'm', 'm', False)
+        self.cfpWidget = self.createPlotWidget(self.plotTitles[8], 'inline', 'x-line', 'm', 'm', True)
         self.offsetWidget = self.createPlotWidget(self.plotTitles[9], '|offset|', 'frequency', 'm', ' #', False)
         self.offAziWidget = self.createPlotWidget(self.plotTitles[10], 'azimuth', '|offset|', 'deg', 'm', False)
         self.arraysWidget = self.createPlotWidget(self.plotTitles[11], 'inline', 'x-line', 'm', 'm')
@@ -824,8 +824,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionBasicBinFromSps.triggered.connect(self.basicBinFromSps)
         self.actionFullBinFromSps.triggered.connect(self.fullBinFromSps)
         self.actionGeometryFromTemplates.triggered.connect(self.createGeometryFromTemplates)
-        self.actionCFPAnalysisFromTemplates.triggered.connect(self.cfpAnalysisFromTemplates)
-        self.actionCFPAnalysisFromGeometry.triggered.connect(self.cfpAnalysisFromGeometryTables)
+        self.actionCFPPointAnalysisFromTemplates.triggered.connect(self.cfpAnalysisFromTemplates)
+        self.actionCFPPointAnalysisFromGeometry.triggered.connect(self.cfpAnalysisFromGeometryTables)
         self.actionCFPPlaneAnalysisFromTemplates.triggered.connect(self.cfpPlaneAnalysisFromTemplates)
         self.actionCFPPlaneAnalysisFromGeometry.triggered.connect(self.cfpPlaneAnalysisFromGeometryTables)
         self.actionShift_Survey_Area.triggered.connect(self.shiftSurveyArea)
@@ -1068,6 +1068,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def renderSelectedCfpView(self) -> None:
         selectedView = self.getSelectedCfpView()
         mode = 'radon' if selectedView >= 3 else 'slice'
+
+        self.cfpWidget.plotItem.getViewBox().setAspectLocked(True)
 
         if mode == 'radon':
             component = self.getSelectedCfpRadonTransform()
@@ -1804,6 +1806,24 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             else:
                 self.layoutColorBar.getAxis('left').setLabel(label)
 
+    def _initializeIncoherentIlluminationAction(self):
+        self.actionIlluminationQcIncoherent = QAction('Illumination QC (Incoherent)', self)
+        self.actionIlluminationQcIncoherent.setCheckable(True)
+        self.actionIlluminationQcIncoherent.setEnabled(False)
+        self.actionIlluminationQcIncoherent.setStatusTip('Show incoherent illumination QC map (diagnostic only)')
+        self.actionIlluminationQcIncoherent.triggered.connect(self.onActionIlluminationQcIncoherentTriggered)
+
+        actionGroup = self.actionIllumination.actionGroup()
+        if actionGroup is not None:
+            actionGroup.addAction(self.actionIlluminationQcIncoherent)
+
+        for widget in self.actionIllumination.associatedWidgets():
+            if hasattr(widget, 'addAction'):
+                try:
+                    widget.addAction(self.actionIlluminationQcIncoherent)
+                except TypeError:
+                    pass
+
     def onActionNoneTriggered(self):
         self.imageType = 0
         self.handleImageSelection()
@@ -1836,6 +1856,10 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.imageType = 6
         self.handleImageSelection()
 
+    def onActionIlluminationQcIncoherentTriggered(self):
+        self.imageType = 7
+        self.handleImageSelection()
+
     def _resolveLayoutAnalysisSurface(self, imageType=None):
         imageType = self.imageType if imageType is None else imageType
         if imageType == 0:
@@ -1858,24 +1882,38 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             3: dict(imageAttr='maxOffset', maxAttr='maxMaxOffset', label='maximum offset', statusLabel='|max offset|', valueKind='float', fileSuffix='max', fileExportLabel='max-offsets', qgisExportLabel='max-offset map'),                   # noqa: E501 # pylint: disable=C0301
             4: dict(imageAttr='rmsOffset', maxAttr='maxRmsOffset', label='rms offset increments', statusLabel='rms offset inc', valueKind='float', fileSuffix='rms', fileExportLabel='rms-offsets', qgisExportLabel='rms-offset map'),          # noqa: E501 # pylint: disable=C0301
             5: dict(imageAttr='gapOffset', maxAttr='maxOffsetGap', label='maximum offset gap', statusLabel='max offset gap', valueKind='float', fileSuffix='gap', fileExportLabel='max-offset gaps', qgisExportLabel='max-offset gap map'),     # noqa: E501 # pylint: disable=C0301
-            6: dict(imageAttr='cfpOutput', maxAttr=None, label='Illumination', statusLabel='illumination', valueKind='float', fileSuffix='amp', fileExportLabel='illumination map', qgisExportLabel='illumination map'),                    # noqa: E501 # pylint: disable=C0301
+            6: dict(imageAttr='cfpOutput', maxAttr=None, label='Illumination', statusLabel='illumination', valueKind='float', fileSuffix='amp', fileExportLabel='illumination map', qgisExportLabel='illumination map'),                        # noqa: E501 # pylint: disable=C0301
         }
 
         if imageType not in surfaceDefinitions:
             raise NotImplementedError('selected analysis type currently not implemented.')
 
         definition = surfaceDefinitions[imageType]
+
+        # For illumination (imageType=6), swap to incoherent QC if requested and available
+        imageAttr = definition['imageAttr']
+        label = definition['label']
+        statusLabel = definition['statusLabel']
+        fileExportLabel = definition['fileExportLabel']
+        qgisExportLabel = definition['qgisExportLabel']
+        if imageType == 6 and self.appSettings.cfpIncoherentQc and self.output.cfpOutputIncoherentQc is not None:
+            imageAttr = 'cfpOutputIncoherentQc'
+            label = 'Illumination (Incoherent QC)'
+            statusLabel = 'illumination (incoherent QC)'
+            fileExportLabel = 'illumination map (incoherent QC)'
+            qgisExportLabel = 'illumination map (incoherent QC)'
+
         return {
             'imageType': imageType,
-            'imageData': getattr(self.output, definition['imageAttr']),
+            'imageData': getattr(self.output, imageAttr),
             'maxValue': getattr(self.output, definition['maxAttr']) if definition['maxAttr'] else 1.0,
-            'label': definition['label'],
-            'statusLabel': definition['statusLabel'],
+            'label': label,
+            'statusLabel': statusLabel,
             'valueKind': definition['valueKind'],
             'colorMap': self.resolveColorMapName(self.appSettings.foldDispCmap, fallback='CET-L4'),
             'fileSuffix': definition['fileSuffix'],
-            'fileExportLabel': definition['fileExportLabel'],
-            'qgisExportLabel': definition['qgisExportLabel'],
+            'fileExportLabel': fileExportLabel,
+            'qgisExportLabel': qgisExportLabel,
         }
 
     def _formatLayoutAnalysisSurfaceValue(self, layoutSurface, value):
@@ -1904,23 +1942,48 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             if fileName:
                 self.appendLogMessage(f"Export : exported {layoutSurface['fileExportLabel']} to {fileName}")
 
+    def _applyLayoutSurfaceMask(self, imageType, imageData):
+        if imageData is None:
+            return None
+
+        if imageType in (1, 5):
+            # Fold and offset-gap maps use fold-zero bins as no-data.
+            if self.output.binOutput is not None and self.output.binOutput.shape == np.asarray(imageData).shape:
+                mask = self.output.binOutput == 0
+                if np.any(mask):
+                    maskedImage = np.asarray(imageData, dtype=np.float32).copy()
+                    maskedImage[mask] = np.nan
+                    return maskedImage
+
+        if imageType in (2, 3, 4):
+            # Min/max/rms offset maps encode no-data as -inf.
+            data = np.asarray(imageData)
+            mask = data == -np.inf
+            if np.any(mask):
+                maskedImage = np.asarray(imageData, dtype=np.float32).copy()
+                maskedImage[mask] = np.nan
+                return maskedImage
+
+        if imageType in (6, 7):
+            # Illumination should decide transparency from its own no-data cells only.
+            data = np.asarray(imageData)
+            mask = ~np.isfinite(data) | (data == 0)
+            if np.any(mask):
+                maskedImage = np.asarray(imageData, dtype=np.float32).copy()
+                maskedImage[mask] = np.nan
+                return maskedImage
+
+        return imageData
+
     def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
         layoutSurface = self._resolveLayoutAnalysisSurface()
-        self.layoutImg = layoutSurface['imageData']                             # don't make a copy, create a view
+        self.layoutImg = self._applyLayoutSurfaceMask(layoutSurface['imageType'], layoutSurface['imageData'])
         self.layoutMax = layoutSurface['maxValue']
 
-        if self.imageType == 6 and self.layoutImg is not None:
+        if self.imageType in (6, 7) and self.layoutImg is not None:
             self.layoutMax = float(np.nanmax(self.layoutImg)) if np.any(np.isfinite(self.layoutImg)) else 1.0
 
-        # Make no-data bins transparent.
-        if self.layoutImg is not None and self.output.binOutput is not None and self.output.binOutput.shape == self.layoutImg.shape:
-            mask = self.output.binOutput == 0
-            if np.any(mask):
-                img = self.layoutImg.astype(np.float32, copy=True)
-                img[mask] = np.nan
-                self.layoutImg = img
-
-        rounding = 0.01 if self.imageType == 6 else 10.0
+        rounding = 0.01 if self.imageType in (6, 7) else 10.0
 
         self.prepareLayoutImageAndColorBar(
             self.layoutImg,
@@ -3227,6 +3290,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.output.ofAziHist = None
         self.output.offstHist = None
         self.output.cfpOutput = None
+        self.output.cfpOutputIncoherentQc = None
         self.output.cfpSourceBeamImage = None
         self.output.cfpReceiverBeamImage = None
         self.output.cfpResolutionImage = None
@@ -3243,6 +3307,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.output.cfpRadonDy = 1.0
         self.output.cfpFrequency = 40.0
         self.output.cfpFocalZ = 0.0
+        if hasattr(self, 'actionIlluminationQcIncoherent'):
+            self.actionIlluminationQcIncoherent.setEnabled(False)
         self.output.recGeom = None
         self.output.srcGeom = None
         self.output.relGeom = None

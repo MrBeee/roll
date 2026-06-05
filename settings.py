@@ -209,6 +209,19 @@ class SettingsDialog(QDialog):
             ),
         ]
 
+        cfpParams = [
+            dict(
+                name='CFP Settings',
+                type='myGroup',
+                brush='#add8e6',
+                children=[
+                    dict(name='Beam dimensions', type='myRange', flat=True, expanded=False, value=appSettings.cfpArray, default=appSettings.cfpArray, suffix=' [m]', twoDim=True),
+                    dict(name='Radon transform size', type='myInt', value=appSettings.radonSize, default=appSettings.radonSize, suffix=' [points]'),
+                    dict(name='Incoherent illumination QC', type='bool', value=appSettings.cfpIncoherentQc, default=appSettings.cfpIncoherentQc, tip='Compute an additional incoherent QC illumination map (diagnostic only). Coherent map remains the default physics-facing output.'),
+                ],
+            ),
+        ]
+
         useDebugpy = appSettings.debugpy if haveDebugpy else False
 
         dbgParams = [
@@ -248,6 +261,7 @@ class SettingsDialog(QDialog):
         self.parameters.addChildren(spsParams)
         self.parameters.addChildren(geoParams)
         self.parameters.addChildren(kkkParams)
+        self.parameters.addChildren(cfpParams)
         self.parameters.addChildren(dbgParams)
         self.parameters.addChildren(misParams)
 
@@ -294,6 +308,7 @@ class SettingsDialog(QDialog):
         SPS = self.parameters.child('SPS Settings')
         GEO = self.parameters.child('Geometry Settings')
         KKK = self.parameters.child('K-response Settings')
+        CFP = self.parameters.child('CFP Settings')
         DBG = self.parameters.child('Debug Settings')
         MIS = self.parameters.child('Miscellaneous Settings')
 
@@ -358,6 +373,11 @@ class SettingsDialog(QDialog):
         appSettings.kraStack = KKK.child('Kr  stack response').value()
         appSettings.kxyStack = KKK.child('Kxy stack response').value()
         appSettings.kxyArray = KKK.child('Kxy array response').value()
+
+        # cfp analysis settings
+        appSettings.cfpArray = CFP.child('Beam dimensions').value()
+        appSettings.radonSize = CFP.child('Radon transform size').value()
+        appSettings.cfpIncoherentQc = CFP.child('Incoherent illumination QC').value()
 
         # debug settings
         # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
@@ -519,6 +539,11 @@ def readSettings(self):
     appSettings.kxyStack = rng.read(self.settings.value('settings/k-plots/kxyStack', '-5;5;0.05'))
     appSettings.kxyArray = rng.read(self.settings.value('settings/k-plots/kxyArray', '-50;50;0.5'))
 
+    # cfp analysis information
+    appSettings.cfpArray = rng.read(self.settings.value('settings/cfp/cfpArray', '-800;800;12.5'))
+    appSettings.radonSize = self.settings.value('settings/cfp/radonSize', 128, type=int)
+    appSettings.cfpIncoherentQc = self.settings.value('settings/cfp/cfpIncoherentQc', config.cfpIncoherentQc, type=bool)
+
     # debug information
     # See: https://forum.qt.io/topic/108622/how-to-get-a-boolean-value-from-qsettings-correctly/8
     appSettings.debug = self.settings.value('settings/debug/logging', config.DEFAULT_DEBUG, type=bool)
@@ -600,6 +625,11 @@ def writeSettings(self):
     self.settings.setValue('settings/k-plots/kraStack', rng.write(appSettings.kraStack))
     self.settings.setValue('settings/k-plots/kxyStack', rng.write(appSettings.kxyStack))
     self.settings.setValue('settings/k-plots/kxyArray', rng.write(appSettings.kxyArray))
+
+    # cfp analysis information
+    self.settings.setValue('settings/cfp/cfpArray', rng.write(appSettings.cfpArray))
+    self.settings.setValue('settings/cfp/radonSize', appSettings.radonSize)
+    self.settings.setValue('settings/cfp/cfpIncoherentQc', appSettings.cfpIncoherentQc)
 
     # debug information
     self.settings.setValue('settings/debug/logging', appSettings.debug)

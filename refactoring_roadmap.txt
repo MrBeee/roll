@@ -2,7 +2,13 @@ D:\QGis\MyPlugins\roll\Refactoring_roadmap.txt
 
 **Refactoring Roadmap**
 
-Updated for the current codebase on 2026-05-27.
+Updated for the current codebase on 2026-06-04.
+
+2026-06-04 restoration note: the deleted `test/` tree has now been restored into this workspace. Comparison against the last committed pre-deletion snapshot (`0e253f72^` / `984da7949331b933f3da270ee9334a10ac0cbba8`) showed the provided local backup at `D:\QGis\MyPlugins\roll-2026-05-29\test` had the same tracked file set plus a small number of newer source-level updates that better match the current codebase, including the later `gapOffset` rename and an extra CFP plot-status regression. The restored local backup should therefore be treated as the current best available baseline, while the historical notes below still reflect how the test surface evolved before deletion.
+
+2026-06-04 addendum: the roadmap's structural direction is still mostly correct, but one current-state correction was mandatory before treating the later test references below as live facts. The entire `test/` tree had been deleted from this workspace in commit `0e253f72ea706c4e017b789d1c8c22bfcdc7de0e` on 2026-05-30 (`Busy debugging CFP analysis. What a mess it has become !`). That restoration step is now complete, so the next immediate task can return to structural work: keep the restored suite stable, then resume the Layout-tab 2D-to-3D bridge extraction with direct bridge-level validation rather than reopening broad algorithm work first.
+
+2026-06-04 addendum: after re-checking the current code, the structural priority order is now slightly sharper than the 2026-05-27 version. The first refactoring target after test restoration should still be the Layout-tab 2D-to-3D bridge spanning `roll_main_window_create_layout_tab.py` and `layout_3D.py`, because `refreshLayout3DFromSurvey()` still owns a broad payload/styling/backward-compat orchestration seam while `Layout3DWidget.updateFromSurvey()` remains a broad rendering contract. The next adjacent hotspot after that is still `PropertyPanelController`, whose tracked/pending seed propagation dictionaries and `applyPropertyChanges()` flow remain concentrated enough to justify a focused simplification pass. `my_parameters.py` and `marine_wizard.py` remain later peer hotspots, while another broad `roll_survey.py` pass should still be deferred.
 
 2026-05-16 addendum: after comparing the roadmap against the current `markdown/` analysis notes, the next concrete refactoring slice is now explicitly narrowed to the Layout-tab 2D-to-3D bridge. When refactoring work resumes, prefer a small structural extraction around the `3D Subset` payload/styling bridge plus direct bridge-level tests, rather than opening another broad pass in `roll_survey.py` or `my_parameters.py`.
 
@@ -26,7 +32,7 @@ The refactor is still well past the obvious service/controller extraction stage,
 3. `marine_wizard.py` and `my_parameters.py` are no longer just secondary hotspots; at about 2860 and 2845 lines they are now real peer follow-up candidates once the layout seam is reduced.
 4. The layout-analysis hotspot is now strong enough to justify an explicit bridge module recommendation, not just a generic cleanup note: `roll_main_window_create_layout_tab.py` and `layout_3D.py` together now own a real payload-building, visibility/style translation, and refresh-orchestration seam.
 5. `PropertyPanelController` has grown to about 774 lines and should now be treated as the smaller adjacent hotspot rather than a medium-sized cleanup footnote, because it owns repeat-heavy seed propagation bookkeeping plus commit-time apply/confirmation flow.
-6. The test safety net is broad, but the concentration problem is now impossible to ignore: `test/test_project_sidecars.py` is about 4740 lines and mixes persistence, layout-3D, and parameter-surface regressions in one bucket. Test decomposition is now a structural follow-up, not only a maintenance nicety.
+6. Historical note from that snapshot: the test safety net was broad, but the concentration problem was already impossible to ignore because `test/test_project_sidecars.py` mixed persistence, layout-3D, and parameter-surface regressions in one bucket. As of 2026-06-04 that entire `test/` tree is absent in the workspace, so the practical follow-up has changed from “decompose the big regression bucket later” to “restore the deleted test tree first, then decompose it deliberately”.
 7. The healthiest seams still look healthy and should not be disturbed mechanically: `FilterService`, `ImportService`, `ProjectService`, `SessionService`, `DocumentContextService`, `ActionStateController`, `PlotNavigationController`, `PlotViewStateController`, `PrintPresentationController`, `StackResponseController`, `WorkerOperationController`, and the focused `parameter_*_helpers.py` modules read like bounded ownership slices rather than dumping grounds.
 8. The practical next priority is therefore still the same at a high level but sharper in scope: extract the layout 2D-to-3D bridge first, then choose the next focused split among `PropertyPanelController`, `marine_wizard.py`, `my_parameters.py`, and the overgrown regression bucket without reopening broad algorithm work in `roll_survey.py`.
 
@@ -58,6 +64,9 @@ The remaining work is now mostly about reducing a few large concentration points
 6. The current refactoring priority is therefore no longer "extract another service from the main window first". It is "finish the layout seam cleanly, then choose the next focused split among the remaining UI/domain hotspots without destabilizing the controller/service boundaries that already exist".
 
 **Current Status Summary**
+
+Current-state note:
+The code ownership summary in this section is still useful. The `test/` tree was deleted on 2026-05-30 and restored on 2026-06-04 from the verified local backup after comparison with the last committed pre-deletion snapshot. The coverage notes below therefore describe a mix of historical context and currently restored files; before relying on any specific test as a safety net for new refactoring, re-run the relevant slice in the active QGIS/Python environment.
 
 Completed or substantially landed:
 1. `ProjectService` owns project XML read/write, sidecar save/load helpers, memmap opening, and batch project-sidecar loading.
@@ -204,13 +213,13 @@ The other important change is that the previous roadmap understated how much UI 
 **Phase 0 - Baseline and Safety Net**
 
 Status:
-Substantially complete, with a few targeted gaps remaining.
+Restored in the workspace again, but it should be treated as newly recovered infrastructure until the most relevant slices are rerun in the active environment.
 
 What is already in place:
-1. Direct tests for project persistence and sidecars.
-2. Direct tests for SPS filter logic plus direct SPS/RPS/XPS fixed-width parser and batch file-reader safety nets.
-3. Direct tests for `FilterService`, `SessionState`, and `SessionService`.
-4. Direct tests for `ImportService`.
+1. Historical baseline before deletion: direct tests for project persistence and sidecars existed.
+2. Historical baseline before deletion: direct tests for SPS filter logic plus direct SPS/RPS/XPS fixed-width parser and batch file-reader safety nets existed.
+3. Historical baseline before deletion: direct tests for `FilterService`, `SessionState`, and `SessionService` existed.
+4. Historical baseline before deletion: direct tests for `ImportService` existed.
 5. Project XML round-trip coverage.
 6. Regression coverage for recent numerical and legacy-sidecar fixes.
 7. Regression coverage for O/A display-mode defaults and rectangular-versus-polar renderer dispatch.
@@ -226,14 +235,17 @@ What is already in place:
 17. Direct bin-equivalence coverage now proves `binFromGeometry10()` matches `binFromGeometry8()` semantics on the pinned cases and explicitly documents that `binFromGeometry9()` is not a drop-in-equivalent optimization path.
 
 What is still worth adding here:
-1. Add only further geometry-generation tests if they cover a new live-path correctness seam beyond the existing minimal and rolled-template cases.
-2. A small reusable project fixture that includes a valid `.roll` plus minimal sidecars, if repeated setup starts to spread further.
-3. A narrow direct smoke/math test seam for the `3D Subset` helpers (`Layout3DWidget` bbox/transform/spider preparation) if 3D work continues; that feature currently has only indirect coverage through higher-level layout paths.
+1. Re-run the most relevant restored slices first, especially the layout/property, geometry, and persistence buckets, to re-establish the live safety net in the active environment.
+2. Then split the former layout/property regression bucket into narrower modules before expanding it again.
+3. Add only further geometry-generation tests if they cover a new live-path correctness seam beyond the known minimal and rolled-template cases.
+4. Keep the small reusable project fixture idea for the moment repeated setup starts to spread again.
+5. Preserve a narrow direct smoke/math seam for the `3D Subset` helpers (`Layout3DWidget` bbox/transform/spider preparation) once the layout bridge work resumes.
 
 Exit criteria:
 1. Project persistence and filter behavior are protected.
 2. At least one active geometry-generation path is covered by a direct test.
 3. At least one worker path is covered by a direct test.
+4. The reconstructed test tree is present in the workspace again and can run at least one narrow QGIS-aware slice relevant to the next refactor.
 
 **Phase 1 - Project Persistence and Load Boundary**
 
@@ -437,21 +449,22 @@ The main performance candidates are still:
 
 Do not optimize these speculatively. Measure them after the service boundaries and state ownership are clearer. As of the current geometry-binning work, full-analysis runtime on the representative Noordoostpolder geometry survey is already down to roughly five minutes, so further performance work is explicitly lower priority than structural cleanup unless a new workload reopens the need.
 
-**Tests To Add Next**
+**Tests To Re-Run Or Add Next**
 
-The earlier test list is outdated because several of those tests already exist.
+The earlier test list is outdated for two different reasons: several of those tests already existed before 2026-05-30, and the entire `test/` tree had to be restored after the deletion commit noted at the top of this document.
 
-The best next tests are:
-1. split the existing layout/property regressions into narrower modules before expanding them much further; `test/test_project_sidecars.py` now carries too many unrelated slices for comfortable ownership,
-2. one bridge-level regression only when the 2D-to-3D payload/styling bridge moves out of `roll_main_window_create_layout_tab.py`,
-3. one redraw regression only if another controller-owned invalidation seam is extracted beyond the current O/A and offset coverage,
-4. one higher-level runtime/session ownership regression only if another document/session seam moves out of `RollMainWindow` beyond the current file-path/MRU ownership,
-5. one small reusable project fixture follow-up only if test setup starts spreading further,
-6. one direct SPS parser/QC regression only when fixed-width parsing, batch reader control flow, or orphan-detection behavior changes again in `sps_io_and_qc.py`,
-7. one direct property-propagation regression only if new seed-propagation behavior is added beyond rename/color/origin/grow-list/pattern coverage,
-8. one Qt6/QGIS 4.0 smoke test that opens and uses the larger table-model views in `table_model_view.py`, especially the `QVariant`-backed display/background/foreground paths,
-9. one Qt6/QGIS 4.0 smoke test that exercises QGIS layer import/export flows in `qgis_interface.py`, including the layer-selection dialog and exported-layer field/schema paths,
-10. one follow-up migration triage item to capture and pin any remaining runtime-only traceback from those lower-traffic Qt6 paths before treating the migration as fully settled.
+The best next test actions are:
+1. re-run the restored layout/property, geometry, and persistence slices first to verify the recovered suite against the current codebase,
+2. then split the old layout/property regression bucket into narrower modules before expanding it much further,
+3. add one bridge-level regression only when the 2D-to-3D payload/styling bridge moves out of `roll_main_window_create_layout_tab.py`,
+4. add one redraw regression only if another controller-owned invalidation seam is extracted beyond the current O/A and offset coverage,
+5. add one higher-level runtime/session ownership regression only if another document/session seam moves out of `RollMainWindow` beyond the current file-path/MRU ownership,
+6. keep the small reusable project fixture follow-up only if test setup starts spreading further again,
+7. add one direct SPS parser/QC regression only when fixed-width parsing, batch reader control flow, or orphan-detection behavior changes again in `sps_io_and_qc.py`,
+8. add one direct property-propagation regression only if new seed-propagation behavior is added beyond rename/color/origin/grow-list/pattern coverage,
+9. add one Qt6/QGIS 4.0 smoke test that opens and uses the larger table-model views in `table_model_view.py`, especially the `QVariant`-backed display/background/foreground paths,
+10. add one Qt6/QGIS 4.0 smoke test that exercises QGIS layer import/export flows in `qgis_interface.py`, including the layer-selection dialog and exported-layer field/schema paths,
+11. add one follow-up migration triage item to capture and pin any remaining runtime-only traceback from those lower-traffic Qt6 paths before treating the migration as fully settled.
 
 **Outdated Items From The Previous Roadmap**
 
@@ -478,25 +491,26 @@ The following items should now be considered completed or reordered:
 **Recommended Next Step**
 
 If choosing one next step only, do this:
-1. Refactor the Layout-tab 2D-to-3D bridge as one small structural slice: move the `3D Subset` payload-building, visibility/style translation, and refresh orchestration out of `roll_main_window_create_layout_tab.py` into a narrow dedicated bridge module, keep `layout_3D.py` renderer-focused, and then add or relocate bridge-level tests before widening scope.
+1. Re-run the restored test slices that cover layout/property, geometry, and persistence, then refactor the Layout-tab 2D-to-3D bridge as one small structural slice: move the `3D Subset` payload-building, visibility/style translation, and refresh orchestration out of `roll_main_window_create_layout_tab.py` into a narrow dedicated bridge module, keep `layout_3D.py` renderer-focused, and then relocate or add bridge-level tests before widening scope.
 
 Why:
-1. The active geometry-generation path, live localization seam, live bin-update seam, and live completion tail in `roll_survey.py` now all have direct regression coverage and extracted helper boundaries.
+1. The active geometry-generation path, live localization seam, live bin-update seam, and live completion tail in `roll_survey.py` still have extracted helper boundaries, and the recovered test tree now gives a concrete path to re-establish the most relevant safety net before the next structural move.
 2. Recent regressions came from parameter-tree coupling, and the lower-level state/default/wiring duplication in `my_parameters.py` has now been reduced further, including the preview-item setup/update seams, the preview text/error-state helpers, two shared constructor clusters, the pattern-list synchronization callbacks, four higher-level `MySeedParameter` coordination slices, the repeated block/template seed traversal, the remaining pattern-list side-effect bundle, the repeated `MyWellParameter` sampling/header flow, the repeated circle/spiral apply flow, the repeated local/global grid apply flow, the repeated bin-angle apply flow, the repeated bin-offset normalization/apply flow, the repeated unique-offset apply flow, the repeated reflector aggregate apply flow, the repeated analysis aggregate apply flow, the repeated block/template aggregate apply flow, the repeated roll-list apply flow, the repeated roll-parameter XYZ apply flow, the repeated configuration apply flow, the repeated well-header attribute-change flow, and the repeated seed-type routing and refresh flows.
-3. The obvious worker cleanup tail is already substantially done, the Well-file property-panel seam has landed, the layout-analysis surface metadata seam now has centralized selection/export/status ownership with direct regressions, and the new `3D Subset` feature is the most visible surface that still lacks a narrow direct bridge seam even though its current helper behavior is already covered.
-4. The SPS/RPS/XPS import slice is now at a deliberate stopping point: direct parser tests exist, direct file-reader tests exist, the duplicated batch loop is extracted, and `readRpsLine()` / `readSpsLine()` were intentionally not unified because SPS parsing is expected to evolve independently from RPS parsing.
+3. The obvious worker cleanup tail is already substantially done, the Well-file property-panel seam has landed, and the new `3D Subset` feature is still the most visible surface that lacks a narrow direct bridge seam.
+4. The SPS/RPS/XPS import slice is at a deliberate stopping point structurally; with the tests restored, re-run the former direct parser/file-reader coverage before doing any optional import cleanup.
 
 First-cut scope:
-1. Move the pure 3D payload-builder helpers first.
-2. Move the `refreshLayout3DFromSurvey()` orchestration behind the same bridge.
-3. Preserve the existing `Layout3DWidget.updateFromSurvey()` payload contract in the first slice.
-4. Stop after the bridge seam and its direct tests land; do not widen into broader Layout-tab cleanup or `roll_survey.py` work in the same pass.
+1. Re-run the restored tests for the most relevant slices.
+2. Move the pure 3D payload-builder helpers first.
+3. Move the `refreshLayout3DFromSurvey()` orchestration behind the same bridge.
+4. Preserve the existing `Layout3DWidget.updateFromSurvey()` payload contract in the first slice.
+5. Stop after the bridge seam and its direct tests land; do not widen into broader Layout-tab cleanup or `roll_survey.py` work in the same pass.
 
 After that, the next step should be:
 1. keep the new document-context boundary, property-panel boundary, and layout-analysis metadata boundary stable, then prefer either one deliberately chosen parameter-tree behavior seam in `my_parameters.py` or selective worker/payload cleanup only if simplification value is clear.
 
 Estimated effort:
-small to medium: one focused layout-analysis seam plus direct tests, followed later by one deliberately chosen non-SPS seam, most likely in `my_parameters.py`, or a very small dead-code cleanup if a reference-only path can be proven unused.
+medium: first re-run the most relevant restored tests, then one focused layout-analysis seam plus direct tests, followed later by one deliberately chosen non-SPS seam, most likely in `my_parameters.py`, `PropertyPanelController`, or a very small dead-code cleanup if a reference-only path can be proven unused.
 
 **Backlog of Next 12 Tickets**
 

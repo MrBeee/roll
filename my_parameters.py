@@ -2695,6 +2695,50 @@ class MyReflectorsParameter(MyGroupParameter):
         return self.reflectorValues.asTuple()
 
 
+# class myCfpAnalysis #########################################################
+
+
+class myCfpAnalysisParameter(MyGroupParameter):
+
+    itemClass = MyGroupParameterItem
+
+    def __init__(self, **opts):
+
+        # opts['expanded'] = False                                              # to overrule user-requested options
+        # opts['flat'] = True
+
+        MyGroupParameter.__init__(self, **opts)
+        if 'children' in opts:
+            raise KeyError('Cannot set "children" argument in myCfpAnalysisParameter opts')
+
+        survey = RollSurvey()
+        self.survey = opts.get('value', survey)
+
+        # self.cfpAnalysisValues = cfpAnalysisValuesFromSurvey(self.survey)
+        self.cfpAnalysisValues = None
+
+        with self.treeChangeBlocker():
+            # self.addChild(dict(name='Point analysis', type='myCfpPoint', value=self.cfpAnalysisValues.point, default=self.cfpAnalysisValues.point, expanded=False, flat=True))
+            # self.addChild(dict(name='Plane analysis', type='myCfpPlane', value=self.cfpAnalysisValues.plane, default=self.cfpAnalysisValues.plane, expanded=False, flat=True))
+            # self.addChild(dict(name='CFP point settings', type='myFloat', value=1, default=1, expanded=False, flat=True))
+            # self.addChild(dict(name='CFP plane settings', type='myFloat', value=1, default=1, expanded=False, flat=True))
+
+            # bindChildParameters(self, {
+            #     'parP': 'CFP point settings',
+            #     'parS': 'CFP plane settings',
+            # })
+
+            self.sigTreeStateChanged.connect(self.changed)
+        # QApplication.processEvents()
+
+    def changed(self):
+        ...
+        # applyCFPAnalysisParameters(self)
+
+    def value(self):
+        return self.cfpAnalysisValues.asTuple() if self.cfpAnalysisValues is not None else None
+
+
 # class MyConfiguration #####################################################
 
 
@@ -2777,6 +2821,7 @@ class MySurveyParameter(MyGroupParameter):
             self.addChild(dict(brush=brush, name='Survey configuration', type='myConfiguration', value=self.survey, default=self.survey))
             self.addChild(dict(brush=brush, name='Survey analysis', type='myAnalysis', value=self.survey, default=self.survey))
             self.addChild(dict(brush=brush, name='Survey reflectors', type='myReflectors', value=self.survey, default=self.survey))
+            self.addChild(dict(brush=brush, name='CFP analysis', type='myCfpAnalysis', value=self.survey, default=self.survey))
             self.addChild(dict(brush=brush, name='Survey grid', type='myGrid', value=self.survey.grid, default=self.survey.grid))
             self.addChild(dict(brush=brush, name='Block list', type='myBlockList', value=self.survey.blockList, default=self.survey.blockList, survey=self.survey))
             self.addChild(dict(brush=brush, name='Pattern list', type='myPatternList', value=self.survey.patternList, default=self.survey.patternList, survey=self.survey))
@@ -2831,6 +2876,7 @@ def registerAllParameterTypes():
     registerParameterType('myPatternList', MyPatternListParameter, override=True)
     registerParameterType('myPlane', MyPlaneParameter, override=True)
     registerParameterType('myReflectors', MyReflectorsParameter, override=True)
+    registerParameterType('myCfpAnalysis', myCfpAnalysisParameter, override=True)
     registerParameterType('myRoll', MyRollParameter, override=True)
     registerParameterType('myRollList', MyRollListParameter, override=True)
     registerParameterType('myTemplateSeed', MySeedParameter, override=True)
@@ -2844,3 +2890,6 @@ def registerAllParameterTypes():
     registerParameterType('myTemplateList', MyTemplateListParameter, override=True)
     registerParameterType('myUniqOff', MyUniqOffParameter, override=True)
     registerParameterType('myWell', MyWellParameter, override=True)
+
+
+registerAllParameterTypes()

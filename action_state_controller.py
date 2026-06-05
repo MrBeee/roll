@@ -113,8 +113,8 @@ class ActionStateController:
             ('actionBasicBinFromTemplates', enable and nTemplates > 0),
             ('actionFullBinFromTemplates', enable and nTemplates > 0),
             ('actionGeometryFromTemplates', enable and nTemplates > 0),
-            ('actionCFPAnalysisFromTemplates', enable and experimentalEnabled and nTemplates > 0),
-            ('actionCFPAnalysisFromGeometry', experimentalEnabled and hasCfpGeometryInputs),
+            ('actionCFPPointAnalysisFromTemplates', enable and experimentalEnabled and nTemplates > 0),
+            ('actionCFPPointAnalysisFromGeometry', experimentalEnabled and hasCfpGeometryInputs),
             ('actionCFPPlaneAnalysisFromTemplates', enable and experimentalEnabled and nTemplates > 0),
             ('actionCFPPlaneAnalysisFromGeometry', experimentalEnabled and hasCfpPlaneGeometryInputs),
             ('actionBasicBinFromGeometry', hasGeometryInputs),
@@ -128,8 +128,8 @@ class ActionStateController:
         experimentalEnabled = bool(self.window.appSettings.useExperimental)
 
         self._setActionVisibility(
-            ('actionCFPAnalysisFromTemplates', experimentalEnabled),
-            ('actionCFPAnalysisFromGeometry', experimentalEnabled),
+            ('actionCFPPointAnalysisFromTemplates', experimentalEnabled),
+            ('actionCFPPointAnalysisFromGeometry', experimentalEnabled),
             ('actionCFPPlaneAnalysisFromTemplates', experimentalEnabled),
             ('actionCFPPlaneAnalysisFromGeometry', experimentalEnabled),
         )

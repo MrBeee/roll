@@ -1,0 +1,910 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "echo-test",
+			"type": "shell",
+			"command": "echo HELLO_TASK"
+		},
+		{
+			"label": "single-bind-job",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_bind_job_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBindJobSignalsRoutesSurveyLogMessagesUsingJobMessageType"
+			]
+		},
+		{
+			"label": "single-geom-worker",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_geom_worker_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinFromGeometryWorkerRunEmitsTypedResultsOnSuccessAndFailure"
+			]
+		},
+		{
+			"label": "single-profiling-summary",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_profiling_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinningProfilingSummaryHighlightsBuildVsWriteTotals"
+			]
+		},
+		{
+			"label": "verify-fixed-sidecar-tests",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_fix_validation_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinFromGeometryWorkerRunEmitsTypedResultsOnSuccessAndFailure",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBindJobSignalsRoutesSurveyLogMessagesUsingJobMessageType",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinningProfilingSummaryHighlightsBuildVsWriteTotals"
+			]
+		},
+		{
+			"label": "recheck-sidecar-fixes",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_fix_validation_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinFromGeometryWorkerRunEmitsTypedResultsOnSuccessAndFailure",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBindJobSignalsRoutesSurveyLogMessagesUsingJobMessageType",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinningProfilingSummaryHighlightsBuildVsWriteTotals"
+			]
+		},
+		{
+			"label": "list-test-procs",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|test_project_sidecars|python-qgis') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "kill-stuck-tests",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$pids = @(35408,36696); foreach ($pid in $pids) { if (Get-Process -Id $pid -ErrorAction SilentlyContinue) { Stop-Process -Id $pid -Force } }; 'Stopped targeted test processes.'"
+			]
+		},
+		{
+			"label": "kill-stuck-tests",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$targetIds = @(35408,36696); foreach ($procId in $targetIds) { if (Get-Process -Id $procId -ErrorAction SilentlyContinue) { Stop-Process -Id $procId -Force } }; 'Stopped targeted test processes.'"
+			]
+		},
+		{
+			"label": "kill-stuck-tests-2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$targetIds = @(35408,36696); foreach ($procId in $targetIds) { if (Get-Process -Id $procId -ErrorAction SilentlyContinue) { Stop-Process -Id $procId -Force } }; 'Stopped targeted test processes.'"
+			]
+		},
+		{
+			"label": "list-test-procs-2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|test_project_sidecars|python-qgis') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "recheck-sidecar-fixes-2",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_fix_validation_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinFromGeometryWorkerRunEmitsTypedResultsOnSuccessAndFailure",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBindJobSignalsRoutesSurveyLogMessagesUsingJobMessageType",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinningProfilingSummaryHighlightsBuildVsWriteTotals"
+			]
+		},
+		{
+			"label": "recheck-sidecar-fixes-3",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_fix_validation_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinFromGeometryWorkerRunEmitsTypedResultsOnSuccessAndFailure",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBindJobSignalsRoutesSurveyLogMessagesUsingJobMessageType",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinningProfilingSummaryHighlightsBuildVsWriteTotals"
+			]
+		},
+		{
+			"label": "full-suite-with-report",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__full_test_report.txt"
+			]
+		},
+		{
+			"label": "check-running-test-procs",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "kill-stuck-tests-3",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$targetIds = @(4724,17728); foreach ($procId in $targetIds) { if (Get-Process -Id $procId -ErrorAction SilentlyContinue) { Stop-Process -Id $procId -Force } }; 'Stopped full-suite stuck processes.'"
+			]
+		},
+		{
+			"label": "single-binarea-cache-reset",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_binarea_reset_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testApplyPropertyChangesResetsAnalysisCachesWhenBinAreaChanges"
+			]
+		},
+		{
+			"label": "full-suite-with-report",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__full_test_report.txt"
+			]
+		},
+		{
+			"label": "check-running-test-procs-2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat|test_project_sidecars') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "kill-stuck-tests-4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$targetIds = @(7032,32576); foreach ($procId in $targetIds) { if (Get-Process -Id $procId -ErrorAction SilentlyContinue) { Stop-Process -Id $procId -Force } }; 'Stopped full-suite test processes.'"
+			]
+		},
+		{
+			"label": "full-suite-with-report-2",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__full_test_report.txt"
+			]
+		},
+		{
+			"label": "check-running-test-procs-3",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "single-binfromtemplates-request",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_binfromtemplates_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinFromTemplatesUsesRequestObjectAndResultSignal"
+			]
+		},
+		{
+			"label": "single-binning-worker",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_binning_worker_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinningWorkerRunEmitsTypedResultsOnSuccessAndFailure"
+			]
+		},
+		{
+			"label": "single-binning-worker-2",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_binning_worker_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinningWorkerRunEmitsTypedResultsOnSuccessAndFailure"
+			]
+		},
+		{
+			"label": "single-cfp-templates-worker",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_templates_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTemplatesWorkerRunUsesResultPayload"
+			]
+		},
+		{
+			"label": "single-cfp-templates-worker-2",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_templates_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTemplatesWorkerRunUsesResultPayload"
+			]
+		},
+		{
+			"label": "single-cfp-templates-worker-3",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_templates_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTemplatesWorkerRunUsesResultPayload"
+			]
+		},
+		{
+			"label": "verify-cfp-workers",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_workers_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTemplatesWorkerRunUsesResultPayload",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTraceTableWorkerRunUsesChunkedResultPayload"
+			]
+		},
+		{
+			"label": "single-cfp-trace-table-worker",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_trace_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTraceTableWorkerRunUsesChunkedResultPayload"
+			]
+		},
+		{
+			"label": "single-cfp-trace-table-worker-2",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_trace_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTraceTableWorkerRunUsesChunkedResultPayload"
+			]
+		},
+		{
+			"label": "single-cfp-trace-table-worker-3",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_trace_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTraceTableWorkerRunUsesChunkedResultPayload"
+			]
+		},
+		{
+			"label": "full-suite-with-report-3",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__full_test_report.txt"
+			]
+		},
+		{
+			"label": "single-binning-worker-profiling",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_binning_worker_profiling_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinningWorkerRunUsesOptionalProfilingPayload"
+			]
+		},
+		{
+			"label": "single-binning-worker-profiling-2",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_binning_worker_profiling_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testBinningWorkerRunUsesOptionalProfilingPayload"
+			]
+		},
+		{
+			"label": "full-suite-with-report-4",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__full_test_report.txt"
+			]
+		},
+		{
+			"label": "check-running-test-procs-4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "check-running-test-procs-4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "kill-stuck-tests-4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$targetIds = @(34660,16000); foreach ($procId in $targetIds) { if (Get-Process -Id $procId -ErrorAction SilentlyContinue) { Stop-Process -Id $procId -Force } }; 'Stopped lingering test-run processes.'"
+			]
+		},
+		{
+			"label": "kill-stuck-tests-5",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$targetIds = @(34660,16000); foreach ($procId in $targetIds) { if (Get-Process -Id $procId -ErrorAction SilentlyContinue) { Stop-Process -Id $procId -Force } }; 'Stopped lingering test-run processes.'"
+			]
+		},
+		{
+			"label": "check-running-test-procs-5",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "full-suite-with-report-5",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__full_test_report.txt"
+			]
+		},
+		{
+			"label": "single-cfp-trace-thread-finished",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_trace_finished_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTraceTableThreadFinishedUsesResultObject"
+			]
+		},
+		{
+			"label": "single-cfp-trace-thread-finished-2",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_trace_finished_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTraceTableThreadFinishedUsesResultObject"
+			]
+		},
+		{
+			"label": "full-suite-with-report-6",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__full_test_report.txt"
+			]
+		},
+		{
+			"label": "check-running-test-procs-6",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "kill-duplicate-full-suite-runs",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$targetIds = @(6460,42812,47168,21644); foreach ($procId in $targetIds) { if (Get-Process -Id $procId -ErrorAction SilentlyContinue) { Stop-Process -Id $procId -Force } }; 'Stopped duplicate full-suite runs.'"
+			]
+		},
+		{
+			"label": "check-running-test-procs-7",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "full-suite-with-report-7",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__full_test_report.txt"
+			]
+		},
+		{
+			"label": "check-running-test-procs-8",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "kill-active-full-suite-run",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite\\.bat|run_unittest_suite\\.py') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }; 'Stopped active unittest runner processes.'"
+			]
+		},
+		{
+			"label": "check-running-test-procs-9",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "tail-full-report",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-Content __full_test_report.txt -Tail 80"
+			]
+		},
+		{
+			"label": "single-cfp-analysis-tab",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_analysis_tab_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpAnalysisTabIsInsertedWithImageAndColorBar"
+			]
+		},
+		{
+			"label": "full-suite-with-report-8",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__full_test_report.txt"
+			]
+		},
+		{
+			"label": "check-running-test-procs-final",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "tail-full-report-final",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-Content __full_test_report.txt -Tail 40"
+			]
+		},
+		{
+			"label": "check-running-test-procs-live",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "tail-full-report-live",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-Content __full_test_report.txt -Tail 25"
+			]
+		},
+		{
+			"label": "kill-active-full-suite-run",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite\\.bat|run_unittest_suite\\.py') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }; 'Stopped active unittest runner processes.'"
+			]
+		},
+		{
+			"label": "check-running-test-procs-live",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "full-suite-with-report-8",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__full_test_report.txt"
+			]
+		},
+		{
+			"label": "kill-active-full-suite-run",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite\\.bat|run_unittest_suite\\.py') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }; 'Stopped active unittest runner processes.'"
+			]
+		},
+		{
+			"label": "check-running-test-procs-live",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "project-sidecars-regression-suite",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__project_sidecars_regression_report.txt",
+				"test.test_project_sidecars"
+			]
+		},
+		{
+			"label": "single-cfp-radon-mouse-status",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_radon_mouse_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpRadonPlotMouseStatusIncludesSampledAmplitude"
+			]
+		},
+		{
+			"label": "single-cfp-radon-mouse-status-2",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_radon_mouse_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpRadonPlotMouseStatusIncludesSampledAmplitude"
+			]
+		},
+		{
+			"label": "project-sidecars-regression-suite-2",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__project_sidecars_regression_report.txt",
+				"test.test_project_sidecars"
+			]
+		},
+		{
+			"label": "kill-active-full-suite-run",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite\\.bat|run_unittest_suite\\.py') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }; 'Stopped active unittest runner processes.'"
+			]
+		},
+		{
+			"label": "check-running-test-procs-live",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'python|cmd') -and ($_.CommandLine -match 'run_unittest_suite|python-qgis-ltr.bat') } | Select-Object ProcessId,Name,CommandLine | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "tail-sidecars-report-final",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-Content __project_sidecars_regression_report.txt -Tail 60"
+			]
+		},
+		{
+			"label": "scan-sidecars-report-markers",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$patterns = 'FAIL','FAILED','ERROR','ROLL TEST SUMMARY','Status:','TESTS FAILED','TESTS PASSED'; Select-String -Path __project_sidecars_regression_report.txt -Pattern $patterns | Select-Object LineNumber,Line | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "project-sidecars-tail-suite",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$lines = Get-Content 'test\\test_project_sidecars.py'; $inClass = $false; $collect = $false; $tests = @(); foreach ($line in $lines) { if ($line -match '^class ProjectSidecarsTest') { $inClass = $true; continue }; if ($inClass -and $line -match '^class ') { break }; if ($inClass -and $line -match '^\\s+def (test\\w+)\\(') { $name = $Matches[1]; if ($name -eq 'testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal') { $collect = $true }; if ($collect) { $tests += \"test.test_project_sidecars.ProjectSidecarsTest.$name\" } } }; if ($tests.Count -eq 0) { throw 'No tail tests were collected.' }; & .\\run_unittest_suite.bat --report __project_sidecars_tail_report.txt @tests"
+			]
+		},
+		{
+			"label": "project-sidecars-tail-suite-2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$lines = Get-Content 'test\\test_project_sidecars.py'; $inClass = $false; $collect = $false; $tests = @(); foreach ($line in $lines) { if ($line -match '^class ProjectSidecarsTest') { $inClass = $true; continue }; if ($inClass -and $line -match '^class ') { break }; if ($inClass -and $line -match '^\\s+def (test\\w+)\\(') { $name = $Matches[1]; if ($name -eq 'testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal') { $collect = $true }; if ($collect) { $tests += ('test.test_project_sidecars.ProjectSidecarsTest.' + $name) } } }; if ($tests.Count -eq 0) { throw 'No tail tests were collected.' }; & .\\run_unittest_suite.bat --report __project_sidecars_tail_report.txt @tests"
+			]
+		},
+		{
+			"label": "targeted-tail-failures",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__targeted_tail_failures_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal",
+				"test.test_project_sidecars.ProjectSidecarsTest.testGeometryWorkerRunUsesOptionalProfilingPayload",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpSliceChangedRendersReceiverAndResolutionImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpRadonTransformChangedRendersRadonImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testStopWorkerThreadIgnoresLateResultAndResetsIdleUi"
+			]
+		},
+		{
+			"label": "targeted-tail-failures-recheck",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__targeted_tail_failures_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal",
+				"test.test_project_sidecars.ProjectSidecarsTest.testGeometryWorkerRunUsesOptionalProfilingPayload",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpSliceChangedRendersReceiverAndResolutionImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpRadonTransformChangedRendersRadonImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testStopWorkerThreadIgnoresLateResultAndResetsIdleUi"
+			]
+		},
+		{
+			"label": "targeted-tail-failures-recheck-2",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__targeted_tail_failures_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal",
+				"test.test_project_sidecars.ProjectSidecarsTest.testGeometryWorkerRunUsesOptionalProfilingPayload",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpSliceChangedRendersReceiverAndResolutionImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpRadonTransformChangedRendersRadonImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testStopWorkerThreadIgnoresLateResultAndResetsIdleUi"
+			]
+		},
+		{
+			"label": "targeted-tail-failures-recheck-3",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__targeted_tail_failures_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal",
+				"test.test_project_sidecars.ProjectSidecarsTest.testGeometryWorkerRunUsesOptionalProfilingPayload",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpSliceChangedRendersReceiverAndResolutionImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpRadonTransformChangedRendersRadonImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testStopWorkerThreadIgnoresLateResultAndResetsIdleUi"
+			]
+		},
+		{
+			"label": "targeted-tail-failures-recheck-4",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__targeted_tail_failures_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal",
+				"test.test_project_sidecars.ProjectSidecarsTest.testGeometryWorkerRunUsesOptionalProfilingPayload",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpSliceChangedRendersReceiverAndResolutionImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpRadonTransformChangedRendersRadonImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testStopWorkerThreadIgnoresLateResultAndResetsIdleUi"
+			]
+		},
+		{
+			"label": "targeted-tail-failures-recheck-5",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__targeted_tail_failures_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal",
+				"test.test_project_sidecars.ProjectSidecarsTest.testGeometryWorkerRunUsesOptionalProfilingPayload",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpSliceChangedRendersReceiverAndResolutionImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpRadonTransformChangedRendersRadonImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testStopWorkerThreadIgnoresLateResultAndResetsIdleUi"
+			]
+		},
+		{
+			"label": "recheck-user-reported-cfp-failures",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__recheck_user_reported_cfp_failures.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTraceTableThreadFinishedUsesResultObject",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpSliceChangedRendersReceiverAndResolutionImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpRadonTransformChangedRendersRadonImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testStopWorkerThreadIgnoresLateResultAndResetsIdleUi",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpRadonPlotMouseStatusIncludesSampledAmplitude"
+			]
+		},
+		{
+			"label": "tail-project-sidecars-tail-report-live",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-Content __project_sidecars_tail_report.txt -Tail 60"
+			]
+		},
+		{
+			"label": "tail-project-sidecars-tail-report-live-2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-Content __project_sidecars_tail_report.txt -Tail 120"
+			]
+		},
+		{
+			"label": "tail-project-sidecars-tail-report-live-3",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-Content __project_sidecars_tail_report.txt -Tail 140"
+			]
+		},
+		{
+			"label": "tail-project-sidecars-tail-sequential-live",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-Content __project_sidecars_tail_sequential_report.txt -Tail 80"
+			]
+		},
+		{
+			"label": "tail-project-sidecars-tail-sequential-live-2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-Content __project_sidecars_tail_sequential_report.txt -Tail 120"
+			]
+		},
+		{
+			"label": "single-remaining-tail-test",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_remaining_tail_test_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testMarineWizardPage3BinXUpdatesAfterReturningFromPage2FactorChange"
+			]
+		},
+		{
+			"label": "single-cfp-templates-worker-pixel-origin-fix",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__single_cfp_templates_pixel_origin_fix_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTemplatesWorkerRunUsesResultPayload",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpSliceChangedRendersReceiverAndResolutionImages",
+				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpRadonTransformChangedRendersRadonImages"
+			]
+		}
+	]
+}

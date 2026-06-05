@@ -4,7 +4,7 @@
    width="32"
    version="1.1"
    id="svg8"
-   sodipodi:docname="mActionCFPPointAnalysis.svg"
+   sodipodi:docname="mActionCFPPointAnalysisFromGeometry.svg"
    inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -72,7 +72,17 @@
        x2="26.453748"
        y2="8.5998058"
        gradientUnits="userSpaceOnUse"
-       gradientTransform="translate(1.8072055,-0.31158715)" />
+       gradientTransform="translate(2.6796495,-0.28042844)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#swatch2"
+       id="linearGradient1"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(-7.5341274,-0.26149019)"
+       x1="18.16553"
+       y1="8.5998058"
+       x2="26.453748"
+       y2="8.5998058" />
   </defs>
   <sodipodi:namedview
      id="namedview10"
@@ -86,7 +96,7 @@
      showgrid="false"
      inkscape:zoom="32.09375"
      inkscape:cx="9.6592016"
-     inkscape:cy="8.9892892"
+     inkscape:cy="9.0204479"
      inkscape:window-width="3840"
      inkscape:window-height="2054"
      inkscape:window-x="-11"
@@ -104,15 +114,6 @@
        x="0.25246835"
        y="28.716017"
        style="fill:#660080;stroke-width:2">Cfp</tspan></text>
-  <rect
-     style="opacity:0;fill:#660080;fill-opacity:1;fill-rule:nonzero;stroke:#0000ff;stroke-width:0;stroke-opacity:1"
-     id="rect16893"
-     width="16.95034"
-     height="3.0847127"
-     x="3.3028238"
-     y="6.6679649"
-     rx="1.6635671"
-     inkscape:highlight-color="#aaaaaa" />
   <text
      xml:space="preserve"
      id="text1"
@@ -128,7 +129,13 @@
   <circle
      style="fill:#660080;stroke:url(#linearGradient2);stroke-width:0.7"
      id="path1"
-     cx="24.116844"
-     cy="8.2882185"
+     cx="24.989288"
+     cy="8.3193769"
+     r="4.1441092" />
+  <circle
+     style="fill:#660080;stroke:url(#linearGradient1);stroke-width:0.7"
+     id="path1-2"
+     cx="14.775512"
+     cy="8.338316"
      r="4.1441092" />
 </svg>

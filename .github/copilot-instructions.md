@@ -53,7 +53,7 @@
 
 ## Workflows (from repo docs)
 - Dependencies must be installed in the OSGeo4W/QGIS Python environment: debugpy, numba, numpy, pyqtgraph, rasterio, wellpathpy (see [Readme.md](Readme.md) and [metadata.txt](metadata.txt)).
-- Windows helper scripts in the repo root are the active local workflow entry points: `run_tests_qgis.bat`, `run_flake8_qgis.bat`, `run_security_checks_qgis.bat`, `run_sphinx_documentation.bat`, and `run_package_plugin.bat`.
+- Windows helper scripts in the repo root are the active local workflow entry points: `run_unittest_suite.bat`, `run_flake8_qgis.bat`, `run_security_checks_qgis.bat`, `run_sphinx_documentation.bat`, and `run_package_plugin.bat`.
 - `run_package_plugin.bat` creates the uploadable plugin zip directly; build Sphinx docs first with `run_sphinx_documentation.bat` when you want the generated HTML included in that zip.
 - PowerPoint files (`.ppt`/`.pptx`) must never be included in or referenced from the Sphinx documentation.
 - PowerPoint files (`.ppt`/`.pptx`) must never be uploaded to GitHub.

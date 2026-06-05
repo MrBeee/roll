@@ -117,6 +117,9 @@ class AppSettings:
     kraStack: object = field(default_factory=lambda: QVector3D(config.kraStack))
     kxyStack: object = field(default_factory=lambda: QVector3D(config.kxyStack))
     kxyArray: object = field(default_factory=lambda: QVector3D(config.kxyArray))
+    cfpArray: object = field(default_factory=lambda: QVector3D(config.cfpArray))
+    radonSize: int = config.radonSize
+    cfpIncoherentQc: bool = config.cfpIncoherentQc
 
     debug: bool = config.DEFAULT_DEBUG
     debugpy: bool = config.DEFAULT_DEBUGPY
@@ -178,6 +181,9 @@ def cloneAppSettings(appSettings: AppSettings) -> AppSettings:
         kraStack=QVector3D(appSettings.kraStack),
         kxyStack=QVector3D(appSettings.kxyStack),
         kxyArray=QVector3D(appSettings.kxyArray),
+        cfpArray=QVector3D(appSettings.cfpArray),
+        radonSize=appSettings.radonSize,
+        cfpIncoherentQc=appSettings.cfpIncoherentQc,
         debug=appSettings.debug,
         debugpy=appSettings.debugpy,
         useNumba=appSettings.useNumba,

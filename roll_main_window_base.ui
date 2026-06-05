@@ -210,8 +210,9 @@
        <normaloff>resources/mActionCFPPointAnalysis.svg</normaloff>resources/mActionCFPPointAnalysis.svg</iconset>
      </property>
      <addaction name="separator"/>
-     <addaction name="actionCFPAnalysisFromTemplates"/>
-     <addaction name="actionCFPAnalysisFromGeometry"/>
+     <addaction name="actionCFPPointAnalysisFromTemplates"/>
+     <addaction name="actionCFPPointAnalysisFromGeometry"/>
+     <addaction name="actionCFPPointAnalysisFromSPSInput"/>
     </widget>
     <widget class="QMenu" name="menuCFP_Plane_analysis_2">
      <property name="title">
@@ -223,6 +224,7 @@
      </property>
      <addaction name="actionCFPPlaneAnalysisFromTemplates"/>
      <addaction name="actionCFPPlaneAnalysisFromGeometry"/>
+     <addaction name="actionCFPPlaneAnalysisFromSPSInput"/>
     </widget>
     <addaction name="actionBasicBinFromTemplates"/>
     <addaction name="actionFullBinFromTemplates"/>
@@ -1749,25 +1751,25 @@
     <string>Shift Survey Location...</string>
    </property>
   </action>
-  <action name="actionCFPAnalysisFromTemplates">
+  <action name="actionCFPPointAnalysisFromTemplates">
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionCFPAnalysisFromTemplates.svg</normaloff>resources/mActionCFPAnalysisFromTemplates.svg</iconset>
+     <normaloff>resources/mActionCFPPointAnalysisFromTemplates.svg</normaloff>resources/mActionCFPPointAnalysisFromTemplates.svg</iconset>
    </property>
    <property name="text">
-    <string>CFP analysis from Templates</string>
+    <string>Point analysis from Templates</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
    </property>
   </action>
-  <action name="actionCFPAnalysisFromGeometry">
+  <action name="actionCFPPointAnalysisFromGeometry">
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionCFPAnalysisFromGeometry.svg</normaloff>resources/mActionCFPAnalysisFromGeometry.svg</iconset>
+     <normaloff>resources/mActionCFPPointAnalysisFromGeometry.svg</normaloff>resources/mActionCFPPointAnalysisFromGeometry.svg</iconset>
    </property>
    <property name="text">
-    <string>CFP analysis from Geometry</string>
+    <string>Point analysis from Geometry</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+L</string>
@@ -1776,10 +1778,10 @@
   <action name="actionCFPPlaneAnalysisFromTemplates">
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionCFPAnalysisFromTemplates.svg</normaloff>resources/mActionCFPAnalysisFromTemplates.svg</iconset>
+     <normaloff>resources/mActionCFPPlaneAnalysisFromTemplates.svg</normaloff>resources/mActionCFPPlaneAnalysisFromTemplates.svg</iconset>
    </property>
    <property name="text">
-    <string>CFP analysis from Templates</string>
+    <string>Plane analysis from Templates</string>
    </property>
    <property name="toolTip">
     <string>CFP acq imprint analysis from Templates</string>
@@ -1788,15 +1790,36 @@
   <action name="actionCFPPlaneAnalysisFromGeometry">
    <property name="icon">
     <iconset>
-     <normaloff>resources/mActionCFPAnalysisFromGeometry.svg</normaloff>resources/mActionCFPAnalysisFromGeometry.svg</iconset>
+     <normaloff>resources/mActionCFPPlaneAnalysis FromGeometry.svg</normaloff>resources/mActionCFPPlaneAnalysis FromGeometry.svg</iconset>
    </property>
    <property name="text">
-    <string>CFP Analysis from Geometry</string>
+    <string>Plane Analysis from Geometry</string>
    </property>
   </action>
   <action name="actionCFP_Analysis_from_Geometry_Tables">
    <property name="text">
     <string>CFP Analysis from Geometry</string>
+   </property>
+  </action>
+  <action name="actionCFPPointAnalysisFromSPSInput">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionCFPPointAnalysisFromSpsInput.svg</normaloff>resources/mActionCFPPointAnalysisFromSpsInput.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Point analysis from SPS input</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+L</string>
+   </property>
+  </action>
+  <action name="actionCFPPlaneAnalysisFromSPSInput">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionCFPPlaneAnalysisFromSps.svg</normaloff>resources/mActionCFPPlaneAnalysisFromSps.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Plane analysis from SPS input</string>
    </property>
   </action>
  </widget>

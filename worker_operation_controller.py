@@ -6,7 +6,6 @@ from math import ceil
 from typing import Any, Callable, Protocol, cast
 
 import numpy as np
-
 from qgis.PyQt.QtCore import QThread
 
 from .enums_and_int_flags import MsgType
@@ -307,6 +306,8 @@ class WorkerOperationController:
     def _buildCfpAnalysisFromTemplatesJob(self) -> WorkerJobSpec:
         dependencies = self.runtimeDependenciesProvider()
         focalX, focalY = self._resolveLocalCfpTargetXY()
+        cfpArrayValue = self.window.appSettings.cfpArray
+        cfpArray = (float(cfpArrayValue.x()), float(cfpArrayValue.y()), float(cfpArrayValue.z()))
         localPlane = getattr(self.window.survey, 'localPlane', None)
         focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
         maxDipDegrees = self._resolveCfpMaxDipDegrees()
@@ -318,6 +319,8 @@ class WorkerOperationController:
             frequency=40.0,
             maxDipDegrees=maxDipDegrees,
             vint=self.window.survey.binning.vint,
+            cfpArray=cfpArray,
+            radonSize=self.window.appSettings.radonSize,
             debugpyEnabled=self.window.appSettings.debugpy,
         )
         return WorkerJobSpec(
@@ -337,6 +340,8 @@ class WorkerOperationController:
         dependencies = self.runtimeDependenciesProvider()
         srcGeom, relGeom, recGeom, sourceName = self._resolveCfpGeometryTables()
         focalX, focalY = self._resolveLocalCfpTargetXY()
+        cfpArrayValue = self.window.appSettings.cfpArray
+        cfpArray = (float(cfpArrayValue.x()), float(cfpArrayValue.y()), float(cfpArrayValue.z()))
         localPlane = getattr(self.window.survey, 'localPlane', None)
         focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
         maxDipDegrees = self._resolveCfpMaxDipDegrees()
@@ -352,6 +357,8 @@ class WorkerOperationController:
             frequency=40.0,
             maxDipDegrees=maxDipDegrees,
             vint=self.window.survey.binning.vint,
+            cfpArray=cfpArray,
+            radonSize=self.window.appSettings.radonSize,
             chunkSize=25_000,
             debugpyEnabled=self.window.appSettings.debugpy,
             sourceName=sourceName,
@@ -374,6 +381,7 @@ class WorkerOperationController:
         localPlane = getattr(self.window.survey, 'localPlane', None)
         focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
         maxDipDegrees = self._resolveCfpMaxDipDegrees()
+        modeLabel = 'coherent + incoherent QC' if self.window.appSettings.cfpIncoherentQc else 'coherent'
         request = CfpAmplitudeMapRequest(
             xmlString=self.window.survey.toXmlString(),
             srcGeom=None,
@@ -383,6 +391,7 @@ class WorkerOperationController:
             maxDipDegrees=maxDipDegrees,
             vint=self.window.survey.binning.vint,
             frequencies=np.array([40.0], dtype=np.float32),
+            computeIncoherentQc=self.window.appSettings.cfpIncoherentQc,
             debugpyEnabled=self.window.appSettings.debugpy,
         )
         return WorkerJobSpec(
@@ -390,7 +399,7 @@ class WorkerOperationController:
             progressLabelText='CFP illumination - Templates',
             startMessage=(
                 "Thread : Started 'CFP illumination from Templates'"
-                f' at z={focalZ:.2f}, aperture={maxDipDegrees:.1f}deg, Vint={self.window.survey.binning.vint:.1f}m/s'
+                f' ({modeLabel}) at z={focalZ:.2f}, aperture={maxDipDegrees:.1f}deg, Vint={self.window.survey.binning.vint:.1f}m/s'
             ),
             startMessageType=MsgType.Analysis,
             workerFactory=dependencies['CfpAmplitudeMapWorker'],
@@ -403,6 +412,7 @@ class WorkerOperationController:
         localPlane = getattr(self.window.survey, 'localPlane', None)
         focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
         maxDipDegrees = self._resolveCfpMaxDipDegrees()
+        modeLabel = 'coherent + incoherent QC' if self.window.appSettings.cfpIncoherentQc else 'coherent'
         request = CfpAmplitudeMapRequest(
             xmlString=self.window.survey.toXmlString(),
             srcGeom=self.window.srcGeom,
@@ -412,6 +422,7 @@ class WorkerOperationController:
             maxDipDegrees=maxDipDegrees,
             vint=self.window.survey.binning.vint,
             frequencies=np.array([40.0], dtype=np.float32),
+            computeIncoherentQc=self.window.appSettings.cfpIncoherentQc,
             debugpyEnabled=self.window.appSettings.debugpy,
         )
         return WorkerJobSpec(
@@ -419,7 +430,7 @@ class WorkerOperationController:
             progressLabelText='CFP illumination - Geometry Tables',
             startMessage=(
                 "Thread : Started 'CFP illumination from Geometry Tables'"
-                f' at z={focalZ:.2f}, aperture={maxDipDegrees:.1f}deg, Vint={self.window.survey.binning.vint:.1f}m/s'
+                f' ({modeLabel}) at z={focalZ:.2f}, aperture={maxDipDegrees:.1f}deg, Vint={self.window.survey.binning.vint:.1f}m/s'
             ),
             startMessageType=MsgType.Analysis,
             workerFactory=dependencies['CfpAmplitudeMapWorker'],
@@ -440,25 +451,9 @@ class WorkerOperationController:
         return self.window.spsImport, self.window.xpsImport, self.window.rpsImport, 'Imported SPS Tables'
 
     def _resolveLocalCfpTargetXY(self) -> tuple[float, float]:
-        spiderPoint = getattr(self.window, 'spiderPoint', None)
-        survey = self.window.survey
-        fallbackTarget = self._resolveAnalysisAreaCenterXY()
-        if (
-            spiderPoint is None or
-            survey is None or
-            survey.binTransform is None or
-            not hasattr(spiderPoint, 'x') or
-            not hasattr(spiderPoint, 'y') or
-            (spiderPoint.x() == -1 and spiderPoint.y() == -1)
-        ):
-            return fallbackTarget
-
-        invBinTransform, invertOk = survey.binTransform.inverted()
-        if not invertOk:
-            return fallbackTarget
-
-        focalX, focalY = invBinTransform.map(spiderPoint.x(), spiderPoint.y())
-        return (float(focalX), float(focalY))
+        # Beam analysis currently uses the binning-area center by design,
+        # independent of spider selection or navigation state.
+        return self._resolveAnalysisAreaCenterXY()
 
     def _resolveAnalysisAreaCenterXY(self) -> tuple[float, float]:
         survey = self.window.survey
