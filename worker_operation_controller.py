@@ -8,6 +8,7 @@ from typing import Any, Callable, Protocol, cast
 import numpy as np
 from qgis.PyQt.QtCore import QThread
 
+from . import config
 from .enums_and_int_flags import MsgType
 from .worker_threads import (BinningFromGeometryRequest,
                              BinningFromTemplatesRequest,
@@ -127,11 +128,36 @@ class WorkerOperationController:
             self.window.appendLogMessage('Thread : No survey has been defined', MsgType.Error)
             return False
 
-        if not self._hasCfpGeometryTables():
-            self.window.appendLogMessage('Thread : Source, relation, and receiver geometry/SPS tables have not all been defined', MsgType.Error)
+        if self.window.srcGeom is None or self.window.relGeom is None or self.window.recGeom is None:
+            self.window.appendLogMessage('Thread : Source, relation, and receiver geometry tables have not all been defined', MsgType.Error)
             return False
 
-        return self._startJob(self._buildCfpAnalysisFromGeometryTablesJob())
+        return self._startJob(
+            self._buildCfpAnalysisFromGeometryTablesJob(
+                self.window.srcGeom,
+                self.window.relGeom,
+                self.window.recGeom,
+                'Geometry Tables',
+            )
+        )
+
+    def startCfpAnalysisFromSpsTables(self) -> bool:
+        if self.window.survey is None:
+            self.window.appendLogMessage('Thread : No survey has been defined', MsgType.Error)
+            return False
+
+        if self.window.spsImport is None or self.window.xpsImport is None or self.window.rpsImport is None:
+            self.window.appendLogMessage('Thread : Source, relation, and receiver SPS input tables have not all been defined', MsgType.Error)
+            return False
+
+        return self._startJob(
+            self._buildCfpAnalysisFromGeometryTablesJob(
+                self.window.spsImport,
+                self.window.xpsImport,
+                self.window.rpsImport,
+                'SPS Input Tables',
+            )
+        )
 
     def startCfpPlaneAnalysisFromTemplates(self) -> bool:
         if self.window.survey is None:
@@ -149,7 +175,32 @@ class WorkerOperationController:
             self.window.appendLogMessage('Thread : Source, relation, and receiver geometry tables have not all been defined', MsgType.Error)
             return False
 
-        return self._startJob(self._buildCfpPlaneAnalysisFromGeometryTablesJob())
+        return self._startJob(
+            self._buildCfpPlaneAnalysisFromGeometryTablesJob(
+                self.window.srcGeom,
+                self.window.relGeom,
+                self.window.recGeom,
+                'Geometry Tables',
+            )
+        )
+
+    def startCfpPlaneAnalysisFromSpsTables(self) -> bool:
+        if self.window.survey is None:
+            self.window.appendLogMessage('Thread : No survey has been defined', MsgType.Error)
+            return False
+
+        if self.window.spsImport is None or self.window.xpsImport is None or self.window.rpsImport is None:
+            self.window.appendLogMessage('Thread : Source, relation, and receiver SPS input tables have not all been defined', MsgType.Error)
+            return False
+
+        return self._startJob(
+            self._buildCfpPlaneAnalysisFromGeometryTablesJob(
+                self.window.spsImport,
+                self.window.xpsImport,
+                self.window.rpsImport,
+                'SPS Input Tables',
+            )
+        )
 
     def stopCurrentOperation(self) -> None:
         activeOperation = self.activeOperation
@@ -308,17 +359,18 @@ class WorkerOperationController:
         focalX, focalY = self._resolveLocalCfpTargetXY()
         cfpArrayValue = self.window.appSettings.cfpArray
         cfpArray = (float(cfpArrayValue.x()), float(cfpArrayValue.y()), float(cfpArrayValue.z()))
-        localPlane = getattr(self.window.survey, 'localPlane', None)
-        focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
+        focalZ = self._resolveCfpFocalZ()
         maxDipDegrees = self._resolveCfpMaxDipDegrees()
+        frequency = self._resolveCfpFrequencyList()[0]
+        rmsVelocity = self._resolveCfpRmsVelocity()
         request = CfpFromTemplatesRequest(
             xmlString=self.window.survey.toXmlString(),
             focalX=focalX,
             focalY=focalY,
             focalZ=focalZ,
-            frequency=40.0,
+            frequency=frequency,
             maxDipDegrees=maxDipDegrees,
-            vint=self.window.survey.binning.vint,
+            vint=rmsVelocity,
             cfpArray=cfpArray,
             radonSize=self.window.appSettings.radonSize,
             debugpyEnabled=self.window.appSettings.debugpy,
@@ -327,8 +379,8 @@ class WorkerOperationController:
             name='cfp-from-templates',
             progressLabelText='CFP from Templates - rolling template scan',
             startMessage=(
-                "Thread : Started 'CFP analysis from Templates'"
-                f' at local x={focalX:.2f}, y={focalY:.2f}, z={focalZ:.2f}, Vint={self.window.survey.binning.vint:.1f}m/s'
+                "Thread : Started 'CFP Point Analysis v1 (Templates)'"
+                f' at local x={focalX:.2f}, y={focalY:.2f}, z={focalZ:.2f}, Vint={rmsVelocity:.1f}m/s'
             ),
             startMessageType=MsgType.Analysis,
             workerFactory=dependencies['CfpFromTemplatesWorker'],
@@ -336,15 +388,15 @@ class WorkerOperationController:
             resultHandler=self.window.applyCfpFromTemplatesWorkerResult,
         )
 
-    def _buildCfpAnalysisFromGeometryTablesJob(self) -> WorkerJobSpec:
+    def _buildCfpAnalysisFromGeometryTablesJob(self, srcGeom, relGeom, recGeom, sourceName: str) -> WorkerJobSpec:
         dependencies = self.runtimeDependenciesProvider()
-        srcGeom, relGeom, recGeom, sourceName = self._resolveCfpGeometryTables()
         focalX, focalY = self._resolveLocalCfpTargetXY()
         cfpArrayValue = self.window.appSettings.cfpArray
         cfpArray = (float(cfpArrayValue.x()), float(cfpArrayValue.y()), float(cfpArrayValue.z()))
-        localPlane = getattr(self.window.survey, 'localPlane', None)
-        focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
+        focalZ = self._resolveCfpFocalZ()
         maxDipDegrees = self._resolveCfpMaxDipDegrees()
+        frequency = self._resolveCfpFrequencyList()[0]
+        rmsVelocity = self._resolveCfpRmsVelocity()
 
         request = CfpFromGeometryTablesRequest(
             xmlString=self.window.survey.toXmlString(),
@@ -354,9 +406,9 @@ class WorkerOperationController:
             focalX=focalX,
             focalY=focalY,
             focalZ=focalZ,
-            frequency=40.0,
+            frequency=frequency,
             maxDipDegrees=maxDipDegrees,
-            vint=self.window.survey.binning.vint,
+            vint=rmsVelocity,
             cfpArray=cfpArray,
             radonSize=self.window.appSettings.radonSize,
             chunkSize=25_000,
@@ -364,11 +416,11 @@ class WorkerOperationController:
             sourceName=sourceName,
         )
         return WorkerJobSpec(
-            name='cfp-from-geometry-tables',
+            name=f"cfp-from-{sourceName.lower().replace(' ', '-')}",
             progressLabelText=f'CFP from {sourceName} - relation scan',
             startMessage=(
-                f"Thread : Started 'CFP analysis from {sourceName}'"
-                f' at local x={focalX:.2f}, y={focalY:.2f}, z={focalZ:.2f}, Vint={self.window.survey.binning.vint:.1f}m/s'
+                f"Thread : Started 'CFP Point Analysis v1 ({sourceName})'"
+                f' at local x={focalX:.2f}, y={focalY:.2f}, z={focalZ:.2f}, Vint={rmsVelocity:.1f}m/s'
             ),
             startMessageType=MsgType.Analysis,
             workerFactory=dependencies['CfpFromGeometryTablesWorker'],
@@ -378,10 +430,12 @@ class WorkerOperationController:
 
     def _buildCfpPlaneAnalysisFromTemplatesJob(self) -> WorkerJobSpec:
         dependencies = self.runtimeDependenciesProvider()
-        localPlane = getattr(self.window.survey, 'localPlane', None)
-        focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
+        focalZ = self._resolveCfpFocalZ()
         maxDipDegrees = self._resolveCfpMaxDipDegrees()
-        modeLabel = 'coherent + incoherent QC' if self.window.appSettings.cfpIncoherentQc else 'coherent'
+        rmsVelocity = self._resolveCfpRmsVelocity()
+        frequencyList = self._resolveCfpFrequencyList()
+        frequencyLabel = '; '.join(f'{frequency:g}' for frequency in frequencyList)
+        modeLabel = 'incoherent QC' if self.window.appSettings.cfpIncoherentQc else 'coherent'
         request = CfpAmplitudeMapRequest(
             xmlString=self.window.survey.toXmlString(),
             srcGeom=None,
@@ -389,17 +443,18 @@ class WorkerOperationController:
             recGeom=None,
             focalZ=focalZ,
             maxDipDegrees=maxDipDegrees,
-            vint=self.window.survey.binning.vint,
-            frequencies=np.array([40.0], dtype=np.float32),
+            vint=rmsVelocity,
+            frequencies=np.array(frequencyList, dtype=np.float32),
             computeIncoherentQc=self.window.appSettings.cfpIncoherentQc,
+            sourceName='Templates',
             debugpyEnabled=self.window.appSettings.debugpy,
         )
         return WorkerJobSpec(
             name='cfp-illumination-from-templates',
             progressLabelText='CFP illumination - Templates',
             startMessage=(
-                "Thread : Started 'CFP illumination from Templates'"
-                f' ({modeLabel}) at z={focalZ:.2f}, aperture={maxDipDegrees:.1f}deg, Vint={self.window.survey.binning.vint:.1f}m/s'
+                "Thread : Started 'CFP Plane Illumination v1 (Templates)'"
+                f' ({modeLabel}) at z={focalZ:.2f}, aperture={maxDipDegrees:.1f}deg, Vint={rmsVelocity:.1f}m/s, freq=[{frequencyLabel}] Hz'
             ),
             startMessageType=MsgType.Analysis,
             workerFactory=dependencies['CfpAmplitudeMapWorker'],
@@ -407,30 +462,33 @@ class WorkerOperationController:
             resultHandler=self.window.applyCfpAmplitudeMapWorkerResult,
         )
 
-    def _buildCfpPlaneAnalysisFromGeometryTablesJob(self) -> WorkerJobSpec:
+    def _buildCfpPlaneAnalysisFromGeometryTablesJob(self, srcGeom, relGeom, recGeom, sourceName: str) -> WorkerJobSpec:
         dependencies = self.runtimeDependenciesProvider()
-        localPlane = getattr(self.window.survey, 'localPlane', None)
-        focalZ = localPlane.anchor.z() if localPlane is not None else self.window.survey.globalPlane.anchor.z()
+        focalZ = self._resolveCfpFocalZ()
         maxDipDegrees = self._resolveCfpMaxDipDegrees()
-        modeLabel = 'coherent + incoherent QC' if self.window.appSettings.cfpIncoherentQc else 'coherent'
+        rmsVelocity = self._resolveCfpRmsVelocity()
+        frequencyList = self._resolveCfpFrequencyList()
+        frequencyLabel = '; '.join(f'{frequency:g}' for frequency in frequencyList)
+        modeLabel = 'incoherent QC' if self.window.appSettings.cfpIncoherentQc else 'coherent'
         request = CfpAmplitudeMapRequest(
             xmlString=self.window.survey.toXmlString(),
-            srcGeom=self.window.srcGeom,
-            relGeom=self.window.relGeom,
-            recGeom=self.window.recGeom,
+            srcGeom=srcGeom,
+            relGeom=relGeom,
+            recGeom=recGeom,
             focalZ=focalZ,
             maxDipDegrees=maxDipDegrees,
-            vint=self.window.survey.binning.vint,
-            frequencies=np.array([40.0], dtype=np.float32),
+            vint=rmsVelocity,
+            frequencies=np.array(frequencyList, dtype=np.float32),
             computeIncoherentQc=self.window.appSettings.cfpIncoherentQc,
+            sourceName=sourceName,
             debugpyEnabled=self.window.appSettings.debugpy,
         )
         return WorkerJobSpec(
-            name='cfp-illumination-from-geometry-tables',
-            progressLabelText='CFP illumination - Geometry Tables',
+            name=f"cfp-illumination-from-{sourceName.lower().replace(' ', '-')}",
+            progressLabelText=f'CFP illumination - {sourceName}',
             startMessage=(
-                "Thread : Started 'CFP illumination from Geometry Tables'"
-                f' ({modeLabel}) at z={focalZ:.2f}, aperture={maxDipDegrees:.1f}deg, Vint={self.window.survey.binning.vint:.1f}m/s'
+                f"Thread : Started 'CFP Plane Illumination v1 ({sourceName})'"
+                f' ({modeLabel}) at z={focalZ:.2f}, aperture={maxDipDegrees:.1f}deg, Vint={rmsVelocity:.1f}m/s, freq=[{frequencyLabel}] Hz'
             ),
             startMessageType=MsgType.Analysis,
             workerFactory=dependencies['CfpAmplitudeMapWorker'],
@@ -438,22 +496,17 @@ class WorkerOperationController:
             resultHandler=self.window.applyCfpAmplitudeMapWorkerResult,
         )
 
-    def _hasCfpGeometryTables(self) -> bool:
-        return (
-            self.window.srcGeom is not None and self.window.relGeom is not None and self.window.recGeom is not None
-        ) or (
-            self.window.spsImport is not None and self.window.xpsImport is not None and self.window.rpsImport is not None
-        )
-
-    def _resolveCfpGeometryTables(self):
-        if self.window.srcGeom is not None and self.window.relGeom is not None and self.window.recGeom is not None:
-            return self.window.srcGeom, self.window.relGeom, self.window.recGeom, 'Geometry Tables'
-        return self.window.spsImport, self.window.xpsImport, self.window.rpsImport, 'Imported SPS Tables'
-
     def _resolveLocalCfpTargetXY(self) -> tuple[float, float]:
-        # Beam analysis currently uses the binning-area center by design,
-        # independent of spider selection or navigation state.
-        return self._resolveAnalysisAreaCenterXY()
+        survey = self.window.survey
+        cfp = getattr(survey, 'cfp', None)
+        if cfp is None or cfp.useBinningAreaCenter:
+            return self._resolveAnalysisAreaCenterXY()
+
+        location = getattr(cfp, 'analysisLocation', None)
+        if location is None or not hasattr(location, 'x') or not hasattr(location, 'y'):
+            return self._resolveAnalysisAreaCenterXY()
+
+        return (float(location.x()), float(location.y()))
 
     def _resolveAnalysisAreaCenterXY(self) -> tuple[float, float]:
         survey = self.window.survey
@@ -473,6 +526,18 @@ class WorkerOperationController:
         if survey is None:
             return defaultMaxDipDegrees
 
+        cfp = getattr(survey, 'cfp', None)
+        if cfp is not None:
+            try:
+                maxDipDegrees = float(cfp.maxAperture)
+                if maxDipDegrees < 0.0:
+                    return 0.0
+                if maxDipDegrees > 90.0:
+                    return 90.0
+                return maxDipDegrees
+            except (TypeError, ValueError):
+                pass
+
         reflection = getattr(getattr(survey, 'angles', None), 'reflection', None)
         if reflection is None or not hasattr(reflection, 'y'):
             return defaultMaxDipDegrees
@@ -487,6 +552,69 @@ class WorkerOperationController:
         if maxDipDegrees > 90.0:
             return 90.0
         return maxDipDegrees
+
+    def _resolveCfpFrequencyList(self) -> list[float]:
+        def _clean(values):
+            cleaned = []
+            for value in values:
+                try:
+                    number = float(value)
+                except (TypeError, ValueError):
+                    continue
+                if number > 0.0:
+                    cleaned.append(number)
+            return cleaned
+
+        survey = self.window.survey
+        cfp = getattr(survey, 'cfp', None) if survey is not None else None
+        cfpLoadedFromXml = bool(getattr(survey, 'cfpLoadedFromXml', False)) if survey is not None else False
+        frequencies = list(getattr(cfp, 'frequencyList', []) or [])
+        valid = _clean(frequencies)
+        if valid and cfpLoadedFromXml:
+            return valid
+
+        appDefaults = list(config.cfpFrequencyList)
+        validDefaults = _clean(appDefaults)
+        if validDefaults:
+            return validDefaults
+
+        if valid:
+            return valid
+
+        return [40.0]
+
+    def _resolveCfpRmsVelocity(self) -> float:
+        survey = self.window.survey
+        if survey is None:
+            return 2000.0
+
+        cfp = getattr(survey, 'cfp', None)
+        if cfp is not None:
+            try:
+                value = float(cfp.rmsVelocity)
+                if value > 0.0:
+                    return value
+            except (TypeError, ValueError):
+                pass
+
+        return max(float(getattr(survey.binning, 'vint', 2000.0)), 1.0)
+
+    def _resolveCfpFocalZ(self) -> float:
+        survey = self.window.survey
+        if survey is None:
+            return -2000.0
+
+        cfp = getattr(survey, 'cfp', None)
+        if cfp is not None:
+            try:
+                return -abs(float(cfp.focalDepth))
+            except (TypeError, ValueError):
+                pass
+
+        localPlane = getattr(survey, 'localPlane', None)
+        if localPlane is not None and hasattr(localPlane, 'anchor'):
+            return float(localPlane.anchor.z())
+        return float(survey.globalPlane.anchor.z())
 
     def _startJob(self, job: WorkerJobSpec) -> bool:
         self._showRunningUi(job.progressLabelText)

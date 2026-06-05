@@ -13,9 +13,21 @@ class MyPoint2DParameterItem(MyGroupParameterItem):
 
     def showPreviewInformation(self, param):
         d = param.opts.get('decimals', 7)
-        x = param.child('X').opts['value']
-        y = param.child('Y').opts['value']
-        t = f'({x:.{d}g}, {y:.{d}g})'
+        xParam = getattr(param, 'parX', None)
+        yParam = getattr(param, 'parY', None)
+
+        if xParam is not None and yParam is not None:
+            x = xParam.opts['value']
+            y = yParam.opts['value']
+        else:
+            x = param.child('X').opts['value']
+            y = param.child('Y').opts['value']
+
+        previewFormat = param.opts.get('previewFormat', None)
+        if isinstance(previewFormat, str) and len(previewFormat) > 0:
+            t = previewFormat.format(x=x, y=y)
+        else:
+            t = f'({x:.{d}g}, {y:.{d}g})'
 
         self.updatePreviewLabelText(t)
 

@@ -388,18 +388,22 @@ def compute_illumination_row_numba(focal_y, eval_x, focal_z, src_coords, src_wei
 @jit(parallel=True, nopython=True, cache=False)
 def compute_illumination_row_incoherent_numba(focal_y, eval_x, focal_z, src_coords, src_weights, rec_coords, rec_weights, freqs, vint, max_radius, matlab_compat=False):
     """
-    Incoherent illumination QC kernel: ignores phase interference and accumulates amplitude products.
-    For each source-receiver pair, compute scalar amplitudes and sum their products (no phase cancellation).
-    This is a diagnostic companion map; coherent illumination remains the physics-facing default.
+    Incoherent illumination QC kernel: ignores phase interference and accumulates
+    frequency-weighted amplitude products.
+
+    Frequency values are consumed explicitly using a lightweight attenuation term
+    based on travel time (distance / vint), so equal-length frequency lists with
+    different values produce different maps.
     """
     _ = matlab_compat
-    _ = vint
     n_x = len(eval_x)
     n_sources = src_coords.shape[0]
     n_receivers = rec_coords.shape[0]
     n_freqs = len(freqs)
     r_sq_limit = np.float32(max_radius * max_radius)
     two_pi = np.float32(2.0 * np.pi)
+    safe_vint = np.float32(vint if vint > 1e-6 else 1.0)
+    attenuationCoeff = np.float32(0.01)
 
     row_energy = np.zeros(n_x, dtype=np.float32)
 
@@ -415,7 +419,14 @@ def compute_illumination_row_incoherent_numba(focal_y, eval_x, focal_z, src_coor
         f_x = eval_x[ix]
         pixel_energy = 0.0
 
-        for _ in range(n_freqs):
+        for f_idx in range(n_freqs):
+            freq = np.float32(freqs[f_idx])
+            if freq <= 0.0:
+                continue
+
+            src_sum = 0.0
+            rec_sum = 0.0
+
             for src_idx in range(n_sources):
                 dsx = src_coords[src_idx, 0] - f_x
                 dsy = src_coords[src_idx, 1] - focal_y
@@ -427,20 +438,28 @@ def compute_illumination_row_incoherent_numba(focal_y, eval_x, focal_z, src_coor
                 rs = np.sqrt(rs_sq + dsz2_vals[src_idx])
                 if rs < 1e-3:
                     continue
-                bs_amp = (abs_dsz_vals[src_idx] / (two_pi * rs * rs)) * ws
 
-                for rec_idx in range(n_receivers):
-                    drx = rec_coords[rec_idx, 0] - f_x
-                    dry = rec_coords[rec_idx, 1] - focal_y
-                    rr_sq = drx * drx + dry * dry
-                    if rr_sq > r_sq_limit:
-                        continue
+                base_src = (abs_dsz_vals[src_idx] / (two_pi * rs * rs)) * ws
+                travel_time_src = rs / safe_vint
+                src_sum += base_src * np.exp(-attenuationCoeff * freq * travel_time_src)
 
-                    wr = rec_weights[rec_idx]
-                    rr = np.sqrt(rr_sq + drz2_vals[rec_idx])
-                    if rr > 1e-3:
-                        br_amp = (abs_drz_vals[rec_idx] / (two_pi * rr * rr)) * wr
-                        pixel_energy += bs_amp * br_amp
+            for rec_idx in range(n_receivers):
+                drx = rec_coords[rec_idx, 0] - f_x
+                dry = rec_coords[rec_idx, 1] - focal_y
+                rr_sq = drx * drx + dry * dry
+                if rr_sq > r_sq_limit:
+                    continue
+
+                wr = rec_weights[rec_idx]
+                rr = np.sqrt(rr_sq + drz2_vals[rec_idx])
+                if rr < 1e-3:
+                    continue
+
+                base_rec = (abs_drz_vals[rec_idx] / (two_pi * rr * rr)) * wr
+                travel_time_rec = rr / safe_vint
+                rec_sum += base_rec * np.exp(-attenuationCoeff * freq * travel_time_rec)
+
+            pixel_energy += src_sum * rec_sum
 
         row_energy[ix] = pixel_energy
 

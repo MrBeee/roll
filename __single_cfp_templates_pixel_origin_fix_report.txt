@@ -1,0 +1,17 @@
+testCfpFromTemplatesWorkerRunUsesResultPayload (test.test_project_sidecars.ProjectSidecarsTest.testCfpFromTemplatesWorkerRunUsesResultPayload) ... ok
+testOnCfpSliceChangedRendersReceiverAndResolutionImages (test.test_project_sidecars.ProjectSidecarsTest.testOnCfpSliceChangedRendersReceiverAndResolutionImages) ... ok
+testOnCfpRadonTransformChangedRendersRadonImages (test.test_project_sidecars.ProjectSidecarsTest.testOnCfpRadonTransformChangedRendersRadonImages) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 27.895s
+
+OK
+
+ROLL TEST SUMMARY
+Ran: 3
+Failures: 0
+Errors: 0
+Skipped: 0
+Expected failures: 0
+Unexpected successes: 0
+Status: PASS

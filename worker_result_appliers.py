@@ -69,8 +69,13 @@ class CfpAmplitudeMapResultApplier:
         self.runtimeDependenciesProvider = runtimeDependenciesProvider
 
     def apply(self, result, elapsed: timedelta) -> None:
+        sourceName = getattr(result, 'sourceName', 'Templates')
+        modeLabel = getattr(result, 'modeLabel', 'coherent')
         if not result.success:
-            self.window.appendLogMessage(f'Thread : CFP coherent illumination map failed - {result.errorText}', MsgType.Error)
+            self.window.appendLogMessage(
+                f"Thread : CFP Plane Illumination v1 ({sourceName}, {modeLabel}) failed - {result.errorText}",
+                MsgType.Error,
+            )
             return
 
         # Update output
@@ -88,10 +93,7 @@ class CfpAmplitudeMapResultApplier:
         self.window.imageType = 6
         self.window.layoutImg = result.amplitudeMap
 
-        # For partial updates, determine scaling based on current data
-        import numpy as np
-        maxVal = float(np.nanmax(result.amplitudeMap)) if np.any(np.isfinite(result.amplitudeMap)) else 1.0
-        levels = (0.0, maxVal if maxVal > 0 else 1.0)
+        levels = (0.0, 1.0)
 
         self.window.prepareLayoutImageAndColorBar(
             self.window.layoutImg,
@@ -103,11 +105,13 @@ class CfpAmplitudeMapResultApplier:
         self.window.plotLayout()
 
         if not getattr(result, 'isPartial', False):
-            if result.incoherentAmplitudeMap is not None:
-                self.window.appendLogMessage('Thread : . . . incoherent illumination QC map computed (diagnostic only).', MsgType.Analysis)
-                self.window.appendLogMessage(f'Thread : CFP coherent illumination map completed (with incoherent QC companion). Elapsed: {elapsed}', MsgType.Analysis)
-            else:
-                self.window.appendLogMessage(f'Thread : CFP coherent illumination map completed. Elapsed: {elapsed}', MsgType.Analysis)
+            if modeLabel == 'incoherent QC':
+                self.window.appendLogMessage('Thread : . . . incoherent illumination QC mode enabled (diagnostic; phase interference ignored).', MsgType.Analysis)
+            normalizationFactor = float(getattr(result, 'normalizationFactor', 1.0) or 1.0)
+            self.window.appendLogMessage(
+                f"Thread : Completed 'CFP Plane Illumination v1 ({sourceName}, {modeLabel})'. Elapsed time:{elapsed}, normFactor={normalizationFactor:.6g}",
+                MsgType.Analysis,
+            )
             self.runtimeDependenciesProvider()['QMessageBox'].information(
                 self.window, 'Done', f'CFP illumination map calculation completed.\nElapsed time: {elapsed}'
             )
@@ -352,13 +356,13 @@ class CfpFromTemplatesResultApplier:
 
     def apply(self, result, elapsed: timedelta) -> None:
         if not result.success:
-            self.window.appendLogMessage('Thread : . . . aborted CFP template scan', MsgType.Error)
+            self.window.appendLogMessage("Thread : . . . aborted CFP Point Analysis v1 (Templates)", MsgType.Error)
             self.window.appendLogMessage(f'Thread : . . . {result.errorText}', MsgType.Error)
             self.runtimeDependenciesProvider()['QMessageBox'].information(self.window, 'Interrupted', 'Worker thread aborted')
             return
 
         self.window.appendLogMessage(
-            f"Thread : Completed 'CFP analysis from Templates'. Elapsed time:{elapsed} ",
+            f"Thread : Completed 'CFP Point Analysis v1 (Templates)'. Elapsed time:{elapsed} ",
             MsgType.Analysis,
         )
         self.window.appendLogMessage(
@@ -398,13 +402,13 @@ class CfpFromGeometryTablesResultApplier:
     def apply(self, result, elapsed: timedelta) -> None:
         sourceName = getattr(result, 'sourceName', 'Geometry Tables')
         if not result.success:
-            self.window.appendLogMessage(f'Thread : . . . aborted CFP scan from {sourceName}', MsgType.Error)
+            self.window.appendLogMessage(f"Thread : . . . aborted CFP Point Analysis v1 ({sourceName})", MsgType.Error)
             self.window.appendLogMessage(f'Thread : . . . {result.errorText}', MsgType.Error)
             self.runtimeDependenciesProvider()['QMessageBox'].information(self.window, 'Interrupted', 'Worker thread aborted')
             return
 
         self.window.appendLogMessage(
-            f"Thread : Completed 'CFP analysis from {sourceName}'. Elapsed time:{elapsed} ",
+            f"Thread : Completed 'CFP Point Analysis v1 ({sourceName})'. Elapsed time:{elapsed} ",
             MsgType.Analysis,
         )
         self.window.appendLogMessage(

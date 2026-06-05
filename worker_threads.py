@@ -260,6 +260,7 @@ class CfpAmplitudeMapRequest:
     vint: float = 2000.0
     frequencies: np.ndarray = None
     computeIncoherentQc: bool = False
+    sourceName: str = 'Templates'
     debugpyEnabled: bool = False
     matlab_compat: bool = True
 
@@ -320,6 +321,9 @@ class CfpAmplitudeMapResult:
     errorText: str = ''
     amplitudeMap: Any = None
     incoherentAmplitudeMap: Any = None
+    normalizationFactor: float = 1.0
+    sourceName: str = 'Templates'
+    modeLabel: str = 'coherent'
     x0: float = 0.0
     y0: float = 0.0
     dx: float = 1.0
@@ -1199,14 +1203,22 @@ class CfpAmplitudeMapWorker(QObject):
 
                 focalY = y0 + (iy + 0.5) * dy
 
-                # Parallel row computation via Numba
-                ampMap[iy, :] = compute_illumination_row_numba(
-                    focalY, evalX, self.request.focalZ,
-                    srcCoords, srcWeights, recCoords, recWeights,
-                    freqs, self.request.vint, apertureRadius
-                )
+                # Switch mode: compute either coherent or incoherent illumination, never both.
                 if incoherentAmpMap is not None:
-                    incoherentAmpMap[iy, :] = compute_illumination_row_incoherent_numba(
+                    ampMap[iy, :] = compute_illumination_row_incoherent_numba(
+                        focalY,
+                        evalX,
+                        self.request.focalZ,
+                        srcCoords,
+                        srcWeights,
+                        recCoords,
+                        recWeights,
+                        freqs,
+                        self.request.vint,
+                        apertureRadius,
+                    )
+                else:
+                    ampMap[iy, :] = compute_illumination_row_numba(
                         focalY,
                         evalX,
                         self.request.focalZ,
@@ -1235,22 +1247,25 @@ class CfpAmplitudeMapWorker(QObject):
                 #     )
                 #     self.partialResultReady.emit(partial)
 
-            # Normalize result
+            incoherentResultMap = None
+            modeLabel = 'coherent'
             maxVal = ampMap.max()
+            normalizationFactor = float(maxVal) if maxVal > 0 else 1.0
             if maxVal > 0:
                 ampMap /= maxVal
 
-            incoherentResultMap = None
             if incoherentAmpMap is not None:
-                incoherentMax = incoherentAmpMap.max()
-                if incoherentMax > 0:
-                    incoherentAmpMap /= incoherentMax
-                incoherentResultMap = _copyCfpImageForRollPlot(incoherentAmpMap)
+                # In incoherent mode, expose the normalized map via both fields for UI compatibility.
+                incoherentResultMap = _copyCfpImageForRollPlot(ampMap)
+                modeLabel = 'incoherent QC'
 
             result = CfpAmplitudeMapResult(
                 success=True,
                 amplitudeMap=_copyCfpImageForRollPlot(ampMap),
                 incoherentAmplitudeMap=incoherentResultMap,
+                normalizationFactor=normalizationFactor,
+                sourceName=getattr(self.request, 'sourceName', 'Templates'),
+                modeLabel=modeLabel,
                 x0=x0,
                 y0=y0,
                 dx=dx,

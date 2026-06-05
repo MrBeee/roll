@@ -178,7 +178,8 @@ kxyArray = QVector3D(-50.0, 50.0, 0.5)  # settings for pattern kxy plots (min, m
 # cfp settings
 cfpArray = QVector3D(-800.0, 800.0, 12.5)  # settings for cfp point assessment plots (min, max, step size)
 radonSize = 128               # size of the radon transform (number of points in the kxy array) for cfp analysis in one direction
-cfpIncoherentQc = False       # optional QC companion map that ignores phase interference in illumination calculations
+cfpIncoherentQc = False       # switch illumination mode to incoherent QC (diagnostic; no phase interference)
+cfpFrequencyList = [40.0]     # default CFP frequencies in Hz
 
 # useNumba is used to indicate whether or not to use numba (IF it has been installed)
 useNumba = False

@@ -1,7 +1,7 @@
 testMarineWizardPage3BinXUpdatesAfterReturningFromPage2FactorChange (test.test_project_sidecars.ProjectSidecarsTest.testMarineWizardPage3BinXUpdatesAfterReturningFromPage2FactorChange) ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 66.774s
+Ran 1 test in 51.391s
 
 OK
 

@@ -103,11 +103,10 @@ class ActionStateController:
         experimentalEnabled = bool(window.appSettings.useExperimental)
         hasGeometryInputs = enable is True and window.srcGeom is not None and window.recGeom is not None
         hasSpsInputs = enable is True and window.spsImport is not None and window.rpsImport is not None
+        hasCfpGeometryInputs = enable is True and window.srcGeom is not None and window.relGeom is not None and window.recGeom is not None
+        hasCfpSpsInputs = enable is True and window.spsImport is not None and window.xpsImport is not None and window.rpsImport is not None
         hasCfpPlaneGeometryInputs = enable is True and window.srcGeom is not None and window.relGeom is not None and window.recGeom is not None
-        hasCfpGeometryInputs = enable is True and (
-            (window.srcGeom is not None and window.relGeom is not None and window.recGeom is not None) or
-            (window.spsImport is not None and window.xpsImport is not None and window.rpsImport is not None)
-        )
+        hasCfpPlaneSpsInputs = hasCfpSpsInputs
 
         self._setActionStates(
             ('actionBasicBinFromTemplates', enable and nTemplates > 0),
@@ -115,8 +114,10 @@ class ActionStateController:
             ('actionGeometryFromTemplates', enable and nTemplates > 0),
             ('actionCFPPointAnalysisFromTemplates', enable and experimentalEnabled and nTemplates > 0),
             ('actionCFPPointAnalysisFromGeometry', experimentalEnabled and hasCfpGeometryInputs),
+            ('actionCFPPointAnalysisFromSPSInput', experimentalEnabled and hasCfpSpsInputs),
             ('actionCFPPlaneAnalysisFromTemplates', enable and experimentalEnabled and nTemplates > 0),
             ('actionCFPPlaneAnalysisFromGeometry', experimentalEnabled and hasCfpPlaneGeometryInputs),
+            ('actionCFPPlaneAnalysisFromSPSInput', experimentalEnabled and hasCfpPlaneSpsInputs),
             ('actionBasicBinFromGeometry', hasGeometryInputs),
             ('actionFullBinFromGeometry', hasGeometryInputs),
             ('actionBasicBinFromSps', hasSpsInputs),
@@ -130,8 +131,10 @@ class ActionStateController:
         self._setActionVisibility(
             ('actionCFPPointAnalysisFromTemplates', experimentalEnabled),
             ('actionCFPPointAnalysisFromGeometry', experimentalEnabled),
+            ('actionCFPPointAnalysisFromSPSInput', experimentalEnabled),
             ('actionCFPPlaneAnalysisFromTemplates', experimentalEnabled),
             ('actionCFPPlaneAnalysisFromGeometry', experimentalEnabled),
+            ('actionCFPPlaneAnalysisFromSPSInput', experimentalEnabled),
         )
 
     def clipboardHasText(self):

@@ -323,15 +323,20 @@ class BinningWorkerMixin:
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startGeometryFromTemplates()
 
-    def cfpAnalysisFromTemplates(self):
+    def cfpPointAnalysisFromTemplates(self):
         self._logOperationStart('Starting CFP analysis from templates; preparing worker thread...', MsgType.Analysis)
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startCfpAnalysisFromTemplates()
 
-    def cfpAnalysisFromGeometryTables(self):
-        self._logOperationStart('Starting CFP analysis from geometry/SPS tables; preparing worker thread...', MsgType.Analysis)
+    def cfpPointAnalysisFromGeometryTables(self):
+        self._logOperationStart('Starting CFP analysis from geometry tables; preparing worker thread...', MsgType.Analysis)
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startCfpAnalysisFromGeometryTables()
+
+    def cfpPointAnalysisFromSpsTables(self):
+        self._logOperationStart('Starting CFP analysis from SPS input tables; preparing worker thread...', MsgType.Analysis)
+        self._ensureWorkerOperationComponents()
+        self.workerOperationController.startCfpAnalysisFromSpsTables()
 
     def cfpPlaneAnalysisFromTemplates(self):
         self._logOperationStart('Starting CFP illumination map from templates; preparing worker thread...', MsgType.Analysis)
@@ -342,6 +347,11 @@ class BinningWorkerMixin:
         self._logOperationStart('Starting CFP illumination map from geometry tables; preparing worker thread...', MsgType.Analysis)
         self._ensureWorkerOperationComponents()
         self.workerOperationController.startCfpPlaneAnalysisFromGeometryTables()
+
+    def cfpPlaneAnalysisFromSpsTables(self):
+        self._logOperationStart('Starting CFP illumination map from SPS input tables; preparing worker thread...', MsgType.Analysis)
+        self._ensureWorkerOperationComponents()
+        self.workerOperationController.startCfpPlaneAnalysisFromSpsTables()
 
     def threadProgress(self, value: int):
         if self.progressBar is not None:

@@ -217,7 +217,13 @@ class SettingsDialog(QDialog):
                 children=[
                     dict(name='Beam dimensions', type='myRange', flat=True, expanded=False, value=appSettings.cfpArray, default=appSettings.cfpArray, suffix=' [m]', twoDim=True),
                     dict(name='Radon transform size', type='myInt', value=appSettings.radonSize, default=appSettings.radonSize, suffix=' [points]'),
-                    dict(name='Incoherent illumination QC', type='bool', value=appSettings.cfpIncoherentQc, default=appSettings.cfpIncoherentQc, tip='Compute an additional incoherent QC illumination map (diagnostic only). Coherent map remains the default physics-facing output.'),
+                    dict(
+                        name='Incoherent illumination QC',
+                        type='bool',
+                        value=appSettings.cfpIncoherentQc,
+                        default=appSettings.cfpIncoherentQc,
+                        tip='Switch illumination calculation to incoherent QC mode (diagnostic only; ignores phase interference).',
+                    ),
                 ],
             ),
         ]
@@ -540,6 +546,7 @@ def readSettings(self):
     appSettings.kxyArray = rng.read(self.settings.value('settings/k-plots/kxyArray', '-50;50;0.5'))
 
     # cfp analysis information
+    appSettings.cfpFrequencyList = list(config.cfpFrequencyList)
     appSettings.cfpArray = rng.read(self.settings.value('settings/cfp/cfpArray', '-800;800;12.5'))
     appSettings.radonSize = self.settings.value('settings/cfp/radonSize', 128, type=int)
     appSettings.cfpIncoherentQc = self.settings.value('settings/cfp/cfpIncoherentQc', config.cfpIncoherentQc, type=bool)

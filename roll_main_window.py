@@ -824,10 +824,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionBasicBinFromSps.triggered.connect(self.basicBinFromSps)
         self.actionFullBinFromSps.triggered.connect(self.fullBinFromSps)
         self.actionGeometryFromTemplates.triggered.connect(self.createGeometryFromTemplates)
-        self.actionCFPPointAnalysisFromTemplates.triggered.connect(self.cfpAnalysisFromTemplates)
-        self.actionCFPPointAnalysisFromGeometry.triggered.connect(self.cfpAnalysisFromGeometryTables)
+        self.actionCFPPointAnalysisFromTemplates.triggered.connect(self.cfpPointAnalysisFromTemplates)
+        self.actionCFPPointAnalysisFromGeometry.triggered.connect(self.cfpPointAnalysisFromGeometryTables)
+        self.actionCFPPointAnalysisFromSPSInput.triggered.connect(self.cfpPointAnalysisFromSpsTables)
         self.actionCFPPlaneAnalysisFromTemplates.triggered.connect(self.cfpPlaneAnalysisFromTemplates)
         self.actionCFPPlaneAnalysisFromGeometry.triggered.connect(self.cfpPlaneAnalysisFromGeometryTables)
+        self.actionCFPPlaneAnalysisFromSPSInput.triggered.connect(self.cfpPlaneAnalysisFromSpsTables)
         self.actionShift_Survey_Area.triggered.connect(self.shiftSurveyArea)
 
         # actions related to the help menu
@@ -2603,6 +2605,35 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             oriY = [0.0]
             orig = self.layoutWidget.plot(x=oriX, y=oriY, symbol='o', symbolSize=16, symbolPen=(0, 0, 0, 100), symbolBrush=(180, 180, 180, 100))
             orig.setTransform(transform)
+
+        if self.tbArea.isChecked():
+            cfp = getattr(self.survey, 'cfp', None)
+            cfpX = None
+            cfpY = None
+
+            if cfp is not None:
+                if getattr(cfp, 'useBinningAreaCenter', True):
+                    outputRect = getattr(getattr(self.survey, 'output', None), 'rctOutput', None)
+                    if outputRect is not None and outputRect.isValid():
+                        center = outputRect.center()
+                        cfpX = float(center.x())
+                        cfpY = float(center.y())
+                else:
+                    location = getattr(cfp, 'analysisLocation', None)
+                    if location is not None and hasattr(location, 'x') and hasattr(location, 'y'):
+                        cfpX = float(location.x())
+                        cfpY = float(location.y())
+
+            if cfpX is not None and cfpY is not None:
+                cfpTarget = self.layoutWidget.plot(
+                    x=[cfpX],
+                    y=[cfpY],
+                    symbol='d',
+                    symbolSize=12,
+                    symbolPen=(0, 0, 0, 100),
+                    symbolBrush=(170, 0, 220, 100),
+                )
+                cfpTarget.setTransform(transform)
 
         if self.survey.binning.method == BinningType.sphere:
             # Draw sphere as a circle in the plot for guidance when binning against a sphere

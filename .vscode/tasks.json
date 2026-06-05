@@ -905,6 +905,19 @@
 				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpSliceChangedRendersReceiverAndResolutionImages",
 				"test.test_project_sidecars.ProjectSidecarsTest.testOnCfpRadonTransformChangedRendersRadonImages"
 			]
+		},
+		{
+			"label": "cfp-normfactor-logging-focused",
+			"type": "shell",
+			"command": ".\\run_unittest_suite.bat",
+			"args": [
+				"--report",
+				"__cfp_normfactor_logging_report.txt",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpPlaneWorkerCoherentNormalizesAmplitudeMap",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpPlaneWorkerIncoherentNormalizesAmplitudeMap",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpApplierUsesNormalizedDisplayLevelsForComparisonRuns",
+				"test.test_project_sidecars.ProjectSidecarsTest.testCfpApplierCompletionLogIncludesNormalizationFactorForBothModes"
+			]
 		}
 	]
 }

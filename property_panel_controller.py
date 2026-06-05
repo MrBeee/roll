@@ -281,7 +281,7 @@ class PropertyPanelController:
             dict(brush=brush, name='Survey configuration', type='myConfiguration', value=surveyCopy, default=surveyCopy),
             dict(brush=brush, name='Survey analysis', type='myAnalysis', value=surveyCopy, default=surveyCopy),
             dict(brush=brush, name='Survey reflectors', type='myReflectors', value=surveyCopy, default=surveyCopy),
-            dict(brush=brush, name='CFP analysis', type='myCfpAnalysis', value=surveyCopy, default=surveyCopy),
+            dict(brush=brush, name='CFP analysis', type='myCfpAnalysis', value=surveyCopy, default=surveyCopy, appSettings=self.window.appSettings),
             dict(brush=brush, name='Survey grid', type='myGrid', value=surveyCopy.grid, default=surveyCopy.grid),
             dict(brush=brush, name='Block list', type='myBlockList', value=surveyCopy.blockList, default=surveyCopy.blockList, wellDirectory=self.window.wellDirectory, survey=surveyCopy),
             dict(brush=brush, name='Pattern list', type='myPatternList', value=surveyCopy.patternList, default=surveyCopy.patternList, survey=surveyCopy),
@@ -355,7 +355,15 @@ class PropertyPanelController:
         reflectors = window.parameters.child('Survey reflectors')
         surveyCopy.globalPlane, surveyCopy.globalSphere = reflectors.value()
 
-        # CFP analysis here
+        cfpAnalysis = window.parameters.child('CFP analysis')
+        (
+            surveyCopy.cfp.frequencyList,
+            surveyCopy.cfp.maxAperture,
+            surveyCopy.cfp.rmsVelocity,
+            surveyCopy.cfp.focalDepth,
+            surveyCopy.cfp.useBinningAreaCenter,
+            surveyCopy.cfp.analysisLocation,
+        ) = cfpAnalysis.value()
 
         surveyGrid = window.parameters.child('Survey grid')
         surveyCopy.grid = surveyGrid.value()

@@ -35,6 +35,26 @@ class ReflectorParameterValues:
 
 
 @dataclass(frozen=True)
+class CfpAnalysisParameterValues:
+    frequencyList: list[float]
+    maxAperture: float
+    rmsVelocity: float
+    focalDepth: float
+    useBinningAreaCenter: bool
+    analysisLocation: object
+
+    def asTuple(self):
+        return (
+            self.frequencyList,
+            self.maxAperture,
+            self.rmsVelocity,
+            self.focalDepth,
+            self.useBinningAreaCenter,
+            self.analysisLocation,
+        )
+
+
+@dataclass(frozen=True)
 class BlockParameterValues:
     srcBorder: object
     recBorder: object
@@ -115,6 +135,37 @@ def reflectorValuesFromSurvey(survey):
 
 def reflectorValuesFromParameters(*, plane, sphere):
     return ReflectorParameterValues(plane=plane, sphere=sphere)
+
+
+def cfpAnalysisValuesFromSurvey(survey):
+    cfp = survey.cfp
+    return CfpAnalysisParameterValues(
+        frequencyList=list(cfp.frequencyList),
+        maxAperture=cfp.maxAperture,
+        rmsVelocity=cfp.rmsVelocity,
+        focalDepth=cfp.focalDepth,
+        useBinningAreaCenter=cfp.useBinningAreaCenter,
+        analysisLocation=cfp.analysisLocation,
+    )
+
+
+def applyCfpAnalysisValues(survey, *, frequencyList, maxAperture, rmsVelocity, focalDepth, useBinningAreaCenter, analysisLocation):
+    values = CfpAnalysisParameterValues(
+        frequencyList=list(frequencyList),
+        maxAperture=float(maxAperture),
+        rmsVelocity=float(rmsVelocity),
+        focalDepth=float(focalDepth),
+        useBinningAreaCenter=bool(useBinningAreaCenter),
+        analysisLocation=analysisLocation,
+    )
+    if survey is not None:
+        survey.cfp.frequencyList = values.frequencyList
+        survey.cfp.maxAperture = values.maxAperture
+        survey.cfp.rmsVelocity = values.rmsVelocity
+        survey.cfp.focalDepth = values.focalDepth
+        survey.cfp.useBinningAreaCenter = values.useBinningAreaCenter
+        survey.cfp.analysisLocation = values.analysisLocation
+    return values
 
 
 def blockValuesFromBlock(block):

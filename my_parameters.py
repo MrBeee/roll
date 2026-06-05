@@ -7,11 +7,13 @@ from qgis.PyQt.QtCore import QFileInfo
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
+from . import config
 from .aux_functions import myPrint
 from .enums_and_int_flags import SurveyType
 from .my_cmap import MyCmapParameter
 from .my_crs import MyCrsParameter
 from .my_crs2 import MyCrs2Parameter
+from .my_float_list import MyFloatListParameter
 from .my_group import MyGroupParameter, MyGroupParameterItem
 from .my_list import MyListParameter
 from .my_marker import MyMarkerParameter
@@ -28,11 +30,13 @@ from .my_vector import MyVectorParameter
 from .parameter_aggregate_helpers import (analysisValuesFromParameters,
                                           analysisValuesFromSurvey,
                                           applyBlockValues,
+                                          applyCfpAnalysisValues,
                                           applyConfigurationValues,
                                           applyGlobalGridValues,
                                           applyLocalGridValues,
                                           applyTemplateValues,
                                           blockValuesFromBlock,
+                                          cfpAnalysisValuesFromSurvey,
                                           configurationValuesFromSurvey,
                                           reflectorValuesFromParameters,
                                           reflectorValuesFromSurvey,
@@ -530,6 +534,18 @@ def applyReflectorParameters(reflectorsParam):
     reflectorsParam.reflectorValues = reflectorValuesFromParameters(
         plane=reflectorsParam.parP.value(),
         sphere=reflectorsParam.parS.value(),
+    )
+
+
+def applyCfpAnalysisParameters(cfpAnalysisParam):
+    cfpAnalysisParam.cfpAnalysisValues = applyCfpAnalysisValues(
+        cfpAnalysisParam.survey,
+        frequencyList=cfpAnalysisParam.parF.value(),
+        maxAperture=cfpAnalysisParam.parA.value(),
+        rmsVelocity=cfpAnalysisParam.parV.value(),
+        focalDepth=cfpAnalysisParam.parD.value(),
+        useBinningAreaCenter=(cfpAnalysisParam.parM.value() == 'Binning area center'),
+        analysisLocation=cfpAnalysisParam.parL.value(),
     )
 
 
@@ -2714,26 +2730,99 @@ class myCfpAnalysisParameter(MyGroupParameter):
         survey = RollSurvey()
         self.survey = opts.get('value', survey)
 
-        # self.cfpAnalysisValues = cfpAnalysisValuesFromSurvey(self.survey)
-        self.cfpAnalysisValues = None
+        self.cfpAnalysisValues = cfpAnalysisValuesFromSurvey(self.survey)
+
+        defaultFreq = list(config.cfpFrequencyList)
+        currentFreq = list(self.cfpAnalysisValues.frequencyList)
+        cfpLoadedFromXml = bool(getattr(self.survey, 'cfpLoadedFromXml', False))
+        if (not cfpLoadedFromXml) and (not currentFreq or currentFreq == defaultFreq):
+            self.cfpAnalysisValues = applyCfpAnalysisValues(
+                self.survey,
+                frequencyList=defaultFreq,
+                maxAperture=self.cfpAnalysisValues.maxAperture,
+                rmsVelocity=self.cfpAnalysisValues.rmsVelocity,
+                focalDepth=self.cfpAnalysisValues.focalDepth,
+                useBinningAreaCenter=self.cfpAnalysisValues.useBinningAreaCenter,
+                analysisLocation=self.cfpAnalysisValues.analysisLocation,
+            )
 
         with self.treeChangeBlocker():
-            # self.addChild(dict(name='Point analysis', type='myCfpPoint', value=self.cfpAnalysisValues.point, default=self.cfpAnalysisValues.point, expanded=False, flat=True))
-            # self.addChild(dict(name='Plane analysis', type='myCfpPlane', value=self.cfpAnalysisValues.plane, default=self.cfpAnalysisValues.plane, expanded=False, flat=True))
-            # self.addChild(dict(name='CFP point settings', type='myFloat', value=1, default=1, expanded=False, flat=True))
-            # self.addChild(dict(name='CFP plane settings', type='myFloat', value=1, default=1, expanded=False, flat=True))
+            self.addChild(
+                dict(
+                    name='Frequency list',
+                    type='myFloatList',
+                    value=self.cfpAnalysisValues.frequencyList,
+                    default=self.cfpAnalysisValues.frequencyList,
+                    tip='CFP frequencies in Hz, e.g. [10, 20, 30]',
+                )
+            )
+            self.addChild(dict(name='Max aperture', type='myFloat', value=self.cfpAnalysisValues.maxAperture, default=self.cfpAnalysisValues.maxAperture, suffix='deg'))
+            self.addChild(
+                dict(
+                    name='RMS velocity',
+                    type='myFloat',
+                    value=self.cfpAnalysisValues.rmsVelocity,
+                    default=self.cfpAnalysisValues.rmsVelocity,
+                    suffix='m/s',
+                    dec=True,
+                    decimals=0,
+                    format='{scaledValue:.0f}{suffixGap}{siPrefix}{suffix}',
+                )
+            )
+            self.addChild(
+                dict(
+                    name='Focal depth',
+                    type='myFloat',
+                    value=self.cfpAnalysisValues.focalDepth,
+                    default=self.cfpAnalysisValues.focalDepth,
+                    suffix='m',
+                    dec=True,
+                    decimals=0,
+                    format='{scaledValue:.0f}{suffixGap}{siPrefix}{suffix}',
+                )
+            )
+            modeValue = 'Binning area center' if self.cfpAnalysisValues.useBinningAreaCenter else 'Specific analysis location'
+            modeLimits = ['Binning area center', 'Specific analysis location']
+            self.addChild(dict(name='Point target mode', type='myList', value=modeValue, default=modeValue, limits=modeLimits))
+            self.addChild(
+                dict(
+                    name='Point target location',
+                    type='myPoint2D',
+                    value=self.cfpAnalysisValues.analysisLocation,
+                    default=self.cfpAnalysisValues.analysisLocation,
+                    expanded=False,
+                    flat=True,
+                    decimals=3,
+                    previewFormat='({x:.0f}, {y:.0f})',
+                    suffix='m',
+                )
+            )
 
-            # bindChildParameters(self, {
-            #     'parP': 'CFP point settings',
-            #     'parS': 'CFP plane settings',
-            # })
+        bindChildParameters(self, {
+            'parF': 'Frequency list',
+            'parA': 'Max aperture',
+            'parV': 'RMS velocity',
+            'parD': 'Focal depth',
+            'parM': 'Point target mode',
+            'parL': 'Point target location',
+        })
 
-            self.sigTreeStateChanged.connect(self.changed)
+        self.parL.parX.setOpts(name='X target', dec=True, decimals=0, format='{scaledValue:.0f}{suffixGap}{siPrefix}{suffix}')
+        self.parL.parY.setOpts(name='Y target', dec=True, decimals=0, format='{scaledValue:.0f}{suffixGap}{siPrefix}{suffix}')
+
+        self.parA.setOpts(dec=True, decimals=1, format='{scaledValue:.1f}{suffixGap}{siPrefix}{suffix}')
+        self._syncPointTargetLocationVisibility()
+
+        self.sigTreeStateChanged.connect(self.changed)
         # QApplication.processEvents()
 
+    def _syncPointTargetLocationVisibility(self):
+        useCenter = self.parM.value() == 'Binning area center'
+        setManagedParameterVisibility(self.parL, not useCenter)
+
     def changed(self):
-        ...
-        # applyCFPAnalysisParameters(self)
+        self._syncPointTargetLocationVisibility()
+        applyCfpAnalysisParameters(self)
 
     def value(self):
         return self.cfpAnalysisValues.asTuple() if self.cfpAnalysisValues is not None else None
@@ -2847,6 +2936,7 @@ def registerAllParameterTypes():
     registerParameterType('myCmap', MyCmapParameter, override=True)
     registerParameterType('myCrs', MyCrsParameter, override=True)
     registerParameterType('myCrs2', MyCrs2Parameter, override=True)
+    registerParameterType('myFloatList', MyFloatListParameter, override=True)
     registerParameterType('myGroup', MyGroupParameter, override=True)
     registerParameterType('myList', MyListParameter, override=True)
     registerParameterType('myMarker', MyMarkerParameter, override=True)

@@ -27,6 +27,7 @@ from .roll_angles import RollAngles
 from .roll_bingrid import RollBinGrid
 from .roll_binning import BinningType, RollBinning
 from .roll_block import RollBlock
+from .roll_cfp import RollCfp
 from .roll_offset import RollOffset
 from .roll_output import RollOutput
 from .roll_pattern import RollPattern
@@ -223,6 +224,7 @@ class RollSurvey(pg.GraphicsObject):
         self.output = RollOutput()
         self.angles = RollAngles()
         self.unique = RollUnique()
+        self.cfp = RollCfp()
 
         # survey grid
         self.grid = RollBinGrid()
@@ -232,6 +234,8 @@ class RollSurvey(pg.GraphicsObject):
         self.localPlane = None
         self.globalSphere = RollSphere()
         self.localSphere = None
+        self.cfpLoadedFromXml = False
+        self._syncCfpDefaultsFromSurveyLimits()
 
         # survey block list
         self.blockList: list[RollBlock] = []
@@ -3922,6 +3926,7 @@ class RollSurvey(pg.GraphicsObject):
         self.offset.writeXml(limitsElement, doc)
         self.unique.writeXml(limitsElement, doc)
         self.binning.writeXml(limitsElement, doc)
+        self.cfp.writeXml(limitsElement, doc)
 
         reflectorElement = doc.createElement('reflectors')
         root.appendChild(reflectorElement)
@@ -3953,6 +3958,8 @@ class RollSurvey(pg.GraphicsObject):
             QMessageBox.information(None, 'Read error', 'Format and/or version of this survey file is incorrect')
             return False
 
+        cfpLoaded = False
+
         n = root.firstChild()
         while not n.isNull():
             # try to convert the node to an element.
@@ -3981,6 +3988,7 @@ class RollSurvey(pg.GraphicsObject):
                     self.offset.readXml(e)
                     self.unique.readXml(e)
                     self.binning.readXml(e)
+                    cfpLoaded = self.cfp.readXml(e)
 
                 elif tagName == 'grid':
                     self.grid.readXml(e)
@@ -4008,7 +4016,17 @@ class RollSurvey(pg.GraphicsObject):
                         p = p.nextSiblingElement('pattern')
             n = n.nextSibling()
 
+        self.cfpLoadedFromXml = cfpLoaded
+
+        if not cfpLoaded:
+            self._syncCfpDefaultsFromSurveyLimits()
+
         return True
+
+    def _syncCfpDefaultsFromSurveyLimits(self):
+        self.cfp.maxAperture = float(self.angles.reflection.y())
+        self.cfp.rmsVelocity = float(self.binning.vint)
+        self.cfp.focalDepth = abs(float(self.globalPlane.anchor.z()))
 
     def calcBoundingRect(self):
         """Calculate RollSurvey boundaries"""

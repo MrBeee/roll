@@ -92,13 +92,16 @@ GeometryProfilingPayload = workerThreadsModule.GeometryProfilingPayload
 GeometryFromTemplatesResult = workerThreadsModule.GeometryFromTemplatesResult
 CfpFromTemplatesRequest = workerThreadsModule.CfpFromTemplatesRequest
 CfpFromTemplatesResult = workerThreadsModule.CfpFromTemplatesResult
-CfpFromTraceTableRequest = workerThreadsModule.CfpFromGeometryTablesRequest
-CfpFromTraceTableResult = workerThreadsModule.CfpFromGeometryTablesResult
+CfpFromGeometryTablesRequest = workerThreadsModule.CfpFromGeometryTablesRequest
+CfpFromGeometryTablesResult = workerThreadsModule.CfpFromGeometryTablesResult
+CfpAmplitudeMapRequest = workerThreadsModule.CfpAmplitudeMapRequest
+CfpAmplitudeMapResult = workerThreadsModule.CfpAmplitudeMapResult
 BinningWorker = workerThreadsModule.BinningWorker
 BinFromGeometryWorker = workerThreadsModule.BinFromGeometryWorker
 GeometryWorker = workerThreadsModule.GeometryWorker
 CfpFromTemplatesWorker = workerThreadsModule.CfpFromTemplatesWorker
-CfpFromTraceTableWorker = workerThreadsModule.CfpFromGeometryTablesWorker
+CfpFromGeometryTablesWorker = workerThreadsModule.CfpFromGeometryTablesWorker
+CfpAmplitudeMapWorker = workerThreadsModule.CfpAmplitudeMapWorker
 Layout3DWidget = layout3DModule.Layout3DWidget
 
 
@@ -528,6 +531,72 @@ class ProjectSidecarsTest(unittest.TestCase):
             symbolPen=(0, 0, 0, 100),
             symbolBrush='g',
         )
+
+    def testPlotLayoutDrawsCfpTargetMarkerAtBinningAreaCenterWhenAreaShown(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.survey.cfp.useBinningAreaCenter = True
+        self.mainWindow.survey.output.rctOutput = QRectF(0.0, 0.0, 100.0, 50.0)
+        self.mainWindow.layoutImItem = None
+        self.mainWindow.imageType = 0
+        self.mainWindow.output.anaOutput = None
+        self.mainWindow.output.binOutput = None
+
+        self.mainWindow.tbArea.setChecked(True)
+        self.mainWindow.tbTemplat.setChecked(False)
+        self.mainWindow.tbSpider.setChecked(False)
+        self.mainWindow.tbSpsList.setChecked(False)
+        self.mainWindow.tbRpsList.setChecked(False)
+        self.mainWindow.tbSrcList.setChecked(False)
+        self.mainWindow.tbRecList.setChecked(False)
+
+        with patch.object(self.mainWindow.layoutWidget, 'plot') as plot:
+            self.mainWindow.plotLayout()
+
+        targetCall = None
+        for call in plot.call_args_list:
+            kwargs = call.kwargs
+            if kwargs.get('symbol') == 'd' and kwargs.get('symbolSize') == 12:
+                targetCall = call
+                break
+
+        self.assertIsNotNone(targetCall)
+        self.assertEqual(targetCall.kwargs['x'], [50.0])
+        self.assertEqual(targetCall.kwargs['y'], [25.0])
+        self.assertEqual(targetCall.kwargs['symbolPen'], (0, 0, 0, 100))
+        self.assertEqual(targetCall.kwargs['symbolBrush'], (170, 0, 220, 100))
+
+    def testPlotLayoutDrawsCfpTargetMarkerAtSpecificAnalysisLocationWhenAreaShown(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.survey.cfp.useBinningAreaCenter = False
+        self.mainWindow.survey.cfp.analysisLocation = QVector3D(12.0, 34.0, 0.0)
+        self.mainWindow.layoutImItem = None
+        self.mainWindow.imageType = 0
+        self.mainWindow.output.anaOutput = None
+        self.mainWindow.output.binOutput = None
+
+        self.mainWindow.tbArea.setChecked(True)
+        self.mainWindow.tbTemplat.setChecked(False)
+        self.mainWindow.tbSpider.setChecked(False)
+        self.mainWindow.tbSpsList.setChecked(False)
+        self.mainWindow.tbRpsList.setChecked(False)
+        self.mainWindow.tbSrcList.setChecked(False)
+        self.mainWindow.tbRecList.setChecked(False)
+
+        with patch.object(self.mainWindow.layoutWidget, 'plot') as plot:
+            self.mainWindow.plotLayout()
+
+        targetCall = None
+        for call in plot.call_args_list:
+            kwargs = call.kwargs
+            if kwargs.get('symbol') == 'd' and kwargs.get('symbolSize') == 12:
+                targetCall = call
+                break
+
+        self.assertIsNotNone(targetCall)
+        self.assertEqual(targetCall.kwargs['x'], [12.0])
+        self.assertEqual(targetCall.kwargs['y'], [34.0])
+        self.assertEqual(targetCall.kwargs['symbolPen'], (0, 0, 0, 100))
+        self.assertEqual(targetCall.kwargs['symbolBrush'], (170, 0, 220, 100))
 
     def suppressModalDialogs(self):
         messageBox = rollMainWindowModule.QMessageBox
@@ -1510,7 +1579,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertFalse(self.mainWindow.actionFullBinFromSps.isEnabled())
         self.assertTrue(self.mainWindow.actionStopThread.isEnabled())
 
-    def testEnableProcessingMenuItemsControlsCfpActionsFromExperimentalFlagAndTraceTable(self):
+    def testEnableProcessingMenuItemsControlsCfpActionsFromExperimentalFlagAndGeometryTables(self):
         self.mainWindow.survey = self.createSurvey()
         self.mainWindow.appSettings.useExperimental = True
         self.mainWindow.srcGeom = np.zeros(1, dtype=pntType1)
@@ -1532,6 +1601,61 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.assertTrue(self.mainWindow.actionCFPPointAnalysisFromTemplates.isEnabled())
         self.assertFalse(self.mainWindow.actionCFPPointAnalysisFromGeometry.isEnabled())
+        self.assertFalse(self.mainWindow.actionCFPPointAnalysisFromSPSInput.isEnabled())
+
+    def testEnableProcessingMenuItemsEnablesCfpSpsActionsOnlyWhenFullSpsTablesAreAvailable(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.appSettings.useExperimental = True
+        self.mainWindow.spsImport = np.zeros(1, dtype=pntType1)
+        self.mainWindow.rpsImport = np.zeros(1, dtype=pntType1)
+
+        with patch.object(self.mainWindow.survey, 'calcNoTemplates', return_value=2):
+            self.mainWindow.enableProcessingMenuItems(True)
+
+        self.assertFalse(self.mainWindow.actionCFPPointAnalysisFromSPSInput.isEnabled())
+        self.assertFalse(self.mainWindow.actionCFPPlaneAnalysisFromSPSInput.isEnabled())
+
+        self.mainWindow.xpsImport = np.zeros(1, dtype=relType2)
+
+        with patch.object(self.mainWindow.survey, 'calcNoTemplates', return_value=2):
+            self.mainWindow.enableProcessingMenuItems(True)
+
+        self.assertTrue(self.mainWindow.actionCFPPointAnalysisFromSPSInput.isEnabled())
+        self.assertTrue(self.mainWindow.actionCFPPlaneAnalysisFromSPSInput.isEnabled())
+
+    def testCfpMenuActionsMapOneToOneToTheirRoutines(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.appSettings.useExperimental = True
+        self.mainWindow.srcGeom = np.zeros(1, dtype=pntType1)
+        self.mainWindow.relGeom = np.zeros(1, dtype=relType2)
+        self.mainWindow.recGeom = np.zeros(1, dtype=pntType1)
+        self.mainWindow.spsImport = np.zeros(1, dtype=pntType1)
+        self.mainWindow.xpsImport = np.zeros(1, dtype=relType2)
+        self.mainWindow.rpsImport = np.zeros(1, dtype=pntType1)
+        self.mainWindow._ensureWorkerOperationComponents()
+
+        with patch.object(self.mainWindow.survey, 'calcNoTemplates', return_value=2):
+            self.mainWindow.enableProcessingMenuItems(True)
+
+        with patch.object(self.mainWindow.workerOperationController, 'startCfpAnalysisFromTemplates', return_value=True) as pointTemplatesStart:
+            with patch.object(self.mainWindow.workerOperationController, 'startCfpAnalysisFromGeometryTables', return_value=True) as pointGeometryStart:
+                with patch.object(self.mainWindow.workerOperationController, 'startCfpAnalysisFromSpsTables', return_value=True) as pointSpsStart:
+                    with patch.object(self.mainWindow.workerOperationController, 'startCfpPlaneAnalysisFromTemplates', return_value=True) as planeTemplatesStart:
+                        with patch.object(self.mainWindow.workerOperationController, 'startCfpPlaneAnalysisFromGeometryTables', return_value=True) as planeGeometryStart:
+                            with patch.object(self.mainWindow.workerOperationController, 'startCfpPlaneAnalysisFromSpsTables', return_value=True) as planeSpsStart:
+                                self.mainWindow.actionCFPPointAnalysisFromTemplates.trigger()
+                                self.mainWindow.actionCFPPointAnalysisFromGeometry.trigger()
+                                self.mainWindow.actionCFPPointAnalysisFromSPSInput.trigger()
+                                self.mainWindow.actionCFPPlaneAnalysisFromTemplates.trigger()
+                                self.mainWindow.actionCFPPlaneAnalysisFromGeometry.trigger()
+                                self.mainWindow.actionCFPPlaneAnalysisFromSPSInput.trigger()
+
+        pointTemplatesStart.assert_called_once_with()
+        pointGeometryStart.assert_called_once_with()
+        pointSpsStart.assert_called_once_with()
+        planeTemplatesStart.assert_called_once_with()
+        planeGeometryStart.assert_called_once_with()
+        planeSpsStart.assert_called_once_with()
 
     def testUpdateSettingsHidesCfpActionsWhenExperimentalCodeIsDisabled(self):
         self.mainWindow.appSettings.useExperimental = False
@@ -1541,7 +1665,8 @@ class ProjectSidecarsTest(unittest.TestCase):
             self.mainWindow.updateSettings()
 
         self.assertFalse(self.mainWindow.actionCFPPointAnalysisFromTemplates.isVisible())
-        self.assertFalse(self.mainWindow.actionCFPAnalysisFromTraceTable.isVisible())
+        self.assertFalse(self.mainWindow.actionCFPPointAnalysisFromGeometry.isVisible())
+        self.assertFalse(self.mainWindow.actionCFPPointAnalysisFromSPSInput.isVisible())
 
     def testCfpAnalysisTabIsInsertedWithImageAndColorBar(self):
         cfpTabIndex = self.mainWindow.analysisTabWidget.indexOf(self.mainWindow.tabCfp)
@@ -4205,7 +4330,7 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
             with patch.object(binningWorkerMixinModule, 'CfpFromTemplatesWorker', side_effect=WorkerStub) as workerFactory:
-                self.mainWindow.cfpAnalysisFromTemplates()
+                self.mainWindow.cfpPointAnalysisFromTemplates()
 
         request = workerFactory.call_args.args[0]
         self.assertIsInstance(request, CfpFromTemplatesRequest)
@@ -4221,6 +4346,82 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.worker.finished.connect.assert_any_call(self.mainWindow.worker.deleteLater)
         threadStub.finished.connect.assert_any_call(threadStub.deleteLater)
         threadStub.finished.connect.assert_any_call(self.mainWindow.workerOperationController._onThreadFinished)
+        self.mainWindow.thread = None
+        self.mainWindow.worker = None
+
+    def testCreateCfpAnalysisFromTemplatesUsesConfigDefaultFrequencyWhenCfpNotLoadedFromXml(self):
+        class SignalStub:
+            def __init__(self):
+                self.connect = MagicMock()
+
+        class SurveyStub:
+            def __init__(self):
+                self.progress = SignalStub()
+                self.message = SignalStub()
+
+        class WorkerStub:
+            def __init__(self, request):
+                self.request = request
+                self.survey = SurveyStub()
+                self.resultReady = SignalStub()
+                self.finished = SignalStub()
+                self.run = MagicMock()
+                self.moveToThread = MagicMock()
+                self.deleteLater = MagicMock()
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = False
+        threadStub.started = SignalStub()
+        threadStub.finished = SignalStub()
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.survey.cfpLoadedFromXml = False
+        self.mainWindow.survey.cfp.frequencyList = [40.0]
+        self.mainWindow.spiderPoint = rollMainWindowModule.QPoint(3, 4)
+
+        with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
+            with patch.object(binningWorkerMixinModule, 'CfpFromTemplatesWorker', side_effect=WorkerStub) as workerFactory:
+                self.mainWindow.cfpPointAnalysisFromTemplates()
+
+        request = workerFactory.call_args.args[0]
+        self.assertEqual(request.frequency, float(config.cfpFrequencyList[0]))
+        self.mainWindow.thread = None
+        self.mainWindow.worker = None
+
+    def testCreateCfpAnalysisFromTemplatesPreservesXmlFrequencyWhenCfpLoadedFromXml(self):
+        class SignalStub:
+            def __init__(self):
+                self.connect = MagicMock()
+
+        class SurveyStub:
+            def __init__(self):
+                self.progress = SignalStub()
+                self.message = SignalStub()
+
+        class WorkerStub:
+            def __init__(self, request):
+                self.request = request
+                self.survey = SurveyStub()
+                self.resultReady = SignalStub()
+                self.finished = SignalStub()
+                self.run = MagicMock()
+                self.moveToThread = MagicMock()
+                self.deleteLater = MagicMock()
+
+        threadStub = MagicMock()
+        threadStub.isRunning.return_value = False
+        threadStub.started = SignalStub()
+        threadStub.finished = SignalStub()
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow.survey.cfpLoadedFromXml = True
+        self.mainWindow.survey.cfp.frequencyList = [55.0]
+        self.mainWindow.spiderPoint = rollMainWindowModule.QPoint(3, 4)
+
+        with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
+            with patch.object(binningWorkerMixinModule, 'CfpFromTemplatesWorker', side_effect=WorkerStub) as workerFactory:
+                self.mainWindow.cfpPointAnalysisFromTemplates()
+
+        request = workerFactory.call_args.args[0]
+        self.assertEqual(request.frequency, 55.0)
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
@@ -4253,7 +4454,7 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
             with patch.object(binningWorkerMixinModule, 'CfpFromTemplatesWorker', side_effect=WorkerStub) as workerFactory:
-                self.mainWindow.cfpAnalysisFromTemplates()
+                self.mainWindow.cfpPointAnalysisFromTemplates()
 
         request = workerFactory.call_args.args[0]
         self.assertEqual(request.focalX, 50.0)
@@ -4261,7 +4462,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
-    def testCreateCfpAnalysisFromTraceTableUsesRequestObjectAndResultSignal(self):
+    def testCreateCfpAnalysisFromGeometryTablesUsesRequestObjectAndResultSignal(self):
         class SignalStub:
             def __init__(self):
                 self.connect = MagicMock()
@@ -4293,10 +4494,10 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         with patch.object(binningWorkerMixinModule, 'QThread', return_value=threadStub):
             with patch.object(binningWorkerMixinModule, 'CfpFromGeometryTablesWorker', side_effect=WorkerStub) as workerFactory:
-                self.mainWindow.cfpAnalysisFromGeometryTables()
+                self.mainWindow.cfpPointAnalysisFromGeometryTables()
 
         request = workerFactory.call_args.args[0]
-        self.assertIsInstance(request, CfpFromTraceTableRequest)
+        self.assertIsInstance(request, CfpFromGeometryTablesRequest)
         self.assertIs(request.srcGeom, self.mainWindow.srcGeom)
         self.assertIs(request.relGeom, self.mainWindow.relGeom)
         self.assertIs(request.recGeom, self.mainWindow.recGeom)
@@ -4436,7 +4637,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         phase1_idx = next((i for i in range(len(worker.survey.progress.values) - 1) if worker.survey.progress.values[i] == 100 and worker.survey.progress.values[i + 1] == 0), None)
         self.assertIsNotNone(phase1_idx, "Expected phase 1 to end at 100 and phase 2 to start at 0")
 
-    def testCfpFromTraceTableWorkerRunUsesChunkedResultPayload(self):
+    def testCfpFromGeometryTablesWorkerRunUsesChunkedResultPayload(self):
         class SignalCollector:
             def __init__(self):
                 self.values = []
@@ -4446,7 +4647,7 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         class SurveyStub:
             def __init__(self):
-                self.errorText = 'cfp trace-table failed'
+                self.errorText = 'cfp geometry-tables failed'
                 self.progress = SignalCollector()
                 self.message = SignalCollector()
                 self.output = SimpleNamespace(rctOutput=QRectF(0.0, 0.0, 20.0, 10.0))
@@ -4492,8 +4693,8 @@ class ProjectSidecarsTest(unittest.TestCase):
         relGeom['InRps'] = [1, 1, 1, 1, 1]
 
         with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
-            worker = CfpFromTraceTableWorker(
-                CfpFromTraceTableRequest(
+            worker = CfpFromGeometryTablesWorker(
+                CfpFromGeometryTablesRequest(
                     xmlString='<survey />',
                     srcGeom=srcGeom,
                     relGeom=relGeom,
@@ -4536,6 +4737,370 @@ class ProjectSidecarsTest(unittest.TestCase):
         phase1_idx = next((i for i in range(len(worker.survey.progress.values) - 1) if worker.survey.progress.values[i] == 100 and worker.survey.progress.values[i + 1] == 0), None)
         self.assertIsNotNone(phase1_idx, "Expected phase 1 to end at 100 and phase 2 to start at 0")
         self.assertGreater(len(worker.survey.message.values), 3)
+
+    def testCfpPlaneWorkerCoherentAcceptsSingleAndMultiFrequencyArrays(self):
+        class SignalCollector:
+            def __init__(self):
+                self.values = []
+
+            def emit(self, value):
+                self.values.append(value)
+
+        class SurveyStub:
+            def __init__(self):
+                self.errorText = 'cfp plane setup failed'
+                self.progress = SignalCollector()
+                self.message = SignalCollector()
+                self.output = SimpleNamespace(rctOutput=QRectF(0.0, 0.0, 20.0, 10.0))
+                self.grid = SimpleNamespace(binSize=QPointF(10.0, 5.0))
+
+            def fromXmlString(self, xmlString, createArrays):
+                _ = xmlString
+                _ = createArrays
+
+            def prepareGeometryRelationBinningLookup(self):
+                return None
+
+        srcGeom = np.zeros(1, dtype=pntType1)
+        relGeom = np.zeros(1, dtype=relType2)
+        recGeom = np.zeros(1, dtype=pntType1)
+        srcCoords = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
+        srcWeights = np.array([1.0], dtype=np.float32)
+        recCoords = np.array([[0.0, 5.0, 0.0]], dtype=np.float32)
+        recWeights = np.array([1.0], dtype=np.float32)
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            for freqs in (np.array([40.0], dtype=np.float32), np.array([20.0, 40.0, 60.0], dtype=np.float32)):
+                worker = CfpAmplitudeMapWorker(
+                    CfpAmplitudeMapRequest(
+                        xmlString='<survey />',
+                        srcGeom=srcGeom,
+                        relGeom=relGeom,
+                        recGeom=recGeom,
+                        focalZ=-10.0,
+                        maxDipDegrees=45.0,
+                        vint=2500.0,
+                        frequencies=freqs,
+                        computeIncoherentQc=False,
+                    )
+                )
+                with patch.object(worker, '_gatherTracesFromRelations', return_value=(srcCoords, srcWeights, recCoords, recWeights)):
+                    resultEvents = []
+                    worker.resultReady.connect(resultEvents.append)
+                    worker.run()
+
+                self.assertEqual(len(resultEvents), 1)
+                self.assertTrue(resultEvents[0].success)
+                self.assertEqual(resultEvents[0].modeLabel, 'coherent')
+                self.assertEqual(resultEvents[0].amplitudeMap.shape, (2, 2))
+                self.assertTrue(np.isfinite(resultEvents[0].amplitudeMap).all())
+
+    def testCfpPlaneWorkerIncoherentAcceptsSingleAndMultiFrequencyArrays(self):
+        class SignalCollector:
+            def __init__(self):
+                self.values = []
+
+            def emit(self, value):
+                self.values.append(value)
+
+        class SurveyStub:
+            def __init__(self):
+                self.errorText = 'cfp plane setup failed'
+                self.progress = SignalCollector()
+                self.message = SignalCollector()
+                self.output = SimpleNamespace(rctOutput=QRectF(0.0, 0.0, 20.0, 10.0))
+                self.grid = SimpleNamespace(binSize=QPointF(10.0, 5.0))
+
+            def fromXmlString(self, xmlString, createArrays):
+                _ = xmlString
+                _ = createArrays
+
+            def prepareGeometryRelationBinningLookup(self):
+                return None
+
+        srcGeom = np.zeros(1, dtype=pntType1)
+        relGeom = np.zeros(1, dtype=relType2)
+        recGeom = np.zeros(1, dtype=pntType1)
+        srcCoords = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
+        srcWeights = np.array([1.0], dtype=np.float32)
+        recCoords = np.array([[0.0, 5.0, 0.0]], dtype=np.float32)
+        recWeights = np.array([1.0], dtype=np.float32)
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            for freqs in (np.array([40.0], dtype=np.float32), np.array([20.0, 40.0, 60.0], dtype=np.float32)):
+                worker = CfpAmplitudeMapWorker(
+                    CfpAmplitudeMapRequest(
+                        xmlString='<survey />',
+                        srcGeom=srcGeom,
+                        relGeom=relGeom,
+                        recGeom=recGeom,
+                        focalZ=-10.0,
+                        maxDipDegrees=45.0,
+                        vint=2500.0,
+                        frequencies=freqs,
+                        computeIncoherentQc=True,
+                    )
+                )
+                with patch.object(worker, '_gatherTracesFromRelations', return_value=(srcCoords, srcWeights, recCoords, recWeights)):
+                    resultEvents = []
+                    worker.resultReady.connect(resultEvents.append)
+                    worker.run()
+
+                self.assertEqual(len(resultEvents), 1)
+                self.assertTrue(resultEvents[0].success)
+                self.assertEqual(resultEvents[0].modeLabel, 'incoherent QC')
+                self.assertEqual(resultEvents[0].amplitudeMap.shape, (2, 2))
+                self.assertTrue(np.isfinite(resultEvents[0].amplitudeMap).all())
+
+    def testCfpPlaneWorkerIncoherentDependsOnFrequencyValues(self):
+        class SignalCollector:
+            def __init__(self):
+                self.values = []
+
+            def emit(self, value):
+                self.values.append(value)
+
+        class SurveyStub:
+            def __init__(self):
+                self.errorText = 'cfp plane setup failed'
+                self.progress = SignalCollector()
+                self.message = SignalCollector()
+                self.output = SimpleNamespace(rctOutput=QRectF(0.0, 0.0, 20.0, 10.0))
+                self.grid = SimpleNamespace(binSize=QPointF(10.0, 5.0))
+
+            def fromXmlString(self, xmlString, createArrays):
+                _ = xmlString
+                _ = createArrays
+
+            def prepareGeometryRelationBinningLookup(self):
+                return None
+
+        srcGeom = np.zeros(1, dtype=pntType1)
+        relGeom = np.zeros(1, dtype=relType2)
+        recGeom = np.zeros(1, dtype=pntType1)
+        srcCoords = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
+        srcWeights = np.array([1.0], dtype=np.float32)
+        recCoords = np.array([[0.0, 5.0, 0.0]], dtype=np.float32)
+        recWeights = np.array([1.0], dtype=np.float32)
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            frequencySets = (
+                np.array([20.0, 40.0, 60.0], dtype=np.float32),
+                np.array([10.0, 40.0, 80.0], dtype=np.float32),
+            )
+            amplitudeMaps = []
+
+            for freqs in frequencySets:
+                worker = CfpAmplitudeMapWorker(
+                    CfpAmplitudeMapRequest(
+                        xmlString='<survey />',
+                        srcGeom=srcGeom,
+                        relGeom=relGeom,
+                        recGeom=recGeom,
+                        focalZ=-10.0,
+                        maxDipDegrees=45.0,
+                        vint=2500.0,
+                        frequencies=freqs,
+                        computeIncoherentQc=True,
+                    )
+                )
+                with patch.object(worker, '_gatherTracesFromRelations', return_value=(srcCoords, srcWeights, recCoords, recWeights)):
+                    resultEvents = []
+                    worker.resultReady.connect(resultEvents.append)
+                    worker.run()
+
+                self.assertEqual(len(resultEvents), 1)
+                self.assertTrue(resultEvents[0].success)
+                self.assertEqual(resultEvents[0].modeLabel, 'incoherent QC')
+                amplitudeMaps.append(resultEvents[0].amplitudeMap)
+
+        self.assertEqual(amplitudeMaps[0].shape, amplitudeMaps[1].shape)
+        self.assertFalse(np.allclose(amplitudeMaps[0], amplitudeMaps[1], atol=1e-6))
+
+    def testCfpPlaneWorkerCoherentNormalizesAmplitudeMap(self):
+        class SignalCollector:
+            def __init__(self):
+                self.values = []
+
+            def emit(self, value):
+                self.values.append(value)
+
+        class SurveyStub:
+            def __init__(self):
+                self.errorText = 'cfp plane setup failed'
+                self.progress = SignalCollector()
+                self.message = SignalCollector()
+                self.output = SimpleNamespace(rctOutput=QRectF(0.0, 0.0, 20.0, 10.0))
+                self.grid = SimpleNamespace(binSize=QPointF(10.0, 5.0))
+
+            def fromXmlString(self, xmlString, createArrays):
+                _ = xmlString
+                _ = createArrays
+
+            def prepareGeometryRelationBinningLookup(self):
+                return None
+
+        srcGeom = np.zeros(1, dtype=pntType1)
+        relGeom = np.zeros(1, dtype=relType2)
+        recGeom = np.zeros(1, dtype=pntType1)
+        srcCoords = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
+        srcWeights = np.array([1.0], dtype=np.float32)
+        recCoords = np.array([[0.0, 5.0, 0.0]], dtype=np.float32)
+        recWeights = np.array([1.0], dtype=np.float32)
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            worker = CfpAmplitudeMapWorker(
+                CfpAmplitudeMapRequest(
+                    xmlString='<survey />',
+                    srcGeom=srcGeom,
+                    relGeom=relGeom,
+                    recGeom=recGeom,
+                    focalZ=-10.0,
+                    maxDipDegrees=45.0,
+                    vint=2500.0,
+                    frequencies=np.array([40.0], dtype=np.float32),
+                    computeIncoherentQc=False,
+                )
+            )
+            with patch.object(worker, '_gatherTracesFromRelations', return_value=(srcCoords, srcWeights, recCoords, recWeights)):
+                with patch.object(workerThreadsModule, 'compute_illumination_row_numba', side_effect=[np.array([2.0, 4.0], dtype=np.float32), np.array([2.0, 4.0], dtype=np.float32)]):
+                    resultEvents = []
+                    worker.resultReady.connect(resultEvents.append)
+                    worker.run()
+
+        self.assertEqual(len(resultEvents), 1)
+        self.assertTrue(resultEvents[0].success)
+        self.assertEqual(resultEvents[0].modeLabel, 'coherent')
+        self.assertAlmostEqual(float(np.nanmax(resultEvents[0].amplitudeMap)), 1.0, places=6)
+        self.assertAlmostEqual(float(resultEvents[0].normalizationFactor), 4.0, places=6)
+
+    def testCfpPlaneWorkerIncoherentNormalizesAmplitudeMap(self):
+        class SignalCollector:
+            def __init__(self):
+                self.values = []
+
+            def emit(self, value):
+                self.values.append(value)
+
+        class SurveyStub:
+            def __init__(self):
+                self.errorText = 'cfp plane setup failed'
+                self.progress = SignalCollector()
+                self.message = SignalCollector()
+                self.output = SimpleNamespace(rctOutput=QRectF(0.0, 0.0, 20.0, 10.0))
+                self.grid = SimpleNamespace(binSize=QPointF(10.0, 5.0))
+
+            def fromXmlString(self, xmlString, createArrays):
+                _ = xmlString
+                _ = createArrays
+
+            def prepareGeometryRelationBinningLookup(self):
+                return None
+
+        srcGeom = np.zeros(1, dtype=pntType1)
+        relGeom = np.zeros(1, dtype=relType2)
+        recGeom = np.zeros(1, dtype=pntType1)
+        srcCoords = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
+        srcWeights = np.array([1.0], dtype=np.float32)
+        recCoords = np.array([[0.0, 5.0, 0.0]], dtype=np.float32)
+        recWeights = np.array([1.0], dtype=np.float32)
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            worker = CfpAmplitudeMapWorker(
+                CfpAmplitudeMapRequest(
+                    xmlString='<survey />',
+                    srcGeom=srcGeom,
+                    relGeom=relGeom,
+                    recGeom=recGeom,
+                    focalZ=-10.0,
+                    maxDipDegrees=45.0,
+                    vint=2500.0,
+                    frequencies=np.array([40.0], dtype=np.float32),
+                    computeIncoherentQc=True,
+                )
+            )
+            with patch.object(worker, '_gatherTracesFromRelations', return_value=(srcCoords, srcWeights, recCoords, recWeights)):
+                with patch.object(workerThreadsModule, 'compute_illumination_row_incoherent_numba', side_effect=[np.array([2.0, 4.0], dtype=np.float32), np.array([2.0, 4.0], dtype=np.float32)]):
+                    resultEvents = []
+                    worker.resultReady.connect(resultEvents.append)
+                    worker.run()
+
+        self.assertEqual(len(resultEvents), 1)
+        self.assertTrue(resultEvents[0].success)
+        self.assertEqual(resultEvents[0].modeLabel, 'incoherent QC')
+        self.assertAlmostEqual(float(np.nanmax(resultEvents[0].amplitudeMap)), 1.0, places=6)
+        self.assertAlmostEqual(float(resultEvents[0].normalizationFactor), 4.0, places=6)
+
+    def testCfpApplierUsesNormalizedDisplayLevelsForComparisonRuns(self):
+        self.mainWindow._ensureWorkerOperationComponents()
+
+        firstMap = np.array([[0.0, 10.0], [5.0, 2.0]], dtype=np.float32)
+        secondMap = np.array([[0.0, 20.0], [10.0, 4.0]], dtype=np.float32)
+
+        firstResult = workerThreadsModule.CfpAmplitudeMapResult(
+            success=True,
+            amplitudeMap=firstMap,
+            incoherentAmplitudeMap=firstMap,
+            normalizationFactor=10.0,
+            sourceName='Geometry Tables',
+            modeLabel='incoherent QC',
+            isPartial=True,
+        )
+        secondResult = workerThreadsModule.CfpAmplitudeMapResult(
+            success=True,
+            amplitudeMap=secondMap,
+            incoherentAmplitudeMap=secondMap,
+            normalizationFactor=20.0,
+            sourceName='Geometry Tables',
+            modeLabel='incoherent QC',
+            isPartial=True,
+        )
+
+        with patch.object(self.mainWindow, 'prepareLayoutImageAndColorBar') as prepareLayoutImageAndColorBar:
+            with patch.object(self.mainWindow, 'plotLayout'):
+                self.mainWindow.applyCfpAmplitudeMapWorkerResult(firstResult, timedelta(seconds=1))
+                self.mainWindow.applyCfpAmplitudeMapWorkerResult(secondResult, timedelta(seconds=1))
+
+        self.assertGreaterEqual(prepareLayoutImageAndColorBar.call_count, 2)
+        firstLevels = prepareLayoutImageAndColorBar.call_args_list[0].kwargs['levels']
+        secondLevels = prepareLayoutImageAndColorBar.call_args_list[1].kwargs['levels']
+        self.assertEqual(firstLevels, (0.0, 1.0))
+        self.assertEqual(secondLevels, (0.0, 1.0))
+
+    def testCfpApplierCompletionLogIncludesNormalizationFactorForBothModes(self):
+        self.mainWindow._ensureWorkerOperationComponents()
+
+        coherentResult = workerThreadsModule.CfpAmplitudeMapResult(
+            success=True,
+            amplitudeMap=np.array([[0.0, 1.0], [0.5, 0.2]], dtype=np.float32),
+            incoherentAmplitudeMap=None,
+            normalizationFactor=12.5,
+            sourceName='Geometry Tables',
+            modeLabel='coherent',
+            isPartial=False,
+        )
+        incoherentResult = workerThreadsModule.CfpAmplitudeMapResult(
+            success=True,
+            amplitudeMap=np.array([[0.0, 1.0], [0.5, 0.2]], dtype=np.float32),
+            incoherentAmplitudeMap=np.array([[0.0, 1.0], [0.5, 0.2]], dtype=np.float32),
+            normalizationFactor=7.5,
+            sourceName='Geometry Tables',
+            modeLabel='incoherent QC',
+            isPartial=False,
+        )
+
+        qMessageBoxStub = SimpleNamespace(information=MagicMock())
+        with patch.object(self.mainWindow.cfpAmplitudeMapResultApplier, 'runtimeDependenciesProvider', return_value={'QMessageBox': qMessageBoxStub}):
+            with patch.object(self.mainWindow, 'prepareLayoutImageAndColorBar'):
+                with patch.object(self.mainWindow, 'plotLayout'):
+                    with patch.object(self.mainWindow, 'appendLogMessage') as appendLogMessage:
+                        self.mainWindow.applyCfpAmplitudeMapWorkerResult(coherentResult, timedelta(seconds=2))
+                        self.mainWindow.applyCfpAmplitudeMapWorkerResult(incoherentResult, timedelta(seconds=3))
+
+        completedMessages = [call.args[0] for call in appendLogMessage.call_args_list if "Thread : Completed 'CFP Plane Illumination v1" in call.args[0]]
+        self.assertEqual(len(completedMessages), 2)
+        self.assertIn('normFactor=12.5', completedMessages[0])
+        self.assertIn('normFactor=7.5', completedMessages[1])
 
     def testGeometryThreadFinishedUsesResultObject(self):
         result = GeometryFromTemplatesResult(
@@ -4652,7 +5217,7 @@ class ProjectSidecarsTest(unittest.TestCase):
                                             self.mainWindow.cfpFromTemplatesThreadFinished(result)
 
         appendLogMessage.assert_any_call(
-            "Thread : Completed 'CFP analysis from Templates'. Elapsed time:0:00:01 ",
+            "Thread : Completed 'CFP Point Analysis v1 (Templates)'. Elapsed time:0:00:01 ",
             rollMainWindowModule.MsgType.Analysis,
         )
         appendLogMessage.assert_any_call(
@@ -4684,8 +5249,8 @@ class ProjectSidecarsTest(unittest.TestCase):
         hideStatusbarWidgets.assert_called_once()
         information.assert_called_once()
 
-    def testCfpFromTraceTableThreadFinishedUsesResultObject(self):
-        result = CfpFromTraceTableResult(
+    def testCfpFromGeometryTablesThreadFinishedUsesResultObject(self):
+        result = CfpFromGeometryTablesResult(
             success=True,
             sourceName='Geometry Tables',
             chunkCount=3360,
@@ -4732,7 +5297,7 @@ class ProjectSidecarsTest(unittest.TestCase):
                                             self.mainWindow.cfpFromGeometryTablesThreadFinished(result)
 
         appendLogMessage.assert_any_call(
-            "Thread : Completed 'CFP analysis from Geometry Tables'. Elapsed time:0:00:01 ",
+            "Thread : Completed 'CFP Point Analysis v1 (Geometry Tables)'. Elapsed time:0:00:01 ",
             rollMainWindowModule.MsgType.Analysis,
         )
         appendLogMessage.assert_any_call(
