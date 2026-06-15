@@ -712,6 +712,10 @@ def CreateQgisRasterLayer(fileName, data, survey) -> str:
     # crs = survey.crs.authid()
 
     data = np.transpose(data)                                                   # put data in right order for rasterio
+    data = np.asarray(data)
+    if not np.isfinite(data).all():
+        # Raster nodata is configured as 0, so normalize NaN/Inf cells to 0 before write.
+        data = np.nan_to_num(data, nan=0.0, posinf=0.0, neginf=0.0)
     height = data.shape[0]                                                      # shape[0] contains width of array
     width = data.shape[1]                                                       # shape[1] contains height of array
 
@@ -737,7 +741,7 @@ def CreateQgisRasterLayer(fileName, data, survey) -> str:
     return fn
 
 
-def ExportRasterLayerToQgis(fileName, data, survey) -> str:
+def ExportRasterLayerToQgis(fileName, data, survey, classificationRange=None) -> str:
     fileName = CreateQgisRasterLayer(fileName, data, survey)                        # create the raster file first
 
     if fileName:
@@ -769,11 +773,23 @@ def ExportRasterLayerToQgis(fileName, data, survey) -> str:
         shader.setRasterShaderFunction(fcn)
 
         renderer = QgsSingleBandPseudoColorRenderer(rl.dataProvider(), 1, shader)
-        minData = max(data.min(), 0)                                                # protect against min == -inf
-        maxData = data.max()
-        if minData == data.max():                                                   # protect against min == max
-            minData = 0
-            data.fill(5)
+        if classificationRange is not None:
+            minData, maxData = classificationRange
+            minData = float(minData)
+            maxData = float(maxData)
+        else:
+            statsData = np.asarray(data)
+            finiteMask = np.isfinite(statsData)
+            if np.any(finiteMask):
+                finiteData = statsData[finiteMask]
+                minData = max(float(np.min(finiteData)), 0.0)
+                maxData = float(np.max(finiteData))
+            else:
+                minData = 0.0
+                maxData = 10.0
+
+        if minData == maxData:                                                     # protect against min == max
+            minData = 0.0
             maxData = 10.0
 
         renderer.setClassificationMin(minData)                                      # minimum from numpy array

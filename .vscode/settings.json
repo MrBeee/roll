@@ -63,5 +63,21 @@
     },
     "chat.tools.terminal.autoApprove": {
         "&": true
+    },
+    "iis.configDir": "",
+    "[restructuredtext]": {
+        "editor.quickSuggestions": {
+            "comments": "off",
+            "strings": "off",
+            "other": "on"
+        },
+        "editor.suggestOnTriggerCharacters": true,
+        "editor.inlineSuggest.enabled": true,
+        "editor.tabCompletion": "on",
+        "editor.wordBasedSuggestions": "matchingDocuments"
+    },
+    "github.copilot.enable": {
+        "*": true,
+        "restructuredtext": false
     }
 }

@@ -241,7 +241,7 @@ def compute_monochromatic_beam(focal_x, focal_y, focal_z, surf_x, surf_y, freq, 
     for i in prange(n_stations):
         dx = np.float32(surf_x[i] - focal_x)
         dy = np.float32(surf_y[i] - focal_y)
-        r = np.sqrt(dx*dx + dy*dy + np.float32(focal_z*focal_z))
+        r = np.sqrt(dx * dx + dy * dy + np.float32(focal_z * focal_z))
 
         if r < 1e-3:
             continue
@@ -464,6 +464,102 @@ def compute_illumination_row_incoherent_numba(focal_y, eval_x, focal_z, src_coor
         row_energy[ix] = pixel_energy
 
     return row_energy
+
+
+@jit(parallel=True, nopython=True, cache=False)
+def compute_illumination_row_components_numba(focal_y, eval_x, focal_z, src_coords, src_weights, rec_coords, rec_weights, freqs, vint, max_radius, matlab_compat=False):
+    """Return coherent/incoherent source/receiver row components for 3x3 diagnostics.
+
+    Outputs are four 1D arrays with length=len(eval_x):
+      - src_coherent: sum over frequencies of |B_s|
+      - rec_coherent: sum over frequencies of |B_r|
+      - src_incoherent: sum over frequencies of incoherent source amplitudes
+      - rec_incoherent: sum over frequencies of incoherent receiver amplitudes
+    """
+    _ = matlab_compat
+    n_x = len(eval_x)
+    n_sources = src_coords.shape[0]
+    n_receivers = rec_coords.shape[0]
+    n_freqs = len(freqs)
+    r_sq_limit = np.float32(max_radius * max_radius)
+    two_pi = np.float32(2.0 * np.pi)
+    safe_vint = np.float32(vint if vint > 1e-6 else 1.0)
+    attenuationCoeff = np.float32(0.01)
+
+    src_coherent = np.zeros(n_x, dtype=np.float32)
+    rec_coherent = np.zeros(n_x, dtype=np.float32)
+    src_incoherent = np.zeros(n_x, dtype=np.float32)
+    rec_incoherent = np.zeros(n_x, dtype=np.float32)
+
+    dsz_vals = src_coords[:, 2] - focal_z
+    dsz2_vals = dsz_vals * dsz_vals
+    abs_dsz_vals = np.abs(dsz_vals)
+
+    drz_vals = rec_coords[:, 2] - focal_z
+    drz2_vals = drz_vals * drz_vals
+    abs_drz_vals = np.abs(drz_vals)
+
+    for ix in prange(n_x):
+        f_x = eval_x[ix]
+        src_coh_acc = 0.0
+        rec_coh_acc = 0.0
+        src_inc_acc = 0.0
+        rec_inc_acc = 0.0
+
+        for f_idx in range(n_freqs):
+            freq = np.float32(freqs[f_idx])
+            if freq <= 0.0:
+                continue
+
+            k = np.float32(two_pi * freq / safe_vint)
+            bs = np.complex64(0.0 + 0.0j)
+            br = np.complex64(0.0 + 0.0j)
+            src_sum = 0.0
+            rec_sum = 0.0
+
+            for src_idx in range(n_sources):
+                dsx = src_coords[src_idx, 0] - f_x
+                dsy = src_coords[src_idx, 1] - focal_y
+                rs_sq = dsx * dsx + dsy * dsy
+                if rs_sq > r_sq_limit:
+                    continue
+
+                ws = src_weights[src_idx]
+                rs = np.sqrt(rs_sq + dsz2_vals[src_idx])
+                if rs < 1e-3:
+                    continue
+
+                base_src = (abs_dsz_vals[src_idx] / (two_pi * rs * rs)) * ws
+                bs += np.complex64(base_src) * np.exp(1j * (-k * rs))
+                src_sum += base_src * np.exp(-attenuationCoeff * freq * (rs / safe_vint))
+
+            for rec_idx in range(n_receivers):
+                drx = rec_coords[rec_idx, 0] - f_x
+                dry = rec_coords[rec_idx, 1] - focal_y
+                rr_sq = drx * drx + dry * dry
+                if rr_sq > r_sq_limit:
+                    continue
+
+                wr = rec_weights[rec_idx]
+                rr = np.sqrt(rr_sq + drz2_vals[rec_idx])
+                if rr < 1e-3:
+                    continue
+
+                base_rec = (abs_drz_vals[rec_idx] / (two_pi * rr * rr)) * wr
+                br += np.complex64(base_rec) * np.exp(1j * (-k * rr))
+                rec_sum += base_rec * np.exp(-attenuationCoeff * freq * (rr / safe_vint))
+
+            src_coh_acc += np.abs(bs)
+            rec_coh_acc += np.abs(br)
+            src_inc_acc += src_sum
+            rec_inc_acc += rec_sum
+
+        src_coherent[ix] = src_coh_acc
+        rec_coherent[ix] = rec_coh_acc
+        src_incoherent[ix] = src_inc_acc
+        rec_incoherent[ix] = rec_inc_acc
+
+    return src_coherent, rec_coherent, src_incoherent, rec_incoherent
 
 
 @jit(parallel=True, nopython=True, cache=False)

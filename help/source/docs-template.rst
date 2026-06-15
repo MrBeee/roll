@@ -11,6 +11,30 @@ How To Use This Template
 3. Add the new filename, without ``.rst``, to a toctree in ``index.rst``.
 4. Run ``run_sphinx_documentation.bat`` from the plugin root.
 
+Heading Levels Example
+----------------------
+
+If you already use:
+
+Level1
+======
+
+Level2
+------
+
+then the next heading levels are typically:
+
+Level3
+~~~~~~
+
+Level4
+^^^^^^
+
+Level5
+""""""
+
+Use this hierarchy consistently inside one page to keep the structure clear.
+
 Short Introduction
 ------------------
 
@@ -55,3 +79,14 @@ Image Example
    :alt: Example figure
 
    Replace this with a project image when the page needs a figure.
+
+External Link Example
+---------------------
+
+Use the reStructuredText external-link syntax for web pages:
+
+* `QGIS issue on GitHub <https://github.com/qgis/QGIS/issues/53898>`__
+
+This pattern also works for any ``https://`` or ``www`` URL that should open in
+the browser.
+

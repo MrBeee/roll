@@ -686,10 +686,10 @@ class RollSurvey(pg.GraphicsObject):
 
         rect = QRectF(rect).normalized()
         included = (
-            (pointArray[:, 0] >= rect.left()) &
-            (pointArray[:, 0] <= rect.right()) &
-            (pointArray[:, 1] >= rect.top()) &
-            (pointArray[:, 1] <= rect.bottom())
+            (pointArray[:, 0] >= rect.left()) &     # noqa W504
+            (pointArray[:, 0] <= rect.right()) &    # noqa W504
+            (pointArray[:, 1] >= rect.top()) &      # noqa W504
+            (pointArray[:, 1] <= rect.bottom())     # noqa W504
         )
         return pointArray[included, :]
 
@@ -750,10 +750,10 @@ class RollSurvey(pg.GraphicsObject):
             return pointArray
 
         included = (
-            (pointArray[:, 0] >= apertureRect.left()) &
-            (pointArray[:, 0] <= apertureRect.right()) &
-            (pointArray[:, 1] >= apertureRect.top()) &
-            (pointArray[:, 1] <= apertureRect.bottom())
+            (pointArray[:, 0] >= apertureRect.left()) &     # noqa W504
+            (pointArray[:, 0] <= apertureRect.right()) &    # noqa W504
+            (pointArray[:, 1] >= apertureRect.top()) &      # noqa W504
+            (pointArray[:, 1] <= apertureRect.bottom())     # noqa W504
         )
         if not np.any(included):
             return pointArray[:0]

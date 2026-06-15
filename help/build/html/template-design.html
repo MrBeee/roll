@@ -1,0 +1,297 @@
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Building a template &#8212; Roll 0.7.7 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
+    
+    <script src="_static/documentation_options.js?v=35f4697d"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Roll and QGIS Interface Guide" href="qgis-interface-guide.html" />
+    <link rel="prev" title="Workflow overview" href="workflows.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="qgis-interface-guide.html" title="Roll and QGIS Interface Guide"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="workflows.html" title="Workflow overview"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Building a template</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="building-a-template">
+<h1>Building a template<a class="headerlink" href="#building-a-template" title="Link to this heading">¶</a></h1>
+<section id="receiver-seed-location">
+<h2>Receiver Seed location<a class="headerlink" href="#receiver-seed-location" title="Link to this heading">¶</a></h2>
+<p>The first step of building a template is defining the location of the receiver seed.</p>
+<figure class="align-default">
+<img alt="First step in creating a new template" src="_images/Step_01.png" />
+</figure>
+</section>
+<section id="receiver-seed-inline-growth">
+<h2>Receiver Seed - inline growth<a class="headerlink" href="#receiver-seed-inline-growth" title="Link to this heading">¶</a></h2>
+<p>The next step is to ‘grow’ that seed in the inline direction, defining the point interval and the length of the active spread</p>
+<figure class="align-default">
+<img alt="Second step in creating a new template" src="_images/Step_02.png" />
+</figure>
+</section>
+<section id="receiver-seed-crossline-growth">
+<h2>Receiver Seed - crossline growth<a class="headerlink" href="#receiver-seed-crossline-growth" title="Link to this heading">¶</a></h2>
+<p>The following step is to ‘grow’ that seed in the crossline direction, defining the line intervals and the width of the active spread</p>
+<figure class="align-default">
+<img alt="Third step in creating a new template" src="_images/Step_03.png" />
+</figure>
+<p>The spread defined in these two steps consists of 16 x 4 = 64 receiver points</p>
+</section>
+<section id="source-seed-location">
+<h2>Source Seed location<a class="headerlink" href="#source-seed-location" title="Link to this heading">¶</a></h2>
+<p>The following step is to add a source seed to the template.</p>
+<figure class="align-default">
+<img alt="Fourth step in creating a new template" src="_images/Step_04.png" />
+</figure>
+</section>
+<section id="source-seed-crossline-growth">
+<h2>Source Seed - crossline growth<a class="headerlink" href="#source-seed-crossline-growth" title="Link to this heading">¶</a></h2>
+<p>The next step is to ‘grow’ the source seed in the crossline direction, defining the point interval and the length of the source salvo</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Inline refers to the direction of the receiver line; crossline refers to the direction orthogonal to the receiver line.</p>
+</div>
+<figure class="align-default">
+<img alt="Fifth step in creating a new template" src="_images/Step_05.png" />
+</figure>
+</section>
+<section id="completed-template">
+<h2>Completed template<a class="headerlink" href="#completed-template" title="Link to this heading">¶</a></h2>
+<p>After defining at least one source seed and one receiver seed, and applying the growth steps to these seeds, the template is complete.</p>
+<figure class="align-default">
+<img alt="Sixth step in creating a new template" src="_images/Step_06.png" />
+</figure>
+</section>
+<section id="roll-along">
+<h2>Roll along<a class="headerlink" href="#roll-along" title="Link to this heading">¶</a></h2>
+<p>The completed template is the starting point for rolling the survey geometry.</p>
+<figure class="align-default">
+<img alt="Seventh step in creating a new template" src="_images/Step_07.png" />
+</figure>
+</section>
+<section id="survey-block">
+<h2>Survey Block<a class="headerlink" href="#survey-block" title="Link to this heading">¶</a></h2>
+<p>The overlapping templates together make up the survey geometry within a survey block.</p>
+<figure class="align-default">
+<img alt="Eighth step in creating a new template" src="_images/Step_08.png" />
+</figure>
+</section>
+<section id="block-boundaries">
+<h2>Block boundaries<a class="headerlink" href="#block-boundaries" title="Link to this heading">¶</a></h2>
+<p>It is very rare that surveys taper in and taper out using complete templates. Usually, (<em>separate</em>) block boundaries are applied to the sources and the receivers.</p>
+<figure class="align-default">
+<img alt="Ninth step in creating a new template" src="_images/Step_09.png" />
+</figure>
+</section>
+<section id="multiple-blocks">
+<h2>Multiple blocks<a class="headerlink" href="#multiple-blocks" title="Link to this heading">¶</a></h2>
+<p>It is possible to have multiple blocks within a single project. The blocks can use different templates.</p>
+<figure class="align-default">
+<img alt="Tenth step in creating a new template" src="_images/Step_10.png" />
+</figure>
+<p>These steps define the basics of the template based structure for a survey design in Roll.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In this example all seeds in a template are able to take part in the roll-along activity.
+There are however also seeds that are stationary in space. These are:</p>
+<ol class="arabic simple">
+<li><p>Stationary grid-based seeds</p></li>
+<li><p>Well trajectory based seeds</p></li>
+<li><p>Circle based seeds</p></li>
+<li><p>Spiral based seeds</p></li>
+</ol>
+<p>These seeds are not affected by the template’s roll operation; their position is fully determined by the seed’s origin</p>
+</div>
+</section>
+<section id="nodal-surveys">
+<h2>Nodal surveys<a class="headerlink" href="#nodal-surveys" title="Link to this heading">¶</a></h2>
+<p>In land seismic design, there is a trend towards using <strong>nodal</strong> (<em>cable-less</em>) recording.
+These nodes continuously acquire seismic data. There is no central recording system where shot records can be displayed and analyzed.
+The clock for each independent node is synchronized by GPS. Only when the nodes are collected and data is <em>harvested</em> shot records are being reconstituted.</p>
+<p>Nodes have become rather cheap to manufacture, and as a consequence the channel count on a seismic crew can be in the tens of thousands.
+A shot can be acquired, when all of the nodes needed for the required offsets and azimuths are present.
+By having a large number of nodes (almost) all shots can be recorded at any time.
+Effectively, the whole survey design becomes a single template, removing the need to do any roll-along.</p>
+</section>
+<section id="towed-marine-surveys">
+<h2>Towed marine surveys<a class="headerlink" href="#towed-marine-surveys" title="Link to this heading">¶</a></h2>
+<p>The opposite end-member to template design is formed by towed streamer surveys.
+Here a single source is fired, with a certain streamer configuration towed behind the seismic vessel.</p>
+<p>When the next shot is taken, normally using a different source (<em>think of flip-flop or triple-source shooting</em>) the vessels has already moved
+together with the towed streamer configuration</p>
+<p>So, here we have one shot per template, which is rolled inline, and crossline to form half a <strong>racetrack</strong>.
+The number of templates in a survey is two (<em>for each sailline direction</em>) times the number of race tracks times the number of towed sources.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For Roll the streamer templates are demanding to display, due to the large number of templates with their large overlap. For this reason Level of Detail (LOD) drawing has been implamented, so the GUI stays responsive when zooming in or out.</p>
+</div>
+<section id="racetracks">
+<h3>Racetracks<a class="headerlink" href="#racetracks" title="Link to this heading">¶</a></h3>
+<p>In a marine seismic survey, a racetrack (or racetrack pattern) is a highly efficient navigation strategy
+used by a survey vessel to collect data along parallel paths.
+Instead of turning immediately into the adjacent parallel line at the end of a path—which is physically difficult and time-consuming—the vessel makes a wide turn and circles back to sail down a different line a few kilometers away.This continuous oval looping resembles a sports racing track,
+optimizing both the mechanics of the ship and the quality of the data.</p>
+<p>Why the Racetrack Pattern is Used</p>
+<dl class="simple">
+<dt>Equipment Safety:</dt><dd><p>Modern 3D seismic vessels tow an immense array of specialized equipment, including seismic sound sources (airguns) and multiple data-recording cables called streamers. These streamers can be up to 9–12 kilometers long and spread hundreds of meters wide. Making sharp, immediate turns would cause the cables to tangle, sink, or snap.</p>
+</dd>
+<dt>Data Consistency:</dt><dd><p>The racetrack pattern allows the vessel to acquire adjacent data strips (swathes) while traveling in the same direction. This consistency eliminates geographic data processing anomalies that occur when trying to stitch together back-and-forth alternating lines.</p>
+</dd>
+<dt>Time and Fuel Efficiency:</dt><dd><p>Because the vessel needs a massive turning radius to safely swing its towed equipment around, it cannot simply pivot 180 degrees into the next immediate track. By looping outward to a line further away, the ship avoids “dead time” spent idling or looping aimlessly, keeping the vessel continuously productive</p>
+</dd>
+</dl>
+<figure class="align-default">
+<img alt="Marine streamer racetrack" src="_images/Race_track.png" />
+</figure>
+<section id="how-it-works-in-practice">
+<h4>How it Works in Practice<a class="headerlink" href="#how-it-works-in-practice" title="Link to this heading">¶</a></h4>
+<dl class="simple">
+<dt>The Run In:</dt><dd><p>The vessel makes sure that sources and streamers are on course towards the pre-planned coordinate line (<em>sail line</em>) and starts the sources.</p>
+</dd>
+<dt>The Sail Line:</dt><dd><p>The vessel records data while moving in a straight path along the pre-planned coordinate line.</p>
+</dd>
+<dt>The run-out:</dt><dd><p>In order to ensure a regular (<em>flat</em>) full-fold boundary at the end of the line, the vessels keeps shooting for half a streamer length.</p>
+</dd>
+<dt>The U-Turn:</dt><dd><p>When completeing the run-out, the sources are temporarily powered down. The ship executes a wide, sweeping loop.</p>
+</dd>
+<dt>The Return Line:</dt><dd><p>The ship aligns itself with a new line in the opposite direction (<em>often several kilometers over from the first line</em>), activates the sources and heads back towards the survey area.</p>
+</dd>
+<dt>The Interlocking Grid:</dt><dd><p>The ship repeats this loop over and over, slowly filling in the missing parallel lines on subsequent passes until a seamless, dense grid of the subsurface has been acquired.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the middle of a race track, the sail iine direction reverses. The presence of cross-currents can cause deviation (<em>feathering</em>) of the streamers and this will lead to gaps in the subsurface coverage</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To compensate for gaps caused by feathering, additional “infill lines” may be needed.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By using an <strong>odd</strong> number of sailines in a race track, one can prevent a reversal of the sail line direction between race tracks. This is shown in the above picture, that contains two racetracks, each with 19 saillines.</p>
+</div>
+</section>
+</section>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Building a template</a><ul>
+<li><a class="reference internal" href="#receiver-seed-location">Receiver Seed location</a></li>
+<li><a class="reference internal" href="#receiver-seed-inline-growth">Receiver Seed - inline growth</a></li>
+<li><a class="reference internal" href="#receiver-seed-crossline-growth">Receiver Seed - crossline growth</a></li>
+<li><a class="reference internal" href="#source-seed-location">Source Seed location</a></li>
+<li><a class="reference internal" href="#source-seed-crossline-growth">Source Seed - crossline growth</a></li>
+<li><a class="reference internal" href="#completed-template">Completed template</a></li>
+<li><a class="reference internal" href="#roll-along">Roll along</a></li>
+<li><a class="reference internal" href="#survey-block">Survey Block</a></li>
+<li><a class="reference internal" href="#block-boundaries">Block boundaries</a></li>
+<li><a class="reference internal" href="#multiple-blocks">Multiple blocks</a></li>
+<li><a class="reference internal" href="#nodal-surveys">Nodal surveys</a></li>
+<li><a class="reference internal" href="#towed-marine-surveys">Towed marine surveys</a><ul>
+<li><a class="reference internal" href="#racetracks">Racetracks</a><ul>
+<li><a class="reference internal" href="#how-it-works-in-practice">How it Works in Practice</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="workflows.html"
+                          title="previous chapter">Workflow overview</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="qgis-interface-guide.html"
+                          title="next chapter">Roll and QGIS Interface Guide</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/template-design.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="qgis-interface-guide.html" title="Roll and QGIS Interface Guide"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="workflows.html" title="Workflow overview"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Building a template</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2022-present, Duijndam.Dev.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

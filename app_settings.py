@@ -120,7 +120,9 @@ class AppSettings:
     cfpArray: object = field(default_factory=lambda: QVector3D(config.cfpArray))
     radonSize: int = config.radonSize
     cfpIncoherentQc: bool = config.cfpIncoherentQc
+    cfpRun3x3Diagnostics: bool = config.cfpRun3x3Diagnostics
     cfpFrequencyList: list[float] = field(default_factory=lambda: list(config.cfpFrequencyList))
+    cfpDisplayCutoffFraction: float = config.cfpDisplayCutoffFraction
 
     debug: bool = config.DEFAULT_DEBUG
     debugpy: bool = config.DEFAULT_DEBUGPY
@@ -185,7 +187,9 @@ def cloneAppSettings(appSettings: AppSettings) -> AppSettings:
         cfpArray=QVector3D(appSettings.cfpArray),
         radonSize=appSettings.radonSize,
         cfpIncoherentQc=appSettings.cfpIncoherentQc,
+        cfpRun3x3Diagnostics=appSettings.cfpRun3x3Diagnostics,
         cfpFrequencyList=copy.deepcopy(appSettings.cfpFrequencyList),
+        cfpDisplayCutoffFraction=appSettings.cfpDisplayCutoffFraction,
         debug=appSettings.debug,
         debugpy=appSettings.debugpy,
         useNumba=appSettings.useNumba,

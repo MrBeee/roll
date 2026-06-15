@@ -4518,6 +4518,34 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
+    def testCfpPlaneTemplateJobUsesSettings3x3Toggle(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow._ensureWorkerOperationComponents()
+
+        self.mainWindow.appSettings.cfpRun3x3Diagnostics = False
+        jobSpec = self.mainWindow.workerOperationController._buildCfpPlaneAnalysisFromTemplatesJob()
+        self.assertFalse(jobSpec.request.run3x3Diagnostics)
+
+        self.mainWindow.appSettings.cfpRun3x3Diagnostics = True
+        jobSpec = self.mainWindow.workerOperationController._buildCfpPlaneAnalysisFromTemplatesJob()
+        self.assertTrue(jobSpec.request.run3x3Diagnostics)
+
+    def testCfpPlaneGeometryJobUsesSettings3x3Toggle(self):
+        self.mainWindow.survey = self.createSurvey()
+        self.mainWindow._ensureWorkerOperationComponents()
+
+        srcGeom = np.zeros(1, dtype=pntType1)
+        relGeom = np.zeros(1, dtype=relType2)
+        recGeom = np.zeros(1, dtype=pntType1)
+
+        self.mainWindow.appSettings.cfpRun3x3Diagnostics = False
+        jobSpec = self.mainWindow.workerOperationController._buildCfpPlaneAnalysisFromGeometryTablesJob(srcGeom, relGeom, recGeom, 'Geometry Tables')
+        self.assertFalse(jobSpec.request.run3x3Diagnostics)
+
+        self.mainWindow.appSettings.cfpRun3x3Diagnostics = True
+        jobSpec = self.mainWindow.workerOperationController._buildCfpPlaneAnalysisFromGeometryTablesJob(srcGeom, relGeom, recGeom, 'Geometry Tables')
+        self.assertTrue(jobSpec.request.run3x3Diagnostics)
+
     def testGeometryWorkerRunUsesOptionalProfilingPayload(self):
         class SurveyStub:
             def __init__(self):
@@ -5030,6 +5058,88 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.assertEqual(resultEvents[0].modeLabel, 'incoherent QC')
         self.assertAlmostEqual(float(np.nanmax(resultEvents[0].amplitudeMap)), 1.0, places=6)
         self.assertAlmostEqual(float(resultEvents[0].normalizationFactor), 4.0, places=6)
+
+    def testCfp3x3DiagnosticsSummaryIndependentOfModeSelection(self):
+        class SignalCollector:
+            def __init__(self):
+                self.values = []
+
+            def emit(self, value):
+                self.values.append(value)
+
+        class SurveyStub:
+            def __init__(self):
+                self.errorText = 'cfp plane setup failed'
+                self.progress = SignalCollector()
+                self.message = SignalCollector()
+                self.output = SimpleNamespace(rctOutput=QRectF(0.0, 0.0, 20.0, 10.0))
+                self.grid = SimpleNamespace(binSize=QPointF(10.0, 5.0))
+
+            def fromXmlString(self, xmlString, createArrays):
+                _ = xmlString
+                _ = createArrays
+
+            def prepareGeometryRelationBinningLookup(self):
+                return None
+
+        srcGeom = np.zeros(1, dtype=pntType1)
+        relGeom = np.zeros(1, dtype=relType2)
+        recGeom = np.zeros(1, dtype=pntType1)
+        srcCoords = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
+        srcWeights = np.array([1.0], dtype=np.float32)
+        recCoords = np.array([[0.0, 5.0, 0.0]], dtype=np.float32)
+        recWeights = np.array([1.0], dtype=np.float32)
+
+        baseMap = np.array([[0.2, 0.6], [0.4, 1.0]], dtype=np.float32)
+
+        def makeModeMaps(*_args, **_kwargs):
+            return {
+                'src_off__rec_off': np.ones((2, 2), dtype=np.float32),
+                'src_off__rec_coh': baseMap.copy(),
+                'src_off__rec_incoh': (baseMap * 0.9).copy(),
+                'src_coh__rec_off': (baseMap * 0.8).copy(),
+                'src_coh__rec_coh': (baseMap * 0.7).copy(),
+                'src_coh__rec_incoh': (baseMap * 0.6).copy(),
+                'src_incoh__rec_off': (baseMap * 0.5).copy(),
+                'src_incoh__rec_coh': (baseMap * 0.4).copy(),
+                'src_incoh__rec_incoh': (baseMap * 0.3).copy(),
+            }
+
+        with patch.object(workerThreadsModule, 'RollSurvey', SurveyStub):
+            summaryLinesByMode = {}
+            modeLabels = {}
+
+            for computeIncoherentQc in (False, True):
+                worker = CfpAmplitudeMapWorker(
+                    CfpAmplitudeMapRequest(
+                        xmlString='<survey />',
+                        srcGeom=srcGeom,
+                        relGeom=relGeom,
+                        recGeom=recGeom,
+                        focalZ=-10.0,
+                        maxDipDegrees=45.0,
+                        vint=2500.0,
+                        frequencies=np.array([40.0], dtype=np.float32),
+                        computeIncoherentQc=computeIncoherentQc,
+                        run3x3Diagnostics=True,
+                        sourceName='Templates',
+                    )
+                )
+                with patch.object(worker, '_gatherTracesFromRelations', return_value=(srcCoords, srcWeights, recCoords, recWeights)):
+                    with patch.object(worker, '_compute3x3ModeMaps', side_effect=makeModeMaps):
+                        resultEvents = []
+                        worker.resultReady.connect(resultEvents.append)
+                        worker.run()
+
+                self.assertEqual(len(resultEvents), 1)
+                self.assertTrue(resultEvents[0].success)
+                self.assertIsNotNone(resultEvents[0].diagnosticsSummaryLines)
+                summaryLinesByMode[computeIncoherentQc] = resultEvents[0].diagnosticsSummaryLines
+                modeLabels[computeIncoherentQc] = resultEvents[0].modeLabel
+
+        self.assertEqual(summaryLinesByMode[False], summaryLinesByMode[True])
+        self.assertEqual(modeLabels[False], 'coherent')
+        self.assertEqual(modeLabels[True], 'incoherent QC')
 
     def testCfpApplierUsesNormalizedDisplayLevelsForComparisonRuns(self):
         self.mainWindow._ensureWorkerOperationComponents()

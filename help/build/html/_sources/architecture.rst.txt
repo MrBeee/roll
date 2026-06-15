@@ -8,7 +8,7 @@ The plugin entry point is the ``Roll`` class in ``roll.py``. It integrates with
 QGIS, creates plugin actions, and launches the main application window.
 
 The main UI lives in ``RollMainWindow`` in ``roll_main_window.py``. It loads the
-Qt Designer UI, wires menu and toolbar actions, and coordinates project,
+Qt Designer user interface, wires menu and toolbar actions, and coordinates project,
 plotting, property editing, and processing services.
 
 Core Data Model
@@ -23,22 +23,25 @@ The survey model is centered on ``RollSurvey`` in ``roll_survey.py``.
 * binning-related state; and
 * rendering support for the plotting views.
 
-Project files are stored as XML ``.roll`` documents. The XML keeps the survey
-hierarchy together with metadata such as the CRS WKT string.
+Project files are stored as XML ``.roll`` documents. The XML structure keeps
+the survey geometry and other core data model elements together in a logical
+hierarchy complete with metadata such as the CRS WKT string.
 
 Processing Model
 ----------------
 
-Long-running geometry and binning work is pushed onto ``QThread`` workers.
+Long-running geometry creation, binning and cfp calculations are pushed onto ``QThread`` workers.
 This keeps the GUI responsive while heavy processing runs in the background.
 
 Numeric hot paths live in ``aux_functions_numba.py`` with fallback behavior kept in
-mind for environments where Numba is unavailable.
+mind for environments where Numba is unavailable. 
+Using Numba aims to speed up critical loops in geometry creation and binning, 
+but the plugin can still function without it, albeit with potentially slower performance on large datasets.
 
 Output and Analysis Storage
 ---------------------------
 
-Analysis outputs are represented by ``RollOutput`` in ``roll_output.py``.
+Analysis outputs are represented by ``RollOutput`` members in ``roll_output.py``.
 Full binning writes detailed per-trace information to memory-mapped analysis
 files so large datasets can be processed and inspected without forcing a full
 in-memory load.

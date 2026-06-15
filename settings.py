@@ -218,11 +218,27 @@ class SettingsDialog(QDialog):
                     dict(name='Beam dimensions', type='myRange', flat=True, expanded=False, value=appSettings.cfpArray, default=appSettings.cfpArray, suffix=' [m]', twoDim=True),
                     dict(name='Radon transform size', type='myInt', value=appSettings.radonSize, default=appSettings.radonSize, suffix=' [points]'),
                     dict(
+                        name='Display cut-off value',
+                        type='float',
+                        value=100.0 * appSettings.cfpDisplayCutoffFraction,
+                        default=100.0 * appSettings.cfpDisplayCutoffFraction,
+                        limits=[0.0, 100.0],
+                        step=0.1,
+                        suffix=' %',
+                    ),
+                    dict(
                         name='Incoherent illumination QC',
                         type='bool',
                         value=appSettings.cfpIncoherentQc,
                         default=appSettings.cfpIncoherentQc,
                         tip='Switch illumination calculation to incoherent QC mode (diagnostic only; ignores phase interference).',
+                    ),
+                    dict(
+                        name='Run 3x3 src & rec QC',
+                        type='bool',
+                        value=appSettings.cfpRun3x3Diagnostics,
+                        default=appSettings.cfpRun3x3Diagnostics,
+                        tip='Run source/receiver OFF-COH-INC 3x3 diagnostics matrix for CFP illumination.',
                     ),
                 ],
             ),
@@ -383,7 +399,9 @@ class SettingsDialog(QDialog):
         # cfp analysis settings
         appSettings.cfpArray = CFP.child('Beam dimensions').value()
         appSettings.radonSize = CFP.child('Radon transform size').value()
+        appSettings.cfpDisplayCutoffFraction = 0.01 * CFP.child('Display cut-off value').value()
         appSettings.cfpIncoherentQc = CFP.child('Incoherent illumination QC').value()
+        appSettings.cfpRun3x3Diagnostics = CFP.child('Run 3x3 src & rec QC').value()
 
         # debug settings
         # See: https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
@@ -549,7 +567,9 @@ def readSettings(self):
     appSettings.cfpFrequencyList = list(config.cfpFrequencyList)
     appSettings.cfpArray = rng.read(self.settings.value('settings/cfp/cfpArray', '-800;800;12.5'))
     appSettings.radonSize = self.settings.value('settings/cfp/radonSize', 128, type=int)
+    appSettings.cfpDisplayCutoffFraction = self.settings.value('settings/cfp/cfpDisplayCutoffFraction', config.cfpDisplayCutoffFraction, type=float)
     appSettings.cfpIncoherentQc = self.settings.value('settings/cfp/cfpIncoherentQc', config.cfpIncoherentQc, type=bool)
+    appSettings.cfpRun3x3Diagnostics = self.settings.value('settings/cfp/cfpRun3x3Diagnostics', config.cfpRun3x3Diagnostics, type=bool)
 
     # debug information
     # See: https://forum.qt.io/topic/108622/how-to-get-a-boolean-value-from-qsettings-correctly/8
@@ -636,7 +656,9 @@ def writeSettings(self):
     # cfp analysis information
     self.settings.setValue('settings/cfp/cfpArray', rng.write(appSettings.cfpArray))
     self.settings.setValue('settings/cfp/radonSize', appSettings.radonSize)
+    self.settings.setValue('settings/cfp/cfpDisplayCutoffFraction', appSettings.cfpDisplayCutoffFraction)
     self.settings.setValue('settings/cfp/cfpIncoherentQc', appSettings.cfpIncoherentQc)
+    self.settings.setValue('settings/cfp/cfpRun3x3Diagnostics', appSettings.cfpRun3x3Diagnostics)
 
     # debug information
     self.settings.setValue('settings/debug/logging', appSettings.debug)

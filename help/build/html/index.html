@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 
 <html lang="en" data-content_root="./">
@@ -5,17 +6,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Roll Documentation &#8212; Roll 0.7.5 documentation</title>
+    <title>Installation &#8212; Roll 0.7.7 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
     
-    <script src="_static/documentation_options.js?v=a674670e"></script>
+    <script src="_static/documentation_options.js?v=35f4697d"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
-    
+    <script src="_static/bizstyle.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="User Guide" href="user-guide.html" /> 
+    <link rel="next" title="User Guide" href="user-guide.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
   </head><body>
     <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
@@ -26,8 +31,8 @@
         <li class="right" >
           <a href="user-guide.html" title="User Guide"
              accesskey="N">next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">Roll 0.7.5 documentation</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">Roll Documentation</a></li> 
+        <li class="nav-item nav-item-0"><a href="#">Roll 0.7.7 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Installation</a></li> 
       </ul>
     </div>  
 
@@ -36,11 +41,8 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <section id="roll-documentation">
-<h1>Roll Documentation<a class="headerlink" href="#roll-documentation" title="Link to this heading">¶</a></h1>
-<p>Roll is a QGIS plugin for designing and analyzing 3D seismic survey geometries.
-This Sphinx site provides a minimal project manual for users and contributors.</p>
-<p>The Roll and QGIS round-trip workflow is documented directly in this help site.</p>
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h1>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">User Documentation</span></p>
 <ul>
@@ -49,22 +51,36 @@ This Sphinx site provides a minimal project manual for users and contributors.</
 <li class="toctree-l2"><a class="reference internal" href="user-guide.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user-guide.html#core-concepts">Core Concepts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user-guide.html#project-files-and-outputs">Project files and outputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user-guide.html#main-outputs">Main Outputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user-guide.html#d-view">3D View</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide.html#main-analysis-outputs">Main Analysis Outputs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user-guide.html#survey-wizards">Survey Wizards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user-guide.html#importing-sps-data">Importing SPS Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user-guide.html#editing-survey-files">Editing Survey Files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user-guide.html#interaction-with-qgis">Interaction with QGIS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user-guide.html#d-view">3D View</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user-guide.html#related-help">Related Help</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflow overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="workflows.html#template-based-survey-design">Template-Based Survey Design</a></li>
 <li class="toctree-l2"><a class="reference internal" href="workflows.html#land-and-marine-wizards">Land and Marine Wizards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="workflows.html#sps-driven-workflow">SPS-Driven Workflow</a></li>
 <li class="toctree-l2"><a class="reference internal" href="workflows.html#qgis-round-trip-editing">QGIS Round-Trip Editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="workflows.html#d-and-well-oriented-work">3D and Well-Oriented Work</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workflows.html#packaging-the-documentation">Packaging the Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="template-design.html">Building a template</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#receiver-seed-location">Receiver Seed location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#receiver-seed-inline-growth">Receiver Seed - inline growth</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#receiver-seed-crossline-growth">Receiver Seed - crossline growth</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#source-seed-location">Source Seed location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#source-seed-crossline-growth">Source Seed - crossline growth</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#completed-template">Completed template</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#roll-along">Roll along</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#survey-block">Survey Block</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#block-boundaries">Block boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#multiple-blocks">Multiple blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#nodal-surveys">Nodal surveys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="template-design.html#towed-marine-surveys">Towed marine surveys</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="qgis-interface-guide.html">Roll and QGIS Interface Guide</a><ul>
@@ -87,7 +103,6 @@ This Sphinx site provides a minimal project manual for users and contributors.</
 <li class="toctree-l2"><a class="reference internal" href="status.html#to-do">To Do</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
@@ -105,13 +120,158 @@ This Sphinx site provides a minimal project manual for users and contributors.</
 </li>
 </ul>
 </div>
-</section>
-<section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h1>
+<p>Roll is a QGIS plugin for designing and analyzing 3D seismic survey geometries.
+The installation details below describe the Python packages that should be available
+in the QGIS or OSGeo4W Python environment.</p>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+<li><p>QGIS version 3.34 or later. Note: Roll is compatible with QGIS 4.00 and higher.</p></li>
+<li><p>Runs on Windows with the OSGeo4W or QGIS Python environment.</p></li>
 </ul>
+</section>
+<section id="required-python-packages">
+<h2>Required Python Packages<a class="headerlink" href="#required-python-packages" title="Link to this heading">¶</a></h2>
+<p>Please install the following packages before using Roll:</p>
+<table class="docutils align-left">
+<thead>
+<tr class="row-odd"><th class="head"><p>Package</p></th>
+<th class="head"><p>Version</p></th>
+<th class="head"><p>Purpose</p></th>
+<th class="head"><p>Required ?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">debugpy</span></code></p></td>
+<td><p>1.8.17</p></td>
+<td><p>Debugging GUI and worker-thread code.</p></td>
+<td><p>Optional</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">numba</span></code></p></td>
+<td><p>0.62.1</p></td>
+<td><p>Accelerating numeric kernels.</p></td>
+<td><p>Recommended</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">numpy</span></code></p></td>
+<td><p>1.26.4</p></td>
+<td><p>Numeric array processing.</p></td>
+<td><p>Required</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pyqtgraph</span></code></p></td>
+<td><p>0.13.7</p></td>
+<td><p>Plotting and interactive visualization.</p></td>
+<td><p>Required</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rasterio</span></code></p></td>
+<td><p>1.4.1</p></td>
+<td><p>GeoTIFF export.</p></td>
+<td><p>Required</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">wellpathpy</span></code></p></td>
+<td><p>0.5.2</p></td>
+<td><p>Well trajectory support.</p></td>
+<td><p>Required</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>When upgrading QGIS across Python major versions, these dependencies may need
+to be installed again in the new QGIS Python environment.</p>
+</div>
+</section>
+<section id="installing-packages">
+<h2>Installing Packages<a class="headerlink" href="#installing-packages" title="Link to this heading">¶</a></h2>
+<p>Install these packages with <code class="docutils literal notranslate"><span class="pre">pip</span></code> from the OSGeo4W command prompt on Windows.
+Use <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">list</span></code> first to detect which packages and versions are already
+installed. For example, <code class="docutils literal notranslate"><span class="pre">numpy</span></code> should normally already be installed by QGIS.</p>
+<p>Start by installing <code class="docutils literal notranslate"><span class="pre">rasterio</span></code>, because it has quite a few dependencies.
+Then install <code class="docutils literal notranslate"><span class="pre">numba</span></code>, <code class="docutils literal notranslate"><span class="pre">pyqtgraph</span></code>, and <code class="docutils literal notranslate"><span class="pre">wellpathpy</span></code> in that order.</p>
+<p>Use the following command pattern:</p>
+<div class="highlight-bat notranslate"><div class="highlight"><pre><span></span>python -m pip install {package_name}=={package_version}
+</pre></div>
+</div>
+<p>Installing <code class="docutils literal notranslate"><span class="pre">rasterio</span></code> also installs or requires packages such as <code class="docutils literal notranslate"><span class="pre">affine</span></code>,
+<code class="docutils literal notranslate"><span class="pre">attrs</span></code>, <code class="docutils literal notranslate"><span class="pre">certifi</span></code>, <code class="docutils literal notranslate"><span class="pre">chardet</span></code>, <code class="docutils literal notranslate"><span class="pre">charset-normalizer</span></code>, <code class="docutils literal notranslate"><span class="pre">click</span></code>,
+<code class="docutils literal notranslate"><span class="pre">click-plugins</span></code>, <code class="docutils literal notranslate"><span class="pre">cligj</span></code>, and <code class="docutils literal notranslate"><span class="pre">colorama</span></code>. Installing <code class="docutils literal notranslate"><span class="pre">numba</span></code> also
+installs the <code class="docutils literal notranslate"><span class="pre">llvmlite</span></code> bindings for the LLVM JIT compiler.</p>
+</section>
+<section id="installation-notes">
+<h2>Installation notes<a class="headerlink" href="#installation-notes" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Packages newer than the versions listed above may contain bug fixes, but may also introduce incompatibilities.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wellpathpy</span></code> 0.5.2 resolved a deprecation warning from 0.5.0 by removing a call to <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">pkg_resources</span></code>.</p></li>
+<li><p>The plugin has not yet been tested on Linux or macOS.</p></li>
+<li><p>The plugin works best on a QHD screen, 2560 x 1440 pixels, or larger.</p></li>
+<li><p>As of QGIS 3.32, High-DPI UI scaling issues have arisen. See the <a class="reference external" href="https://github.com/qgis/QGIS/issues/53898">QGIS issue on GitHub</a>.</p></li>
+<li><p>As of QGIS 3.34.6, QGIS upgraded Python from version 3.9 to 3.12. This speeds up calculations and solves some security issues. When upgrading from an earlier QGIS version, install the packages listed above again.</p></li>
+<li><p>As of Roll 0.4.6, the plugin is compatible with Qt 6. With Qt 6, the High-DPI scaling issues have been resolved.</p></li>
+<li><p>As of Roll 0.6.3, the plugin is compatible with QGIS 4.0. Some NumPy attribute names needed to be updated for NumPy 2.0 compatibility.</p></li>
+</ul>
+</section>
+<section id="changelog">
+<h2>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h2>
+<p>Recent releases are summarized below.</p>
+<ul class="simple">
+<li><p>2026-06-09 (0.7.7) Improved CFP implementation, expanded Sphinx documentation</p></li>
+<li><p>2026-05-22 (0.7.6) Implemented the first step of Sphinx documentation, accessible from F1.</p></li>
+<li><p>2026-05-20 (0.7.5) Updated <code class="docutils literal notranslate"><span class="pre">Readme.md</span></code> and completed final flake8 cleanup for plugin upload.</p></li>
+<li><p>2026-05-19 (0.7.4) Updated metadata project information.</p></li>
+<li><p>2026-05-19 (0.7.3) Fixed an experimental geometry-generation bug affecting fixed grids.</p></li>
+<li><p>2026-05-17 (0.7.2) Fixed template-count progress messaging in geometry generation.</p></li>
+<li><p>2026-05-15 (0.7.1) Added the Shift Survey Location dialog and expanded 3D view support.</p></li>
+<li><p>2026-05-06 (0.7.0) Optimized binning from templates and geometry and completed flake8 cleanup.</p></li>
+<li><p>2026-05-01 (0.6.9) Added TWT support to inline and crossline offset displays.</p></li>
+<li><p>2026-04-30 (0.6.8) Added a 3D view for a subset of survey data and faster worker-thread routines.</p></li>
+<li><p>2026-04-22 (0.6.7) Improved SPS import and handling.</p></li>
+<li><p>2026-04-21 (0.6.6) Added max-offset-gap analysis and fixed an interrupted-worker crash.</p></li>
+<li><p>2026-04-16 (0.6.5) Added inline and crossline offsets to offset plots and improved mouse tracking.</p></li>
+<li><p>2026-04-09 (0.6.4) Added a polar diagram for the offset-azimuth histogram.</p></li>
+<li><p>2026-03-10 (0.6.3) Updated code for NumPy 2.0 compatibility in QGIS 4.0.</p></li>
+<li><p>2026-03-08 (0.6.2) Reformatted attribute and variable names for camelCase compatibility.</p></li>
+<li><p>2026-02-25 (0.6.1) Fixed Boolean reading from XML text input.</p></li>
+<li><p>2026-02-23 (0.6.0) Added standalone app support for testing and debugging.</p></li>
+<li><p>2026-02-13 (0.5.9) Added transparent fold-map rendering where fold equals zero.</p></li>
+<li><p>2026-02-10 (0.5.8) Fixed a chart clipboard bug.</p></li>
+<li><p>2026-02-07 (0.5.7) Updated find-and-replace for direct XML editing and fixed enum issues.</p></li>
+<li><p>2026-02-07 (0.5.6) Added preview and print support for XML and charts.</p></li>
+<li><p>2026-02-06 (0.5.5) Fixed azimuth-range handling in the offset-azimuth diagram.</p></li>
+<li><p>2026-02-03 (0.5.4) Improved SPS import and export.</p></li>
+<li><p>2026-01-29 (0.5.3) Fixed pattern management in the property panel.</p></li>
+<li><p>2026-01-28 (0.5.2) Fixed block-boundary coverage gaps in multi-block marine surveys.</p></li>
+<li><p>2025-12-03 (0.5.1) Added flexible SPS format definition and binning without relation files.</p></li>
+<li><p>2025-09-22 (0.5.0) Added progressive painting, moved debugging to debugpy, and used relative well paths.</p></li>
+<li><p>2025-09-22 (0.4.9) Fixed numba-related bugs.</p></li>
+<li><p>2025-09-19 (0.4.8) Added chunked data access for very large memory-mapped analysis files.</p></li>
+<li><p>2025-09-17 (0.4.7) Fixed a crash with very large memory-mapped analysis files.</p></li>
+<li><p>2025-09-12 (0.4.6) Reformatted the codebase for Qt 6 compatibility while retaining Qt 5 support.</p></li>
+<li><p>2025-06-09 (0.4.5) Accepted projects created from SPS data only.</p></li>
+<li><p>2025-06-01 (0.4.4) Changed QGIS SPS point display behavior for most survey types.</p></li>
+<li><p>2025-05-11 (0.4.3) Improved Roll-QGIS transfer workflows and added the HTML help page.</p></li>
+<li><p>2025-03-05 (0.4.2) Refactored parameter management to speed up large property panes.</p></li>
+<li><p>2025-02-22 (0.4.1) Added marine-wizard feathering and selective survey-detail drawing.</p></li>
+<li><p>2025-02-15 (0.4.0) Updated the marine wizard and simplified no-fanning data structures.</p></li>
+<li><p>2025-02-11 (0.3.9) Added the marine wizard and improved layout-tab LOD rendering.</p></li>
+<li><p>2024-11-02 (0.3.8) Improved pattern editing and pattern-tab display.</p></li>
+<li><p>2024-10-22 (0.3.7) Introduced multiple seeds per pattern with backward compatibility.</p></li>
+<li><p>2024-10-15 (0.3.6) Added a pattern tab and pattern-aware stack-response work.</p></li>
+<li><p>2024-10-09 (0.3.5) Moved statistics calculations to extended binning and updated metadata.</p></li>
+<li><p>2024-07-27 (0.3.4) Added the <code class="docutils literal notranslate"><span class="pre">inuse</span></code> field to source and receiver points in QGIS.</p></li>
+<li><p>2024-07-24 (0.3.3) Improved the QGIS interface, rasterio CRS handling, and cleared the experimental flag.</p></li>
+<li><p>2024-07-08 (0.3.2) Significantly sped up geometry creation from templates and fixed land-wizard bugs.</p></li>
+<li><p>2024-06-02 (0.3.1) Added a display menu and fixed related usability issues.</p></li>
+<li><p>2024-05-27 (0.3.0) Reduced minimal table widths for easier work on full-HD displays.</p></li>
+<li><p>2024-05-23 (0.2.9) Expanded Numba usage, added RMS-offset plotting, and implemented profiling.</p></li>
+<li><p>2024-05-04 (0.2.8) Added Numba acceleration, stack-response analysis, and histogram views.</p></li>
+<li><p>2024-04-22 (0.2.7) Temporarily removed Numba JIT references due to exception-handling problems.</p></li>
+<li><p>2024-04-21 (0.2.6) Added the Analysis tab with trace tables, offsets, azimuths, and stack response.</p></li>
+<li><p>2024-04-13 (0.2.5) Included TWT values in the trace table and implemented unique fold.</p></li>
+<li><p>2024-04-08 (0.2.4) Improved well-file handling.</p></li>
+<li><p>2024-03-30 (0.2.3) Updated metadata text and dependency descriptions.</p></li>
+<li><p>2024-03-30 (0.2.2) Improved line and stake handling and refactored parameter handling.</p></li>
+<li><p>2024-03-13 (0.2.1) Initial release on the QGIS plugin website.</p></li>
+</ul>
+</section>
 </section>
 
 
@@ -124,10 +284,14 @@ This Sphinx site provides a minimal project manual for users and contributors.</
   <div>
     <h3><a href="#">Table of Contents</a></h3>
     <ul>
-<li><a class="reference internal" href="#">Roll Documentation</a><ul>
+<li><a class="reference internal" href="#">Installation</a><ul>
+<li><a class="reference internal" href="#requirements">Requirements</a></li>
+<li><a class="reference internal" href="#required-python-packages">Required Python Packages</a></li>
+<li><a class="reference internal" href="#installing-packages">Installing Packages</a></li>
+<li><a class="reference internal" href="#installation-notes">Installation notes</a></li>
+<li><a class="reference internal" href="#changelog">Changelog</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 
   </div>
@@ -166,8 +330,8 @@ This Sphinx site provides a minimal project manual for users and contributors.</
         <li class="right" >
           <a href="user-guide.html" title="User Guide"
              >next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">Roll 0.7.5 documentation</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">Roll Documentation</a></li> 
+        <li class="nav-item nav-item-0"><a href="#">Roll 0.7.7 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Installation</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

@@ -78,6 +78,7 @@ class ActionStateController:
             ('actionExportMaxOffsetsToQGIS', window.output.maxOffset is not None),
             ('actionExportRmsOffsetsToQGIS', window.output.rmsOffset is not None),
             ('actionExportOffsetGapsToQGIS', window.output.gapOffset is not None),
+            ('actionExportIllumination', window.output.cfpOutput is not None),
             ('actionRecPoints', window.recGeom is not None),
             ('actionSrcPoints', window.srcGeom is not None),
             ('actionRpsPoints', window.rpsImport is not None),
@@ -129,12 +130,12 @@ class ActionStateController:
         experimentalEnabled = bool(self.window.appSettings.useExperimental)
 
         self._setActionVisibility(
-            ('actionCFPPointAnalysisFromTemplates', experimentalEnabled),
-            ('actionCFPPointAnalysisFromGeometry', experimentalEnabled),
-            ('actionCFPPointAnalysisFromSPSInput', experimentalEnabled),
-            ('actionCFPPlaneAnalysisFromTemplates', experimentalEnabled),
-            ('actionCFPPlaneAnalysisFromGeometry', experimentalEnabled),
-            ('actionCFPPlaneAnalysisFromSPSInput', experimentalEnabled),
+            ('menuCFPPointAnalysis', experimentalEnabled),
+            ('menuCFPPlaneAnalysis', experimentalEnabled),
+            ('actionIllumination', experimentalEnabled),
+            ('actionExportIllumination', experimentalEnabled),
+            ('tbIllumination', experimentalEnabled),
+            ('btnIlluminationToQGIS', experimentalEnabled),
         )
 
     def clipboardHasText(self):
@@ -211,4 +212,11 @@ class ActionStateController:
 
     def _setActionVisibility(self, *entries) -> None:
         for actionName, visible in entries:
-            getattr(self.window, actionName).setVisible(visible)
+            if hasattr(self.window, actionName):
+                actionObj = getattr(self.window, actionName)
+                # QMenu entries in menu bars should be hidden via menuAction() to avoid
+                # transient orphan popups during menu rebuilds.
+                menuActionMethod = getattr(actionObj, 'menuAction', None)
+                if callable(menuActionMethod):
+                    actionObj = menuActionMethod()
+                actionObj.setVisible(visible)

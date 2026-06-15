@@ -1,5 +1,5 @@
-Workflows
-=========
+Workflow overview
+=================
 
 Template-Based Survey Design
 ----------------------------
@@ -65,15 +65,3 @@ Guide`` page in this Sphinx site.
 Roll also supports a 3D view for a subset of the survey layout, including
 non-rolling seeds, grids, circles, spirals, and well-related geometry. This is
 particularly relevant for dipping-plane, well, and VSP-style use cases.
-
-Packaging the Documentation
----------------------------
-
-When you want the Sphinx documentation included in the plugin zip, run these
-steps from the plugin root:
-
-1. ``run_sphinx_documentation.bat``
-2. ``run_package_plugin.bat``
-
-The packaging script copies the built ``help/build/html`` output into the zip
-when it is present.

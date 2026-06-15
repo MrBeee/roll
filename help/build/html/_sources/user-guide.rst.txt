@@ -4,83 +4,104 @@ User Guide
 Overview
 --------
 
-Roll is built around designing a survey first and analyzing it second. The
-plugin supports both template-driven survey design and geometry-driven
-processing based on imported SPS data.
+The purpose of **Roll** is to build (*design*) surveys first, using a template based approach, with the help of design wizards.
+Once completed, the survey layout can be checked visually in the *Layout* tab, before running some analysis jobs using 'worker threads'.
+The template information can be converted into geometry tables, eliminating any source or receiver duplication caused by template overlap.
+The plugin supports both template-driven survey analysis as well as geometry-driven analysis. 
+The latter can be based on created geometry tables, or imported SPS data.
 
 At a high level, Roll lets you:
 
-* create or load a survey project;
-* define blocks, templates, seeds, patterns, and roll along behavior;
-* generate geometry and run binning analysis;
-* inspect analysis outputs inside Roll; and
-* export geometry and raster outputs to QGIS.
+* Create or load a survey project;
+* Define blocks, templates, seeds, patterns, and roll along behavior;
+* Generate geometry tables from the template definition;
+* Run binning analysis from templates or geometry tables;
+* Inspect analysis outputs inside Roll; and
+* Export geometry and raster outputs to QGIS.
 
 Prerequisites
 -------------
 
-Roll runs inside QGIS and expects its optional Python dependencies to be
-installed in the QGIS Python environment, typically from the OSGeo4W shell on
-Windows.
+Roll runs inside QGIS and expects its Python dependencies to be installed in the QGIS Python environment,
+typically from the OSGeo4W shell on Windows. Roll has not yet been tested on Linux or MacOS,
+but should work on those platforms as well, provided the dependencies are installed in the QGIS Python environment.
 
-Install dependencies from the OSGeo4W command shell with commands such as
-``python -m pip install --upgrade package-name``.
+.. note::
 
-Important optional dependencies include:
+   It is possible to run Roll independently from QGis. Obviously, interaction with QGis will then be disabled. A batch file has been created for this purpose.
+   The batch file is included in the GitHub repository. For security reasons it is not uploaded to the OSGeo Plugins repository. The GitHub repository can be found `here <https://github.com/MrBeee/roll>`__.
 
-* ``debugpy`` for debugging GUI and worker-thread code;
-* ``numba`` to accelerate numeric kernels;
-* ``numpy`` for numeric array processing;
-* ``pyqtgraph`` for plotting and interactive visualization;
-* ``rasterio`` for GeoTIFF export; and
-* ``wellpathpy`` for well trajectory support.
-
-When upgrading QGIS across Python major versions, these dependencies may need
-to be installed again in the new QGIS Python environment.
 
 Core Concepts
 -------------
 
-Roll uses a small set of domain concepts throughout the UI and file format.
+Roll uses a small set of domain concepts throughout the survey design and file formats.
 
 Block
-   A survey consists of one or more rectangular blocks.
+   A survey consists of one or more rectangular **blocks**. When a survey area has been defined by the interpreter,
+   it is always the most efficient to cover the area as a single block.
+   The reason for this is that one needs to create a seemless merge (*for the relevant offsets*) at each block boundary.
+   Said differently, at a block boundary there will be repeated source and/or receiver effort which brings additional costs.
+   In the past the available channel count for a land crew was very limited, and the use of multiple blocks was often unavoidable
 
 Template
-   Each block contains one or more templates. A template describes how sources
-   and receivers are arranged before rolling.
+   Each block contains one or more **templates**. A template describes how sources and receivers are arranged together before rolling.
+   Sources and receivers are defined by seeds and grow lists. Each template requires at least one receiver seed and one source seed to create output traces.
+   Templates are discussed in more detail in the template design section.
+
+
+   .. note::
+
+      A template defines the combination of all receivers that are active for all sources *within the same template*.
+      This means that a template with 10 source points and 1,000 receivers will result in 10 x 1,000 = 10,000 output traces.
+  
+      During processing part of these traces may be filtered out based on binning parameters, but the template definition itself does not have a concept of trace filtering. 
 
 Seed
-   A seed is the starting location of a source or receiver definition.
+   A **seed** is the starting location of a source or receiver definition. It is defined using local coordinates (*unless it is part of a well trajectory*)
 
 Grow list
-   Each seed can be grown in up to three steps. These growth steps turn a point
-   into a line, a line into a grid, and a grid into a repeated pattern.
+   Each seed can be **grown** up to three times in different directions. These growth steps can therefore turn a point into a line,
+   a line into a grid, and a grid into interwoven grids.
 
 Roll list
-   Each template can be rolled in up to three directions to repeat the template
-   over the survey area.
+   The seeds and their grow steps make up a single template. Each template can then be **rolled** in different directions repeating it across the survey area. 
+   The roll steps (*maximum three*) are defined in a roll list that is owned by its block.
 
-Template versus geometry
-   Template-based processing keeps the compact survey definition. Geometry-based
-   processing expands that definition into actual source and receiver positions.
-   Receiver positions may repeat across templates, so relation data is used to
-   preserve which receivers were active for each shot.
+Geometry tables and SPS data
+   Between subsequent templates (*that are being rolled*) there is an enormous **overlap** (*repeating the same points many times*).
+   In real life, some points may need to be skipped, and others need to be moved to a different location.
+   The **template** based cookie-cutter approach is not very suited for this. 
+   
+   For this reason, the **geometry** based approach has been developed, whereby each source and receiver point is identified once and added to source-/receiver tables.
+   A relation table is being built simultaneously, that keeps track which receivers are active for each shot point.
 
-Within a template, all active sources shoot into all active receivers in that
-template. Additional source and receiver seeds can be added where needed.
+Template- versus geometry based processing
+   Template-based processing is very suited for quick analysis of the nominal (*hypothetical*) survey layout, and keeps the survey definition compact. 
+   Templates are ideal to compare different designs, based on quality indicators, such as fold maps and offset maps. The downside of the template approach are twofold:
+
+   1. Source and receiver locations are implicit and not directly editable. They are repeated many times in the survey design due to template overlap
+   2. You can't easily represent complex survey layouts that don't fit the cookie cutter approach, such as surveys with a lot of local variation or with non-rectangular geometry.
+
+   Geometry-based processing uses explicit source and receiver locations, whereby each source and receiver position is defined individually, avoiding duplication.
+   By running ``Create Geometry from Templates``, tables with unique source and receiver locations are generated as well as a relational file, that preserves which receivers are active for each shot. 
+   
+   Geometry-based processing is ideal for working with complex survey layouts and for processing that focuses on the actual source and receiver positions, such as trace-table views and spider plots.
+   The source and receiver tables can be exported to QGIS, where they can be manipulated (*moved around, inactivated, or deleted*). 
+   The edited source and receiver tables can then be re-imported into Roll which is especially useful for QC of the edited source- /receiver points,
+   The same approach can also be used for analysis of existing surveys that have been imported using SPS data.
 
 Project files and outputs
 -------------------------
 
-Roll project files use the ``.roll`` XML format. The project stores the survey
-hierarchy and CRS information, including the CRS as WKT on the XML root.
+Roll project files use the Extensible Markup Language (XML) format and the ``.roll`` file extension. XML is a widely used format for structured data, and has  several advantages:
 
-Analysis outputs are stored alongside the project through sidecar files. Full
-binning uses a named memory-mapped analysis file so large trace datasets can be
-worked with incrementally instead of being loaded fully into memory.
+* It is human-readable and (*if necessary*) can be edited with a text editor directly within Roll's XML pane.
+* It supports a hierarchical structure, which is very suitable for representing the nested nature of survey elements such as blocks, templates, seeds, and rolls.
+* It allows for the inclusion of metadata, such as the coordinate reference system (CRS) in Well-Known Text (WKT) format, which is essential for geospatial applications.
+* It is extensible, allowing for the addition of new elements and attributes as the software evolves, avoiding hassle with version management of project files
 
-The template-based survey hierarchy is reflected in the XML project structure.
+Below, the core of the XML structure is illustrated with a simplified example. The actual XML structure includes additional attributes and elements to capture the full range of survey design options and metadata.
 
 .. code-block:: xml
 
@@ -119,49 +140,89 @@ The template-based survey hierarchy is reflected in the XML project structure.
       </block>
    </block_list>
 
-Main Outputs
-------------
+Apart from the project file, Roll also generates analysis outputs that are stored alongside the project as binary numpy files, which carry the ``xxx.npy`` extension. 
+These outputs include fold maps, offset maps, and other visualizations that are derived from the survey geometry and processing parameters. 
+The trace table uses a memory-mapped file so large tables can be worked with incrementally instead of being loaded fully into memory.
+Therefore 
 
-Depending on the workflow and the chosen processing mode, Roll can produce:
+Using ``orthogonal_001.roll`` as an example, the full list of numpy analysis files is currently:
 
-* fold maps;
-* minimum and maximum offset maps;
-* RMS offset increment and maximum offset gap maps;
-* spider plots for individual bins;
-* trace-table views backed by analysis files; and
-* georeferenced raster exports for use in QGIS.
+.. csv-table::
+   :header: "File", "Extension"
+   :align: left
 
-Full binning extends the basic outputs with detailed per-trace information such
-as line and stake numbers, source and receiver coordinates, CMP coordinates,
-travel time, offset, azimuth, and unique-fold related values.
+   "``Orthogonal_001.roll.ana.npy``", "Memory mapped trace table (*analysis file*)"
+   "``Orthogonal_001.roll.azi.npy``", "Azimuth/offset histogram"
+   "``Orthogonal_001.roll.bin.npy``", "Binning results (*fold map*)"
+   "``Orthogonal_001.roll.cfp.npy``", "CFP based illumination map"
+   "``Orthogonal_001.roll.gap.npy``", "Max offset gap map"
+   "``Orthogonal_001.roll.max.npy``", "Maximum offset map"
+   "``Orthogonal_001.roll.min.npy``", "Minimum offset map"
+   "``Orthogonal_001.roll.off.npy``", "Offset histogram"
+   "``Orthogonal_001.roll.rms.npy``", "RMS offset gap map"
+   "``Orthogonal_001.roll.rec.npy``", "geometry tables: receiver locations"
+   "``Orthogonal_001.roll.rel.npy``", "geometry tables: sr/rec relation file"
+   "``Orthogonal_001.roll.src.npy``", "geometry tables: source locations"
 
-Analysis plots available in the main application include:
+Main Analysis Outputs
+---------------------
 
-* inline and crossline offset displays;
-* inline and crossline azimuth displays;
-* inline and crossline stack-response views;
-* single-bin ``Kxy`` stack response; and
-* offset and offset-azimuth histograms.
+Depending on the workflow and the chosen processing mode, Roll produces various analysis plots:
 
-3D View
--------
+In the **Layout** tab these are
 
-Roll includes a 3D view for a subset of the survey layout. This is especially
-useful for dipping-plane surveys, well trajectories, and VSP-style geometry.
-Rolling templates are too expensive to render fully in 3D, so the view focuses
-on non-rolling seeds and related geometry that are most useful to inspect.
+* Analysis area
+* fold map
+* minimum offsets
+* maximum offsets
+* rms offset increments
+* Max offset gaps
+* Illumination regularity map
+* Spider plots for individual bins
 
-.. figure:: ../../images/3D_vsp_image.png
-   :alt: 3D representation of a survey area
+The **layout** tab contains buttons to export these plots directly to QGis in a georeferenced manner. 
+This funcionality is also available from the File -> export menu.
 
-   3D representation of a survey area.
+Under the **Analysis** tab, one can find:
+
+* A trace table with all binning results
+* Inline / crossline offsets
+* Inline / crossline azimuths
+* Inline / crossline stack response
+* KxKy stack response
+* Common Focal Point (CFP) analysis for a single point with:
+
+  * In the spatial (x, y) domain:
+
+    * Source beam
+    * Receiver beam
+    * Resolution function
+
+  * In the Radon domain:
+
+    * Source beam
+    * Receiver beam
+    * AVP function
+
+* Offset histogram for the whole analysis area
+* Offset / Azimuth diagram for the analysis area
+
+.. note::
+
+   'Full binning' extends the basic outputs with detailed per-trace information such
+   as line and stake numbers, source and receiver coordinates, CMP coordinates,
+   travel time, offset, azimuth, and unique-fold related values.
+
 
 Survey Wizards
 --------------
 
-Roll provides separate wizards for land and marine survey design.
+Roll provides separate wizards for **land** and **marine** survey design.
 
-The land wizard supports several survey families:
+Land/OBN Survey Wizard
+~~~~~~~~~~~~~~~~~~~~~~
+
+The land/OBN survey wizard supports several geometry types:
 
 1. orthogonal
 2. parallel
@@ -169,32 +230,39 @@ The land wizard supports several survey families:
 4. brick
 5. zigzag
 
-The marine wizard is specialized for towed-streamer acquisition. It accounts
+Marine Survey Wizard
+~~~~~~~~~~~~~~~~~~~~
+
+The marine survey wizard is specialized in towed-streamer acquisition. It accounts
 for turning-radius constraints and race-track style acquisition planning when
-constructing practical survey layouts.
+constructing practical survey layouts. 
+It tries to optimize race track size to achieve minimal survey duration
 
 Importing SPS Data
 ------------------
 
-Legacy SPS data can be imported through the file menu and processed in much the
-same way as internally generated geometry files.
+Legacy SPS data can be imported from the file menu and processed in much the
+same way as internally generated geometry tables.
 
-Roll ships with predefined SPS dialects and also allows users to define and
-store additional dialects by adjusting columns such as line number, point
+Roll ships with predefined SPS dialects and allows users to define and
+store additional SPS dialects by adjusting columns used for line number, point
 number, northing, and easting. This makes the plugin useful both for survey
 design and for QC or re-analysis of existing acquisition data.
 
 Editing Survey Files
 --------------------
 
-Roll helps users avoid direct XML editing in most cases.
+Roll helps users avoid direct XML editing in almost all cases.
 
-1. New projects can be created with the land or marine survey wizard.
-2. Existing project content can be modified in the property pane, which updates
+1. New surveys can be created with the land or marine survey wizard.
+2. Existing surveys can be modified in the property pane, which updates
    the XML structure behind the scenes.
 
-Advanced users can still edit the XML directly and apply those changes through
-the refresh-document action.
+.. note::
+
+   Advanced users can still edit the XML directly and apply those changes using
+   the ``Reload document`` action (Ctrl+F5 from the View menu).
+
 
 Interaction with QGIS
 ---------------------
@@ -208,8 +276,24 @@ marked inactive and then loaded back into Roll for renewed analysis.
 
    Fold map of the Noordoostpolder example project.
 
+
+3D View
+-------
+
+Roll includes a 3D view for a subset of the survey layout. This is especially
+useful when using 'binning against a dipping plane' dipping-plane surveys,
+or when using well trajectories, and VSP-style geometry.
+Rolling templates are too expensive to render fully in 3D, so the view only allows 
+non-rolling seeds and related geometry that are most useful to inspect.
+
+.. figure:: ../../images/3D_vsp_image.png
+   :alt: 3D representation of a survey area
+
+   3D representation of a survey area.
+
+
 Related Help
 ------------
 
 For the detailed QGIS editing and round-trip workflow, use the dedicated
-``Roll and QGIS Interface Guide`` page in this Sphinx site.
+:doc:`Roll and QGIS Interface Guide <qgis-interface-guide>` page in the documentation.

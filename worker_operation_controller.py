@@ -446,6 +446,7 @@ class WorkerOperationController:
             vint=rmsVelocity,
             frequencies=np.array(frequencyList, dtype=np.float32),
             computeIncoherentQc=self.window.appSettings.cfpIncoherentQc,
+            run3x3Diagnostics=self.window.appSettings.cfpRun3x3Diagnostics,
             sourceName='Templates',
             debugpyEnabled=self.window.appSettings.debugpy,
         )
@@ -480,6 +481,7 @@ class WorkerOperationController:
             vint=rmsVelocity,
             frequencies=np.array(frequencyList, dtype=np.float32),
             computeIncoherentQc=self.window.appSettings.cfpIncoherentQc,
+            run3x3Diagnostics=self.window.appSettings.cfpRun3x3Diagnostics,
             sourceName=sourceName,
             debugpyEnabled=self.window.appSettings.debugpy,
         )

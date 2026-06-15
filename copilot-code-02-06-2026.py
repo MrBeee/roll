@@ -6,6 +6,7 @@ from numba import njit, prange
 # Geometry and traveltime
 # ------------------------------------------------------------
 
+
 @njit
 def traveltime_const_vel(x1, z1, x2, z2, v):
     """
@@ -13,7 +14,7 @@ def traveltime_const_vel(x1, z1, x2, z2, v):
     """
     dx = x2 - x1
     dz = z2 - z1
-    return np.sqrt(dx*dx + dz*dz) / v
+    return np.sqrt(dx * dx + dz * dz) / v
 
 
 # ------------------------------------------------------------
@@ -22,11 +23,11 @@ def traveltime_const_vel(x1, z1, x2, z2, v):
 
 @njit(parallel=True)
 def cfp_acq_imprint_unit(
-    sx, rx, # (ns,), (nr,)
-    x_grid, z_grid, # (nx,), (nz,)
-    depth, # reflector depth (positive)
-    v, # velocity
-    omega # angular frequency 2πf
+    sx, rx,             # (ns,), (nr,)
+    x_grid, z_grid,     # (nx,), (nz,)
+    depth,              # reflector depth (positive)
+    v,                  # velocity
+    omega               # angular frequency 2πf
 ):
     ns = sx.size
     nr = rx.size
@@ -36,7 +37,7 @@ def cfp_acq_imprint_unit(
     imprint = np.zeros((nz, nx), dtype=np.float32)
 
     for iz in prange(nz):
-        zf = -z_grid[iz] # reflector plane
+        zf = -z_grid[iz]    # reflector plane
 
         for ix in range(nx):
             xf = x_grid[ix]
@@ -58,7 +59,7 @@ def cfp_acq_imprint_unit(
                     real_acc += cos_p
                     imag_acc += sin_p
 
-            imprint[iz, ix] = np.sqrt(real_acc*real_acc + imag_acc*imag_acc)
+            imprint[iz, ix] = np.sqrt(real_acc * real_acc + imag_acc * imag_acc)
 
     return imprint
 
@@ -69,12 +70,12 @@ def cfp_acq_imprint_unit(
 
 @njit(parallel=True)
 def cfp_acq_imprint_data(
-    data_freq, # (ns, nr) complex64
-    sx, rx, # (ns,), (nr,)
-    x_grid, z_grid, # (nx,), (nz,)
-    depth,
-    v,
-    omega
+    data_freq,          # (ns, nr) complex64
+    sx, rx,             # (ns,), (nr,)
+    x_grid, z_grid,     # (nx,), (nz,)
+    depth,              # reflector depth (positive)
+    v,                  # velocity
+    omega               # angular frequency 2πf
 ):
     ns = sx.size
     nr = rx.size
@@ -108,7 +109,7 @@ def cfp_acq_imprint_data(
                     real_acc += c.real * cos_p - c.imag * sin_p
                     imag_acc += c.real * sin_p + c.imag * cos_p
 
-            imprint[iz, ix] = np.sqrt(real_acc*real_acc + imag_acc*imag_acc)
+            imprint[iz, ix] = np.sqrt(real_acc * real_acc + imag_acc * imag_acc)
 
     return imprint
 
@@ -177,8 +178,7 @@ if __name__ == "__main__":
                  title="CFP Acquisition Imprint (Unit Data)")
 
     # Example: using synthetic complex data at one frequency
-    data_freq = (np.random.randn(ns, nr) +
-                 1j * np.random.randn(ns, nr)).astype(np.complex64)
+    data_freq = (np.random.randn(ns, nr) + 1j * np.random.randn(ns, nr)).astype(np.complex64)
 
     print("Computing acquisition imprint (actual data)...")
     imprint_data = cfp_acq_imprint_data(
@@ -188,4 +188,3 @@ if __name__ == "__main__":
     imprint_data_norm = normalize_imprint(imprint_data)
     plot_imprint(imprint_data_norm, x_grid, z_grid,
                  title="CFP Acquisition Imprint (Actual Data)")
-

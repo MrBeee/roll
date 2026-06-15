@@ -10,8 +10,9 @@ from qgis.PyQt.QtCore import QObject, QThread, pyqtSignal
 
 from . import config
 from .cfp_aux_functions_numba import (
-    calculate_panel_snr_numba, compute_illumination_row_incoherent_numba,
-    compute_illumination_row_numba, compute_monochromatic_beam_xy_grid,
+    calculate_panel_snr_numba, compute_illumination_row_components_numba,
+    compute_illumination_row_incoherent_numba, compute_illumination_row_numba,
+    compute_monochromatic_beam_xy_grid,
     compute_monochromatic_weighted_beam_xy_grid, compute_radon_images_numba,
     compute_xy_beam_images_numba, scan_cfp_geometry_relations_numba)
 from .roll_survey import RollSurvey
@@ -260,6 +261,7 @@ class CfpAmplitudeMapRequest:
     vint: float = 2000.0
     frequencies: np.ndarray = None
     computeIncoherentQc: bool = False
+    run3x3Diagnostics: bool = False
     sourceName: str = 'Templates'
     debugpyEnabled: bool = False
     matlab_compat: bool = True
@@ -330,6 +332,7 @@ class CfpAmplitudeMapResult:
     dy: float = 1.0
     isPartial: bool = False
     elapsed: Any = None
+    diagnosticsSummaryLines: list[str] | None = None
 
 
 @dataclass
@@ -1176,6 +1179,8 @@ class CfpAmplitudeMapWorker(QObject):
             ampMap = np.zeros((ny, nx), dtype=np.float32)
             incoherentAmpMap = np.zeros((ny, nx), dtype=np.float32) if self.request.computeIncoherentQc else None
             gatherProgressEnd = 25
+            apertureRadius = abs(self.request.focalZ) * np.tan(np.radians(self.request.maxDipDegrees))
+            diagnosticsSummaryLines = None
 
             # Trace collection follows the input trajectory selected by the request.
             if self.survey.output.srcGeom is not None and self.survey.output.relGeom is not None and self.survey.output.recGeom is not None:
@@ -1186,53 +1191,74 @@ class CfpAmplitudeMapWorker(QObject):
                 self.survey.progress.emit(gatherProgressEnd)
             else:
                 self.survey.message.emit('CFP illumination - gathering template rollouts')
-                srcCoords, srcWeights, recCoords, recWeights = self._gatherTracesFromTemplates(0, gatherProgressEnd)
+                srcCoords, srcWeights, recCoords, recWeights = self._gatherTracesFromTemplates(0, gatherProgressEnd, apertureRadius)
 
             if srcCoords.shape[0] == 0 or recCoords.shape[0] == 0:
                 raise ValueError("No active traces available for Illumination mapping")
 
-            apertureRadius = abs(self.request.focalZ) * np.tan(np.radians(self.request.maxDipDegrees))
             freqs = self.request.frequencies if self.request.frequencies is not None else np.array([40.0], dtype=np.float32)
             # partialEmitEvery = max(1, ny // 20)
 
-            # 3. Iterate over the Grid
-            currentThread = QThread.currentThread()
-            for iy in range(ny):
-                if currentThread.isInterruptionRequested():
-                    raise StopIteration
-
-                focalY = y0 + (iy + 0.5) * dy
-
-                # Switch mode: compute either coherent or incoherent illumination, never both.
-                if incoherentAmpMap is not None:
-                    ampMap[iy, :] = compute_illumination_row_incoherent_numba(
-                        focalY,
-                        evalX,
-                        self.request.focalZ,
-                        srcCoords,
-                        srcWeights,
-                        recCoords,
-                        recWeights,
-                        freqs,
-                        self.request.vint,
-                        apertureRadius,
-                    )
+            runDiagnostics3x3 = bool(getattr(self.request, 'run3x3Diagnostics', False))
+            if runDiagnostics3x3:
+                self.survey.message.emit('CFP illumination - running source/receiver diagnostics grid (3x3)')
+                modeMaps = self._compute3x3ModeMaps(
+                    ny,
+                    y0,
+                    dy,
+                    evalX,
+                    srcCoords,
+                    srcWeights,
+                    recCoords,
+                    recWeights,
+                    freqs,
+                    apertureRadius,
+                    gatherProgressEnd,
+                )
+                if bool(self.request.computeIncoherentQc):
+                    ampMap = modeMaps['src_incoh__rec_incoh']
                 else:
-                    ampMap[iy, :] = compute_illumination_row_numba(
-                        focalY,
-                        evalX,
-                        self.request.focalZ,
-                        srcCoords,
-                        srcWeights,
-                        recCoords,
-                        recWeights,
-                        freqs,
-                        self.request.vint,
-                        apertureRadius,
-                    )
+                    ampMap = modeMaps['src_coh__rec_coh']
+                diagnosticsSummaryLines = self._build3x3DiagnosticsSummary(modeMaps)
+            else:
+                # 3. Iterate over the Grid
+                currentThread = QThread.currentThread()
+                for iy in range(ny):
+                    if currentThread.isInterruptionRequested():
+                        raise StopIteration
 
-                self.survey.progress.emit(gatherProgressEnd + int((iy + 1) * (100 - gatherProgressEnd) / ny))
-                self.survey.message.emit(f"CFP illumination - row {iy+1}/{ny}")
+                    focalY = y0 + (iy + 0.5) * dy
+
+                    # Switch mode: compute either coherent or incoherent illumination, never both.
+                    if incoherentAmpMap is not None:
+                        ampMap[iy, :] = compute_illumination_row_incoherent_numba(
+                            focalY,
+                            evalX,
+                            self.request.focalZ,
+                            srcCoords,
+                            srcWeights,
+                            recCoords,
+                            recWeights,
+                            freqs,
+                            self.request.vint,
+                            apertureRadius,
+                        )
+                    else:
+                        ampMap[iy, :] = compute_illumination_row_numba(
+                            focalY,
+                            evalX,
+                            self.request.focalZ,
+                            srcCoords,
+                            srcWeights,
+                            recCoords,
+                            recWeights,
+                            freqs,
+                            self.request.vint,
+                            apertureRadius,
+                        )
+
+                    self.survey.progress.emit(gatherProgressEnd + int((iy + 1) * (100 - gatherProgressEnd) / ny))
+                    self.survey.message.emit(f"CFP illumination - row {iy + 1} / {ny}")
 
                 # # Emit throttled partial results to limit UI redraw and copy overhead.
                 # if (iy + 1) % partialEmitEvery == 0 or (iy + 1) == ny:
@@ -1270,6 +1296,7 @@ class CfpAmplitudeMapWorker(QObject):
                 y0=y0,
                 dx=dx,
                 dy=dy,
+                diagnosticsSummaryLines=diagnosticsSummaryLines,
             )
             self.resultReady.emit(result)
 
@@ -1411,71 +1438,133 @@ class CfpAmplitudeMapWorker(QObject):
             np.ascontiguousarray(receiverWeights[receiverMask], dtype=np.float32),
         )
 
-    def _gatherTracesFromTemplates(self, progressStart: int = 0, progressEnd: int = 25) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """Extract weighted source/receiver station arrays from rolling templates."""
-        src_list = []
-        src_weight_list = []
-        rec_list = []
-        rec_weight_list = []
+    def _gatherTracesFromTemplates(self, progressStart: int = 0, progressEnd: int = 25, apertureRadius: float = 0.0) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Extract weighted source/receiver stations from templates via geometry relations.
 
-        # For illumination maps, keep station gathering independent from any
-        # single focal point. The per-cell aperture is applied later in the
-        # row kernel, so pre-filtering here would incorrectly center-bias maps.
-        self.survey.calcNoTemplates()
-        self.survey.calcBoundingRect()
-        self.survey.calcPointArrays()
+        This path intentionally reuses the exact same relation-weight logic as the
+        geometry-table workflow to guarantee identical illumination support when
+        geometry is derived one-on-one from templates.
+        """
+        del apertureRadius
 
-        outputRect = self.survey.output.rctOutput
-        totalTemplates = max(int(self.survey.nTemplates), 1)
-        processedTemplates = 0
+        self.survey.progress.emit(progressStart)
+        self.survey.message.emit('CFP illumination - deriving geometry relations from templates')
+
+        if not self.survey.setupGeometryFromTemplates():
+            raise ValueError(self.survey.errorText or 'Failed to derive geometry from templates for CFP illumination')
+
+        self.survey.prepareGeometryRelationBinningLookup()
+        self.survey.progress.emit(progressEnd)
+        return self._gatherTracesFromRelations()
+
+    def _compute3x3ModeMaps(self, ny, y0, dy, evalX, srcCoords, srcWeights, recCoords, recWeights, freqs, apertureRadius, gatherProgressEnd):
+        modeMaps = {
+            'src_off__rec_off': np.ones((ny, evalX.shape[0]), dtype=np.float32),
+            'src_off__rec_coh': np.zeros((ny, evalX.shape[0]), dtype=np.float32),
+            'src_off__rec_incoh': np.zeros((ny, evalX.shape[0]), dtype=np.float32),
+            'src_coh__rec_off': np.zeros((ny, evalX.shape[0]), dtype=np.float32),
+            'src_coh__rec_coh': np.zeros((ny, evalX.shape[0]), dtype=np.float32),
+            'src_coh__rec_incoh': np.zeros((ny, evalX.shape[0]), dtype=np.float32),
+            'src_incoh__rec_off': np.zeros((ny, evalX.shape[0]), dtype=np.float32),
+            'src_incoh__rec_coh': np.zeros((ny, evalX.shape[0]), dtype=np.float32),
+            'src_incoh__rec_incoh': np.zeros((ny, evalX.shape[0]), dtype=np.float32),
+        }
+
         currentThread = QThread.currentThread()
+        for iy in range(ny):
+            if currentThread.isInterruptionRequested():
+                raise StopIteration
 
-        for block in self.survey.blockList:
-            for template in block.templateList:
-                for templateOffset in self.survey.iterTemplateRollOffsets(template):
-                    if currentThread.isInterruptionRequested():
-                        raise StopIteration
+            focalY = y0 + (iy + 0.5) * dy
+            srcCoh, recCoh, srcInc, recInc = compute_illumination_row_components_numba(
+                focalY,
+                evalX,
+                self.request.focalZ,
+                srcCoords,
+                srcWeights,
+                recCoords,
+                recWeights,
+                freqs,
+                self.request.vint,
+                apertureRadius,
+            )
 
-                    processedTemplates += 1
-                    progress = progressStart + int(processedTemplates * max(progressEnd - progressStart, 0) / totalTemplates)
-                    self.survey.progress.emit(progress)
-                    npTemplateOffset = np.array([templateOffset.x(), templateOffset.y(), templateOffset.z()], dtype=np.float32)
-                    templateSrc = []
-                    templateRec = []
+            modeMaps['src_off__rec_coh'][iy, :] = recCoh
+            modeMaps['src_off__rec_incoh'][iy, :] = recInc
+            modeMaps['src_coh__rec_off'][iy, :] = srcCoh
+            modeMaps['src_coh__rec_coh'][iy, :] = srcCoh * recCoh
+            modeMaps['src_coh__rec_incoh'][iy, :] = srcCoh * recInc
+            modeMaps['src_incoh__rec_off'][iy, :] = srcInc
+            modeMaps['src_incoh__rec_coh'][iy, :] = srcInc * recCoh
+            modeMaps['src_incoh__rec_incoh'][iy, :] = srcInc * recInc
 
-                    for seed in template.seedList:
-                        if seed.bSource:
-                            pointArray = seed.pointArray + self.survey._seedTemplateOffset(seed, npTemplateOffset)
-                        else:
-                            pointArray = seed.pointArray + self.survey._receiverSeedTemplateOffset(seed, npTemplateOffset)
+            self.survey.progress.emit(gatherProgressEnd + int((iy + 1) * (100 - gatherProgressEnd) / ny))
+            self.survey.message.emit(f'CFP illumination diagnostics - row {iy + 1} / {ny}')
 
-                        pointArray = self.survey._pointsInsideRect(pointArray, outputRect)
-                        if pointArray is None or pointArray.shape[0] == 0:
-                            continue
-                        if seed.bSource:
-                            templateSrc.append(pointArray)
-                        else:
-                            templateRec.append(pointArray)
+        for key, value in modeMaps.items():
+            if key == 'src_off__rec_off':
+                continue
+            maxVal = float(np.max(value)) if value.size else 0.0
+            if maxVal > 0.0:
+                value /= maxVal
+            modeMaps[key] = value
 
-                    if not templateSrc or not templateRec:
-                        continue
+        return modeMaps
 
-                    srcPoints = templateSrc[0] if len(templateSrc) == 1 else np.concatenate(templateSrc, axis=0)
-                    recPoints = templateRec[0] if len(templateRec) == 1 else np.concatenate(templateRec, axis=0)
+    @staticmethod
+    def _stripeMetrics(image: np.ndarray) -> tuple[float, float, float]:
+        if image is None or image.size == 0:
+            return (0.0, 0.0, 0.0)
 
-                    nSrc = srcPoints.shape[0]
-                    nRec = recPoints.shape[0]
-                    src_list.append(srcPoints)
-                    rec_list.append(recPoints)
-                    src_weight_list.append(np.full(nSrc, nRec, dtype=np.float64))
-                    rec_weight_list.append(np.full(nRec, nSrc, dtype=np.float64))
+        rowStd = float(np.std(np.mean(image, axis=1)))
+        colStd = float(np.std(np.mean(image, axis=0)))
+        if colStd <= 1e-12:
+            ratio = 0.0 if rowStd <= 1e-12 else float('inf')
+        else:
+            ratio = rowStd / colStd
+        return (rowStd, colStd, ratio)
 
-        if not src_list:
-            return self._emptyWeightedStations()
+    def _build3x3DiagnosticsSummary(self, modeMaps: dict[str, np.ndarray]) -> list[str]:
+        metricPairs = []
+        for key, image in modeMaps.items():
+            rowStd, colStd, ratio = self._stripeMetrics(image)
+            metricPairs.append((key, rowStd, colStd, ratio))
 
-        srcPoints, srcWeights = self._collapseWeightedCoordinates(np.concatenate(src_list, axis=0), np.concatenate(src_weight_list, axis=0))
-        recPoints, recWeights = self._collapseWeightedCoordinates(np.concatenate(rec_list, axis=0), np.concatenate(rec_weight_list, axis=0))
-        return srcPoints, srcWeights, recPoints, recWeights
+        metricPairs.sort(key=lambda item: item[3], reverse=True)
+        summary = [
+            'Thread : 3x3 diagnostics stripe summary (normalized maps):',
+            'Thread : . . . metric = rowStd / colStd on row/column-mean traces',
+            'Thread : . . . ratio above 1.0 => horizontal striping dominant; ratio below 1.0 => vertical striping dominant; ratio equal to 1.0 => balanced',
+            'Thread : . . . legend: OFF=off, COH=coherent, INC=incoherent',
+            'Thread : . . . ranked combinations:',
+        ]
+
+        srcModeLabel = {'off': 'OFF', 'coh': 'COH', 'incoh': 'INC'}
+        recModeLabel = {'off': 'OFF', 'coh': 'COH', 'incoh': 'INC'}
+        for key, rowStd, colStd, ratio in metricPairs:
+            modeParts = key.split('__')
+            srcRaw = modeParts[0].replace('src_', '') if len(modeParts) > 0 else 'off'
+            recRaw = modeParts[1].replace('rec_', '') if len(modeParts) > 1 else 'off'
+            src = srcModeLabel.get(srcRaw, srcRaw.upper())
+            rec = recModeLabel.get(recRaw, recRaw.upper())
+            if np.isfinite(ratio):
+                ratioText = f'{ratio:.6f}'
+                if rowStd <= 1e-12 and colStd <= 1e-12:
+                    dominant = 'balanced'
+                else:
+                    dominant = 'horizontal' if ratio > 1.0 else ('vertical' if ratio < 1.0 else 'balanced')
+            else:
+                ratioText = 'inf'
+                dominant = 'horizontal'
+            summary.append(
+                (
+                    'Thread : . . . '
+                    f'SRC={src}, REC={rec} | '
+                    f'rowStd={rowStd:.6f}, colStd={colStd:.6f}, ratio={ratioText} | '
+                    f'dominant={dominant}'
+                )
+            )
+        return summary
 
 
 class CfpFromGeometryTablesWorker(QObject):

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 
 <html lang="en" data-content_root="./">
@@ -5,17 +6,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Architecture &#8212; Roll 0.7.5 documentation</title>
+    <title>Architecture &#8212; Roll 0.7.7 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
     
-    <script src="_static/documentation_options.js?v=a674670e"></script>
+    <script src="_static/documentation_options.js?v=35f4697d"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
-    
+    <script src="_static/bizstyle.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Changelog" href="changelog.html" /> 
+    <link rel="prev" title="Status and Roadmap" href="status.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
   </head><body>
     <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
@@ -24,9 +29,9 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="changelog.html" title="Changelog"
+          <a href="status.html" title="Status and Roadmap"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.5 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Architecture</a></li> 
       </ul>
     </div>  
@@ -43,7 +48,7 @@
 <p>The plugin entry point is the <code class="docutils literal notranslate"><span class="pre">Roll</span></code> class in <code class="docutils literal notranslate"><span class="pre">roll.py</span></code>. It integrates with
 QGIS, creates plugin actions, and launches the main application window.</p>
 <p>The main UI lives in <code class="docutils literal notranslate"><span class="pre">RollMainWindow</span></code> in <code class="docutils literal notranslate"><span class="pre">roll_main_window.py</span></code>. It loads the
-Qt Designer UI, wires menu and toolbar actions, and coordinates project,
+Qt Designer user interface, wires menu and toolbar actions, and coordinates project,
 plotting, property editing, and processing services.</p>
 </section>
 <section id="core-data-model">
@@ -56,19 +61,22 @@ plotting, property editing, and processing services.</p>
 <li><p>binning-related state; and</p></li>
 <li><p>rendering support for the plotting views.</p></li>
 </ul>
-<p>Project files are stored as XML <code class="docutils literal notranslate"><span class="pre">.roll</span></code> documents. The XML keeps the survey
-hierarchy together with metadata such as the CRS WKT string.</p>
+<p>Project files are stored as XML <code class="docutils literal notranslate"><span class="pre">.roll</span></code> documents. The XML structure keeps
+the survey geometry and other core data model elements together in a logical
+hierarchy complete with metadata such as the CRS WKT string.</p>
 </section>
 <section id="processing-model">
 <h2>Processing Model<a class="headerlink" href="#processing-model" title="Link to this heading">¶</a></h2>
-<p>Long-running geometry and binning work is pushed onto <code class="docutils literal notranslate"><span class="pre">QThread</span></code> workers.
+<p>Long-running geometry creation, binning and cfp calculations are pushed onto <code class="docutils literal notranslate"><span class="pre">QThread</span></code> workers.
 This keeps the GUI responsive while heavy processing runs in the background.</p>
 <p>Numeric hot paths live in <code class="docutils literal notranslate"><span class="pre">aux_functions_numba.py</span></code> with fallback behavior kept in
-mind for environments where Numba is unavailable.</p>
+mind for environments where Numba is unavailable.
+Using Numba aims to speed up critical loops in geometry creation and binning,
+but the plugin can still function without it, albeit with potentially slower performance on large datasets.</p>
 </section>
 <section id="output-and-analysis-storage">
 <h2>Output and Analysis Storage<a class="headerlink" href="#output-and-analysis-storage" title="Link to this heading">¶</a></h2>
-<p>Analysis outputs are represented by <code class="docutils literal notranslate"><span class="pre">RollOutput</span></code> in <code class="docutils literal notranslate"><span class="pre">roll_output.py</span></code>.
+<p>Analysis outputs are represented by <code class="docutils literal notranslate"><span class="pre">RollOutput</span></code> members in <code class="docutils literal notranslate"><span class="pre">roll_output.py</span></code>.
 Full binning writes detailed per-trace information to memory-mapped analysis
 files so large datasets can be processed and inspected without forcing a full
 in-memory load.</p>
@@ -130,8 +138,8 @@ reStructuredText sources so it can be updated alongside the rest of the help.</p
   </div>
   <div>
     <h4>Previous topic</h4>
-    <p class="topless"><a href="changelog.html"
-                          title="previous chapter">Changelog</a></p>
+    <p class="topless"><a href="status.html"
+                          title="previous chapter">Status and Roadmap</a></p>
   </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
@@ -161,9 +169,9 @@ reStructuredText sources so it can be updated alongside the rest of the help.</p
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="changelog.html" title="Changelog"
+          <a href="status.html" title="Status and Roadmap"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.5 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Architecture</a></li> 
       </ul>
     </div>

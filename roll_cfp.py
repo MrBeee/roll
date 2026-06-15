@@ -33,11 +33,11 @@ class RollCfp:
         cfpElem = doc.createElement('cfpana')
         cfpElem.setAttribute('frequencies', self.writeFrequencyList(self.frequencyList))
         cfpElem.setAttribute('maxAperture', str(self.maxAperture))
-        cfpElem.setAttribute('rmsVelocity', str(self.rmsVelocity))
-        cfpElem.setAttribute('focalDepth', str(self.focalDepth))
+        cfpElem.setAttribute('vrms', str(self.rmsVelocity))
+        cfpElem.setAttribute('zfocus', str(self.focalDepth))
         cfpElem.setAttribute('useBinningAreaCenter', str(self.useBinningAreaCenter))
-        cfpElem.setAttribute('analysisX', str(self.analysisLocation.x()))
-        cfpElem.setAttribute('analysisY', str(self.analysisLocation.y()))
+        cfpElem.setAttribute('xfocus', str(self.analysisLocation.x()))
+        cfpElem.setAttribute('yfocus', str(self.analysisLocation.y()))
         parent.appendChild(cfpElem)
         return cfpElem
 
@@ -48,11 +48,11 @@ class RollCfp:
 
         self.frequencyList = self.readFrequencyList(cfpElem.attribute('frequencies'), default=self.frequencyList)
         self.maxAperture = self._clampMaxAperture(toFloat(cfpElem.attribute('maxAperture'), self.maxAperture))
-        self.rmsVelocity = max(toFloat(cfpElem.attribute('rmsVelocity'), self.rmsVelocity), 1.0)
-        self.focalDepth = abs(toFloat(cfpElem.attribute('focalDepth'), self.focalDepth))
+        self.rmsVelocity = max(toFloat(cfpElem.attribute('vrms'), self.rmsVelocity), 1.0)
+        self.focalDepth = abs(toFloat(cfpElem.attribute('zfocus'), self.focalDepth))
         self.useBinningAreaCenter = toBool(cfpElem.attribute('useBinningAreaCenter'), self.useBinningAreaCenter)
-        x = toFloat(cfpElem.attribute('analysisX'), self.analysisLocation.x())
-        y = toFloat(cfpElem.attribute('analysisY'), self.analysisLocation.y())
+        x = toFloat(cfpElem.attribute('xfocus'), self.analysisLocation.x())
+        y = toFloat(cfpElem.attribute('yfocus'), self.analysisLocation.y())
         self.analysisLocation = QPointF(x, y)
         return True
 

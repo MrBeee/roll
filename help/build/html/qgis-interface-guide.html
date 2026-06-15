@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 
 <html lang="en" data-content_root="./">
@@ -5,18 +6,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Roll and QGIS Interface Guide &#8212; Roll 0.7.5 documentation</title>
+    <title>Roll and QGIS Interface Guide &#8212; Roll 0.7.7 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
     
-    <script src="_static/documentation_options.js?v=a674670e"></script>
+    <script src="_static/documentation_options.js?v=35f4697d"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
-    
+    <script src="_static/bizstyle.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Roll Demo Deck" href="roll-demo.html" />
-    <link rel="prev" title="Workflows" href="workflows.html" /> 
+    <link rel="next" title="Status and Roadmap" href="status.html" />
+    <link rel="prev" title="Building a template" href="template-design.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
   </head><body>
     <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
@@ -25,12 +30,12 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="roll-demo.html" title="Roll Demo Deck"
+          <a href="status.html" title="Status and Roadmap"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="workflows.html" title="Workflows"
+          <a href="template-design.html" title="Building a template"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.5 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Roll and QGIS Interface Guide</a></li> 
       </ul>
     </div>  
@@ -48,7 +53,34 @@ the updated result back into Roll for renewed analysis.</p>
 <section id="add-a-point-layer">
 <h2>1. Add a Point Layer<a class="headerlink" href="#add-a-point-layer" title="Link to this heading">¶</a></h2>
 <p>Adding a point layer may be needed to show a requested survey outline from a
-client or a prospect outline from the geologist.</p>
+client or a prospect outline from the geologist.
+A convenient way of doing this, is to import a layer from a delimeted text file.
+Such a text file may look as follows:</p>
+<table class="docutils align-left">
+<thead>
+<tr class="row-odd"><th class="head"><p>X</p></th>
+<th class="head"><p>Y</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>647285,</p></td>
+<td><p>5556357</p></td>
+</tr>
+<tr class="row-odd"><td><p>652514,</p></td>
+<td><p>5560823</p></td>
+</tr>
+<tr class="row-even"><td><p>669808,</p></td>
+<td><p>5552982</p></td>
+</tr>
+<tr class="row-odd"><td><p>666808,</p></td>
+<td><p>5547061</p></td>
+</tr>
+<tr class="row-even"><td><p>647285,</p></td>
+<td><p>5556357</p></td>
+</tr>
+</tbody>
+</table>
+<p>The approach is as follows:</p>
 <ol class="arabic simple">
 <li><p>In QGIS, choose <code class="docutils literal notranslate"><span class="pre">Layer</span> <span class="pre">-&gt;</span> <span class="pre">Add</span> <span class="pre">layer</span> <span class="pre">-&gt;</span> <span class="pre">Add</span> <span class="pre">delimited</span> <span class="pre">text</span> <span class="pre">layer</span></code>.</p></li>
 <li><p>Select the file name.</p></li>
@@ -57,7 +89,7 @@ client or a prospect outline from the geologist.</p>
 <li><p>Check the record and field options, including header lines when needed.</p></li>
 <li><p>Define the columns that represent X, Y, and optionally Z values.</p></li>
 <li><p>Select <code class="docutils literal notranslate"><span class="pre">Add</span></code>.</p></li>
-<li><p>Using Full Zoom (<code class="docutils literal notranslate"><span class="pre">Ctrl+Shift+F</span></code>) in QGIS, zoom to the imported points.</p></li>
+<li><p>Use Full Zoom (<code class="docutils literal notranslate"><span class="pre">Ctrl+Shift+F</span></code>) in QGIS, zoom to the imported points.</p></li>
 </ol>
 </section>
 <section id="create-a-line-layer-from-points">
@@ -107,10 +139,8 @@ editing steps.</p></li>
 <ol class="arabic simple">
 <li><p>In Roll, choose
 <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">-&gt;</span> <span class="pre">Export</span> <span class="pre">to</span> <span class="pre">QGIS</span> <span class="pre">-&gt;</span> <span class="pre">Export</span> <span class="pre">Geometry</span> <span class="pre">-&gt;</span> <span class="pre">Export</span> <span class="pre">xxx</span> <span class="pre">Records</span> <span class="pre">to</span> <span class="pre">QGIS</span></code>.</p></li>
-<li><p>Alternatively, use the <code class="docutils literal notranslate"><span class="pre">SPS</span> <span class="pre">import</span></code> tab export buttons for SPS and RPS
-records.</p></li>
-<li><p>Alternatively, use the <code class="docutils literal notranslate"><span class="pre">Geometry</span></code> tab export buttons for SRC and REC
-records.</p></li>
+<li><p>Alternatively, use the export buttons for SPS and RPS records from the <code class="docutils literal notranslate"><span class="pre">SPS</span> <span class="pre">import</span></code> tab .</p></li>
+<li><p>Alternatively, use the export buttons for SRC and REC records from the <code class="docutils literal notranslate"><span class="pre">Geometry</span></code> tab .</p></li>
 <li><p>Roll creates in-memory scratch layers in QGIS with the exported data.</p></li>
 </ol>
 </section>
@@ -134,7 +164,7 @@ project is opened again.</p></li>
 </section>
 <section id="truncate-src-rec-and-sps-rps-point-areas-in-qgis">
 <h2>6. Truncate src/rec and sps/rps Point Areas in QGIS<a class="headerlink" href="#truncate-src-rec-and-sps-rps-point-areas-in-qgis" title="Link to this heading">¶</a></h2>
-<p>Survey geometry in Roll is often created from rectangular blocks, while the
+<p>Survey geometry in Roll is created from rectangular blocks, while the
 real survey outline is usually constrained by concession boundaries, cities,
 lakes, or similar features. In QGIS you can either clip the points away or mark
 them inactive by testing whether they fall inside a polygon.</p>
@@ -304,13 +334,13 @@ acceptable coverage plots.</p></li>
   </div>
   <div>
     <h4>Previous topic</h4>
-    <p class="topless"><a href="workflows.html"
-                          title="previous chapter">Workflows</a></p>
+    <p class="topless"><a href="template-design.html"
+                          title="previous chapter">Building a template</a></p>
   </div>
   <div>
     <h4>Next topic</h4>
-    <p class="topless"><a href="roll-demo.html"
-                          title="next chapter">Roll Demo Deck</a></p>
+    <p class="topless"><a href="status.html"
+                          title="next chapter">Status and Roadmap</a></p>
   </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
@@ -340,12 +370,12 @@ acceptable coverage plots.</p></li>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="roll-demo.html" title="Roll Demo Deck"
+          <a href="status.html" title="Status and Roadmap"
              >next</a> |</li>
         <li class="right" >
-          <a href="workflows.html" title="Workflows"
+          <a href="template-design.html" title="Building a template"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.5 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Roll and QGIS Interface Guide</a></li> 
       </ul>
     </div>

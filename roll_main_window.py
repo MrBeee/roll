@@ -767,6 +767,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionExportMaxOffsets.triggered.connect(self.fileExportMaxOffsets)
         self.actionExportRmsOffsets.triggered.connect(self.fileExportRmsOffsets)
         self.actionExportOffsetGaps.triggered.connect(self.fileExportOffsetGaps)
+        self.actionExportIllumination.triggered.connect(self.fileExportIllumination)
 
         self.actionExportAnaAsCsv.triggered.connect(self.fileExportAnaAsCsv)
 
@@ -1624,6 +1625,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def fileExportOffsetGaps(self):
         self._exportLayoutAnalysisSurface(5, toQgis=False)
 
+    def fileExportIllumination(self):
+        self._exportLayoutAnalysisSurface(6, toQgis=False)
+
     def exportBinToQGIS(self):
         if self.survey is not None and self.output.binOutput is not None and self.survey.crs is not None:
             fileName = self.fileName + '.bin.tif'
@@ -1884,7 +1888,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             3: dict(imageAttr='maxOffset', maxAttr='maxMaxOffset', label='maximum offset', statusLabel='|max offset|', valueKind='float', fileSuffix='max', fileExportLabel='max-offsets', qgisExportLabel='max-offset map'),                   # noqa: E501 # pylint: disable=C0301
             4: dict(imageAttr='rmsOffset', maxAttr='maxRmsOffset', label='rms offset increments', statusLabel='rms offset inc', valueKind='float', fileSuffix='rms', fileExportLabel='rms-offsets', qgisExportLabel='rms-offset map'),          # noqa: E501 # pylint: disable=C0301
             5: dict(imageAttr='gapOffset', maxAttr='maxOffsetGap', label='maximum offset gap', statusLabel='max offset gap', valueKind='float', fileSuffix='gap', fileExportLabel='max-offset gaps', qgisExportLabel='max-offset gap map'),     # noqa: E501 # pylint: disable=C0301
-            6: dict(imageAttr='cfpOutput', maxAttr=None, label='Illumination', statusLabel='illumination', valueKind='float', fileSuffix='amp', fileExportLabel='illumination map', qgisExportLabel='illumination map'),                        # noqa: E501 # pylint: disable=C0301
+            6: dict(imageAttr='cfpOutput', maxAttr=None, label='Illumination', statusLabel='illumination', valueKind='float', fileSuffix='cfp', fileExportLabel='illumination map', qgisExportLabel='illumination map'),                        # noqa: E501 # pylint: disable=C0301
         }
 
         if imageType not in surfaceDefinitions:
@@ -1930,19 +1934,30 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return f"{layoutSurface['statusLabel']}: {float(value):.2f}"
 
     def _exportLayoutAnalysisSurface(self, imageType, *, toQgis):
-        layoutSurface = self._resolveLayoutAnalysisSurface(imageType)
+        layoutSurface = self._resolveMaskedLayoutAnalysisSurface(imageType)
         if self.survey is None or layoutSurface['imageData'] is None or self.survey.crs is None:
             return
 
+        exportImage = layoutSurface['imageData']
+        classificationRange = (0.0, 1.0) if imageType in (6, 7) else None
+
         fileName = self.fileName + f".{layoutSurface['fileSuffix']}.tif"
         if toQgis:
-            fileName = ExportRasterLayerToQgis(fileName, layoutSurface['imageData'], self.survey)
+            fileName = ExportRasterLayerToQgis(fileName, exportImage, self.survey, classificationRange=classificationRange)
             if fileName:
                 self.appendLogMessage(f"Export : incorporated {layoutSurface['qgisExportLabel']} in QGIS")
         else:
-            fileName = CreateQgisRasterLayer(fileName, layoutSurface['imageData'], self.survey)
+            fileName = CreateQgisRasterLayer(fileName, exportImage, self.survey)
             if fileName:
                 self.appendLogMessage(f"Export : exported {layoutSurface['fileExportLabel']} to {fileName}")
+
+    def _resolveMaskedLayoutAnalysisSurface(self, imageType=None):
+        layoutSurface = self._resolveLayoutAnalysisSurface(imageType)
+        maskedImage = self._applyLayoutSurfaceMask(layoutSurface['imageType'], layoutSurface['imageData'])
+
+        resolvedSurface = dict(layoutSurface)
+        resolvedSurface['imageData'] = maskedImage
+        return resolvedSurface
 
     def _applyLayoutSurfaceMask(self, imageType, imageData):
         if imageData is None:
@@ -1967,9 +1982,15 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 return maskedImage
 
         if imageType in (6, 7):
-            # Illumination should decide transparency from its own no-data cells only.
+            # Illumination uses a relative transparency cutoff based on its own max.
             data = np.asarray(imageData)
-            mask = ~np.isfinite(data) | (data == 0)
+            finiteMask = np.isfinite(data)
+            mask = ~finiteMask
+            if np.any(finiteMask):
+                finiteMax = float(np.nanmax(data[finiteMask]))
+                cutoffFraction = max(0.0, float(self.appSettings.cfpDisplayCutoffFraction))
+                cutoffValue = finiteMax * cutoffFraction
+                mask |= data <= cutoffValue
             if np.any(mask):
                 maskedImage = np.asarray(imageData, dtype=np.float32).copy()
                 maskedImage[mask] = np.nan
@@ -1978,8 +1999,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return imageData
 
     def handleImageSelection(self):                                             # change image (if available) and finally plot survey layout
-        layoutSurface = self._resolveLayoutAnalysisSurface()
-        self.layoutImg = self._applyLayoutSurfaceMask(layoutSurface['imageType'], layoutSurface['imageData'])
+        layoutSurface = self._resolveMaskedLayoutAnalysisSurface()
+        self.layoutImg = layoutSurface['imageData']
         self.layoutMax = layoutSurface['maxValue']
 
         if self.imageType in (6, 7) and self.layoutImg is not None:

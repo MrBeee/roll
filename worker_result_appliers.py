@@ -53,11 +53,11 @@ def _logCfpSnr(window, result) -> None:
     window.appendLogMessage(
         (
             'Thread : . . . '
-            f'SNR (Radon): Source={result.sourceSnr:.1f}dB, '
-            f'Receiver={result.receiverSnr:.1f}dB, '
-            f'AVP={result.avpSnr:.1f}dB'
-            + (f', grid={radonN}' if radonN is not None else '')
-            + (f', dp=({radonDx:.3e}, {radonDy:.3e}) s/m' if radonDx > 0.0 and radonDy > 0.0 else '')
+            f'SNR (Radon): Source={result.sourceSnr:.1f}dB, '                                               # noqa W503
+            f'Receiver={result.receiverSnr:.1f}dB, '                                                        # noqa W503
+            f'AVP={result.avpSnr:.1f}dB'                                                                    # noqa W503
+            + (f', grid={radonN}' if radonN is not None else '')                                            # noqa W503
+            + (f', dp=({radonDx:.3e}, {radonDy:.3e}) s/m' if radonDx > 0.0 and radonDy > 0.0 else '')       # noqa W503
         ),
         MsgType.Analysis,
     )
@@ -107,6 +107,10 @@ class CfpAmplitudeMapResultApplier:
         if not getattr(result, 'isPartial', False):
             if modeLabel == 'incoherent QC':
                 self.window.appendLogMessage('Thread : . . . incoherent illumination QC mode enabled (diagnostic; phase interference ignored).', MsgType.Analysis)
+            summaryLines = getattr(result, 'diagnosticsSummaryLines', None)
+            if summaryLines:
+                for line in summaryLines:
+                    self.window.appendLogMessage(line, MsgType.Analysis)
             normalizationFactor = float(getattr(result, 'normalizationFactor', 1.0) or 1.0)
             self.window.appendLogMessage(
                 f"Thread : Completed 'CFP Plane Illumination v1 ({sourceName}, {modeLabel})'. Elapsed time:{elapsed}, normFactor={normalizationFactor:.6g}",

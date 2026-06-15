@@ -2,540 +2,108 @@ D:\QGis\MyPlugins\roll\Refactoring_roadmap.txt
 
 **Refactoring Roadmap**
 
-Updated for the current codebase on 2026-06-04.
-
-2026-06-04 restoration note: the deleted `test/` tree has now been restored into this workspace. Comparison against the last committed pre-deletion snapshot (`0e253f72^` / `984da7949331b933f3da270ee9334a10ac0cbba8`) showed the provided local backup at `D:\QGis\MyPlugins\roll-2026-05-29\test` had the same tracked file set plus a small number of newer source-level updates that better match the current codebase, including the later `gapOffset` rename and an extra CFP plot-status regression. The restored local backup should therefore be treated as the current best available baseline, while the historical notes below still reflect how the test surface evolved before deletion.
-
-2026-06-04 addendum: the roadmap's structural direction is still mostly correct, but one current-state correction was mandatory before treating the later test references below as live facts. The entire `test/` tree had been deleted from this workspace in commit `0e253f72ea706c4e017b789d1c8c22bfcdc7de0e` on 2026-05-30 (`Busy debugging CFP analysis. What a mess it has become !`). That restoration step is now complete, so the next immediate task can return to structural work: keep the restored suite stable, then resume the Layout-tab 2D-to-3D bridge extraction with direct bridge-level validation rather than reopening broad algorithm work first.
-
-2026-06-04 addendum: after re-checking the current code, the structural priority order is now slightly sharper than the 2026-05-27 version. The first refactoring target after test restoration should still be the Layout-tab 2D-to-3D bridge spanning `roll_main_window_create_layout_tab.py` and `layout_3D.py`, because `refreshLayout3DFromSurvey()` still owns a broad payload/styling/backward-compat orchestration seam while `Layout3DWidget.updateFromSurvey()` remains a broad rendering contract. The next adjacent hotspot after that is still `PropertyPanelController`, whose tracked/pending seed propagation dictionaries and `applyPropertyChanges()` flow remain concentrated enough to justify a focused simplification pass. `my_parameters.py` and `marine_wizard.py` remain later peer hotspots, while another broad `roll_survey.py` pass should still be deferred.
-
-2026-05-16 addendum: after comparing the roadmap against the current `markdown/` analysis notes, the next concrete refactoring slice is now explicitly narrowed to the Layout-tab 2D-to-3D bridge. When refactoring work resumes, prefer a small structural extraction around the `3D Subset` payload/styling bridge plus direct bridge-level tests, rather than opening another broad pass in `roll_survey.py` or `my_parameters.py`.
-
-2026-05-18 addendum: the recent geometry stabilization slice is now landed and should be treated as maintenance-complete for refactoring purposes. The live code now keeps template-roll offsets restricted to `rollingGrid`, preserves well-borehole receiver geometry during geometry creation, and routes geometry generation through the same `useExperimental` flag style already used by binning: `geomTemplate4()` remains the stable/default path and `geomTemplate5()` is re-enabled behind the experimental flag with direct equivalence coverage on the currently pinned cases. A short-lived relation-gap splitting idea was also removed after it proved unsafe on sparse real numbering. That means the next refactoring step still should not be another broad `roll_survey.py` pass; the best next slice remains the Layout-tab 2D-to-3D bridge.
-
-2026-05-19 addendum: another live code pass shows that several older size estimates in this roadmap are now historical rather than current. The present large-module picture is roughly `roll_survey.py` 3591 lines, `roll_main_window.py` 2985, `marine_wizard.py` 2213, `my_parameters.py` 2079, `layout_3D.py` 1443, `property_panel_controller.py` 610, and `roll_main_window_create_layout_tab.py` 519. The architectural direction is unchanged, but the layout-analysis seam now clearly spans both `roll_main_window_create_layout_tab.py` and `layout_3D.py`, while `PropertyPanelController` has grown into a real controller hotspot because it now owns repeat-heavy tracked/pending seed propagation behavior. The next slice still should not be another broad `roll_survey.py` pass; it should be a narrow layout 2D-to-3D bridge extraction that treats the builder module and renderer module as one seam, followed by either a focused property-panel propagation simplification or targeted test decomposition.
-
-2026-05-22 addendum: another live review shows that the 2026-05-19 size snapshot is now stale as well. The current large-file picture is roughly `roll_survey.py` 4280 lines, `roll_main_window.py` 3753, `marine_wizard.py` 2863, `my_parameters.py` 2846, `layout_3D.py` 1585, `property_panel_controller.py` 774, `roll_main_window_create_layout_tab.py` 602, and `test/test_project_sidecars.py` 4741. The architectural direction is still correct, but two planning implications are now stronger than before: the layout 2D-to-3D seam should be treated as an explicit bridge-extraction target rather than a generic cleanup idea, and regression-bucket decomposition is now a first-class refactoring concern because `test/test_project_sidecars.py` is large enough to hide layout, persistence, and parameter-surface ownership boundaries. The next slice still should not be another broad `roll_survey.py` pass; it should be the layout bridge first, then either propagation simplification in `PropertyPanelController` or decomposition of the heaviest UI/test hotspots.
-
-2026-05-27 addendum: CFP analysis has now become a clearer first-class analysis surface rather than just a binning-adjacent worker path. The live request builders now derive the CFP aperture from the Survey Analysis max inclination angle instead of a fixed 40.0 degrees, the aperture radius is derived as `abs(focalZ) * tan(maxDipDegrees)`, and the CFP logs now report local target, aperture, radius, frequency, and vint in a dedicated `Analysis` message category rather than `Binning` (rendered in dark purple in the logging pane). CFP hover/status feedback on the analysis plots also now shows sampled amplitude/dB values instead of only x/y coordinates. The remaining CFP follow-up is robustness work around Numba compilation-order/backend failure handling and any small status-text regressions; it is still not the next structural hotspot compared with the layout 2D-to-3D bridge.
-
-The broad direction is still the same: keep persistence, import/QC logic, mutable session/runtime state, and worker lifecycle concerns out of `roll_main_window.py`, then clean up plotting/redraw boundaries before touching worker contracts or performance.
-
-This document reflects the live codebase after the `SessionState`, `SessionService`, `ImportService`, `AppSettings`, `RuntimeState`, `DocumentContextService`, `ProjectService`, `ProjectLoadApplier`, `WorkerOperationController`, `worker_result_appliers`, legacy-sidecar compatibility, offset-tab extraction, broader plot-interaction/status-bar cleanup work, the well survey-context cleanup, the seed/well parameter-state and creation-helper extractions, the remaining parameter-child wiring cleanup in `my_parameters.py`, the follow-up project-load layout-helper reuse, the MRU-owner cleanup in `SessionService`, the archiving of the last obvious legacy worker scaffolding, the follow-up move of the live Well-file directory propagation behavior into `PropertyPanelController`, the later seed rename/color/origin/grow-list/pattern propagation follow-up inside `PropertyPanelController`, and the opt-in matplotlib-based `3D Subset` surface in the Layout tab.
-
-**2026-05-22 Check-In**
-
-The refactor is still well past the obvious service/controller extraction stage, but the live codebase has drifted enough since the previous revision that the roadmap priorities should now be stated more explicitly:
-1. `roll_survey.py` is back above 4280 lines and remains the densest algorithm surface in the repo, but it is still not the best next structural target because the guarded stable-versus-experimental routing is working and the algorithm surface is already backed by equivalence coverage.
-2. `roll_main_window.py` is back above 3750 lines and remains the biggest UI/control hotspot, but the healthiest architectural seams in the repo are still the extracted service/controller owners. New work should continue to stay out of this file unless it is genuinely top-level orchestration.
-3. `marine_wizard.py` and `my_parameters.py` are no longer just secondary hotspots; at about 2860 and 2845 lines they are now real peer follow-up candidates once the layout seam is reduced.
-4. The layout-analysis hotspot is now strong enough to justify an explicit bridge module recommendation, not just a generic cleanup note: `roll_main_window_create_layout_tab.py` and `layout_3D.py` together now own a real payload-building, visibility/style translation, and refresh-orchestration seam.
-5. `PropertyPanelController` has grown to about 774 lines and should now be treated as the smaller adjacent hotspot rather than a medium-sized cleanup footnote, because it owns repeat-heavy seed propagation bookkeeping plus commit-time apply/confirmation flow.
-6. Historical note from that snapshot: the test safety net was broad, but the concentration problem was already impossible to ignore because `test/test_project_sidecars.py` mixed persistence, layout-3D, and parameter-surface regressions in one bucket. As of 2026-06-04 that entire `test/` tree is absent in the workspace, so the practical follow-up has changed from “decompose the big regression bucket later” to “restore the deleted test tree first, then decompose it deliberately”.
-7. The healthiest seams still look healthy and should not be disturbed mechanically: `FilterService`, `ImportService`, `ProjectService`, `SessionService`, `DocumentContextService`, `ActionStateController`, `PlotNavigationController`, `PlotViewStateController`, `PrintPresentationController`, `StackResponseController`, `WorkerOperationController`, and the focused `parameter_*_helpers.py` modules read like bounded ownership slices rather than dumping grounds.
-8. The practical next priority is therefore still the same at a high level but sharper in scope: extract the layout 2D-to-3D bridge first, then choose the next focused split among `PropertyPanelController`, `marine_wizard.py`, `my_parameters.py`, and the overgrown regression bucket without reopening broad algorithm work in `roll_survey.py`.
-
-**2026-05-19 Check-In**
-
-The refactor is still well past the obvious service/controller extraction stage, but the center of gravity has shifted slightly since the previous roadmap revision:
-1. `roll_survey.py` remains the biggest live hotspot at about 3590 lines. It is still the densest active geometry/binning surface, but it is no longer the best next structural target.
-2. `roll_main_window.py` remains the largest UI/control hotspot at about 2985 lines. The main value of the earlier extractions is still holding: most new work should stay out of this file unless it is genuinely top-level orchestration.
-3. `marine_wizard.py` and `my_parameters.py` are still major refactoring hotspots at about 2210 and 2080 lines respectively. Both remain meaningful follow-up candidates once the layout seam is smaller.
-4. The layout-analysis hotspot is now more accurately treated as a two-file seam: `roll_main_window_create_layout_tab.py` concentrates the 2D-to-3D payload/styling bridge and refresh orchestration, while `layout_3D.py` is now a substantial rendering module in its own right rather than a small supporting widget.
-5. `PropertyPanelController` is no longer just a thin survey-commit boundary. At about 610 lines it now owns tracked/pending seed rename, color, origin, grow-list, and pattern propagation plus commit-time confirmation/apply flows.
-6. The test baseline is stronger than the previous roadmap text implied for both layout 3D and property propagation, but a lot of that safety net is concentrated in `test/test_project_sidecars.py`, which is now itself a large multi-slice regression bucket rather than a narrowly owned test module.
-7. The current priority is therefore not “extract another generic service from the main window”. It is “finish the layout 2D-to-3D seam cleanly, then decide whether the next structural simplification should be in property propagation, parameter-schema coupling, wizard coupling, or test decomposition.”
-
-It also reflects the current UI split more accurately than the previous version: tab construction is no longer only an O/A-specific extraction. The layout, pattern, geometry, SPS, trace-table, stack-response, offset-inline/xline, and O/A tab builders already live in separate `roll_main_window_create_*_tab.py` modules. What still remains in `roll_main_window.py` is the heavier plot-input computation, widget mutation, plot-interaction behavior, and surface-specific controller flow.
-
-It also reflects the wizard-default extraction work: land and marine wizard presets no longer live in `config.py`, and the old mutable `AppSettings -> config.py` compatibility bridge has been removed.
-
-**2026-05-12 Check-In**
-
-The refactor is well past the "extract obvious services" stage. The codebase now has a stable services/controllers/helpers layer for persistence, session/runtime ownership, import/QC, worker launch/apply flow, document context, property-panel application, plot navigation, plot view state, print/export presentation, and several analysis redraw paths.
-
-The remaining work is now mostly about reducing a few large concentration points rather than inventing new architectural seams:
-1. `roll_survey.py` remains the biggest live hotspot at about 3590 lines and still owns most active geometry/binning behavior. It is structurally better than before, but it is still the densest algorithm/control surface in the repo.
-2. `roll_main_window.py` remains the biggest UI/control hotspot at about 2985 lines. A lot of scaffolding has moved out, but it still concentrates top-level layout plotting flow, menu wiring, and broad UI orchestration.
-3. `marine_wizard.py` and `my_parameters.py` are still the two other major refactoring hotspots at about 2210 and 2080 lines respectively. They are no longer full of the worst duplication seams, but both still combine UI mutation with domain-specific rules.
-4. The layout-analysis seam has moved beyond a single tab-builder extraction. `roll_main_window_create_layout_tab.py` still owns substantial 3D subset payload-building, layout-to-3D translation, and style/visibility bridging logic, while `layout_3D.py` is now also a large rendering-focused module. Together they are a real controller/renderer seam, not just a builder plus helper.
-5. The medium-sized service/controller modules still look like the healthiest part of the codebase overall: `import_service.py`, `project_service.py`, `worker_operation_controller.py`, `worker_result_appliers.py`, `stack_response_controller.py`, `plot_navigation_controller.py`, `plot_view_state_controller.py`, `action_state_controller.py`, and `print_presentation_controller.py` read like bounded ownership slices rather than dumping grounds. `PropertyPanelController` is the main exception because it has grown into a medium-sized hotspot with repeat-heavy propagation bookkeeping.
-6. The current refactoring priority is therefore no longer "extract another service from the main window first". It is "finish the layout seam cleanly, then choose the next focused split among the remaining UI/domain hotspots without destabilizing the controller/service boundaries that already exist".
-
-**Current Status Summary**
-
-Current-state note:
-The code ownership summary in this section is still useful. The `test/` tree was deleted on 2026-05-30 and restored on 2026-06-04 from the verified local backup after comparison with the last committed pre-deletion snapshot. The coverage notes below therefore describe a mix of historical context and currently restored files; before relying on any specific test as a safety net for new refactoring, re-run the relevant slice in the active QGIS/Python environment.
-
-Completed or substantially landed:
-1. `ProjectService` owns project XML read/write, sidecar save/load helpers, memmap opening, and batch project-sidecar loading.
-2. `ProjectLoadApplier` owns the loaded-sidecar apply path instead of leaving that logic inline in `fileLoad()`.
-3. `FilterService` exists and the duplicate/orphan handlers in `roll_main_window.py` are thin dispatch wrappers.
-4. Analysis sidecars save at the right moment after binning, including `.off.npy`, `.azi.npy`, and the refreshed `.ana.npy` reopen path.
-5. `ProjectService` normalizes legacy point sidecars that predate the `InUse` field and logs the exact normalized sidecar file path.
-6. Display, logging, and property dock construction has been extracted into dedicated builder helpers.
-7. Worker-thread lifecycle code is already out of `RollMainWindow` and lives in `binning_worker_mixin.py`.
-8. `SessionState` owns imported arrays, geometry arrays, and derived live/dead and convex-hull state.
-9. `SessionService` owns canonical array refresh behavior, array clearing, and timer/profiling helpers.
-10. `ImportService` owns SPS/RPS/XPS text parsing, cancellation/progress callbacks, QC passes, duplicate/orphan checks, CRS conversion, and transform messaging.
-11. `AppSettings` and `RuntimeState` now exist, and `settings.py` loads/saves through them rather than only pushing mutable data directly into `config.py`.
-12. `sps_import_dialog.py` now takes editable SPS/RPS/XPS format ownership from `AppSettings` rather than treating `config.py` as the primary mutable owner.
-13. `AppSettings.activate()` provides the explicit runtime activation path instead of writing mutable settings back into `config.py`.
-14. Land and marine wizard defaults live in `LandSurveyWizard` and `MarineSurveyWizard` instead of `config.py`.
-15. Main-window tab construction is already split across `roll_main_window_create_layout_tab.py`, `roll_main_window_create_pattern_tab.py`, `roll_main_window_create_geom_tab.py`, `roll_main_window_create_sps_tab.py`, `roll_main_window_create_trace_table_tab.py`, `roll_main_window_create_stack_response_tab.py`, `roll_main_window_create_offset_tabs.py`, and `roll_main_window_create_off_azi_tab.py`.
-16. The O/A histogram now has explicit rectangular versus polar UI state, split render paths, and direct regression coverage for renderer dispatch.
-17. Stack-response and pattern-response plots now share a reusable analysis image/colorbar preparation helper instead of duplicating the full image-item and colorbar setup path in each controller.
-18. Pattern-response input gathering and Kx/Ky computation have been narrowed into dedicated helpers instead of leaving combo-box and response-array concerns mixed together in `plotPatterns()`.
-19. Stack-cell pattern selection and stack-cell response computation have been narrowed into dedicated helpers instead of leaving all selection and numerical work inline in `plotStkCel()`.
-20. A first analysis redraw dispatcher slice now exists for patterns, stack-response surfaces, O/A, and offset, with typed redraw reasons and direction-aware stack-response gating.
-21. The O/A file-load/reset path now forces the next render back to the default `0/max` display range instead of preserving stale manual levels across files.
-22. Redraw reasons now drive real invalidation behavior for patterns, O/A, and stack-response instead of being pass-through metadata only.
-23. Pattern-response and stack-response surfaces now reuse cached responses for unchanged selections or navigation contexts, rather than recomputing on every redraw.
-24. `PlotRedrawHelper` now owns redraw invalidation policy, redraw cache-key state, surface cache reuse checks, and reused-axis reconstruction for pattern, inline, xline, and stack-cell analysis surfaces instead of leaving that policy inside `roll_main_window.py`.
-25. O/A now follows the same input-preparation versus widget-mutation structure as the pattern and stack-response redraw paths.
-26. `plotOffset()` now follows the same redraw/controller contract as O/A, with dedicated offset histogram/input preparation, prepared render helpers, and dispatcher routing.
-27. Layout image creation and layout colorbar wiring now share a narrower `prepareLayoutImageAndColorBar()` helper without moving layout into the full redraw-policy model.
-28. The test baseline is materially stronger than the earlier roadmap assumed: project round-trip, sidecar behavior, batch sidecar loading, higher-level file-load/apply behavior, legacy sidecar compatibility, session-service behavior, import-service coverage, filter-service coverage, settings/runtime ownership checks, and targeted plot/redraw regressions all exist.
-29. The main worker launch paths now use explicit request/result contracts end to end for binning from templates, binning from geometry/imported SPS, and geometry creation from templates.
-30. Converted workers now emit typed `resultReady` payloads plus a narrowed no-argument `finished()` signal, instead of mixing typed results with a redundant success boolean on the completion signal.
-31. There is now direct worker-level success/failure regression coverage for two converted worker paths, in addition to the existing launcher/completion wiring regressions.
-32. Converted worker result payloads no longer copy the large analysis arrays a second time just to cross the worker boundary; geometry profiling now travels as one explicit optional payload, and RMS summary values are omitted when no RMS surface exists.
-33. The geometry binning completion path now has direct failure-boundary regression coverage at the main-window/mixin layer, so both emission-time and consumer-time behavior are protected on the converted binning paths.
-34. `roll_survey.py` now has direct regression coverage for the live geometry invariant work, including template/grow-step normalization behavior and direct geometry generation from templates.
-35. From `roll_survey.py`, `geomTemplate()`, `geomTemplate2()`, `geomTemplate3()`, `binFromGeometry4()`, `binFromGeometry5()`, `binFromGeometry6()`, `binFromGeometry7()`, and `binTemplate6()` are retained in `__archive__/roll_survey_old_methods.py` as dead reference implementations for future optimization comparison. Live geometry dispatch is now flag-driven again: `geomTemplate4()` remains the stable/default path and `geomTemplate5()` runs when `useExperimental=True`. Live binning dispatch is likewise flag-driven: the stable paths remain `binFromGeometryNoRel()`, `binFromGeometry8()`, and `binTemplate8()`, and the `useExperimental` paths currently dispatch through `binFromGeometryNoRel2()`, `binFromGeometry10()`, and `binTemplate10()`. The `__archive__` directory also now holds other unreferenced utility/reference modules such as `functions_numba_before_gemini.py`, `simil.py`, `regex_testing.py`, and `smooth_circle_item.py`.
-36. The stable `geomTemplate4()` path is now helper-backed instead of carrying all source append, receiver de-dup, `relTemp` construction, and relation expansion inline.
-37. The active geometry-generation path now preserves template-roll invariance for fixed grids, circles, spirals, and wells; preserves receiver geometry along well boreholes; and has direct regression coverage across minimal, rolled-template, and invariant-seed cases.
-38. `geomTemplate5()` is back behind the experimental flag and now has direct equivalence coverage against `geomTemplate4()` on the pinned cases: rolled-grid geometry, invariant well receivers, invariant circle/spiral receivers, receiver-border filtering, and coincident receiver cells across blocks.
-39. The active vectorized binning paths now share extracted live helpers for the final valid-CMP bin updates, CMP/offArray filtering plus radial pruning, and the relation-driven lookup/receiver-selection path used by the modern geometry binning variants, all with direct regression coverage.
-40. `geometryFromTemplates()` now uses a small helper to own template-roll dispatch instead of leaving that loop inline.
-39. The redraw/controller safety net is stronger than the previous roadmap version assumed: there are now direct regressions proving O/A presentation-only redraws skip histogram recomputation, offset visible-activation reuse differs from controller invalidation, broader analysis-refresh paths reset redraw caches when bin-area changes, and the live relation-driven versus no-relation binning paths populate missing local coordinates consistently.
-40. The live binning entry points now share an extracted completion-tail helper for fold/min-max post-processing plus the `fullAnalysis` branch, and there is direct regression coverage that proves the helper either runs RMS/unique/O-A post-processing or clears `anaOutput`.
-41. Document-context ownership is now narrower and more explicit: `RuntimeState` owns the current file path plus MRU-backed document context, `DocumentContextService` owns current-file commit/remove/recent-file resolution and menu-building behavior, `RollMainWindow` delegates open/save/MRU state transitions through that service, and `settings.py` reads/writes the runtime document context object directly.
-42. The offset-inline and offset-xline analysis tabs now use a dedicated wrapper builder with independent per-tab component controls instead of being added as bare plot widgets.
-43. `numbaOffInline()` and `numbaOffXline()` now support `|offset|`, `Inline`, and `X-line` component selection, and that numeric behavior has direct regression coverage.
-44. Plot mouse tracking is now wired centrally from `createPlotWidget()`, so non-layout plots show at least plot coordinates in the status bar and image-backed analysis surfaces expose sampled local values; the O/A polar view has explicit value sampling rather than relying on a scene-added image transform.
-45. Pattern-grid traversal now has one canonical owner: `RollGrid.iterPoints()` owns the fixed three-grow-step iteration used by both pattern painting and pattern-response extraction.
-46. `RollPattern.readXml()` now normalizes legacy implicit-seed grow lists back to exactly three entries before any assertion-backed traversal runs, instead of letting old XML shapes leak into live rendering or analysis code.
-47. `RollPattern.calcPatternPointArrays()` now allocates exact-size `float32` arrays directly from shared grid traversal rather than building intermediate Python lists first, and the old list helper has been removed.
-48. Pattern seeds no longer carry stale cached point-list or point-array state that the live code does not consume; the dead pattern-only point-list setup in `roll_survey.py` and obsolete `RollPatternSeed` conversion path have been removed.
-49. The remaining stack-response controller cluster is no longer implemented inline in `roll_main_window.py`; `StackResponseController` now owns stack redraw-context building, stack-surface routing, inline/xline/cell plotting, and stack-cell pattern/response computation, while `RollMainWindow` keeps thin delegating wrappers.
-50. The visible-plot and analysis-navigation switchboard is no longer implemented inline in `roll_main_window.py`; `PlotNavigationController` now owns plot-widget lookup, plot-mouse routing, shared visible-analysis context derivation, and visible-plot activation routing, while `RollMainWindow` keeps thin delegating wrappers.
-51. The plot-toolbar and view-state synchronization cluster is no longer implemented inline in `roll_main_window.py`; `PlotViewStateController` now owns show-event toolbar synchronization plus the active-plot zoom-rect, aspect-ratio, anti-alias, and grid-toggle actions, while `RollMainWindow` keeps thin delegating wrappers.
-52. The broader action/menu state synchronization cluster is no longer implemented inline in `roll_main_window.py`; `ActionStateController` now owns representative export/process enablement, processing-menu gating, focus-routed cut/copy/paste/select-all handling, and active-plot lookup for clipboard/print routing, while `RollMainWindow` keeps thin delegating wrappers.
-53. The print/export presentation cluster is no longer implemented inline in `roll_main_window.py`; `PrintPresentationController` now owns print-preview setup, printer-versus-plot fallback routing, plot-to-device rendering, and PDF export output-device configuration, while `RollMainWindow` keeps thin delegating wrappers.
-54. The property-panel survey edit/apply cluster is no longer implemented inline in `roll_main_window.py`; `PropertyPanelController` now owns property-tree rebuild, pattern-combo synchronization, parameter-to-survey reconstruction, XML-backed survey commit via `survey.deepcopy()`, and analysis-reset sidecar cleanup orchestration, while `RollMainWindow` keeps thin delegating wrappers.
-55. The worker-thread boundary is now narrower than the earlier roadmap described: `BinningWorkerMixin` mainly acts as a facade, while `WorkerOperationController` owns job specification, launch/cancel/shutdown flow, and finish-time cleanup rules, and `BinningResultApplier` / `GeometryResultApplier` own the success/failure apply paths.
-56. Well-based seeds now resolve survey CRS and transform from the live survey object instead of relying on a mutable `config.py` fallback: `RollWell` carries a weak survey reference, `RollSeed.setSurvey()` propagates that binding, and the well parameter editor refresh path uses the bound survey context when recalculating origins.
-57. The well-coordinate transform direction is no longer an open question; there is now direct regression coverage for both identity-transform and inverse-global-transform local-coordinate cases.
-58. New template seeds now inherit survey context all the way down to `RollWell`, and newly created well seeds default their well CRS from the current survey CRS instead of keeping an arbitrary placeholder CRS.
-59. The well-parameter editor no longer relies only on the internal weak survey reference during file/CRS refresh; it now passes explicit survey CRS and transform context into `RollWell.refreshHeaderFromCurrentState()`, with direct regression coverage for that explicit-context path.
-60. The seed parameter tree now enforces grid-only pattern assignment more explicitly: non-grid seeds clear `patternNo`, pattern selection refresh is tolerant of early tree-construction order, and seed-type-specific child-row visibility is now synchronized against both parameter options and live tree items rather than relying on `show()` alone.
-61. Seed/well parameter-tree state policy is no longer re-expressed inline across widget classes: `parameter_seed_well_helpers.py` now owns grid-seed visibility/state rules plus well refresh/sampling coordination, with direct helper-level regression coverage.
-62. Default parameter-tree creation policy is no longer duplicated inline across block/template/seed context-menu handlers: `parameter_creation_helpers.py` now owns survey-bound default block, template, and appended-seed construction, with direct helper-level regression coverage.
-63. The broad repeated parameter-child lookup and child signal-wiring pattern is no longer duplicated across the touched `my_parameters.py` constructors: small local helpers now centralize child binding plus value/tree-state signal hookup, which narrows future parameter-tree edits to the behavior-bearing code paths.
-64. Aggregate analysis/configuration write-back is no longer implemented inline only inside `MyAnalysisParameter` and `MyConfigurationParameter`: `parameter_aggregate_helpers.py` now owns those value snapshots and configuration apply rules, with both helper-level and wrapper-level regression coverage.
-65. Aggregate grid/reflector write-back is no longer implemented inline only inside `MyGridParameter` and `MyReflectorsParameter`: `parameter_aggregate_helpers.py` now also owns local/global grid apply rules plus reflector value snapshots, with direct helper-level and wrapper-level regression coverage.
-66. Aggregate block/template write-back is no longer implemented inline only inside `MyBlockParameter` and `MyTemplateParameter`: `parameter_aggregate_helpers.py` now also owns block-boundary/template-list and roll-list/seed-list apply rules plus value snapshots, with direct helper-level and wrapper-level regression coverage.
-67. Repeated item-level list/context-menu orchestration for remove and move actions is no longer re-expressed inline across block/template/seed/pattern-seed parameter items: `parameter_list_helpers.py` now owns the shared collection-mutation plus reinsert flow, with direct helper-level regression coverage.
-68. The straightforward add-new/list-builder flows are no longer re-expressed inline across template-seed, pattern-seed, template, block, and pattern list parameters: `parameter_list_helpers.py` now owns shared name allocation plus append/addChild/signal emission behavior, while list-specific side effects stay local.
-69. The remaining pattern-list flows with extra survey/seed synchronization side effects are no longer interleaved line by line in `my_parameters.py`: `parameter_list_helpers.py` now supports optional post-remove, post-move, and post-append callbacks, while `_removePatternIndex()`, `_swapPatternIndices()`, `_syncSurveyPatternList()`, and `refreshSeedPatternLists()` stay local as behavior-bearing callbacks, with direct helper-level regression coverage.
-70. Preview-item setup and label refresh are no longer re-expressed inline across the preview-bearing parameter items: `MyGroupParameterItem` now owns shared preview initialization plus preview-label update helpers, while each `showPreviewInformation()` method keeps its own text-generation behavior local.
-71. The shared circle/spiral child-definition block for `Start angle`, `Point interval`, and readonly `Points` is no longer duplicated inline in both constructors: `my_parameters.py` now has a narrow local helper for that child cluster and its shared bindings, while the radius-specific children and each class's `changed()` behavior remain local.
-72. The shared `Seed color` / `Seed origin` / `Grid grow steps` child-definition bundle is no longer duplicated inline across `MySeedParameter` and `MyPatternSeedParameter`: `my_parameters.py` now has narrow local helpers for those rows plus their bindings and value-change hookups, while seed-type visibility, pattern synchronization, and per-class apply behavior remain local, with direct wrapper-level regression coverage.
-73. The repeated point-count preview string shaping is no longer re-expressed across the point-based preview items: `my_parameters.py` now has a narrow local formatter for `points` summaries that is reused by roll-list, pattern-seed, circle, spiral, and well previews, while each item still owns its own input gathering and error-state logic.
-74. The nested block/template shot-count preview traversal is no longer duplicated inline across `MyBlockParameterItem` and `MyTemplateParameterItem`: `my_parameters.py` now has narrow local helpers for grid-step counts, per-seed source-shot counts, and template/block summary aggregation, with direct fake-node regression coverage.
-75. The remaining list-style preview summaries are no longer mixed inline with counting, pluralization, and error-state policy: `my_parameters.py` now has narrow local helpers for generic count-label formatting plus seed-list source/receiver composition summaries, with direct fake-item regression coverage.
-76. The last small inline preview error-state and fallback-label seam is no longer embedded only in `MyWellParameterItem`: `my_parameters.py` now has a narrow `previewWellSummary()` helper for file-validity, error-text, and formatted point-summary decisions, with direct helper-level regression coverage. The preview refactor track is now near a natural stopping point.
-77. The shared preview-helper style is no longer confined to `my_parameters.py`: the preview-bearing `my_crs2.py`, `my_point2D.py`, `my_point3D.py`, `my_rectf.py`, `my_range.py`, `my_vector.py`, and `my_n_vector.py` modules now also use `MyGroupParameterItem.initializePreviewItem()` plus `updatePreviewLabelText()` instead of repeating the older preview setup and label-update boilerplate.
-78. The higher-level `MySeedParameter` seed-type/pattern coordination is no longer fully inlined inside one wrapper: `parameter_seed_well_helpers.py` now owns a narrow `SeedPatternRefreshState` plus selected-pattern refresh logic, and `my_parameters.py` now uses small local helpers for seed visibility application and seed value write-back, with both helper-level and wrapper-level regression coverage.
-79. The repeated parameter-tree traversal for seed/pattern synchronization is no longer scattered across `MySeedParameter` and `MyPatternListParameter`: `my_parameters.py` now has narrow local helpers for climbing to the parameter-tree root and iterating template-seed parameters under the block/template hierarchy, with direct pure-helper regression coverage plus the existing wrapper-level seed refresh regression.
-80. The repeated pattern-list side-effect bundle is no longer duplicated across rename/add/remove/move callback paths: `my_parameters.py` now has narrow local helpers for survey-sync plus seed-refresh orchestration and for the move/remove index-update variants, while `MyPatternParameter` and `MyPatternListParameter` route through those helpers with direct pure-helper regression coverage plus the existing wrapper-level seed refresh regression.
-81. The repeated `MyWellParameter` sampling/header apply flow is no longer duplicated across file/CRS/sampling change handlers: `my_parameters.py` now has narrow local helpers for applying sampling constraints from the live UI fields and for refresh-header/origin-sync/warning orchestration, with direct pure-helper regression coverage.
-82. The repeated circle/spiral geometry apply flow is no longer embedded only in `changed()` methods: `my_parameters.py` now has narrow local helpers for applying live circle and spiral parameter values plus recomputed point counts, with direct pure-helper regression coverage.
-83. The repeated local/global grid field-to-domain apply flow is no longer embedded only in `MyLocalGridParameter.changed()` and `MyGlobalGridParameter.changed()`: `my_parameters.py` now has narrow local helpers for applying live grid-field values back into `RollBinGrid`, with direct pure-helper regression coverage alongside the existing wrapper-level aggregate regression.
-84. The repeated bin-angle field-to-domain apply flow is no longer embedded only in `MyBinAnglesParameter.changed()`: `my_parameters.py` now has a narrow local helper for applying live azimuth and inclination range values back into `RollAngles`, with direct pure-helper regression coverage.
-85. The repeated bin-offset normalization and field-to-domain apply flow is no longer embedded only in `MyBinOffsetParameter.changed()`: `my_parameters.py` now has a narrow local helper for normalizing rectangular/radial offset ranges and applying them back into `RollOffset`, with direct pure-helper regression coverage.
-86. The repeated unique-offset field-to-domain apply flow is no longer embedded only in `MyUniqOffParameter.changed()`: `my_parameters.py` now has a narrow local helper for applying pruning and rounding settings plus delta values back into `RollUnique`, with direct pure-helper regression coverage.
-87. The repeated bin-method field-to-domain apply flow is no longer embedded only in `MyBinMethodParameter.changed()`: `my_parameters.py` now has a narrow local helper for translating the selected binning label back into `BinningType` and applying interval velocity to `RollBinning`, with direct pure-helper regression coverage.
-88. The repeated plane field-to-domain apply flow is no longer embedded only in `MyPlaneParameter.changed()`: `my_parameters.py` now has a narrow local helper for applying live anchor, azimuth, and dip values back into `RollPlane`, with direct pure-helper regression coverage.
-89. The repeated sphere field-to-domain apply flow is no longer embedded only in `MySphereParameter.changed()`: `my_parameters.py` now has a narrow local helper for applying live origin and radius values back into `RollSphere`, with direct pure-helper regression coverage.
-90. The repeated reflector aggregate write-back is no longer embedded only in `MyReflectorsParameter.changed()`: `my_parameters.py` now has a narrow local helper for rebuilding `ReflectorParameterValues` from the live plane/sphere child parameters, with direct pure-helper regression coverage plus stronger wrapper-level nested write-back coverage.
-91. The repeated analysis aggregate write-back is no longer embedded only in `MyAnalysisParameter.changed()`: `my_parameters.py` now has a narrow local helper for rebuilding `AnalysisParameterValues` from the live area/angles/binning/offset/unique child parameters, with direct pure-helper regression coverage plus stronger wrapper-level nested write-back coverage.
-92. The repeated block aggregate write-back is no longer embedded only in `MyBlockParameter.changed()`: `my_parameters.py` now has a narrow local helper for rebuilding `BlockParameterValues` from the live boundary/template-list child parameters, with direct pure-helper regression coverage plus stronger wrapper-level nested write-back coverage.
-93. The repeated template aggregate write-back is no longer embedded only in `MyTemplateParameter.changed()`: `my_parameters.py` now has a narrow local helper for rebuilding `TemplateParameterValues` from the live roll-list/seed-list child parameters, with direct pure-helper regression coverage plus stronger wrapper-level nested write-back coverage.
-94. The repeated roll-list child lookup and move-list write-back is no longer embedded only in `MyRollListParameter.changed()`: `my_parameters.py` now has a narrow local helper for rereading the current `Planes` / `Lines` / `Points` child parameters and applying their values back into the backing move list, with direct pure-helper regression coverage.
-95. The repeated roll-parameter XYZ increment write-back is no longer embedded only in `MyRollParameter.changedXYZ()`: `my_parameters.py` now has a narrow local helper for applying live `dX` / `dY` / `dZ` values back into `RollTranslate.increment` and refreshing derived azimuth/tilt values, with direct pure-helper regression coverage.
-96. The repeated roll-parameter step-count write-back is no longer embedded only in `MyRollParameter.changedN()`: `my_parameters.py` now has a narrow local helper for applying the live `N` value back into `RollTranslate.steps` and emitting the wrapper-level value-change signal, with direct pure-helper regression coverage.
-97. The repeated pattern-seed field-to-domain apply flow is no longer embedded only in `MyPatternSeedParameter.changed()`: `my_parameters.py` now has a narrow local helper for applying live color, origin, and grid grow-list values back into `RollPatternSeed`, with direct pure-helper regression coverage alongside the existing wrapper-level regression.
-98. The repeated configuration wrapper assignment is no longer embedded only in `MyConfigurationParameter.changed()`: `my_parameters.py` now has a narrow local helper for assigning the result of `applyConfigurationValues()` back into the wrapper and survey state from the live CRS/type/name child values, with direct pure-helper regression coverage.
-99. The repeated well header field-update and refresh flow is no longer embedded only in `MyWellParameter.changedF()` and `MyWellParameter.changedC()`: `my_parameters.py` now has a narrow local helper for applying the changed well attribute, refreshing the header, and processing UI events, with direct pure-helper regression coverage.
-100. The repeated non-grid seed-type coordination is no longer embedded only in the non-grid branch of `MySeedParameter.typeChanged()`: `my_parameters.py` now has a narrow local helper for clearing the pattern selection under a tree-change blocker and applying the derived seed visibility state, with direct pure-helper regression coverage.
-101. The repeated grid seed refresh application is no longer embedded only in `MySeedParameter.refreshPatternList()`: `my_parameters.py` now has a narrow local helper for applying refreshed pattern limits, selected pattern, and derived visibility state together for grid seed flows, with direct pure-helper regression coverage.
-102. The repeated grid seed refresh-state derivation is no longer embedded only in `MySeedParameter.refreshPatternList()`: `my_parameters.py` now has a narrow local helper for resolving the effective seed type, climbing to the parameter-tree root, and retrieving refreshed pattern state before the already-helper-backed UI application step, with direct pure-helper regression coverage.
-103. The repeated seed-type routing flow is no longer embedded only in `MySeedParameter.typeChanged()`: `my_parameters.py` now has a narrow local helper for reading the current seed type, applying it through `SeedParameterStateHelper`, and dispatching between the already-helper-backed grid and non-grid paths, with direct pure-helper regression coverage.
-104. `SessionService` no longer carries duplicate MRU/document-resolution helpers; `DocumentContextService` is now the single live owner of recent-file recording, resolution, removal, and menu-building behavior, with direct regression coverage on that owner.
-105. The loaded-project fold-image restore path now reuses `prepareLayoutImageAndColorBar()` through `ProjectLoadApplier`, so layout image/colorbar setup is no longer duplicated between file-load and interactive image selection.
-106. The obvious worker cleanup tail has narrowed materially: the generic `binningResultThreadFinished()` compatibility wrapper is gone, and `worker_threads.py` now contains only the live typed workers while older thread/example scaffolding lives in `__archive__/worker_threads_old_methods.py`.
-107. Well-file browsing state is now part of the runtime document context: `RuntimeState` and `settings.py` persist `wellDirectory`, property-tree items receive that context explicitly, and changing a `Well file` field updates the shared directory for the active parameter tree.
-108. The remaining Well-file directory propagation seam is no longer handled inline in `RollMainWindow.propertyTreeStateChanged()`: `PropertyPanelController` now owns the guard and update path, with direct regression coverage for both matching and non-matching tree-change events.
-109. The Layout tab now has an opt-in matplotlib-based `3D Subset` view with lazy widget construction, safe fallback when matplotlib is unavailable, local/global coordinate sync, seed / plane / sphere rendering, spider-overlay support, and lifecycle wiring that keeps it synchronized with Layout redraws and property edits while remaining opt-in per session.
-110. The `3D Subset` layout seam now also mirrors visible REC/SRC/RPS/SPS point-layer payloads from the 2D map, including the global `Show source and receiver points` gate plus per-layer visibility and marker styling translation, so the layout-tab helper now owns more real presentation-state bridging than the previous roadmap version assumed.
-111. Template binning and geometry binning now share a single source/receiver z-coordinate convention, so both paths compute CMP locations from the same 3D source/receiver coordinates. Template binning consumes each seed's true 3D `(x, y, z)` from `pointArray` (preserving well TVDss z), and the SPS/REC convention places elevation in `Elev` (datum-relative, defaults to 0.0) and burial/well depth in `Depth` (positive subsurface). All geometry-binning entry points - `selectReceiversForSourceRelationSlice()`, `binFromGeometry10()`, `binFromGeometryNoRel2()`, `binFromGeometry9()`, and `binFromGeometry11()` - now derive both source and receiver z as `Elev - Depth` instead of `Elev` alone. Surface points (`Elev=0`, `Depth=0`) keep `z=0`; well receivers (`Elev=0`, `Depth=2500`) carry `z=-2500` into the binning math, matching what template binning sees for the same seed. When the geometry sidecars are generated from the same template survey and preserve the full relation set, converting to geometry-records-plus-relations is purely a storage/admin compaction and can produce bit-identical binning output. Imported or curated geometry inputs may intentionally represent only a subset of the template trace set, in which case aggregate fold / RMS / gap summaries are expected to differ even though the overlapping binning semantics remain aligned.
-112. `PropertyPanelController` now also owns tracked/pending seed rename, color, origin, grow-list, and pattern propagation behavior plus commit-time confirmation/apply flows, so the property-panel seam is broader than the previous roadmap version assumed.
-113. The layout/property regression baseline is also stronger than the previous roadmap text implied: there are direct tests for `Layout3DWidget` geometry/depth helpers, `refreshLayout3DFromSurvey()` payload building, and the `PropertyPanelController` seed-propagation paths, although much of that coverage is concentrated in `test/test_project_sidecars.py`.
-
-Still experimental:
-1. Worker launch and completion contracts are explicit on the main paths, and the obvious legacy scaffolding cleanup is now done; geometry and binning both now use the guarded `useExperimental` dispatch pattern. The concrete remaining question is not whether the flags can route safely, but whether `geomTemplate5()` and `binFromGeometry10()` should ever become stable defaults after more equivalence and real-survey confidence, while the semantically divergent `binFromGeometry9()` path should either stay explicitly experimental or move to archive/reference status.
-2. A few plotting paths still contain controller-owned details, but the main Phase 5 redraw seams are now in place; the `3D Subset` surface has grown into a meaningful layout-analysis bridge and now also mirrors visible point-layer payloads/styling from 2D. It now has real direct tests, but those tests are still concentrated in one large regression module, so it should be treated as an active layout-analysis seam rather than a finished, low-cost subsystem.
-3. `config.py` still serves as a broad shared constants/defaults module; that is acceptable for now, but it can be split by concern later if clearer module boundaries are wanted.
-4. The previous well/CRS fallback concern is largely resolved; only routine cleanup remains if any residual callers still pass explicit survey context unnecessarily.
-5. The offset-gap empty-analysis edge case is now covered: `calcOffsetGapValues()` guards the all-empty path and has a direct regression, so the remaining follow-up there is only routine protection if another offset-gap surface behavior is added.
-6. `my_parameters.py` remains a real hotspot even after the `PropertyPanelController` extraction, but the most repetitive seed/well state policy, creation defaults, child-wiring boilerplate, preview-item setup, preview text/error-state seams, aggregate wrapper write-back seams, list/context-menu mutation flows, the first higher-level seed schema coordination slice, the repeated seed/pattern traversal seam, the repeated pattern-list side-effect bundle, the repeated well sampling/header apply flow, the repeated circle/spiral apply flow, the repeated local/global grid apply flow, the repeated bin-angle apply flow, the repeated bin-offset normalization/apply flow, the repeated unique-offset apply flow, the repeated bin-method apply flow, the repeated plane/sphere apply flows, the repeated reflector/analysis/block/template aggregate apply flows, the repeated roll-list apply flow, the repeated roll-parameter XYZ and step-count apply flows, the repeated pattern-seed apply flow, the repeated configuration apply flow, the repeated well-header attribute-change flow, and the repeated seed-type routing and refresh flows are now helper-backed. The remaining issue is the higher-level coupling between the larger parameter-schema clusters, UI mutation, and the domain-specific side effects still spread across many parameter classes. `marine_wizard.py` should still be considered a peer hotspot, and `PropertyPanelController` should now be treated as the smaller adjacent hotspot because of its propagation-bookkeeping concentration.
-
-**Recommended Order From Here**
-
-1. Keep the preserved reference implementations and the now-restored experimental geometry/binning paths in `roll_survey.py` out of routine cleanup scope unless a change is specifically about comparing, validating, or replacing live algorithms.
-2. Prefer the next focused refactor in the layout-analysis surface seam, not in `roll_survey.py`: the remaining image-selection, status-text, export routing, and especially the now-expanded `3D Subset` payload/styling bridge across `roll_main_window_create_layout_tab.py` and `layout_3D.py` are better near-term targets than another parameter-tree move.
-3. Make that layout follow-up concrete and narrow: first extract the 2D-to-3D payload-building, visibility/style translation, and refresh orchestration behind a small dedicated bridge module (for example `layout_3d_bridge.py`) while preserving the current `Layout3DWidget.updateFromSurvey()` contract and keeping `layout_3D.py` rendering-focused.
-4. Add direct bridge-level tests for that first slice, especially visible point-layer mirroring, source/receiver depth forwarding, local/global mapping inputs, and the basic block/bin-area packaging path. Prefer moving those tests into a narrower layout-focused test module if the existing `test/test_project_sidecars.py` concentration keeps growing.
-5. Treat `my_parameters.py`, `marine_wizard.py`, and the propagation-heavy parts of `PropertyPanelController` as the next follow-up hotspots after the layout seam, because they still combine substantial UI mutation with domain rules or cross-object state synchronization even after earlier helper extraction.
-6. Revisit the geometry/binning optimization track only after that layout extraction lands cleanly; when it is revisited, decide whether the currently guarded `geomTemplate5()` and `binFromGeometry10()` paths have enough evidence to become defaults rather than widening the algorithm surface again.
-7. Revisit worker payload shape only if a measured simplification remains after the active geometry/binning layer is easier to reason about.
-8. Do performance work only after the structure stops moving.
-9. Treat any further `config.py` work as optional organization, not as the main architectural blocker.
-10. Prefer splitting overgrown regression buckets before adding many more unrelated assertions to them; the current test problem is more about concentration and ownership than raw coverage count.
-
-The earlier “create `SessionState` first” and “extract import/QC service first” recommendations are no longer current. Those seams are already good enough to move attention to plotting/redraw structure.
-
-The other important change is that the previous roadmap understated how much UI extraction has already landed. The remaining problem is not tab-builder setup anymore; it is the concentration of surface-specific plotting computations, plot-interaction behavior, and widget mutation inside `roll_main_window.py` after redraw policy, cache state, and reused-axis reconstruction were moved into `PlotRedrawHelper`.
-
-**Phase 0 - Baseline and Safety Net**
-
-Status:
-Restored in the workspace again, but it should be treated as newly recovered infrastructure until the most relevant slices are rerun in the active environment.
-
-What is already in place:
-1. Historical baseline before deletion: direct tests for project persistence and sidecars existed.
-2. Historical baseline before deletion: direct tests for SPS filter logic plus direct SPS/RPS/XPS fixed-width parser and batch file-reader safety nets existed.
-3. Historical baseline before deletion: direct tests for `FilterService`, `SessionState`, and `SessionService` existed.
-4. Historical baseline before deletion: direct tests for `ImportService` existed.
-5. Project XML round-trip coverage.
-6. Regression coverage for recent numerical and legacy-sidecar fixes.
-7. Regression coverage for O/A display-mode defaults and rectangular-versus-polar renderer dispatch.
-8. Higher-level `fileLoad()` coverage that exercises survey sidecar loading plus session-state rebuild/application.
-9. Settings/runtime ownership regressions around `AppSettings`, `RuntimeState`, and the SPS import dialog.
-10. Direct redraw regressions that prove presentation-only O/A redraw reuse, controller-versus-visible offset invalidation behavior, and cache reset after broader analysis refresh.
-11. Direct live-binning localization coverage that proves both relation-driven and no-relation paths populate missing local source/receiver coordinates consistently.
-12. Direct live-binning completion-tail coverage that proves shared post-processing runs only for `fullAnalysis=True` and clears `anaOutput` otherwise.
-13. Direct document-context coverage that proves the helper owns file-path/MRU behavior and that settings/runtime ownership checks include MRU-backed runtime document state.
-14. Direct pattern-geometry coverage now proves legacy implicit pattern XML is normalized to three grow steps and that pattern-response arrays are built directly as `float32` arrays from the shared grid traversal.
-15. Direct property-panel regressions now prove the working-copy path goes through `survey.deepcopy()` and that `applyPropertyChanges()` preserves or clears analysis caches correctly based on the bin-area-changed boundary.
-16. Direct well-transform regressions now prove `RollWell.readHeader()` preserves identity-transform coordinates and applies the inverse global survey transform when deriving local well coordinates.
-17. Direct bin-equivalence coverage now proves `binFromGeometry10()` matches `binFromGeometry8()` semantics on the pinned cases and explicitly documents that `binFromGeometry9()` is not a drop-in-equivalent optimization path.
-
-What is still worth adding here:
-1. Re-run the most relevant restored slices first, especially the layout/property, geometry, and persistence buckets, to re-establish the live safety net in the active environment.
-2. Then split the former layout/property regression bucket into narrower modules before expanding it again.
-3. Add only further geometry-generation tests if they cover a new live-path correctness seam beyond the known minimal and rolled-template cases.
-4. Keep the small reusable project fixture idea for the moment repeated setup starts to spread again.
-5. Preserve a narrow direct smoke/math seam for the `3D Subset` helpers (`Layout3DWidget` bbox/transform/spider preparation) once the layout bridge work resumes.
-
-Exit criteria:
-1. Project persistence and filter behavior are protected.
-2. At least one active geometry-generation path is covered by a direct test.
-3. At least one worker path is covered by a direct test.
-4. The reconstructed test tree is present in the workspace again and can run at least one narrow QGIS-aware slice relevant to the next refactor.
-
-**Phase 1 - Project Persistence and Load Boundary**
-
-Status:
-Complete enough for the current milestone.
-
-What is already done:
-1. `ProjectService` handles XML read/write.
-2. `ProjectService` handles low-level sidecar save/load helpers.
-3. `ProjectService` handles memmap opening helpers.
-4. `ProjectService.loadProjectSidecars()` returns a structured batch result with messages and loaded arrays.
-5. `roll_main_window.py` no longer performs most raw sidecar `np.load` calls directly.
-6. Loaded-project sidecar application goes through a dedicated helper instead of being implemented inline in `fileLoad()`.
-7. `fileLoad()` delegates load and post-load orchestration into smaller controller helpers.
-8. Geometry sidecar saves route through `ProjectService` instead of direct `np.save` calls in worker completion.
-9. Legacy point sidecars are normalized at the persistence boundary instead of weakening table-model assumptions.
-
-What remains in this phase:
-1. No further Phase 1 work is required before moving to later phases.
-2. Only small cleanup/documentation opportunities remain.
-3. Optional persistence hardening: consider migrating the `.ana.npy` analysis sidecar from the current raw `np.memmap` layout to a true headered NumPy `.npy` memmap format, while keeping backward-compatible loading for existing raw sidecars during the transition. This would let the persistence boundary recover shape/dtype from the file header itself instead of relying only on caller-supplied shape plus byte-size inference, which should make validation, corruption detection, and future format checks simpler and less brittle.
-
-Exit criteria:
-Met for the current milestone:
-1. `fileLoad()` is much shorter and stops owning most loaded-state application logic.
-2. `ProjectService` remains the single owner of sidecar naming, existence checks, validation, compatibility normalization, and load rules.
-3. The remaining main-window code is mostly controller wiring: parse, call services, update top-level UI state, and trigger redraw.
-4. All project sidecar writes go through `ProjectService`.
-
-**Phase 2 - Filter Extraction**
-
-Status:
-Complete enough for now.
-
-What has landed:
-1. `FilterService` exists and is descriptor-driven.
-2. Duplicate/orphan handlers in `roll_main_window.py` delegate to generic point/relation filter dispatch helpers.
-3. The service returns structured filter results including summary text and derived spatial state.
-4. There is direct unit-test coverage for point duplicate, point orphan, and relation orphan filtering.
-
-Remaining note:
-Do not spend more refactoring effort here unless new duplication appears.
-
-Exit criteria:
-Already met for the current milestone:
-1. The many cleanup/orphan handlers collapsed into a small generic dispatch layer.
-2. Filter orchestration is testable without a `QMainWindow`.
-3. `roll_main_window.py` is materially less repetitive in this area.
-
-**Phase 3 - Explicit Runtime and Session State**
-
-Status:
-Substantially complete for the current milestone.
-
-What has landed:
-1. `SessionState` owns imported arrays, geometry arrays, derived live/dead arrays, and convex-hull state.
-2. `SessionService.setArray()` and `refreshArrayState()` provide the canonical refresh path for those arrays.
-3. `RollMainWindow` property setters for `rpsImport`, `spsImport`, `xpsImport`, `recGeom`, `srcGeom`, and `relGeom` delegate into `SessionService`.
-4. `AppSettings` exists for persisted settings loaded from `QSettings`.
-5. `RuntimeState` now owns the document-context values used across open/save/import flows: `fileName`, `projectDirectory`, `importDirectory`, `wellDirectory`, and `recentFileList`.
-6. `DocumentContextService` now owns document-path commit behavior, MRU removal/resolution/menu building, and stored-value loading for the runtime document context.
-7. `settings.py` loads/saves through `AppSettings` and `RuntimeState`, including the persisted well-file browse directory, and runtime settings activation is explicit.
-8. Wizard naming/incrementing uses the runtime-state `surveyNumber` instead of a direct `config.surveyNumber` mutation path.
-9. `sps_import_dialog.py` edits SPS/RPS/XPS formats and dialect selection through `AppSettings` ownership, with tests covering the owner boundary.
-10. The old mutable `AppSettings -> config.py` write-back bridge has been removed.
-11. Timer/profiling ownership has moved into `SessionService`.
-12. Land and marine wizard defaults have moved out of `config.py` and into their respective wizard classes.
-
-What remains in this phase:
-1. Decide only if a broader naming/session seam later appears whether `surveyNumber` should stay in `SessionState` or move into a wider runtime/document context.
-2. Optionally reduce some remaining read-only `config.py` lookups into narrower constants modules if that later improves clarity.
-
-Exit criteria:
-Met enough for the current milestone:
-1. `config.py` is no longer used as a mutable compatibility bridge for settings/session ownership.
-2. `AppSettings`, `RuntimeState`, and `SessionState` are the only owners of mutable persisted/session state.
-3. Services receive state objects rather than many loosely related arrays and flags.
-4. `RollMainWindow` stops owning most imported-array and geometry-array lifecycle directly.
-
-**Phase 4 - Import/QC Service**
-
-Status:
-Substantially landed.
-
-What has landed:
-1. `ImportService` exists.
-2. SPS/RPS/XPS parsing loops moved out of `roll_main_window.py`.
-3. QC passes, duplicate/orphan checks, CRS conversion, transform calculation, and progress text generation moved into `ImportService`.
-4. Import cancellation is handled in the service boundary.
-5. `fileImportSpsData()` in `roll_main_window.py` now acts mainly as a controller for file picking, progress display, and committing final arrays into session state.
-6. There is direct unit-test coverage for import batching, cancellation, and QC behavior.
-
-What remains in this phase:
-1. The import dialog now uses `AppSettings` as the mutable owner, and its remaining `config.py` usage is mostly stable schema/default metadata.
-2. Some UI-bound progress/update code remains in the main window by design.
-3. A later worker-based import path can be considered, but only after the remaining settings/runtime ownership is stable.
-
-Exit criteria:
-Already met enough for the current milestone:
-1. Import/QC logic is testable without `RollMainWindow`.
-2. Core parsing/QC logic no longer depends directly on `QApplication.processEvents()`.
-3. The UI owns file picking, progress display, and final reporting/commit behavior only.
-
-**Phase 5 - Plot and Redraw Service**
-
-Status:
-Substantially complete for the current milestone. The redraw/controller slice now has helper-owned invalidation and cache reuse, O/A and offset both follow explicit preparation-versus-render boundaries, the remaining stack-response controller cluster now lives in `StackResponseController`, layout image/colorbar duplication has been reduced with a smaller helper that does not pull layout into the full redraw-policy model, generic plot mouse/status handling now sits behind shared helpers instead of being layout-only wiring, and the Layout tab now also hosts an opt-in matplotlib-based `3D Subset` surface as part of the broader layout-analysis seam.
-
-Goal:
-Separate domain changes from redraw policy, image preparation, and colorbar wiring.
-
-Scope:
-1. Layout image preparation.
-2. Analysis image preparation.
-3. Colorbar input generation and reuse.
-4. Plot interaction and status sampling behavior.
-5. Partial invalidation rules versus full replot rules.
-
-Why this is now the next structural phase:
-1. The main persistence, filter, import, and state seams already exist.
-2. The largest remaining concentration of controller complexity now lives in plotting and redraw decisions inside `roll_main_window.py`.
-3. Worker cleanup should still wait until redraw/state contracts are clearer.
-
-What has landed:
-1. Tab construction is already split out for layout, pattern, geometry, SPS, trace-table, stack-response, and O/A views.
-2. The O/A histogram has explicit display-mode UI state (`Rectangular` / `Polar`) instead of embedding that decision in a single plot path.
-3. O/A rendering has separate controller methods for rectangular and polar rendering, along with dedicated colorbar/update helpers.
-4. Stack-response and pattern-response plots now share `prepareAnalysisImageAndColorBar()` instead of duplicating the same image/colorbar wiring in each controller method.
-5. `plotPatterns()` no longer owns all pattern selection and Kx/Ky computation details inline; those concerns now sit behind dedicated helper methods.
-6. `plotStkCel()` no longer owns all stack-cell pattern selection and response computation details inline; those concerns now sit behind dedicated helper methods.
-7. A small dispatcher now routes `patterns`, `stack-inline`, `stack-xline`, `stack-cell`, and `off-azi` redraws through one controller entry point instead of leaving every trigger to call plot methods ad hoc.
-8. Stack-response redraws now honor navigation direction: inline reacts to vertical motion only, xline reacts to horizontal motion only, and stack-cell reacts to both.
-9. `AnalysisRedrawReason` now drives real invalidation behavior instead of acting as pass-through metadata only.
-10. Pattern-response redraws now invalidate cached Kx/Ky results on selection changes and reuse cached responses when the selected patterns are unchanged.
-11. O/A redraws now distinguish controller-driven invalidation from presentation-only redraws such as display-mode and polar colorbar level changes.
-12. Stack-response redraws now invalidate caches on controller-driven changes and stack-pattern changes, while reusing cached inline/xline/cell responses when the navigation context is unchanged.
-13. `PlotRedrawHelper` now owns surface invalidation policy, cache reset logic, cache-key storage, cache-key builders, and cached-axis reconstruction for pattern, inline, xline, and stack-cell redraw reuse.
-14. O/A now has dedicated histogram-input preparation, prepared plot-input construction, prepared render dispatch, and a thin `plotOffAzi()` wrapper over `redrawOffAzi()`.
-15. Offset now has dedicated histogram-input preparation, prepared plot-input construction, prepared render dispatch, and dispatcher routing through the same analysis redraw entry point used by O/A.
-16. Layout image-item creation and layout colorbar wiring now go through a narrower shared helper instead of leaving the full setup inline in `handleImageSelection()`.
-17. The loaded-project fold-image restore path now also routes through that same layout helper, instead of recreating the image/colorbar setup inline in `ProjectLoadApplier`.
-18. There is direct regression coverage for shared analysis image/colorbar preparation, layout image/colorbar preparation, dispatcher routing, stack-response redraw gating, stack-response cache reuse, helper-owned key/axis reconstruction, O/A renderer dispatch, O/A dispatcher routing, offset dispatcher routing, O/A display-range reset on file load, reason-driven invalidation behavior, presentation-only O/A redraw reuse, offset controller-versus-visible invalidation, and cache reset after broader analysis refresh.
-19. Offset-inline and offset-xline tab construction now use a dedicated builder module with independent component selectors per tab instead of leaving those controls inline in `roll_main_window.py`.
-20. Offset-inline and offset-xline controllers now support plotting absolute offset magnitude or either source/receiver coordinate component through shared selection helpers and the extended numeric helpers.
-21. Plot mouse tracking is now connected centrally for every plot widget, with shared helpers for generic coordinate display and image-value sampling on stack, pattern-response, and O/A surfaces, while preserving the richer layout-specific status readout.
-22. `StackResponseController` now owns the previously inline stack-response controller seam: redraw-context derivation, stack-surface redraw routing, direction gating, inline/xline/cell rendering, and stack-cell pattern-response combination all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
-23. `PlotNavigationController` now owns the previously inline visible-plot/navigation seam: plot-widget index lookup, first-visible plot discovery, plot-mouse routing, shared visible-analysis context derivation, and the `updateVisiblePlotWidget()` switchboard all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
-24. `PlotViewStateController` now owns the previously inline plot-toolbar/view-state seam: show-event toolbar synchronization, zoom-all rebinding, active-plot toolbar-state refresh, and the active-plot zoom-rect / aspect-ratio / anti-alias / grid toggle actions all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
-25. `ActionStateController` now owns the previously inline action/menu state seam: representative menu/button enablement, processing-menu gating, focus-based edit routing, clipboard-aware plot-copy fallback, and active-plot lookup for print/copy helpers all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
-26. `PrintPresentationController` now owns the previously inline print/export presentation seam: print-preview dialog setup, XML-versus-plot print routing, plot-to-printer page layout/header rendering, and PDF export output-device configuration all moved out of `roll_main_window.py`, with the existing wrapper methods preserved as a stable façade.
-27. Worker orchestration is now also past the earlier Phase 5 boundary assumptions: the mixin delegates launch/cancel/shutdown rules to `WorkerOperationController`, and result application is split into dedicated appliers rather than being left as one large completion branch.
-28. The Layout tab now supports an opt-in matplotlib-based `3D Subset` page with lazy construction, safe fallback when matplotlib is unavailable, explicit 2D/3D stacked switching, refresh hooks from layout/property updates, local/global coordinate sync, and a separate `layout_3D.py` implementation that keeps the 3D rendering concerns out of `roll_main_window.py`.
-
-What remains in this phase:
-1. Keep the helper boundary small unless a new repeated redraw-policy concern appears; do not expand it just to move code mechanically.
-2. Add only the remaining high-value regressions that materially protect later worker-boundary refactors.
-3. Treat further plotting cleanup in this phase as optional polish, not the main architectural blocker anymore.
-4. If the `3D Subset` surface keeps evolving, prefer splitting its existing regressions into a narrower layout-focused test module before adding many more cases; the current gap is more test concentration/ownership than raw missing coverage.
-5. The small document-tab focus/selection tail around `onMainTabChange()` and `find()` is still not a worthwhile controller extraction target by itself, and the previously stronger property-panel survey edit/apply seam has now already been moved as one coherent unit.
-
-Exit criteria:
-1. Data mutations no longer directly decide full redraw policy in many places.
-2. Small data edits can invalidate only affected layers.
-3. Colorbar and image setup stop being scattered across controller methods.
-4. O/A, patterns, and stack-response follow the same redraw/controller structure instead of relying on separate ad hoc trigger paths.
-
-**Phase 6 - Worker Contract Cleanup**
-
-Status:
-Main-path cleanup is largely complete; only selective follow-up remains.
-
-Goal:
-Make worker inputs and outputs explicit, smaller, and easier to validate.
-
-Current note:
-The narrow vertical-slice migration has landed for the three main launch paths: binning from templates, binning from geometry/imported SPS, and geometry creation from templates. The converted workers now emit typed results, use a no-argument `finished()` signal, avoid redundant array copies in the result payload, carry geometry profiling as one explicit optional sub-payload, and have direct worker-level plus consumer-boundary regressions on the converted binning paths. The orchestration layer is also more explicit than before: `WorkerOperationController` owns job specs plus launch/cancel/shutdown flow, and `BinningResultApplier` / `GeometryResultApplier` own the apply paths. The obvious compatibility tail is now also smaller: the generic `binningResultThreadFinished()` shim is gone, and the old thread/example scaffolding has been moved out of the live worker module. The remaining work here is now only measured simplification, not another cleanup sprint. The important nuance is that the live optimization candidates are no longer one-dimensional: `binFromGeometry9()` exists but is intentionally semantically divergent from `binFromGeometry8()`, while `binFromGeometry10()` is the path already pinned by equivalence tests as an identical-semantics optimization candidate. The old reference implementations still kept inside `roll_survey.py` should not be treated as part of this worker-cleanup scope unless a future optimization pass explicitly compares them with the live paths.
-
-Future direction:
-1. Keep worker inputs and outputs explicit on every converted path.
-2. Centralize result validation and shared completion behavior only where it removes real duplication.
-3. Keep trimming payload fields only when the completion handlers do not need them and the trim does not push derivation back into UI/controller code.
-4. If the geometry-binning optimization track resumes, treat `binFromGeometry10()` as the candidate for guarded promotion and keep `binFromGeometry9()` clearly marked as experimental/reference unless its semantics are intentionally broadened to match the live path.
-5. Reduce XML round-tripping for internal worker handoff if profiling shows it matters.
-
-Exit criteria:
-1. Worker inputs and outputs are explicit and documented.
-2. Completion handlers do less copying and less implicit mutation.
-3. Compatibility-only worker APIs on the converted paths are gone.
-4. Remaining payload fields each have a clear owner-side reason to exist.
-
-**Phase 7 - Performance Work After Structure Stabilizes**
-
-Status:
-Deferred by design.
-
-The main performance candidates are still:
-1. repeated `np.unique` work during geometry generation,
-2. large array copying on worker completion,
-3. broad redraw invalidation after small changes,
-4. XML used as both persistence format and internal transport.
-
-Do not optimize these speculatively. Measure them after the service boundaries and state ownership are clearer. As of the current geometry-binning work, full-analysis runtime on the representative Noordoostpolder geometry survey is already down to roughly five minutes, so further performance work is explicitly lower priority than structural cleanup unless a new workload reopens the need.
-
-**Tests To Re-Run Or Add Next**
-
-The earlier test list is outdated for two different reasons: several of those tests already existed before 2026-05-30, and the entire `test/` tree had to be restored after the deletion commit noted at the top of this document.
-
-The best next test actions are:
-1. re-run the restored layout/property, geometry, and persistence slices first to verify the recovered suite against the current codebase,
-2. then split the old layout/property regression bucket into narrower modules before expanding it much further,
-3. add one bridge-level regression only when the 2D-to-3D payload/styling bridge moves out of `roll_main_window_create_layout_tab.py`,
-4. add one redraw regression only if another controller-owned invalidation seam is extracted beyond the current O/A and offset coverage,
-5. add one higher-level runtime/session ownership regression only if another document/session seam moves out of `RollMainWindow` beyond the current file-path/MRU ownership,
-6. keep the small reusable project fixture follow-up only if test setup starts spreading further again,
-7. add one direct SPS parser/QC regression only when fixed-width parsing, batch reader control flow, or orphan-detection behavior changes again in `sps_io_and_qc.py`,
-8. add one direct property-propagation regression only if new seed-propagation behavior is added beyond rename/color/origin/grow-list/pattern coverage,
-9. add one Qt6/QGIS 4.0 smoke test that opens and uses the larger table-model views in `table_model_view.py`, especially the `QVariant`-backed display/background/foreground paths,
-10. add one Qt6/QGIS 4.0 smoke test that exercises QGIS layer import/export flows in `qgis_interface.py`, including the layer-selection dialog and exported-layer field/schema paths,
-11. add one follow-up migration triage item to capture and pin any remaining runtime-only traceback from those lower-traffic Qt6 paths before treating the migration as fully settled.
-
-**Outdated Items From The Previous Roadmap**
-
-The following items should now be considered completed or reordered:
-1. “Create `ProjectService` first” is no longer future work.
-2. “Create a higher-level batch sidecar-load method” is no longer future work.
-3. “Extract `FilterService` next” is no longer future work.
-4. “Introduce `SessionState` first” is no longer future work in the strict sense; the phase is already substantially complete.
-5. “Create `ImportService` next” is no longer future work in the strict sense; the phase is already substantially landed.
-6. “Only the O/A builder extraction has started” is now outdated; the builder-module pattern already covers most main tabs.
-7. “Add one direct geometry-generation correctness test for a minimal template or block” is no longer future work; both minimal and rolled-template active-path regressions now exist.
-8. “Add one direct O/A regression that proves presentation-only redraw skips histogram recomputation” is no longer future work.
-9. “Add one higher-level offset redraw regression that distinguishes controller invalidation from visible-activation reuse” is no longer future work.
-10. “Add one geometry-to-plot invalidation regression that exercises cache reset after a broader analysis refresh” is no longer future work.
-11. “Add one narrow regression for shared local-coordinate preparation from the live binning paths” is no longer future work.
-12. “Add one narrow regression for any future shared binning-completion helper” is no longer current future work; that helper and its direct regression now exist.
-13. Worker cleanup should still not be ahead of plot/redraw extraction and final state-ownership cleanup.
-14. “Decide whether project file paths belong permanently in `RuntimeState`” is no longer immediate future work; the runtime document-context decision has now been implemented with a dedicated service boundary.
-15. “Merge `calcPatternPointLists()` into `calcPatternPointArrays()`” is no longer future work; the direct-array path now exists and the list helper has been removed.
-16. “Keep pattern-seed cached point arrays for later use” is no longer current design guidance; that cache path turned out to be dead code after pattern rendering and analysis moved to shared grid traversal.
-17. “Prefer the property-panel survey edit/apply cluster as the next `RollMainWindow` seam” is no longer future work; that controller boundary has now landed with regression coverage and continues to rely on the existing XML-backed `survey.deepcopy()` copy path.
-18. “Check if CRS coordinate transform goes in the right direction for well-files” is no longer future work; direct regressions now cover the active transform direction.
-
-**Recommended Next Step**
-
-If choosing one next step only, do this:
-1. Re-run the restored test slices that cover layout/property, geometry, and persistence, then refactor the Layout-tab 2D-to-3D bridge as one small structural slice: move the `3D Subset` payload-building, visibility/style translation, and refresh orchestration out of `roll_main_window_create_layout_tab.py` into a narrow dedicated bridge module, keep `layout_3D.py` renderer-focused, and then relocate or add bridge-level tests before widening scope.
-
-Why:
-1. The active geometry-generation path, live localization seam, live bin-update seam, and live completion tail in `roll_survey.py` still have extracted helper boundaries, and the recovered test tree now gives a concrete path to re-establish the most relevant safety net before the next structural move.
-2. Recent regressions came from parameter-tree coupling, and the lower-level state/default/wiring duplication in `my_parameters.py` has now been reduced further, including the preview-item setup/update seams, the preview text/error-state helpers, two shared constructor clusters, the pattern-list synchronization callbacks, four higher-level `MySeedParameter` coordination slices, the repeated block/template seed traversal, the remaining pattern-list side-effect bundle, the repeated `MyWellParameter` sampling/header flow, the repeated circle/spiral apply flow, the repeated local/global grid apply flow, the repeated bin-angle apply flow, the repeated bin-offset normalization/apply flow, the repeated unique-offset apply flow, the repeated reflector aggregate apply flow, the repeated analysis aggregate apply flow, the repeated block/template aggregate apply flow, the repeated roll-list apply flow, the repeated roll-parameter XYZ apply flow, the repeated configuration apply flow, the repeated well-header attribute-change flow, and the repeated seed-type routing and refresh flows.
-3. The obvious worker cleanup tail is already substantially done, the Well-file property-panel seam has landed, and the new `3D Subset` feature is still the most visible surface that lacks a narrow direct bridge seam.
-4. The SPS/RPS/XPS import slice is at a deliberate stopping point structurally; with the tests restored, re-run the former direct parser/file-reader coverage before doing any optional import cleanup.
-
-First-cut scope:
-1. Re-run the restored tests for the most relevant slices.
-2. Move the pure 3D payload-builder helpers first.
-3. Move the `refreshLayout3DFromSurvey()` orchestration behind the same bridge.
-4. Preserve the existing `Layout3DWidget.updateFromSurvey()` payload contract in the first slice.
-5. Stop after the bridge seam and its direct tests land; do not widen into broader Layout-tab cleanup or `roll_survey.py` work in the same pass.
-
-After that, the next step should be:
-1. keep the new document-context boundary, property-panel boundary, and layout-analysis metadata boundary stable, then prefer either one deliberately chosen parameter-tree behavior seam in `my_parameters.py` or selective worker/payload cleanup only if simplification value is clear.
-
-Estimated effort:
-medium: first re-run the most relevant restored tests, then one focused layout-analysis seam plus direct tests, followed later by one deliberately chosen non-SPS seam, most likely in `my_parameters.py`, `PropertyPanelController`, or a very small dead-code cleanup if a reference-only path can be proven unused.
-
-**Backlog of Next 12 Tickets**
-
-1. Keep the new document-context boundary stable and only move additional file/session values if another clearly bounded seam appears.
-2. Revisit worker payload shape only if a measured simplification remains after the live geometry/binning layer is easier to reason about.
-3. Optionally split `config.py` into narrower read-only modules by concern if that improves navigation.
-4. Re-measure performance after the above structure stabilizes.
-5. Profile worker result copying on the largest realistic survey inputs.
-6. Revisit XML as internal worker transport only if profiling shows it is still material.
-7. Add a small reusable project fixture follow-up only if test setup starts spreading further.
-8. Add redraw follow-up coverage only if another controller-owned invalidation seam is extracted.
-9. Keep the new `PropertyPanelController` boundary small and stable unless a further coherent parameter-tree or survey-commit seam appears with clear regression value.
-10. Revisit preserved reference implementations only during a deliberate algorithm-comparison pass.
-11. Keep Phase 5 follow-up work limited to protective tests and small cleanup only.
-12. Keep worker cleanup selective rather than reopening contract-shape churn.
-13. Treat further SPS parser unification as intentionally deferred unless a future change shows the two point-parser paths can evolve together without constraining SPS-specific field growth.
-
-**Definition of Done for the First Major Milestone**
-
-The first major milestone is complete when:
-1. `RollMainWindow` is no longer responsible for project persistence internals or most loaded-state application internals.
-2. Project load/save is covered by domain tests and at least one higher-level load/apply regression test.
-3. Filter actions no longer duplicate orchestration logic across many handlers.
-4. Session runtime state has explicit owners.
-5. Mutable settings state no longer depends on `config.py` as a compatibility bridge.
-
-The previous well-transform verification note is now resolved: direct regressions cover the active transform direction used by `RollWell.readHeader()`.
-
+Updated for the current codebase on 2026-06-06.
+
+This version intentionally removes long historical chronology and keeps only current priorities, execution order, and concrete exit criteria.
+
+**Current Snapshot**
+
+Codebase reality (high level):
+1. Core persistence/state/service boundaries are already in place and should be preserved.
+2. The largest remaining structural hotspots are still UI-bound seams, especially layout-to-3D bridging and parameter/property complexity.
+3. CFP behavior has changed recently and is now part of the active baseline:
+- CFP frequency list is not editable in Settings.
+- Defaults come from config/runtime path.
+- Property-pane frequency list is normalized, sorted ascending, and displayed space-separated.
+- XML persists frequencies as semicolon-separated (for example: 10;20;30;40).
+- Incoherent plane mode now consumes actual frequency values.
+- Coherent and incoherent plane maps are normalized for plotting.
+- CFP plane completion logs include normFactor for both coherent and incoherent runs.
+- A persisted CFP Settings switch controls whether source/receiver 3x3 diagnostics run.
+- 3x3 diagnostics now run for Templates, Geometry Tables, and SPS plane paths through the same switch.
+- 3x3 diagnostics summary wording is mathematically explicit and renderer-safe.
+- Template/Geometry 3x3 parity is expected when support is identical; differences are expected when geometry support is edited or clipped.
+
+**What To Keep Stable**
+
+Do not reopen these unless required by a specific bug:
+1. ProjectService, ProjectLoadApplier, ImportService, FilterService.
+2. Session/runtime ownership (AppSettings, RuntimeState, SessionState, DocumentContextService).
+3. Worker orchestration split (WorkerOperationController plus result appliers).
+4. Existing geometry stable/experimental routing strategy.
+
+**Top Refactoring Priorities**
+
+Priority 1: Layout 2D-to-3D bridge extraction
+1. Extract the payload/styling/visibility translation seam between layout 2D and 3D Subset into a dedicated bridge module.
+2. Keep layout_3D.py renderer-focused and keep the first bridge API narrow.
+3. Add direct bridge tests for payload shape and mapping inputs.
+
+Priority 2: Property-panel complexity reduction
+1. Reduce concentrated propagation/apply bookkeeping in PropertyPanelController.
+2. Keep behavior identical; only split ownership and duplication.
+3. Add small focused tests around propagation decisions and apply boundaries.
+
+Priority 3: Parameter-surface simplification
+1. Continue reducing high-coupling zones in my_parameters.py.
+2. Prefer helper extraction for repeated UI-to-domain write-back and list orchestration.
+3. Avoid broad rewrites; do one seam at a time with tests.
+
+**Execution Order (Actionable)**
+
+Sprint A: Layout bridge first
+1. Create narrow bridge module for 2D-to-3D payload and styling translation.
+2. Move refresh orchestration through that bridge.
+3. Add bridge-level tests.
+4. Stop and stabilize.
+
+Sprint B: Property propagation seam
+1. Extract one propagation sub-flow at a time from PropertyPanelController.
+2. Keep applyPropertyChanges behavior stable.
+3. Add focused tests for each extracted decision seam.
+
+Sprint C: Parameter cleanup
+1. Choose one cluster in my_parameters.py.
+2. Extract only repeated behavior.
+3. Keep constructor wiring and changed handlers behavior-identical.
+
+**Testing Policy**
+
+Use narrow slices, not broad suite runs by default:
+1. Run targeted tests for each touched seam.
+2. Keep test_project_sidecars coverage, but avoid growing it as a catch-all.
+3. When adding new layout/property tests, prefer smaller, seam-specific modules.
+
+**Done Baseline (Short Form)**
+
+Already landed and considered baseline:
+1. Service/controller extraction for persistence, import/QC, session/runtime state, worker orchestration, and major UI action routing.
+2. Sidecar compatibility and project-load application boundaries.
+3. CFP parameter model/persistence/property-surface integration.
+4. CFP plane logging improvements, frequency handling updates, and normalization factor logging.
+5. Layout 3D Subset feature with sync from 2D layout state.
+6. CFP 3x3 diagnostics extension to non-template plane paths and settings integration.
+7. Focused parity validation completed: identical template/geometry support gives identical 3x3 summaries.
+
+**Explicit Non-Goals For Now**
+
+1. Do not start broad roll_survey rewrites.
+2. Do not run speculative performance optimization before the next structural seam is landed and stable.
+3. Do not expand config.py cleanup into a major track.
+
+**Exit Criteria For This Roadmap Revision**
+
+This roadmap iteration is successful when:
+1. Layout 2D-to-3D bridge is extracted and tested as an explicit seam.
+2. Property-panel propagation complexity is reduced with behavior parity.
+3. New tests are better distributed across focused modules rather than concentrated in one mega-bucket.
+4. No regressions in CFP plane coherent/incoherent behavior, normalization, and normFactor logging.
+5. No regressions in CFP 3x3 diagnostics switch behavior, summary readability, and template/geometry parity when support is identical.
+
+**Immediate Next Step (Documentation Focus)**
+
+Document and lock the CFP diagnostics baseline before the next refactoring seam:
+1. Update user-facing docs for CFP Settings with the new 3x3 diagnostics switch and coherent/incoherent mode behavior.
+2. Add a concise diagnostics interpretation section explaining ratio meaning, OFF/COH/INC legend, and support-mismatch caveat.
+3. Add one reproducible parity-check recipe (templates vs geometry) for unchanged-geometry surveys.
+4. After docs are merged, resume Sprint A (layout bridge extraction).

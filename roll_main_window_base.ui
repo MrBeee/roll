@@ -99,6 +99,7 @@
       <addaction name="actionExportMaxOffsets"/>
       <addaction name="actionExportRmsOffsets"/>
       <addaction name="actionExportOffsetGaps"/>
+      <addaction name="actionExportIllumination"/>
       <addaction name="separator"/>
       <addaction name="actionExportAnaAsCsv"/>
      </widget>
@@ -214,7 +215,7 @@
      <addaction name="actionCFPPointAnalysisFromGeometry"/>
      <addaction name="actionCFPPointAnalysisFromSPSInput"/>
     </widget>
-    <widget class="QMenu" name="menuCFP_Plane_analysis_2">
+    <widget class="QMenu" name="menuCFPPlaneAnalysis">
      <property name="title">
       <string>CFP Plane analysis</string>
      </property>
@@ -236,7 +237,7 @@
     <addaction name="actionFullBinFromSps"/>
     <addaction name="separator"/>
     <addaction name="menuCFPPointAnalysis"/>
-    <addaction name="menuCFP_Plane_analysis_2"/>
+    <addaction name="menuCFPPlaneAnalysis"/>
     <addaction name="separator"/>
     <addaction name="actionGeometryFromTemplates"/>
     <addaction name="separator"/>
@@ -1820,6 +1821,11 @@
    </property>
    <property name="text">
     <string>Plane analysis from SPS input</string>
+   </property>
+  </action>
+  <action name="actionExportIllumination">
+   <property name="text">
+    <string>Illumination - as GeoTiff file</string>
    </property>
   </action>
  </widget>

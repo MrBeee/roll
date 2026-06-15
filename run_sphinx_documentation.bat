@@ -13,6 +13,7 @@ if errorlevel 1 (
 )
 
 REM Command file for Sphinx documentation
+REM Run .\run_sphinx_documentation.bat to create the default HTML documentation.
 
 if defined QGIS_ROOT set "qgisRoot=%QGIS_ROOT%"
 

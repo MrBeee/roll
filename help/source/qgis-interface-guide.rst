@@ -10,6 +10,20 @@ the updated result back into Roll for renewed analysis.
 
 Adding a point layer may be needed to show a requested survey outline from a
 client or a prospect outline from the geologist.
+A convenient way of doing this, is to import a layer from a delimeted text file.
+Such a text file may look as follows:
+
+.. csv-table::
+   :header: "X", "Y"
+   :align: left
+
+   "647285,", "5556357"
+   "652514,", "5560823"
+   "669808,", "5552982"
+   "666808,", "5547061"
+   "647285,", "5556357"
+
+The approach is as follows:
 
 #. In QGIS, choose ``Layer -> Add layer -> Add delimited text layer``.
 #. Select the file name.
@@ -18,7 +32,7 @@ client or a prospect outline from the geologist.
 #. Check the record and field options, including header lines when needed.
 #. Define the columns that represent X, Y, and optionally Z values.
 #. Select ``Add``.
-#. Using Full Zoom (``Ctrl+Shift+F``) in QGIS, zoom to the imported points.
+#. Use Full Zoom (``Ctrl+Shift+F``) in QGIS, zoom to the imported points.
 
 2. Create a Line Layer from Points
 ----------------------------------
@@ -66,10 +80,8 @@ filled and cannot be used as clip boundaries. For that, you need polygons.
 
 #. In Roll, choose
    ``File -> Export to QGIS -> Export Geometry -> Export xxx Records to QGIS``.
-#. Alternatively, use the ``SPS import`` tab export buttons for SPS and RPS
-   records.
-#. Alternatively, use the ``Geometry`` tab export buttons for SRC and REC
-   records.
+#. Alternatively, use the export buttons for SPS and RPS records from the ``SPS import`` tab .
+#. Alternatively, use the export buttons for SRC and REC records from the ``Geometry`` tab .
 #. Roll creates in-memory scratch layers in QGIS with the exported data.
 
 5. Make Scratch src/rec and sps/rps Layers Permanent
@@ -93,7 +105,7 @@ time the QGIS project is opened:
 6. Truncate src/rec and sps/rps Point Areas in QGIS
 ---------------------------------------------------
 
-Survey geometry in Roll is often created from rectangular blocks, while the
+Survey geometry in Roll is created from rectangular blocks, while the
 real survey outline is usually constrained by concession boundaries, cities,
 lakes, or similar features. In QGIS you can either clip the points away or mark
 them inactive by testing whether they fall inside a polygon.
