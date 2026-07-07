@@ -1,12 +1,12 @@
 from datetime import datetime
 
 import numpy as np
-import pyqtgraph as pg
 from qgis.core import QgsCoordinateTransform, QgsProject, QgsVector3D
 from qgis.PyQt.QtCore import QFile, QIODevice, QTextStream
 from qgis.PyQt.QtWidgets import QFileDialog
 
 from .aux_functions import myPrint, toFloat, toInt
+from .cursor_utils import busyCursor
 
 # sps file formats
 # See: https://seg.org/Portals/0/SEG/News%20and%20Resources/Technical%20Standards/seg_sps_rev2.1.pdf
@@ -566,7 +566,7 @@ def fileExportAsR01(parent, fileName, extension, view, crs):
 
     hdr = f'H00 SPS format version          SPS V2.1 revised Jan, 2006\n' f'H13 Geodetic Coordinate System  {crs.authid()}'
 
-    with pg.BusyCursor():
+    with busyCursor(parent):
         # comments='' to prevent '# ' at the start of a header line
         # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, rpsData, delimiter='', fmt=fmt, comments='', header=hdr)
@@ -627,7 +627,7 @@ def fileExportAsS01(parent, fileName, extension, view, crs):
 
     hdr = f'H00 SPS format version          SPS V2.1 revised Jan, 2006\n' f'H13 Geodetic Coordinate System  {crs.authid()}'
 
-    with pg.BusyCursor():
+    with busyCursor(parent):
         # comments='' to prevent '# ' at the start of a header line
         # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, spsData, delimiter='', fmt=fmt, comments='', header=hdr)
@@ -711,7 +711,7 @@ def fileExportAsX01(parent, fileName, extension, view, crs):
 
     hdr = f'H00 SPS format version          SPS V2.1 revised Jan, 2006\n' f'H13 Geodetic Coordinate System  {crs.authid()}'
 
-    with pg.BusyCursor():
+    with busyCursor(parent):
         # comments='' to prevent '# ' at the start of a header line
         # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, xpsData, delimiter='', fmt=fmt, comments='', header=hdr)
@@ -747,7 +747,7 @@ def exportDataAsTxt(parent, fileName, extension, view):
     hdr = delimiter.join(hdr)                                                   # turn list into string separated by delimiter
     dat = view.model().getData()                                                # get the data from the model
 
-    with pg.BusyCursor():
+    with busyCursor(parent):
         # comments='' to prevent '# ' at the start of a header line
         # delimiter ='' to prevent tabs, comma's from being inserted
         np.savetxt(fn, dat, delimiter=delimiter, fmt=fmt, comments='', header=hdr)

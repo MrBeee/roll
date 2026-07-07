@@ -6,11 +6,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Roll and QGIS Interface Guide &#8212; Roll 0.7.7 documentation</title>
+    <title>Roll and QGIS Interface Guide &#8212; Roll 0.7.9 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
     
-    <script src="_static/documentation_options.js?v=35f4697d"></script>
+    <script src="_static/documentation_options.js?v=79964ea6"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/bizstyle.js"></script>
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="template-design.html" title="Building a template"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.9 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Roll and QGIS Interface Guide</a></li> 
       </ul>
     </div>  
@@ -63,19 +63,19 @@ Such a text file may look as follows:</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>647285,</p></td>
+<tr class="row-even"><td><p>647285</p></td>
 <td><p>5556357</p></td>
 </tr>
-<tr class="row-odd"><td><p>652514,</p></td>
+<tr class="row-odd"><td><p>652514</p></td>
 <td><p>5560823</p></td>
 </tr>
-<tr class="row-even"><td><p>669808,</p></td>
+<tr class="row-even"><td><p>669808</p></td>
 <td><p>5552982</p></td>
 </tr>
-<tr class="row-odd"><td><p>666808,</p></td>
+<tr class="row-odd"><td><p>666808</p></td>
 <td><p>5547061</p></td>
 </tr>
-<tr class="row-even"><td><p>647285,</p></td>
+<tr class="row-even"><td><p>647285</p></td>
 <td><p>5556357</p></td>
 </tr>
 </tbody>
@@ -89,7 +89,8 @@ Such a text file may look as follows:</p>
 <li><p>Check the record and field options, including header lines when needed.</p></li>
 <li><p>Define the columns that represent X, Y, and optionally Z values.</p></li>
 <li><p>Select <code class="docutils literal notranslate"><span class="pre">Add</span></code>.</p></li>
-<li><p>Use Full Zoom (<code class="docutils literal notranslate"><span class="pre">Ctrl+Shift+F</span></code>) in QGIS, zoom to the imported points.</p></li>
+<li><p>Use Full Zoom <a class="reference internal" href="_images/mActionZoomFullExtent.svg"><img alt="ZoomFullExtent" src="_images/mActionZoomFullExtent.svg" style="width: 20px; height: 20px;" /></a> (<code class="docutils literal notranslate"><span class="pre">Ctrl+Shift+F</span></code>) in QGIS, to show all data, including the newly added points.</p></li>
+<li><p>Alternatively, <strong>select</strong> <em>the new layer</em>, and use <a class="reference internal" href="_images/mActionZoomToSelected.svg"><img alt="ZoomToLayer" src="_images/mActionZoomToSelected.svg" style="width: 20px; height: 20px;" /></a>  <code class="docutils literal notranslate"><span class="pre">Zoom</span> <span class="pre">to</span> <span class="pre">Layer</span></code>, to zoom to the newly added points.</p></li>
 </ol>
 </section>
 <section id="create-a-line-layer-from-points">
@@ -121,7 +122,7 @@ filled and cannot be used as clip boundaries. For that, you need polygons.</p>
 <li><p>Reduce opacity below 100 percent so underlying layers remain visible.</p></li>
 <li><p>To add an outline:</p>
 <ul class="simple">
-<li><p>Add a symbol layer with the green plus icon.</p></li>
+<li><p>Add a symbol layer with the green plus icon <a class="reference internal" href="_images/symbologyAdd.svg"><img alt="AddSymbol" src="_images/symbologyAdd.svg" style="width: 15px; height: 15px;" /></a>.</p></li>
 <li><p>For the symbol layer type, choose <code class="docutils literal notranslate"><span class="pre">Outline:</span> <span class="pre">Simple</span> <span class="pre">Line</span></code>.</p></li>
 <li><p>Select an appropriate color and stroke width.</p></li>
 <li><p>Select <code class="docutils literal notranslate"><span class="pre">OK</span></code>.</p></li>
@@ -168,8 +169,8 @@ project is opened again.</p></li>
 real survey outline is usually constrained by concession boundaries, cities,
 lakes, or similar features. In QGIS you can either clip the points away or mark
 them inactive by testing whether they fall inside a polygon.</p>
-<section id="a-clipping-the-easy-way-out">
-<h3>6.a. Clipping: the Easy Way Out<a class="headerlink" href="#a-clipping-the-easy-way-out" title="Link to this heading">¶</a></h3>
+<section id="clipping-the-easy-way-out">
+<h3>6.1. Clipping: the Easy Way Out<a class="headerlink" href="#clipping-the-easy-way-out" title="Link to this heading">¶</a></h3>
 <p>Clipping removes all points outside a selected polygonal area. It is quick, but
 the removed points are not easy to reinstate later.</p>
 <ol class="arabic simple">
@@ -181,8 +182,8 @@ layer.</p></li>
 <li><p>The clipped point layer is created as a scratch layer.</p></li>
 </ol>
 </section>
-<section id="b-clipping-future-proofing-your-edits">
-<h3>6.b. Clipping: Future-Proofing Your Edits<a class="headerlink" href="#b-clipping-future-proofing-your-edits" title="Link to this heading">¶</a></h3>
+<section id="clipping-future-proofing-your-edits">
+<h3>6.2. Clipping: Future-Proofing Your Edits<a class="headerlink" href="#clipping-future-proofing-your-edits" title="Link to this heading">¶</a></h3>
 <p>This approach first selects points inside a polygon and then writes the
 selection state into a permanent attribute, usually <code class="docutils literal notranslate"><span class="pre">inuse</span></code>.</p>
 <ol class="arabic simple">
@@ -197,8 +198,8 @@ to the boundary polygon.</p></li>
 <li><p>Confirm that the selected points are highlighted in yellow and marked with a
 red cross.</p></li>
 <li><p>From the Attributes toolbar, open <code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">Calculator</span></code>.</p></li>
-<li><p>Alternatively, open the Attribute Table (<code class="docutils literal notranslate"><span class="pre">F6</span></code>) and then open the Field
-Calculator (<code class="docutils literal notranslate"><span class="pre">Ctrl+I</span></code>).</p></li>
+<li><p>Alternatively, open the Attribute Table <a class="reference internal" href="_images/mActionOpenTable.svg"><img alt="OpenTable" src="_images/mActionOpenTable.svg" style="width: 20px; height: 20px;" /></a> (<code class="docutils literal notranslate"><span class="pre">F6</span></code>) and then open the Field
+Calculator <a class="reference internal" href="_images/mActionCalculateField.svg"><img alt="CalculateField" src="_images/mActionCalculateField.svg" style="width: 20px; height: 20px;" /></a> (<code class="docutils literal notranslate"><span class="pre">Ctrl+I</span></code>).</p></li>
 <li><p>Uncheck <code class="docutils literal notranslate"><span class="pre">Only</span> <span class="pre">update</span> <span class="pre">xxx</span> <span class="pre">selected</span> <span class="pre">feature(s)</span></code>. The calculation must update
 all features, not only the selected ones.</p></li>
 <li><p>Now either:</p>
@@ -217,29 +218,108 @@ layer.</p></li>
 </ol>
 </section>
 </section>
-<section id="move-src-rec-and-sps-rps-points-in-qgis">
-<h2>7. Move src/rec and sps/rps Points in QGIS<a class="headerlink" href="#move-src-rec-and-sps-rps-points-in-qgis" title="Link to this heading">¶</a></h2>
+<section id="move-src-rec-and-sps-rps-points-in-qgis-manually">
+<h2>7. Move src/rec and sps/rps Points in QGIS manually<a class="headerlink" href="#move-src-rec-and-sps-rps-points-in-qgis-manually" title="Link to this heading">¶</a></h2>
 <p>To change any of the exported layers you must enable editing first.</p>
 <ol class="arabic simple">
-<li><p>In the Layers panel, open the point layer context menu and choose
+<li><p>In the Layers panel, open the point layer context menu and choose <a class="reference internal" href="_images/mActionToggleEditing.svg"><img alt="ToggleEditing" src="_images/mActionToggleEditing.svg" style="width: 20px; height: 20px;" /></a>
 <code class="docutils literal notranslate"><span class="pre">Toggle</span> <span class="pre">editing</span></code>.</p></li>
 <li><p>A pencil icon appears next to the layer name.</p></li>
 <li><p>The pencil on the digitizing toolbar is also highlighted.</p></li>
-<li><p>In the digitizing toolbar, select the Vertex tool for the current layer.</p></li>
-<li><p>Use one of these vertex selection methods:</p>
+<li><p>In the digitizing toolbar, select <a class="reference internal" href="_images/mActionVertexToolActiveLayer.svg"><img alt="VertexToolActiveLayer" src="_images/mActionVertexToolActiveLayer.svg" style="width: 20px; height: 20px;" /></a> the <code class="docutils literal notranslate"><span class="pre">Vertex</span> <span class="pre">tool</span> <span class="pre">(Current</span> <span class="pre">layer)</span></code>.</p></li>
+<li><p>To select a single point, do the following:</p>
 <ul class="simple">
-<li><p>Right-click to lock on a feature.</p></li>
-<li><p>Click and drag to select vertices by rectangle.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Alt+click</span></code> to select vertices by polygon.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Shift+click</span></code> or drag to add vertices to the selection.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl+click</span></code> or drag to remove vertices from the selection.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Shift+R</span></code> to enable range selection.</p></li>
+<li><p>Right-click to lock on a feature. A red circle will appear.</p></li>
+<li><p>Left-click in the red circle. A red cross (attached to the cursor) appears in the circle</p></li>
+<li><p>Move the cursor with the red cross to the desired location and Left-click</p></li>
+<li><p>At this moment the point is moved to the new position</p></li>
+</ul>
+</li>
+<li><p>It is also possible to select multiple points (line segments) at once.</p>
+<ul class="simple">
+<li><p>The easiest way is to use the left mouse button to draw a <em>bounding box</em> around a set of points.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">Alt+click</span></code> to select vertices by <em>polygon</em>:
+Release the <code class="docutils literal notranslate"><span class="pre">Alt</span></code> key after the first click. Each click adds another point to the polygon.
+To close the polygon, right click once, and the points in the polygon will be selected.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">Shift+click</span></code> to <em>add</em> vertices to the selection.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">Ctrl+click</span></code> to <em>remove</em> vertices from the selection.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">Shift+R</span></code> to enable <em>range selection</em>.</p></li>
 </ul>
 </li>
 </ol>
 </section>
+<section id="move-src-rec-and-sps-rps-points-in-qgis-using-tools">
+<h2>8. Move src/rec and sps/rps Points in QGIS using tools<a class="headerlink" href="#move-src-rec-and-sps-rps-points-in-qgis-using-tools" title="Link to this heading">¶</a></h2>
+<p>Manual relocation of points gives precise control over the final locations,
+but it is also very tedious for a survey with 10,000 or more source and receiver points.</p>
+<p>The relocation approach is rather straightforward for most sources and receivers.</p>
+<ol class="arabic simple">
+<li><p>Source points (VPs) are often shifted to the nearest road segment for easy vibroseis access</p></li>
+<li><p>Receiver points are much more flexible, as long as measurements are done outside of buildings</p></li>
+</ol>
+<section id="move-src-sps-points">
+<h3>8.1 Move src/sps points<a class="headerlink" href="#move-src-sps-points" title="Link to this heading">¶</a></h3>
+<p>Moving source points to a road segment can be done using a tool from the processing toolbox
+<code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">Toolbox</span> <span class="pre">-&gt;</span> <span class="pre">Vector</span> <span class="pre">geometry</span> <span class="pre">-&gt;</span> <span class="pre">Snap</span> <span class="pre">Geometries</span> <span class="pre">to</span> <span class="pre">Layer</span></code>. But before we can do this,
+the roads in and around the survey area need to be downloaded from <a class="reference external" href="https://www.openstreetmap.org">OpenStreetMaps.org</a>
+<em>and</em> these roads need to be <em>reprojected</em> from <code class="docutils literal notranslate"><span class="pre">EPSG:4326</span></code> to the project’s CRS.</p>
+<p>There are multiple web-based and Python based tools that extract the OSM OpenStreetMaps road data.
+One needs to be carefull that downloaded line segments do <strong>not</strong> include waterways, railways and administrative boundaries.</p>
+<p>QuickOSM is a QGis plugin that makes it easy to select OSM data using a <code class="docutils literal notranslate"><span class="pre">Quick</span> <span class="pre">query</span></code>.</p>
+<figure class="align-center" id="id1">
+<img alt="QuickOSM quick query dialog in QGIS" src="_images/quick_osm_quick_query.png" />
+<figcaption>
+<p><span class="caption-text">QuickOSM quick query configuration used to download road data.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Once the road information has been downloaded, use <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">Toolbox</span> <span class="pre">-&gt;</span> <span class="pre">Vector</span> <span class="pre">general</span> <span class="pre">-&gt;</span> <span class="pre">reproject</span></code> to reproject the road segments to the project’s CRS.
+With this out of the way, we can now move the source points to the nearest road segment using <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">Toolbox</span> <span class="pre">-&gt;</span> <span class="pre">Vector</span> <span class="pre">geometry</span> <span class="pre">-&gt;</span> <span class="pre">Snap</span> <span class="pre">geometries</span> <span class="pre">to</span> <span class="pre">layer</span></code>.</p>
+<figure class="align-center" id="id2">
+<img alt="Snap geometries to layer tool in QGIS" src="_images/Snap_geometries_to_layer.png" />
+<figcaption>
+<p><span class="caption-text">Snap Geometries to Layer settings is used to move source points to nearby roads.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The behavior should be <code class="docutils literal notranslate"><span class="pre">Prefer</span> <span class="pre">closest</span> <span class="pre">point</span></code>. The Tolerance should be several 100 meter, if the road grid is sparse. If the tolerance is set too low, the point won’t be moved at all.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>OSM roads often contain multipart line segments. These first need to be converted to singlepart lines.
+This can be done using <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">Toolbox</span> <span class="pre">-&gt;</span> <span class="pre">Vector</span> <span class="pre">geometry</span> <span class="pre">-&gt;</span> <span class="pre">Multipart</span> <span class="pre">to</span> <span class="pre">Singleparts</span></code>.</p>
+</div>
+</section>
+<section id="move-rec-rps-points">
+<h3>8.2 Move rec/rps points<a class="headerlink" href="#move-rec-rps-points" title="Link to this heading">¶</a></h3>
+<p>Receiver points don’t really need to be aligned with the road grid. They can be located anywhere within the survey area, as long as they are outside of buildings.
+There is currently no simple tool in the Processing Toolbox that takes care of that. The first step to achieve this is using QuickOSM, but with a different query to download all buildings.</p>
+<p>Use key = ‘building’ and value = ‘*’. This will give you a new temporary layer in EPSG:4326 that needs to be converted to the project CRS for it to become useful.</p>
+<p>Once this is done, from Roll, you can run <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">-&gt;</span> <span class="pre">Processing</span> <span class="pre">Utilities</span> <span class="pre">-&gt;</span> <span class="pre">Move</span> <span class="pre">points</span> <span class="pre">outside</span> <span class="pre">polygons</span></code>.</p>
+<figure class="align-center" id="id3">
+<img alt="Move indoor measurements outside tool in QGIS" src="_images/Move_indoor_measurements_outside.png" />
+<figcaption>
+<p><span class="caption-text">Move points outside polygons workflow used to shift indoor measurements to valid locations.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The tool isn’t yet 100% waterproof; there is  chance that you move a point into a neighboring building.
+This is because the tool doesn’t check if the final point lies within a polygon or not.
+You will need to manually verify that all points are outside of buildings before proceeding with binning.
+This behavior will be improved in future versions of Roll.</p>
+</section>
+<section id="overall-results">
+<h3>8.3 Overall results<a class="headerlink" href="#overall-results" title="Link to this heading">¶</a></h3>
+<p>With both sources and receivers relocated, you can get results as shown in the figure below.</p>
+<figure class="align-center" id="id4">
+<img alt="Relocated source and receiver points in QGIS" src="_images/Relocated_source_and_receiver_points.png" />
+<figcaption>
+<p><span class="caption-text">Relocated source and receiver points after road snapping and building-avoidance updates.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The result sofar isn’t yet 100% perfect; there is a chance that you get some points inside buildings.
+And maybe some roads have become inaccessible. But it is a good start to confirm <strong>actual</strong> survey coverage
+instead of the <strong>nominal</strong> coverage based on the template alone.</p>
+</section>
+</section>
 <section id="read-src-rec-and-sps-rps-points-from-qgis-back-into-roll">
-<h2>8. Read src/rec and sps/rps Points from QGIS back into Roll<a class="headerlink" href="#read-src-rec-and-sps-rps-points-from-qgis-back-into-roll" title="Link to this heading">¶</a></h2>
+<h2>9. Read src/rec and sps/rps Points from QGIS back into Roll<a class="headerlink" href="#read-src-rec-and-sps-rps-points-from-qgis-back-into-roll" title="Link to this heading">¶</a></h2>
 <p>Once changes have been made to overall source and receiver areas or to
 individual point locations in QGIS, including deleted points, you can read the
 modified point data back into Roll and rerun the analysis.</p>
@@ -272,11 +352,11 @@ active or passive points in Roll.</p></li>
 </ol>
 </section>
 <section id="process-data-edited-in-qgis-back-in-roll-and-show-results-in-qgis">
-<h2>9. Process Data Edited in QGIS Back in Roll and Show Results in QGIS<a class="headerlink" href="#process-data-edited-in-qgis-back-in-roll-and-show-results-in-qgis" title="Link to this heading">¶</a></h2>
+<h2>10. Process Data Edited in QGIS back in Roll and show results in QGIS<a class="headerlink" href="#process-data-edited-in-qgis-back-in-roll-and-show-results-in-qgis" title="Link to this heading">¶</a></h2>
 <p>After the edited Geometry or SPS data has been copied back into Roll:</p>
 <ol class="arabic simple">
 <li><p>In Roll’s processing menu, run <code class="docutils literal notranslate"><span class="pre">Binning</span> <span class="pre">from</span> <span class="pre">Geometry</span></code> or
-<code class="docutils literal notranslate"><span class="pre">Binning</span> <span class="pre">from</span> <span class="pre">Imported</span> <span class="pre">SPS</span></code>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">Binning</span> <span class="pre">from</span> <span class="pre">Imported</span> <span class="pre">SPS</span></code>, depending on the tables that have been used in QGis.</p></li>
 <li><p>Choose carefully between the two binning modes:</p>
 <ul class="simple">
 <li><p><strong>Full binning</strong> creates the RMS offset map, offset plots,
@@ -290,8 +370,8 @@ it does not create the richer offset products provided by full binning.</p></li>
 </ul>
 </li>
 <li><p>Once binning is complete, export the fold map and the minimum and maximum
-offsets to QGIS using either the buttons in the Display pane or the export
-options in the File menu.</p></li>
+offsets to QGIS using either the buttons in the <code class="docutils literal notranslate"><span class="pre">Display</span> <span class="pre">pane</span></code> or the export
+options in the <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">menu</span></code>.</p></li>
 <li><p>Select the appropriate folder and then choose a file name. Roll suggests a
 name automatically.</p></li>
 <li><p>The georeferenced TIFF file is then imported into the QGIS project.</p></li>
@@ -320,13 +400,19 @@ acceptable coverage plots.</p></li>
 <li><a class="reference internal" href="#export-src-rec-and-sps-rps-data-from-roll-to-qgis">4. Export src/rec and sps/rps Data from Roll to QGIS</a></li>
 <li><a class="reference internal" href="#make-scratch-src-rec-and-sps-rps-layers-permanent">5. Make Scratch src/rec and sps/rps Layers Permanent</a></li>
 <li><a class="reference internal" href="#truncate-src-rec-and-sps-rps-point-areas-in-qgis">6. Truncate src/rec and sps/rps Point Areas in QGIS</a><ul>
-<li><a class="reference internal" href="#a-clipping-the-easy-way-out">6.a. Clipping: the Easy Way Out</a></li>
-<li><a class="reference internal" href="#b-clipping-future-proofing-your-edits">6.b. Clipping: Future-Proofing Your Edits</a></li>
+<li><a class="reference internal" href="#clipping-the-easy-way-out">6.1. Clipping: the Easy Way Out</a></li>
+<li><a class="reference internal" href="#clipping-future-proofing-your-edits">6.2. Clipping: Future-Proofing Your Edits</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#move-src-rec-and-sps-rps-points-in-qgis">7. Move src/rec and sps/rps Points in QGIS</a></li>
-<li><a class="reference internal" href="#read-src-rec-and-sps-rps-points-from-qgis-back-into-roll">8. Read src/rec and sps/rps Points from QGIS back into Roll</a></li>
-<li><a class="reference internal" href="#process-data-edited-in-qgis-back-in-roll-and-show-results-in-qgis">9. Process Data Edited in QGIS Back in Roll and Show Results in QGIS</a></li>
+<li><a class="reference internal" href="#move-src-rec-and-sps-rps-points-in-qgis-manually">7. Move src/rec and sps/rps Points in QGIS manually</a></li>
+<li><a class="reference internal" href="#move-src-rec-and-sps-rps-points-in-qgis-using-tools">8. Move src/rec and sps/rps Points in QGIS using tools</a><ul>
+<li><a class="reference internal" href="#move-src-sps-points">8.1 Move src/sps points</a></li>
+<li><a class="reference internal" href="#move-rec-rps-points">8.2 Move rec/rps points</a></li>
+<li><a class="reference internal" href="#overall-results">8.3 Overall results</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#read-src-rec-and-sps-rps-points-from-qgis-back-into-roll">9. Read src/rec and sps/rps Points from QGIS back into Roll</a></li>
+<li><a class="reference internal" href="#process-data-edited-in-qgis-back-in-roll-and-show-results-in-qgis">10. Process Data Edited in QGIS back in Roll and show results in QGIS</a></li>
 </ul>
 </li>
 </ul>
@@ -375,7 +461,7 @@ acceptable coverage plots.</p></li>
         <li class="right" >
           <a href="template-design.html" title="Building a template"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.9 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Roll and QGIS Interface Guide</a></li> 
       </ul>
     </div>

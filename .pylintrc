@@ -5,7 +5,7 @@
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
-#init-hook=
+init-hook=import os,sys; [sys.path.insert(0,p) for p in [r'C:\Program Files\QGIS 3.34.13\apps\qgis-ltr\python', r'C:\Program Files\QGIS 3.34.13\apps\qgis-ltr\python\plugins', r'C:\Program Files\QGIS 3.34.13\apps\Python312\Lib\site-packages', r'C:\Users\BartD\AppData\Roaming\Python\Python312\site-packages'] if os.path.isdir(p) and p not in sys.path]
 
 # Profiled execution.
 profile=no

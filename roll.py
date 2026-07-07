@@ -32,6 +32,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
 from .app_settings import readStoredDebugpySetting
+from .cursor_utils import clearBusyCursorState
 
 try:
     haveDebugpy = True
@@ -284,6 +285,7 @@ class Roll:
     # required for a minimal QGIS plugin
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
+        clearBusyCursorState(self.iface.mainWindow())
         for action in self.actions:
             self.iface.removePluginMenu(self.tr('&Roll'), action)
             self.iface.removeToolBarIcon(action)
@@ -295,6 +297,7 @@ class Roll:
         """Run method that performs all the real work"""
 
         enableRemoteDebugging()
+        clearBusyCursorState(self.iface.mainWindow())
 
         # Added Bart.
         # See: https://pyqtgraph.readthedocs.io/en/latest/getting_started/how_to_use.html
@@ -318,4 +321,5 @@ class Roll:
             self.mainWindow.raise_()                                            # bring window from minimized state on OSX
             self.mainWindow.showNormal()                                        # bring window from minimized state on windows
         self.mainWindow.activateWindow()                                        # bring window to front on OSX and windows
+        clearBusyCursorState(self.iface.mainWindow(), self.mainWindow)
         # self.mainWindow.setFocus()                                            # No need to set the focus

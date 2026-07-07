@@ -1,10 +1,12 @@
 Building a template
 =====================
 
+Building templates is normally hidden from sight when you use the wizards to define the survey geometry.
+However, you may want to make some changes to these templates and then some understanding how templates are constructed is very helpful.
+
 Receiver Seed location
 ----------------------
-
-The first step of building a template is defining the location of the receiver seed.
+Building a template is a multi-step process. The first step is defining the location of the receiver seed.
 
 .. figure:: ../../images/Step_01.png
    :alt: First step in creating a new template
@@ -32,6 +34,8 @@ Source Seed location
 ---------------------
 
 The following step is to add a source seed to the template.
+There need to be at least one source seed and one receiver seed in each template to define trace locations.
+Some more complex geometries (slant, zigzag) require several source seeds defining multiple shot salvos in a shared receiver spread, before move-up occurs.
 
 .. figure:: ../../images/Step_04.png
    :alt: Fourth step in creating a new template
@@ -121,15 +125,15 @@ Towed marine surveys
 The opposite end-member to template design is formed by towed streamer surveys.
 Here a single source is fired, with a certain streamer configuration towed behind the seismic vessel.
 
-When the next shot is taken, normally using a different source (*think of flip-flop or triple-source shooting*) the vessels has already moved
-together with the towed streamer configuration
+When the next shot is taken, normally using a different source (*think of flip-flop or triple-source shooting*) the vessel has already moved
+together with the towed streamer configuration.
 
 So, here we have one shot per template, which is rolled inline, and crossline to form half a **racetrack**.
-The number of templates in a survey is two (*for each sailline direction*) times the number of race tracks times the number of towed sources.
+The number of templates in a survey is two (*for each sail line direction*) times the number of race tracks times the number of towed sources.
 
 .. note::
 
-   For Roll the streamer templates are demanding to display, due to the large number of templates with their large overlap. For this reason Level of Detail (LOD) drawing has been implamented, so the GUI stays responsive when zooming in or out.
+   For Roll the streamer templates are demanding to display, due to the large number of templates with their large overlap. For this reason Level of Detail (LOD) drawing has been implemented, so the GUI stays responsive when zooming in or out.
 
 Racetracks
 ~~~~~~~~~~
@@ -166,7 +170,7 @@ The run-out:
    In order to ensure a regular (*flat*) full-fold boundary at the end of the line, the vessels keeps shooting for half a streamer length.
 
 The U-Turn:
-   When completeing the run-out, the sources are temporarily powered down. The ship executes a wide, sweeping loop.
+   When completing the run-out, the sources are temporarily powered down. The ship executes a wide, sweeping loop.
 
 The Return Line:
    The ship aligns itself with a new line in the opposite direction (*often several kilometers over from the first line*), activates the sources and heads back towards the survey area.
@@ -176,7 +180,7 @@ The Interlocking Grid:
 
 .. note::
 
-   In the middle of a race track, the sail iine direction reverses. The presence of cross-currents can cause deviation (*feathering*) of the streamers and this will lead to gaps in the subsurface coverage
+   In the middle of a race track, the sail line direction reverses. The presence of cross-currents can cause deviation (*feathering*) of the streamers and this will lead to gaps in the subsurface coverage
    
 .. note::
 
@@ -184,4 +188,4 @@ The Interlocking Grid:
    
 .. note::
    
-   By using an **odd** number of sailines in a race track, one can prevent a reversal of the sail line direction between race tracks. This is shown in the above picture, that contains two racetracks, each with 19 saillines.
+   By using an **odd** number of sail lines in a race track, one can prevent a reversal of the sail line direction between race tracks. This is shown in the above picture, that contains two racetracks, each with 19 sail lines.

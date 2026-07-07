@@ -564,7 +564,6 @@ def readSettings(self):
     appSettings.kxyArray = rng.read(self.settings.value('settings/k-plots/kxyArray', '-50;50;0.5'))
 
     # cfp analysis information
-    appSettings.cfpFrequencyList = list(config.cfpFrequencyList)
     appSettings.cfpArray = rng.read(self.settings.value('settings/cfp/cfpArray', '-800;800;12.5'))
     appSettings.radonSize = self.settings.value('settings/cfp/radonSize', 128, type=int)
     appSettings.cfpDisplayCutoffFraction = self.settings.value('settings/cfp/cfpDisplayCutoffFraction', config.cfpDisplayCutoffFraction, type=float)

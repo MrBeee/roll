@@ -6,11 +6,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>User Guide &#8212; Roll 0.7.7 documentation</title>
+    <title>User Guide &#8212; Roll 0.7.9 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
     
-    <script src="_static/documentation_options.js?v=35f4697d"></script>
+    <script src="_static/documentation_options.js?v=79964ea6"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/bizstyle.js"></script>
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="index.html" title="Installation"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.9 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User Guide</a></li> 
       </ul>
     </div>  
@@ -49,14 +49,19 @@
 <h1>User Guide<a class="headerlink" href="#user-guide" title="Link to this heading">¶</a></h1>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
-<p>The purpose of <strong>Roll</strong> is to build (<em>design</em>) surveys first, using a template based approach, with the help of design wizards.
-Once completed, the survey layout can be checked visually in the <em>Layout</em> tab, before running some analysis jobs using ‘worker threads’.
-The template information can be converted into geometry tables, eliminating any source or receiver duplication caused by template overlap.
-The plugin supports both template-driven survey analysis as well as geometry-driven analysis.
-The latter can be based on created geometry tables, or imported SPS data.</p>
+<p>The purpose of <strong>Roll</strong> is to build (<em>design</em>) and analyze surveys. At first, using a template based approach, with the help of design wizards.
+Once completed, the survey layout can be checked visually in the <em>Layout</em> tab, before running some analysis jobs using ‘worker threads’.</p>
+<p>The template information can be converted into geometry tables, eliminating any source or receiver duplication caused by template overlap.
+The geometry tables can then be exported to QGIS, where points can be edited (moved or deleted).
+The edited points can be imported back into Roll, for analysis of the edited geometry.</p>
+<p>The plugin supports both template-driven survey analysis as well as a geometry-driven analysis.
+The latter can also be based on a set of legacy SPS data files, that can be imported using a variety of column definitions.
+The plugin is designed to be used by both experienced GIS users and non-GIS users alike.
+It provides a simple interface for defining survey blocks, templates, seeds, patterns, and roll along behavior,
+while also offering advanced options for binning analysis from templates or geometry tables.</p>
 <p>At a high level, Roll lets you:</p>
 <ul class="simple">
-<li><p>Create or load a survey project;</p></li>
+<li><p>Create a survey project using wizards, or load an existing project;</p></li>
 <li><p>Define blocks, templates, seeds, patterns, and roll along behavior;</p></li>
 <li><p>Generate geometry tables from the template definition;</p></li>
 <li><p>Run binning analysis from templates or geometry tables;</p></li>
@@ -424,7 +429,7 @@ non-rolling seeds and related geometry that are most useful to inspect.</p>
         <li class="right" >
           <a href="index.html" title="Installation"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.9 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User Guide</a></li> 
       </ul>
     </div>

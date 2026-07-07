@@ -180,7 +180,6 @@ cfpArray = QVector3D(-800.0, 800.0, 12.5)  # settings for cfp point assessment p
 radonSize = 128               # size of the radon transform (number of points in the kxy array) for cfp analysis in one direction
 cfpIncoherentQc = False       # switch illumination mode to incoherent QC (diagnostic; no phase interference)
 cfpRun3x3Diagnostics = True   # run source/receiver 3x3 diagnostics matrix during CFP illumination (diagnostic)
-cfpFrequencyList = [40.0]     # default CFP frequencies in Hz
 cfpDisplayCutoffFraction = 0.025  # hide illumination values at or below this fraction of the current illumination max
 
 # useNumba is used to indicate whether or not to use numba (IF it has been installed)

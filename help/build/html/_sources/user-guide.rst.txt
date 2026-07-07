@@ -4,15 +4,22 @@ User Guide
 Overview
 --------
 
-The purpose of **Roll** is to build (*design*) surveys first, using a template based approach, with the help of design wizards.
+The purpose of **Roll** is to build (*design*) and analyze surveys. At first, using a template based approach, with the help of design wizards.
 Once completed, the survey layout can be checked visually in the *Layout* tab, before running some analysis jobs using 'worker threads'.
+
 The template information can be converted into geometry tables, eliminating any source or receiver duplication caused by template overlap.
-The plugin supports both template-driven survey analysis as well as geometry-driven analysis. 
-The latter can be based on created geometry tables, or imported SPS data.
+The geometry tables can then be exported to QGIS, where points can be edited (moved or deleted).
+The edited points can be imported back into Roll, for analysis of the edited geometry.
+
+The plugin supports both template-driven survey analysis as well as a geometry-driven analysis. 
+The latter can also be based on a set of legacy SPS data files, that can be imported using a variety of column definitions.
+The plugin is designed to be used by both experienced GIS users and non-GIS users alike.
+It provides a simple interface for defining survey blocks, templates, seeds, patterns, and roll along behavior,
+while also offering advanced options for binning analysis from templates or geometry tables.
 
 At a high level, Roll lets you:
 
-* Create or load a survey project;
+* Create a survey project using wizards, or load an existing project;
 * Define blocks, templates, seeds, patterns, and roll along behavior;
 * Generate geometry tables from the template definition;
 * Run binning analysis from templates or geometry tables;

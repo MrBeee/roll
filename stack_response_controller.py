@@ -1,7 +1,6 @@
 # coding=utf-8
 
 import numpy as np
-import pyqtgraph as pg
 from qgis.PyQt.QtCore import QPoint
 
 from . import aux_functions_numba as fnb
@@ -90,7 +89,7 @@ class StackResponseController:
     def plotStkTrk(self, nY: int, stkY: int, x0: float, dx: float):
         window = self.window
 
-        with pg.BusyCursor():
+        with window.busyCursor():
             kMax, dK, kStart, kDelta = window.plotRedrawHelper.buildInlineStackAxisValues(window)
 
             responseKey = window.plotRedrawHelper.buildInlineResponseKey(nY)
@@ -119,7 +118,7 @@ class StackResponseController:
     def plotStkBin(self, nX: int, stkX: int, y0: float, dy: float):
         window = self.window
 
-        with pg.BusyCursor():
+        with window.busyCursor():
             kMax, dK, kStart, kDelta = window.plotRedrawHelper.buildXlineStackAxisValues(window)
 
             responseKey = window.plotRedrawHelper.buildXlineResponseKey(nX)
@@ -195,7 +194,7 @@ class StackResponseController:
         if window.output.anaOutput is None or window.output.anaOutput.shape[0] == 0 or window.output.anaOutput.shape[1] == 0:
             return
 
-        with pg.BusyCursor():
+        with window.busyCursor():
             pattern3, pattern4 = window.getSelectedStackCellPatterns()
             responseKey = window.plotRedrawHelper.buildStackCellResponseKey(window, nX, nY)
             if not window.plotRedrawHelper.canReuseStackCellResponse(window, responseKey):

@@ -3,7 +3,6 @@
 
 """Main window for the Roll plugin."""
 
-import contextlib
 import gc
 import os
 import platform
@@ -11,6 +10,7 @@ import sys
 import traceback
 import webbrowser
 import winsound  # make a sound when an exception ocurs
+from contextlib import suppress
 from math import atan2, ceil, degrees
 
 # PyQtGraph related imports
@@ -42,6 +42,9 @@ from .aux_functions import (aboutText, exampleSurveyXmlText, highDpiText,
                             licenseText, myPrint, qgisCheatSheetText)
 from .binning_worker_mixin import BinningWorkerMixin
 from .chunked_data import ChunkedData
+from .cursor_utils import (busyCursor as sharedBusyCursor,
+                           clearBusyCursorOverrides,
+                           clearBusyCursorOverridesIfIdle)
 from .display_dock import createDisplayDock
 from .document_context_service import DocumentContextService
 from .enums_and_int_flags import (AnalysisRedrawReason, Direction, MsgType,
@@ -437,6 +440,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         # See also: https://doc.qt.io/qt-6/designer-using-a-ui-file-python.html
         # See: https://docs.qgis.org/3.22/en/docs/documentation_guidelines/substitutions.html#toolbar-button-icons for QGIS Icons
         self.setupUi(self)
+        clearBusyCursorOverrides()
 
         # reset GUI when the plugin is restarted (not when restarted from minimized state on windows)
         self.killMe = False
@@ -831,7 +835,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionCFPPlaneAnalysisFromTemplates.triggered.connect(self.cfpPlaneAnalysisFromTemplates)
         self.actionCFPPlaneAnalysisFromGeometry.triggered.connect(self.cfpPlaneAnalysisFromGeometryTables)
         self.actionCFPPlaneAnalysisFromSPSInput.triggered.connect(self.cfpPlaneAnalysisFromSpsTables)
-        self.actionShift_Survey_Area.triggered.connect(self.shiftSurveyArea)
+        self.actionShiftSurveyArea.triggered.connect(self.shiftSurveyArea)
+        self.actionMovePointsOutsidePolygons.triggered.connect(self.movePointsOutsidePolygons)
 
         # actions related to the help menu
         self.actionAbout.triggered.connect(self.onAbout)
@@ -910,6 +915,9 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self._configureStandaloneUi()
 
         self.statusbar.showMessage('Ready', 3000)
+
+    def busyCursor(self):
+        return sharedBusyCursor(self)
 
     def _setActionEnabledSafe(self, actionName, enabled):
         action = getattr(self, actionName, None)
@@ -1024,13 +1032,21 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         view = self.getSelectedCfpView()
         return view - 3 if view >= 3 else 0
 
+    def _formatCfpFrequencyLabel(self) -> str:
+        survey = getattr(self, 'survey', None)
+        cfp = getattr(survey, 'cfp', None)
+        frequencyList = list(getattr(cfp, 'frequencyList', []) or [])
+        if not frequencyList:
+            frequencyList = [float(getattr(self.output, 'cfpFrequency', 40.0))]
+        return '; '.join(f'{float(frequency):g} Hz' for frequency in frequencyList)
+
     def cfpSliceTitle(self, component: int) -> str:
-        frequency = float(getattr(self.output, 'cfpFrequency', 40.0))
+        frequencyLabel = self._formatCfpFrequencyLabel()
         depth = abs(float(getattr(self.output, 'cfpFocalZ', 0.0)))
         titles = {
-            0: f'xy-slice of source beam, frequency = {frequency:g} Hz, depth = {depth:g} m',
-            1: f'xy-slice of receiver beam, frequency = {frequency:g} Hz, depth = {depth:g} m',
-            2: f'xy-slice of resolution function, frequency = {frequency:g} Hz, depth = {depth:g} m',
+            0: f'xy-slice of source beam, frequency = {frequencyLabel}, depth = {depth:g} m',
+            1: f'xy-slice of receiver beam, frequency = {frequencyLabel}, depth = {depth:g} m',
+            2: f'xy-slice of resolution function, frequency = {frequencyLabel}, depth = {depth:g} m',
         }
         return titles.get(component, titles[0])
 
@@ -1042,12 +1058,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return self.output.cfpSourceBeamImage
 
     def cfpRadonTitle(self, component: int) -> str:
-        frequency = float(getattr(self.output, 'cfpFrequency', 40.0))
+        frequencyLabel = self._formatCfpFrequencyLabel()
         depth = abs(float(getattr(self.output, 'cfpFocalZ', 0.0)))
         titles = {
-            0: f'Radon transform of source beam, frequency = {frequency:g} Hz, depth = {depth:g} m',
-            1: f'Radon transform of receiver beam, frequency = {frequency:g} Hz, depth = {depth:g} m',
-            2: f'AVP-function in the Radon domain, frequency = {frequency:g} Hz, depth = {depth:g} m',
+            0: f'Radon transform of source beam, frequency = {frequencyLabel}, depth = {depth:g} m',
+            1: f'Radon transform of receiver beam, frequency = {frequencyLabel}, depth = {depth:g} m',
+            2: f'AVP-function in the Radon domain, frequency = {frequencyLabel}, depth = {depth:g} m',
         }
         return titles.get(component, titles[0])
 
@@ -1136,6 +1152,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 rounding=rounding,
                 colorBarTickSpacing=colorBarTickSpacing,
             )
+            self.cfpWidget.autoRange()
 
         self.cfpWidget.setTitle(title, color='b', size='16pt')
 
@@ -1223,12 +1240,12 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
     def clearOffAziGraphics(self):
         if self.offAziImItem is not None:
-            with contextlib.suppress(Exception):
+            with suppress(Exception):
                 self.offAziWidget.plotItem.removeItem(self.offAziImItem)
             self.offAziImItem = None
 
         for item in self.offAziPolarItems:
-            with contextlib.suppress(Exception):
+            with suppress(Exception):
                 self.offAziWidget.plotItem.removeItem(item)
 
         self.offAziPolarItems = []
@@ -1344,7 +1361,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.updateOffAziColorBar(colorMapObj, lowLevel, highLevel)
 
     def eventFilter(self, source, event):
+        if event.type() in (QEvent.Type.Enter, QEvent.Type.FocusIn):
+            clearBusyCursorOverridesIfIdle(self)
+
         if event.type() == QEvent.Type.Show:                                             # do 'cheap' test first
+            clearBusyCursorOverridesIfIdle(self)
             if source == getattr(self, 'tabCfp', None):
                 if self.plotViewStateController.handleShownWidget(self.cfpWidget):
                     return True
@@ -1352,6 +1373,19 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                 return True
 
         return super().eventFilter(source, event)
+
+    def showEvent(self, event):
+        clearBusyCursorOverridesIfIdle(self)
+        super().showEvent(event)
+
+    def enterEvent(self, event):
+        clearBusyCursorOverridesIfIdle(self)
+        super().enterEvent(event)
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.Type.ActivationChange and self.isActiveWindow():
+            clearBusyCursorOverridesIfIdle(self)
+        super().changeEvent(event)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:    # Check if the ESC key is pressed
@@ -1700,7 +1734,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if self.spsLayer is None:
             return
 
-        with pg.BusyCursor():
+        with self.busyCursor():
             self.spsImport = readQgisPointLayer(self.spsLayer.id(), self.spsField)
             if self.spsImport is not None:
                 convertCrs(self.spsImport, self.spsLayer.crs(), self.survey.crs)
@@ -1711,8 +1745,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.sessionService.refreshArrayState(self.sessionState, 'spsImport')
 
-        self.appendLogMessage(f'Import : SPS-records containing {self.spsLiveE.size:,} live records')
-        self.appendLogMessage(f'Import : SPS-records containing {self.spsDeadE.size:,} dead records')
+        self.appendLogMessage(f'Import : SPS-records containing {(self.spsLiveE.size if self.spsLiveE is not None else 0):,} live records')
+        self.appendLogMessage(f'Import : SPS-records containing {(self.spsDeadE.size if self.spsDeadE is not None else 0):,} dead records')
 
         self.spsModel.setData(self.spsImport)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save src data as numpy arrays upon saving the file
@@ -1725,7 +1759,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if self.rpsLayer is None:
             return
 
-        with pg.BusyCursor():
+        with self.busyCursor():
             self.rpsImport = readQgisPointLayer(self.rpsLayer.id(), self.rpsField)
             if self.rpsImport is not None:
                 convertCrs(self.rpsImport, self.rpsLayer.crs(), self.survey.crs)
@@ -1736,8 +1770,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.sessionService.refreshArrayState(self.sessionState, 'rpsImport')
 
-        self.appendLogMessage(f'Import : RPS-records containing {self.rpsLiveE.size:,} live records')
-        self.appendLogMessage(f'Import : RPS-records containing {self.rpsDeadE.size:,} dead records')
+        self.appendLogMessage(f'Import : RPS-records containing {(self.rpsLiveE.size if self.rpsLiveE is not None else 0):,} live records')
+        self.appendLogMessage(f'Import : RPS-records containing {(self.rpsDeadE.size if self.rpsDeadE is not None else 0):,} dead records')
 
         self.rpsModel.setData(self.rpsImport)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save src data as numpy arrays upon saving the file
@@ -1750,7 +1784,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if self.srcLayer is None:
             return
 
-        with pg.BusyCursor():
+        with self.busyCursor():
             self.srcGeom = readQgisPointLayer(self.srcLayer.id(), self.srcField)
             if self.srcGeom is not None:
                 convertCrs(self.srcGeom, self.srcLayer.crs(), self.survey.crs)
@@ -1761,8 +1795,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.sessionService.refreshArrayState(self.sessionState, 'srcGeom')
 
-        self.appendLogMessage(f'Import : SRC-records containing {self.srcLiveE.size:,} live records')
-        self.appendLogMessage(f'Import : SRC-records containing {self.srcDeadE.size:,} dead records')
+        self.appendLogMessage(f'Import : SRC-records containing {(self.srcLiveE.size if self.srcLiveE is not None else 0):,} live records')
+        self.appendLogMessage(f'Import : SRC-records containing {(self.srcDeadE.size if self.srcDeadE is not None else 0):,} dead records')
 
         self.srcModel.setData(self.srcGeom)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save src data as numpy arrays upon saving the file
@@ -1775,7 +1809,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if self.recLayer is None:
             return
 
-        with pg.BusyCursor():
+        with self.busyCursor():
             self.recGeom = readQgisPointLayer(self.recLayer.id(), self.recField)
             if self.recGeom is not None:
                 convertCrs(self.recGeom, self.recLayer.crs(), self.survey.crs)
@@ -1786,8 +1820,8 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         self.sessionService.refreshArrayState(self.sessionState, 'recGeom')
 
-        self.appendLogMessage(f'Import : REC-records containing {self.recLiveE.size:,} live records')
-        self.appendLogMessage(f'Import : REC-records containing {self.recDeadE.size:,} dead records')
+        self.appendLogMessage(f'Import : REC-records containing {(self.recLiveE.size if self.recLiveE is not None else 0):,} live records')
+        self.appendLogMessage(f'Import : REC-records containing {(self.recDeadE.size if self.recDeadE is not None else 0):,} dead records')
 
         self.recModel.setData(self.recGeom)
         self.textEdit.document().setModified(True)                              # set modified flag; so we'll save rec data as numpy arrays upon saving the file
@@ -1829,6 +1863,34 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
                     widget.addAction(self.actionIlluminationQcIncoherent)
                 except TypeError:
                     pass
+
+    def movePointsOutsidePolygons(self):
+        try:
+            import processing
+        except ImportError:
+            self.appendLogMessage('Thread : Processing plugin is not available', MsgType.Error)
+            return
+
+        dialog = None
+
+        scriptPath = os.path.join(os.path.dirname(__file__), 'tools', 'move_indoor_measurements_outside.py')
+        try:
+            from qgis.utils import processing_algorithm_from_script
+            algorithm = processing_algorithm_from_script(scriptPath)
+            if algorithm is not None:
+                dialog = processing.createAlgorithmDialog(algorithm)
+        except (ImportError, AttributeError):
+            dialog = None
+
+        if dialog is None:
+            dialog = processing.createAlgorithmDialog('script:move_indoor_measurements_outside')
+
+        if dialog is None:
+            self.appendLogMessage('Thread : Move points outside polygons tool is not available', MsgType.Error)
+            return
+
+        self.movePointsOutsidePolygonsDialog = dialog
+        dialog.show()
 
     def onActionNoneTriggered(self):
         self.imageType = 0
@@ -2705,7 +2767,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         refreshLayout3DFromSurvey(self)
 
     def plotOffTrk(self, nY: int, stkY: int, ox: float):
-        with pg.BusyCursor():
+        with self.busyCursor():
             plotTitle = f'{self.plotTitles[1]} [line={stkY}]'
             component = self.getSelectedOffsetComponent('OffTrkComponentActionGroup')
 
@@ -2723,7 +2785,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.offTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotOffBin(self, nX: int, stkX: int, oy: float):
-        with pg.BusyCursor():
+        with self.busyCursor():
             self.offBinWidget.plotItem.clear()
             component = self.getSelectedOffsetComponent('OffBinComponentActionGroup')
 
@@ -2742,7 +2804,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.offBinWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotAziTrk(self, nY: int, stkY: int, ox: float):
-        with pg.BusyCursor():
+        with self.busyCursor():
             self.aziTrkWidget.plotItem.clear()
 
             slice3D = self.output.anaOutput[:, nY, :, :]
@@ -2759,7 +2821,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.aziTrkWidget.plot(x=x, y=y, connect='pairs', pen=pg.mkPen('k', width=2))
 
     def plotAziBin(self, nX: int, stkX: int, oy: float):
-        with pg.BusyCursor():
+        with self.busyCursor():
             self.aziBinWidget.plotItem.clear()
 
             slice3D = self.output.anaOutput[nX, :, :, :]
@@ -2995,7 +3057,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         )
 
     def redrawOffset(self):
-        with pg.BusyCursor():
+        with self.busyCursor():
             plotInputs = self.prepareOffsetPlotInputs()
             if plotInputs is None:
                 return
@@ -3065,7 +3127,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.renderOffAziRectangular(plotInputs['displayHistogram'], plotInputs['dA'], plotInputs['dO'], plotInputs['aMin'], plotInputs['colorMapObj'])
 
     def redrawOffAzi(self):
-        with pg.BusyCursor():
+        with self.busyCursor():
             plotInputs = self.prepareOffAziPlotInputs()
             if plotInputs is None:
                 return
@@ -3157,7 +3219,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             self.arraysWidget.setLabel('bottom', 'Kx', units='1/km', **styles)  # shows axis at the bottom, and shows the units label
             self.arraysWidget.setLabel('left', 'Ky', units='1/km', **styles)    # shows axis at the left, and shows the units label
 
-            with pg.BusyCursor():                                               # now do the real work
+            with self.busyCursor():                                             # now do the real work
                 responseKey = self.plotRedrawHelper.buildPatternResponseKey(self)
                 if not self.plotRedrawHelper.canReusePatternResponse(self, responseKey):
                     self.xyPatResp, kStart, kDelta = self.computeKxyPatternResponse(pattern1, pattern2)
@@ -3748,7 +3810,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.showStatusbarWidgets()
         self.cancelImportRequested = False
 
-        with pg.BusyCursor():
+        with self.busyCursor():
             importResult = self.importService.importTextData(
                 spsData=spsData,
                 xpsData=xpsData,
@@ -3776,7 +3838,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         if any(array is not None for array in (rpsImport, spsImport, xpsImport)):
             self.progressBar.setValue(0)
 
-        with pg.BusyCursor():
+        with self.busyCursor():
             qcResult = self.importService.runQualityChecks(
                 rpsImport=rpsImport,
                 spsImport=spsImport,
@@ -4016,7 +4078,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
 
         if success:                                                             # parsing went ok, start with a new survey object
 
-            with pg.BusyCursor():                                               # this may take some time
+            with self.busyCursor():                                             # this may take some time
                 self.survey = RollSurvey()                                      # only reset the survey object upon succesful parse
                 self.survey.readXml(doc)                                        # build the RollSurvey object tree; no heavy lifting takes place here
                 self.survey.calcTransforms()                                    # (re)calculate the transforms being used; some work to to set up the plane using three points in the global space

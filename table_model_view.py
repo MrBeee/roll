@@ -3,7 +3,6 @@ import winsound  # make a sound when a record isn't found
 from collections import deque
 
 import numpy as np
-import pyqtgraph as pg
 from qgis.PyQt.QtCore import (QAbstractTableModel, QEvent, QItemSelectionModel,
                               Qt, QVariant, pyqtSignal)
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QKeySequence
@@ -11,6 +10,7 @@ from qgis.PyQt.QtWidgets import (QAbstractItemView, QApplication, QMenu,
                                  QMessageBox, QTableView)
 
 from .aux_functions import myPrint
+from .cursor_utils import busyCursor
 
 # TableModel requires a 2D array to work from
 # this means flattening the 4D analysis array from 4D to 2D, before it can be used:
@@ -452,7 +452,7 @@ class TableView(QTableView):
         fmt = self.getFormatList()                                              # get the format string from the model
         names = self.getNameList()
 
-        with pg.BusyCursor():                                                   # this operation could take some time. . .
+        with busyCursor(self):                                                  # this operation could take some time. . .
             indices = self.selectionModel().selectedRows()                      # selection list, containing selected rows
             count = len(indices)
 
@@ -545,7 +545,7 @@ class TableView(QTableView):
             return False
 
         # See: https://github.com/NextSaturday/myQT/blob/main/tSelection/tSelection/tSelection.cpp for alternative solution
-        with pg.BusyCursor():                                                   # this could take some time. . .
+        with busyCursor(self):                                                  # this could take some time. . .
             super().selectAll()
 
         return True

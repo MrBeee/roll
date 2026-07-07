@@ -200,7 +200,8 @@
      <property name="title">
       <string>Processing &amp;Utilities</string>
      </property>
-     <addaction name="actionShift_Survey_Area"/>
+     <addaction name="actionShiftSurveyArea"/>
+     <addaction name="actionMovePointsOutsidePolygons"/>
     </widget>
     <widget class="QMenu" name="menuCFPPointAnalysis">
      <property name="title">
@@ -1747,7 +1748,11 @@
     <string>Analysis Area</string>
    </property>
   </action>
-  <action name="actionShift_Survey_Area">
+  <action name="actionShiftSurveyArea">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionMoveSurvey.svg</normaloff>resources/mActionMoveSurvey.svg</iconset>
+   </property>
    <property name="text">
     <string>Shift Survey Location...</string>
    </property>
@@ -1826,6 +1831,18 @@
   <action name="actionExportIllumination">
    <property name="text">
     <string>Illumination - as GeoTiff file</string>
+   </property>
+  </action>
+  <action name="actionMovePointsOutsidePolygons">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionMovePointsAutsidePolygons.svg</normaloff>resources/mActionMovePointsAutsidePolygons.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Move points outside polygons</string>
+   </property>
+   <property name="toolTip">
+    <string>Move src/rec points outside of buildings</string>
    </property>
   </action>
  </widget>

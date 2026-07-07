@@ -4,7 +4,6 @@ import re
 import shlex
 from enum import IntEnum
 
-import pyqtgraph as pg
 from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
 from qgis.PyQt.QtCore import QFileInfo, QSettings, Qt
 from qgis.PyQt.QtGui import QFontMetricsF, QIcon
@@ -18,6 +17,7 @@ from qgis.PyQt.QtWidgets import (QApplication, QComboBox, QDialog,
 from . import config  # used to pass initial settings
 from .app_settings import AppSettings
 from .aux_classes import BlackLine, CustomPlainTextEdit, LineHighlighter
+from .cursor_utils import busyCursor
 
 currentDir = os.path.dirname(os.path.abspath(__file__))
 resourceDir = os.path.join(currentDir, 'resources')
@@ -631,7 +631,7 @@ class SpsImportDialog(QDialog):
                 QMessageBox.warning(self, 'File read error', f'Could not read:\n{filePath}\n\n{ex}')
                 return ''
 
-        with pg.BusyCursor():                                               # this may take a while; start wait cursor
+        with busyCursor(self):                                              # this may take a while; start wait cursor
             for spsFile in self.spsFiles:
                 spsText += readTextFileSafe(spsFile)
 

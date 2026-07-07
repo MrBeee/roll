@@ -7,7 +7,6 @@ from qgis.PyQt.QtCore import QFileInfo
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 
-from . import config
 from .aux_functions import myPrint
 from .enums_and_int_flags import SurveyType
 from .my_cmap import MyCmapParameter
@@ -2731,20 +2730,6 @@ class myCfpAnalysisParameter(MyGroupParameter):
         self.survey = opts.get('value', survey)
 
         self.cfpAnalysisValues = cfpAnalysisValuesFromSurvey(self.survey)
-
-        defaultFreq = list(config.cfpFrequencyList)
-        currentFreq = list(self.cfpAnalysisValues.frequencyList)
-        cfpLoadedFromXml = bool(getattr(self.survey, 'cfpLoadedFromXml', False))
-        if (not cfpLoadedFromXml) and (not currentFreq or currentFreq == defaultFreq):
-            self.cfpAnalysisValues = applyCfpAnalysisValues(
-                self.survey,
-                frequencyList=defaultFreq,
-                maxAperture=self.cfpAnalysisValues.maxAperture,
-                rmsVelocity=self.cfpAnalysisValues.rmsVelocity,
-                focalDepth=self.cfpAnalysisValues.focalDepth,
-                useBinningAreaCenter=self.cfpAnalysisValues.useBinningAreaCenter,
-                analysisLocation=self.cfpAnalysisValues.analysisLocation,
-            )
 
         with self.treeChangeBlocker():
             self.addChild(

@@ -11,6 +11,7 @@ from qgis.core import (QgsCategorizedSymbolRenderer, QgsColorRampShader,
                        QgsRendererCategory, QgsSingleBandPseudoColorRenderer,
                        QgsStyle, QgsTextFormat, QgsVectorLayer,
                        QgsVectorLayerSimpleLabeling)
+from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QFileInfo, QRectF, QVariant
 from qgis.PyQt.QtGui import QPolygonF, QTransform
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
@@ -36,9 +37,14 @@ def identifyQgisPointLayer(layer, field, rollCrs, kind):
 
     # to create a modal dialog, see here:
     # See: https://stackoverflow.com/questions/18196799/how-can-i-show-a-pyqt-modal-dialog-and-get-data-out-of-its-controls-once-its-clo
+    # QGIS can delete map layers while Roll still holds a Python wrapper.
+    # Pass None when the wrapper is stale so the dialog opens safely.
+    if not _isValidQgisObject(layer):
+        layer = None
+
     success, layer, field = LayerDialog.getPointLayer(layer, field, rollCrs, kind)
 
-    if not success or layer is None:
+    if not success or not _isValidQgisObject(layer):
         QMessageBox.information(None, 'No layer selected', 'No valid point layer has been selected in QGIS')
         return (None, None)
 
@@ -50,6 +56,16 @@ def identifyQgisPointLayer(layer, field, rollCrs, kind):
 
     QMessageBox.information(None, 'Please update metadata', "Please ensure the Parent Identifier in the metadata of the selected layer starts with 'Roll'")
     return (None, None)
+
+
+def _isValidQgisObject(obj) -> bool:
+    if obj is None:
+        return False
+
+    try:
+        return not sip.isdeleted(obj)
+    except RuntimeError:
+        return False
 
 
 # def updateQgisPointLayer(layerId, spsRecords, crs=None, source=True) -> bool:

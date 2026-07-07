@@ -6,11 +6,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Building a template &#8212; Roll 0.7.7 documentation</title>
+    <title>Building a template &#8212; Roll 0.7.9 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
     
-    <script src="_static/documentation_options.js?v=35f4697d"></script>
+    <script src="_static/documentation_options.js?v=79964ea6"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/bizstyle.js"></script>
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="workflows.html" title="Workflow overview"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.9 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Building a template</a></li> 
       </ul>
     </div>  
@@ -47,9 +47,11 @@
             
   <section id="building-a-template">
 <h1>Building a template<a class="headerlink" href="#building-a-template" title="Link to this heading">¶</a></h1>
+<p>Building templates is normally hidden from sight when you use the wizards to define the survey geometry.
+However, you may want to make some changes to these templates and then some understanding how templates are constructed is very helpful.</p>
 <section id="receiver-seed-location">
 <h2>Receiver Seed location<a class="headerlink" href="#receiver-seed-location" title="Link to this heading">¶</a></h2>
-<p>The first step of building a template is defining the location of the receiver seed.</p>
+<p>Building a template is a multi-step process. The first step is defining the location of the receiver seed.</p>
 <figure class="align-default">
 <img alt="First step in creating a new template" src="_images/Step_01.png" />
 </figure>
@@ -71,7 +73,9 @@
 </section>
 <section id="source-seed-location">
 <h2>Source Seed location<a class="headerlink" href="#source-seed-location" title="Link to this heading">¶</a></h2>
-<p>The following step is to add a source seed to the template.</p>
+<p>The following step is to add a source seed to the template.
+There need to be at least one source seed and one receiver seed in each template to define trace locations.
+Some more complex geometries (slant, zigzag) require several source seeds defining multiple shot salvos in a shared receiver spread, before move-up occurs.</p>
 <figure class="align-default">
 <img alt="Fourth step in creating a new template" src="_images/Step_04.png" />
 </figure>
@@ -149,13 +153,13 @@ Effectively, the whole survey design becomes a single template, removing the nee
 <h2>Towed marine surveys<a class="headerlink" href="#towed-marine-surveys" title="Link to this heading">¶</a></h2>
 <p>The opposite end-member to template design is formed by towed streamer surveys.
 Here a single source is fired, with a certain streamer configuration towed behind the seismic vessel.</p>
-<p>When the next shot is taken, normally using a different source (<em>think of flip-flop or triple-source shooting</em>) the vessels has already moved
-together with the towed streamer configuration</p>
+<p>When the next shot is taken, normally using a different source (<em>think of flip-flop or triple-source shooting</em>) the vessel has already moved
+together with the towed streamer configuration.</p>
 <p>So, here we have one shot per template, which is rolled inline, and crossline to form half a <strong>racetrack</strong>.
-The number of templates in a survey is two (<em>for each sailline direction</em>) times the number of race tracks times the number of towed sources.</p>
+The number of templates in a survey is two (<em>for each sail line direction</em>) times the number of race tracks times the number of towed sources.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>For Roll the streamer templates are demanding to display, due to the large number of templates with their large overlap. For this reason Level of Detail (LOD) drawing has been implamented, so the GUI stays responsive when zooming in or out.</p>
+<p>For Roll the streamer templates are demanding to display, due to the large number of templates with their large overlap. For this reason Level of Detail (LOD) drawing has been implemented, so the GUI stays responsive when zooming in or out.</p>
 </div>
 <section id="racetracks">
 <h3>Racetracks<a class="headerlink" href="#racetracks" title="Link to this heading">¶</a></h3>
@@ -184,7 +188,7 @@ optimizing both the mechanics of the ship and the quality of the data.</p>
 </dd>
 <dt>The run-out:</dt><dd><p>In order to ensure a regular (<em>flat</em>) full-fold boundary at the end of the line, the vessels keeps shooting for half a streamer length.</p>
 </dd>
-<dt>The U-Turn:</dt><dd><p>When completeing the run-out, the sources are temporarily powered down. The ship executes a wide, sweeping loop.</p>
+<dt>The U-Turn:</dt><dd><p>When completing the run-out, the sources are temporarily powered down. The ship executes a wide, sweeping loop.</p>
 </dd>
 <dt>The Return Line:</dt><dd><p>The ship aligns itself with a new line in the opposite direction (<em>often several kilometers over from the first line</em>), activates the sources and heads back towards the survey area.</p>
 </dd>
@@ -193,7 +197,7 @@ optimizing both the mechanics of the ship and the quality of the data.</p>
 </dl>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>In the middle of a race track, the sail iine direction reverses. The presence of cross-currents can cause deviation (<em>feathering</em>) of the streamers and this will lead to gaps in the subsurface coverage</p>
+<p>In the middle of a race track, the sail line direction reverses. The presence of cross-currents can cause deviation (<em>feathering</em>) of the streamers and this will lead to gaps in the subsurface coverage</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -201,7 +205,7 @@ optimizing both the mechanics of the ship and the quality of the data.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>By using an <strong>odd</strong> number of sailines in a race track, one can prevent a reversal of the sail line direction between race tracks. This is shown in the above picture, that contains two racetracks, each with 19 saillines.</p>
+<p>By using an <strong>odd</strong> number of sail lines in a race track, one can prevent a reversal of the sail line direction between race tracks. This is shown in the above picture, that contains two racetracks, each with 19 sail lines.</p>
 </div>
 </section>
 </section>
@@ -285,7 +289,7 @@ optimizing both the mechanics of the ship and the quality of the data.</p>
         <li class="right" >
           <a href="workflows.html" title="Workflow overview"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.7 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Roll 0.7.9 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Building a template</a></li> 
       </ul>
     </div>

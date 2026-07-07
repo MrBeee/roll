@@ -18,36 +18,14 @@
         }
     },
     "python.autoComplete.extraPaths": [
-        // extra stuff; not sure I need it. See: https://duijndam.dev/debugging-qgis-python-plugins/
-        "C:\\ProgramData\\QGIS\\QGIS3",
-        "C:\\Program Files\\QGIS 3.34.13\\bin",
-        "C:\\Program Files\\QGIS 3.34.13\\bin\\data",
-        "C:\\Program Files\\QGIS 3.34.13\\bin\\data\\QGIS\\QGIS3",
-        "C:\\Users\\BartD\\AppData\\Roaming\\QGIS\\QGIS3",
-
+        // Keep this list small to avoid large background indexing sweeps.
         "C:\\Program Files\\QGIS 3.34.13\\apps\\qgis-ltr\\python",
-        "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312",
-        "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\DLLs",
-        "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\etc",
-        "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\lib",
-        "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\Scripts",
         "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\Lib\\site-packages",
         "C:\\Users\\BartD\\AppData\\Roaming\\Python\\Python312\\site-packages"
     ],
     "python.analysis.extraPaths": [
-        // extra stuff; not sure I need it. See: https://duijndam.dev/debugging-qgis-python-plugins/
-        "C:\\ProgramData\\QGIS\\QGIS3",
-        "C:\\Program Files\\QGIS 3.34.13\\bin",
-        "C:\\Program Files\\QGIS 3.34.13\\bin\\data",
-        "C:\\Program Files\\QGIS 3.34.13\\bin\\data\\QGIS\\QGIS3",
-        "C:\\Users\\BartD\\AppData\\Roaming\\QGIS\\QGIS3",
-
+        // Keep this list small to avoid large background indexing sweeps.
         "C:\\Program Files\\QGIS 3.34.13\\apps\\qgis-ltr\\python",
-        "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312",
-        "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\DLLs",
-        "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\etc",
-        "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\lib",
-        "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\Scripts",
         "C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\Lib\\site-packages",
         "C:\\Users\\BartD\\AppData\\Roaming\\Python\\Python312\\site-packages"
     ],
@@ -57,6 +35,32 @@
     // [error] Active interpreter type is detected as Unknown {"id":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\python.exe","sysPrefix":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312","envType":"Unknown","envName":"","envPath":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\python.exe","path":"C:\\Program Files\\QGIS 3.34.13\\apps\\Python312\\python.exe","architecture":3,"sysVersion":"","version":{"raw":"3.12.7","major":3,"minor":12,"patch":7,"build":[],"prerelease":[]},"displayName":"Python 3.12.7","detailedDisplayName":"Python 3.12.7"}
     // According toChatGpt 4.1 this is because the Python interpreter being used is not part of a recognized virtual environment or conda environment. Since you are using the Python interpreter that comes bundled with QGIS, it may not be recognized by VS Code as a standard Python environment. If everything is working fine despite the error message, you can likely ignore it. However, if you want to get rid of the error message, you might consider creating a virtual environment specifically for your project and configuring VS Code to use that environment instead.
     "python.languageServer": "Jedi",
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/__pycache__/**": true,
+        "**/.pytest_cache/**": true,
+        "**/.mypy_cache/**": true,
+        "**/.ruff_cache/**": true,
+        "**/.continue/**": true,
+        "**/*.npy": true,
+        "**/__full_test_report*.txt": true,
+        "**/__single_*_report.txt": true
+    },
+    "search.exclude": {
+        "**/__pycache__/**": true,
+        "**/.pytest_cache/**": true,
+        "**/.mypy_cache/**": true,
+        "**/.ruff_cache/**": true,
+        "**/.continue/**": true,
+        "**/*.npy": true
+    },
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.pytest_cache": true,
+        "**/.mypy_cache": true,
+        "**/.ruff_cache": true
+    },
     "workbench.colorCustomizations": {
         "statusBar.background": "#f8ecf9",
         "statusBar.debuggingBackground": "#d7b64c"

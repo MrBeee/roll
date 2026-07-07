@@ -8,7 +8,7 @@ from typing import Any, Callable, Protocol, cast
 import numpy as np
 from qgis.PyQt.QtCore import QThread
 
-from . import config
+from .cursor_utils import clearBusyCursorOverrides
 from .enums_and_int_flags import MsgType
 from .worker_threads import (BinningFromGeometryRequest,
                              BinningFromTemplatesRequest,
@@ -569,17 +569,8 @@ class WorkerOperationController:
 
         survey = self.window.survey
         cfp = getattr(survey, 'cfp', None) if survey is not None else None
-        cfpLoadedFromXml = bool(getattr(survey, 'cfpLoadedFromXml', False)) if survey is not None else False
         frequencies = list(getattr(cfp, 'frequencyList', []) or [])
         valid = _clean(frequencies)
-        if valid and cfpLoadedFromXml:
-            return valid
-
-        appDefaults = list(config.cfpFrequencyList)
-        validDefaults = _clean(appDefaults)
-        if validDefaults:
-            return validDefaults
-
         if valid:
             return valid
 
@@ -622,19 +613,47 @@ class WorkerOperationController:
         self._showRunningUi(job.progressLabelText)
         self.window.appendLogMessage(job.startMessage, job.startMessageType)
 
-        threadFactory = self.runtimeDependenciesProvider()['QThread']
-        thread = cast(WorkerThreadProtocol, threadFactory())
-        worker = job.workerFactory(job.request)
-        worker.moveToThread(thread)
+        thread = None
+        worker = None
 
-        self.activeOperation = ActiveWorkerOperation(job=job, thread=thread, worker=worker)
-        self.window.thread = thread
-        self.window.worker = worker
+        try:
+            threadFactory = self.runtimeDependenciesProvider()['QThread']
+            thread = cast(WorkerThreadProtocol, threadFactory())
+            worker = job.workerFactory(job.request)
+            worker.moveToThread(thread)
 
-        self._bindJobSignals(thread, worker, job)
-        self._setStartTime()
-        thread.start(QThread.Priority.NormalPriority)
-        return True
+            self.activeOperation = ActiveWorkerOperation(job=job, thread=thread, worker=worker)
+            self.window.thread = thread
+            self.window.worker = worker
+
+            self._bindJobSignals(thread, worker, job)
+            self._setStartTime()
+            thread.start(QThread.Priority.NormalPriority)
+            return True
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            self.window.appendLogMessage(f"Thread : Failed to start worker operation '{job.name}': {exc}", MsgType.Error)
+            self.activeOperation = None
+            self.window.thread = None
+            self.window.worker = None
+            self.window.startTime = None
+
+            if thread is not None:
+                try:
+                    if self._threadIsRunning(thread):
+                        thread.quit()
+                        thread.wait(2000)
+                except RuntimeError:
+                    pass
+
+                threadDeleteLater = getattr(thread, 'deleteLater', None)
+                if callable(threadDeleteLater):
+                    threadDeleteLater()
+
+            if worker is not None and hasattr(worker, 'deleteLater'):
+                worker.deleteLater()
+
+            self._cleanupAfterOperation(resetAnalysis=True)
+            return False
 
     def _bindJobSignals(self, thread: WorkerThreadProtocol, worker, job: WorkerJobSpec) -> None:
         thread.started.connect(worker.run)
@@ -651,9 +670,8 @@ class WorkerOperationController:
 
         worker.resultReady.connect(lambda result, currentJob=job: self._handleJobResult(currentJob, result))
         worker.finished.connect(thread.quit)
-        workerDeleteLater = getattr(worker, 'deleteLater', None)
-        if callable(workerDeleteLater):
-            worker.finished.connect(workerDeleteLater)
+        if hasattr(worker, 'deleteLater'):
+            worker.finished.connect(worker.deleteLater)
 
         threadDeleteLater = getattr(thread, 'deleteLater', None)
         finishedSignal = getattr(thread, 'finished', None)
@@ -732,6 +750,8 @@ class WorkerOperationController:
         self.window.worker = None
         self.window.thread = None
         self.window.startTime = None
+
+        clearBusyCursorOverrides()
 
         self.window.hideStatusbarWidgets()
 

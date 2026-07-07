@@ -1,5 +1,6 @@
 from qgis.core import QgsFieldProxyModel, QgsMapLayerProxyModel
 from qgis.gui import QgsFieldComboBox, QgsMapLayerComboBox
+from qgis.PyQt import sip
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLabel
 
@@ -41,8 +42,8 @@ class LayerDialog(QDialog):
         self.fcb.setAllowEmptyFieldName(True)                                   # don't force using field to limit point selection
         self.fcb.setFilters(QgsFieldProxyModel.Int | QgsFieldProxyModel.LongLong)   # All, Date, Double, Int, LongLong, Numeric, String, Time)
 
-        # in case layer & field have been used before in Roll
-        if layer is not None:
+        # In case layer & field have been used before in Roll: ignore stale wrappers
+        if self._isValidLayer(layer):
             self.lcb.setLayer(layer)
             self.fcb.setLayer(layer)
         if field is not None:
@@ -76,9 +77,25 @@ class LayerDialog(QDialog):
         self.setLayout(self.layout)                                             # finish dialog layout
 
     def layerChanged(self):
-        crs = self.lcb.currentLayer().dataProvider().crs()
+        layer = self.lcb.currentLayer()
+        if not self._isValidLayer(layer) or layer.dataProvider() is None:
+            self.layerInf.setText('Description')
+            self.layerAut.setText('AuthorityID')
+            return
+
+        crs = layer.dataProvider().crs()
         self.layerInf.setText('Description: ' + crs.description())
         self.layerAut.setText('AuthorityID: ' + crs.authid())
+
+    @staticmethod
+    def _isValidLayer(layer) -> bool:
+        if layer is None:
+            return False
+
+        try:
+            return not sip.isdeleted(layer)
+        except RuntimeError:
+            return False
 
     # def accept(self):                                                         # don't need to subclass
     #     QDialog.accept(self)

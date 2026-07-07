@@ -4383,7 +4383,7 @@ class ProjectSidecarsTest(unittest.TestCase):
                 self.mainWindow.cfpPointAnalysisFromTemplates()
 
         request = workerFactory.call_args.args[0]
-        self.assertEqual(request.frequency, float(config.cfpFrequencyList[0]))
+        self.assertEqual(request.frequency, float(self.mainWindow.survey.cfp.frequencyList[0]))
         self.mainWindow.thread = None
         self.mainWindow.worker = None
 
@@ -5453,7 +5453,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.output.cfpSourceBeamDy = 6.0
         self.mainWindow.output.cfpFrequency = 40.0
 
-        with patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
+        with patch.object(self.mainWindow.cfpWidget, 'autoRange') as autoRange, patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
             self.mainWindow.actionCfpSliceReceiverBeam.setChecked(True)
             self.mainWindow.onCfpSliceChanged()
 
@@ -5472,11 +5472,12 @@ class ProjectSidecarsTest(unittest.TestCase):
                 rounding=10.0,
                 colorBarTickSpacing=None,
             )
+            autoRange.assert_called_once_with()
 
         self.assertEqual(self.mainWindow.cfpWidget.plotItem.titleLabel.text, 'xy-slice of receiver beam, frequency = 40 Hz, depth = 0 m')
         self.assertTrue(bool(self.mainWindow.cfpWidget.plotItem.getViewBox().state.get('aspectLocked', False)))
 
-        with patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
+        with patch.object(self.mainWindow.cfpWidget, 'autoRange') as autoRange, patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
             self.mainWindow.actionCfpSliceResolution.setChecked(True)
             self.mainWindow.onCfpSliceChanged()
 
@@ -5495,6 +5496,7 @@ class ProjectSidecarsTest(unittest.TestCase):
                 rounding=10.0,
                 colorBarTickSpacing=None,
             )
+            autoRange.assert_called_once_with()
 
         self.assertEqual(self.mainWindow.cfpWidget.plotItem.titleLabel.text, 'xy-slice of resolution function, frequency = 40 Hz, depth = 0 m')
         self.assertTrue(bool(self.mainWindow.cfpWidget.plotItem.getViewBox().state.get('aspectLocked', False)))
@@ -5509,7 +5511,7 @@ class ProjectSidecarsTest(unittest.TestCase):
         self.mainWindow.output.cfpRadonDy = 0.02
         self.mainWindow.output.cfpFrequency = 40.0
 
-        with patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
+        with patch.object(self.mainWindow.cfpWidget, 'autoRange') as autoRange, patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
             self.mainWindow.actionCfpRadonRecBeam.setChecked(True)
             self.mainWindow.onCfpRadonTransformChanged()
 
@@ -5528,11 +5530,12 @@ class ProjectSidecarsTest(unittest.TestCase):
                     'colorBarTickSpacing': (0.1, 0.05),
                 },
             )
+            autoRange.assert_called_once_with()
 
         self.assertEqual(self.mainWindow.cfpWidget.plotItem.titleLabel.text, 'Radon transform of receiver beam, frequency = 40 Hz, depth = 0 m')
         self.assertTrue(bool(self.mainWindow.cfpWidget.plotItem.getViewBox().state.get('aspectLocked', False)))
 
-        with patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
+        with patch.object(self.mainWindow.cfpWidget, 'autoRange') as autoRange, patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
             self.mainWindow.actionCfpRadonRecBeam.setChecked(False)
             self.mainWindow.actionCfpRadonAvpFunction.setChecked(True)
             self.mainWindow.onCfpRadonTransformChanged()
@@ -5552,8 +5555,27 @@ class ProjectSidecarsTest(unittest.TestCase):
                     'colorBarTickSpacing': (0.1, 0.05),
                 },
             )
+            autoRange.assert_called_once_with()
 
         self.assertEqual(self.mainWindow.cfpWidget.plotItem.titleLabel.text, 'AVP-function in the Radon domain, frequency = 40 Hz, depth = 0 m')
+        self.assertTrue(bool(self.mainWindow.cfpWidget.plotItem.getViewBox().state.get('aspectLocked', False)))
+
+    def testCfpAnalysisTitlesUseAllConfiguredFrequencies(self):
+        self.mainWindow.survey.cfp.frequencyList = [8.0, 16.0, 20.0, 24.0, 32.0]
+        self.mainWindow.output.cfpSourceBeamImage = np.zeros((2, 2), dtype=np.float32)
+        self.mainWindow.output.cfpFocalZ = -2000.0
+
+        with patch.object(self.mainWindow.cfpWidget, 'autoRange') as autoRange, patch.object(self.mainWindow, 'prepareAnalysisImageAndColorBar') as prepareAnalysisImageAndColorBar:
+            self.mainWindow.actionCfpSliceSourceBeam.setChecked(True)
+            self.mainWindow.renderSelectedCfpView()
+
+            prepareAnalysisImageAndColorBar.assert_called_once()
+            autoRange.assert_called_once_with()
+
+        self.assertEqual(
+            self.mainWindow.cfpWidget.plotItem.titleLabel.text,
+            'xy-slice of source beam, frequency = 8 Hz; 16 Hz; 20 Hz; 24 Hz; 32 Hz, depth = 2000 m',
+        )
         self.assertTrue(bool(self.mainWindow.cfpWidget.plotItem.getViewBox().state.get('aspectLocked', False)))
 
     def testCfpRadonPlotMouseStatusIncludesSampledAmplitude(self):

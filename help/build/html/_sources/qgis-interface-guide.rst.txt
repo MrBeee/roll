@@ -17,11 +17,11 @@ Such a text file may look as follows:
    :header: "X", "Y"
    :align: left
 
-   "647285,", "5556357"
-   "652514,", "5560823"
-   "669808,", "5552982"
-   "666808,", "5547061"
-   "647285,", "5556357"
+   "647285", "5556357"
+   "652514", "5560823"
+   "669808", "5552982"
+   "666808", "5547061"
+   "647285", "5556357"
 
 The approach is as follows:
 
@@ -32,7 +32,9 @@ The approach is as follows:
 #. Check the record and field options, including header lines when needed.
 #. Define the columns that represent X, Y, and optionally Z values.
 #. Select ``Add``.
-#. Use Full Zoom (``Ctrl+Shift+F``) in QGIS, zoom to the imported points.
+#. Use Full Zoom |ZoomFullExtent| (``Ctrl+Shift+F``) in QGIS, to show all data, including the newly added points.
+#. Alternatively, **select** *the new layer*, and use |ZoomToLayer|  ``Zoom to Layer``, to zoom to the newly added points.
+
 
 2. Create a Line Layer from Points
 ----------------------------------
@@ -64,7 +66,7 @@ filled and cannot be used as clip boundaries. For that, you need polygons.
 #. Reduce opacity below 100 percent so underlying layers remain visible.
 #. To add an outline:
 
-   * Add a symbol layer with the green plus icon.
+   * Add a symbol layer with the green plus icon |AddSymbol|.
    * For the symbol layer type, choose ``Outline: Simple Line``.
    * Select an appropriate color and stroke width.
    * Select ``OK``.
@@ -110,7 +112,7 @@ real survey outline is usually constrained by concession boundaries, cities,
 lakes, or similar features. In QGIS you can either clip the points away or mark
 them inactive by testing whether they fall inside a polygon.
 
-6.a. Clipping: the Easy Way Out
+6.1. Clipping: the Easy Way Out
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Clipping removes all points outside a selected polygonal area. It is quick, but
@@ -123,7 +125,7 @@ the removed points are not easy to reinstate later.
 #. Select ``Run``.
 #. The clipped point layer is created as a scratch layer.
 
-6.b. Clipping: Future-Proofing Your Edits
+6.2. Clipping: Future-Proofing Your Edits
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This approach first selects points inside a polygon and then writes the
@@ -140,8 +142,8 @@ selection state into a permanent attribute, usually ``inuse``.
 #. Confirm that the selected points are highlighted in yellow and marked with a
    red cross.
 #. From the Attributes toolbar, open ``Field Calculator``.
-#. Alternatively, open the Attribute Table (``F6``) and then open the Field
-   Calculator (``Ctrl+I``).
+#. Alternatively, open the Attribute Table |OpenTable| (``F6``) and then open the Field
+   Calculator |CalculateField| (``Ctrl+I``).
 #. Uncheck ``Only update xxx selected feature(s)``. The calculation must update
    all features, not only the selected ones.
 #. Now either:
@@ -157,26 +159,115 @@ selection state into a permanent attribute, usually ``inuse``.
 #. After completion, verify the result in the Attribute Table.
 #. The modified point layer is now ready to be read back into Roll.
 
-7. Move src/rec and sps/rps Points in QGIS
-------------------------------------------
+7. Move src/rec and sps/rps Points in QGIS manually
+---------------------------------------------------
 
 To change any of the exported layers you must enable editing first.
 
-#. In the Layers panel, open the point layer context menu and choose
+#. In the Layers panel, open the point layer context menu and choose |ToggleEditing| 
    ``Toggle editing``.
 #. A pencil icon appears next to the layer name.
 #. The pencil on the digitizing toolbar is also highlighted.
-#. In the digitizing toolbar, select the Vertex tool for the current layer.
-#. Use one of these vertex selection methods:
+#. In the digitizing toolbar, select |VertexToolActiveLayer| the ``Vertex tool (Current layer)``.
+#. To select a single point, do the following:
 
-   * Right-click to lock on a feature.
-   * Click and drag to select vertices by rectangle.
-   * ``Alt+click`` to select vertices by polygon.
-   * ``Shift+click`` or drag to add vertices to the selection.
-   * ``Ctrl+click`` or drag to remove vertices from the selection.
-   * ``Shift+R`` to enable range selection.
+   * Right-click to lock on a feature. A red circle will appear.
+   * Left-click in the red circle. A red cross (attached to the cursor) appears in the circle
+   * Move the cursor with the red cross to the desired location and Left-click
+   * At this moment the point is moved to the new position
+#. It is also possible to select multiple points (line segments) at once. 
 
-8. Read src/rec and sps/rps Points from QGIS back into Roll
+   * The easiest way is to use the left mouse button to draw a *bounding box* around a set of points.
+   * Use ``Alt+click`` to select vertices by *polygon*: 
+     Release the ``Alt`` key after the first click. Each click adds another point to the polygon. 
+     To close the polygon, right click once, and the points in the polygon will be selected.
+   * Use ``Shift+click`` to *add* vertices to the selection.
+   * Use ``Ctrl+click`` to *remove* vertices from the selection.
+   * Use ``Shift+R`` to enable *range selection*.
+
+8. Move src/rec and sps/rps Points in QGIS using tools
+------------------------------------------------------
+
+Manual relocation of points gives precise control over the final locations,
+but it is also very tedious for a survey with 10,000 or more source and receiver points.
+
+The relocation approach is rather straightforward for most sources and receivers.
+
+#. Source points (VPs) are often shifted to the nearest road segment for easy vibroseis access
+#. Receiver points are much more flexible, as long as measurements are done outside of buildings
+
+
+8.1 Move src/sps points
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Moving source points to a road segment can be done using a tool from the processing toolbox
+``Processing Toolbox -> Vector geometry -> Snap Geometries to Layer``. But before we can do this,
+the roads in and around the survey area need to be downloaded from `OpenStreetMaps.org <https://www.openstreetmap.org>`__
+*and* these roads need to be *reprojected* from ``EPSG:4326`` to the project's CRS.
+
+There are multiple web-based and Python based tools that extract the OSM OpenStreetMaps road data.
+One needs to be carefull that downloaded line segments do **not** include waterways, railways and administrative boundaries.
+
+QuickOSM is a QGis plugin that makes it easy to select OSM data using a ``Quick query``. 
+
+.. figure:: ../../images/quick_osm_quick_query.png
+   :alt: QuickOSM quick query dialog in QGIS
+   :align: center
+
+   QuickOSM quick query configuration used to download road data.
+
+Once the road information has been downloaded, use ``Processing Toolbox -> Vector general -> reproject`` to reproject the road segments to the project's CRS.
+With this out of the way, we can now move the source points to the nearest road segment using ``Processing Toolbox -> Vector geometry -> Snap geometries to layer``.
+
+.. figure:: ../../images/snap_geometries_to_layer.png
+   :alt: Snap geometries to layer tool in QGIS
+   :align: center
+
+   Snap Geometries to Layer settings is used to move source points to nearby roads. 
+   
+The behavior should be ``Prefer closest point``. The Tolerance should be several 100 meter, if the road grid is sparse. If the tolerance is set too low, the point won't be moved at all.
+   
+.. note::
+   OSM roads often contain multipart line segments. These first need to be converted to singlepart lines.
+   This can be done using ``Processing Toolbox -> Vector geometry -> Multipart to Singleparts``.
+
+8.2 Move rec/rps points
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Receiver points don't really need to be aligned with the road grid. They can be located anywhere within the survey area, as long as they are outside of buildings.
+There is currently no simple tool in the Processing Toolbox that takes care of that. The first step to achieve this is using QuickOSM, but with a different query to download all buildings.
+
+Use key = 'building' and value = '*'. This will give you a new temporary layer in EPSG:4326 that needs to be converted to the project CRS for it to become useful.
+
+Once this is done, from Roll, you can run ``Processing -> Processing Utilities -> Move points outside polygons``.
+
+.. figure:: ../../images/Move_indoor_measurements_outside.png
+   :alt: Move indoor measurements outside tool in QGIS
+   :align: center
+
+   Move points outside polygons workflow used to shift indoor measurements to valid locations.
+
+The tool isn't yet 100% waterproof; there is  chance that you move a point into a neighboring building. 
+This is because the tool doesn't check if the final point lies within a polygon or not.
+You will need to manually verify that all points are outside of buildings before proceeding with binning.
+This behavior will be improved in future versions of Roll.
+
+8.3 Overall results
+^^^^^^^^^^^^^^^^^^^
+
+With both sources and receivers relocated, you can get results as shown in the figure below.
+
+.. figure:: ../../images/Relocated_source_and_receiver_points.png
+   :alt: Relocated source and receiver points in QGIS
+   :align: center
+
+   Relocated source and receiver points after road snapping and building-avoidance updates.
+
+The result sofar isn't yet 100% perfect; there is a chance that you get some points inside buildings.
+And maybe some roads have become inaccessible. But it is a good start to confirm **actual** survey coverage
+instead of the **nominal** coverage based on the template alone.
+
+9. Read src/rec and sps/rps Points from QGIS back into Roll
 -----------------------------------------------------------
 
 Once changes have been made to overall source and receiver areas or to
@@ -205,13 +296,13 @@ modified point data back into Roll and rerun the analysis.
      * Integer fields other than ``inuse`` can also be used to select
        active or passive points in Roll.
 
-9. Process Data Edited in QGIS Back in Roll and Show Results in QGIS
---------------------------------------------------------------------
+10. Process Data Edited in QGIS back in Roll and show results in QGIS
+---------------------------------------------------------------------
 
 After the edited Geometry or SPS data has been copied back into Roll:
 
 #. In Roll's processing menu, run ``Binning from Geometry`` or
-   ``Binning from Imported SPS``.
+   ``Binning from Imported SPS``, depending on the tables that have been used in QGis.
 #. Choose carefully between the two binning modes:
 
    * **Full binning** creates the RMS offset map, offset plots,
@@ -224,8 +315,8 @@ After the edited Geometry or SPS data has been copied back into Roll:
      it does not create the richer offset products provided by full binning.
 
 #. Once binning is complete, export the fold map and the minimum and maximum
-   offsets to QGIS using either the buttons in the Display pane or the export
-   options in the File menu.
+   offsets to QGIS using either the buttons in the ``Display pane`` or the export
+   options in the ``File menu``.
 #. Select the appropriate folder and then choose a file name. Roll suggests a
    name automatically.
 #. The georeferenced TIFF file is then imported into the QGIS project.
@@ -233,3 +324,37 @@ After the edited Geometry or SPS data has been copied back into Roll:
    fully transparent in QGIS.
 #. From within QGIS, verify that the edits or deleted points still produce
    acceptable coverage plots.
+
+.. Icon files (images) have been copied from the QGis repository to the resources folder
+   Original images can be found here: D:\GitHub\QGIS\images\themes\default.
+
+.. |CalculateField| image:: D:/QGis/MyPlugins/roll/resources/mActionCalculateField.svg
+   :height: 20px
+   :width: 20px
+
+.. |OpenTable| image:: D:/QGis/MyPlugins/roll/resources/mActionOpenTable.svg
+   :height: 20px
+   :width: 20px
+
+.. |AddSymbol| image:: D:/QGis/MyPlugins/roll/resources/symbologyAdd.svg
+   :height: 15px
+   :width: 15px
+
+.. |ToggleEditing| image:: D:/QGis/MyPlugins/roll-2026-07-03/resources/mActionToggleEditing.svg
+   :height: 20px
+   :width: 20px
+
+.. |ZoomFullExtent| image:: D:/QGis/MyPlugins/roll/resources/mActionZoomFullExtent.svg
+   :height: 20px
+   :width: 20px
+
+.. |VertexToolActiveLayer| image:: D:/QGis/MyPlugins/roll/resources/mActionVertexToolActiveLayer.svg
+   :height: 20px
+   :width: 20px
+
+.. |ZoomToLayer| image:: D:/QGis/MyPlugins/roll/resources/mActionZoomToSelected.svg
+   :height: 20px
+   :width: 20px
+
+
+
