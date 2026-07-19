@@ -88,6 +88,7 @@ Changelog
 
 Recent releases are summarized below.
 
+* 2026-07-07 (0.8.0) Fixed two small bugs. Improved Sphinx documentation. Updated refactoring plans.
 * 2026-07-07 (0.7.9) Created QGis Processing utility to move points. Improved Sphinx documentation.
 * 2026-06-09 (0.7.8) Improved presentation CFP analysis, expanded Sphinx documentation.
 * 2026-06-09 (0.7.7) Improved CFP implementation, expanded Sphinx documentation.

@@ -7,7 +7,7 @@ name=Roll
 qgisMinimumVersion=3.34
 qgisMaximumVersion=4.99
 description=Design and analysis of 3D seismic survey geometries
-version=0.7.9
+version=0.8.0
 author=Duijndam.Dev
 email=Bart.Duijndam@ziggo.nl
 about:<p>This plugin is intended to create and analyze 3D seismic survey geometries. It is dependent on the following Python packages:<ul>
@@ -45,7 +45,8 @@ repository=https://github.com/MrBeee/roll
 # Recommended items:
 hasProcessingProvider=no
 
-changelog:   <p>2026-07-07 (0.7.9) Created QGis Processing utility to move points. Improved Sphinx documentation
+changelog:   <p>2026-07-07 (0.8.0) Fixed two small bugs. Improved Sphinx documentation. Updated refactoring plans.
+  <p>2026-07-07 (0.7.9) Created QGis Processing utility to move points. Improved Sphinx documentation
   <p>2026-06-09 (0.7.8) Improved presentation CFP analysis, expanded Sphinx documentation
   <p>2026-06-09 (0.7.7) Improved CFP implementation, expanded Sphinx documentation
   <p>2026-05-22 (0.7.6) Implemented first step of Sphinx documentation, acessible from F1
