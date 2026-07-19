@@ -2149,6 +2149,30 @@ class ProjectSidecarsTest(unittest.TestCase):
             dialog.close()
             dialog.deleteLater()
 
+    def testSpsImportDialogXpsSpinboxUpdatesXpsPreviewBounds(self):
+        dialog = SpsImportDialog(self.mainWindow, self.mainWindow.survey.crs, self.mainWindow.importDirectory)
+        try:
+            dialog.spsFormatList.setCurrentRow(0)
+            dialog.xpsCombo.setCurrentIndex(0)
+            dialog.onXpsComboHighlighted(0)
+
+            xpsKey = list(config.spsRelationFormatDict.keys())[dialog.xpsCombo.currentIndex()]
+            dialog.spsTab.line1 = -101
+            dialog.spsTab.line2 = -102
+
+            originalFromColumn = self.mainWindow.appSettings.xpsFormatList[0][xpsKey][0]
+            dialog.xpsFromSpin.setValue(originalFromColumn + 2)
+
+            self.assertEqual(self.mainWindow.appSettings.xpsFormatList[0][xpsKey][0], originalFromColumn + 1)
+            self.assertEqual(dialog.xpsTab.line1, originalFromColumn + 1)
+            self.assertEqual(dialog.xpsTab.line2, self.mainWindow.appSettings.xpsFormatList[0][xpsKey][1])
+            self.assertEqual(dialog.spsTab.line1, -101)
+            self.assertEqual(dialog.spsTab.line2, -102)
+            self.assertEqual(dialog.tabWidget.currentIndex(), 1)
+        finally:
+            dialog.close()
+            dialog.deleteLater()
+
     def testSpsImportDialogResetUsesBuiltInDefaultsNotLiveConfigLists(self):
         self.mainWindow.appSettings.spsFormatList = [{'name': 'Broken'}]
         self.mainWindow.appSettings.xpsFormatList = [{'name': 'Broken'}]
@@ -6103,6 +6127,29 @@ class ProjectSidecarsTest(unittest.TestCase):
 
             self.assertAlmostEqual(page3.xlineBinSize(), 50.0)
             self.assertAlmostEqual(page3.binX.value(), 50.0)
+        finally:
+            wizard.close()
+            wizard.deleteLater()
+
+    def testMarineWizardPage3XlineBinSizeHandlesTwoUniqueCmpPositions(self):
+        wizard = marineWizardModule.MarineSurveyWizard(self.mainWindow)
+        try:
+            page1 = wizard.page(0)
+            page2 = wizard.page(1)
+            page3 = wizard.page(2)
+
+            page1.nSrc.setValue(1)
+            page1.nCab.setValue(2)
+            page1.updateParameters()
+
+            page2.initializePage()
+            page3.initializePage()
+
+            binSize = page3.xlineBinSize()
+            self.assertTrue(np.isfinite(binSize))
+            self.assertGreaterEqual(binSize, 0.0)
+            self.assertAlmostEqual(binSize, 0.5 * page2.cabSepHead.value())
+            self.assertAlmostEqual(page3.binX.value(), binSize)
         finally:
             wizard.close()
             wizard.deleteLater()

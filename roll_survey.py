@@ -3541,9 +3541,10 @@ class RollSurvey(pg.GraphicsObject):
 
         offSlot = self.unique.dOffset                                       # slots and scalars for unique offset, azimuth
         offScalar = 1.0 / offSlot
-        aziSlot = self.unique.dAzimuth
+
+        aziSlots = self.unique.aziSlots
+        aziSlot = 360.0 / aziSlots
         aziScalar = 1.0 / aziSlot
-        writeBack = self.unique.write
 
         rows = self.output.anaOutput.shape[0]                               # get dimensions from analysis array itself
         cols = self.output.anaOutput.shape[1]
@@ -3551,6 +3552,8 @@ class RollSurvey(pg.GraphicsObject):
         self.nShotPoint = 0                                                 # reuse nShotPoint(s) to implement progress in statusbar
         self.nShotPoints = rows * cols                                      # calc nr of applicable points
         self.threadProgress = 0                                             # reset counter
+
+        writeBack = self.unique.write
 
         for row in range(rows):
             for col in range(cols):
@@ -3580,11 +3583,13 @@ class RollSurvey(pg.GraphicsObject):
                     slice2D[:, 13] = slottedOffset                          # write it back into the 2D slice
 
                 slottedAzimuth = slice2D[:, 14]                             # grab 15th item of 2nd dimension (=azimuth)
-                slottedAzimuth = slottedAzimuth * aziScalar
-                slottedAzimuth = np.round(slottedAzimuth)
-                slottedAzimuth = slottedAzimuth * aziSlot
-                if writeBack:
-                    slice2D[:, 14] = slottedAzimuth                         # write it back into the 2D slice
+
+                if aziSlots > 1:                                            # use azimuth slots as well as offset slots
+                    slottedAzimuth = slottedAzimuth * aziScalar
+                    slottedAzimuth = np.round(slottedAzimuth)
+                    slottedAzimuth = slottedAzimuth * aziSlot
+                    if writeBack:
+                        slice2D[:, 14] = slottedAzimuth                     # write it back into the 2D slice
 
                 slottedOffAzi = np.column_stack((slottedOffset, slottedAzimuth))
 

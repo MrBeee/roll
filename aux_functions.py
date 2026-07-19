@@ -934,7 +934,7 @@ def exampleSurveyXmlText() -> str:
             <output xmax="7225.0" ymax="1800.0" xmin="6975.0" ymin="1400.0"/>
             <angles refmin="0.0" azimin="0.0" azimax="360.0" refmax="45.0"/>
             <offset rmin="0.0" xmax="5976.0" rmax="6027.0" ymax="776.0" xmin="-5976.0" ymin="-776.0"/>
-            <unique deltaoff="200.0" deltaazi="5.0" apply="False" write="False"/>
+            <unique deltaoff="200.0" azislots="1" apply="False" write="False"/>
             <binning vint="2000.0" method="cmp"/>
             <cfpana zfocus="2000.0" vrms="2000.0" useBinningAreaCenter="True" frequencies="8;16;20;24;32" maxAperture="45.0" xfocus="0.0" yfocus="0.0"/>
         </limits>

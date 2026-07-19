@@ -520,7 +520,7 @@ class _FakeUniqueOffsetState:
         self.apply = None
         self.write = None
         self.dOffset = None
-        self.dAzimuth = None
+        self.aziSlots = None
 
 
 class _FakeUniqueOffsetParameterController:
@@ -529,7 +529,7 @@ class _FakeUniqueOffsetParameterController:
         self.parP = _FakeValueParam(True)
         self.parR = _FakeValueParam(False)
         self.parO = _FakeValueParam(25.0)
-        self.parA = _FakeValueParam(7.5)
+        self.parA = _FakeValueParam(7)
 
 
 class _FakeBinMethodState:
@@ -941,7 +941,7 @@ class MyParameterPreviewSummaryHelperTest(unittest.TestCase):
         self.assertTrue(uniqueOffsetParam.unique.apply)
         self.assertFalse(uniqueOffsetParam.unique.write)
         self.assertEqual(uniqueOffsetParam.unique.dOffset, 25.0)
-        self.assertEqual(uniqueOffsetParam.unique.dAzimuth, 7.5)
+        self.assertEqual(uniqueOffsetParam.unique.aziSlots, 7)
 
     def testApplyBinMethodParametersMapsSelectedMethodAndVelocity(self):
         binMethodParam = _FakeBinMethodParameterController()

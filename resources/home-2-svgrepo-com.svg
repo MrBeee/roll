@@ -8,7 +8,7 @@
    fill="none"
    version="1.1"
    id="svg1"
-   sodipodi:docname="mActionMovePointsAutsidePolygons.svg"
+   sodipodi:docname="home-2-svgrepo-com.svg"
    inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -18,14 +18,14 @@
      id="defs1">
     <marker
        id="arrowhead"
-       markerWidth="4"
-       markerHeight="4"
-       refX="4"
-       refY="2"
+       markerWidth="4.8"
+       markerHeight="4.8"
+       refX="4.8"
+       refY="2.4"
        orient="auto"
        markerUnits="strokeWidth">
       <polygon
-         points="0,0 4,2 0,4"
+         points="0,0 4.8,2.4 0,4.8"
          fill="#0000ff"
          id="polygon1" />
     </marker>
@@ -51,23 +51,16 @@
   <path
      fill-rule="evenodd"
      clip-rule="evenodd"
-     d="m 9.1444798,4.7478306 7.3145462,6.4393634 -0.348308,1.226544 H 15.530127 V 20.25 H 2.7588714 V 12.413738 H 2.178358 L 1.83005,11.187194 Z M 3.9198981,11.05091 v 7.836262 H 14.3691 V 11.05091 L 9.1444798,6.4513657 Z"
+     d="m 9.8644798,8.0139463 7.3145462,5.0826687 -0.348308,0.968127 H 16.250127 V 20.25 H 3.4788714 V 14.064742 H 2.898358 L 2.55005,13.096615 Z M 4.6398981,12.989045 v 6.185258 H 15.0891 V 12.989045 L 9.8644798,9.3585676 Z"
      fill="#080341"
      id="path1"
-     style="stroke-width:0.838592" />
-  <g
-     id="g1"
-     transform="translate(-0.15867769,-1.1239669)">
-    <path
-       style="fill:#0000ff;fill-opacity:1;stroke:#0000ff;stroke-width:0.369972px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 18.026432,18.719174 0.01499,-3.551252 4.004643,1.983991 z"
-       id="path12468" />
-    <rect
-       style="fill:#0000ff;fill-opacity:1;stroke:#0000ff;stroke-width:0.0250729;stroke-opacity:1"
-       id="rect1"
-       width="9.481658"
-       height="1.3626491"
-       x="8.3831387"
-       y="16.277353" />
-  </g>
+     style="stroke-width:0.745032" />
+  <path
+     d="m 12.152893,16.791736 h 8.6"
+     fill="none"
+     stroke="#0000ff"
+     stroke-width="1.35"
+     stroke-linecap="butt"
+     marker-end="url(#arrowhead)"
+     id="path2" />
 </svg>

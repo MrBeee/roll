@@ -1181,7 +1181,7 @@ class Page3(SurveyWizardPage):
         if cmpActX.size < 2:
             return 0.0
 
-        cmp = cmpActX.size // 2
+        cmp = min(cmpActX.size // 2, cmpActX.size - 2)
         return float(cmpActX[cmp + 1] - cmpActX[cmp])
 
     def updateParameters(self):

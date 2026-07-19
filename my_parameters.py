@@ -509,7 +509,7 @@ def applyUniqueOffsetParameters(uniqueOffsetParam):
     uniqueOffsetParam.unique.apply = uniqueOffsetParam.parP.value()
     uniqueOffsetParam.unique.write = uniqueOffsetParam.parR.value()
     uniqueOffsetParam.unique.dOffset = uniqueOffsetParam.parO.value()
-    uniqueOffsetParam.unique.dAzimuth = uniqueOffsetParam.parA.value()
+    uniqueOffsetParam.unique.aziSlots = uniqueOffsetParam.parA.value()
 
 
 def applyBinMethodParameters(binMethodParam):
@@ -796,14 +796,17 @@ class MyUniqOffParameterItem(MyGroupParameterItem):
         self.initializePreviewItem(param)
 
     def showPreviewInformation(self, param):
-        apply = param.child('Apply pruning').opts['value']
+        apply = param.child('Use unique').opts['value']
         dOffset = param.child('Delta offset').opts['value']
-        dAzimuth = param.child('Delta azimuth').opts['value']
+        aziSlots = param.child('Azim slots').opts['value']
+        dAzimuth = 360.0 / aziSlots
 
         if not apply:
             t = 'Not used'
-        else:
+        elif aziSlots > 1:
             t = f'@ {dOffset}m, {dAzimuth}°'
+        else:
+            t = f'@ {dOffset}m, no azimuth slots'
 
         self.updatePreviewLabelText(t)
         # myPrint(f'>>>{lineNo():5d} MyUniqOffParameterItem.showPreviewInformation | t = {t} <<<')
@@ -825,18 +828,19 @@ class MyUniqOffParameter(MyGroupParameter):
         d = opts.get('decimals', 7)
         self.unique = opts.get('value', RollUnique())
 
-        tip = 'Write back rounded offset- and azimuth values back to analysis results'
+        tip1 = 'Use unique offset- and azimuth values for each source-receiver pair'
+        tip2 = 'Write back rounded offset- and azimuth values back to analysis results'
         with self.treeChangeBlocker():
-            self.addChild(dict(name='Apply pruning', value=self.unique.apply, default=self.unique.apply, type='bool'))
-            self.addChild(dict(name='Write rounded', value=self.unique.write, default=self.unique.write, type='bool', tip=tip))
+            self.addChild(dict(name='Use unique', value=self.unique.apply, default=self.unique.apply, type='bool', tip=tip1))
+            self.addChild(dict(name='Write rounded', value=self.unique.write, default=self.unique.write, type='bool', tip=tip2))
             self.addChild(dict(name='Delta offset', value=self.unique.dOffset, default=self.unique.dOffset, type='float', decimals=d, suffix='m'))
-            self.addChild(dict(name='Delta azimuth', value=self.unique.dAzimuth, default=self.unique.dAzimuth, type='float', decimals=d, suffix='deg'))
+            self.addChild(dict(name='Azim slots', value=self.unique.aziSlots, default=self.unique.aziSlots, type='int', limits=(1, 72)))
 
         bindChildParameters(self, {
-            'parP': 'Apply pruning',
+            'parP': 'Use unique',
             'parR': 'Write rounded',
             'parO': 'Delta offset',
-            'parA': 'Delta azimuth',
+            'parA': 'Azim slots',
         })
 
         self.sigTreeStateChanged.connect(self.changed)

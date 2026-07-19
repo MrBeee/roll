@@ -216,7 +216,7 @@ QuickOSM is a QGis plugin that makes it easy to select OSM data using a ``Quick 
 
    QuickOSM quick query configuration used to download road data.
 
-Once the road information has been downloaded, use ``Processing Toolbox -> Vector general -> reproject`` to reproject the road segments to the project's CRS.
+Once the road information has been downloaded, in **QGis** use ``Processing Toolbox -> Vector general -> reproject`` to reproject the road segments to the project's CRS.
 With this out of the way, we can now move the source points to the nearest road segment using ``Processing Toolbox -> Vector geometry -> Snap geometries to layer``.
 
 .. figure:: ../../images/snap_geometries_to_layer.png
@@ -231,15 +231,30 @@ The behavior should be ``Prefer closest point``. The Tolerance should be several
    OSM roads often contain multipart line segments. These first need to be converted to singlepart lines.
    This can be done using ``Processing Toolbox -> Vector geometry -> Multipart to Singleparts``.
 
+In **Roll**, under ``Processing -> Processing Utilities -> Move Points to nearest line in QGis`` you'll find a script that takes care of the various preparation steps:
+
+#. It (optionally) converts multipart road (line) segments to singlepart lines
+#. It (optionally) removes planned roads and roads that are under construction
+#. Finally it snaps the points to the nearest road segment.
+
+See the figure below for the user interface.
+
+.. figure:: ../../images/Clean_and_snap_points_to_roads.png
+   :alt: Clean and snap points to roads
+   :align: center
+
+   Clean and snap points to roads in QGis.
+
+
 8.2 Move rec/rps points
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Receiver points don't really need to be aligned with the road grid. They can be located anywhere within the survey area, as long as they are outside of buildings.
-There is currently no simple tool in the Processing Toolbox that takes care of that. The first step to achieve this is using QuickOSM, but with a different query to download all buildings.
+There is currently no simple tool in the Processing Toolbox that takes care of that. QuickOSM can be used to find all buildings, by using a different query.
 
-Use key = 'building' and value = '*'. This will give you a new temporary layer in EPSG:4326 that needs to be converted to the project CRS for it to become useful.
+Use ``key = building`` and ``value = *``. This will give you a new temporary layer in EPSG:4326 that needs to be converted to the project CRS for it to become useful.
 
-Once this is done, from Roll, you can run ``Processing -> Processing Utilities -> Move points outside polygons``.
+Once this is done, from **Roll**, you can run ``Processing -> Processing Utilities -> Move points outside polygons``.
 
 .. figure:: ../../images/Move_indoor_measurements_outside.png
    :alt: Move indoor measurements outside tool in QGIS
@@ -264,7 +279,7 @@ With both sources and receivers relocated, you can get results as shown in the f
    Relocated source and receiver points after road snapping and building-avoidance updates.
 
 The result sofar isn't yet 100% perfect; there is a chance that you get some points inside buildings.
-And maybe some roads have become inaccessible. But it is a good start to confirm **actual** survey coverage
+And maybe some roads have become inaccessible over time. But it is a good start to confirm **actual** survey coverage
 instead of the **nominal** coverage based on the template alone.
 
 9. Read src/rec and sps/rps Points from QGIS back into Roll

@@ -272,7 +272,7 @@ One needs to be carefull that downloaded line segments do <strong>not</strong> i
 <p><span class="caption-text">QuickOSM quick query configuration used to download road data.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<p>Once the road information has been downloaded, use <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">Toolbox</span> <span class="pre">-&gt;</span> <span class="pre">Vector</span> <span class="pre">general</span> <span class="pre">-&gt;</span> <span class="pre">reproject</span></code> to reproject the road segments to the project’s CRS.
+<p>Once the road information has been downloaded, in <strong>QGis</strong> use <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">Toolbox</span> <span class="pre">-&gt;</span> <span class="pre">Vector</span> <span class="pre">general</span> <span class="pre">-&gt;</span> <span class="pre">reproject</span></code> to reproject the road segments to the project’s CRS.
 With this out of the way, we can now move the source points to the nearest road segment using <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">Toolbox</span> <span class="pre">-&gt;</span> <span class="pre">Vector</span> <span class="pre">geometry</span> <span class="pre">-&gt;</span> <span class="pre">Snap</span> <span class="pre">geometries</span> <span class="pre">to</span> <span class="pre">layer</span></code>.</p>
 <figure class="align-center" id="id2">
 <img alt="Snap geometries to layer tool in QGIS" src="_images/Snap_geometries_to_layer.png" />
@@ -286,17 +286,30 @@ With this out of the way, we can now move the source points to the nearest road 
 <p>OSM roads often contain multipart line segments. These first need to be converted to singlepart lines.
 This can be done using <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">Toolbox</span> <span class="pre">-&gt;</span> <span class="pre">Vector</span> <span class="pre">geometry</span> <span class="pre">-&gt;</span> <span class="pre">Multipart</span> <span class="pre">to</span> <span class="pre">Singleparts</span></code>.</p>
 </div>
+<p>In <strong>Roll</strong>, under <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">-&gt;</span> <span class="pre">Processing</span> <span class="pre">Utilities</span> <span class="pre">-&gt;</span> <span class="pre">Move</span> <span class="pre">Points</span> <span class="pre">to</span> <span class="pre">nearest</span> <span class="pre">line</span> <span class="pre">in</span> <span class="pre">QGis</span></code> you’ll find a script that takes care of the various preparation steps:</p>
+<ol class="arabic simple">
+<li><p>It (optionally) converts multipart road (line) segments to singlepart lines</p></li>
+<li><p>It (optionally) removes planned roads and roads that are under construction</p></li>
+<li><p>Finally it snaps the points to the nearest road segment.</p></li>
+</ol>
+<p>See the figure below for the user interface.</p>
+<figure class="align-center" id="id3">
+<img alt="Clean and snap points to roads" src="_images/Clean_and_snap_points_to_roads.png" />
+<figcaption>
+<p><span class="caption-text">Clean and snap points to roads in QGis.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
 </section>
 <section id="move-rec-rps-points">
 <h3>8.2 Move rec/rps points<a class="headerlink" href="#move-rec-rps-points" title="Link to this heading">¶</a></h3>
 <p>Receiver points don’t really need to be aligned with the road grid. They can be located anywhere within the survey area, as long as they are outside of buildings.
-There is currently no simple tool in the Processing Toolbox that takes care of that. The first step to achieve this is using QuickOSM, but with a different query to download all buildings.</p>
-<p>Use key = ‘building’ and value = ‘*’. This will give you a new temporary layer in EPSG:4326 that needs to be converted to the project CRS for it to become useful.</p>
-<p>Once this is done, from Roll, you can run <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">-&gt;</span> <span class="pre">Processing</span> <span class="pre">Utilities</span> <span class="pre">-&gt;</span> <span class="pre">Move</span> <span class="pre">points</span> <span class="pre">outside</span> <span class="pre">polygons</span></code>.</p>
-<figure class="align-center" id="id3">
+There is currently no simple tool in the Processing Toolbox that takes care of that. QuickOSM can be used to find all buildings, by using a different query.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">key</span> <span class="pre">=</span> <span class="pre">building</span></code> and <code class="docutils literal notranslate"><span class="pre">value</span> <span class="pre">=</span> <span class="pre">*</span></code>. This will give you a new temporary layer in EPSG:4326 that needs to be converted to the project CRS for it to become useful.</p>
+<p>Once this is done, from <strong>Roll</strong>, you can run <code class="docutils literal notranslate"><span class="pre">Processing</span> <span class="pre">-&gt;</span> <span class="pre">Processing</span> <span class="pre">Utilities</span> <span class="pre">-&gt;</span> <span class="pre">Move</span> <span class="pre">points</span> <span class="pre">outside</span> <span class="pre">polygons</span></code>.</p>
+<figure class="align-center" id="id4">
 <img alt="Move indoor measurements outside tool in QGIS" src="_images/Move_indoor_measurements_outside.png" />
 <figcaption>
-<p><span class="caption-text">Move points outside polygons workflow used to shift indoor measurements to valid locations.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+<p><span class="caption-text">Move points outside polygons workflow used to shift indoor measurements to valid locations.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>The tool isn’t yet 100% waterproof; there is  chance that you move a point into a neighboring building.
@@ -307,14 +320,14 @@ This behavior will be improved in future versions of Roll.</p>
 <section id="overall-results">
 <h3>8.3 Overall results<a class="headerlink" href="#overall-results" title="Link to this heading">¶</a></h3>
 <p>With both sources and receivers relocated, you can get results as shown in the figure below.</p>
-<figure class="align-center" id="id4">
+<figure class="align-center" id="id5">
 <img alt="Relocated source and receiver points in QGIS" src="_images/Relocated_source_and_receiver_points.png" />
 <figcaption>
-<p><span class="caption-text">Relocated source and receiver points after road snapping and building-avoidance updates.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+<p><span class="caption-text">Relocated source and receiver points after road snapping and building-avoidance updates.</span><a class="headerlink" href="#id5" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>The result sofar isn’t yet 100% perfect; there is a chance that you get some points inside buildings.
-And maybe some roads have become inaccessible. But it is a good start to confirm <strong>actual</strong> survey coverage
+And maybe some roads have become inaccessible over time. But it is a good start to confirm <strong>actual</strong> survey coverage
 instead of the <strong>nominal</strong> coverage based on the template alone.</p>
 </section>
 </section>

@@ -42,8 +42,8 @@ from .aux_functions import (aboutText, exampleSurveyXmlText, highDpiText,
                             licenseText, myPrint, qgisCheatSheetText)
 from .binning_worker_mixin import BinningWorkerMixin
 from .chunked_data import ChunkedData
-from .cursor_utils import (busyCursor as sharedBusyCursor,
-                           clearBusyCursorOverrides,
+from .cursor_utils import busyCursor as sharedBusyCursor
+from .cursor_utils import (clearBusyCursorOverrides,
                            clearBusyCursorOverridesIfIdle)
 from .display_dock import createDisplayDock
 from .document_context_service import DocumentContextService
@@ -837,6 +837,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionCFPPlaneAnalysisFromSPSInput.triggered.connect(self.cfpPlaneAnalysisFromSpsTables)
         self.actionShiftSurveyArea.triggered.connect(self.shiftSurveyArea)
         self.actionMovePointsOutsidePolygons.triggered.connect(self.movePointsOutsidePolygons)
+        self.actionMovePointsToLine.triggered.connect(self.movePointsToNearestLine)
 
         # actions related to the help menu
         self.actionAbout.triggered.connect(self.onAbout)
@@ -1890,6 +1891,34 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             return
 
         self.movePointsOutsidePolygonsDialog = dialog
+        dialog.show()
+
+    def movePointsToNearestLine(self):
+        try:
+            import processing
+        except ImportError:
+            self.appendLogMessage('Thread : Processing plugin is not available', MsgType.Error)
+            return
+
+        dialog = None
+
+        scriptPath = os.path.join(os.path.dirname(__file__), 'tools', 'clean_and_snap_points_to_roads.py')
+        try:
+            from qgis.utils import processing_algorithm_from_script
+            algorithm = processing_algorithm_from_script(scriptPath)
+            if algorithm is not None:
+                dialog = processing.createAlgorithmDialog(algorithm)
+        except (ImportError, AttributeError):
+            dialog = None
+
+        if dialog is None:
+            dialog = processing.createAlgorithmDialog('script:clean_and_snap_points_to_roads')
+
+        if dialog is None:
+            self.appendLogMessage('Thread : Move points to line tool is not available', MsgType.Error)
+            return
+
+        self.movePointsToNearestLineDialog = dialog
         dialog.show()
 
     def onActionNoneTriggered(self):
@@ -3041,7 +3070,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         return {
             'xValues': histogram[0, :],
             'yValues': histogram[1, :-1],
-            'plotTitle': f"{self.plotTitles[8]} [{histogramInputs['count']:,} traces]",
+            'plotTitle': f"{self.plotTitles[9]} [{histogramInputs['count']:,} traces]",
         }
 
     def renderPreparedOffsetPlot(self, plotInputs):
@@ -3117,7 +3146,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
             'count': histogramInputs['count'],
             'isPolar': isPolar,
             'modeText': modeText,
-            'plotTitle': f"{self.plotTitles[9]} [{histogramInputs['count']:,} traces, {modeText}]",
+            'plotTitle': f"{self.plotTitles[10]} [{histogramInputs['count']:,} traces, {modeText}]",
         }
 
     def renderPreparedOffAziPlot(self, plotInputs):

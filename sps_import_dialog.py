@@ -749,13 +749,13 @@ class SpsImportDialog(QDialog):
         self._setSpinValue(self.xpsToSpin, maxCol2)
 
         spsFormatIndex = self.spsFormatList.currentRow()
-        spsKey = list(config.spsRelationFormatDict.keys())[self.xpsCombo.currentIndex()]
+        xpsKey = list(config.spsRelationFormatDict.keys())[self.xpsCombo.currentIndex()]
 
-        self.appSettings.xpsFormatList[spsFormatIndex][spsKey][0] = minCol2
-        self.appSettings.xpsFormatList[spsFormatIndex][spsKey][1] = maxCol2
+        self.appSettings.xpsFormatList[spsFormatIndex][xpsKey][0] = minCol2
+        self.appSettings.xpsFormatList[spsFormatIndex][xpsKey][1] = maxCol2
 
-        self.spsTab.line1 = self.appSettings.xpsFormatList[spsFormatIndex][spsKey][0]
-        self.spsTab.line2 = self.appSettings.xpsFormatList[spsFormatIndex][spsKey][1]
+        self.xpsTab.line1 = self.appSettings.xpsFormatList[spsFormatIndex][xpsKey][0]
+        self.xpsTab.line2 = self.appSettings.xpsFormatList[spsFormatIndex][xpsKey][1]
 
         self.tabWidget.setCurrentIndex(1)                                       # select XPS Tab
         self.xpsTab.update()

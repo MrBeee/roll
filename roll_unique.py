@@ -3,7 +3,7 @@ This module sets binning parameters for "unique fold"
 """
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from .aux_functions import toBool, toFloat
+from .aux_functions import toBool, toFloat, toInt
 
 
 class RollUnique:
@@ -12,14 +12,14 @@ class RollUnique:
         self.apply = False
         self.write = False
         self.dOffset = 200.0
-        self.dAzimuth = 5.0
+        self.aziSlots = 1
 
     def writeXml(self, parent: QDomNode, doc: QDomDocument):
         uniqueElem = doc.createElement('unique')
         uniqueElem.setAttribute('apply', str(self.apply))
         uniqueElem.setAttribute('write', str(self.write))
         uniqueElem.setAttribute('deltaoff', str(self.dOffset))
-        uniqueElem.setAttribute('deltaazi', str(self.dAzimuth))
+        uniqueElem.setAttribute('azislots', str(self.aziSlots))
         parent.appendChild(uniqueElem)
 
         return uniqueElem
@@ -33,6 +33,6 @@ class RollUnique:
         self.apply = toBool(uniqueElem.attribute('apply'), False)
         self.write = toBool(uniqueElem.attribute('write'), False)
         self.dOffset = toFloat(uniqueElem.attribute('deltaoff'))
-        self.dAzimuth = toFloat(uniqueElem.attribute('deltaazi'))
+        self.aziSlots = toInt(uniqueElem.attribute('azislots', '1'))
 
         return True

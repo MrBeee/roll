@@ -201,6 +201,7 @@
       <string>Processing &amp;Utilities</string>
      </property>
      <addaction name="actionShiftSurveyArea"/>
+     <addaction name="actionMovePointsToLine"/>
      <addaction name="actionMovePointsOutsidePolygons"/>
     </widget>
     <widget class="QMenu" name="menuCFPPointAnalysis">
@@ -1843,6 +1844,18 @@
    </property>
    <property name="toolTip">
     <string>Move src/rec points outside of buildings</string>
+   </property>
+  </action>
+  <action name="actionMovePointsToLine">
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/mActionMovePointsToLine.svg</normaloff>resources/mActionMovePointsToLine.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Move points to nearest line in QGis</string>
+   </property>
+   <property name="toolTip">
+    <string>Move points to nearest location on a line</string>
    </property>
   </action>
  </widget>
