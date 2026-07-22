@@ -1,0 +1,24 @@
+testBinFromGeometry10HonorsRadialOffsetFilter (test.test_roll_survey_bin_equivalence.BinFromGeometryEquivalenceTest.testBinFromGeometry10HonorsRadialOffsetFilter)
+Radial offset filtering is one of the semantic features that ... ok
+testBinFromGeometry10MatchesBinFromGeometry8FastPath (test.test_roll_survey_bin_equivalence.BinFromGeometryEquivalenceTest.testBinFromGeometry10MatchesBinFromGeometry8FastPath)
+fullAnalysis=False: binOutput / minOffset / maxOffset must match exactly. ... ok
+testBinFromGeometry10MatchesBinFromGeometry8FullAnalysis (test.test_roll_survey_bin_equivalence.BinFromGeometryEquivalenceTest.testBinFromGeometry10MatchesBinFromGeometry8FullAnalysis)
+fullAnalysis=True: binOutput / minOffset / maxOffset / anaOutput must match. ... ok
+testBinFromGeometryNoRel2MatchesReferenceInBasicAndFullAnalysis (test.test_roll_survey_bin_equivalence.BinFromGeometryEquivalenceTest.testBinFromGeometryNoRel2MatchesReferenceInBasicAndFullAnalysis) ... ok
+testBinFromTemplatesDispatchUsesBinTemplate8ByDefaultAnd10WhenExperimental (test.test_roll_survey_bin_equivalence.BinFromGeometryEquivalenceTest.testBinFromTemplatesDispatchUsesBinTemplate8ByDefaultAnd10WhenExperimental) ... ok
+testBinTemplate10MatchesBinTemplate8InBasicAndFullAnalysis (test.test_roll_survey_bin_equivalence.BinFromGeometryEquivalenceTest.testBinTemplate10MatchesBinTemplate8InBasicAndFullAnalysis) ... ok
+testGeometryBinningUsesSubsetOfTemplateTraceSetWhenReceiversAreInactive (test.test_roll_survey_bin_equivalence.BinFromGeometryEquivalenceTest.testGeometryBinningUsesSubsetOfTemplateTraceSetWhenReceiversAreInactive) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 1.427s
+
+OK
+
+ROLL TEST SUMMARY
+Ran: 7
+Failures: 0
+Errors: 0
+Skipped: 0
+Expected failures: 0
+Unexpected successes: 0
+Status: PASS

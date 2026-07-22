@@ -61,7 +61,7 @@ class ActionStateController:
             ('actionMaxO', window.output.maxOffset is not None),
             ('actionRmsO', window.output.rmsOffset is not None),
             ('actionGapO', window.output.gapOffset is not None),
-            ('actionIllumination', window.output.cfpOutput is not None),
+            ('actionIllu', window.output.cfpOutput is not None),
             ('actionSpider', window.output.anaOutput is not None and window.output.binOutput is not None),
             ('actionMoveLt', window.output.anaOutput is not None),
             ('actionMoveRt', window.output.anaOutput is not None),
@@ -72,12 +72,13 @@ class ActionStateController:
             ('btnMaxToQGIS', window.output.maxOffset is not None),
             ('btnRmsToQGIS', window.output.rmsOffset is not None),
             ('btnGapToQGIS', window.output.gapOffset is not None),
-            ('btnIlluminationToQGIS', window.output.cfpOutput is not None),
+            ('btnIllToQGIS', window.output.cfpOutput is not None),
             ('actionExportFoldMapToQGIS', window.output.binOutput is not None),
             ('actionExportMinOffsetsToQGIS', window.output.minOffset is not None),
             ('actionExportMaxOffsetsToQGIS', window.output.maxOffset is not None),
             ('actionExportRmsOffsetsToQGIS', window.output.rmsOffset is not None),
             ('actionExportOffsetGapsToQGIS', window.output.gapOffset is not None),
+            ('actionExportIlluminationToQGIS', window.output.cfpOutput is not None),
             ('actionExportIllumination', window.output.cfpOutput is not None),
             ('actionRecPoints', window.recGeom is not None),
             ('actionSrcPoints', window.srcGeom is not None),
@@ -132,10 +133,11 @@ class ActionStateController:
         self._setActionVisibility(
             ('menuCFPPointAnalysis', experimentalEnabled),
             ('menuCFPPlaneAnalysis', experimentalEnabled),
-            ('actionIllumination', experimentalEnabled),
+            ('actionIllu', experimentalEnabled),
             ('actionExportIllumination', experimentalEnabled),
+            ('actionExportIlluminationToQGIS', experimentalEnabled),
             ('tbIllumination', experimentalEnabled),
-            ('btnIlluminationToQGIS', experimentalEnabled),
+            ('btnIllToQGIS', experimentalEnabled),
         )
 
     def clipboardHasText(self):

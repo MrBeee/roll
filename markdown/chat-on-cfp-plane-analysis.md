@@ -468,7 +468,7 @@ Read [](file:///d%3A/QGis/MyPlugins/roll/roll_main_window_create_geom_tab.py#120
 
 Added 3 todos
 
-I found the relevant “Acq. Imprint”/“acquisition imprint” strings and the existing QGIS export plumbing. I’ll keep the underlying `cfpOutput` storage and image type `6`, but rename the user-facing/code action names to Illumination and add `btnIlluminationToQGIS` beside the other export buttons.
+I found the relevant “Acq. Imprint”/“acquisition imprint” strings and the existing QGIS export plumbing. I’ll keep the underlying `cfpOutput` storage and image type `6`, but rename the user-facing/code action names to Illumination and add `btnIllToQGIS` beside the other export buttons.
 
 Generating patch (136 lines) in [](file:///d%3A/QGis/MyPlugins/roll/display_dock.py), [](file:///d%3A/QGis/MyPlugins/roll/action_state_controller.py), [](file:///d%3A/QGis/MyPlugins/roll/worker_result_appliers.py), [](file:///d%3A/QGis/MyPlugins/roll/binning_worker_mixin.py), [](file:///d%3A/QGis/MyPlugins/roll/worker_operation_controller.py), [](file:///d%3A/QGis/MyPlugins/roll/worker_threads.py), [](file:///d%3A/QGis/MyPlugins/roll/roll_main_window_create_geom_tab.py), [](file:///d%3A/QGis/MyPlugins/roll/roll_main_window.py)
 
@@ -476,7 +476,7 @@ The main app wiring is patched: display button, state controller, result labels,
 
 Searched for regex `Acq\. Imprint|acq\. imprint|acquisition imprint|Acquisition Imprint|actionAcqImprint|tbAcqImprint|onActionAmpMTriggered` (`**/*.{py,ui,md,txt}`), 6 results
 
-Searched for regex `Illumination|actionIllumination|btnIlluminationToQGIS|exportIlluminationToQGIS|onActionIlluminationTriggered` (`**/*.py`), 48 results
+Searched for regex `Illumination|actionIllumination|btnIllToQGIS|exportIllToQGIS|onActionIlluminationTriggered` (`**/*.py`), 48 results
 
 Read [](file:///d%3A/QGis/MyPlugins/roll/gemini-code-1780414835131.py)
 
@@ -494,7 +494,7 @@ Checked [](file:///d%3A/QGis/MyPlugins/roll/gemini-code-1780414835131.py), [](fi
 
 Searched for regex `Acq\. Imprint|acq\. imprint|acquisition imprint|Acquisition Imprint|actionAcqImprint|tbAcqImprint|onActionAmpMTriggered` (`**/*.{py,ui,md,txt}`), no results
 
-Searched for regex `btnIlluminationToQGIS|exportIlluminationToQGIS|actionIllumination|Illumination` (`**/*.py`), 61 results
+Searched for regex `btnIllToQGIS|exportIllToQGIS|actionIllumination|Illumination` (`**/*.py`), 61 results
 
 Completed: *Rename 'Acq. Imprint' to 'Illumination' in the codebase.* (6/9)
 
@@ -536,7 +536,7 @@ Checked [](file:///d%3A/QGis/MyPlugins/roll/roll_main_window.py), [](file:///d%3
 
 Searched for regex `Acq\. Imprint|acq\. imprint|acquisition imprint|Acquisition Imprint|actionAcqImprint|tbAcqImprint|onActionAmpMTriggered` (`**/*.{py,ui,md,txt}`), no results
 
-Searched for regex `btnIlluminationToQGIS|exportIlluminationToQGIS|actionIllumination|onActionIlluminationTriggered` (`**/*.py`), 19 results
+Searched for regex `btnIllToQGIS|exportIllToQGIS|actionIllumination|onActionIlluminationTriggered` (`**/*.py`), 19 results
 
 Everything requested is wired and the old wording is gone. I’m grabbing a compact diff summary so I can close with the exact files changed.
 
@@ -546,7 +546,7 @@ Done.
 
 I renamed the “Acq. Imprint” path to “Illumination” across the app code and cleaned up the remaining old wording in the prototype/handoff note too. The display action is now `actionIllumination`, the dock button text is `Illumination`, the colorbar/status/export labels now say illumination, and the worker/log messages now say `CFP illumination`.
 
-I also added an `Illumination` button to the `Export to QGIS` group in display_dock.py. It is enabled only when `output.cfpOutput` exists via action_state_controller.py, and it is wired in roll_main_window_create_geom_tab.py to a new `exportIlluminationToQGIS()` method in roll_main_window.py. That method exports image type `6` through the existing `_exportLayoutAnalysisSurface(..., toQgis=True)` path, just like RMS and Offset Gap.
+I also added an `Illumination` button to the `Export to QGIS` group in display_dock.py. It is enabled only when `output.cfpOutput` exists via action_state_controller.py, and it is wired in roll_main_window_create_geom_tab.py to a new `exportIllToQGIS()` method in roll_main_window.py. That method exports image type `6` through the existing `_exportLayoutAnalysisSurface(..., toQgis=True)` path, just like RMS and Offset Gap.
 
 Validation:
 - QGIS LTR `py_compile` passed for the touched Python files.

@@ -5,7 +5,7 @@ rem ---------------------------------------------------------------------------
 rem Backup VS Code Copilot chat folders for the Roll workspace.
 rem
 rem Usage:
-rem   backup_copilot_chat.bat [WorkspaceId] [/open]
+rem   run_backup_copilot_chat.bat [WorkspaceId] [/open]
 rem
 rem WorkspaceId : optional. Restrict backup to a single workspace folder under
 rem               %APPDATA%\Code\User\workspaceStorage. Omit to back up all.

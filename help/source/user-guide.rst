@@ -4,7 +4,7 @@ User Guide
 Overview
 --------
 
-The purpose of **Roll** is to build (*design*) and analyze surveys. At first, using a template based approach, with the help of design wizards.
+The purpose of **Roll** is to build (*design*) and analyze seismic surveys. At first, using a template based approach, with the help of design wizards.
 Once completed, the survey layout can be checked visually in the *Layout* tab, before running some analysis jobs using 'worker threads'.
 
 The template information can be converted into geometry tables, eliminating any source or receiver duplication caused by template overlap.

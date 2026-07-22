@@ -2833,6 +2833,8 @@ class ProjectSidecarsTest(unittest.TestCase):
     def testBinningTemplatesThreadFinishedHandlesFailureResult(self):
         result = BinningFromTemplatesResult(success=False, errorText='worker failed')
 
+        self.mainWindow.output.anaOutput = np.ones((2, 2, 1, 16), dtype=np.float32)
+        self.mainWindow.output.an2Output = self.mainWindow.output.anaOutput.reshape(4, 16)
         self.mainWindow.layoutImg = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.layoutImItem = object()
         self.mainWindow.thread = object()
@@ -2848,6 +2850,8 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.assertIsNone(self.mainWindow.layoutImg)
         self.assertIsNone(self.mainWindow.layoutImItem)
+    self.assertIsNone(self.mainWindow.output.anaOutput)
+    self.assertIsNone(self.mainWindow.output.an2Output)
         handleImageSelection.assert_called_once()
         self.assertIsNone(self.mainWindow.thread)
         self.assertIsNone(self.mainWindow.worker)
@@ -4225,6 +4229,8 @@ class ProjectSidecarsTest(unittest.TestCase):
     def testBinningGeometryThreadFinishedHandlesFailureResult(self):
         result = BinningFromGeometryResult(success=False, errorText='geometry worker failed')
 
+        self.mainWindow.output.anaOutput = np.ones((2, 2, 1, 16), dtype=np.float32)
+        self.mainWindow.output.an2Output = self.mainWindow.output.anaOutput.reshape(4, 16)
         self.mainWindow.layoutImg = np.ones((2, 2), dtype=np.float32)
         self.mainWindow.layoutImItem = object()
         self.mainWindow.thread = object()
@@ -4240,6 +4246,8 @@ class ProjectSidecarsTest(unittest.TestCase):
 
         self.assertIsNone(self.mainWindow.layoutImg)
         self.assertIsNone(self.mainWindow.layoutImItem)
+    self.assertIsNone(self.mainWindow.output.anaOutput)
+    self.assertIsNone(self.mainWindow.output.an2Output)
         handleImageSelection.assert_called_once()
         self.assertIsNone(self.mainWindow.thread)
         self.assertIsNone(self.mainWindow.worker)

@@ -6,7 +6,7 @@ set "pluginsDir=%rollDir%.."
 set "pyQgisBat="
 set "envBat="
 set "qgisRoot="
-set "logFile=%rollDir%launch_roll_standalone.log"
+set "logFile=%rollDir%run_standalone.log"
 
 echo [INFO] Starting launcher> "%logFile%"
 echo [INFO] CWD=%cd%>> "%logFile%"

@@ -794,6 +794,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionExportMaxOffsetsToQGIS.triggered.connect(self.exportMaxToQGIS)
         self.actionExportRmsOffsetsToQGIS.triggered.connect(self.exportRmsToQGIS)
         self.actionExportOffsetGapsToQGIS.triggered.connect(self.exportGapToQGIS)
+        self.actionExportIlluminationToQGIS.triggered.connect(self.exportIllToQGIS)
 
         self.actionQuit.triggered.connect(self.close)                           # closes the window and arrives at CloseEvent()
 
@@ -1690,7 +1691,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
     def exportGapToQGIS(self):
         self._exportLayoutAnalysisSurface(5, toQgis=True)
 
-    def exportIlluminationToQGIS(self):
+    def exportIllToQGIS(self):
         self._exportLayoutAnalysisSurface(6, toQgis=True)
 
     def exportRpsToQgis(self):
@@ -1854,11 +1855,11 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.actionIlluminationQcIncoherent.setStatusTip('Show incoherent illumination QC map (diagnostic only)')
         self.actionIlluminationQcIncoherent.triggered.connect(self.onActionIlluminationQcIncoherentTriggered)
 
-        actionGroup = self.actionIllumination.actionGroup()
+        actionGroup = self.actionIllu.actionGroup()
         if actionGroup is not None:
             actionGroup.addAction(self.actionIlluminationQcIncoherent)
 
-        for widget in self.actionIllumination.associatedWidgets():
+        for widget in self.actionIllu.associatedWidgets():
             if hasattr(widget, 'addAction'):
                 try:
                     widget.addAction(self.actionIlluminationQcIncoherent)
@@ -1949,7 +1950,7 @@ class RollMainWindow(QMainWindow, FORM_CLASS, SpiderNavigationMixin, SurveyPaint
         self.imageType = 5
         self.handleImageSelection()
 
-    def onActionIlluminationTriggered(self):
+    def onActionIlluTriggered(self):
         self.imageType = 6
         self.handleImageSelection()
 

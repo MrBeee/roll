@@ -152,6 +152,64 @@ class BinFromGeometryEquivalenceTest(unittest.TestCase):
 
         return survey
 
+    def runNoRelationBinning(self, binFnName, fullAnalysis):
+        survey = self.buildSurvey()
+        self.populateGeometry(survey)
+        survey.output.relGeom = None
+        survey.calcTransforms(createArrays=True)
+        survey.binning.slowness = 0.0
+
+        if fullAnalysis:
+            nx, ny = survey.output.binOutput.shape
+            survey.output.anaOutput = np.zeros((nx, ny, survey.grid.fold, 16), dtype=np.float32)
+
+        appSettings = SimpleNamespace(debug=False, useNumba=False)
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=appSettings):
+            success = getattr(survey, binFnName)(fullAnalysis)
+        self.assertTrue(success, f'{binFnName} returned False')
+        return survey
+
+    def buildTemplateSurvey(self):
+        survey = self.buildSurvey()
+        survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+        template = survey.blockList[0].templateList[0]
+        srcSeed = next(seed for seed in template.seedList if seed.bSource)
+        recSeed = next(seed for seed in template.seedList if not seed.bSource)
+        srcSeed.origin = QVector3D(10.0, 70.0, 0.0)
+        srcSeed.grid.growList[2].steps = 3
+        srcSeed.grid.growList[2].increment = QVector3D(10.0, 0.0, 0.0)
+        recSeed.origin = QVector3D(0.0, 30.0, 0.0)
+        recSeed.grid.growList[2].steps = 6
+        recSeed.grid.growList[2].increment = QVector3D(10.0, 0.0, 0.0)
+        survey.calcTransforms(createArrays=True)
+        survey.calcNoShotPoints()
+        return survey
+
+    def runTemplateBinning(self, routineName, fullAnalysis):
+        survey = self.buildTemplateSurvey()
+        survey.binning.slowness = 0.0
+        if fullAnalysis:
+            nx, ny = survey.output.binOutput.shape
+            survey.output.anaOutput = np.zeros((nx, ny, survey.grid.fold, 16), dtype=np.float32)
+
+        appSettings = SimpleNamespace(debug=False, useNumba=False)
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=appSettings):
+            survey.calcPointArrays()
+            block = survey.blockList[0]
+            template = block.templateList[0]
+            getattr(survey, routineName)(block, template, QVector3D(), fullAnalysis)
+            survey.finalizeLiveBinningOutputs(fullAnalysis)
+        return survey
+
+    def assertBinningOutputsEqual(self, reference, experimental, fullAnalysis):
+        np.testing.assert_array_equal(reference.output.binOutput, experimental.output.binOutput)
+        np.testing.assert_allclose(reference.output.minOffset, experimental.output.minOffset, rtol=0, atol=1e-5)
+        np.testing.assert_allclose(reference.output.maxOffset, experimental.output.maxOffset, rtol=0, atol=1e-5)
+        self.assertEqual(reference.output.minimumFold, experimental.output.minimumFold)
+        self.assertEqual(reference.output.maximumFold, experimental.output.maximumFold)
+        if fullAnalysis:
+            np.testing.assert_allclose(reference.output.anaOutput, experimental.output.anaOutput, rtol=0, atol=1e-4)
+
     def testBinFromGeometry10MatchesBinFromGeometry8FastPath(self):
         """fullAnalysis=False: binOutput / minOffset / maxOffset must match exactly."""
         survey8 = self.runBinning('binFromGeometry8', False)
@@ -173,6 +231,53 @@ class BinFromGeometryEquivalenceTest(unittest.TestCase):
 
         self.assertEqual(survey8.output.maximumFold, survey10.output.maximumFold)
         self.assertEqual(survey8.output.minimumFold, survey10.output.minimumFold)
+
+    def testBinFromGeometryNoRel2MatchesReferenceInBasicAndFullAnalysis(self):
+        for fullAnalysis in (False, True):
+            with self.subTest(fullAnalysis=fullAnalysis):
+                reference = self.runNoRelationBinning('binFromGeometryNoRel', fullAnalysis)
+                experimental = self.runNoRelationBinning('binFromGeometryNoRel2', fullAnalysis)
+                self.assertGreater(int(reference.output.binOutput.sum()), 0)
+                self.assertBinningOutputsEqual(reference, experimental, fullAnalysis)
+
+    def testBinTemplate10MatchesBinTemplate8InBasicAndFullAnalysis(self):
+        for fullAnalysis in (False, True):
+            with self.subTest(fullAnalysis=fullAnalysis):
+                reference = self.runTemplateBinning('binTemplate8', fullAnalysis)
+                experimental = self.runTemplateBinning('binTemplate10', fullAnalysis)
+                self.assertGreater(int(reference.output.binOutput.sum()), 0)
+                self.assertBinningOutputsEqual(reference, experimental, fullAnalysis)
+
+    def testBinTemplate10StoresAll900TracesAcrossSourceChunks(self):
+        survey = self.buildSurvey()
+        survey.grid.fold = 1000
+        survey.createBasicSkeleton(nBlocks=1, nTemplates=1, nSrcSeeds=1, nRecSeeds=1, nPatterns=0)
+        template = survey.blockList[0].templateList[0]
+        srcSeed = next(seed for seed in template.seedList if seed.bSource)
+        recSeed = next(seed for seed in template.seedList if not seed.bSource)
+        srcSeed.origin = QVector3D(10.0, 10.0, 0.0)
+        srcSeed.grid.growList[2].steps = 30
+        srcSeed.grid.growList[2].increment = QVector3D()
+        recSeed.origin = QVector3D(10.0, 10.0, 0.0)
+        recSeed.grid.growList[2].steps = 30
+        recSeed.grid.growList[2].increment = QVector3D()
+        survey.calcTransforms(createArrays=True)
+        survey.calcNoShotPoints()
+        survey.binning.slowness = 0.0
+
+        nx, ny = survey.output.binOutput.shape
+        survey.output.anaOutput = np.zeros((nx, ny, survey.grid.fold, 16), dtype=np.float32)
+        appSettings = SimpleNamespace(debug=False, useNumba=False)
+        batchBudget = 80 * 30 * 5
+        with patch.object(rollSurveyModule, 'getActiveAppSettings', return_value=appSettings):
+            with patch.object(rollSurveyModule.config, 'TEMPLATE_BATCH_BUDGET_BYTES', batchBudget):
+                survey.calcPointArrays()
+                survey.binTemplate10(survey.blockList[0], template, QVector3D(), True)
+
+        populatedRows = np.count_nonzero(survey.output.anaOutput[:, :, :, 2] > 0)
+        self.assertEqual(int(survey.output.binOutput.sum()), 900)
+        self.assertEqual(populatedRows, 900)
+        self.assertEqual(int(survey.output.binOutput.max()), 900)
 
     def testBinFromTemplatesDispatchUsesBinTemplate8ByDefaultAnd10WhenExperimental(self):
         survey = RollSurvey('Template-Dispatch-Test')

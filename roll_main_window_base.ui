@@ -137,6 +137,7 @@
      <addaction name="actionExportMaxOffsetsToQGIS"/>
      <addaction name="actionExportRmsOffsetsToQGIS"/>
      <addaction name="actionExportOffsetGapsToQGIS"/>
+     <addaction name="actionExportIlluminationToQGIS"/>
      <addaction name="separator"/>
      <addaction name="actionExportAreasToQGIS"/>
     </widget>
@@ -319,6 +320,7 @@
     <addaction name="actionMaxO"/>
     <addaction name="actionRmsO"/>
     <addaction name="actionGapO"/>
+    <addaction name="actionIllu"/>
     <addaction name="separator"/>
     <addaction name="actionSpider"/>
     <addaction name="separator"/>
@@ -1185,6 +1187,11 @@
     <string>Export Max Offset Gaps to QGIS</string>
    </property>
   </action>
+  <action name="actionExportIlluminationToQGIS">
+   <property name="text">
+    <string>Export Illumination to QGIS</string>
+   </property>
+  </action>
   <action name="actionExportSrcToQGIS">
    <property name="text">
     <string>Export SRC Records to QGIS</string>
@@ -1856,6 +1863,11 @@
    </property>
    <property name="toolTip">
     <string>Move points to nearest location on a line</string>
+   </property>
+  </action>
+  <action name="actionIllu">
+   <property name="text">
+    <string>Illumination</string>
    </property>
   </action>
  </widget>

@@ -1,0 +1,15 @@
+testBinTemplate10StoresAll900TracesAcrossSourceChunks (test.test_roll_survey_bin_equivalence.BinFromGeometryEquivalenceTest.testBinTemplate10StoresAll900TracesAcrossSourceChunks) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.126s
+
+OK
+
+ROLL TEST SUMMARY
+Ran: 1
+Failures: 0
+Errors: 0
+Skipped: 0
+Expected failures: 0
+Unexpected successes: 0
+Status: PASS

@@ -81,9 +81,9 @@ class CfpAmplitudeMapResultApplier:
         # Update output
         self.window.output.cfpOutput = result.amplitudeMap
         self.window.output.cfpOutputIncoherentQc = result.incoherentAmplitudeMap
-        actionIllumination = getattr(self.window, 'actionIllumination', None)
-        if actionIllumination is not None:
-            actionIllumination.setChecked(True)
+        actionIllu = getattr(self.window, 'actionIllu', None)
+        if actionIllu is not None:
+            actionIllu.setChecked(True)
 
         actionIlluminationQc = getattr(self.window, 'actionIlluminationQcIncoherent', None)
         if actionIlluminationQc is not None:
@@ -141,6 +141,7 @@ class BinningResultApplier:
         self._applySuccess(result, elapsed)
 
     def _applyFailure(self, errorText: str) -> None:
+        self.window.resetAnaTableModel()
         self.window.layoutImg = None
         self.window.layoutImItem = None
         self.window.handleImageSelection()
